@@ -81,8 +81,6 @@ a:hover{ color: var(--navy); }
   position: relative;
   padding: 64px 0 56px;
   overflow: hidden;
-
-  /* ✅ ensure hero is a stacking context below its content */
   z-index: 0;
 }
 
@@ -91,13 +89,10 @@ a:hover{ color: var(--navy); }
   grid-template-columns: 1.2fr 0.8fr;
   gap: 36px;
   align-items: start;
-
-  /* ✅ ensure content is above decorative layers */
   position: relative;
   z-index: 1;
 }
 
-/* ✅ make sure hero text/buttons are always clickable */
 .hero-copy{
   position: relative;
   z-index: 2;
@@ -122,7 +117,7 @@ h1{
   font-size: 18px;
   color: var(--subtext);
   margin: 0 0 12px;
-  max-width: 52ch;
+  max-width: 60ch;
 }
 
 .principle{
@@ -240,11 +235,7 @@ h1{
     linear-gradient(180deg, rgba(255,255,255,0.0), rgba(245,247,251,1));
   transform: skewY(-3deg);
   border-top: 1px solid rgba(15,36,66,0.06);
-
-  /* ✅ CRITICAL: do not intercept clicks/taps */
   pointer-events: none;
-
-  /* ✅ place behind hero content */
   z-index: -1;
 }
 
@@ -268,11 +259,10 @@ h2{
 .section-lead{
   margin: 0 0 26px;
   color: var(--subtext);
-  max-width: 70ch;
+  max-width: 80ch;
   font-size: 16px;
 }
 
-/* ✅ spacing for the new guardrails line */
 .guardrails{
   margin-top: 18px;
   margin-bottom: 0;
@@ -294,6 +284,31 @@ h2{
   margin: 10px 0;
 }
 
+/* === New: small sub-block inside a section === */
+.subblock{
+  margin-top: 28px;
+  border-top: 1px solid rgba(15,36,66,0.08);
+  padding-top: 22px;
+}
+
+.h3{
+  margin: 0 0 10px;
+  font-size: 18px;
+  color: var(--text);
+}
+
+.sublead{
+  margin-bottom: 18px;
+}
+
+.note{
+  margin-top: 16px;
+  margin-bottom: 0;
+  font-size: 14px;
+  opacity: 0.95;
+}
+
+/* Cards */
 .cards{
   display:grid;
   grid-template-columns: repeat(3, 1fr);
@@ -319,10 +334,12 @@ h2{
   color: var(--subtext);
 }
 
+/* === FIX: Steps grid should look symmetric with 5 items === */
 .steps{
   display:grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: 14px;
+  align-items: stretch;
 }
 
 .step{
@@ -471,7 +488,6 @@ h2{
   .hero-inner{ grid-template-columns: 1fr; }
   .hero-card{ display:none; }
   .cards{ grid-template-columns: 1fr; }
-  .steps{ grid-template-columns: 1fr 1fr; }
   .grid-2{ grid-template-columns: 1fr; }
   .grid-3{ grid-template-columns: 1fr; }
   .contact{ grid-template-columns: 1fr; }
@@ -479,6 +495,6 @@ h2{
 
 @media (max-width: 520px){
   h1{ font-size: 34px; }
-  .nav{ display:none; } /* keep it ultra-clean on small screens */
+  .nav{ display:none; }
   .site-header{ position: static; }
 }

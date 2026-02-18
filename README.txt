@@ -4,6 +4,8 @@ Upload these files to your GitHub repository root:
 
 - index.html
 - styles.css
+- privacy-policy.html
+- terms-and-conditions.html
 - assets/ (folder)
 
 Then enable GitHub Pages:

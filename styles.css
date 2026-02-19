@@ -478,8 +478,8 @@ input:focus, textarea:focus{ border-color: rgba(43,125,233,0.65); box-shadow: 0 
   gap: 14px;
 }
 .footer-logo {
-  width: 220px;
-  filter: brightness(1.2);
+  width: 320px;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,0.22)) brightness(1.15);
   opacity: 0.95;
 }
 .footer-title{ font-weight: 800; color: white; }
@@ -720,4 +720,42 @@ input:focus, textarea:focus{ border-color: rgba(43,125,233,0.65); box-shadow: 0 
 
 @media (max-width: 640px){
   .footer-logo{ width: 170px; }
+}
+
+/* Link affordance inside clickable cards */
+.usecard{
+  display:flex;
+  flex-direction:column;
+}
+.usecard .learn-more{
+  margin-top:auto;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-weight:600;
+  color: var(--primary);
+  font-size: 13px;
+  padding-top: 10px;
+}
+
+/* Make pill links look clickable even without hover */
+.pill-link{
+  position: relative;
+  padding-right: 34px;
+  cursor: pointer;
+}
+.pill-link::after{
+  content: "";
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--primary);
+  opacity: 0.55;
+}
+.pill-link:hover::after{
+  opacity: 1;
 }

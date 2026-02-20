@@ -857,24 +857,45 @@ input:focus, textarea:focus{ border-color: rgba(43,125,233,0.65); box-shadow: 0 
 
 /* Footer: keep it compact and readable on phones */
 @media (max-width: 520px){
-  .footer{
-    padding: 18px 0;
-  }
+  .footer{ padding: 18px 0; }
   .footer-inner{
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
+    gap: 12px;
   }
   .footer-left{
-    gap: 10px;
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
   }
   .footer-logo{
-    width: 180px;
+    height: auto;
+    width: min(190px, 60vw);
+    max-width: 190px;
   }
   .footer-right{
     width: 100%;
-    display:flex;
-    flex-wrap: wrap;
-    gap: 6px 10px;
+    text-align: left;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .footer-right .sep{ display:none; }
+  .footer-right a{ display:inline-block; margin-right: 10px; }
+}
+
+/* Footer: landscape phones often get cramped height; avoid weird wrapping */
+@media (max-width: 920px) and (orientation: landscape){
+  .footer-inner{
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .footer-logo{
+    width: min(220px, 40vw);
+    max-width: 220px;
+  }
+  .footer-right{
+    text-align: right;
   }
 }

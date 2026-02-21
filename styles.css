@@ -12,8 +12,12 @@
 }
 
 *{ box-sizing:border-box; }
-html{ scroll-behavior:smooth; }
+html{ scroll-behavior:smooth; width:100%; overflow-x:hidden; -webkit-text-size-adjust:100%; }
 body{
+  width:100%;
+  overflow-x:hidden;
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
   margin:0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
   color: var(--text);
@@ -649,7 +653,8 @@ input:focus, textarea:focus{ border-color: rgba(43,125,233,0.65); box-shadow: 0 
   padding:14px 0;
 }
 .footer-brand{display:flex; align-items:center; gap:14px;}
-\ object-fit:contain; opacity:.95;}
+.footer-logo{height:60px; width:auto; object-fit:contain; opacity:.95;}
+
 .footer-name{font-weight:800; letter-spacing:.2px;}
 .footer-sub{opacity:.85; font-size:14px; margin-top:2px;}
 .footer-right{display:flex; flex-direction:column; align-items:flex-end; gap:10px; text-align:right;}
@@ -857,45 +862,94 @@ input:focus, textarea:focus{ border-color: rgba(43,125,233,0.65); box-shadow: 0 
 
 /* Footer: keep it compact and readable on phones */
 @media (max-width: 520px){
-  .footer{ padding: 18px 0; }
+  .footer{
+    padding: 18px 0;
+  }
   .footer-inner{
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 10px;
   }
   .footer-left{
-    width: 100%;
-    flex-direction: row;
-    align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
   .footer-logo{
-    height: auto;
-    width: min(190px, 60vw);
-    max-width: 190px;
+    width: 180px;
   }
   .footer-right{
     width: 100%;
-    text-align: left;
-    font-size: 13px;
-    line-height: 1.6;
+    display:flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
   }
-  .footer-right .sep{ display:none; }
-  .footer-right a{ display:inline-block; margin-right: 10px; }
 }
 
-/* Footer: landscape phones often get cramped height; avoid weird wrapping */
-@media (max-width: 920px) and (orientation: landscape){
-  .footer-inner{
-    flex-direction: row;
+/* --- v9 mobile header & footer polish (mobile-only) --- */
+@media (max-width: 640px){
+  .site-header{ position: sticky; top: 0; }
+  .header-inner{
+    flex-direction: column;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 0;
   }
-  .footer-logo{
-    width: min(220px, 40vw);
-    max-width: 220px;
+  /* keep logo readable but not huge */
+  .brand-logo{ height: 46px; }
+
+  /* show nav on mobile (no hidden menu) */
+  .nav{
+    display: flex !important;
+    width: 100%;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
   }
+  .nav-link{
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  /* language + CTA row is already inside nav in this build; make them fit */
+  .lang-switch{ transform: scale(0.95); transform-origin: center; }
+  .nav-cta, .cta-pill{
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 999px;
+  }
+
+  /* prevent any horizontal scroll / right white strip */
+  .hero, .section, .footer, .site-header { overflow-x: clip; }
+}
+
+/* Footer alignment on small screens */
+@media (max-width: 640px){
+  .footer-inner{
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 12px;
+  }
+  .footer-left{ justify-content: center; }
   .footer-right{
-    text-align: right;
+    justify-content: center;
+    text-align: center;
+    flex-wrap: wrap;
+    gap: 10px;
   }
+  .footer-logo{ height: 52px; }
+  .footer-links{
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
+/* Landscape phone: keep header compact */
+@media (max-width: 920px) and (orientation: landscape){
+  .header-inner{ flex-direction: row; align-items:center; justify-content: space-between; }
+  .brand-logo{ height: 38px; }
+  .nav{ width:auto; justify-content:flex-end; }
+  .nav-link{ font-size: 12px; padding: 6px 8px; }
+  .nav-cta, .cta-pill{ height: 38px; padding: 0 14px; }
 }

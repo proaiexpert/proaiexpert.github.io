@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>AIâ€‘Ð°Ð³ÐµÐ½Ñ‚Ñ‹ Ð² Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ð·Ð°Ñ†Ð¸Ð¸: Ð¿Ð°Ñ‚Ñ‚ÐµÑ€Ð½Ñ‹ Ð¸ Ð¾ÑˆÐ¸Ð±ÐºÐ¸ | ProAI Expert</title>
-  <meta name="description" content="Ð Ð°Ð±Ð¾Ñ‡Ð¸Ðµ Ð¿Ð°Ñ‚Ñ‚ÐµÑ€Ð½Ñ‹ AIâ€‘Ð°Ð³ÐµÐ½Ñ‚Ð¾Ð² Ð´Ð»Ñ Ð¿Ñ€Ð¾Ñ†ÐµÑÑÐ¾Ð² Ð¸ Ñ‚Ð¸Ð¿Ð¾Ð²Ñ‹Ðµ Ð¾ÑˆÐ¸Ð±ÐºÐ¸ (Ð³Ð°Ð»Ð»ÑŽÑ†Ð¸Ð½Ð°Ñ†Ð¸Ð¸, Ð¿ÐµÑ€ÐµÑ€Ð°Ð·Ñ€ÐµÑˆÐµÐ½Ð¸Ðµ, Ð¿Ð»Ð¾Ñ…Ð¾Ð¹ UX). Ð§ÐµÐºâ€‘Ð»Ð¸ÑÑ‚ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»Ñ Ð¿ÐµÑ€ÐµÐ´ Ð·Ð°Ð¿ÑƒÑÐºÐ¾Ð¼."/>
+  <title>AI‑агенты в автоматизации: паттерны и ошибки | ProAI Expert</title>
+  <meta name="description" content="Рабочие паттерны AI‑агентов для процессов и типовые ошибки (галлюцинации, переразрешение, плохой UX). Чек‑лист контроля перед запуском."/>
 
   <link rel="canonical" href="https://proaiexpert.github.io/ru/news/ai-agenty-patternty-i-oshibki.html"/>
   <link rel="alternate" hreflang="ru" href="https://proaiexpert.github.io/ru/news/ai-agenty-patternty-i-oshibki.html"/>
@@ -13,14 +13,14 @@
 
   <meta property="og:site_name" content="ProAI Expert"/>
   <meta property="og:type" content="article"/>
-  <meta property="og:title" content="AIâ€‘Ð°Ð³ÐµÐ½Ñ‚Ñ‹ Ð² Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ð·Ð°Ñ†Ð¸Ð¸: Ð¿Ð°Ñ‚Ñ‚ÐµÑ€Ð½Ñ‹ Ð¸ Ð¾ÑˆÐ¸Ð±ÐºÐ¸"/>
-  <meta property="og:description" content="Ð Ð°Ð±Ð¾Ñ‡Ð¸Ðµ Ð¿Ð°Ñ‚Ñ‚ÐµÑ€Ð½Ñ‹ Ð¸ Ñ‚Ð¸Ð¿Ð¾Ð²Ñ‹Ðµ Ð¾ÑˆÐ¸Ð±ÐºÐ¸ â€” Ð¸ ÐºÐ°Ðº Ð¸Ñ… Ð¿Ñ€ÐµÐ´Ð¾Ñ‚Ð²Ñ€Ð°Ñ‚Ð¸Ñ‚ÑŒ Ð°Ñ€Ñ…Ð¸Ñ‚ÐµÐºÑ‚ÑƒÑ€Ð¾Ð¹ Ð¸ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÐµÐ¼."/>
+  <meta property="og:title" content="AI‑агенты в автоматизации: паттерны и ошибки"/>
+  <meta property="og:description" content="Рабочие паттерны и типовые ошибки — и как их предотвратить архитектурой и контролем."/>
   <meta property="og:url" content="https://proaiexpert.github.io/ru/news/ai-agenty-patternty-i-oshibki.html"/>
   <meta property="og:image" content="https://proaiexpert.github.io/assets/logo.png"/>
 
   <meta name="twitter:card" content="summary_large_image"/>
-  <meta name="twitter:title" content="AIâ€‘Ð°Ð³ÐµÐ½Ñ‚Ñ‹ Ð² Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ð·Ð°Ñ†Ð¸Ð¸"/>
-  <meta name="twitter:description" content="ÐŸÐ°Ñ‚Ñ‚ÐµÑ€Ð½Ñ‹ Ð¸ Ð¾ÑˆÐ¸Ð±ÐºÐ¸ â€” Ð¿Ð»ÑŽÑ Ñ‡ÐµÐºâ€‘Ð»Ð¸ÑÑ‚ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»Ñ Ð¿ÐµÑ€ÐµÐ´ Ð·Ð°Ð¿ÑƒÑÐºÐ¾Ð¼."/>
+  <meta name="twitter:title" content="AI‑агенты в автоматизации"/>
+  <meta name="twitter:description" content="Паттерны и ошибки — плюс чек‑лист контроля перед запуском."/>
   <meta name="twitter:image" content="https://proaiexpert.github.io/assets/logo.png"/>
 
   <link rel="stylesheet" href="/styles.css"/>
@@ -33,17 +33,17 @@
       <img class="brand-logo" src="/assets/logo.png" alt="ProAI Expert"/>
     </a>
     <nav class="nav" aria-label="Primary">
-      <a class="nav-link" href="/ru/">Ð“Ð»Ð°Ð²Ð½Ð°Ñ</a>
-      <a class="nav-link" href="/ru/solutions/client-intake-automation.html">Ð ÐµÑˆÐµÐ½Ð¸Ðµ</a>
-      <a class="nav-link" href="/ru/cases/professional-services.html">ÐšÐµÐ¹ÑÑ‹</a>
-      <a class="nav-link" href="/ru/#contact">ÐšÐ¾Ð½Ñ‚Ð°ÐºÑ‚Ñ‹</a>
+      <a class="nav-link" href="/ru/">Главная</a>
+      <a class="nav-link" href="/ru/solutions/client-intake-automation.html">Решение</a>
+      <a class="nav-link" href="/ru/cases/professional-services.html">Кейсы</a>
+      <a class="nav-link" href="/ru/#contact">Контакты</a>
     </nav>
     <div class="header-right">
       <div class="lang-switch" aria-label="Language">
         <a class="lang-pill" href="/news/ai-agents-workflow-patterns.html">EN</a>
         <a class="lang-pill active" href="/ru/news/ai-agenty-patternty-i-oshibki.html">RU</a>
       </div>
-      <a class="header-cta-btn" href="/ru/#contact">Ð¡Ð²ÑÐ·Ð°Ñ‚ÑŒÑÑ Ñ Ð½Ð°Ð¼Ð¸</a>
+      <a class="header-cta-btn" href="/ru/#contact">Связаться с нами</a>
     </div>
   </div>
 </header>
@@ -52,75 +52,71 @@
   <section class="section">
     <div class="container">
       <div class="case-hero" style="padding-top:10px;">
-        <h1 class="case-title">AIâ€‘Ð°Ð³ÐµÐ½Ñ‚Ñ‹ Ð² Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ð·Ð°Ñ†Ð¸Ð¸: Ñ€Ð°Ð±Ð¾Ñ‡Ð¸Ðµ Ð¿Ð°Ñ‚Ñ‚ÐµÑ€Ð½Ñ‹ Ð¸ Ñ‚Ð¸Ð¿Ð¾Ð²Ñ‹Ðµ Ð¾ÑˆÐ¸Ð±ÐºÐ¸</h1>
-        <p class="case-sub" style="margin-bottom:6px;">15 Ð¼Ð°Ñ€Ñ‚Ð° 2026 â€¢ ÐÐ³ÐµÐ½Ñ‚Ñ‹ â€¢ ÐšÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÑŒ â€¢ ÐÐ²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ð·Ð°Ñ†Ð¸Ñ</p>
-        <p class="case-sub">â€œAIâ€‘Ð°Ð³ÐµÐ½Ñ‚Ñ‹â€ Ð·Ð²ÑƒÑ‡Ð¸Ñ‚ Ð¼Ð¾Ð´Ð½Ð¾, Ð½Ð¾ Ð² Ð±Ð¸Ð·Ð½ÐµÑÐµ Ð²Ð°Ð¶Ð½Ñ‹ ÐºÐ¾Ð½ÐºÑ€ÐµÑ‚Ð½Ñ‹Ðµ ÑÑ†ÐµÐ½Ð°Ñ€Ð¸Ð¸ Ð¸ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»ÑŒ. ROIâ€‘Ð¿Ð°Ñ‚Ñ‚ÐµÑ€Ð½Ñ‹ Ð¾Ð±Ñ‹Ñ‡Ð½Ð¾ Ð¿Ñ€Ð¾ÑÑ‚Ñ‹Ðµ, Ð° Ð¾ÑˆÐ¸Ð±ÐºÐ¸ â€” Ð¿Ñ€ÐµÐ´ÑÐºÐ°Ð·ÑƒÐµÐ¼Ñ‹Ðµ. ÐÐ°Ð´Ñ‘Ð¶Ð½Ð¾ÑÑ‚ÑŒ Ð´Ð¾ÑÑ‚Ð¸Ð³Ð°ÐµÑ‚ÑÑ Ð°Ñ€Ñ…Ð¸Ñ‚ÐµÐºÑ‚ÑƒÑ€Ð¾Ð¹.</p>
+        <h1 class="case-title">AI‑агенты в автоматизации: рабочие паттерны и типовые ошибки</h1>
+        <p class="case-sub" style="margin-bottom:6px;">15 марта 2026 • Агенты • Контроль • Автоматизация</p>
+        <p class="case-sub">“AI‑агенты” звучит модно, но в бизнесе важны конкретные сценарии и контроль. ROI‑паттерны обычно простые, а ошибки — предсказуемые. Надёжность достигается архитектурой.</p>
       </div>
 
       <div class="case-grid" style="margin-top:14px;">
         <div class="case-block">
-          <h3>5 Ð¿Ð°Ñ‚Ñ‚ÐµÑ€Ð½Ð¾Ð², ÐºÐ¾Ñ‚Ð¾Ñ€Ñ‹Ðµ Ð´Ð°ÑŽÑ‚ ROI</h3>
+          <h3>5 паттернов, которые дают ROI</h3>
           <ul>
-            <li>Ð¢Ñ€Ð¸Ð°Ð¶ Ð²Ñ…Ð¾Ð´ÑÑ‰Ð¸Ñ… Ð·Ð°Ð¿Ñ€Ð¾ÑÐ¾Ð² (Ð½Ð°Ð¼ÐµÑ€ÐµÐ½Ð¸Ðµ/Ñ‚ÐµÐ¼Ð°).</li>
-            <li>Ð¡Ñ‚Ñ€ÑƒÐºÑ‚ÑƒÑ€Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð½Ñ‹Ðµ Ñ€ÐµÐ·ÑŽÐ¼Ðµ Ð´Ð»Ñ ÐºÐ¾Ð¼Ð°Ð½Ð´Ñ‹.</li>
-            <li>Ð§ÐµÑ€Ð½Ð¾Ð²Ð¸ÐºÐ¸ Ð¾Ñ‚Ð²ÐµÑ‚Ð¾Ð² Ð¿Ð¾ ÑˆÐ°Ð±Ð»Ð¾Ð½Ð°Ð¼.</li>
-            <li>ÐœÐ°Ñ€ÑˆÑ€ÑƒÑ‚Ð¸Ð·Ð°Ñ†Ð¸Ñ Ð² Ð¿Ñ€Ð°Ð²Ð¸Ð»ÑŒÐ½ÑƒÑŽ Ð¾Ñ‡ÐµÑ€ÐµÐ´ÑŒ/Ð²Ð»Ð°Ð´ÐµÐ»ÑŒÑ†Ñƒ.</li>
-            <li>Followâ€‘up Ð¸ ÑÑ‚Ð°Ñ‚ÑƒÑÑ‹.</li>
+            <li>Триаж входящих запросов (намерение/тема).</li>
+            <li>Структурированные резюме для команды.</li>
+            <li>Черновики ответов по шаблонам.</li>
+            <li>Маршрутизация в правильную очередь/владельцу.</li>
+            <li>Follow‑up и статусы.</li>
           </ul>
         </div>
         <div class="case-block">
-          <h3>5 Ñ‚Ð¸Ð¿Ð¾Ð²Ñ‹Ñ… Ð¾ÑˆÐ¸Ð±Ð¾Ðº</h3>
+          <h3>5 типовых ошибок</h3>
           <ul>
-            <li>Ð“Ð°Ð»Ð»ÑŽÑ†Ð¸Ð½Ð°Ñ†Ð¸Ð¸ (Ð¿Ñ€Ð¸Ð´ÑƒÐ¼Ð°Ð½Ð½Ñ‹Ðµ Ñ„Ð°ÐºÑ‚Ñ‹).</li>
-            <li>Ð’Ñ‹Ñ…Ð¾Ð´ Ð·Ð° Ñ€Ð°Ð¼ÐºÐ¸ Ð¿Ð¾Ð»Ð½Ð¾Ð¼Ð¾Ñ‡Ð¸Ð¹.</li>
-            <li>ÐŸÐ»Ð¾Ñ…Ð¾Ð¹ UX (ÑÐ»Ð¸ÑˆÐºÐ¾Ð¼ Ð¼Ð½Ð¾Ð³Ð¾ ÑˆÐ°Ð³Ð¾Ð²).</li>
-            <li>ÐÐµÑ‚ Ð»Ð¾Ð³Ð¾Ð² (Ð½ÐµÐ»ÑŒÐ·Ñ Ð¿Ñ€Ð¾Ð²ÐµÑ€Ð¸Ñ‚ÑŒ Ñ€ÐµÑˆÐµÐ½Ð¸Ñ).</li>
-            <li>Ð˜Ð½ÑŠÐµÐºÑ†Ð¸Ð¸ Ñ‡ÐµÑ€ÐµÐ· Ð½ÐµÐ¿Ð¾Ð´Ð³Ð¾Ñ‚Ð¾Ð²Ð»ÐµÐ½Ð½Ñ‹Ðµ Ð²Ñ…Ð¾Ð´Ñ‹.</li>
+            <li>Галлюцинации (придуманные факты).</li>
+            <li>Выход за рамки полномочий.</li>
+            <li>Плохой UX (слишком много шагов).</li>
+            <li>Нет логов (нельзя проверить решения).</li>
+            <li>Инъекции через неподготовленные входы.</li>
           </ul>
         </div>
       </div>
 
       <div class="case-block" style="margin-top:18px;">
-        <h3>Ð§ÐµÐºâ€‘Ð»Ð¸ÑÑ‚ ÐºÐ¾Ð½Ñ‚Ñ€Ð¾Ð»Ñ Ð¿ÐµÑ€ÐµÐ´ Ð·Ð°Ð¿ÑƒÑÐºÐ¾Ð¼</h3>
+        <h3>Чек‑лист контроля перед запуском</h3>
         <ul>
-          <li>Ð§Ñ‘Ñ‚ÐºÐ¸Ð¹ scope + Ð¿Ñ€Ð°Ð²Ð¸Ð»Ð° ÑÑÐºÐ°Ð»Ð°Ñ†Ð¸Ð¸ Ð½Ð° Ñ‡ÐµÐ»Ð¾Ð²ÐµÐºÐ°.</li>
-          <li>Ð“Ñ€Ð°Ð½Ð¸Ñ†Ñ‹ Ð¿Ñ€Ð°Ð² Ð´Ð¾ÑÑ‚ÑƒÐ¿Ð° Ð´Ð»Ñ Ð´ÐµÐ¹ÑÑ‚Ð²Ð¸Ð¹.</li>
-          <li>Ð›Ð¾Ð³Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ Ð¸ Ñ‚Ñ€Ð°ÑÑÐ¸Ñ€Ð¾Ð²ÐºÐ° (Ð²Ñ…Ð¾Ð´/Ð²Ñ‹Ñ…Ð¾Ð´/ÑˆÐ°Ð³Ð¸).</li>
-          <li>Ð¢ÐµÑÑ‚â€‘ÐºÐµÐ¹ÑÑ‹ Ð¿Ð¾ ÐºÐ°Ð¶Ð´Ð¾Ð¹ Ð²ÐµÑ‚ÐºÐµ.</li>
-          <li>Humanâ€‘inâ€‘theâ€‘loop Ð´Ð»Ñ Ñ‡ÑƒÐ²ÑÑ‚Ð²Ð¸Ñ‚ÐµÐ»ÑŒÐ½Ñ‹Ñ… Ñ‚ÐµÐ¼.</li>
+          <li>Чёткий scope + правила эскалации на человека.</li>
+          <li>Границы прав доступа для действий.</li>
+          <li>Логирование и трассировка (вход/выход/шаги).</li>
+          <li>Тест‑кейсы по каждой ветке.</li>
+          <li>Human‑in‑the‑loop для чувствительных тем.</li>
         </ul>
       </div>
 
       <div class="case-xlinks">
-        <div class="case-xlinks-title">Ð’Ð½ÑƒÑ‚Ñ€ÐµÐ½Ð½Ð¸Ðµ ÑÑÑ‹Ð»ÐºÐ¸</div>
+        <div class="case-xlinks-title">Внутренние ссылки</div>
         <div class="case-xlinks-grid">
-          <a class="case-xlink" href="/ru/solutions/client-intake-automation.html">ÐÐ²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ð·Ð°Ñ†Ð¸Ñ Ð¿ÐµÑ€Ð²Ð¸Ñ‡Ð½Ð¾Ð³Ð¾ Ð¾Ð±Ñ‰ÐµÐ½Ð¸Ñ (Ñ€ÐµÑˆÐµÐ½Ð¸Ðµ)</a>
-          <a class="case-xlink" href="/ru/cases/professional-services.html">ÐŸÑ€Ð¾Ñ„. Ð¸ Ñ„Ð¸Ð½Ð°Ð½ÑÐ¾Ð²Ñ‹Ðµ ÑƒÑÐ»ÑƒÐ³Ð¸</a>
-          <a class="case-xlink" href="/ru/#contact">Ð—Ð°Ð¿Ñ€Ð¾Ñ Ð½Ð° ÐºÐ¾Ð½ÑÑƒÐ»ÑŒÑ‚Ð°Ñ†Ð¸ÑŽ</a>
+          <a class="case-xlink" href="/ru/solutions/client-intake-automation.html">Автоматизация первичного общения (решение)</a>
+          <a class="case-xlink" href="/ru/cases/professional-services.html">Проф. и финансовые услуги</a>
+          <a class="case-xlink" href="/ru/#contact">Запрос на консультацию</a>
         </div>
       </div>
 
     </div>
   </section>
-<section class="case-hero">
-  <h2 class="case-title">Связанные материалы</h2>
-  <p class="case-sub"><a href="/ru/patterns/intake-control-pattern.html">Паттерн intake</a> | <a href="/ru/patterns/sop-agent-pattern.html">Паттерн SOP</a> | <a href="/ru/patterns/guardrail-handoff-pattern.html">Паттерн guardrails</a> | <a href="/ru/news/">Все новости</a></p>
-</section>
 </main>
 
 <footer class="site-footer">
   <div class="container footer-inner">
     <div class="footer-left">
       <img class="footer-logo" src="/assets/logo-white.png" alt="ProAI Expert"/>
-      <div class="footer-brand"><div class="footer-tagline">ÐÑ€Ñ…Ð¸Ñ‚ÐµÐºÑ‚ÑƒÑ€Ð° AIâ€‘ÑÐ¸ÑÑ‚ÐµÐ¼</div></div>
+      <div class="footer-brand"><div class="footer-tagline">Архитектура AI‑систем</div></div>
     </div>
     <div class="footer-right">
       <div class="footer-legal">
-        <a href="/ru/privacy-policy.html">ÐŸÐ¾Ð»Ð¸Ñ‚Ð¸ÐºÐ° ÐºÐ¾Ð½Ñ„Ð¸Ð´ÐµÐ½Ñ†Ð¸Ð°Ð»ÑŒÐ½Ð¾ÑÑ‚Ð¸</a>
-        <span class="sep">Â·</span>
-        <a href="/ru/terms-and-conditions.html">Ð£ÑÐ»Ð¾Ð²Ð¸Ñ Ð¸ÑÐ¿Ð¾Ð»ÑŒÐ·Ð¾Ð²Ð°Ð½Ð¸Ñ</a>
+        <a href="/ru/privacy-policy.html">Политика конфиденциальности</a>
+        <span class="sep">·</span>
+        <a href="/ru/terms-and-conditions.html">Условия использования</a>
       </div>
-      <div class="footer-copy">Â© 2026 ProAI Expert. Ð’ÑÐµ Ð¿Ñ€Ð°Ð²Ð° Ð·Ð°Ñ‰Ð¸Ñ‰ÐµÐ½Ñ‹.</div>
+      <div class="footer-copy">© 2026 ProAI Expert. Все права защищены.</div>
     </div>
   </div>
 </footer>

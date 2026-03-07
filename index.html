@@ -317,6 +317,8 @@
           <p class="form-sub">Ask your question and we will reply as soon as possible.</p>
         </div>
         <form action="https://formspree.io/f/xbdakqoz" method="POST">
+          <input aria-hidden="true" autocomplete="off" class="hp-field" name="_gotcha" tabindex="-1" type="text"/>
+          <input name="_form_started_at" type="hidden" value=""/>
           <div class="field">
             <label for="name_company">Your name</label>
             <input autocomplete="name" id="name_company" name="name_company" placeholder="Your name" type="text"/>
@@ -388,6 +390,47 @@
 </div>
 </div>
 </footer>
+<script>
+  (function () {
+    var MIN_SUBMIT_MS = 3500;
+    var forms = document.querySelectorAll('form[action*="formspree.io"]');
+
+    forms.forEach(function (form) {
+      var honeypot = form.querySelector('input[name="_gotcha"]');
+      var startedAtField = form.querySelector('input[name="_form_started_at"]');
+      var submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+      var startedAt = Date.now();
+
+      if (startedAtField) {
+        startedAtField.value = String(startedAt);
+      }
+
+      form.addEventListener("submit", function (event) {
+        var now = Date.now();
+        var formStartedAt = Number(startedAtField && startedAtField.value) || startedAt;
+
+        if (honeypot && honeypot.value.trim() !== "") {
+          event.preventDefault();
+          return;
+        }
+
+        if (now - formStartedAt < MIN_SUBMIT_MS) {
+          event.preventDefault();
+          return;
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          if (submitBtn.tagName === "BUTTON") {
+            submitBtn.textContent = "Sending...";
+          } else {
+            submitBtn.value = "Sending...";
+          }
+        }
+      });
+    });
+  })();
+</script>
 </body>
 </html>
 

@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 function Get-Head {
   param(
@@ -12,8 +12,8 @@ function Get-Head {
     [string]$Schema = ""
   )
 
-  $xDefault = if ($Canonical -eq "https://proaiexpert.github.io/") {
-    '<link rel="alternate" hreflang="x-default" href="https://proaiexpert.github.io/" />'
+  $xDefault = if ($Canonical -eq "https://proai-expert.com/") {
+    '<link rel="alternate" hreflang="x-default" href="https://proai-expert.com/" />'
   } else {
     ""
   }
@@ -35,11 +35,11 @@ function Get-Head {
   <meta property="og:title" content="$Title" />
   <meta property="og:description" content="$Description" />
   <meta property="og:url" content="$Canonical" />
-  <meta property="og:image" content="https://proaiexpert.github.io/assets/logo.png" />
+  <meta property="og:image" content="https://proai-expert.com/assets/logo.png" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="$Title" />
   <meta name="twitter:description" content="$Description" />
-  <meta name="twitter:image" content="https://proaiexpert.github.io/assets/logo.png" />
+  <meta name="twitter:image" content="https://proai-expert.com/assets/logo.png" />
   <link rel="icon" href="/favicon.ico" />
   <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
   <link rel="icon" href="/favicon-16.png" sizes="16x16" type="image/png" />
@@ -219,3 +219,4 @@ function Write-Redirect {
 
   Set-Content -Path $Path -Value $content -Encoding utf8
 }
+

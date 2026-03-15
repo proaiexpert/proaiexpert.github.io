@@ -149,3 +149,96 @@ Deepen the Website Systems solution page so it feels like a dedicated web studio
 - No sitemap changes
 - No directory changes
 - Proof screenshots are placeholders until real Financial Stream captures are added
+## ProAI Expert - Iteration vNext #3
+
+Date: 2026-03-14
+
+### Scope
+Global premium polish pass across the site: design-system consistency, exclusivity layer, premium micro-interactions, diagram standardization, and selective copy cleanup without URL or SEO mapping changes.
+
+### Edited files
+- assets/css/site.css
+- assets/diagrams/ops-layer.svg
+- assets/diagrams/case-flow.svg
+- assets/diagrams/console-map.svg
+- assets/icons/icon-launch.svg
+- assets/icons/icon-reporting.svg
+- assets/icons/icon-ux.svg
+- index.html
+- ru/index.html
+- solutions/index.html
+- ru/solutions/index.html
+- solutions/ai-systems/index.html
+- ru/solutions/ai-systems/index.html
+- solutions/website-systems/index.html
+- ru/solutions/website-systems/index.html
+- process/index.html
+- ru/process/index.html
+- case-studies/financial-stream/index.html
+- case-studies/proai-expert/index.html
+- ru/case-studies/financial-stream/index.html
+- ru/case-studies/proai-expert/index.html
+- Multiple HTML files updated to refresh the CSS cache version to `site.css?v=20260314g`
+
+### Icons and diagrams added
+- Added custom SVG icons:
+  - `assets/icons/icon-launch.svg`
+  - `assets/icons/icon-reporting.svg`
+  - `assets/icons/icon-ux.svg`
+- Added flat SVG diagrams:
+  - `assets/diagrams/ops-layer.svg`
+  - `assets/diagrams/case-flow.svg`
+- Updated existing diagram copy in:
+  - `assets/diagrams/console-map.svg`
+
+### Components standardized
+1. Design system consistency
+- Standardized buttons, cards, tags, forms, diagram cards, and article-support blocks around the shared token layer.
+- Kept the site on two radii and two shadow levels.
+- Tightened spacing and border rhythm across section heads, cards, and footer blocks.
+
+2. Premium micro-interactions
+- Added hover/focus polish for:
+  - cards
+  - buttons
+  - tags
+  - diagram/media blocks
+- Added subtle diagram reveal treatment.
+- Added `prefers-reduced-motion` fallback to disable animation and transitions for reduced-motion users.
+
+3. Header and footer polish
+- Refined sticky header treatment with lighter backdrop, border, and top shadow.
+- Kept the ProAI CTA visually distinct from Financial Stream.
+- Tightened footer typography, spacing, and structure to feel more studio-like.
+
+4. Page-level premium layer
+- Added the operations diagram to AI Systems pages.
+- Added case-flow diagram/proof treatment to case-study pages.
+- Expanded EN case-study pages with deliverables/proof blocks to match the newer RU depth.
+
+### Copy changes
+- Replaced visible `iteration` language in user-facing EN copy with:
+  - `continuous improvement`
+  - `next-step plan`
+- Replaced visible RU `итерация` language in key sections with:
+  - `улучшения`
+  - `следующий шаг`
+  - `план доработок`
+- Cleaned obvious RU/EN mixed terminology on key case and solution surfaces so AI Systems and Website Systems read as distinct offers.
+
+### Verification
+- Internal href check: `0 broken internal links`
+- Canonical/hreflang structure check: `OK`
+- RU/EN language-switch pairs reviewed on:
+  - Home EN/RU
+  - AI Systems EN/RU
+  - Website Systems EN/RU
+  - Financial Stream case EN/RU
+  - ProAI Expert case EN/RU
+  - 2 paired insight articles EN/RU
+- No URL or directory structure changes
+- No sitemap changes
+
+### Notes
+- This pass prioritizes premium consistency and stability over aggressive redesign.
+- A few longer RU editorial pages still have room for another pure copy-editing pass, but core structure, UX, SEO mapping, and premium visual layer are now aligned.

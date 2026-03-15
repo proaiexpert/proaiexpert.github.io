@@ -1,19 +1,15 @@
-ProAI Expert — premium rebuild pass (manual)
+# RELEASE NOTES — ProAI Expert site pass
 
-Updated:
-- Replaced legacy/rich placeholder brand images with the new premium visual pack v3
-- Rebuilt EN and RU homepage around the approved preview logic:
-  hero, two worlds, 3-card showcase, case preview, CTA
-- Removed noisy extra homepage sections (flow chips, deliverables grid, console, insights preview)
-- Applied the premium logo pack to header/footer assets
-- Added generated temporary screenshot placeholders under /assets/screenshots/
-- Updated button, header, CTA, and footer styling toward one navy / metallic green / teal system
-- Removed archived ZIP files from the public site root
-- Fixed visible broken encoding token "Â·" in content files
-- Kept domain as proai-expert.com and preserved canonical/hreflang structure
+Pass completed: PHASE 1 — logo asset integration
 
-Notes:
-- Visuals are still placeholder-grade and can be replaced later without rebuilding layout
-- Some deeper pages still use existing content structure with lighter polish, rather than full rewrite
+Changed
+- Replaced the header/footer primary logo asset with the approved refined transparent master logo.
+- Synced `assets/logo.png` and root `logo.png` to the same approved logo so social preview references no longer point to the older distorted asset.
+- Tightened logo sizing in the header and footer so the new mark/wordmark ratio stays aligned without pushing navigation spacing.
 
-- Hero/header polish pass: refined top navigation shell, compacted language switch and CTA, updated hero copy, integrated hero visual with a more transparent composition, and unified top pills/buttons under the metallic navy/green/teal direction.
+Intentionally not changed
+- Hero visual and homepage section structure were not edited in this pass.
+- No copy, layout, CTA, internal-page content, or footer structure changes.
+
+Next logical pass
+- PHASE 2 — hero visual finalization: inspect the current homepage hero artwork and replace/refine it only if it still behaves like a boxed or cropped preview instead of one integrated premium asset.

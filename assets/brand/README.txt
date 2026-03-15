@@ -13,3 +13,7 @@ Files:
 
 Recommended use:
 Use the hero on the homepage hero block, the world visuals for the two top panels, the three block visuals for the lower showcase cards, and the logo variants according to background context.
+
+
+March 2026 update:
+- logo-proai-expert-premium-horizontal.png now uses the approved refined transparent master logo for site-wide header/footer integration and social preview reuse.

@@ -1,8 +1,5 @@
-Next recommended pass:
-1. Replace temporary screenshots with real project screenshots
-2. Approve/refine final visual pack and logo pack
-3. Deep polish on AI Systems and Website Systems page copy
-4. Replace remaining legacy /news and /cases stubs if no longer needed
-5. QA on mobile spacing once final visuals are locked
+# TODO — next controlled pass
 
-- Next recommended pass: Two Worlds polish (panel hierarchy, visual integration, CTA rhythm, and premium media placement).
+- Review homepage hero visual on desktop and mobile.
+- If the current hero artwork still reads as a framed/cropped image, replace or re-integrate only the hero asset.
+- Do not combine hero work with header, two-worlds, or footer redesign in the next pass.

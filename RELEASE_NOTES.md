@@ -15,3 +15,6 @@ Updated:
 Notes:
 - Visuals are still placeholder-grade and can be replaced later without rebuilding layout
 - Some deeper pages still use existing content structure with lighter polish, rather than full rewrite
+
+
+- Hero/header polish pass: updated homepage hero copy (EN/RU), changed top CTA to broader project discussion wording, and refined header/hero spacing and visual integration.

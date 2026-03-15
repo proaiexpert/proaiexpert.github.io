@@ -332,15 +332,51 @@ main { min-height: 55vh; }
 }
 .metric-card strong { display: block; font-size: 18px; margin-bottom: 8px; }
 .console-wrap { display: grid; grid-template-columns: 1.08fr 0.92fr; gap: 26px; align-items: stretch; }
+.section-console {
+  position: relative;
+  overflow: hidden;
+}
+.section-console::before {
+  content: "";
+  position: absolute;
+  inset: -120px auto auto -120px;
+  width: 420px;
+  height: 420px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(47,109,244,0.18) 0%, rgba(47,109,244,0) 70%);
+  pointer-events: none;
+}
+.section-console::after {
+  content: "";
+  position: absolute;
+  inset: auto -140px -140px auto;
+  width: 420px;
+  height: 420px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(120,231,190,0.12) 0%, rgba(120,231,190,0) 72%);
+  pointer-events: none;
+}
+.section-console .container { position: relative; z-index: 1; }
 .console-panel {
   background: linear-gradient(180deg, rgba(19,31,54,0.96), rgba(10,18,33,0.98));
   color: var(--console-text);
   border: 1px solid var(--console-border);
   padding: 28px;
   box-shadow: var(--shadow-2);
+  position: relative;
+  overflow: hidden;
+}
+.console-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 120px;
+  background: linear-gradient(135deg, rgba(47,109,244,0.14), rgba(120,231,190,0.06));
+  pointer-events: none;
 }
 .console-panel h3,
 .console-panel h2 { margin-top: 0; }
+.console-panel > * { position: relative; z-index: 1; }
 .console-panel p,
 .console-panel li { color: rgba(232,239,255,0.82); }
 .console-grid { display: grid; gap: 14px; margin-top: 20px; }
@@ -354,11 +390,13 @@ main { min-height: 55vh; }
   min-height: 82px;
   padding: 14px;
   border-radius: 18px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(157,184,255,0.14);
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  border: 1px solid rgba(157,184,255,0.16);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .console-cell strong { display: block; margin-bottom: 5px; color: var(--console-text); }
 .console-bullets { margin: 18px 0 0; padding-left: 18px; }
+.console-bullets li::marker { color: #78e7be; }
 .case-shot {
   aspect-ratio: 16 / 9;
   border-radius: 20px;
@@ -436,6 +474,7 @@ main { min-height: 55vh; }
   padding: 34px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,255,0.95));
+  box-shadow: 0 24px 54px rgba(17, 33, 60, 0.08);
 }
 .article-content::before {
   content: "";
@@ -445,27 +484,41 @@ main { min-height: 55vh; }
   background: linear-gradient(135deg, rgba(47,109,244,0.12), rgba(15,157,122,0.06));
   pointer-events: none;
 }
+.article-content::after {
+  content: "";
+  position: absolute;
+  top: 28px;
+  right: 28px;
+  width: 120px;
+  height: 120px;
+  border-radius: 28px;
+  background: radial-gradient(circle, rgba(120,231,190,0.14) 0%, rgba(120,231,190,0) 72%);
+  pointer-events: none;
+}
 .article-content > * { position: relative; z-index: 1; }
 .article-content > .eyebrow {
   margin-bottom: 18px;
-  background: rgba(17, 33, 60, 0.07);
+  background: linear-gradient(135deg, rgba(17, 33, 60, 0.08), rgba(47,109,244,0.08));
 }
 .article-title {
   max-width: 14ch;
   margin-bottom: 18px;
+  text-wrap: balance;
 }
 .article-meta {
   margin-bottom: 24px;
   padding: 14px 18px;
   border-radius: 18px;
-  background: rgba(17, 33, 60, 0.05);
-  border: 1px solid rgba(17, 33, 60, 0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(236,242,252,0.94));
+  border: 1px solid rgba(17, 33, 60, 0.10);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
 }
 .article-side {
   padding: 24px;
   position: sticky;
   top: 110px;
   background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(236,242,252,0.94));
+  box-shadow: 0 20px 44px rgba(17, 33, 60, 0.08);
 }
 .article-side h3 {
   margin-top: 0;
@@ -482,8 +535,19 @@ main { min-height: 55vh; }
   line-height: 1.15;
   margin-top: 38px;
   margin-bottom: 14px;
-  padding-top: 8px;
+  padding-top: 14px;
   border-top: 1px solid rgba(17, 33, 60, 0.08);
+  position: relative;
+}
+.article-body h2::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 68px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-ai), var(--accent-web));
 }
 .article-body h3 { font-size: 22px; margin-top: 24px; margin-bottom: 10px; }
 .article-body p { color: var(--text-1); }
@@ -504,6 +568,12 @@ main { min-height: 55vh; }
   background: rgba(255,255,255,0.72);
   border: 1px solid rgba(17, 33, 60, 0.08);
   font-weight: 700;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.article-toc a:hover {
+  background: rgba(232,240,255,0.94);
+  border-color: rgba(47,109,244,0.18);
+  transform: translateX(2px);
 }
 .inline-link {
   text-decoration: underline;
@@ -521,6 +591,12 @@ main { min-height: 55vh; }
   background: rgba(255,255,255,0.72);
   border: 1px solid rgba(17, 33, 60, 0.08);
   font-weight: 700;
+  transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.related-links a:hover {
+  background: rgba(232,240,255,0.94);
+  border-color: rgba(47,109,244,0.18);
+  transform: translateY(-1px);
 }
 a.button,
 a.button:hover,
@@ -543,12 +619,32 @@ a.button-ghost:visited { color: var(--text-0); }
   border-radius: 24px;
   background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(238,243,251,0.94));
   border: 1px solid rgba(17,33,60,0.08);
+  box-shadow: 0 16px 36px rgba(17, 33, 60, 0.06);
 }
 .related-block h2,
 .service-block h2,
 .faq-block h2,
 .notice-box strong { color: var(--text-0); }
 .quote-box { border-left: 5px solid var(--accent-web); }
+.service-block {
+  position: relative;
+  overflow: hidden;
+}
+.service-block::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-ai), var(--accent-web));
+  opacity: 0.8;
+}
+.notice-box a,
+.service-block a,
+.faq-block a { color: #315fcb; }
+.notice-box a:hover,
+.service-block a:hover,
+.faq-block a:hover { color: #244dab; }
 .section-console .quote-box {
   margin-top: 26px;
   padding: 24px 26px;

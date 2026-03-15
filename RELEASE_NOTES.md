@@ -242,3 +242,108 @@ Global premium polish pass across the site: design-system consistency, exclusivi
 ### Notes
 - This pass prioritizes premium consistency and stability over aggressive redesign.
 - A few longer RU editorial pages still have room for another pure copy-editing pass, but core structure, UX, SEO mapping, and premium visual layer are now aligned.
+
+## ProAI Expert - Master Iteration: Two Worlds + Premium Proof
+
+Date: 2026-03-14
+
+### Scope
+Global pass to separate the AI world and Web world more clearly on Home, deepen both solution pages, upgrade the case-studies index into a more portfolio-like surface, and make the Process page more symmetric, while preserving URLs and SEO mapping.
+
+### Edited files
+- assets/css/site.css
+- assets/diagrams/ai-motif.svg
+- assets/diagrams/web-motif.svg
+- assets/screenshots/README.md
+- index.html
+- ru/index.html
+- case-studies/index.html
+- ru/case-studies/index.html
+- process/index.html
+- ru/process/index.html
+- solutions/website-systems/index.html
+- ru/solutions/website-systems/index.html
+- solutions/ai-systems/index.html
+- ru/solutions/ai-systems/index.html
+
+### Icons and diagrams added
+- Added flat SVG background motifs:
+  - assets/diagrams/ai-motif.svg
+  - assets/diagrams/web-motif.svg
+- Reused existing flat SVG diagrams:
+  - assets/diagrams/ops-layer.svg
+  - assets/diagrams/web-system.svg
+
+### Components standardized
+- Added shared premium components/styles for:
+  - Two-world panels
+  - BrowserFrame
+  - PhoneFrame
+  - Portfolio-style case cards
+  - Symmetric process cards
+  - AI systems cards and controls blocks
+  - Website showcase cards
+- Kept the same token system, two radii, and two shadow levels.
+
+### Changes made
+1. Home: Two Worlds
+- Replaced the simpler pillar presentation with two large world panels in EN and RU.
+- AI panel now uses the ops diagram and operations-first copy.
+- Web panel now uses BrowserFrame + PhoneFrame mock visuals and stronger web-studio selling copy.
+- No visible 60/40 or primary/secondary labels remain.
+
+2. Case Studies index upgrade
+- Reworked EN and RU case index cards into more visual portfolio-style cards.
+- Added BrowserFrame thumbnail areas.
+- Added tags, result summaries, and two buttons:
+  - Open case
+  - Live site
+- Existing case page URLs stayed unchanged.
+
+3. Process page layout
+- Rebuilt EN and RU Process pages into a more compact, symmetric card layout.
+- Step index placement is consistent.
+- Step cards now share the same structural rhythm and min-height behavior.
+- Reduced excessive top whitespace by using a tighter process hero.
+
+4. Website Systems page depth
+- Strengthened H1 and positioning in EN and RU.
+- Kept packages, care plans, two ways to work, and add-ons.
+- Added a dedicated project showcase block using BrowserFrame + PhoneFrame mock slots.
+- Added screenshot TODO references tied to the expected files in assets/screenshots.
+
+5. AI Systems page depth
+- Added a stronger “Systems we build” layer.
+- Added a dedicated controls & safety block.
+- Strengthened the console section and kept the operational framing clear.
+
+6. Exclusivity layer
+- Added subtle AI and Web SVG motifs.
+- Added reusable BrowserFrame and PhoneFrame components.
+- Preserved reduced-motion support through existing prefers-reduced-motion handling.
+
+### Screenshot TODO list
+Expected future files in /assets/screenshots/:
+- financial-stream/home-desktop.png
+- financial-stream/service-desktop.png
+- financial-stream/editorial-desktop.png
+- financial-stream/home-mobile.png
+- proai-expert/home-desktop.png
+- proai-expert/solutions-desktop.png
+- proai-expert/home-mobile.png
+
+### Verification
+- Internal link check: OK, 0 broken internal links
+- Canonical count on key pages: 1 per page
+- hreflang verified on:
+  - Home EN/RU
+  - Website Systems EN/RU
+  - AI Systems EN/RU
+  - Case Studies index EN/RU
+  - Process EN/RU
+- No URL or directory structure changes
+- No sitemap URL changes
+
+### Notes
+- This pass focused on the core presentation layer and paired EN/RU key surfaces.
+- Existing case-study detail pages, insights pages, and contact page structure were left intact unless needed for shared styling consistency.

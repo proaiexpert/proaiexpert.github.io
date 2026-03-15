@@ -5,5 +5,4 @@ Next recommended pass:
 4. Replace remaining legacy /news and /cases stubs if no longer needed
 5. QA on mobile spacing once final visuals are locked
 
-
-- Hero/header polish pass: updated homepage hero copy (EN/RU), changed top CTA to broader project discussion wording, and refined header/hero spacing and visual integration.
+- Next recommended pass: Two Worlds polish (panel hierarchy, visual integration, CTA rhythm, and premium media placement).

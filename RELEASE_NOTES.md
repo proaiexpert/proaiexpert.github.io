@@ -7,9 +7,15 @@ v11
 ## v12
 - Raised modern hero visual for stronger top-aligned hero balance.
 
-
 ## v13 — Mobile layout pass
-- Reworked mobile header hierarchy for portrait and landscape.
-- Fixed mobile hero headline wrapping by restoring block line behavior.
-- Improved mobile hero layout so the visual sits below copy in portrait and beside copy in landscape.
-- Rebuilt mobile footer grouping to reduce the stacked feel and improve readability.
+- Reworked mobile header/navigation for portrait and landscape.
+- Fixed homepage hero mobile typography by forcing controlled line breaks.
+- Simplified mobile hero layers by hiding hero tags on mobile and tightening spacing.
+- Rebalanced mobile footer into clearer grouped layouts for portrait and landscape.
+
+
+## v14 — mobile polish
+- Increased portrait mobile logo presence and reduced the language switch/CTA weight.
+- Tightened portrait hero typography and spacing for a cleaner first screen.
+- Added compact mobile nav label handling for Case Studies -> Cases on small screens.
+- Reworked landscape footer balance with a larger logo and descriptor under the logo.

@@ -1,3 +1,1 @@
-Next recommended pass:
-- Review Two Worlds panel polish only.
-- Do not mix footer or deeper internal-page redesign into the next pass.
+- Verify desktop hero at 100% and reduced zoom after deployment

@@ -1,6 +1,6 @@
-ProAI Expert Site v6
+# ProAI Expert Site v7
 
-- Restored the transparent homepage hero asset.
-- Centered the hero visual without boxed framing or off-edge drift.
-- Kept the tightened homepage H1 line structure.
-- Preserved README.md in the repository root.
+- Cropped transparent hero asset to its real visual bounds
+- Re-centered and enlarged hero image in the right column
+- Kept the tightened homepage H1 structure
+- Preserved README.md in the repo root

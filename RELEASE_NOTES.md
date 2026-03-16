@@ -1,21 +1,20 @@
-# Release Notes — ProAI Expert Site v15
+# ProAI Expert Site v17 — Two Directions visuals pass
 
 ## What changed
-- Refined portrait mobile header to keep the layout in two rows
-- Tightened mobile nav pills into a single-row layout
-- Restored the hero kicker to a single line on portrait mobile
-- Cleaned portrait mobile footer grouping without touching landscape layout
-- Replaced the minimal root README with a fuller canonical repository description
-- Refreshed the stylesheet cache version
+- Inserted new paired visuals into the homepage two-direction section.
+- Saved the visuals as separate PNG assets for reuse.
+- Refined the two-direction section copy in both Russian and English.
+- Upgraded the section styling to feel more premium and visually distinct after the hero.
+- Kept the existing layout logic and temporary structure intact while improving panel presentation.
+- Refreshed the `site.css` cache version.
 
-## What was intentionally not changed
-- Desktop layout
-- Landscape mobile header/footer logic
-- Hero asset
-- Two Worlds section
+## Intentionally not changed
+- Hero layout and hero asset
+- Mobile header/footer behavior
+- Lower 3-card block
+- Internal pages
 
-## v16 — Homepage Two Directions block
-- Rebuilt the homepage two-direction section with a stronger intro, clearer panel hierarchy, and more premium 50/50 layout.
-- Replaced placeholder “two worlds” framing with user-facing positioning around practical business systems.
-- Updated Russian and English homepage copy for AI systems and website systems.
-- Kept temporary visuals in place for now; final custom panel visuals remain a later pass.
+## Next logical step
+- Review the new section on live desktop/mobile.
+- Fine-tune copy and spacing if needed.
+- Generate a stronger final pair of fully custom matching visuals if needed later.

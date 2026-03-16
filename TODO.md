@@ -1,9 +1,7 @@
-# TODO
+# TODO — after v17 review
 
-Next logical pass:
-- Live-check portrait mobile nav fit on the target phone
-- Review Two Worlds section polish
-- Continue case preview / internal page polish
-
-- Next: replace temporary AI / website panel visuals with final matched custom illustrations.
-- Next: review section transition between hero and the rebuilt two-direction block on live desktop and mobile.
+- Check whether the new two-direction visuals feel balanced on desktop and mobile.
+- Decide if the AI panel should stay darker/more technical or soften slightly.
+- Decide if the website panel needs more green / metallic accent.
+- Approve or revise the new section copy.
+- Later: generate final v2/v3 paired visuals in the same family if needed.

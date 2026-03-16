@@ -1,10 +1,11 @@
-# TODO
+# TODO — next controlled pass
 
-## Next recommended pass
-1. Header + hero micro polish
-2. Two Worlds section polish
-3. Lower 3-card system block polish
+- Review homepage hero visual on desktop and mobile.
+- If the current hero artwork still reads as a framed/cropped image, replace or re-integrate only the hero asset.
+- Do not combine hero work with header, two-worlds, or footer redesign in the next pass.
 
-## Notes
-- Monitor the new hero asset on desktop and mobile for balance and scaling.
-- If needed later, generate a dedicated custom OG/social preview card instead of reusing the horizontal logo.
+
+## Next recommended pass after v3
+- Validate the revised hero on desktop breakpoints and mobile.
+- Polish the Two Worlds block hierarchy and button rhythm.
+- Review whether the hero image still needs a dedicated art-direction upgrade later.

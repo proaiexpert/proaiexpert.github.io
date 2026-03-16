@@ -1,26 +1,16 @@
 # ProAI Expert
 
-Premium bilingual website for **ProAI Expert** — a systems studio focused on **AI systems, business automation, and structured websites**.
+Premium systems studio combining AI automation, business operations design, and turnkey multilingual websites.
 
-## Live site
-- Primary domain: https://proai-expert.com
+## Core focus
+- AI systems and agent workflows
+- Lead intake, routing, summaries, and control layers
+- Turnkey business websites with structure, branding support, and growth-ready content
+- Bilingual EN/RU implementation for service businesses
 
-## Positioning
-ProAI Expert combines two connected service directions inside one premium studio:
-- **AI systems and automation** — intake, routing, summaries, control layers, human-in-the-loop workflows
-- **Website systems** — turnkey websites, bilingual structures, branding support, content and care after launch
+## Public site
+- Main domain: https://proai-expert.com
+- Primary language paths: `/` and `/ru/`
 
-## Stack
-- Static HTML/CSS/JS
-- GitHub Pages compatible
-- English / Russian routing
-
-## Project rules
-- Keep the header and footer canonical across all pages
-- Preserve the approved ProAI Expert logo assets
-- Keep the homepage hero in the light premium visual system
-- Do not replace `README.md` with `README.txt`
-
-## Contact
-- Website: https://proai-expert.com
-- Email: proai.expert2026@gmail.com
+## Notes
+This repository contains the static GitHub Pages website for ProAI Expert.

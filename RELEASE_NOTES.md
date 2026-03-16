@@ -1,15 +1,20 @@
-# RELEASE NOTES — ProAI Expert site pass
+# RELEASE NOTES — Version 2
 
-Pass completed: PHASE 1 — logo asset integration
+## Included in this pass
+- Replaced the homepage hero asset with a new premium rebuilt visual based on the approved direction: laptop + mobile + layered UI + softer system ambience.
+- Kept the hero integration focused on the homepage only; no broader homepage layout rewrite was done.
+- Standardized the global header CTA text across pages:
+  - EN: Discuss a project
+  - RU: Обсудить проект
+- Standardized footer markup across pages to one canonical EN version and one canonical RU version.
+- Added cache-busting update for `site.css` references.
 
-Changed
-- Replaced the header/footer primary logo asset with the approved refined transparent master logo.
-- Synced `assets/logo.png` and root `logo.png` to the same approved logo so social preview references no longer point to the older distorted asset.
-- Tightened logo sizing in the header and footer so the new mark/wordmark ratio stays aligned without pushing navigation spacing.
+## Intentionally not changed
+- No header layout redesign.
+- No hero copy rewrite.
+- No Two Worlds block redesign.
+- No lower 3-card block redesign.
+- No internal content rewrite beyond CTA/footer consistency.
 
-Intentionally not changed
-- Hero visual and homepage section structure were not edited in this pass.
-- No copy, layout, CTA, internal-page content, or footer structure changes.
-
-Next logical pass
-- PHASE 2 — hero visual finalization: inspect the current homepage hero artwork and replace/refine it only if it still behaves like a boxed or cropped preview instead of one integrated premium asset.
+## Next logical step
+- Header + hero micro polish, then Two Worlds polish.

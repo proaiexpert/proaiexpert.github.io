@@ -1,24 +1,15 @@
-# ProAI Expert
+# ProAI Expert — One-Page Website
 
-Premium bilingual website for ProAI Expert — an AI systems and web systems studio.
+Upload these files to your GitHub repository root:
 
-## Live domain
-- https://proai-expert.com
+- `index.html`
+- `privacy-policy.html`
+- `assets/` folder
 
-## Positioning
-ProAI Expert combines two connected service directions in one premium systems studio:
-- AI systems, workflow automation, routing, summaries, and operational simplification
-- Websites under key, branding support, structured pages, and post-launch support
+Then enable GitHub Pages:
 
-## Stack
-- Static bilingual site
-- GitHub Pages deployment
-- Shared design system and reusable assets
+`Settings → Pages → Deploy from branch → main / (root)`
 
-## Current focus
-- Premium homepage hero
-- Consistent header and footer
-- Controlled rollout of internal page polish
+Your site will be available at:
 
-## Deployment
-Push the site files to the repository root and publish with GitHub Pages from the main branch.
+`https://<username>.github.io/<repo>/`

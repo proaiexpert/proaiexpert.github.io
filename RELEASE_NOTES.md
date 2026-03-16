@@ -1,6 +1,4 @@
-# RELEASE NOTES — v10
-
-- Raised the homepage hero visual slightly and increased its size for a more balanced desktop composition
-- Increased the header logo presence to improve brand recall
-- Reduced the header CTA height slightly for a calmer premium hierarchy
-- Added README.md to restore a proper repository description block on GitHub
+v11
+- Raised the modern hero visual for a stronger optical center
+- Increased the hero visual size slightly to restore hero presence
+- Added README.md in the repo root for GitHub repository rendering

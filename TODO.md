@@ -1,7 +1,6 @@
-Next suggested pass: Two Worlds polish.
+# TODO
 
-
-## v12
-- Raised modern hero visual for stronger top-aligned hero balance.
-
-- Verify mobile portrait/landscape on iPhone Safari for homepage, RU homepage, contact, insights.
+Next logical pass:
+- Live-check portrait mobile nav fit on the target phone
+- Review Two Worlds section polish
+- Continue case preview / internal page polish

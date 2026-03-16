@@ -10,3 +10,7 @@
 ## Next review
 - Check how the new AI and Website visuals feel live inside the two-direction block.
 - Decide whether to make them lighter, more transparent, or more horizontal in a final art pass.
+## Next after v20
+- Validate the new two-direction images on live desktop and mobile.
+- Fine-tune image scale or internal padding only if needed.
+- Decide whether the web visual needs another future-focused art pass.

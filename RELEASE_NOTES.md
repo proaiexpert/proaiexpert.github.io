@@ -24,3 +24,8 @@
 - Replaced two-direction block visuals with new futuristic preview assets (trial pass).
 - Kept section structure intact so the visuals can be reviewed live before further refinement.
 - Added standalone preview PNGs to the package root for convenience.
+## v20
+- Rebuilt the two-direction section into a more compact layout.
+- Switched the media areas to horizontal wide rectangles.
+- Inserted updated AI and website visuals with white-friendly transparent-style backgrounds.
+- Shortened panel titles and tightened vertical spacing.

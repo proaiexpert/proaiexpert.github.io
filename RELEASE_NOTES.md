@@ -18,3 +18,9 @@
 - Review the new section on live desktop/mobile.
 - Fine-tune copy and spacing if needed.
 - Generate a stronger final pair of fully custom matching visuals if needed later.
+
+
+## v19
+- Replaced two-direction block visuals with new futuristic preview assets (trial pass).
+- Kept section structure intact so the visuals can be reviewed live before further refinement.
+- Added standalone preview PNGs to the package root for convenience.

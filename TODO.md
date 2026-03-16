@@ -5,3 +5,8 @@
 - Decide if the website panel needs more green / metallic accent.
 - Approve or revise the new section copy.
 - Later: generate final v2/v3 paired visuals in the same family if needed.
+
+
+## Next review
+- Check how the new AI and Website visuals feel live inside the two-direction block.
+- Decide whether to make them lighter, more transparent, or more horizontal in a final art pass.

@@ -1,6 +1,6 @@
-# ProAI Expert Site v7
+# RELEASE NOTES — v10
 
-- Cropped transparent hero asset to its real visual bounds
-- Re-centered and enlarged hero image in the right column
-- Kept the tightened homepage H1 structure
-- Preserved README.md in the repo root
+- Raised the homepage hero visual slightly and increased its size for a more balanced desktop composition
+- Increased the header logo presence to improve brand recall
+- Reduced the header CTA height slightly for a calmer premium hierarchy
+- Added README.md to restore a proper repository description block on GitHub

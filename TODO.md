@@ -1,1 +1,1 @@
-- Verify desktop hero at 100% and reduced zoom after deployment
+Next suggested pass: Two Worlds polish.

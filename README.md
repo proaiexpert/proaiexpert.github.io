@@ -1,15 +1,24 @@
 # ProAI Expert
 
-Premium systems studio combining AI automation, AI agents, business process design, and websites under key.
+Premium bilingual website for ProAI Expert — an AI systems and web systems studio.
 
-## Focus
-- AI systems and workflow automation
-- Lead intake, routing, summaries, and operations support
-- Premium websites and structured digital systems for service businesses
-- Branding support, care, and SEO publishing
+## Live domain
+- https://proai-expert.com
 
-## Live site
-https://proai-expert.com
+## Positioning
+ProAI Expert combines two connected service directions in one premium systems studio:
+- AI systems, workflow automation, routing, summaries, and operational simplification
+- Websites under key, branding support, structured pages, and post-launch support
 
-## Core positioning
-ProAI Expert builds AI systems and websites that simplify work, capture demand, and help businesses grow.
+## Stack
+- Static bilingual site
+- GitHub Pages deployment
+- Shared design system and reusable assets
+
+## Current focus
+- Premium homepage hero
+- Consistent header and footer
+- Controlled rollout of internal page polish
+
+## Deployment
+Push the site files to the repository root and publish with GitHub Pages from the main branch.

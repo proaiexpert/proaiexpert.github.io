@@ -1,22 +1,18 @@
-# RELEASE NOTES — ProAI Expert site pass
+# RELEASE NOTES — ProAI Expert Site v4
 
-Pass completed: PHASE 1 — logo asset integration
+## Included in this pass
+- Restored the transparent hero asset instead of the cropped framed variant
+- Repositioned hero visual to sit cleaner inside the hero area
+- Kept hero image large, but removed the boxed/cut-off look
+- Added a proper `README.md` so the GitHub repository can show the project description again
+- Refreshed site.css version to reduce stale cache issues
 
-Changed
-- Replaced the header/footer primary logo asset with the approved refined transparent master logo.
-- Synced `assets/logo.png` and root `logo.png` to the same approved logo so social preview references no longer point to the older distorted asset.
-- Tightened logo sizing in the header and footer so the new mark/wordmark ratio stays aligned without pushing navigation spacing.
+## Intentionally not changed
+- Two Worlds section
+- lower 3-card system block
+- internal page layouts
+- deeper header redesign
 
-Intentionally not changed
-- Hero visual and homepage section structure were not edited in this pass.
-- No copy, layout, CTA, internal-page content, or footer structure changes.
-
-Next logical pass
-- PHASE 2 — hero visual finalization: inspect the current homepage hero artwork and replace/refine it only if it still behaves like a boxed or cropped preview instead of one integrated premium asset.
-
-
-## v3 — Hero micro polish
-- Repositioned and enlarged the homepage hero visual so the laptop/phone cluster sits higher and further left.
-- Reflowed homepage H1 into controlled lines for a more compact first screen.
-- Tightened hero spacing and slightly widened the text column to reduce vertical sprawl.
-- Kept the rest of the homepage structure unchanged on purpose.
+## Next logical step
+- Recheck desktop and mobile hero composition
+- Then proceed to Two Worlds polish as a separate controlled pass

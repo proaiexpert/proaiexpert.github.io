@@ -1,6 +1,23 @@
 (function () {
   'use strict';
 
+  function getStorageItem(key) {
+    try {
+      return window.localStorage.getItem(key);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function setStorageItem(key, value) {
+    try {
+      window.localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     var forms = document.querySelectorAll('[data-contact-form]');
     if (!forms.length) return;
@@ -11,6 +28,8 @@
       var submitButton = form.querySelector('button[type="submit"]');
       var cooldownKey = 'proai-contact-form-last-submit';
       var now = Date.now();
+      var html = document.documentElement;
+      var isRu = html && html.lang === 'ru';
 
       if (startedField) {
         startedField.value = String(now);
@@ -20,7 +39,7 @@
         var current = Date.now();
         var startedAt = startedField ? Number(startedField.value || 0) : 0;
         var honeypot = form.querySelector('input[name="website"]');
-        var lastSubmit = Number(window.localStorage.getItem(cooldownKey) || 0);
+        var lastSubmit = Number(getStorageItem(cooldownKey) || 0);
         var message = '';
 
         if (feedback) {
@@ -34,11 +53,11 @@
         }
 
         if (!startedAt || (current - startedAt) < 4000) {
-          message = form.closest('html') && form.closest('html').lang === 'ru'
+          message = isRu
             ? 'Пожалуйста, подождите несколько секунд и отправьте форму ещё раз.'
             : 'Please wait a few seconds and submit the form again.';
         } else if (lastSubmit && (current - lastSubmit) < 30000) {
-          message = form.closest('html') && form.closest('html').lang === 'ru'
+          message = isRu
             ? 'Форма уже была отправлена недавно. Пожалуйста, подождите около 30 секунд перед повторной отправкой.'
             : 'This form was submitted recently. Please wait about 30 seconds before sending it again.';
         }
@@ -52,7 +71,7 @@
           return;
         }
 
-        window.localStorage.setItem(cooldownKey, String(current));
+        setStorageItem(cooldownKey, String(current));
         if (submitButton) {
           submitButton.disabled = true;
           submitButton.setAttribute('aria-disabled', 'true');

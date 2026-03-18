@@ -69,7 +69,7 @@
 
     /* ── Active nav link (fallback — skip links that already have aria-current) ── */
     var links = document.querySelectorAll('.nav-link');
-    var path  = window.location.pathname.replace(/\/+$/, '') || '/v2';
+    var path  = window.location.pathname.replace(/\/+$/, '') || '/';
 
     links.forEach(function (link) {
       var href = (link.getAttribute('href') || '').replace(/\/+$/, '');

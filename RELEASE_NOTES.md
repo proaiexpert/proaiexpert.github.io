@@ -42,3 +42,10 @@ Very small compatibility-route consistency pass only.
 - widened hero media modestly to reduce the empty middle gap
 - narrowed the hero fade so the visual block reads earlier on desktop
 - adjusted wide-screen hero positioning to keep the focus more stable
+
+
+## v32 — Hero final focus correction
+- shifted homepage hero image focus left
+- narrowed and softened the hero fade for earlier image readability
+- slightly reduced wide-screen hero spread to keep the visual block more contained
+- tuned desktop/mobile object-position for a more stable composition

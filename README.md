@@ -1,20 +1,20 @@
-# ProAI Expert — Website v2
+# ProAI Expert - Website v2
 
-Premium bilingual website for ProAI Expert — AI automation and web studio.
+Premium bilingual website for ProAI Expert: AI systems, automation, and premium web presence for service businesses.
 
 ## Stack
 
-- Pure HTML / CSS / JavaScript — no framework, no build step
-- GitHub Pages with custom domain via CNAME
-- Bilingual: English (default) + Russian (`/ru/` prefix)
+- Pure HTML, CSS, and JavaScript
+- Static deployment on GitHub Pages with custom domain
+- Bilingual structure: English by default, Russian under `/ru/`
 
 ## Structure
 
-```
+```text
 /                          Homepage EN
 /ru/                       Homepage RU
-/ai-systems/               AI Systems & Automation EN
-/ru/ai-systems/            AI Systems & Automation RU
+/ai-systems/               AI Systems EN
+/ru/ai-systems/            AI Systems RU
 /websites-branding/        Websites & Branding EN
 /ru/websites-branding/     Websites & Branding RU
 /case-studies/             Case Studies index EN
@@ -25,38 +25,38 @@ Premium bilingual website for ProAI Expert — AI automation and web studio.
 /ru/about/                 About RU
 /contact/                  Contact EN
 /ru/contact/               Contact RU
-/insights/                 Insights / Blog EN
-/ru/insights/              Insights / Blog RU
-/privacy/                  Privacy Policy
-/terms/                    Terms of Use
+/insights/                 Insights EN
+/ru/insights/              Insights RU
+/privacy/                  Privacy policy
+/ru/privacy/               Privacy policy RU
+/terms/                    Terms
+/ru/terms/                 Terms RU
 ```
 
 ## Assets
 
-```
-assets/css/       Design system: tokens, layout, components, sections
-assets/js/        hero-motion.js — ambient particle + parallax animation
-assets/images/    v2-* visual system (6 premium AI-generated visuals)
-assets/brand/     Logo (transparent PNG)
+```text
+assets/css/       Design system, layout, components, sections
+assets/js/        Navigation, contact form, motion
+assets/images/    Current visual system and page visuals
+assets/brand/     Brand logo assets
 ```
 
 ## Deployment
 
-Hosted on GitHub Pages.  
-Custom domain: **proai-expert.com** (configured via `CNAME`).  
-Old `proaiexpert.github.io` also resolves to the same site via CNAME — no duplicate indexing risk since canonical tags and hreflang point exclusively to `proai-expert.com`.
-
-To deploy updates: push changes to the `main` branch.  
-GitHub Pages rebuilds automatically (static files, no CI required).
+- Primary production domain: `https://proai-expert.com/`
+- Custom domain is configured through `CNAME`
+- Deploy by pushing to `main`
+- GitHub Pages rebuilds automatically
 
 ## SEO
 
-- `sitemap.xml` — covers all EN + RU indexable pages
-- `robots.txt` — open crawl, references sitemap
-- Canonical tags — all pages use `proai-expert.com` as the canonical domain
-- Hreflang — EN/RU alternates on all bilingual page pairs
-- Google Search Console — verification file: `google85a9034747b7c192.html`
+- `sitemap.xml` covers the current indexable EN and RU pages
+- `robots.txt` references the sitemap
+- Canonical tags point to `proai-expert.com`
+- Hreflang pairs are used on bilingual page variants
+- Google Search Console verification file: `google85a9034747b7c192.html`
 
 ## Contact
 
-proai.expert2026@gmail.com
+- `proai.expert2026@gmail.com`

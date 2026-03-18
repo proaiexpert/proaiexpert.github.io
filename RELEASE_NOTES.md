@@ -28,3 +28,10 @@ Very small compatibility-route consistency pass only.
 - Slightly shifted homepage hero image left for better focal balance.
 - Reduced desktop hero media width and added max-width cap so the visual behaves more proportionally on very wide screens.
 - Kept full-width section backgrounds while making the hero feel less over-spread.
+
+
+## v30 — Hero rollback + proportional re-balance
+- Reverted the over-tight v29 desktop hero width change that pushed the visual mass too far right.
+- Removed the desktop max-width cap on hero media so the image can breathe naturally again on wide screens.
+- Shifted the homepage hero image focus slightly left from v29 while keeping the improved fade.
+- Preserved the full-width section background and existing mobile behavior.

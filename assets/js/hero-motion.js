@@ -7,13 +7,20 @@
   if (!img) return;
 
   // ── PARALLAX ─────────────────────────────────────────────────────────────
-  var MAX_SHIFT = 5;
+  var mediaDesktop = window.matchMedia('(min-width: 861px)');
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var MAX_SHIFT = mediaDesktop.matches && !reduceMotion.matches ? 4 : 0;
   var targetX = 0, targetY = 0;
   var curX = 0, curY = 0;
 
   function lerp(a, b, t) { return a + (b - a) * t; }
 
   document.addEventListener('mousemove', function (e) {
+    if (!mediaDesktop.matches || reduceMotion.matches) {
+      targetX = 0;
+      targetY = 0;
+      return;
+    }
     var cx = window.innerWidth * 0.5;
     var cy = window.innerHeight * 0.5;
     targetX = ((e.clientX - cx) / cx) * MAX_SHIFT;
@@ -41,11 +48,14 @@
     H = canvas.height = frame.offsetHeight;
   }
   resize();
-  window.addEventListener('resize', resize);
+  window.addEventListener('resize', function () {
+    MAX_SHIFT = mediaDesktop.matches && !reduceMotion.matches ? 4 : 0;
+    resize();
+  });
 
   // ── PARTICLES ─────────────────────────────────────────────────────────────
   // Concentrated in the right 55-100% of the frame where the visual lives
-  var N = 32;
+  var N = mediaDesktop.matches ? 28 : 12;
   var pts = [];
   for (var i = 0; i < N; i++) {
     pts.push({
@@ -116,7 +126,8 @@
     curX = lerp(curX, targetX, 0.035);
     curY = lerp(curY, targetY, 0.035);
     // scale(1.025) hides the tiny gap that would appear at frame edges
-    img.style.transform = 'translate(' + curX.toFixed(2) + 'px,' + curY.toFixed(2) + 'px) scale(1.025)';
+    var scale = mediaDesktop.matches ? 1.022 : 1.0;
+    img.style.transform = 'translate(' + curX.toFixed(2) + 'px,' + curY.toFixed(2) + 'px) scale(' + scale + ')';
 
     requestAnimationFrame(tick);
   }

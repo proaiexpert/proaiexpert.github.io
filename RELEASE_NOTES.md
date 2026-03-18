@@ -1,15 +1,25 @@
-# ProAIExpert_Website_v23 — RELEASE NOTES
+# RELEASE NOTES — ProAIExpert_Website_v26
 
-Scope: final safe consistency pass only.
+## Scope
+Very small compatibility-route consistency pass only.
 
-Changes made:
-- fixed mojibake/encoding issue on the English homepage title
-- fixed mojibake/encoding issue on the English homepage header logo aria-label
-- re-ran archive QA to confirm no broken local links/resources
+## Changed
+- Unified eyebrow/copy wording on compatibility pages.
+- Replaced leftover blog/insights wording on redirect pages with service-route wording.
+- Slightly simplified redirect helper text and CTA on the sample article compatibility page.
 
-Intentionally left unchanged:
-- URL structure
-- page structure and section order
-- content and CTA logic
-- forms, chatbot, routing, SEO architecture
-- logo assets and broader visual system
+## Not changed
+- Structure
+- URLs/routes
+- Main page copy
+- Design/layout
+- Forms/chatbot
+- SEO architecture
+
+
+## v28 Hero Responsive Tuning
+- shifted homepage hero image slightly left/up via object-position to keep key screens visible
+- narrowed and softened hero fade so the visual reads earlier without overpowering text
+- reduced hero media width slightly for a better desktop balance
+- added dedicated mobile hero behavior instead of hiding the visual entirely
+- reduced hero mouse-parallax intensity and disabled movement on mobile / reduced-motion

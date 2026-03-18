@@ -23,3 +23,8 @@ Very small compatibility-route consistency pass only.
 - reduced hero media width slightly for a better desktop balance
 - added dedicated mobile hero behavior instead of hiding the visual entirely
 - reduced hero mouse-parallax intensity and disabled movement on mobile / reduced-motion
+
+## v29 — Hero proportional tuning
+- Slightly shifted homepage hero image left for better focal balance.
+- Reduced desktop hero media width and added max-width cap so the visual behaves more proportionally on very wide screens.
+- Kept full-width section backgrounds while making the hero feel less over-spread.

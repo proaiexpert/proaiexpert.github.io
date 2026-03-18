@@ -1,29 +1,10 @@
-# RELEASE_NOTES — Version 10
+# Version 10 — Micro polish pass
 
-## Scope
-Micro-polish pass only. No redesign, no layout restructuring, no content changes.
-
-## What changed
-- Replaced the header logo asset with a cleaned light-use logo export for better integration on light backgrounds.
-- Switched footer logo usage to a dark footer-specific asset.
-- Tightened header logo vertical placement very slightly for cleaner underline balance.
-- Reduced footer logo “mini-poster” feel with a gentler treatment and slightly calmer presentation.
-- Improved footer text contrast/readability for tagline, links, email, and legal text.
-
-## Files changed
-- assets/brand/logo-proai-expert-premium-horizontal.png
-- assets/brand/logo-proai-expert-light-clean.png
-- assets/brand/logo-proai-expert-dark-footer.png
-- assets/css/layout.css
-- site HTML files that include the shared footer logo reference
+## Adjusted
+- softened footer logo integration with a lighter CSS treatment and slightly reduced visual dominance
+- increased footer text contrast for tagline, email, column links, and legal text
+- applied a tiny header logo placement polish and corrected image fitting to avoid distortion
 
 ## Intentionally unchanged
-- Navigation structure
-- CTA copy
-- Page content
-- Hero layout
-- Buttons
-- Forms
-- Routing
-- SEO/meta logic
-- Any broader visual system changes
+- site structure, copy, navigation, CTA text, buttons, sections, routing, forms, chatbot, and SEO
+- logo assets themselves were not replaced

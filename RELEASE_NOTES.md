@@ -35,3 +35,10 @@ Very small compatibility-route consistency pass only.
 - Removed the desktop max-width cap on hero media so the image can breathe naturally again on wide screens.
 - Shifted the homepage hero image focus slightly left from v29 while keeping the improved fade.
 - Preserved the full-width section background and existing mobile behavior.
+
+
+## v31 — Hero final alignment tuning
+- shifted homepage hero image slightly left to tighten the text-to-visual relationship
+- widened hero media modestly to reduce the empty middle gap
+- narrowed the hero fade so the visual block reads earlier on desktop
+- adjusted wide-screen hero positioning to keep the focus more stable

@@ -54,7 +54,7 @@
 
         if (!startedAt || (current - startedAt) < 4000) {
           message = isRu
-            ? 'Пожалуйста, подождите несколько секунд и отправьте форму ещё раз.'
+            ? 'Пожалуйста, подождите несколько секунд и отправьте форму еще раз.'
             : 'Please wait a few seconds and submit the form again.';
         } else if (lastSubmit && (current - lastSubmit) < 30000) {
           message = isRu

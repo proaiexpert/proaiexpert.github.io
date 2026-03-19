@@ -309,7 +309,7 @@
   transition: transform var(--ease-base), box-shadow var(--ease-base);
 }
 
-.direction-card:hover { transform: translateY(-2px); }
+.direction-card:hover { transform: translateY(-3px); }
 
 /* Dark card (AI Systems) */
 .direction-card--dark {
@@ -486,22 +486,41 @@
 }
 
 .section--process .section-heading {
-  margin-bottom: var(--s-10);
+  margin-bottom: clamp(32px, 4vw, 44px);
 }
 
 .process-heading {
-  max-width: 760px;
+  max-width: 980px;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.process-heading .eyebrow,
+.process-heading h2,
+.process-heading .process-intro {
+  margin-inline: auto;
 }
 
 .process-intro {
-  max-width: 680px;
+  max-width: 920px;
+  text-wrap: balance;
 }
 
 .process-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 0;
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid rgba(12,22,50,0.10);
+  position: relative;
+}
+
+.process-grid::before {
+  content: '';
+  position: absolute;
+  inset: -1px 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(41,112,108,0.00) 0%, rgba(41,112,108,0.32) 18%, rgba(41,112,108,0.18) 82%, rgba(41,112,108,0.00) 100%);
+  pointer-events: none;
 }
 
 .process-step {
@@ -509,7 +528,7 @@
   flex-direction: column;
   gap: var(--s-4);
   min-height: 100%;
-  padding: clamp(32px, 3.2vw, 40px) var(--s-8) clamp(30px, 3vw, 36px) 0;
+  padding: clamp(34px, 3.4vw, 44px) var(--s-8) clamp(34px, 3.2vw, 42px) 0;
   position: relative;
   transition:
     background-color var(--ease-base),
@@ -528,18 +547,20 @@
 .process-step::before {
   content: '';
   position: absolute;
-  inset: 10px 10px 10px 0;
-  border-radius: var(--r-lg);
-  background: linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.08) 100%);
+  inset: 12px 10px 10px 0;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.16) 100%),
+    radial-gradient(circle at top left, rgba(41,112,108,0.08), transparent 48%);
   opacity: 0;
   transition: opacity var(--ease-base), box-shadow var(--ease-base), border-color var(--ease-base);
-  border: 1px solid rgba(255,255,255,0.32);
-  box-shadow: 0 10px 28px rgba(12,22,50,0.05);
+  border: 1px solid rgba(255,255,255,0.54);
+  box-shadow: 0 16px 36px rgba(12,22,50,0.06);
   pointer-events: none;
 }
 
 .process-step:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
 }
 
 .process-step:hover::before {
@@ -550,34 +571,36 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 52px;
-  height: 32px;
+  width: 62px;
+  height: 36px;
   border-radius: var(--r-full);
-  border: 1px solid rgba(41,112,108,0.16);
-  background: rgba(255,255,255,0.48);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.48);
+  border: 1px solid rgba(41,112,108,0.18);
+  background: linear-gradient(180deg, rgba(255,255,255,0.76) 0%, rgba(255,255,255,0.46) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.64),
+    0 8px 20px rgba(12,22,50,0.04);
   font-family: var(--font-display);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.22em;
   color: var(--teal);
 }
 
 .step-title {
   font-family: var(--font-display);
-  font-size: clamp(17px, 1.45vw, 21px);
+  font-size: clamp(17px, 1.45vw, 22px);
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.18;
-  letter-spacing: -0.02em;
-  max-width: 13ch;
+  line-height: 1.14;
+  letter-spacing: -0.024em;
+  max-width: 12ch;
 }
 
 .step-text {
   font-size: var(--fs-sm);
   color: var(--text-secondary);
-  line-height: 1.75;
-  max-width: 29ch;
+  line-height: 1.72;
+  max-width: 30ch;
 }
 
 /* ══════════════════════════════════
@@ -622,7 +645,7 @@
 }
 
 .work-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: 0 8px 40px rgba(12,22,50,0.10);
 }
 
@@ -891,6 +914,14 @@
     margin-inline: auto;
   }
 
+  .process-heading {
+    max-width: 760px;
+  }
+
+  .process-intro {
+    max-width: 720px;
+  }
+
   .process-grid {
     grid-template-columns: 1fr 1fr;
     gap: 0;
@@ -991,6 +1022,22 @@
 }
 
 @media (max-width: 640px) {
+  .process-heading {
+    text-align: left;
+    max-width: 100%;
+  }
+
+  .process-heading .eyebrow,
+  .process-heading h2,
+  .process-heading .process-intro {
+    margin-inline: 0;
+  }
+
+  .process-intro {
+    max-width: 100%;
+    text-wrap: pretty;
+  }
+
   .process-grid {
     grid-template-columns: 1fr;
   }
@@ -1243,7 +1290,7 @@
 }
 
 .case-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
   box-shadow: 0 8px 32px rgba(12,22,50,0.09);
 }
 

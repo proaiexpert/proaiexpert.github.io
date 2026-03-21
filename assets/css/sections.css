@@ -1359,11 +1359,30 @@
 ══════════════════════════════════ */
 
 .section--cases-hero {
-  background: var(--bg-base);
+  background:
+    radial-gradient(circle at top right, rgba(17, 144, 134, 0.08), transparent 34%),
+    radial-gradient(circle at left center, rgba(30, 64, 175, 0.05), transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(247,250,252,0.88) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.section--cases-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(15,23,42,0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15,23,42,0.028) 1px, transparent 1px);
+  background-size: 56px 56px;
+  opacity: 0.32;
+  pointer-events: none;
 }
 
 .cases-hero-content {
-  max-width: 660px;
+  max-width: 760px;
+  position: relative;
+  z-index: 1;
 }
 
 .cases-hero-content h1 {
@@ -1374,18 +1393,69 @@
   line-height: var(--lh-snug);
   letter-spacing: var(--ls-tight);
   margin-bottom: var(--s-5);
+  max-width: 13.5ch;
 }
 
 .cases-hero-text {
   font-size: var(--fs-body-lg);
   color: var(--text-secondary);
   line-height: var(--lh-relaxed);
-  margin-bottom: var(--s-8);
-  max-width: 520px;
+  margin-bottom: var(--s-6);
+  max-width: 620px;
+}
+
+.cases-hero-bullets {
+  max-width: 640px;
+  gap: 12px;
+  margin-bottom: var(--s-4);
+}
+
+.cases-hero-bullets li {
+  font-size: var(--fs-body);
+  color: var(--text-secondary);
+}
+
+.section--cases-framing {
+  background: var(--bg-base);
+  padding-top: clamp(24px, 3vw, 40px);
+  padding-bottom: clamp(24px, 3vw, 44px);
+}
+
+.section-heading--compact {
+  margin-bottom: var(--s-7);
+}
+
+.cases-framing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-5);
+}
+
+.cases-framing-card {
+  background: rgba(255,255,255,0.88);
+  border: 1px solid rgba(15,23,42,0.08);
+  border-radius: var(--r-xl);
+  padding: var(--s-6);
+  box-shadow: 0 12px 40px rgba(12,22,50,0.05);
+}
+
+.cases-framing-card h3 {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 1.7vw, 24px);
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: var(--lh-snug);
+  margin-bottom: var(--s-3);
+}
+
+.cases-framing-card p {
+  font-size: var(--fs-body);
+  color: var(--text-secondary);
+  line-height: var(--lh-relaxed);
 }
 
 .section--cases-grid {
-  background: var(--bg-elevated);
+  background: linear-gradient(180deg, rgba(247,250,252,0.92) 0%, rgba(255,255,255,1) 100%);
 }
 
 .cases-grid-layout {
@@ -1537,12 +1607,30 @@
   padding-bottom: var(--s-10);
 }
 
+.archive-note-card {
+  max-width: 760px;
+  padding: clamp(24px, 3vw, 36px);
+  border: 1px solid rgba(15,23,42,0.08);
+  border-radius: var(--r-xl);
+  background: linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(247,250,252,0.88) 100%);
+  box-shadow: 0 16px 50px rgba(12,22,50,0.06);
+}
+
+.archive-note-card h2 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 3vw, 40px);
+  line-height: var(--lh-snug);
+  color: var(--text-primary);
+  margin-top: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+
 .framing-note-text {
   font-size: var(--fs-body);
   color: var(--text-tertiary);
   line-height: var(--lh-relaxed);
-  max-width: 600px;
-  font-style: italic;
+  max-width: 640px;
+  font-style: normal;
 }
 
 /* ══════════════════════════════════
@@ -3513,11 +3601,11 @@
   }
 
   .hero--service-split.hero--service-web .hero-inner {
-    min-height: clamp(540px, 56vw, 720px);
+    min-height: clamp(580px, 60vw, 770px);
   }
 
   .hero--service-split.hero--service-web .hero-media {
-    top: clamp(-54px, -4.2vw, -26px);
+    top: clamp(-86px, -6.4vw, -52px);
   }
 
   .hero--service-split.hero--service-ai .hero-visual-frame,
@@ -3548,7 +3636,7 @@
   }
 
   .hero--service-split.hero--service-web .hero-visual-frame img {
-    transform: translateY(-16%) scale(0.90);
+    transform: translateY(-24%) scale(0.92);
   }
 }
 
@@ -3561,7 +3649,7 @@
   }
 
   .hero--service-split.hero--service-web .hero-media {
-    top: clamp(-44px, -3.2vw, -20px);
+    top: clamp(-68px, -4.8vw, -40px);
   }
 
   .hero--service-split.hero--service-ai .hero-visual-frame img {
@@ -3571,4 +3659,9 @@
   .hero--service-split.hero--service-web .hero-visual-frame img {
     transform: translateY(-21%) scale(0.90);
   }
+}
+
+@media (max-width: 900px) {
+  .cases-framing-grid { grid-template-columns: 1fr; }
+  .cases-hero-content h1 { max-width: none; }
 }

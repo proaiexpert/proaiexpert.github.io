@@ -1,0 +1,1 @@
+- Case Studies hero visual enlarged significantly and raised upward for a fuller right-side hero presence.

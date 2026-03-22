@@ -8,12 +8,27 @@
     /* ── Mobile toggle ── */
     var toggle = document.querySelector('.nav-toggle');
     var menu   = document.querySelector('.nav-menu');
+    var mobileQuery = window.matchMedia('(max-width: 900px)');
+    var siteHeader = document.querySelector('.site-header');
+
+    if (menu) {
+      var headerPrimaryCta = document.querySelector('.header-actions .btn--primary');
+      if (headerPrimaryCta && !menu.querySelector('.nav-menu-cta')) {
+        var mobileCtaWrap = document.createElement('div');
+        mobileCtaWrap.className = 'nav-menu-cta';
+        mobileCtaWrap.appendChild(headerPrimaryCta.cloneNode(true));
+        menu.appendChild(mobileCtaWrap);
+      }
+    }
 
     function openMenu() {
       menu.classList.add('is-open');
       toggle.classList.add('is-open');
       toggle.setAttribute('aria-expanded', 'true');
       document.body.classList.add('nav-open');
+      if (siteHeader) {
+        siteHeader.classList.remove('is-hidden');
+      }
     }
 
     function closeMenu() {
@@ -58,12 +73,38 @@
     }
 
     /* ── Header scroll shadow ── */
-    var siteHeader = document.querySelector('.site-header');
     if (siteHeader) {
+      var lastScrollY = window.scrollY;
       var onScroll = function () {
         siteHeader.classList.toggle('scrolled', window.scrollY > 12);
+
+        if (!mobileQuery.matches) {
+          siteHeader.classList.remove('is-hidden');
+          lastScrollY = window.scrollY;
+          return;
+        }
+
+        if (document.body.classList.contains('nav-open') || window.scrollY <= 12) {
+          siteHeader.classList.remove('is-hidden');
+          lastScrollY = window.scrollY;
+          return;
+        }
+
+        if (window.scrollY > lastScrollY + 8) {
+          siteHeader.classList.add('is-hidden');
+        } else if (window.scrollY < lastScrollY - 8) {
+          siteHeader.classList.remove('is-hidden');
+        }
+
+        lastScrollY = window.scrollY;
       };
       window.addEventListener('scroll', onScroll, { passive: true });
+      window.addEventListener('resize', function () {
+        if (!mobileQuery.matches && menu && menu.classList.contains('is-open')) {
+          closeMenu();
+        }
+        onScroll();
+      });
       onScroll();
     }
 

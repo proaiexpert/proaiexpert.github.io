@@ -3984,8 +3984,6 @@
 
 /* v103 internal hero standardization */
 @media (min-width: 1025px) {
-  .hero--service-split.hero--service-ai .hero-inner,
-  .hero--service-split.hero--service-web .hero-inner,
   .hero--cases-split .hero-inner,
   .case-page-hero-layout,
   .about-hero-grid {
@@ -3993,40 +3991,15 @@
     gap: clamp(28px, 3vw, 42px);
   }
 
-  .hero--service-split.hero--service-ai .hero-inner,
-  .hero--service-split.hero--service-web .hero-inner,
   .hero--cases-split .hero-inner,
   .about-hero-grid {
     min-height: clamp(640px, 62vw, 760px);
   }
 
-  .hero--service-split.hero--service-ai .hero-content,
-  .hero--service-split.hero--service-web .hero-content,
   .hero--cases-split .cases-hero-content,
   .case-page-hero-inner {
     max-width: min(100%, 620px);
     padding-top: clamp(6px, 0.8vw, 14px);
-  }
-
-  .hero--service-split.hero--service-ai .hero-media,
-  .hero--service-split.hero--service-web .hero-media {
-    top: clamp(-76px, -5.4vw, -46px);
-    bottom: 0;
-    width: clamp(56%, 58vw, 61%);
-    right: clamp(-6px, -0.5vw, 6px);
-  }
-
-  .hero--service-split.hero--service-ai .hero-visual-frame,
-  .hero--service-split.hero--service-web .hero-visual-frame {
-    min-height: clamp(580px, 50vw, 720px);
-  }
-
-  .hero--service-split.hero--service-ai .hero-visual-frame img {
-    transform: translate(5%, -29%) scale(1.20);
-  }
-
-  .hero--service-split.hero--service-web .hero-visual-frame img {
-    transform: translateY(-20%) scale(0.90);
   }
 
   .about-hero-grid {
@@ -4120,7 +4093,7 @@
   }
 }
 
-/* Unified desktop hero system: homepage, AI Systems, Websites & Branding */
+/* Final desktop hero system for homepage + core service pages */
 @media (min-width: 1025px) {
   .section--hero {
     min-height: clamp(760px, 82vh, 920px);
@@ -4145,9 +4118,7 @@
   .section--hero .hero-media {
     position: absolute;
     top: 0;
-    right: clamp(6px, 0.8vw, 14px);
     bottom: 0;
-    width: 55%;
     height: 100%;
     pointer-events: none;
     align-self: unset;
@@ -4158,7 +4129,7 @@
     inset: 0;
     width: 100%;
     height: 100%;
-    min-height: unset;
+    min-height: 100%;
     border-radius: 0;
     background: transparent;
     overflow: hidden;
@@ -4169,18 +4140,6 @@
     content: '';
     position: absolute;
     inset: 0;
-    background:
-      linear-gradient(to right,
-        var(--bg-base) 0%,
-        rgba(242,244,247,0.93) 8%,
-        rgba(242,244,247,0.68) 18%,
-        rgba(242,244,247,0.28) 29%,
-        transparent 41%),
-      linear-gradient(to bottom,
-        rgba(242,244,247,0.02) 0%,
-        transparent 8%,
-        transparent 92%,
-        rgba(242,244,247,0.04) 100%);
     pointer-events: none;
     z-index: 1;
   }
@@ -4199,46 +4158,71 @@
   }
 
   .section--hero:not(.hero--inner) .hero-media {
-    width: 55%;
     right: clamp(8px, 1vw, 16px);
+    width: 55%;
+  }
+
+  .section--hero:not(.hero--inner) .hero-visual-frame::after {
+    background:
+      linear-gradient(to right,
+        var(--bg-base) 0%,
+        rgba(242,244,247,0.90) 8%,
+        rgba(242,244,247,0.56) 17%,
+        rgba(242,244,247,0.20) 27%,
+        transparent 40%),
+      linear-gradient(to bottom,
+        rgba(242,244,247,0.12) 0%,
+        transparent 10%,
+        transparent 90%,
+        rgba(242,244,247,0.12) 100%);
   }
 
   .section--hero:not(.hero--inner) .hero-visual-frame img {
-    object-position: 55% 41%;
+    object-position: 55% 40.5%;
     transform: none;
   }
 
+  /* Service pages: same rhythm as homepage, but with stronger left fade
+     so text stays clean and the art reads as a right-side scene. */
   .section--hero.hero--service-split .hero-inner {
-    gap: clamp(26px, 2.7vw, 40px);
+    gap: 0;
   }
 
   .section--hero.hero--service-split .hero-content {
-    max-width: min(100%, 620px);
+    max-width: min(100%, 600px);
+    padding-right: clamp(20px, 2vw, 36px);
   }
 
   .section--hero.hero--service-split .hero-media {
-    right: -2%;
-    width: 60%;
+    right: 0;
+    width: clamp(52%, 55vw, 56%);
   }
 
-  .section--hero.hero--service-split.hero--service-ai .hero-media {
-    right: -2.5%;
-    width: 61%;
+  .section--hero.hero--service-split .hero-visual-frame::after {
+    background:
+      linear-gradient(to right,
+        var(--bg-base) 0%,
+        rgba(242,244,247,0.96) 9%,
+        rgba(242,244,247,0.84) 18%,
+        rgba(242,244,247,0.56) 29%,
+        rgba(242,244,247,0.22) 40%,
+        rgba(242,244,247,0.04) 48%,
+        transparent 56%),
+      linear-gradient(to bottom,
+        rgba(242,244,247,0.02) 0%,
+        transparent 6%,
+        transparent 94%,
+        rgba(242,244,247,0.02) 100%);
   }
 
   .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img {
-    object-position: 100% 8%;
-    transform: scale(1.08);
-  }
-
-  .section--hero.hero--service-split.hero--service-web .hero-media {
-    right: -2%;
-    width: 60%;
+    object-position: 74% 50%;
+    transform: scale(1.10);
   }
 
   .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    object-position: 100% 2%;
-    transform: scale(1.13);
+    object-position: 74% 48%;
+    transform: scale(1.11);
   }
 }
 
@@ -4247,223 +4231,22 @@
     min-height: clamp(660px, 70vh, 760px);
   }
 
-  .section--hero.hero--service-split .hero-media {
-    right: -3%;
-    width: 62%;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-media {
-    right: -4%;
-    width: 64%;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img {
-    object-position: 100% 10%;
-    transform: scale(1.04);
-  }
-
-  .section--hero.hero--service-split.hero--service-web .hero-media {
-    right: -3%;
-    width: 63%;
-  }
-
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    object-position: 100% 4%;
-    transform: scale(1.10);
-  }
-}
-
-/* Final desktop crop lock for service heroes */
-@media (min-width: 1025px) {
-  .section--hero.hero--service-split.hero--service-ai,
-  .section--hero.hero--service-split.hero--service-web {
-    min-height: clamp(760px, 82vh, 920px);
-    padding-top: clamp(28px, 3vw, 48px);
-    padding-bottom: clamp(28px, 3vw, 48px);
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-inner,
-  .section--hero.hero--service-split.hero--service-web .hero-inner {
-    min-height: clamp(700px, 74vh, 840px);
-    align-items: stretch;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-media,
-  .section--hero.hero--service-split.hero--service-web .hero-media {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    height: 100%;
-    pointer-events: none;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame,
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame {
-    position: absolute;
-    inset: 0;
-    min-height: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: transparent;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img,
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    object-fit: cover;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-media {
-    top: clamp(-36px, -2.6vw, -22px);
-    right: -6.5%;
-    width: 66%;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img {
-    object-position: 100% 0%;
-    transform-origin: right top;
-    transform: scale(1.16);
-  }
-
-  .section--hero.hero--service-split.hero--service-web .hero-media {
-    right: -3.6%;
-    width: 63%;
-  }
-
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    object-position: 100% 0%;
-    transform-origin: right top;
-    transform: scale(1.20);
-  }
-}
-
-@media (min-width: 1025px) and (max-width: 1340px) {
-  .section--hero.hero--service-split.hero--service-ai .hero-media {
-    top: clamp(-28px, -2vw, -16px);
-    right: -7%;
-    width: 68%;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img {
-    transform: scale(1.12);
-  }
-
-  .section--hero.hero--service-split.hero--service-web .hero-media {
-    right: -5%;
-    width: 65%;
-  }
-
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    transform: scale(1.16);
-  }
-}
-
-/* Final desktop hero art fill for AI Systems and Websites & Branding */
-@media (min-width: 1025px) {
-  .section--hero.hero--service-split.hero--service-ai,
-  .section--hero.hero--service-split.hero--service-web {
-    min-height: clamp(760px, 82vh, 920px);
-    padding-top: clamp(28px, 3vw, 48px);
-    padding-bottom: clamp(28px, 3vw, 48px);
-    overflow: hidden;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-inner,
-  .section--hero.hero--service-split.hero--service-web .hero-inner {
-    min-height: clamp(700px, 74vh, 840px);
-    align-items: stretch;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-content,
-  .section--hero.hero--service-split.hero--service-web .hero-content {
-    position: relative;
-    z-index: 2;
+  .section--hero.hero--service-split .hero-content {
     max-width: min(100%, 560px);
-    padding-top: 0;
+    padding-right: clamp(16px, 1.4vw, 26px);
   }
 
-  .section--hero.hero--service-split.hero--service-ai .hero-media,
-  .section--hero.hero--service-split.hero--service-web .hero-media {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    right: clamp(-42px, -2.4vw, -12px);
-    width: clamp(58%, 62vw, 66%);
-    height: 100%;
-    display: flex;
-    align-items: stretch;
-    justify-content: flex-end;
-    pointer-events: none;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame,
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame {
-    position: absolute;
-    inset: 0;
-    min-height: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: transparent;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame::after,
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to right,
-      var(--bg-base) 0%,
-      rgba(242,244,247,0.98) 16%,
-      rgba(242,244,247,0.90) 28%,
-      rgba(242,244,247,0.62) 40%,
-      rgba(242,244,247,0.20) 54%,
-      transparent 66%);
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img,
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    max-width: none;
-    object-fit: cover;
-    transform: none;
-    filter: drop-shadow(0 22px 48px rgba(15, 30, 58, 0.10));
+  .section--hero.hero--service-split .hero-media {
+    width: clamp(54%, 58vw, 60%);
   }
 
   .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img {
-    object-position: 100% 22%;
+    object-position: 76% 50%;
+    transform: scale(1.08);
   }
 
   .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    object-position: 100% 18%;
-  }
-}
-
-@media (min-width: 1025px) and (max-width: 1340px) {
-  .section--hero.hero--service-split.hero--service-ai .hero-content,
-  .section--hero.hero--service-split.hero--service-web .hero-content {
-    max-width: min(100%, 520px);
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-media,
-  .section--hero.hero--service-split.hero--service-web .hero-media {
-    right: clamp(-24px, -1.2vw, -6px);
-    width: clamp(60%, 64vw, 69%);
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img {
-    object-position: 100% 20%;
-  }
-
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    object-position: 100% 16%;
+    object-position: 76% 48%;
+    transform: scale(1.09);
   }
 }

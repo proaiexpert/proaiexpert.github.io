@@ -1703,8 +1703,6 @@
   filter: drop-shadow(0 20px 46px rgba(15, 30, 58, 0.10));
 }
 
-/* STEP 5 DISABLED: early cases desktop patch removed from cascade.
-   Desktop positioning now comes only from the isolated non-core cases block below.
 @media (min-width: 1025px) {
   .hero--cases-split .hero-inner {
     min-height: clamp(580px, 60vw, 770px);
@@ -1748,7 +1746,6 @@
     transform: translateX(10%) translateY(-16%) scale(0.95);
   }
 }
-END STEP 5 EARLY CASES DESKTOP LEGACY */
 
 @media (max-width: 1100px) {
   .hero--cases-split {
@@ -1781,8 +1778,6 @@ END STEP 5 EARLY CASES DESKTOP LEGACY */
   }
 }
 
-/* STEP 5 DISABLED: legacy v103 cases visual patch removed from cascade.
-   `.cases-hero-visual` now inherits from the isolated cases family rules plus the mobile cleanup block below.
 /* v103 cases hero visual — alpha-fade PNG, scaled like primary direction heroes */
 .hero--cases-split .hero-media {
   display: flex;
@@ -1872,7 +1867,6 @@ END STEP 5 EARLY CASES DESKTOP LEGACY */
     margin-inline: auto;
   }
 }
-END STEP 5 V103 CASES VISUAL LEGACY */
 
 /* ══════════════════════════════════
    SINGLE CASE PAGE
@@ -3084,8 +3078,6 @@ END STEP 5 V103 CASES VISUAL LEGACY */
   }
 }
 
-/* STEP 3 DISABLED: legacy ultra-wide core hero tweak removed.
-   Canonical wide-screen behavior now lives only in STEP 2 hero core.
 @media (min-width: 1440px) {
   .section--hero .hero-media {
     right: clamp(10px, 1.1vw, 18px);
@@ -3096,7 +3088,6 @@ END STEP 5 V103 CASES VISUAL LEGACY */
     object-position: 54.6% 40%;
   }
 }
-END STEP 3 LEGACY BLOCK */
 /* v48 insights editorial upgrade */
 
 .hero--insights-v48 {
@@ -3306,7 +3297,7 @@ END STEP 3 LEGACY BLOCK */
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url('/assets/images/about/about-hero-visual-cropped.webp');
+  background-image: url('/assets/images/about/about-hero-cropped-right.png');
   background-repeat: no-repeat;
   background-size: 150% auto;
   background-position: 28% 6%;
@@ -3991,9 +3982,7 @@ END STEP 3 LEGACY BLOCK */
   }
 }
 
-/* STEP 4 DISABLED: mixed non-core hero standardization removed from cascade.
-   Cases/About/detail-case heroes are no longer standardized in one shared block.
-   Legacy block preserved below for rollback/reference.
+/* v103 internal hero standardization */
 @media (min-width: 1025px) {
   .hero--cases-split .hero-inner,
   .case-page-hero-layout,
@@ -4103,206 +4092,8 @@ END STEP 3 LEGACY BLOCK */
     inset: clamp(-64px, -4.8vw, -38px) -3% 0 48%;
   }
 }
-END STEP 4 LEGACY BLOCK */
 
-/* STEP 4 — isolate non-core heroes.
-   Cases/About/detail-case heroes now have dedicated isolated blocks.
-   Core `.section--hero` pages no longer share standardization rules with them. */
-@media (min-width: 1025px) {
-  /* Cases family: index hero + case detail heroes */
-  .hero--cases-split .hero-inner,
-  .case-page-hero-layout {
-    align-items: start;
-    gap: clamp(28px, 3vw, 42px);
-  }
-
-  .hero--cases-split .hero-inner {
-    min-height: clamp(640px, 62vw, 760px);
-    grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr);
-  }
-
-  .hero--cases-split .cases-hero-content,
-  .case-page-hero-inner {
-    max-width: min(100%, 620px);
-    padding-top: clamp(6px, 0.8vw, 14px);
-  }
-
-  .case-page-hero-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 0.98fr);
-    min-height: clamp(560px, 56vw, 700px);
-  }
-
-  .case-page-hero-frame {
-    min-height: clamp(400px, 40vw, 560px);
-  }
-
-  .hero--cases-split .hero-media {
-    top: clamp(-196px, -13.8vw, -142px);
-    bottom: 0;
-    right: clamp(10px, 0.8vw, 28px);
-    width: clamp(68%, 72vw, 78%);
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    pointer-events: none;
-  }
-
-  .hero--cases-split .hero-visual-frame {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    min-height: 100%;
-    overflow: visible;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    background: transparent;
-  }
-
-  .hero--cases-split .hero-visual-frame img {
-    display: block;
-    height: clamp(1020px, 120vh, 1320px);
-    width: auto;
-    max-width: none;
-    object-fit: contain;
-    object-position: center center;
-    transform: translateX(-42%) translateY(-21%);
-    filter: drop-shadow(0 22px 48px rgba(15, 30, 58, 0.10));
-  }
-
-  /* About hero isolated — Step 5 cleanup.
-     Keep About on its own family, but do not duplicate the full desktop base contract here.
-     The canonical desktop source remains the ABOUT — PREMIUM REFRESH v72 block above. */
-  .about-hero-grid {
-    align-items: start;
-  }
-}
-
-@media (min-width: 1025px) and (max-width: 1340px) {
-  /* Core service pages only */
-  .hero--service-split.hero--service-ai .hero-media,
-  .hero--service-split.hero--service-web .hero-media {
-    width: clamp(60%, 62vw, 68%);
-    right: clamp(-6px, -0.3vw, 4px);
-  }
-
-  /* Cases family only */
-  .hero--cases-split .hero-media {
-    top: clamp(-152px, -10.8vw, -108px);
-    right: clamp(4px, 0.4vw, 16px);
-    width: clamp(70%, 74vw, 80%);
-  }
-
-  .hero--cases-split .hero-visual-frame img {
-    height: clamp(920px, 106vh, 1120px);
-    transform: translateX(-34%) translateY(-17%);
-  }
-
-  /* About only */
-  .about-hero-visual {
-    inset: clamp(-64px, -4.8vw, -38px) -3% 0 48%;
-  }
-}
-
-/* STEP 5 — cleanup legacy patches inside Cases/About families.
-   Cases family now has a single active desktop path and a small mobile support layer.
-   About family keeps the v72 base as the single desktop source of truth. */
-@media (min-width: 1025px) {
-  .hero--cases-split .hero-inner {
-    align-items: start;
-    min-height: clamp(640px, 62vw, 760px);
-    grid-template-columns: minmax(0, 1fr) minmax(360px, 1fr);
-    gap: clamp(28px, 3vw, 42px);
-  }
-
-  .hero--cases-split .cases-hero-content {
-    max-width: min(100%, 620px);
-    padding-top: clamp(6px, 0.8vw, 14px);
-  }
-
-  .hero--cases-split .hero-media {
-    top: clamp(-196px, -13.8vw, -142px);
-    bottom: 0;
-    right: clamp(10px, 0.8vw, 28px);
-    width: clamp(68%, 72vw, 78%);
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    pointer-events: none;
-    min-width: 0;
-  }
-
-  .hero--cases-split .hero-visual-frame,
-  .hero--cases-split .cases-hero-visual {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    min-height: 100%;
-    overflow: visible;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    background: transparent;
-  }
-
-  .hero--cases-split .hero-visual-frame::after {
-    display: none;
-  }
-
-  .hero--cases-split .hero-visual-frame img,
-  .hero--cases-split .cases-hero-visual img {
-    display: block;
-    height: clamp(1020px, 120vh, 1320px);
-    width: auto;
-    max-width: none;
-    margin-left: auto;
-    padding: 0;
-    object-fit: contain;
-    object-position: center center;
-    transform: translateX(-42%) translateY(-21%);
-    filter: drop-shadow(0 22px 48px rgba(15, 30, 58, 0.10));
-  }
-}
-
-@media (min-width: 1025px) and (max-width: 1340px) {
-  .hero--cases-split .hero-media {
-    top: clamp(-152px, -10.8vw, -108px);
-    right: clamp(4px, 0.4vw, 16px);
-    width: clamp(70%, 74vw, 80%);
-  }
-
-  .hero--cases-split .hero-visual-frame img,
-  .hero--cases-split .cases-hero-visual img {
-    height: clamp(920px, 106vh, 1120px);
-    transform: translateX(-34%) translateY(-17%);
-  }
-}
-
-@media (max-width: 1100px) {
-  .hero--cases-split .hero-media {
-    order: 2;
-    justify-content: center;
-  }
-
-  .hero--cases-split .cases-hero-visual {
-    min-height: clamp(300px, 48vw, 420px);
-    justify-content: center;
-    overflow: visible;
-  }
-
-  .hero--cases-split .cases-hero-visual img {
-    width: min(920px, 96vw);
-    height: auto;
-    transform: none;
-    margin-inline: auto;
-  }
-}
-
-/* STEP 1 DISABLED: legacy final desktop hero override removed from cascade for forensic recovery.
-   Original block preserved below for rollback/reference.
-/* Final desktop hero system for homepage + core service pages * /
+/* Final desktop hero system for homepage + core service pages */
 @media (min-width: 1025px) {
   .section--hero {
     min-height: clamp(760px, 82vh, 920px);
@@ -4367,8 +4158,12 @@ END STEP 4 LEGACY BLOCK */
   }
 
   .section--hero:not(.hero--inner) .hero-media {
-    right: clamp(8px, 1vw, 16px);
-    width: 55%;
+    right: calc(50% - 50vw);
+    width: calc(50vw + 5%);
+  }
+
+  .section--hero:not(.hero--inner) .hero-inner {
+    position: static;
   }
 
   .section--hero:not(.hero--inner) .hero-visual-frame::after {
@@ -4387,12 +4182,12 @@ END STEP 4 LEGACY BLOCK */
   }
 
   .section--hero:not(.hero--inner) .hero-visual-frame img {
-    object-position: 55% 40.5%;
-    transform: none;
+    object-position: 68% 40.5%;
+    transform: scale(1.06);
   }
 
   /* Service pages: same rhythm as homepage, but with stronger left fade
-     so text stays clean and the art reads as a right-side scene. * /
+     so text stays clean and the art reads as a right-side scene. */
   .section--hero.hero--service-split .hero-inner {
     gap: 0;
   }
@@ -4425,21 +4220,34 @@ END STEP 4 LEGACY BLOCK */
   }
 
   .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img {
-    object-position: 74% 50%;
+    object-position: 63% 50%;
     transform: scale(1.10);
   }
 
+  .section--hero.hero--service-split.hero--service-ai .hero-media {
+    right: calc(50% - 50vw);
+    width: calc(50vw + 4%);
+  }
+
+  .section--hero.hero--service-split.hero--service-ai .hero-inner {
+    position: static;
+  }
+
   .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    object-position: 74% 48%;
+    object-position: 58% 48%;
     transform: scale(1.11);
   }
+
+  .section--hero.hero--service-split.hero--service-web .hero-media {
+    right: calc(50% - 50vw);
+    width: calc(64vw + 4%);
+  }
+
+  .section--hero.hero--service-split.hero--service-web .hero-inner {
+    position: static;
+  }
 }
-END LEGACY BLOCK */
 
-
-/* STEP 3 DISABLED: legacy mid-desktop service-page hero patch removed.
-   Mid-desktop service tuning must be defined inside the canonical STEP 2 core,
-   not as a separate pre-core override block.
 @media (min-width: 1025px) and (max-width: 1340px) {
   .section--hero .hero-inner {
     min-height: clamp(660px, 70vh, 760px);
@@ -4464,370 +4272,232 @@ END LEGACY BLOCK */
     transform: scale(1.09);
   }
 }
-END STEP 3 LEGACY BLOCK */
 
-
-/* STEP 2 — canonical core hero contract for Home / AI Systems / Websites.
-   This block intentionally re-establishes one desktop hero system for
-   `.section--hero` pages only. Cases/About remain isolated variants. */
 @media (min-width: 1025px) {
-  .section--hero {
+  .section--cases-hero {
+    background: linear-gradient(180deg, rgba(236,240,245,1) 0%, var(--bg-base) 100%);
+  }
+
+  .section--cases-hero::before {
+    opacity: 0.04;
+  }
+
+  .hero--cases-split {
+    position: relative;
+    isolation: isolate;
+    background: var(--bg-base);
+  }
+
+  .hero--cases-split::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right,
+      rgba(230,235,241,0.88) 0%,
+      rgba(230,235,241,0.88) 46%,
+      rgba(230,235,241,0.74) 58%,
+      rgba(230,235,241,0.46) 70%,
+      rgba(230,235,241,0.18) 80%,
+      rgba(230,235,241,0) 90%);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .hero--cases-split .hero-inner {
+    position: static;
+  }
+
+  .hero--cases-split .cases-hero-content {
+    position: relative;
+    z-index: 3;
+  }
+
+  .hero--cases-split .cases-hero-content::before {
+    display: none;
+  }
+
+  .hero--cases-split .hero-media {
+    right: calc(50% - 50vw + clamp(18px, 1.6vw, 34px));
+    width: calc(58vw + 8%);
+    z-index: 0;
+  }
+
+  .hero--cases-split .hero-media::before {
+    display: none;
+  }
+
+  .hero--cases-split .hero-visual-frame::after,
+  .hero--cases-split .cases-hero-visual::after {
+    display: none;
+  }
+
+  .hero--cases-split .hero-visual-frame img,
+  .hero--cases-split .cases-hero-visual img {
+    transform: translateX(-58%) translateY(-18%) scale(1.10);
+  }
+
+  .hero--about {
+    position: relative;
     min-height: clamp(760px, 82vh, 920px);
     padding-top: clamp(28px, 3vw, 48px);
     padding-bottom: clamp(28px, 3vw, 48px);
-    align-items: center;
     overflow: hidden;
+    background: linear-gradient(180deg, var(--bg-base) 0%, rgba(236,240,245,0.98) 100%);
   }
 
-  .section--hero > .container {
-    position: relative;
-    flex: 1 1 auto;
-    display: flex;
+  .about-hero-grid {
+    position: static;
+    min-height: calc(
+      clamp(760px, 82vh, 920px) -
+      clamp(28px, 3vw, 48px) -
+      clamp(28px, 3vw, 48px)
+    );
     align-items: stretch;
   }
 
-  .section--hero .hero-inner {
-    position: relative;
-    width: 100%;
-    min-height: clamp(700px, 74vh, 840px);
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: stretch;
-  }
-
-  .section--hero .hero-content {
+  .about-hero-copy {
     position: relative;
     z-index: 2;
-    align-self: center;
     max-width: min(100%, 620px);
-    padding-top: clamp(8px, 0.8vw, 14px);
   }
 
-  .section--hero .hero-subhead {
-    max-width: 540px;
-  }
-
-  .section--hero .hero-media {
+  .about-hero-visual {
+    inset: auto;
     position: absolute;
     top: 0;
-    right: clamp(8px, 1vw, 16px);
     bottom: 0;
-    width: 55%;
-    height: auto;
-    margin-top: 0;
-    display: block;
-    align-self: unset;
-    pointer-events: none;
-  }
-
-  .section--hero .hero-visual-frame {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    min-height: 100%;
-    border-radius: 0;
-    background: transparent;
-    box-shadow: none;
-    overflow: hidden;
-    display: block;
-  }
-
-  .section--hero .hero-visual-frame::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
+    right: calc(50% - 50vw);
+    width: calc(56vw + 6%);
     z-index: 1;
+    pointer-events: none;
+  }
+
+  .about-hero-visual-shell {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  .about-hero-visual-shell::before {
+    background-size: cover;
+    background-position: 76% 52%;
+    filter: saturate(0.96) contrast(1.02);
+  }
+
+  .about-hero-visual-shell::after {
     background:
       linear-gradient(to right,
         var(--bg-base) 0%,
-        rgba(242,244,247,0.90) 8%,
-        rgba(242,244,247,0.56) 17%,
-        rgba(242,244,247,0.20) 27%,
-        transparent 40%),
+        rgba(242,244,247,0.98) 12%,
+        rgba(242,244,247,0.84) 24%,
+        rgba(242,244,247,0.48) 36%,
+        rgba(242,244,247,0.14) 48%,
+        rgba(242,244,247,0) 58%),
       linear-gradient(to bottom,
-        rgba(242,244,247,0.12) 0%,
-        transparent 10%,
-        transparent 90%,
-        rgba(242,244,247,0.12) 100%);
+        rgba(242,244,247,0.05) 0%,
+        rgba(242,244,247,0) 14%,
+        rgba(242,244,247,0) 88%,
+        rgba(242,244,247,0.07) 100%);
   }
 
-  .section--hero .hero-visual-frame img {
+  .hero--insights-v48 {
+    position: relative;
+    min-height: clamp(760px, 82vh, 920px);
+    padding-top: clamp(28px, 3vw, 48px);
+    padding-bottom: clamp(28px, 3vw, 48px);
+    overflow: hidden;
+    background: var(--bg-base);
+  }
+
+  .hero--insights-v48 .container {
+    position: static;
+  }
+
+  .insights-v48-hero.insights-v48-hero--with-visual {
+    position: static;
+    display: block;
+    min-height: calc(
+      clamp(760px, 82vh, 920px) -
+      clamp(28px, 3vw, 48px) -
+      clamp(28px, 3vw, 48px)
+    );
+  }
+
+  .insights-v48-hero-copy {
+    position: relative;
+    z-index: 6;
+    max-width: min(100%, 620px);
+    isolation: isolate;
+  }
+
+  .insights-v48-hero--with-visual .insights-v48-hero-copy {
+    max-width: min(100%, 620px);
+  }
+
+  .insights-v48-hero--with-visual .insights-v48-hero-copy h1 {
+    max-width: 12ch;
+  }
+
+  .insights-v48-hero-visual {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: calc(50% - 50vw + clamp(18px, 1.6vw, 34px));
+    width: calc(62vw + 8%);
+    min-height: 0;
+    display: block;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .insights-v48-hero-visual::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -28px;
+    width: 188px;
+    background: linear-gradient(to right,
+      var(--bg-base) 0%,
+      rgba(242,244,247,0.998) 48%,
+      rgba(242,244,247,0.90) 74%,
+      rgba(242,244,247,0) 100%);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .insights-v48-hero-visual::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to right,
+        var(--bg-base) 0%,
+        rgba(242,244,247,0.985) 14%,
+        rgba(242,244,247,0.92) 26%,
+        rgba(242,244,247,0.72) 38%,
+        rgba(242,244,247,0.38) 50%,
+        rgba(242,244,247,0.10) 60%,
+        rgba(242,244,247,0) 68%),
+      linear-gradient(to bottom,
+        rgba(242,244,247,0.04) 0%,
+        rgba(242,244,247,0) 14%,
+        rgba(242,244,247,0) 88%,
+        rgba(242,244,247,0.06) 100%);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .insights-v48-hero-art {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     max-width: none;
-    margin: 0;
-    padding: 0;
-    display: block;
     object-fit: cover;
-    object-position: 55% 40.5%;
-    transform: none;
-    transform-origin: center center;
-    filter: drop-shadow(0 24px 56px rgba(15, 30, 58, 0.10));
-  }
-
-  .section--hero.hero--service-split .hero-content {
-    max-width: min(100%, 600px);
-    padding-right: clamp(20px, 2vw, 36px);
-  }
-
-  .section--hero.hero--service-split .hero-media {
-    right: 0;
-    width: clamp(52%, 55vw, 56%);
-  }
-
-  .section--hero.hero--service-split .hero-visual-frame::after {
-    background:
-      linear-gradient(to right,
-        var(--bg-base) 0%,
-        rgba(242,244,247,0.96) 9%,
-        rgba(242,244,247,0.84) 18%,
-        rgba(242,244,247,0.56) 29%,
-        rgba(242,244,247,0.22) 40%,
-        rgba(242,244,247,0.04) 48%,
-        transparent 56%),
-      linear-gradient(to bottom,
-        rgba(242,244,247,0.02) 0%,
-        transparent 6%,
-        transparent 94%,
-        rgba(242,244,247,0.02) 100%);
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img {
-    object-position: 74% 50%;
-    transform: scale(1.08);
-  }
-
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    object-position: 74% 48%;
-    transform: scale(1.09);
-  }
-}
-
-/* STEP 3 DISABLED: legacy mid-desktop service-page hero patch removed.
-   Mid-desktop service tuning must be defined inside the canonical STEP 2 core,
-   not as a separate pre-core override block.
-@media (min-width: 1025px) and (max-width: 1340px) {
-  .section--hero .hero-inner {
-    min-height: clamp(660px, 70vh, 760px);
-  }
-
-  .section--hero.hero--service-split .hero-content {
-    max-width: min(100%, 560px);
-    padding-right: clamp(16px, 1.4vw, 26px);
-  }
-
-  .section--hero.hero--service-split .hero-media {
-    width: clamp(54%, 58vw, 60%);
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img {
-    object-position: 76% 50%;
-    transform: scale(1.08);
-  }
-
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    object-position: 76% 48%;
-    transform: scale(1.09);
-  }
-}
-END STEP 3 LEGACY BLOCK */
-
-
-/* STEP 3 — core hero cleanup.
-   Remaining core-hero duplicate desktop fragments were disabled above.
-   Only these controlled viewport refinements remain active for `.section--hero`. */
-@media (min-width: 1025px) and (max-width: 1340px) {
-  .section--hero .hero-inner {
-    min-height: clamp(660px, 70vh, 760px);
-  }
-
-  .section--hero.hero--service-split .hero-content {
-    max-width: min(100%, 560px);
-    padding-right: clamp(16px, 1.4vw, 26px);
-  }
-
-  .section--hero.hero--service-split .hero-media {
-    width: clamp(54%, 58vw, 60%);
-  }
-
-  .section--hero.hero--service-split.hero--service-ai .hero-visual-frame img {
-    object-position: 76% 50%;
-    transform: scale(1.08);
-  }
-
-  .section--hero.hero--service-split.hero--service-web .hero-visual-frame img {
-    object-position: 76% 48%;
-    transform: scale(1.09);
-  }
-}
-
-@media (min-width: 1440px) {
-  .section--hero .hero-media {
-    right: clamp(10px, 1.1vw, 18px);
-    width: 54.6%;
-  }
-
-  .section--hero .hero-visual-frame img {
-    object-position: 54.6% 40%;
-  }
-}
-
-
-/* STEP 6 — visual verification + targeted tuning.
-   Goal: fix the remaining visible edge artifacts only where the architecture
-   is already stable. No new hero families are introduced here.
-
-   Core finding from the recovery pass:
-   the core `.section--hero` family was still allowing top/bottom white bands
-   because desktop media was absolutely positioned against the container while
-   the section itself kept desktop vertical padding. This block removes that
-   mismatch and restores edge-to-edge media coverage for the stable core hero
-   family only. */
-@media (min-width: 1025px) {
-  .section--hero {
-    padding-top: 0;
-    padding-bottom: 0;
-    min-height: clamp(760px, 82vh, 920px);
-    align-items: stretch;
-  }
-
-  .section--hero > .container {
-    position: static;
-    flex: 1 1 auto;
-    display: flex;
-    align-items: stretch;
-  }
-
-  .section--hero .hero-inner {
-    min-height: clamp(760px, 82vh, 920px);
-    align-items: stretch;
-  }
-
-  .section--hero .hero-content {
-    align-self: center;
-    padding-top: clamp(52px, 5vw, 76px);
-    padding-bottom: clamp(52px, 5vw, 76px);
-  }
-
-  .section--hero .hero-media {
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 56%;
-  }
-
-  .section--hero .hero-visual-frame,
-  .section--hero .hero-visual-frame::after,
-  .section--hero .hero-visual-frame img {
-    inset: 0;
-  }
-
-  .section--hero .hero-visual-frame::after {
-    background:
-      linear-gradient(to right,
-        var(--bg-base) 0%,
-        rgba(242,244,247,0.97) 10%,
-        rgba(242,244,247,0.86) 19%,
-        rgba(242,244,247,0.60) 30%,
-        rgba(242,244,247,0.22) 42%,
-        rgba(242,244,247,0.04) 50%,
-        transparent 58%),
-      linear-gradient(to bottom,
-        rgba(242,244,247,0.05) 0%,
-        transparent 8%,
-        transparent 92%,
-        rgba(242,244,247,0.05) 100%);
-  }
-
-  .section--hero.hero--service-split .hero-content {
-    max-width: min(100%, 590px);
-    padding-right: clamp(26px, 2.6vw, 48px);
-  }
-
-  .section--hero.hero--service-split .hero-media {
-    width: clamp(52%, 54vw, 55%);
-  }
-
-  /* About visual tuning after family isolation.
-     Keep the v72 contract, but remove desktop padding bands and overly
-     aggressive art inset that made the visual read like a detached box. */
-  .hero--about {
-    padding-top: 0;
-    padding-bottom: 0;
-    min-height: clamp(760px, 82vh, 920px);
-    display: flex;
-    align-items: stretch;
-  }
-
-  .hero--about > .container {
-    flex: 1 1 auto;
-    display: flex;
-    align-items: stretch;
-  }
-
-  .about-hero-grid {
-    min-height: clamp(760px, 82vh, 920px);
-    align-items: center;
-    grid-template-columns: minmax(0, 1.02fr) minmax(420px, 0.98fr);
-  }
-
-  .about-hero-copy {
-    padding-top: clamp(52px, 5vw, 76px);
-    padding-bottom: clamp(52px, 5vw, 76px);
-    padding-right: clamp(20px, 2vw, 36px);
-  }
-
-  .about-hero-visual {
-    inset: clamp(-24px, -1.8vw, -10px) -14% 0 50%;
-  }
-
-  .about-hero-visual-shell::before {
-    background-size: 132% auto;
-    background-position: 26% 8%;
-  }
-}
-
-@media (min-width: 1025px) and (max-width: 1340px) {
-  .section--hero .hero-content {
-    padding-top: clamp(42px, 4vw, 60px);
-    padding-bottom: clamp(42px, 4vw, 60px);
-  }
-
-  .section--hero .hero-media {
-    width: clamp(58%, 61vw, 63%);
-  }
-
-  .section--hero.hero--service-split .hero-content {
-    max-width: min(100%, 560px);
-    padding-right: clamp(20px, 1.8vw, 34px);
-  }
-
-  .section--hero.hero--service-split .hero-media {
-    width: clamp(56%, 60vw, 62%);
-  }
-
-  .hero--about .about-hero-grid {
-    min-height: clamp(700px, 76vh, 820px);
-  }
-
-  .hero--about .about-hero-visual {
-    inset: clamp(-18px, -1.2vw, -6px) -10% 0 52%;
-  }
-}
-
-@media (min-width: 1440px) {
-  .section--hero .hero-media {
-    width: 55.4%;
-  }
-
-  .section--hero .hero-visual-frame img {
-    object-position: 56% 40.5%;
-  }
-
-  .hero--about .about-hero-visual {
-    inset: -20px -12% 0 51%;
+    object-position: 74% 52%;
+    display: block;
+    filter: drop-shadow(0 20px 46px rgba(12,22,50,0.08));
+    transform: scale(1.04);
   }
 }

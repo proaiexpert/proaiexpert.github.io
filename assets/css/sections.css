@@ -1908,28 +1908,64 @@
 
 .case-page-hero-media {
   min-width: 0;
+  display: flex;
+  justify-content: center;
 }
 
 .case-page-hero-frame {
+  position: relative;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  min-height: clamp(260px, 34vw, 460px);
-  border: 1px solid rgba(22, 39, 72, 0.08);
-  border-radius: 28px;
+  min-height: 0;
+  width: min(100%, 804px);
+  padding: clamp(6px, 0.7vw, 10px);
+  border: 1px solid rgba(19, 34, 61, 0.12);
+  border-radius: 32px;
   overflow: hidden;
   background:
-    radial-gradient(circle at top left, rgba(255, 255, 255, 0.92), rgba(247, 250, 255, 0.72) 42%, rgba(239, 244, 252, 0.34) 100%),
-    linear-gradient(135deg, rgba(248, 251, 255, 0.94), rgba(240, 245, 252, 0.86));
-  box-shadow: 0 24px 58px rgba(15, 30, 58, 0.08);
+    linear-gradient(180deg, rgba(244, 247, 251, 0.98), rgba(232, 238, 246, 0.96));
+  box-shadow:
+    0 28px 64px rgba(15, 30, 58, 0.10),
+    0 12px 28px rgba(15, 30, 58, 0.05);
+}
+
+.case-page-hero-frame::before {
+  content: "";
+  position: absolute;
+  inset: clamp(6px, 0.7vw, 10px);
+  border-radius: 24px;
+  border: 1px solid rgba(19, 34, 61, 0.10);
+  background:
+    linear-gradient(180deg, rgba(252, 253, 255, 0.94), rgba(241, 245, 250, 0.90));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 18px 38px rgba(16, 28, 52, 0.05);
+  pointer-events: none;
+}
+
+.case-page-hero-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg,
+      rgba(255, 255, 255, 0.34) 0%,
+      rgba(255, 255, 255, 0.08) 26%,
+      transparent 46%);
+  pointer-events: none;
 }
 
 .case-page-hero-frame img {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-  object-position: center center;
+  height: auto;
+  border-radius: 20px;
+  box-shadow:
+    0 22px 46px rgba(16, 28, 52, 0.12),
+    0 6px 18px rgba(16, 28, 52, 0.05);
 }
 
 .case-page-category {
@@ -1961,16 +1997,16 @@
 
 @media (min-width: 1025px) {
   .case-page-hero-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
-    gap: clamp(32px, 4vw, 64px);
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    gap: clamp(22px, 2.8vw, 40px);
   }
 
   .case-page-hero-inner {
-    max-width: min(100%, 720px);
+    max-width: min(100%, 600px);
   }
 
   .case-page-hero-frame {
-    min-height: clamp(360px, 34vw, 520px);
+    min-height: 0;
   }
 }
 
@@ -1980,8 +2016,9 @@
   }
 
   .case-page-hero-frame {
-    min-height: clamp(220px, 58vw, 320px);
+    min-height: 0;
     border-radius: 24px;
+    padding: 10px;
   }
 }
 
@@ -4106,8 +4143,12 @@
     min-height: clamp(560px, 56vw, 700px);
   }
 
+  .case-page-hero-media {
+    align-self: start;
+  }
+
   .case-page-hero-frame {
-    min-height: clamp(400px, 40vw, 560px);
+    min-height: 0;
   }
 
   .hero--cases-split .hero-inner {
@@ -4584,5 +4625,265 @@
     display: block;
     filter: drop-shadow(0 20px 46px rgba(12,22,50,0.08));
     transform: scale(1.04);
+  }
+}
+
+/* ========================================
+   PREMIUM REFINEMENT SYSTEM
+   3 card levels + restrained motion
+======================================== */
+
+/* Level 1 — base cards / utility surfaces */
+.use-case-card,
+.outcome-item,
+.article-v48-panel,
+.article-v48-key-box,
+.article-v48-faq-item {
+  border-radius: var(--r-xl);
+  border-color: var(--surface-base-border);
+  background: var(--surface-base-bg);
+  box-shadow: var(--surface-base-shadow);
+}
+
+.use-case-card {
+  transition:
+    transform var(--ease-base),
+    box-shadow var(--ease-base),
+    border-color var(--ease-base),
+    background-color var(--ease-base);
+}
+
+.outcome-item {
+  border-left-width: 2px;
+  box-shadow: 0 8px 24px rgba(12,22,50,0.04);
+}
+
+/* Level 2 — refined premium cards */
+.work-card,
+.about-service-card,
+.principle-item,
+.contact-guide-card,
+.contact-hero-sidecard,
+.contact-form-card--premium,
+.contact-info-panel,
+.contact-email-block--premium,
+.contact-reassure-inner--premium,
+.insights-v48-card,
+.insights-v48-start-panel,
+.insights-v48-cta,
+.article-v48-cta,
+.gallery-panel,
+.gallery-item {
+  border-color: var(--surface-refined-border);
+  background: var(--surface-refined-bg);
+  box-shadow: var(--surface-refined-shadow);
+}
+
+.gallery-item {
+  border-radius: var(--r-2xl);
+  overflow: hidden;
+}
+
+.gallery-panel {
+  border-radius: inherit;
+  min-height: 100%;
+}
+
+.gallery-panel--dark {
+  background: linear-gradient(180deg, rgba(240,244,248,0.94) 0%, rgba(233,239,246,0.98) 100%);
+}
+
+.gallery-shot {
+  border-bottom-color: rgba(12,22,50,0.07);
+  background: linear-gradient(180deg, rgba(245,248,251,0.96) 0%, rgba(238,243,249,0.98) 100%);
+}
+
+/* Level 3 — showcase frames */
+.founder-card,
+.case-page-hero-frame {
+  box-shadow: var(--surface-showcase-shadow);
+}
+
+.founder-card,
+.case-page-hero-frame {
+  border-color: var(--surface-showcase-border);
+  background: var(--surface-showcase-bg);
+}
+
+.founder-card {
+  border-radius: var(--r-3xl);
+  box-shadow:
+    var(--surface-showcase-shadow),
+    inset 0 1px 0 rgba(255,255,255,0.55);
+}
+
+.founder-portrait {
+  box-shadow:
+    0 20px 48px rgba(12,22,50,0.10),
+    0 8px 18px rgba(12,22,50,0.05);
+}
+
+.case-page-hero-frame {
+  box-shadow:
+    var(--surface-showcase-shadow),
+    inset 0 1px 0 rgba(255,255,255,0.42);
+}
+
+.case-page-hero-frame::before {
+  border-color: rgba(16,29,56,0.09);
+  background: linear-gradient(180deg, rgba(251,253,255,0.95), rgba(241,245,250,0.92));
+}
+
+.section--hero .hero-visual-frame,
+.insights-v48-hero-visual {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+}
+
+/* Refined hover / micro-interactions */
+@media (hover: hover) and (pointer: fine) {
+  .work-card:hover,
+  .insights-v48-card:hover,
+  .use-case-card:hover,
+  .contact-guide-card:hover,
+  .about-service-card:hover,
+  .principle-item:hover,
+  .gallery-item:hover {
+    transform: var(--lift-2);
+    box-shadow: var(--surface-refined-shadow-hover);
+    border-color: rgba(23, 43, 74, 0.14);
+  }
+
+  .article-v48-panel:hover,
+  .article-v48-key-box:hover,
+  .article-v48-faq-item:hover {
+    border-color: rgba(23, 43, 74, 0.11);
+    box-shadow: var(--surface-base-shadow-hover);
+  }
+
+  .founder-card:hover,
+  .case-page-hero-frame:hover,
+  .section--hero .hero-visual-frame:hover {
+    box-shadow: var(--surface-showcase-shadow-hover);
+  }
+
+  .gallery-item:hover .gallery-shot,
+  .work-card:hover .work-card-shot,
+  .case-page-hero-frame:hover img {
+    transform: scale(1.012);
+  }
+}
+
+.gallery-shot,
+.work-card-shot,
+.case-page-hero-frame img {
+  transition: transform var(--ease-slow), filter var(--ease-slow);
+}
+
+.contact-guide-card,
+.about-service-card,
+.principle-item,
+.article-v48-panel,
+.article-v48-key-box,
+.article-v48-faq-item {
+  transition:
+    transform var(--ease-base),
+    box-shadow var(--ease-base),
+    border-color var(--ease-base),
+    background var(--ease-base);
+}
+
+.insights-v48-start-link {
+  transition:
+    transform var(--ease-base),
+    border-color var(--ease-base),
+    background var(--ease-base),
+    box-shadow var(--ease-base);
+}
+
+.insights-v48-start-link:hover {
+  transform: var(--lift-1);
+  border-color: rgba(23,43,74,0.10);
+  background: rgba(255,255,255,0.94);
+  box-shadow: 0 10px 24px rgba(12,22,50,0.05);
+}
+
+/* Slightly tighter, more deliberate balances */
+.insights-v48-featured-grid {
+  gap: clamp(16px, 1.8vw, 24px);
+}
+
+.work-grid,
+.principles-grid,
+.contact-guide-grid,
+.gallery-grid {
+  gap: clamp(16px, 1.8vw, 24px);
+}
+
+.insights-v48-card,
+.about-service-card,
+.principle-item,
+.contact-guide-card {
+  padding: clamp(20px, 2vw, 28px);
+}
+
+.case-page-hero-media {
+  justify-content: center;
+}
+
+/* Subtle, related hero motion language */
+@keyframes heroFloatHomepage {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -6px, 0); }
+}
+
+@keyframes heroFloatService {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -5px, 0); }
+}
+
+@keyframes heroFloatInsights {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -4px, 0); }
+}
+
+@media (min-width: 1025px) and (prefers-reduced-motion: no-preference) {
+  .section--hero:not(.hero--inner) .hero-media {
+    animation: heroFloatHomepage 15s ease-in-out infinite;
+  }
+
+  .section--hero.hero--service-split.hero--service-ai .hero-media,
+  .section--hero.hero--service-split.hero--service-web .hero-media {
+    animation: heroFloatService 17s ease-in-out infinite;
+  }
+
+  .insights-v48-hero-visual {
+    animation: heroFloatInsights 18s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .work-card,
+  .insights-v48-card,
+  .use-case-card,
+  .contact-guide-card,
+  .about-service-card,
+  .principle-item,
+  .gallery-item,
+  .article-v48-panel,
+  .article-v48-key-box,
+  .article-v48-faq-item,
+  .insights-v48-start-link,
+  .gallery-shot,
+  .work-card-shot,
+  .case-page-hero-frame img,
+  .section--hero:not(.hero--inner) .hero-media,
+  .section--hero.hero--service-split.hero--service-ai .hero-media,
+  .section--hero.hero--service-split.hero--service-web .hero-media,
+  .insights-v48-hero-visual {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+    transform: none !important;
   }
 }

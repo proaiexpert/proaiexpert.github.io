@@ -2286,6 +2286,71 @@
   padding-top: var(--s-6);
 }
 
+.gallery-item--stack {
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  box-shadow: none;
+}
+
+.case-proof-stack {
+  display: grid;
+  gap: var(--s-4);
+  height: 100%;
+}
+
+.case-proof-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-5);
+  min-height: 0;
+  border-radius: var(--r-2xl);
+  border: 1px solid var(--surface-refined-border);
+  background: var(--surface-refined-bg);
+  box-shadow: var(--surface-refined-shadow);
+}
+
+.case-proof-card--testimonial {
+  flex: 1 1 auto;
+}
+
+.case-proof-card--action {
+  justify-content: space-between;
+}
+
+.case-proof-card--action .gallery-panel-title {
+  max-width: 15ch;
+}
+
+.case-proof-card--action .gallery-panel-text {
+  max-width: 34ch;
+}
+
+.case-proof-quote {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+
+.case-proof-attribution {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.case-proof-attribution strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.case-proof-actions {
+  margin-top: var(--s-2);
+}
+
 /* ══════════════════════════════════
    CASE STUDIES RESPONSIVE
 ══════════════════════════════════ */
@@ -2298,6 +2363,10 @@
 
   .gallery-item--wide {
     grid-column: span 1;
+  }
+
+  .case-proof-stack {
+    gap: var(--s-3);
   }
 }
 
@@ -2457,6 +2526,31 @@
   margin: 0 0 var(--s-8);
 }
 
+.contact-form-hint,
+.contact-info-intro,
+.form-field-note {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-relaxed);
+  color: var(--text-muted);
+}
+
+.contact-form-hint {
+  margin: calc(var(--s-2) * -1) 0 var(--s-1);
+  max-width: 58ch;
+}
+
+.contact-info-intro {
+  margin: 0 0 var(--s-6);
+  max-width: 50ch;
+}
+
+.form-label-optional {
+  color: var(--text-muted);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 .contact-form {
   display: flex;
   flex-direction: column;
@@ -2521,9 +2615,18 @@
   min-height: 120px;
 }
 
+.form-field-note {
+  margin: var(--s-2) 0 0;
+}
+
 .contact-form .btn {
   align-self: flex-start;
   margin-top: var(--s-2);
+}
+
+.contact-form .btn[aria-busy="true"] {
+  cursor: wait;
+  opacity: 0.94;
 }
 
 .form-honeypot {
@@ -2558,6 +2661,10 @@
 
 .contact-form-meta.is-error {
   color: #b45309;
+}
+
+.contact-form-meta.is-success {
+  color: #2f6b62;
 }
 
 /* Contact info column */
@@ -3742,6 +3849,19 @@
   font-weight: 600;
 }
 
+@media (min-width: 1101px) {
+  html[lang="ru"] .contact-trust-strip {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  html[lang="ru"] .contact-trust-strip span {
+    min-height: 36px;
+    padding: 0 13px;
+    font-size: 13px;
+  }
+}
+
 .contact-hero-sidecard {
   padding: clamp(24px, 3.5vw, 34px);
   border-radius: 26px;
@@ -3912,6 +4032,55 @@
   margin-bottom: var(--s-7);
 }
 
+.section--contact-thankyou {
+  padding: clamp(88px, 11vw, 132px) 0 clamp(96px, 12vw, 148px);
+}
+
+.contact-thankyou-shell {
+  display: flex;
+  justify-content: center;
+}
+
+.contact-thankyou-card {
+  width: min(100%, 760px);
+  text-align: center;
+  background: linear-gradient(180deg, rgba(248, 249, 252, 0.98) 0%, rgba(243, 245, 248, 0.98) 100%);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: var(--r-xl);
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.08);
+  padding: clamp(32px, 4vw, 52px);
+}
+
+.contact-thankyou-card h1 {
+  margin: 0 0 var(--s-5);
+}
+
+.contact-thankyou-card > p {
+  max-width: 58ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.contact-thankyou-note {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  margin: var(--s-6) auto 0;
+}
+
+.contact-thankyou-note a {
+  color: var(--navy);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.contact-thankyou-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+  margin-top: var(--s-8);
+}
+
 @media (max-width: 1100px) {
   .contact-premium-hero-grid,
   .contact-layout--premium,
@@ -3940,9 +4109,14 @@
   .contact-info-panel,
   .contact-email-block--premium,
   .contact-reassure-inner--premium,
+  .contact-thankyou-card,
   .contact-guide-card,
   .contact-hero-sidecard {
     border-radius: 22px;
+  }
+  .contact-thankyou-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

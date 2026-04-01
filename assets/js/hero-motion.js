@@ -9,6 +9,10 @@
   // ── PARALLAX ─────────────────────────────────────────────────────────────
   var mediaDesktop = window.matchMedia('(min-width: 861px)');
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  if (!mediaDesktop.matches || reduceMotion.matches) {
+    img.style.transform = 'translate3d(0, 0, 0) scale(1)';
+    return;
+  }
   var MAX_SHIFT = mediaDesktop.matches && !reduceMotion.matches ? 4 : 0;
   var targetX = 0, targetY = 0;
   var curX = 0, curY = 0;

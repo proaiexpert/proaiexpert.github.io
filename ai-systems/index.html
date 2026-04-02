@@ -11,6 +11,436 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="/assets/css/main.css"/>
   <link rel="stylesheet" href="/assets/css/ai-systems-hero-preview.css"/>
+  <style>
+    .ai-hero-preview {
+      position: relative;
+      overflow: clip;
+    }
+
+    .ai-hero-preview::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 62% 44%, rgba(93, 226, 255, 0.12) 0%, rgba(93, 226, 255, 0.05) 18%, transparent 52%),
+        radial-gradient(circle at 60% 50%, rgba(255, 255, 255, 0.05) 0%, transparent 42%);
+      pointer-events: none;
+      opacity: 0.82;
+    }
+
+    .ai-hero-preview-stage {
+      position: relative;
+      isolation: isolate;
+    }
+
+    .ai-hero-preview-stage::before,
+    .ai-hero-preview-stage::after {
+      content: "";
+      position: absolute;
+      inset: 6% 4%;
+      border-radius: 36px;
+      pointer-events: none;
+    }
+
+    .ai-hero-preview-stage::before {
+      border: 1px solid rgba(140, 217, 255, 0.08);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.022), rgba(255, 255, 255, 0.005)),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+      background-size: auto, 54px 54px, 54px 54px;
+      opacity: 0.42;
+      mask-image: radial-gradient(circle at 60% 50%, black 0%, black 52%, transparent 92%);
+    }
+
+    .ai-hero-preview-stage::after {
+      inset: 12% 14% 10% 34%;
+      border: 1px solid rgba(93, 226, 255, 0.08);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.016),
+        0 0 0 1px rgba(93, 226, 255, 0.025);
+      opacity: 0.6;
+    }
+
+    .ai-hero-preview-system {
+      position: relative;
+      filter: saturate(1.02);
+    }
+
+    .ai-hero-preview-system::before {
+      content: "";
+      position: absolute;
+      inset: 14% 18% 13% 36%;
+      border-radius: 34px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(93, 226, 255, 0.12) 0%, rgba(93, 226, 255, 0.05) 26%, transparent 62%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.008));
+      border: 1px solid rgba(93, 226, 255, 0.08);
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.022),
+        0 30px 90px rgba(3, 10, 18, 0.34);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .ai-hero-preview-system::after {
+      content: "";
+      position: absolute;
+      left: 56.95%;
+      top: 15%;
+      width: 1px;
+      height: 68%;
+      background: linear-gradient(
+        180deg,
+        rgba(93, 226, 255, 0) 0%,
+        rgba(93, 226, 255, 0.28) 18%,
+        rgba(93, 226, 255, 0.65) 50%,
+        rgba(93, 226, 255, 0.24) 82%,
+        rgba(93, 226, 255, 0) 100%
+      );
+      box-shadow: 0 0 18px rgba(93, 226, 255, 0.18);
+      transform: translateX(-0.5px);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .ai-hero-preview-shadow {
+      opacity: 0.7 !important;
+      filter: blur(42px);
+      transform: scale(1.02);
+    }
+
+    .ai-hero-preview-grid {
+      opacity: 0.55;
+      filter: contrast(1.02);
+    }
+
+    .ai-hero-preview-glow {
+      filter: blur(26px);
+    }
+
+    .ai-hero-preview-glow--1 {
+      opacity: 0.32;
+    }
+
+    .ai-hero-preview-glow--2,
+    .ai-hero-preview-glow--3 {
+      opacity: 0.18;
+    }
+
+    .ai-hero-preview-canvas {
+      opacity: 0.92;
+      filter: drop-shadow(0 0 14px rgba(93, 226, 255, 0.08));
+    }
+
+    .ai-hero-preview-path {
+      stroke-width: 1.3px;
+    }
+
+    .ai-hero-preview-path--accent {
+      stroke-width: 1.8px;
+      opacity: 0.9;
+    }
+
+    .ai-hero-preview-path--aux {
+      opacity: 0.6;
+    }
+
+    .ai-hero-preview-node,
+    .ai-hero-preview-diamond {
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.05),
+        0 0 18px rgba(93, 226, 255, 0.14);
+    }
+
+    .ai-hero-preview-label {
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(182, 219, 238, 0.55);
+    }
+
+    .ai-hero-preview-module {
+      backdrop-filter: blur(18px);
+      border-color: rgba(163, 216, 247, 0.12) !important;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.024),
+        0 16px 46px rgba(2, 8, 16, 0.34);
+      transition:
+        transform 700ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 300ms ease,
+        box-shadow 300ms ease;
+      z-index: 2;
+    }
+
+    .ai-hero-preview-module::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 58%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .ai-hero-preview-module-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .ai-hero-preview-module--human {
+      z-index: 4;
+      border-color: rgba(93, 226, 255, 0.18) !important;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+        0 20px 54px rgba(2, 10, 18, 0.4),
+        0 0 28px rgba(93, 226, 255, 0.08);
+    }
+
+    .ai-hero-preview-module--routing,
+    .ai-hero-preview-module--response {
+      opacity: 0.92;
+    }
+
+    .ai-hero-preview-aura {
+      opacity: 0.34;
+      filter: blur(20px);
+    }
+
+    .ai-hero-preview-copy > * {
+      opacity: 0;
+      transform: translateY(24px);
+      filter: blur(8px);
+      transition:
+        opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 700ms cubic-bezier(0.22, 1, 0.36, 1),
+        filter 700ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .ai-hero-preview-copy.is-ready > * {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+
+    .ai-hero-preview-copy.is-ready > *:nth-child(1) { transition-delay: 60ms; }
+    .ai-hero-preview-copy.is-ready > *:nth-child(2) { transition-delay: 120ms; }
+    .ai-hero-preview-copy.is-ready > *:nth-child(3) { transition-delay: 180ms; }
+    .ai-hero-preview-copy.is-ready > *:nth-child(4) { transition-delay: 240ms; }
+
+    .ai-hero-preview-title {
+      text-wrap: balance;
+    }
+
+    .ai-hero-preview-title em {
+      color: #a6e6ff;
+      text-shadow: 0 0 20px rgba(93, 226, 255, 0.12);
+    }
+
+    .ai-hero-preview-body {
+      color: rgba(227, 235, 240, 0.7);
+    }
+
+    .ai-hero-preview-stage.is-live .ai-hero-preview-module--inquiry {
+      transform: translate3d(-8px, -6px, 0);
+    }
+
+    .ai-hero-preview-stage.is-live .ai-hero-preview-module--form {
+      transform: translate3d(-4px, 0, 0);
+    }
+
+    .ai-hero-preview-stage.is-live .ai-hero-preview-module--routing {
+      transform: translate3d(4px, -5px, 0);
+    }
+
+    .ai-hero-preview-stage.is-live .ai-hero-preview-module--human {
+      transform: translate3d(0, -2px, 0) scale(1.012);
+    }
+
+    .ai-hero-preview-stage.is-live .ai-hero-preview-module--response {
+      transform: translate3d(8px, 2px, 0);
+    }
+
+    .ai-sys-reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      filter: blur(10px);
+      transition:
+        opacity 760ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 760ms cubic-bezier(0.22, 1, 0.36, 1),
+        filter 760ms cubic-bezier(0.22, 1, 0.36, 1);
+      transition-delay: var(--reveal-delay, 0ms);
+      will-change: opacity, transform, filter;
+    }
+
+    .ai-sys-reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+
+    .section-heading,
+    .proof-pill,
+    .ai-sequence-card,
+    .ai-diagram-card,
+    .feature-item,
+    .tool-chip,
+    .ai-wordmark-secondary,
+    .ai-proof-insert-card,
+    .who-for-inner,
+    .cta-dark-inner {
+      position: relative;
+    }
+
+    .section-heading::before,
+    .section--feature-list .container::before,
+    .section--strong-points .container::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background: linear-gradient(180deg, rgba(93, 226, 255, 0.25), rgba(93, 226, 255, 0.02) 88%);
+      opacity: 0.42;
+      pointer-events: none;
+    }
+
+    .section--feature-list .container,
+    .section--strong-points .container {
+      position: relative;
+      padding-left: 18px;
+    }
+
+    .proof-pill,
+    .ai-sequence-card,
+    .feature-item,
+    .ai-diagram-card,
+    .ai-proof-insert-card {
+      border-color: rgba(141, 214, 245, 0.12) !important;
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+        0 18px 42px rgba(3, 9, 17, 0.18);
+    }
+
+    .proof-pill::before,
+    .ai-sequence-card::before,
+    .feature-item::before,
+    .ai-diagram-card::before,
+    .ai-proof-insert-card::before {
+      content: "";
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 0;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(93, 226, 255, 0.36), rgba(93, 226, 255, 0.02) 72%);
+      opacity: 0.72;
+      pointer-events: none;
+    }
+
+    .ai-sequence-card {
+      overflow: clip;
+    }
+
+    .ai-sequence-card::after {
+      content: "";
+      position: absolute;
+      left: 22px;
+      bottom: 18px;
+      width: 74px;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(93, 226, 255, 0.24), transparent);
+      opacity: 0.75;
+      pointer-events: none;
+    }
+
+    .ai-sequence-label,
+    .ai-system-cluster-label,
+    .proof-kicker,
+    .footer-status {
+      letter-spacing: 0.18em;
+    }
+
+    .feature-grid {
+      position: relative;
+      gap: 0;
+      border-top: 1px solid rgba(141, 214, 245, 0.08);
+      border-bottom: 1px solid rgba(141, 214, 245, 0.08);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.012), rgba(255, 255, 255, 0.004));
+    }
+
+    .feature-item {
+      padding-left: 3.2rem !important;
+      padding-right: 1.4rem !important;
+    }
+
+    .feature-item::after {
+      content: "";
+      position: absolute;
+      left: 1.4rem;
+      top: 50%;
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: rgba(93, 226, 255, 0.85);
+      box-shadow: 0 0 0 4px rgba(93, 226, 255, 0.08);
+      transform: translateY(-50%);
+    }
+
+    .section--feature-list .section-heading {
+      margin-bottom: 2rem;
+    }
+
+    .section--feature-list .section-intro,
+    .section-heading .section-intro {
+      color: rgba(227, 235, 240, 0.68);
+    }
+
+    .ai-wordmark-band,
+    .ai-wordmark-subline {
+      position: relative;
+    }
+
+    .ai-wordmark-band::before {
+      content: "";
+      position: absolute;
+      inset: auto 0 calc(100% + 18px) 0;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(93, 226, 255, 0.16), transparent 82%);
+      opacity: 0.75;
+    }
+
+    .ai-diagram-card {
+      overflow: clip;
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.008));
+    }
+
+    .ai-system-connector,
+    .ai-control-connector {
+      opacity: 0.78;
+      filter: drop-shadow(0 0 10px rgba(93, 226, 255, 0.12));
+    }
+
+    .ai-system-node,
+    .ai-control-node {
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.024),
+        0 16px 34px rgba(4, 10, 18, 0.16);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ai-hero-preview-copy > *,
+      .ai-sys-reveal {
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
 
   <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"/>
@@ -464,5 +894,50 @@
 
   <script src="/assets/js/nav.js"></script>
   <script src="/assets/js/ai-systems-hero-preview.js"></script>
+  <script>
+    (() => {
+      const heroStage = document.getElementById('aiHeroPreviewStage');
+      const heroCopy = document.getElementById('aiHeroPreviewCopy');
+
+      if (heroStage && heroCopy) {
+        requestAnimationFrame(() => {
+          heroStage.classList.add('is-live');
+          heroCopy.classList.add('is-ready');
+        });
+      }
+
+      const revealTargets = [
+        ...document.querySelectorAll('.section-heading'),
+        ...document.querySelectorAll('.proof-pill'),
+        ...document.querySelectorAll('.ai-sequence-card'),
+        ...document.querySelectorAll('.feature-item'),
+        ...document.querySelectorAll('.tool-chip'),
+        ...document.querySelectorAll('.ai-wordmark-secondary'),
+        ...document.querySelectorAll('.ai-diagram-card'),
+        ...document.querySelectorAll('.ai-proof-insert-card'),
+        ...document.querySelectorAll('.who-for-inner'),
+        ...document.querySelectorAll('.cta-dark-inner')
+      ];
+
+      revealTargets.forEach((el, index) => {
+        el.classList.add('ai-sys-reveal');
+        const localIndex = index % 5;
+        el.style.setProperty('--reveal-delay', `${localIndex * 55}ms`);
+      });
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        });
+      }, {
+        threshold: 0.14,
+        rootMargin: '0px 0px -8% 0px'
+      });
+
+      revealTargets.forEach((el) => observer.observe(el));
+    })();
+  </script>
 </body>
 </html>

@@ -1,62 +1,122 @@
-# ProAI Expert - Website v2
+# ProAI Expert Website
 
-Premium bilingual website for ProAI Expert: AI systems, automation, and premium web presence for service businesses.
+A bilingual studio website for ProAI Expert, built as a clean static site with parallel English and Russian content layers.
 
-## Stack
+The project brings together practical AI systems, business automation, premium websites, branding, and digital business structure for modern service businesses.
 
-- Pure HTML, CSS, and JavaScript
-- Static deployment on GitHub Pages with custom domain
-- Bilingual structure: English by default, Russian under `/ru/`
+## Positioning
 
-## Structure
+ProAI Expert is a studio working across:
 
-```text
-/                          Homepage EN
-/ru/                       Homepage RU
-/ai-systems/               AI Systems EN
-/ru/ai-systems/            AI Systems RU
-/websites-branding/        Websites & Branding EN
-/ru/websites-branding/     Websites & Branding RU
-/case-studies/             Case Studies index EN
-/ru/case-studies/          Case Studies index RU
-/case-studies/[slug]/      Individual case study EN
-/ru/case-studies/[slug]/   Individual case study RU
-/about/                    About EN
-/ru/about/                 About RU
-/contact/                  Contact EN
-/ru/contact/               Contact RU
-/insights/                 Insights EN
-/ru/insights/              Insights RU
-/privacy/                  Privacy policy
-/ru/privacy/               Privacy policy RU
-/terms/                    Terms
-/ru/terms/                 Terms RU
-```
+- practical AI systems
+- business automation
+- premium websites
+- branding
+- digital business structure
 
-## Assets
+The site is designed to present these directions as one coherent studio offering rather than as disconnected services.
 
-```text
-assets/css/       Design system, layout, components, sections
-assets/js/        Navigation, contact form, motion
-assets/images/    Current visual system and page visuals
-assets/brand/     Brand logo assets
-```
+## Website Structure
 
-## Deployment
+The core website includes:
 
-- Primary production domain: `https://proai-expert.com/`
-- Custom domain is configured through `CNAME`
-- Deploy by pushing to `main`
-- GitHub Pages rebuilds automatically
+- Home
+- About
+- AI Systems
+- Websites & Branding
+- Contact
+- Insights
+- Insight article pages
 
-## SEO
+The Insights layer includes editorial hub pages plus article pages in both languages.
 
-- `sitemap.xml` covers the current indexable EN and RU pages
-- `robots.txt` references the sitemap
-- Canonical tags point to `proai-expert.com`
-- Hreflang pairs are used on bilingual page variants
-- Google Search Console verification file: `google85a9034747b7c192.html`
+## Bilingual Structure
 
-## Contact
+The site uses a language-specific folder structure:
 
-- `proai.expert2026@gmail.com`
+- English pages live at the root (`/`)
+- Russian pages live under `/ru/`
+- English Insights content lives under `/insights/`
+- Russian Insights content lives under `/ru/insights/`
+
+The Russian and English versions are language-specific adaptations. They are not intended to be crude mirror translations.
+
+## Repository Structure
+
+Key project paths:
+
+- `/` — English root pages
+- `/ru/` — Russian root pages
+- `/insights/` — English Insights hub and article pages
+- `/ru/insights/` — Russian Insights hub and article pages
+- `sitemap.xml` — sitemap for search engines
+- `robots.txt` — crawl and sitemap directives
+
+## Current Content Layer
+
+The current site already includes:
+
+- all main pages in English and Russian
+- Insights hub pages in English and Russian
+- the first flagship article set in both languages
+  - 3 Russian articles
+  - 3 English articles
+
+## Editing Guidance
+
+Use the existing folder structure consistently.
+
+- Edit root pages directly inside the corresponding folder
+- Edit Russian pages inside `/ru/`
+- Add English articles inside `/insights/<slug>/`
+- Add Russian articles inside `/ru/insights/<slug>/`
+
+When updating content:
+
+- keep English and Russian parity thoughtful, not literal
+- avoid random renaming of folders or files
+- avoid structure drift between language layers
+- preserve clean version progression across release archives
+
+## Deployment Note
+
+This is a static website suitable for GitHub Pages or comparable static hosting.
+
+Before deployment, verify:
+
+- internal links
+- sitemap
+- robots.txt
+- canonical and hreflang logic
+- contact form behavior
+
+## Versioning Note
+
+The project uses sequential ZIP / version naming to keep releases clean and traceable.
+
+Recommended practice:
+
+- keep one clear version line
+- avoid parallel inconsistent copies
+- treat the latest approved archive as the working source
+
+## Current Status
+
+The site is in a refined pre-launch state.
+
+Current work already covers:
+
+- bilingual main pages
+- bilingual Insights hubs
+- first bilingual flagship article set
+- launch-oriented cleanup of sitemap, robots, canonical / hreflang, and internal links
+
+## Next Steps
+
+Likely next steps include:
+
+- final launch checks
+- performance optimization
+- additional Insights articles
+- ongoing SEO refinement
+- visual polish and selective front-end enhancements

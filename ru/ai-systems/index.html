@@ -1,469 +1,3202 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>AI-системы и автоматизация бизнеса — ProAI Expert</title>
-  <meta name="description" content="Создаём практичные AI-системы для сервисного бизнеса: более понятный приём обращений, поддержка коммуникации, повторяющихся задач и человеческая проверка там, где она нужна."/>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="/assets/css/main.css"/>
-  <link rel="stylesheet" href="/assets/css/ai-systems-hero-preview.css"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Практичные AI-системы для современного бизнеса: входящие обращения, роутинг, сводки, устойчивый следующий шаг и меньше ручной рутины.">
+    <link rel="canonical" href="https://proai-expert.com/ru/ai-systems/">
+    <link rel="alternate" hreflang="ru" href="https://proai-expert.com/ru/ai-systems/">
+    <link rel="alternate" hreflang="en" href="https://proai-expert.com/ai-systems/">
+    <meta property="og:site_name" content="ProAI Expert">
+    <meta property="og:locale" content="ru_RU">
+    <meta property="og:title" content="ProAI Expert | AI-системы">
+    <meta property="og:description" content="Практичные AI-системы для современного бизнеса: входящие обращения, роутинг, сводки, устойчивый следующий шаг и меньше ручной рутины.">
+    <meta property="og:image" content="https://proai-expert.com/case-financial-desktop.webp">
+    <meta property="og:image:alt" content="Превью страницы AI-систем">
+    <meta property="og:url" content="https://proai-expert.com/ru/ai-systems/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ProAI Expert | AI-системы">
+    <meta name="twitter:description" content="Практичные AI-системы для современного бизнеса: входящие обращения, роутинг, сводки, устойчивый следующий шаг и меньше ручной рутины.">
+    <meta name="twitter:image" content="https://proai-expert.com/case-financial-desktop.webp">
+    <title>ProAI Expert | AI-системы</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #050506;
+            --bg-blue: #071019;
+            --bg-graphite: #0a0e14;
+            --panel: rgba(255,255,255,0.03);
+            --panel-strong: rgba(255,255,255,0.05);
+            --border: rgba(255,255,255,0.08);
+            --border-soft: rgba(150, 198, 224, 0.12);
+            --text-main: #fff;
+            --text-muted: rgba(255,255,255,0.62);
+            --text-soft: rgba(255,255,255,0.38);
+            --ai-cyan: #5DE2FF;
+            --ai-teal: #38C9D6;
+            --ai-blue: #79BFFF;
+            --ai-blue-deep: rgba(64, 118, 205, 0.28);
+            --silver: #DDE6EB;
+            --header-h: 85px;
+            --max-width: 1600px;
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+            --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+            --font: 'Inter', -apple-system, sans-serif;
+        }
 
-  <link rel="icon" type="image/x-icon" href="/favicon.ico"/>
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png"/>
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"/>
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
-  <link rel="manifest" href="/site.webmanifest"/>
-  <link rel="canonical" href="https://proai-expert.com/ru/ai-systems/"/>
-  <link rel="alternate" hreflang="en" href="https://proai-expert.com/ai-systems/"/>
-  <link rel="alternate" hreflang="ru" href="https://proai-expert.com/ru/ai-systems/"/>
-  <link rel="alternate" hreflang="x-default" href="https://proai-expert.com/ai-systems/"/>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { background: var(--bg); color: var(--text-main); font-family: var(--font); overflow-x: hidden; }
+        body.menu-open { overflow: hidden; }
+        .bg-grid, .bg-thread { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+        .bg-grid {
+            background-image: linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+            background-size: 44px 44px;
+            opacity: 0.14;
+            mask-image: radial-gradient(circle at center, black, transparent 82%);
+        }
+        .bg-thread {
+            background:
+                radial-gradient(circle at 20% 14%, rgba(93,226,255,0.14), transparent 24%),
+                radial-gradient(circle at 80% 32%, rgba(56,201,214,0.12), transparent 26%),
+                linear-gradient(180deg, rgba(255,255,255,0.02), transparent 24%);
+            opacity: 0.62;
+        }
+
+        header {
+            position: fixed;
+            inset: 0 0 auto 0;
+            height: var(--header-h);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            border-bottom: 1px solid var(--border);
+            background: rgba(5,5,6,0.55);
+            backdrop-filter: blur(25px);
+        }
+        .header-container {
+            width: 100%;
+            max-width: var(--max-width);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+        }
+        .logo-block { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
+        .logo-cube-container { width: 28px; height: 28px; perspective: 420px; }
+        .logo-cube { width: 18px; height: 18px; position: relative; transform-style: preserve-3d; animation: logoSpin 10s linear infinite; margin: 5px auto; }
+        .l-face { position: absolute; width: 18px; height: 18px; border: 1.5px solid var(--ai-cyan); background: rgba(93,226,255,0.1); }
+        .lf-front { transform: translateZ(9px); } .lf-back { transform: rotateY(180deg) translateZ(9px); }
+        .lf-right { transform: rotateY(90deg) translateZ(9px); } .lf-left { transform: rotateY(-90deg) translateZ(9px); }
+        .lf-top { transform: rotateX(90deg) translateZ(9px); } .lf-bottom { transform: rotateX(-90deg) translateZ(9px); }
+        @keyframes logoSpin { from { transform: rotateX(0deg) rotateY(0deg); } to { transform: rotateX(360deg) rotateY(360deg); } }
+        .logo-text { font-size: 20px; font-weight: 900; letter-spacing: -1px; text-transform: uppercase; }
+        .logo-text span { color: var(--ai-cyan); text-shadow: 0 0 15px rgba(93,226,255,0.6); }
+        .site-nav { display: flex; gap: 18px; }
+        .site-nav a {
+            color: rgba(255,255,255,0.42);
+            text-decoration: none;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.9px;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+        .site-nav a:hover { color: var(--ai-cyan); text-shadow: 0 0 10px var(--ai-cyan); }
+        .site-nav a.is-active { color: var(--ai-cyan); }
+        .header-actions { display:flex; align-items:center; gap:20px; }
+        .lang-link { color: var(--ai-cyan); text-decoration: none; font-size: 13px; font-weight: 900; letter-spacing: 0.5px; }
+        .start-btn, .secondary-btn {
+            min-height: 48px;
+            padding: 12px 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 1px;
+            transition: 0.3s;
+        }
+        .start-btn { color: #fff; border: 1.5px solid var(--ai-cyan); background: rgba(93,226,255,0.06); }
+        .start-btn:hover { background: var(--ai-cyan) !important; color: #000 !important; box-shadow: 0 0 40px var(--ai-cyan); }
+        .header-actions .start-btn {
+            min-height: auto;
+            padding: 12px 28px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            line-height: 1;
+            border: 1.5px solid var(--ai-cyan);
+            border-radius: 4px;
+            background: rgba(93,226,255,0.05);
+        }
+        .header-actions .start-btn:hover {
+            background: var(--ai-cyan) !important;
+            color: #000 !important;
+            box-shadow: 0 0 40px var(--ai-cyan);
+        }
+        .secondary-btn { color: rgba(255,255,255,0.82); border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.02); }
+        .secondary-btn:hover { border-color: rgba(93,226,255,0.24); color: #fff; }
+        .mobile-menu-toggle {
+            display: none;
+            width: 42px;
+            height: 42px;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 4px;
+            cursor: pointer;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: 0.3s var(--ease);
+        }
+        .mobile-menu-toggle span { display:block; width:16px; height:1.5px; border-radius:99px; background:#fff; transition: transform 0.3s var(--ease), opacity 0.3s var(--ease); }
+        .mobile-menu-toggle.is-open span:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
+        .mobile-menu-toggle.is-open span:nth-child(2) { opacity: 0; }
+        .mobile-menu-toggle.is-open span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
+
+        main, section { position: relative; z-index: 1; }
+        section { width: 100%; display: flex; justify-content: center; }
+        .section-shell { width: 100%; max-width: var(--max-width); padding: 0 40px; position: relative; }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--ai-cyan);
+            font-size: 11px;
+            font-family: monospace;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        .eyebrow::before { content: ""; width: 36px; height: 1px; background: linear-gradient(90deg, rgba(93,226,255,0.8), transparent); }
+        .section-head {
+            max-width: 860px;
+            margin-bottom: 52px;
+            position: relative;
+            padding-bottom: 4px;
+        }
+        .section-head h2 { font-size: clamp(40px, 5vw, 72px); line-height: 0.94; letter-spacing: -3px; font-weight: 900; margin-bottom: 18px; }
+        .section-head h2,
+        .matrix-title strong,
+        .protocol-step h3,
+        .proof-panel h3,
+        .proof-flow h3,
+        .governance-card h3,
+        .cta-shell h2 {
+            background: linear-gradient(180deg, #f9fdff 0%, #e6f7ff 42%, rgba(93,226,255,0.88) 112%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .section-head p { max-width: 720px; font-size: 18px; line-height: 1.7; color: rgba(255,255,255,0.66); }
+        .section-head::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: -18px;
+            width: min(120px, 20vw);
+            height: 1px;
+            background: linear-gradient(90deg, rgba(93,226,255,0.34), transparent);
+            opacity: 0.8;
+            pointer-events: none;
+        }
+        .section-block { padding: 112px 0; }
+        .reveal {
+            opacity: 0;
+            transform: translateY(22px);
+            filter: blur(8px);
+            transition: opacity 0.82s var(--ease), transform 0.82s var(--ease), filter 0.82s var(--ease);
+            transition-delay: var(--reveal-delay, 0ms);
+        }
+        .reveal.is-visible { opacity: 1; transform: translateY(0); filter: blur(0); }
+        body.theme-ai {
+            background:
+                radial-gradient(circle at 18% 10%, rgba(93,226,255,0.05), transparent 24%),
+                linear-gradient(180deg, #040506 0%, #050608 100%);
+        }
+        body.theme-ai .hero-copy h1 { text-shadow: 0 24px 64px rgba(8,18,28,0.18); }
+        body.theme-ai #hero::before {
+            background:
+                radial-gradient(circle at 16% 26%, rgba(93,226,255,0.18), transparent 28%),
+                linear-gradient(90deg, rgba(8,20,30,0.84) 0%, rgba(8,21,32,0.68) 17%, rgba(7,16,24,0.34) 33%, rgba(6,9,14,0.08) 48%, rgba(6,8,11,0) 61%);
+        }
+        body.theme-ai main > section:not(#hero) {
+            isolation: isolate;
+        }
+        body.theme-ai main > section:not(#hero)::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.9;
+        }
+        body.theme-ai main > section:not(#hero) > * {
+            position: relative;
+            z-index: 1;
+        }
+        body.theme-ai #entropy::before {
+            background:
+                radial-gradient(circle at 24% 26%, rgba(93,226,255,0.08), transparent 26%),
+                radial-gradient(circle at 78% 54%, rgba(17,42,58,0.24), transparent 32%);
+        }
+        body.theme-ai #capabilities::before {
+            background:
+                linear-gradient(90deg, rgba(8,17,27,0.58) 0%, rgba(8,17,27,0.28) 32%, rgba(5,7,10,0.02) 62%),
+                radial-gradient(circle at 74% 44%, rgba(93,226,255,0.055), transparent 26%);
+        }
+        body.theme-ai #protocol::before {
+            background:
+                radial-gradient(circle at 80% 40%, rgba(93,226,255,0.05), transparent 24%),
+                linear-gradient(180deg, rgba(255,255,255,0.012), transparent 18%);
+        }
+        body.theme-ai #proof::before {
+            background:
+                linear-gradient(90deg, rgba(8,20,30,0.22) 0%, rgba(5,6,9,0.02) 48%, rgba(8,20,30,0.14) 100%),
+                radial-gradient(circle at 26% 56%, rgba(93,226,255,0.045), transparent 24%);
+        }
+        body.theme-ai #governance::before {
+            background:
+                radial-gradient(circle at 76% 24%, rgba(93,226,255,0.04), transparent 24%),
+                linear-gradient(180deg, rgba(255,255,255,0.01), transparent 22%);
+        }
+        body.theme-ai #cta-final::before {
+            background:
+                radial-gradient(circle at 50% 36%, rgba(93,226,255,0.05), transparent 30%),
+                linear-gradient(180deg, rgba(7,12,17,0.4), rgba(5,5,6,0.08) 46%, rgba(5,5,6,0) 100%);
+        }
+        body.theme-ai .section-head h2 em,
+        body.theme-ai .section-head h2 strong {
+            color: var(--ai-cyan);
+            font-style: normal;
+        }
+        body.theme-ai .matrix-shell,
+        body.theme-ai .protocol-summary,
+        body.theme-ai .protocol-step,
+        body.theme-ai .proof-panel,
+        body.theme-ai .proof-flow,
+        body.theme-ai .governance-card,
+        body.theme-ai .cta-shell {
+            box-shadow:
+                inset 0 0 0 1px rgba(255,255,255,0.018),
+                inset 0 0 44px rgba(93,226,255,0.018),
+                0 28px 72px rgba(0,0,0,0.18);
+        }
+        body.theme-ai .matrix-shell {
+            position: relative;
+            overflow: hidden;
+        }
+        body.theme-ai .matrix-shell::after {
+            content: "";
+            position: absolute;
+            inset: 12px;
+            border: 1px solid rgba(93,226,255,0.06);
+            border-radius: 26px;
+            pointer-events: none;
+            opacity: 0.9;
+        }
+        body.theme-ai .matrix-row,
+        body.theme-ai .protocol-step,
+        body.theme-ai .delta-item,
+        body.theme-ai .governance-card {
+            transition:
+                transform 520ms var(--ease),
+                border-color 420ms var(--ease),
+                background 420ms var(--ease),
+                box-shadow 420ms var(--ease),
+                opacity 420ms var(--ease);
+            transform: translateY(0);
+        }
+        body.theme-ai .matrix-row.is-focused,
+        body.theme-ai .matrix-row:hover {
+            background: linear-gradient(90deg, rgba(93,226,255,0.06), rgba(255,255,255,0.015));
+            box-shadow: inset 0 0 0 1px rgba(93,226,255,0.04);
+        }
+        body.theme-ai .protocol-shell {
+            overflow: hidden;
+            isolation: isolate;
+            position: relative;
+        }
+        body.theme-ai .protocol-shell::before {
+            content: none;
+            display: none;
+        }
+        body.theme-ai .protocol-step.is-active {
+            transform: translateX(8px) translateY(-8px) scale(1.014);
+            border-color: rgba(93,226,255,0.2);
+            background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018));
+            box-shadow: inset 0 0 0 1px rgba(93,226,255,0.045), 0 20px 42px rgba(2,8,14,0.18);
+        }
+        .protocol-steps.has-active .protocol-step {
+            opacity: 0.72;
+            transform: translateY(12px) scale(0.988);
+        }
+        .protocol-steps.has-active .protocol-step.is-passed {
+            opacity: 0.84;
+            transform: translateY(-4px) scale(0.994);
+        }
+        .protocol-steps.has-active .protocol-step.is-active {
+            opacity: 1;
+        }
+        body.theme-ai .proof-grid {
+            align-items: stretch;
+        }
+        body.theme-ai .proof-flow::after {
+            content: "";
+            position: absolute;
+            inset: auto 22px 22px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(93,226,255,0), rgba(93,226,255,0.26), rgba(93,226,255,0));
+            opacity: 0.8;
+            pointer-events: none;
+        }
+        body.theme-ai .delta-item.is-active {
+            transform: translateY(-2px);
+            border-top-color: rgba(93,226,255,0.16);
+        }
+        body.theme-ai .governance-card.is-active,
+        body.theme-ai .governance-card:hover {
+            transform: translateY(-3px);
+            border-color: rgba(93,226,255,0.16);
+            background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.016));
+        }
+        body.theme-ai .cta-shell {
+            background:
+                radial-gradient(circle at 50% 10%, rgba(93,226,255,0.08), transparent 30%),
+                linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.014));
+        }
+
+        #hero {
+            min-height: 96svh;
+            padding: calc(var(--header-h) + 28px) 0 52px;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+        }
+        #hero::before,
+        #hero::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        #hero::before {
+            z-index: 0;
+            background:
+                radial-gradient(circle at 15% 27%, rgba(93,226,255,0.09), transparent 26%),
+                linear-gradient(90deg, rgba(8,20,30,0.68) 0%, rgba(8,21,32,0.42) 13%, rgba(7,16,24,0.14) 26%, rgba(6,9,14,0.03) 39%, rgba(6,8,11,0) 54%);
+        }
+        #hero::after {
+            z-index: 0;
+            background:
+                radial-gradient(circle at 76% 52%, rgba(2,4,7,0.18) 0%, rgba(2,4,7,0.42) 28%, rgba(2,4,7,0.78) 60%, rgba(2,4,7,0.94) 100%);
+        }
+        .hero-shell {
+            width: 100%;
+            max-width: var(--max-width);
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+            gap: 68px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-copy {
+            max-width: 422px;
+            position: relative;
+            z-index: 2;
+        }
+        .hero-copy h1 {
+            font-size: clamp(46px, 5.45vw, 82px);
+            line-height: 0.88;
+            letter-spacing: -4px;
+            font-weight: 900;
+            margin-bottom: 24px;
+            max-width: 8.25ch;
+        }
+        .hero-copy h1 span {
+            background: linear-gradient(180deg, #fff 0%, #dff5ff 44%, var(--ai-cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-title-line {
+            display: block;
+            overflow: hidden;
+            padding-top: 0.08em;
+            margin-top: -0.08em;
+        }
+        .hero-title-line > span {
+            display: inline-block;
+            transform: translateY(108%);
+            opacity: 0;
+            animation: heroLockIn 0.78s var(--ease) forwards;
+        }
+        .hero-title-line:nth-child(2) > span { animation-delay: 0.12s; }
+        .hero-title-line em {
+            font-style: normal;
+            color: var(--ai-cyan);
+            text-shadow: 0 0 18px rgba(93,226,255,0.22);
+        }
+        .hero-copy p {
+            max-width: 418px;
+            color: var(--text-muted);
+            font-size: 16px;
+            line-height: 1.64;
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: translateY(18px);
+            animation: heroCopyIn 0.72s var(--ease) 0.34s forwards;
+        }
+        .hero-copy .eyebrow {
+            opacity: 0;
+            transform: translateY(14px);
+            animation: heroCopyIn 0.58s var(--ease) 0.06s forwards;
+        }
+        .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+        .hero-actions > * {
+            opacity: 0;
+            transform: translateY(18px);
+            animation: heroCopyIn 0.62s var(--ease) 0.46s forwards;
+        }
+        .hero-actions > *:nth-child(2) { animation-delay: 0.56s; }
+        .hero-visual {
+            position: relative;
+            min-height: 548px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+        }
+        .hero-visual::before,
+        .hero-visual::after {
+            content: "";
+            position: absolute;
+            pointer-events: none;
+        }
+        .hero-visual::before {
+            inset: 8% 1% 10%;
+            border-radius: 40px;
+            border: 1px solid rgba(255,255,255,0.05);
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.025), transparent 22%),
+                radial-gradient(circle at 50% 40%, rgba(93,226,255,0.11), transparent 48%),
+                linear-gradient(90deg, transparent 14%, rgba(255,255,255,0.03) 14.2%, transparent 14.4%, transparent 50%, rgba(255,255,255,0.03) 50.2%, transparent 50.4%, transparent 86%, rgba(255,255,255,0.03) 86.2%, transparent 86.4%);
+            mask-image: radial-gradient(circle at center, black, transparent 92%);
+        }
+        .hero-visual::after {
+            width: min(82%, 560px);
+            height: min(82%, 560px);
+            border-radius: 50%;
+            border: 1px dashed rgba(93,226,255,0.1);
+            box-shadow: 0 0 0 52px rgba(255,255,255,0.015), 0 0 0 136px rgba(255,255,255,0.01);
+        }
+        .hero-visual {
+            min-height: 580px;
+            overflow: visible;
+            isolation: isolate;
+        }
+        .hero-visual::before {
+            display: block;
+            inset: -5% -12% -10% 14%;
+            border: 0;
+            border-radius: 52px;
+            background: radial-gradient(circle at 66% 50%, rgba(2,4,7,0.18) 0%, rgba(2,4,7,0.44) 34%, rgba(2,4,7,0.82) 72%, rgba(2,4,7,0.96) 100%);
+            filter: blur(26px);
+            opacity: 0.96;
+            z-index: 0;
+        }
+        .hero-visual::after {
+            display: none;
+        }
+        .hero-embed {
+            width: 100%;
+            min-height: 580px;
+            height: 100%;
+            display: block;
+            border: 0;
+            border-radius: 28px;
+            background: transparent;
+            position: relative;
+            z-index: 1;
+        }
+        @media (max-width: 980px) {
+            .hero-embed { min-height: 500px; }
+        }
+        @media (max-width: 640px) {
+            .hero-embed { min-height: 400px; border-radius: 22px; }
+        }
+        .hero-embed {
+            width: 98% !important;
+            max-width: none;
+            min-height: 562px !important;
+            margin-left: -4%;
+            margin-top: -5.6%;
+            pointer-events: auto;
+            transform-origin: 52% 46%;
+            will-change: transform;
+        }
+        @media (max-width: 980px) {
+            .hero-embed {
+                width: 93% !important;
+                min-height: 482px !important;
+                margin-left: -2%;
+                margin-top: -3.7%;
+                pointer-events: auto;
+            }
+        }
+        @media (max-width: 640px) {
+            .hero-embed {
+                width: 100% !important;
+                min-height: 420px !important;
+                margin-left: 0;
+                margin-top: 0;
+            }
+        }
+        .orchestration-core {
+            position: relative;
+            width: min(100%, 720px);
+            aspect-ratio: 1 / 1;
+            border-radius: 36px;
+            border: 1px solid rgba(255,255,255,0.07);
+            background:
+                radial-gradient(circle at 50% 50%, rgba(93,226,255,0.16) 0%, rgba(93,226,255,0.07) 16%, rgba(255,255,255,0.015) 46%, rgba(255,255,255,0.01) 100%),
+                linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), inset 0 0 56px rgba(93,226,255,0.04), 0 46px 96px rgba(0,0,0,0.56);
+        }
+        .core-grid, .core-lines, .core-thread, .core-blueprint, .core-locks, .core-scan, .core-axis, .core-chaos, .core-conduits {
+            position: absolute;
+            inset: 0;
+        }
+        .core-grid {
+            background-image: linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+            background-size: 54px 54px;
+            mask-image: radial-gradient(circle at center, black, transparent 88%);
+            opacity: 0.48;
+        }
+        .core-blueprint {
+            background:
+                linear-gradient(90deg, transparent 12%, rgba(255,255,255,0.05) 12.2%, transparent 12.4%, transparent 50%, rgba(255,255,255,0.04) 50.2%, transparent 50.4%, transparent 86%, rgba(255,255,255,0.04) 86.2%, transparent 86.4%),
+                linear-gradient(180deg, transparent 15%, rgba(255,255,255,0.04) 15.2%, transparent 15.4%, transparent 48%, rgba(255,255,255,0.045) 48.2%, transparent 48.4%, transparent 82%, rgba(255,255,255,0.04) 82.2%, transparent 82.4%);
+            opacity: 0.44;
+            mask-image: radial-gradient(circle at center, black, transparent 90%);
+        }
+        .core-lines::before, .core-lines::after {
+            content: "";
+            position: absolute;
+            border: 1px solid rgba(93,226,255,0.18);
+            border-radius: 28px;
+            inset: 16% 12%;
+        }
+        .core-lines::after {
+            inset: 25% 20%;
+            border-color: rgba(255,255,255,0.08);
+        }
+        .core-axis::before,
+        .core-axis::after {
+            content: "";
+            position: absolute;
+            background: linear-gradient(90deg, transparent, rgba(93,226,255,0.16), transparent);
+            opacity: 0.8;
+        }
+        .core-axis::before {
+            left: 18%;
+            right: 18%;
+            top: 50%;
+            height: 1px;
+        }
+        .core-axis::after {
+            top: 18%;
+            bottom: 18%;
+            left: 50%;
+            width: 1px;
+            background: linear-gradient(180deg, transparent, rgba(93,226,255,0.16), transparent);
+        }
+        .core-chaos span,
+        .core-conduits span,
+        .core-conduits i {
+            position: absolute;
+            display: block;
+        }
+        .core-chaos span {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(93,226,255,0.48), rgba(255,255,255,0.08), transparent);
+            opacity: 0;
+            animation: chaosResolve 1s var(--ease) forwards;
+        }
+        .core-chaos .ch-1 { top: 28%; left: 12%; width: 34%; transform: rotate(-18deg) translateX(-28px); animation-delay: 0.02s; }
+        .core-chaos .ch-2 { top: 36%; right: 10%; width: 28%; transform: rotate(22deg) translateX(34px); animation-delay: 0.08s; }
+        .core-chaos .ch-3 { top: 58%; left: 18%; width: 46%; transform: rotate(9deg) translateY(22px); animation-delay: 0.14s; }
+        .core-chaos .ch-4 { bottom: 24%; right: 16%; width: 24%; transform: rotate(-24deg) translateY(-24px); animation-delay: 0.2s; }
+        .core-chaos .ch-5 { top: 50%; left: 44%; width: 20%; transform: rotate(90deg) scaleY(1); animation-delay: 0.24s; }
+        .core-chaos .ch-6 { top: 18%; left: 46%; width: 18%; transform: rotate(90deg) translateY(-18px); animation-delay: 0.28s; }
+        .core-conduits span {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(93,226,255,0.72), transparent);
+            opacity: 0;
+            animation: conduitLock 0.88s var(--ease) 0.26s forwards;
+        }
+        .core-conduits .co-1 { top: 32%; left: 25%; width: 50%; }
+        .core-conduits .co-2 { top: 50%; left: 23%; width: 54%; }
+        .core-conduits .co-3 { top: 68%; left: 30%; width: 40%; }
+        .core-conduits .co-4 {
+            top: 28%;
+            left: 49.8%;
+            width: 1px;
+            height: 44%;
+            background: linear-gradient(180deg, transparent, rgba(93,226,255,0.72), transparent);
+        }
+        .core-conduits i {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff 0%, var(--ai-cyan) 42%, rgba(93,226,255,0.16) 100%);
+            box-shadow: 0 0 18px rgba(93,226,255,0.28);
+            opacity: 0;
+            animation: nodeLock 0.68s var(--ease) forwards;
+        }
+        .core-conduits .n-1 { top: 31.2%; left: 24.5%; animation-delay: 0.34s; }
+        .core-conduits .n-2 { top: 31.2%; right: 24.3%; animation-delay: 0.4s; }
+        .core-conduits .n-3 { top: 49.2%; left: 49.2%; animation-delay: 0.46s; }
+        .core-conduits .n-4 { bottom: 30.6%; right: 29%; animation-delay: 0.52s; }
+        .schema-node {
+            position: absolute;
+            min-width: 170px;
+            padding: 18px 18px 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+            backdrop-filter: blur(18px);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+            opacity: 0;
+            animation: moduleSettle 0.76s var(--ease) forwards;
+        }
+        .schema-node b {
+            display: block;
+            font-size: 11px;
+            color: var(--ai-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1.8px;
+            margin-bottom: 12px;
+        }
+        .schema-node span { color: rgba(255,255,255,0.76); font-size: 13px; line-height: 1.5; }
+        .node-a { top: 11%; left: 8%; }
+        .node-b { top: 16%; right: 6%; }
+        .node-c { bottom: 22%; left: 10%; }
+        .node-d { bottom: 12%; right: 8%; }
+        .node-a { animation-delay: 0.42s; }
+        .node-b { animation-delay: 0.5s; }
+        .node-c { animation-delay: 0.58s; }
+        .node-d { animation-delay: 0.66s; }
+        .schema-node::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 16px;
+            right: 16px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(93,226,255,0.8), transparent 72%);
+            opacity: 0.7;
+        }
+        .core-center {
+            position: absolute;
+            inset: 50% auto auto 50%;
+            transform: translate(-50%, -50%);
+            width: 260px;
+            height: 260px;
+            border-radius: 32px;
+            border: 1px solid rgba(93,226,255,0.28);
+            background:
+                radial-gradient(circle at 50% 50%, rgba(93,226,255,0.16), rgba(93,226,255,0.06) 34%, rgba(255,255,255,0.02) 100%),
+                linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+            display: grid;
+            place-items: center;
+            text-align: center;
+            box-shadow: inset 0 0 28px rgba(93,226,255,0.08), inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 40px rgba(93,226,255,0.08);
+        }
+        .core-center strong {
+            display: block;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--ai-cyan);
+            margin-bottom: 10px;
+        }
+        .core-center p { width: 76%; color: rgba(255,255,255,0.84); font-size: 15px; line-height: 1.45; font-weight: 700; }
+        .core-center::before,
+        .core-center::after {
+            content: "";
+            position: absolute;
+            inset: 16px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 24px;
+        }
+        .core-center::after {
+            inset: 34px;
+            border-style: dashed;
+            border-color: rgba(93,226,255,0.18);
+            opacity: 0.9;
+        }
+        .core-thread::before, .core-thread::after {
+            content: "";
+            position: absolute;
+            inset: 50%;
+            transform: translate(-50%, -50%);
+            width: 76%;
+            height: 76%;
+            border: 1px dashed rgba(93,226,255,0.18);
+            border-radius: 50%;
+        }
+        .core-thread::after { width: 56%; height: 56%; border-style: solid; border-color: rgba(255,255,255,0.06); }
+        .core-locks::before,
+        .core-locks::after {
+            content: "";
+            position: absolute;
+            border: 1px solid rgba(93,226,255,0.2);
+            border-radius: 18px;
+            opacity: 0.9;
+        }
+        .core-locks::before {
+            inset: 38% 22% 38% 22%;
+            box-shadow: 0 0 0 14px rgba(93,226,255,0.035);
+        }
+        .core-locks::after {
+            inset: 30% 30% 30% 30%;
+            border-color: rgba(255,255,255,0.08);
+        }
+        .core-scan::before {
+            content: "";
+            position: absolute;
+            left: 12%;
+            right: 12%;
+            top: 18%;
+            height: 22%;
+            background: linear-gradient(180deg, rgba(93,226,255,0), rgba(93,226,255,0.12), rgba(93,226,255,0));
+            opacity: 0.7;
+            filter: blur(18px);
+            animation: heroScan 8s linear infinite;
+        }
+        .thread-pulse {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #fff 0%, var(--ai-cyan) 46%, rgba(93,226,255,0.2) 100%);
+            box-shadow: 0 0 18px rgba(93,226,255,0.46);
+            animation: orbitPulse 7s linear infinite;
+        }
+        .thread-pulse.p1 { top: 18%; left: 52%; }
+        .thread-pulse.p2 { top: 54%; right: 16%; animation-duration: 8.5s; }
+        .thread-pulse.p3 { left: 22%; bottom: 28%; animation-duration: 9.5s; }
+        @keyframes orbitPulse {
+            0%, 100% { transform: scale(0.9); opacity: 0.72; }
+            50% { transform: scale(1.2); opacity: 1; }
+        }
+        @keyframes heroScan {
+            0%, 100% { transform: translateY(-12%) scaleY(0.92); opacity: 0; }
+            16% { opacity: 0.55; }
+            50% { transform: translateY(128%) scaleY(1); opacity: 0.78; }
+            84% { opacity: 0.2; }
+        }
+        @keyframes heroLockIn {
+            0% { opacity: 0; transform: translateY(108%); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes heroCopyIn {
+            0% { opacity: 0; transform: translateY(18px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes chaosResolve {
+            0% { opacity: 0; }
+            20% { opacity: 0.72; }
+            100% { opacity: 0.28; transform: rotate(0deg) translateX(0) translateY(0); }
+        }
+        @keyframes conduitLock {
+            0% { opacity: 0; transform: scaleX(0.2); transform-origin: left center; }
+            100% { opacity: 1; transform: scaleX(1); transform-origin: left center; }
+        }
+        @keyframes nodeLock {
+            0% { opacity: 0; transform: scale(0.4); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes moduleSettle {
+            0% { opacity: 0; transform: translateY(18px) scale(0.96); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        #entropy .entropy-grid {
+            contain: paint;
+            isolation: isolate;
+            transform-style: preserve-3d;
+            will-change: transform;
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+            gap: 30px;
+            align-items: stretch;
+        }
+        .entropy-map, .entropy-list {
+            backface-visibility: hidden;
+            transform: translateZ(0);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
+            overflow: hidden;
+        }
+        .entropy-map { position: relative; min-height: 520px; padding: 34px; }
+        .entropy-map::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(rgba(169,210,239,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(169,210,239,0.04) 1px, transparent 1px);
+            background-size: 44px 44px;
+            opacity: 0.34;
+        }
+        .entropy-card {
+            position: absolute;
+            width: 220px;
+            padding: 18px;
+            border: 1px solid rgba(150,198,224,0.12);
+            border-radius: 18px;
+            background: linear-gradient(180deg, rgba(10,14,20,0.88), rgba(8,11,17,0.74));
+            backdrop-filter: blur(18px);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 18px 42px rgba(2,8,15,0.22);
+        }
+        .entropy-card b {
+            display: block;
+            font-size: 10px;
+            letter-spacing: 1.6px;
+            color: var(--ai-cyan);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .entropy-card span { color: rgba(255,255,255,0.82); font-size: 13px; line-height: 1.52; }
+        .e1 { top: 14%; left: 8%; } .e2 { top: 12%; right: 10%; } .e3 { bottom: 20%; left: 18%; } .e4 { bottom: 14%; right: 12%; }
+        .entropy-line { position: absolute; height: 1px; background: linear-gradient(90deg, rgba(93,226,255,0.14), rgba(121,191,255,0.3), rgba(93,226,255,0.1)); transform-origin: left center; }
+        .el1 { top: 34%; left: 28%; width: 32%; transform: rotate(12deg); }
+        .el2 { top: 55%; left: 18%; width: 56%; transform: rotate(-9deg); }
+        .el3 { top: 44%; right: 18%; width: 26%; transform: rotate(94deg); }
+        .capture-beam {
+            position: absolute;
+            inset: 50% auto auto 50%;
+            transform: translate(-50%, -50%);
+            width: 42%;
+            height: 72%;
+            border-radius: 28px;
+            border: 1px solid rgba(93,226,255,0.3);
+            background: linear-gradient(180deg, rgba(93,226,255,0.08), rgba(93,226,255,0.02));
+            box-shadow: inset 0 0 36px rgba(93,226,255,0.08);
+        }
+        .capture-beam::before {
+            content: "";
+            position: absolute;
+            inset: 18px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 20px;
+        }
+        .entropy-list { padding: 30px; display: flex; flex-direction: column; gap: 18px; }
+        .entropy-item {
+            padding: 18px 18px 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px;
+            background: rgba(255,255,255,0.02);
+        }
+        .entropy-item strong { display: block; font-size: 17px; margin-bottom: 8px; letter-spacing: -0.02em; }
+        .entropy-item p { font-size: 14px; line-height: 1.65; color: var(--text-muted); }
+
+        #capabilities .matrix-shell {
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+            position: relative;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 24px 60px rgba(3, 9, 17, 0.18);
+        }
+        #capabilities .matrix-shell::before,
+        #protocol .protocol-summary::before,
+        .proof-panel::before,
+        .proof-flow::before,
+        .governance-card::before {
+            content: "";
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            top: 0;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(93,226,255,0.34), rgba(93,226,255,0.02) 76%);
+            opacity: 0.8;
+            pointer-events: none;
+        }
+        .matrix-head {
+            display: grid;
+            grid-template-columns: 1.1fr repeat(3, 1fr);
+            padding: 16px 24px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            color: rgba(255,255,255,0.52);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.6px;
+            font-weight: 700;
+        }
+        .matrix-row {
+            display: grid;
+            grid-template-columns: 1.1fr repeat(3, 1fr);
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            position: relative;
+            transition: background 260ms ease, border-color 260ms ease, transform 260ms ease, box-shadow 260ms ease;
+        }
+        .matrix-row:hover {
+            background: linear-gradient(90deg, rgba(93,226,255,0.05), rgba(121,191,255,0.02) 42%, rgba(255,255,255,0.012));
+            box-shadow: inset 0 1px 0 rgba(140,195,235,0.06);
+            transform: translateX(2px);
+        }
+        .matrix-row:last-child { border-bottom: 0; }
+        .matrix-title, .matrix-cell { padding: 24px; }
+        .matrix-title { border-right: 1px solid rgba(255,255,255,0.06); }
+        .matrix-title strong { display: block; font-size: 18px; margin-bottom: 8px; letter-spacing: -0.02em; }
+        .matrix-title p { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+        .matrix-cell {
+            border-right: 1px solid rgba(255,255,255,0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .matrix-cell:last-child { border-right: 0; }
+        .matrix-cell b { color: var(--silver); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+        .matrix-cell span { color: rgba(255,255,255,0.74); font-size: 14px; line-height: 1.58; }
+        .matrix-foot {
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            color: var(--text-soft);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        #protocol .protocol-shell {
+            overflow: hidden;
+            isolation: isolate;
+            display: grid;
+            grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+            gap: 38px;
+            align-items: start;
+        }
+        .protocol-summary {
+            position: sticky;
+            top: calc(var(--header-h) + 28px);
+            padding: 28px;
+            border: 1px solid var(--border);
+            border-radius: 26px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.018), 0 22px 52px rgba(3, 9, 17, 0.16);
+            overflow: hidden;
+        }
+        .protocol-summary p { color: var(--text-muted); font-size: 16px; line-height: 1.72; margin-bottom: 22px; }
+        .protocol-note {
+            padding-top: 18px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.68);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+        .protocol-steps { display: flex; flex-direction: column; gap: 16px; perspective: 1200px; }
+        .protocol-step {
+            padding: 26px 26px 24px;
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+            position: relative;
+            overflow: hidden;
+            transform-origin: 50% 0;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 18px 44px rgba(3, 9, 17, 0.14);
+            transition: transform 260ms ease, border-color 260ms ease, box-shadow 260ms ease;
+        }
+        .protocol-step:hover {
+            transform: translateY(-2px);
+            border-color: rgba(118,185,231,0.16);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 22px 52px rgba(3, 9, 17, 0.22);
+        }
+        .protocol-step::before {
+            content: "";
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            top: 0;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(93,226,255,0.28), transparent);
+            opacity: 0.85;
+        }
+        .protocol-step::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 26px;
+            right: 26px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(93,226,255,0.8), rgba(255,255,255,0.08), transparent 72%);
+        }
+        .protocol-step b {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(--ai-cyan);
+            text-transform: uppercase;
+            margin-bottom: 14px;
+        }
+        .protocol-step h3 { font-size: 30px; letter-spacing: -0.03em; margin-bottom: 12px; }
+        .protocol-step p { font-size: 15px; line-height: 1.68; color: var(--text-muted); max-width: 54ch; }
+
+        #proof .proof-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+            gap: 30px;
+        }
+        .proof-panel, .proof-flow {
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.018), 0 24px 58px rgba(3, 9, 17, 0.16);
+        }
+        .proof-panel h3, .proof-flow h3 { font-size: 30px; letter-spacing: -0.03em; margin-bottom: 16px; }
+        .proof-panel p, .proof-flow p { color: var(--text-muted); font-size: 15px; line-height: 1.7; }
+        .delta-stack { margin-top: 24px; display: grid; gap: 16px; }
+        .delta-item {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 16px;
+            align-items: center;
+            padding: 18px 0;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
+        .delta-item:first-child { border-top: 0; padding-top: 0; }
+        .delta-side strong { display: block; font-size: 15px; margin-bottom: 6px; }
+        .delta-side span { display: block; color: var(--text-muted); font-size: 13px; line-height: 1.58; }
+        .delta-arrow {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            border: 1px solid rgba(93,226,255,0.28);
+            color: var(--ai-cyan);
+            font-weight: 800;
+        }
+        .proof-flow .flow-card {
+            margin-top: 22px;
+            padding: 20px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.02);
+        }
+        .flow-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            transition: color 220ms ease, transform 220ms ease;
+        }
+        .flow-line:hover { color: rgba(255,255,255,0.94); transform: translateX(3px); }
+        .flow-line:last-child { border-bottom: 0; }
+        .flow-line i {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--ai-cyan);
+            box-shadow: 0 0 12px rgba(93,226,255,0.42);
+            display: inline-block;
+        }
+
+        #governance .governance-shell {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+        }
+        .governance-card {
+            border-radius: 22px;
+            border: 1px solid rgba(255,255,255,0.08);
+            background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
+            padding: 26px 22px 24px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.016), 0 18px 42px rgba(3, 9, 17, 0.18);
+            transition: transform 240ms ease, border-color 240ms ease;
+        }
+        .governance-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(126,194,235,0.16);
+        }
+        .governance-card b {
+            display: block;
+            font-size: 11px;
+            color: var(--ai-cyan);
+            letter-spacing: 1.6px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        .governance-card h3 { font-size: 22px; letter-spacing: -0.03em; margin-bottom: 10px; }
+        .governance-card p { color: var(--text-muted); font-size: 14px; line-height: 1.65; }
+
+        #cta-final { padding: 126px 0 118px; }
+        .cta-shell {
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 34px;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 50% 28%, rgba(93,226,255,0.12), transparent 30%),
+                linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+            text-align: center;
+            padding: 74px 28px 78px;
+            position: relative;
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.018), 0 28px 64px rgba(3, 9, 17, 0.2);
+        }
+        .cta-shell::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 58px 58px;
+            opacity: 0.22;
+            mask-image: radial-gradient(circle at center, black, transparent 84%);
+        }
+        .cta-shell > * { position: relative; z-index: 1; }
+        .cta-shell h2 { font-size: clamp(42px, 5vw, 82px); line-height: 0.93; letter-spacing: -4px; margin-bottom: 16px; }
+        .cta-shell p { max-width: 760px; margin: 0 auto 28px; color: var(--text-muted); font-size: 18px; line-height: 1.7; }
+        .cta-actions { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
+
+        .entropy-item,
+        .matrix-shell,
+        .protocol-summary,
+        .protocol-step,
+        .proof-panel,
+        .proof-flow,
+        .governance-card,
+        .cta-shell {
+            backdrop-filter: blur(16px);
+        }
+
+        footer {
+            position: relative;
+            margin-top: 0;
+            padding: 118px 0 44px 0;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            overflow: hidden;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.015) 0%, rgba(255,255,255,0.008) 100%);
+        }
+        footer::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 64px 64px;
+            opacity: 0.78;
+        }
+        footer::after {
+            content: '';
+            position: absolute;
+            top: -120px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(960px, 82vw);
+            height: 220px;
+            background: radial-gradient(circle, rgba(93,226,255,0.05) 0%, rgba(0,122,255,0.018) 38%, transparent 74%);
+            filter: blur(54px);
+            opacity: 0.34;
+            pointer-events: none;
+        }
+        .footer-container { max-width: var(--max-width); margin: 0 auto; padding: 0 40px; position: relative; z-index: 2; }
+        .f-backmark {
+            position: absolute;
+            left: 50%;
+            top: 28px;
+            transform: translateX(-50%);
+            font-size: clamp(120px, 18vw, 320px);
+            font-weight: 900;
+            letter-spacing: -0.08em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.038);
+            white-space: nowrap;
+            pointer-events: none;
+            user-select: none;
+            -webkit-user-select: none;
+            z-index: 0;
+        }
+        .f-top {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(340px, 0.85fr);
+            align-items: start;
+            margin-bottom: 72px;
+            gap: 120px;
+            position: relative;
+            z-index: 2;
+        }
+        .f-cta { max-width: 760px; }
+        .f-cta h2 {
+            font-size: clamp(48px, 6vw, 92px);
+            font-weight: 900;
+            line-height: 0.9;
+            letter-spacing: -4px;
+            background: linear-gradient(90deg, #ffffff 0%, #ffffff 44%, rgba(93,226,255,0.46) 50%, #ffffff 56%, #ffffff 100%);
+            background-size: 220% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: text-scan 15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+        @keyframes text-scan {
+            0%, 76% { background-position: 145% center; }
+            100% { background-position: -25% center; }
+        }
+        .f-cta p {
+            margin-top: 26px;
+            max-width: 560px;
+            color: rgba(255,255,255,0.46);
+            line-height: 1.7;
+            font-size: 18px;
+        }
+        .f-contact-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 60px;
+            padding-top: 24px;
+            align-content: start;
+        }
+        .f-contact-block { position: relative; padding-top: 4px; }
+        .f-contact-block::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 32px;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(93,226,255,0.34), transparent);
+            opacity: 0.75;
+        }
+        .f-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2.6px;
+            color: rgba(255,255,255,0.28);
+            margin-bottom: 18px;
+            display: block;
+            font-family: monospace;
+        }
+        .f-link {
+            font-size: 26px;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s var(--ease), opacity 0.3s var(--ease);
+            display: block;
+            margin-bottom: 12px;
+        }
+        .f-link:hover { color: rgba(255,255,255,0.86); }
+        .f-link.subtle-link {
+            font-size: 17px;
+            color: rgba(255,255,255,0.56);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+        .f-link.subtle-link:hover { color: rgba(255,255,255,0.8); }
+        .f-cta-btn {
+            display: inline-block;
+            padding: 18px 42px;
+            margin-top: 34px;
+            border: 1px solid rgba(93,226,255,0.42);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.018);
+            color: #fff;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1.6px;
+            font-size: 11px;
+            font-weight: 800;
+            transition: background 0.3s var(--ease), border-color 0.3s var(--ease), color 0.3s var(--ease), box-shadow 0.3s var(--ease), transform 0.3s var(--ease);
+        }
+        .f-cta-btn:hover {
+            background: rgba(93,226,255,0.06);
+            border-color: rgba(93,226,255,0.6);
+            color: #fff;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.16);
+            transform: translateY(-1px);
+        }
+        .f-divider {
+            width: 100%;
+            height: 1px;
+            margin: 0 0 34px;
+            background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(93,226,255,0.16), rgba(255,255,255,0.04));
+            opacity: 0.9;
+        }
+        .f-bottom {
+            padding-top: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 30px;
+            position: relative;
+            z-index: 2;
+        }
+        .f-copy { font-size: 11px; color: rgba(255,255,255,0.22); letter-spacing: 1.4px; text-transform: uppercase; }
+        .f-socials { display: flex; gap: 36px; }
+        .f-socials a {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2.6px;
+            color: rgba(255,255,255,0.72);
+            text-decoration: none;
+            opacity: 0.82;
+            transition: color 0.3s var(--ease), opacity 0.3s var(--ease);
+            font-weight: 700;
+            position: relative;
+            padding-bottom: 6px;
+        }
+        .f-socials a::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(93,226,255,0.5), rgba(93,226,255,0.1));
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.32s var(--ease);
+            opacity: 0.7;
+        }
+        .f-socials a:hover { opacity: 1; color: #fff; }
+        .f-socials a:hover::after { transform: scaleX(1); }
+
+        @media (max-width: 1180px) {
+            .hero-shell,
+            #entropy .entropy-grid,
+            #protocol .protocol-shell,
+            #proof .proof-grid,
+            #governance .governance-shell { grid-template-columns: 1fr; }
+            .hero-visual { min-height: 600px; }
+            .protocol-summary { position: relative; top: auto; }
+            .governance-shell { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 980px) {
+            :root { --header-h: 78px; }
+            html, body { overflow-x: clip; }
+            header { background: rgba(5,5,6,0.72); backdrop-filter: blur(18px); }
+            .header-container, .hero-shell, .section-shell, .footer-container { padding-left: 24px; padding-right: 24px; }
+            .site-nav { display: none; }
+            .header-actions .start-btn { display: none; }
+            .mobile-menu-toggle { display: inline-flex; position: relative; z-index: 1102; }
+            .header-actions { gap: 12px; }
+            .site-nav.is-open {
+                display: flex;
+                position: fixed;
+                inset: 0;
+                top: var(--header-h);
+                z-index: 1100;
+                flex-direction: column;
+                align-items: stretch;
+                justify-content: center;
+                gap: 6px;
+                padding: max(34px, 7svh) 24px calc(38px + env(safe-area-inset-bottom));
+                background:
+                    radial-gradient(circle at 50% 22%, rgba(93,226,255,0.09) 0%, rgba(56,201,214,0.05) 22%, transparent 52%),
+                    linear-gradient(180deg, rgba(5,5,6,0.975) 0%, rgba(5,5,6,0.955) 100%);
+                backdrop-filter: blur(26px);
+                -webkit-backdrop-filter: blur(26px);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(255,255,255,0.03), 0 24px 80px rgba(0,0,0,0.46);
+                overflow: auto;
+                min-height: calc(100svh - var(--header-h));
+                max-height: calc(100svh - var(--header-h));
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
+            }
+            .site-nav.is-open a {
+                width: min(100%, 430px);
+                margin-inline: auto;
+                padding: 14px 0;
+                font-size: clamp(22px, 6vw, 34px);
+                line-height: 1.04;
+                letter-spacing: -0.03em;
+                text-transform: none;
+                opacity: 1;
+                transform: none;
+                animation: none;
+                opacity: 0;
+                transform: translateY(18px);
+                animation: mobileMenuReveal 0.46s var(--ease) forwards;
+            }
+            .site-nav.is-open a:nth-child(1) { animation-delay: 0.02s; }
+            .site-nav.is-open a:nth-child(2) { animation-delay: 0.06s; }
+            .site-nav.is-open a:nth-child(3) { animation-delay: 0.10s; }
+            .site-nav.is-open a:nth-child(4) { animation-delay: 0.14s; }
+            .site-nav.is-open a:nth-child(5) { animation-delay: 0.18s; }
+            .site-nav.is-open a:nth-child(6) { animation-delay: 0.22s; }
+            .site-nav.is-open a:hover { text-shadow: none; color: #fff; }
+            #hero { min-height: calc(100svh - 8px); padding-top: calc(var(--header-h) + 28px); padding-bottom: 44px; }
+            .hero-shell { gap: 26px; }
+            .hero-copy h1 { max-width: 8.8ch; font-size: clamp(39px, 9.9vw, 63px); letter-spacing: -2.5px; }
+            .hero-copy p, .section-head p, .cta-shell p { font-size: 16px; max-width: 100%; }
+            .hero-visual { min-height: 500px; }
+
+        .orchestration-core { border-radius: 26px; }
+            .schema-node { min-width: 150px; padding: 14px; }
+            .node-a { top: 10%; left: 6%; } .node-b { top: 12%; right: 5%; } .node-c { bottom: 21%; left: 8%; } .node-d { bottom: 12%; right: 6%; }
+            .core-center { width: 198px; height: 198px; }
+            .core-center::before { inset: 12px; }
+            .core-center::after { inset: 26px; }
+            .section-block { padding: 92px 0; }
+            .section-head h2, .cta-shell h2 { font-size: clamp(38px, 10vw, 62px); letter-spacing: -2.5px; }
+            .matrix-head, .matrix-row { grid-template-columns: 1fr; }
+            .matrix-title, .matrix-cell { border-right: 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+            .matrix-row .matrix-cell:last-child { border-bottom: 0; }
+            .matrix-foot { flex-direction: column; }
+            .delta-item { grid-template-columns: 1fr; }
+            .delta-arrow { display: none; }
+            .governance-shell { grid-template-columns: 1fr; }
+            .f-bottom { flex-direction: column; align-items: flex-start; gap: 16px; }
+            .f-copy { font-size: 10px; line-height: 1.7; }
+        }
+
+        @media (max-width: 640px) {
+            :root { --header-h: 72px; }
+            .header-container, .hero-shell, .section-shell, .footer-container { padding-left: 18px; padding-right: 18px; }
+            .logo-cube-container { width: 24px; height: 24px; }
+            .logo-text { font-size: 18px; }
+            .header-actions { gap: 10px; }
+            .header-actions > a:first-child { font-size: 12px !important; }
+            .mobile-menu-toggle { width: 40px; height: 40px; }
+            .lang-link { font-size: 12px; }
+            .hero-visual { min-height: 410px; }
+            .schema-node { min-width: 124px; }
+            .schema-node span { font-size: 11px; }
+            .core-center { width: 152px; height: 152px; }
+            .core-center p { font-size: 13px; }
+            .core-center::before { inset: 10px; border-radius: 18px; }
+            .core-center::after { inset: 22px; border-radius: 14px; }
+            .hero-title-line { padding-top: 0.06em; margin-top: -0.06em; }
+            .hero-visual::after { width: min(86%, 320px); height: min(86%, 320px); box-shadow: 0 0 0 28px rgba(255,255,255,0.015), 0 0 0 74px rgba(255,255,255,0.01); }
+            .entropy-map { min-height: 440px; padding: 20px; }
+            .entropy-card { width: 160px; padding: 14px; }
+            .entropy-card span { font-size: 11px; }
+            .protocol-step h3, .proof-panel h3, .proof-flow h3 { font-size: 26px; }
+            .cta-shell { padding: 54px 20px 60px; }
+            #entropy .section-shell::before,
+            #capabilities .section-shell::before,
+            #protocol .section-shell::before,
+            #proof .section-shell::before,
+            #governance .section-shell::before { left: 18px; }
+            #entropy .section-shell::after,
+            #capabilities .section-shell::after,
+            #protocol .section-shell::after,
+            #proof .section-shell::after,
+            #governance .section-shell::after { left: 14px; }
+            .site-nav.is-open { justify-content: flex-start; padding-top: max(26px, 5svh); }
+            .site-nav.is-open a { width: 100%; padding: 12px 0; font-size: clamp(20px, 7.2vw, 28px); }
+        }
+        @keyframes mobileMenuReveal {
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
-<body class="page">
+<body class="theme-ai">
+<div class="bg-grid"></div>
+<div class="bg-thread"></div>
 
-  <header class="site-header" role="banner">
-    <div class="container flex-between">
-      <a href="/ru/" class="header-logo" aria-label="ProAI Expert — Главная">
-        <img src="/assets/brand/logo-proai-expert-dark-header-preview.png" alt="ProAI Expert" height="34"/>
-      </a>
-      <nav class="nav-menu" aria-label="Основная навигация">
-        <a href="/ru/ai-systems/" class="nav-link" aria-current="page">AI-системы</a>
-        <a href="/ru/websites-branding/" class="nav-link">Сайты и брендинг</a>
-        <a href="/ru/case-studies/" class="nav-link">Кейсы</a>
-        <a href="/ru/about/" class="nav-link">О нас</a>
-        <a href="/ru/insights/" class="nav-link">Инсайты</a>
-      </nav>
-      <div class="header-actions">
-        <a href="/ai-systems/" class="lang-switch">EN</a>
-        <a href="/ru/contact/" class="btn btn--primary btn--md">Обсудить проект</a>
-        <button class="nav-toggle" aria-expanded="false" aria-label="Открыть меню">
-          <span></span><span></span><span></span>
-        </button>
-      </div>
-    </div>
-  </header>
-
-  <main class="page-body">
-
-    <section class="section section--hero ai-hero-preview" aria-labelledby="ai-hero-heading">
-      <div class="container">
-        <div class="ai-hero-preview-stage" id="aiHeroPreviewStage">
-          <div class="ai-hero-preview-grid" aria-hidden="true"></div>
-          <div class="ai-hero-preview-glow ai-hero-preview-glow--1" aria-hidden="true"></div>
-          <div class="ai-hero-preview-glow ai-hero-preview-glow--2" aria-hidden="true"></div>
-          <div class="ai-hero-preview-glow ai-hero-preview-glow--3" aria-hidden="true"></div>
-
-          <div class="ai-hero-preview-copy" id="aiHeroPreviewCopy">
-            <div class="ai-hero-preview-eyebrow">AI-системы</div>
-            <h1 id="ai-hero-heading" class="ai-hero-preview-title">Операционный слой, <em>которого не хватает</em> вашему бизнесу</h1>
-            <p class="ai-hero-preview-body">Практичные AI-сценарии для приёма запросов, коммуникации и внутренней координации — с контролем человека там, где он действительно нужен.</p>
-            <div class="ai-hero-preview-actions">
-              <a class="ai-hero-preview-cta" href="/ru/contact/">
-                Обсудить рабочий процесс
-                <span class="ai-hero-preview-arr">→</span>
-              </a>
-              <div class="ai-hero-preview-note">Контроль у человека</div>
-            </div>
-          </div>
-
-          <div class="ai-hero-preview-system" id="aiHeroPreviewSystem" aria-hidden="true">
-            <div class="ai-hero-preview-shadow"></div>
-
-            <svg class="ai-hero-preview-canvas" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
-              <path id="aiHeroSpineMain" class="ai-hero-preview-path" d="M 820 120 L 820 738"></path>
-              <path id="aiHeroSpineGlow" class="ai-hero-preview-path ai-hero-preview-path--accent" d="M 820 120 L 820 738"></path>
-              <path id="aiHeroConnInquiry" class="ai-hero-preview-path ai-hero-preview-path--aux" d="M 640 220 L 820 220"></path>
-              <path id="aiHeroConnForm" class="ai-hero-preview-path ai-hero-preview-path--aux" d="M 658 506 L 820 506"></path>
-              <path id="aiHeroConnRoute" class="ai-hero-preview-path ai-hero-preview-path--aux" d="M 820 280 L 1010 280"></path>
-              <path id="aiHeroConnHuman" class="ai-hero-preview-path ai-hero-preview-path--accent" d="M 820 470 C 880 470 915 445 1020 445"></path>
-              <path id="aiHeroConnResponse" class="ai-hero-preview-path ai-hero-preview-path--aux" d="M 1146 612 L 1188 612 L 1188 690 L 1140 690"></path>
-              <circle class="ai-hero-preview-particle" id="aiHeroParticle1" r="2.4"></circle>
-              <circle class="ai-hero-preview-particle" id="aiHeroParticle2" r="2.4"></circle>
-            </svg>
-
-            <div class="ai-hero-preview-module ai-hero-preview-module--inquiry" id="aiHeroCardInquiry">
-              <div class="ai-hero-preview-module-inner">
-                <div class="ai-hero-preview-kicker">Входящий поток</div>
-                <p class="ai-hero-preview-title-sm">Новые обращения.</p>
-                <div class="ai-hero-preview-lines">
-                  <div class="ai-hero-preview-line-row"><div class="ai-hero-preview-line-dot"></div><div class="ai-hero-preview-line-bar ai-hero-preview-line-bar--xlong"></div></div>
-                  <div class="ai-hero-preview-line-row"><div class="ai-hero-preview-line-dot"></div><div class="ai-hero-preview-line-bar ai-hero-preview-line-bar--medium"></div></div>
-                  <div class="ai-hero-preview-line-row"><div class="ai-hero-preview-line-dot"></div><div class="ai-hero-preview-line-bar ai-hero-preview-line-bar--long"></div></div>
-                  <div class="ai-hero-preview-line-row"><div class="ai-hero-preview-line-dot"></div><div class="ai-hero-preview-line-bar ai-hero-preview-line-bar--short"></div></div>
+<header>
+    <div class="header-container">
+        <a href="../index.html#hero" class="logo-block">
+            <div class="logo-cube-container">
+                <div class="logo-cube">
+                    <div class="l-face lf-front"></div>
+                    <div class="l-face lf-back"></div>
+                    <div class="l-face lf-left"></div>
+                    <div class="l-face lf-right"></div>
+                    <div class="l-face lf-top"></div>
+                    <div class="l-face lf-bottom"></div>
                 </div>
-              </div>
             </div>
+            <div class="logo-text">PROAI <span>EXPERT</span></div>
+        </a>
 
-            <div class="ai-hero-preview-module ai-hero-preview-module--form" id="aiHeroCardForm">
-              <div class="ai-hero-preview-module-inner">
-                <div class="ai-hero-preview-kicker">Структурированный приём</div>
-                <div class="ai-hero-preview-intake-stack" aria-hidden="true">
-                  <div class="ai-hero-preview-intake-row ai-hero-preview-intake-row--wide"></div>
-                  <div class="ai-hero-preview-intake-row"></div>
-                  <div class="ai-hero-preview-intake-row ai-hero-preview-intake-row--short"></div>
-                  <div class="ai-hero-preview-intake-grid">
-                    <span></span><span></span><span></span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="ai-hero-preview-module ai-hero-preview-module--routing" id="aiHeroCardRouting">
-              <div class="ai-hero-preview-module-inner">
-                <div class="ai-hero-preview-kicker">Логика маршрутизации</div>
-                <div class="ai-hero-preview-route-list">
-                  <div class="ai-hero-preview-route-item"><div class="ai-hero-preview-route-mark ai-hero-preview-route-mark--filled"></div>Уточнить запрос</div>
-                  <div class="ai-hero-preview-route-item"><div class="ai-hero-preview-route-mark"></div>Направить</div>
-                  <div class="ai-hero-preview-route-item"><div class="ai-hero-preview-route-mark"></div>Следующий шаг</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="ai-hero-preview-module ai-hero-preview-module--human" id="aiHeroCardHuman">
-              <div class="ai-hero-preview-aura"></div>
-              <div class="ai-hero-preview-module-inner">
-                <div class="ai-hero-preview-human-top">
-                  <div class="ai-hero-preview-human-avatar">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.60)" stroke-width="1.4">
-                      <circle cx="12" cy="8" r="4"></circle>
-                      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"></path>
-                    </svg>
-                  </div>
-                  <div>
-                    <div class="ai-hero-preview-human-title">Проверка человеком</div>
-                    <div class="ai-hero-preview-human-sub">Точка контроля</div>
-                  </div>
-                </div>
-                <div class="ai-hero-preview-review-list">
-                  <div class="ai-hero-preview-review-row">
-                    <div class="ai-hero-preview-review-check ai-hero-preview-review-check--done">
-                      <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="#6ea6bf" stroke-width="1.5">
-                        <polyline points="2,5 4.5,7.5 8,3"></polyline>
-                      </svg>
-                    </div>
-                    Точность проверена
-                  </div>
-                  <div class="ai-hero-preview-review-row">
-                    <div class="ai-hero-preview-review-check ai-hero-preview-review-check--done">
-                      <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="#6ea6bf" stroke-width="1.5">
-                        <polyline points="2,5 4.5,7.5 8,3"></polyline>
-                      </svg>
-                    </div>
-                    Тон подтверждён
-                  </div>
-                  <div class="ai-hero-preview-review-row">
-                    <div class="ai-hero-preview-review-check"></div>
-                    Ожидает финального подтверждения
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="ai-hero-preview-module ai-hero-preview-module--response" id="aiHeroCardResponse">
-              <div class="ai-hero-preview-module-inner">
-                <div class="ai-hero-preview-response-mark">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6ea6bf" stroke-width="1.5">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                </div>
-                <div class="ai-hero-preview-kicker">Поддержка ответа</div>
-                <p class="ai-hero-preview-title-sm">Черновик готов.</p>
-                <div class="ai-hero-preview-meta">Финальная отправка — за человеком.</div>
-              </div>
-            </div>
-
-            <div class="ai-hero-preview-node ai-hero-preview-node--lg" id="aiHeroNode1" style="left:56.95%; top:24.4%;"></div>
-            <div class="ai-hero-preview-node ai-hero-preview-node--sm" id="aiHeroNode2" style="left:56.95%; top:33.3%;"></div>
-            <div class="ai-hero-preview-diamond" id="aiHeroDiamond1" style="left:56.95%; top:51.7%;"></div>
-            <div class="ai-hero-preview-node ai-hero-preview-node--sm ai-hero-preview-node--accent" id="aiHeroNode3" style="left:56.95%; top:61.5%;"></div>
-            <div class="ai-hero-preview-node ai-hero-preview-node--lg" id="aiHeroNode4" style="left:56.95%; top:81.7%;"></div>
-
-            <div class="ai-hero-preview-label" id="aiHeroLabel1" style="left:58.2%; top:28%;">приём</div>
-            <div class="ai-hero-preview-label" id="aiHeroLabel2" style="left:58.2%; top:39%;">уточнение</div>
-            <div class="ai-hero-preview-label" id="aiHeroLabel3" style="left:58.2%; top:57.5%;">проверка</div>
-            <div class="ai-hero-preview-label" id="aiHeroLabel4" style="left:58.2%; top:74.5%;">ответ</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section--proof-compact" id="why-us" aria-labelledby="ai-proof-heading">
-      <div class="container">
-        <div class="proof-strip">
-          <article class="proof-pill">
-            <span class="proof-kicker">Основа</span>
-            <p><strong>Построено вокруг реальных процессов</strong>, а не вокруг абстрактных AI-сценариев.</p>
-          </article>
-          <article class="proof-pill">
-            <span class="proof-kicker">Контроль</span>
-            <p><strong>Контроль остаётся у человека</strong> там, где он действительно нужен.</p>
-          </article>
-          <article class="proof-pill">
-            <span class="proof-kicker">Поддержка</span>
-            <p><strong>Поддерживает приём запросов и коммуникацию</strong> без лишней сложности.</p>
-          </article>
-          <article class="proof-pill">
-            <span class="proof-kicker">Подход</span>
-            <p><strong>Не AI ради эффекта</strong>, а рабочая система для бизнеса.</p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section--use-cases" aria-labelledby="scenario-heading">
-      <div class="container">
-        <div class="section-heading">
-          <span class="eyebrow">Сценарии</span>
-          <h2 id="scenario-heading">Три рабочие логики, которые помогают сервисному бизнесу чище обрабатывать входящие запросы</h2>
-        </div>
-        <div class="use-cases-grid ai-scenario-grid">
-          <article class="use-case-card ai-sequence-card">
-            <span class="use-case-num">01</span>
-            <span class="ai-sequence-label">01 · Вход</span>
-            <h3>Путь первого обращения</h3>
-            <p>Более ясный путь для первого контакта, понимания услуги и структурированного приёма ещё до начала работы.</p>
-            <div class="scenario-mini-flow">
-              <span>Первый контакт</span>
-              <span>Путь понятен</span>
-              <span>Данные собраны</span>
-            </div>
-          </article>
-          <article class="use-case-card ai-sequence-card">
-            <span class="use-case-num">02</span>
-            <span class="ai-sequence-label">02 · Маршрут</span>
-            <h3>Маршрутизация и следующий шаг</h3>
-            <p>Более собранный маршрут для распределения запроса, выбора нужного направления и подготовки следующего действия без ручной путаницы.</p>
-            <div class="scenario-mini-flow">
-              <span>Запрос уточнён</span>
-              <span>Маршрут выбран</span>
-              <span>Следующий шаг готов</span>
-            </div>
-          </article>
-          <article class="use-case-card ai-sequence-card">
-            <span class="use-case-num">03</span>
-            <span class="ai-sequence-label">03 · Проверка</span>
-            <h3>Почта с проверкой человеком</h3>
-            <p>Более собранный сценарий для входящих писем, подготовки черновика и видимой проверки человеком перед финальным ответом.</p>
-            <div class="scenario-mini-flow">
-              <span>Письмо получено</span>
-              <span>Черновик готов</span>
-              <span>Контроль у человека</span>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section--strong-points" aria-labelledby="diagram-one-heading">
-      <div class="container">
-        <div class="section-heading">
-          <span class="eyebrow">Схема 1</span>
-          <h2 id="diagram-one-heading">Путь первого обращения</h2>
-          <p class="section-intro">Чёткий путь обращения помогает упорядочить запрос ещё до начала работы.</p>
-        </div>
-        <article class="case-diagram-card ai-diagram-card">
-          <div class="ai-system-map ai-system-map--primary" aria-label="Схема клиентского входа и обработки обращения">
-            <div class="ai-system-cluster">
-              <span class="ai-system-cluster-label">Вход</span>
-              <div class="case-diagram-node ai-system-node">
-                <strong>Первый контакт</strong>
-              </div>
-              <div class="case-diagram-node ai-system-node">
-                <strong>Услуга понятна</strong>
-              </div>
-            </div>
-            <div class="ai-system-connector" aria-hidden="true"></div>
-            <div class="ai-system-cluster">
-              <span class="ai-system-cluster-label">Приём</span>
-              <div class="case-diagram-node ai-system-node">
-                <strong>Путь выбран</strong>
-              </div>
-              <div class="case-diagram-node ai-system-node">
-                <strong>Данные собраны</strong>
-              </div>
-            </div>
-            <div class="ai-system-connector" aria-hidden="true"></div>
-            <div class="ai-system-cluster">
-              <span class="ai-system-cluster-label">Маршрут</span>
-              <div class="case-diagram-node ai-system-node">
-                <strong>Запрос направлен</strong>
-              </div>
-              <div class="case-diagram-node ai-system-node">
-                <strong>Следующий шаг определён</strong>
-              </div>
-            </div>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="section section--feature-list" aria-labelledby="includes-heading">
-      <div class="container">
-        <div class="section-heading">
-          <span class="eyebrow">Что входит</span>
-          <h2 id="includes-heading">Что обычно входит в такую систему</h2>
-        </div>
-        <ul class="feature-grid">
-          <li class="feature-item">Разбор текущего процесса и мест, где обращения теряются или обрабатываются слишком вручную</li>
-          <li class="feature-item">Проектирование сценария приёма, маршрутизации и следующего шага</li>
-          <li class="feature-item">Инструменты и связки под конкретную рабочую задачу</li>
-          <li class="feature-item">Проверка человеком там, где важны точность, тон и решение по ситуации</li>
-          <li class="feature-item">Внедрение и настройка, чтобы система работала в реальной практике</li>
-        </ul>
-      </div>
-    </section>
-
-    <section class="section section--feature-list section--ai-tools" aria-labelledby="tools-heading">
-      <div class="container">
-        <div class="section-heading">
-          <span class="eyebrow">Подключается через практичные инструменты и интеграции</span>
-          <h2 id="tools-heading">Сдержанный операционный слой за рабочим процессом</h2>
-          <p class="section-intro">Эти инструменты поддерживают более ясные процессы, обработку коммуникации и контролируемое исполнение.</p>
-        </div>
-        <div class="tool-chip-row ai-wordmark-band" aria-label="Инструменты и интеграции">
-          <span class="tool-chip ai-wordmark ai-wordmark--openai">OpenAI</span>
-          <span class="tool-chip ai-wordmark ai-wordmark--make">Make</span>
-          <span class="tool-chip ai-wordmark ai-wordmark--n8n">n8n</span>
-          <span class="tool-chip ai-wordmark ai-wordmark--gmail">Gmail</span>
-          <span class="tool-chip ai-wordmark ai-wordmark--twilio">Twilio</span>
-        </div>
-        <div class="ai-wordmark-subline" aria-label="Дополнительные инструменты">
-          <span class="ai-wordmark-secondary">Zapier</span>
-          <span class="ai-wordmark-secondary">Claude</span>
-        </div>
-      </div>
-    </section>
-
-        <section class="section section--proof-compact" aria-labelledby="proof-bridge-heading">
-      <div class="container">
-        <div class="proof-bridge-grid ai-proof-bridge-grid">
-          <article class="proof-bridge-card ai-proof-insert-card">
-            <figure class="ai-proof-insert-media">
-              <img src="/assets/images/case-fs/fs-home-ru.webp" alt="Financial Stream website preview"/>
-            </figure>
-            <div class="ai-proof-insert-copy">
-              <span class="proof-kicker">Практика</span>
-              <h2 id="proof-bridge-heading">Financial Stream</h2>
-              <p>Недавний клиентский проект объединил более ясную подачу услуг с более структурированным путём к обращению.</p>
-              <ul class="ai-proof-points" aria-label="Подтверждение на примере Financial Stream">
-                <li>Двуязычная структура сайта</li>
-                <li>Более понятный путь к обращению</li>
-                <li>Практичные сценарии поддержки</li>
-              </ul>
-              <p class="ai-proof-support">Показывает, как более ясная подача услуг и путь к обращению работают в реальном клиентском проекте.</p>
-              <a href="/ru/case-studies/financial-stream/" class="proof-bridge-link">Посмотреть кейс</a>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section--strong-points" aria-labelledby="diagram-two-heading">
-      <div class="container">
-        <div class="section-heading">
-          <span class="eyebrow">Схема 2</span>
-          <h2 id="diagram-two-heading">Обработка входящих писем</h2>
-          <p class="section-intro">Подготовка черновика полезна только тогда, когда проверка и контроль остаются за человеком.</p>
-        </div>
-        <article class="case-diagram-card ai-diagram-card">
-          <div class="ai-control-flow" aria-label="Схема обработки входящего письма и проверки ответа">
-            <div class="case-diagram-node ai-control-node">
-              <strong>Письмо получено</strong>
-            </div>
-            <div class="ai-control-connector" aria-hidden="true"></div>
-            <div class="case-diagram-node ai-control-node">
-              <strong>Контекст понят</strong>
-            </div>
-            <div class="ai-control-connector" aria-hidden="true"></div>
-            <div class="case-diagram-node ai-control-node ai-control-node--draft">
-              <strong>Черновик готов</strong>
-            </div>
-            <div class="ai-control-connector ai-control-connector--accent" aria-hidden="true"></div>
-            <div class="case-diagram-node ai-control-node ai-control-node--review">
-              <strong>Проверка человеком</strong>
-            </div>
-            <div class="ai-control-connector" aria-hidden="true"></div>
-            <div class="case-diagram-node ai-control-node">
-              <strong>Ответ готов</strong>
-            </div>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="section section--who-for" aria-labelledby="who-heading">
-      <div class="container">
-        <div class="who-for-inner">
-          <div>
-            <span class="eyebrow">Для кого</span>
-            <h2 id="who-heading">Кому это особенно подходит</h2>
-          </div>
-          <p class="who-for-text">Такой подход особенно полезен бизнесу, где много повторяющихся запросов, разрозненной коммуникации и ручной координации. Он помогает там, где входящий поток уже есть, но обрабатывается слишком хаотично или отнимает у команды лишнее время.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="section section--cta-dark" aria-labelledby="cta-heading">
-      <div class="container">
-        <div class="cta-dark-inner">
-          <p class="cta-dark-summary">Такие системы строятся вокруг реальных рабочих процессов и помогают с приёмом обращений, коммуникацией и сопровождением без AI ради эффекта.</p>
-          <h2 id="cta-heading">Обсудить ваш процесс</h2>
-          <p class="cta-dark-text">Мы создаём практичные операционные системы, которые помогают с приёмом обращений, коммуникацией и повторяющимися рабочими задачами без лишней сложности.</p>
-          <div class="cta-dark-actions">
-            <a href="/ru/contact/" class="btn btn--primary-light btn--lg">Обсудить ваш процесс</a>
-          </div>
-          <a href="/ru/case-studies/financial-stream/" class="cta-dark-link">Посмотреть кейс</a>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <footer class="site-footer" role="contentinfo">
-    <div class="container">
-      <div class="footer-grid">
-
-        <div class="footer-brand">
-          <a href="/ru/" class="footer-logo">
-            <img src="/assets/brand/logo-proai-expert-dark-header-preview.png" alt="ProAI Expert"/>
-          </a>
-          <p class="footer-tagline">AI-системы, премиальные сайты и цифровая структура<br/>для растущего бизнеса.</p>
-          <p class="footer-note">Помогаем бизнесу выглядеть сильнее, работать яснее и расти с меньшим трением.</p>
-          <div class="footer-brand-actions">
-            <a href="mailto:hello@proai-expert.com" class="footer-email">hello@proai-expert.com</a>
-          </div>
-        </div>
-
-        <div class="footer-nav-group">
-          <p class="footer-nav-label">Услуги</p>
-          <a href="/ru/ai-systems/">AI-системы</a>
-          <a href="/ru/websites-branding/">Сайты и брендинг</a>
-          <a href="/ru/case-studies/">Кейсы</a>
-        </div>
-
-        <div class="footer-nav-group">
-          <p class="footer-nav-label">Навигация</p>
-          <a href="/ru/insights/">Инсайты</a>
-          <a href="/ru/about/">О нас</a>
-          <a href="/ru/contact/">Контакты</a>
-        </div>
-
-      </div>
-      <div class="footer-bottom">
-        <span class="footer-copyright">&copy; 2026 ProAI Expert. Все права защищены.</span>
-        <span class="footer-status">AI-системы · Сайты · Цифровая структура</span>
-        <nav class="footer-legal" aria-label="Правовые документы">
-          <a href="/ru/privacy/">Политика конфиденциальности</a>
-          <a href="/ru/terms/">Условия</a>
+        <nav class="site-nav">
+            <a href="../index.html#hero">Главная</a>
+            <a href="index.html" class="is-active">AI-системы</a>
+            <a href="../websites-branding/index.html">Сайты и брендинг</a>
+            <a href="../about/index.html">О нас</a>
+            <a href="../insights/index.html">Инсайты</a>
+            <a href="../contact/index.html">Контакты</a>
         </nav>
+
+        <div class="header-actions">
+            <a href="../../ai-systems/index.html" class="lang-link">EN</a>
+            <a href="mailto:hello@proai-expert.com" class="start-btn">Обсудить проект</a>
+            <button class="mobile-menu-toggle" type="button" aria-label="Открыть меню" aria-expanded="false">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </div>
+</header>
+
+<main>
+    <section id="hero">
+        <div class="hero-shell">
+            <div class="hero-copy reveal">
+                <span class="eyebrow">AI-системы</span>
+                <h1>
+                    <span class="hero-title-line"><span>AI-системы для</span></span>
+                    <span class="hero-title-line"><span><em>современного</em></span></span>
+                    <span class="hero-title-line"><span>бизнеса</span></span>
+                </h1>
+                <p>Мы проектируем и внедряем AI-решения, которые снижают ручную нагрузку, упрощают внутренние процессы и превращают разрозненные действия в понятную рабочую систему.</p>
+                <div class="hero-actions">
+                    <a href="mailto:hello@proai-expert.com" class="start-btn">Обсудить проект</a>
+                    <a href="#capabilities" class="secondary-btn">Посмотреть, как это работает</a>
+                </div>
+            </div>
+
+            <div class="hero-visual reveal">
+                <div class="hero-embed" id="aiHeroMount" aria-label="AI Systems orchestration hero"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="entropy" class="section-block">
+        <div class="section-shell">
+            <div class="section-head reveal">
+                <span class="eyebrow">Позиционирование</span>
+                <h2>AI полезен не тогда, когда он «везде», а тогда, когда он решает конкретную бизнес-задачу.</h2>
+                <p>Большинству сервисных компаний не нужен абстрактный AI «для всего». Им нужны более понятная логика входящих обращений, более быстрые внутренние маршруты, лучшая видимость процессов и меньше ручной рутины.</p>
+            </div>
+
+            <div class="entropy-grid">
+                <div class="entropy-map reveal">
+                    <div class="entropy-card e1"><b>Входящие обращения</b><span>Первый сильный эффект появляется там, где бизнес теряет скорость ещё до нормального старта диалога.</span></div>
+                    <div class="entropy-card e2"><b>Внутренний роутинг</b><span>Повторяющееся трение растёт там, где команде каждый раз приходится вручную решать, кто и что берёт в работу.</span></div>
+                    <div class="entropy-card e3"><b>Следующий шаг</b><span>Процесс слабеет, когда движение вперёд зависит от памяти, ручной дисциплины и случайного контроля.</span></div>
+                    <div class="entropy-card e4"><b>Сводки и видимость</b><span>Полезный контекст теряется между письмами, формами, заметками и сообщениями, вместо того чтобы работать на бизнес.</span></div>
+                    <div class="entropy-line el1"></div>
+                    <div class="entropy-line el2"></div>
+                    <div class="entropy-line el3"></div>
+                    <div class="capture-beam"></div>
+                </div>
+
+                <div class="entropy-list reveal">
+                    <div class="entropy-item">
+                        <strong>AI-система — не эффектная надстройка</strong>
+                        <p>Это рабочий механизм внутри бизнеса, который собирает разрозненные действия в более ясную и устойчивую логику работы.</p>
+                    </div>
+                    <div class="entropy-item">
+                        <strong>Хорошая система поддерживает следующий шаг</strong>
+                        <p>Она помогает принимать и сортировать входящие обращения, направлять задачи по правильному маршруту, сокращать объём ручной работы и делать процесс более прозрачным.</p>
+                    </div>
+                    <div class="entropy-item">
+                        <strong>Первый реальный эффект появляется в повторяющихся операционных зонах</strong>
+                        <p>Обычно это входящие обращения, внутренний роутинг, краткие сводки, повторяющиеся административные действия и контроль того, что должно происходить дальше.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="capabilities" class="section-block">
+        <div class="section-shell">
+            <div class="section-head reveal">
+                <span class="eyebrow">Матрица сценариев</span>
+                <h2>Практичные AI-сценарии, собранные вокруг реальных рабочих узких мест.</h2>
+                <p>Мы смотрим на AI не как на модный слой, а как на способ убрать повторяющееся трение из уже существующего процесса и собрать более понятную внутреннюю систему.</p>
+            </div>
+
+            <div class="matrix-shell reveal">
+                <div class="matrix-head">
+                    <div>Сценарий</div>
+                    <div>Базовая логика</div>
+                    <div>Практический эффект</div>
+                    <div>Форма внедрения</div>
+                </div>
+                <div class="matrix-row">
+                    <div class="matrix-title"><strong>Входящие обращения и первичная обработка</strong><p>Собрать обращения в более понятный поток, выделить ключевые детали, определить тип запроса и срочность.</p></div>
+                    <div class="matrix-cell"><b>Базовая логика</b><span>Единый intake-слой, выделение деталей, определение типа обращения, первичная квалификация.</span></div>
+                    <div class="matrix-cell"><b>Практический эффект</b><span>Быстрее и аккуратнее первый слой процесса, меньше потерь на старте.</span></div>
+                    <div class="matrix-cell"><b>Форма внедрения</b><span>Потоки обращений, правила обработки, внутренняя база для следующего шага.</span></div>
+                </div>
+                <div class="matrix-row">
+                    <div class="matrix-title"><strong>Роутинг и внутреннее движение задач</strong><p>Поддержать логику распределения, передачи между этапами, приоритизацию и более стабильное движение по процессу.</p></div>
+                    <div class="matrix-cell"><b>Базовая логика</b><span>Правила распределения, приоритеты, внутренние передачи, условия маршрутизации.</span></div>
+                    <div class="matrix-cell"><b>Практический эффект</b><span>Меньше задержек, меньше потерянных шагов и меньше путаницы.</span></div>
+                    <div class="matrix-cell"><b>Форма внедрения</b><span>Внутренние маршруты задач, очереди, статусы и условия перехода между этапами.</span></div>
+                </div>
+                <div class="matrix-row">
+                    <div class="matrix-title"><strong>Краткие сводки и видимость процесса</strong><p>Превратить письма, формы, заметки, сообщения и звонки в более удобный внутренний слой с понятным контекстом.</p></div>
+                    <div class="matrix-cell"><b>Базовая логика</b><span>Сводки, статусные обзоры, восстановление контекста, картина следующего шага.</span></div>
+                    <div class="matrix-cell"><b>Практический эффект</b><span>Команда тратит меньше времени на восстановление истории и работает спокойнее.</span></div>
+                    <div class="matrix-cell"><b>Форма внедрения</b><span>Краткие сводки, обзор статусов, внутренняя видимость для владельца, менеджера и команды.</span></div>
+                </div>
+                <div class="matrix-row">
+                    <div class="matrix-title"><strong>Следующий шаг и устойчивость процесса</strong><p>Сделать движение после обращения или диалога менее зависимым от памяти, ручной дисциплины и случайного контроля.</p></div>
+                    <div class="matrix-cell"><b>Базовая логика</b><span>Напоминания, отслеживание зависших запросов, подсказка действия, логика сроков и очередности.</span></div>
+                    <div class="matrix-cell"><b>Практический эффект</b><span>Меньше потерянных возможностей и более стабильный следующий шаг.</span></div>
+                    <div class="matrix-cell"><b>Форма внедрения</b><span>Слои follow-up, внутренние напоминания, контроль зависших диалогов.</span></div>
+                </div>
+                <div class="matrix-row">
+                    <div class="matrix-title"><strong>Повторяющиеся административные действия</strong><p>Снять фоновую ручную нагрузку там, где постоянно повторяются подтверждения, уведомления, обновления статусов и перенос данных.</p></div>
+                    <div class="matrix-cell"><b>Базовая логика</b><span>Триггеры после формы, подтверждения обращений, обновления статусов, типовые черновики ответов.</span></div>
+                    <div class="matrix-cell"><b>Практический эффект</b><span>Меньше ручной рутины и меньше усталости от мелких повторяющихся действий.</span></div>
+                    <div class="matrix-cell"><b>Форма внедрения</b><span>Автоматизированные уведомления, статусные обновления, связки между системами и рутинные пост-обращения.</span></div>
+                </div>
+                <div class="matrix-foot">
+                    <span>Практичные AI-системы полезны там, где нужно уменьшить повторяющееся трение без лишней сложности и без попытки автоматизировать весь бизнес сразу.</span>
+                    <span>Первый сильный результат обычно приходит не из «вау-магии», а из более чистого движения по процессу.</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="protocol" class="section-block">
+        <div class="section-shell">
+            <div class="section-head reveal">
+                <span class="eyebrow">Как мы работаем</span>
+                <h2>Мы не начинаем с фразы «давайте добавим AI».</h2>
+                <p>Мы начинаем с вопроса: где в бизнесе уже есть повторяющееся трение, которое можно уменьшить без лишней сложности?</p>
+            </div>
+
+            <div class="protocol-shell">
+                <div class="protocol-summary reveal">
+                    <p>Обычно работа выглядит так: разбираем существующий процесс, находим реальные узкие места, определяем, где автоматизация или AI действительно помогут, проектируем практичную систему и доводим её до рабочего состояния.</p>
+                    <div class="protocol-note">Наша задача — не сделать «что-то умное». Наша задача — собрать систему, которая реально облегчает работу, поддерживает рост и остаётся коммерчески полезной в реальном использовании.</div>
+                </div>
+                <div class="protocol-steps">
+                    <div class="protocol-step reveal"><b>Шаг 01</b><h3>Разбор</h3><p>Разбираем существующий процесс и смотрим, где именно бизнес теряет время, качество, скорость и управляемость.</p></div>
+                    <div class="protocol-step reveal"><b>Шаг 02</b><h3>Узкие места</h3><p>Находим реальные точки трения: где теряется контекст, где процесс буксует и где ручная компенсация уже стала нормой.</p></div>
+                    <div class="protocol-step reveal"><b>Шаг 03</b><h3>Точки AI</h3><p>Определяем, где автоматизация и AI действительно помогут, а где их пока рано добавлять.</p></div>
+                    <div class="protocol-step reveal"><b>Шаг 04</b><h3>Система</h3><p>Проектируем практичную систему под конкретный бизнес: маршруты, статусы, границы, следующий шаг и внутреннюю логику.</p></div>
+                    <div class="protocol-step reveal"><b>Шаг 05</b><h3>Внедрение</h3><p>Внедряем, тестируем и доводим систему до рабочего состояния, чтобы она реально снимала нагрузку, а не создавала новую.</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="proof" class="section-block">
+        <div class="section-shell">
+            <div class="section-head reveal">
+                <span class="eyebrow">Практическая польза</span>
+                <h2>Практический подход вместо громких обещаний.</h2>
+                <p>Мы не продаём AI ради AI. Нас интересуют реальная польза, рабочая логика, понятная архитектура, аккуратное внедрение и коммерчески полезный результат.</p>
+            </div>
+
+            <div class="proof-grid">
+                <div class="proof-panel reveal">
+                    <h3>Кому это подходит</h3>
+                    <p>Такой подход особенно полезен для сервисных бизнесов, где важны скорость, ясность процесса и стабильность следующего шага.</p>
+                    <div class="delta-stack">
+                        <div class="delta-item"><div class="delta-side"><strong>Скорость первичной обработки</strong><span>Быстрее понять, что за запрос пришёл и как его правильно взять в работу.</span></div><div class="delta-arrow">&rarr;</div><div class="delta-side"><strong>Практический эффект</strong><span>Меньше потерь на старте и чище первое движение по процессу.</span></div></div>
+                        <div class="delta-item"><div class="delta-side"><strong>Чистый внутренний процесс</strong><span>Меньше ручных передач, меньше путаницы и меньше скрытого трения.</span></div><div class="delta-arrow">&rarr;</div><div class="delta-side"><strong>Практический эффект</strong><span>Команда тратит меньше энергии на восстановление контекста и больше — на реальную работу.</span></div></div>
+                        <div class="delta-item"><div class="delta-side"><strong>Стабильный следующий шаг</strong><span>Меньше зависших диалогов, забытых обращений и случайных провалов в follow-up.</span></div><div class="delta-arrow">&rarr;</div><div class="delta-side"><strong>Практический эффект</strong><span>Бизнес теряет меньше хороших возможностей из-за операционного смещения.</span></div></div>
+                    </div>
+                </div>
+                <div class="proof-flow reveal">
+                    <h3>Что для нас важно</h3>
+                    <p>Хорошая AI-система не обязана выглядеть эффектно. Она должна помогать бизнесу двигаться чище, быстрее и спокойнее.</p>
+                    <div class="flow-card">
+                        <div class="flow-line"><i></i><span>Реальная польза вместо абстрактной инновационности.</span></div>
+                        <div class="flow-line"><i></i><span>Рабочая логика вместо «AI ради AI».</span></div>
+                        <div class="flow-line"><i></i><span>Понятная архитектура вместо хаотичного набора инструментов.</span></div>
+                        <div class="flow-line"><i></i><span>Аккуратное внедрение вместо шумной технической демонстрации.</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="governance" class="section-block">
+        <div class="section-shell">
+            <div class="section-head reveal">
+                <span class="eyebrow">Границы автоматизации</span>
+                <h2>Что не стоит автоматизировать в первую очередь.</h2>
+                <p>Если основная логика процесса ещё не определена, автоматизация не создаёт порядок. Она только делает хаос технически сложнее.</p>
+            </div>
+
+            <div class="governance-shell">
+                <div class="governance-card reveal"><b>Неясный процесс</b><h3>Сначала должна появиться логика.</h3><p>Слабый первый шаг — автоматизировать процесс, который ещё сам по себе неясен и не даёт команде устойчивого маршрута.</p></div>
+                <div class="governance-card reveal"><b>Всё сразу</b><h3>Не нужно охватывать весь бизнес на старте.</h3><p>Попытка автоматизировать всё одновременно почти всегда перегружает команду и размывает реальную пользу.</p></div>
+                <div class="governance-card reveal"><b>AI поверх хаоса</b><h3>Сложность не заменяет порядок.</h3><p>Если поверх уже запутанного процесса добавить AI-слой без внутренней ясности, система становится не сильнее, а хрупче.</p></div>
+                <div class="governance-card reveal"><b>Ради впечатления</b><h3>Внешняя «инновационность» не равна пользе.</h3><p>Сложный внешний сценарий без внутренней ясности и автоматизация ради впечатления редко дают хороший первый результат.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="cta-final">
+        <div class="section-shell">
+            <div class="cta-shell reveal">
+                <span class="eyebrow">Финальный шаг</span>
+                <h2>Если вы хотите понять, где <span style="color: var(--ai-cyan);">AI действительно может помочь</span> вашему бизнесу.</h2>
+                <p>Мы можем помочь определить правильный первый шаг и спроектировать систему без лишней сложности.</p>
+                <div class="cta-actions">
+                    <a href="mailto:hello@proai-expert.com" class="start-btn">Обсудить задачу</a>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer id="contact">
+    <div class="footer-container">
+        <div class="f-backmark" aria-hidden="true">PROAI EXPERT</div>
+        <div class="f-top">
+            <div class="f-cta">
+                <h2>Готовы собрать<br><span>более ясную систему?</span></h2>
+                <p>Если вам нужны более сильные процессы, меньше ручного трения и понятный следующий шаг без лишней сложности, мы можем помочь определить правильное направление.</p>
+                <a href="mailto:hello@proai-expert.com" class="f-cta-btn">Обсудить проект</a>
+            </div>
+
+            <div class="f-contact-grid">
+                <div class="f-contact-block">
+                    <span class="f-label">Контакт</span>
+                    <a href="mailto:hello@proai-expert.com" class="f-link">hello@proai-expert.com</a>
+                    <a href="https://t.me/proai_expert" class="f-link" style="font-size:16px; opacity:0.6; margin-top:10px;">@proai_expert</a>
+                </div>
+
+                <div class="f-contact-block">
+                    <span class="f-label">Фокус</span>
+                    <a href="index.html" class="f-link subtle-link">AI-системы</a>
+                    <a href="../websites-branding/index.html" class="f-link subtle-link" style="margin-top:10px;">Сайты и брендинг</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="f-divider" aria-hidden="true"></div>
+
+        <div class="f-bottom">
+            <div class="logo-block" style="opacity:0.3; transform:scale(0.8); transform-origin:left;">
+                <div class="logo-text">PROAI <span>EXPERT</span></div>
+            </div>
+
+            <div class="f-socials">
+                <a href="https://www.linkedin.com/in/ihorhorb" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                <a href="https://t.me/proai_expert" target="_blank" rel="noopener noreferrer">Telegram</a>
+            </div>
+
+            <div class="f-copy">&copy; 2026 ProAI Expert. AI-системы &bull; Автоматизация бизнеса &bull; Сайты и брендинг.</div>
+        </div>
+    </div>
+</footer>
+
+
+<textarea id="aiHeroSrcdoc" hidden>
+<!DOCTYPE html>
+
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProAI Expert | AI-системы Hero</title>
+  <style>
+    :root {
+      --base-black: #050506;
+      --support-black: #0b0f14;
+      --support-deep: #090d11;
+      --steel-faint: rgba(210, 225, 240, 0.04);
+      --steel-dim: rgba(210, 225, 240, 0.10);
+      --steel-mid: rgba(210, 225, 240, 0.18);
+      --steel-text: rgba(220, 232, 244, 0.56);
+      --steel-bright: rgba(224, 236, 246, 0.88);
+      --cyan: #5de2ff;
+      --cyan-glow: rgba(93, 226, 255, 0.28);
+      --teal: #27c6b8;
+      --teal-glow: rgba(39, 198, 184, 0.24);
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --scene-rx: 0deg;
+      --scene-ry: 0deg;
+      --scene-x: 0px;
+      --scene-y: 0px;
+    }
+
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 78% 42%, rgba(93, 226, 255, 0.06), transparent 18%),
+    radial-gradient(circle at 70% 60%, rgba(39, 198, 184, 0.04), transparent 22%),
+    linear-gradient(180deg, #070809 0%, #050506 100%);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--steel-bright);
+}
+
+body { display: flex; align-items: center; justify-content: center; }
+
+.hero-section {
+  width: 100vw;
+  height: 100vh;
+  max-width: 1600px;
+  display: flex;
+  position: relative;
+  isolation: isolate;
+}
+
+.hero-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 72% 50%, rgba(255,255,255,0.02), transparent 18%),
+    linear-gradient(90deg, rgba(5, 5, 6, 0) 0%, rgba(5, 5, 6, 0.08) 52%, rgba(5, 5, 6, 0) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.left-zone { flex: 0 0 44%; position: relative; z-index: 2; }
+
+.right-zone {
+  flex: 0 0 56%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1800px;
+  perspective-origin: 50% 46%;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.right-zone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 56% 50%, rgba(93, 226, 255, 0.08), transparent 22%),
+    radial-gradient(circle at 54% 58%, rgba(39, 198, 184, 0.05), transparent 28%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, black 10%, black 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, black 10%, black 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.env-grid {
+  position: absolute;
+  width: 1040px;
+  height: 1040px;
+  top: 50%;
+  left: 53%;
+  transform: translate(-50%, -50%) rotateX(74deg) translateZ(-220px);
+  background-image:
+    linear-gradient(var(--steel-faint) 1px, transparent 1px),
+    linear-gradient(90deg, var(--steel-faint) 1px, transparent 1px);
+  background-size: 46px 46px;
+  opacity: 0.34;
+  -webkit-mask-image: radial-gradient(circle at center, black 0%, rgba(0,0,0,0.85) 42%, transparent 74%);
+  mask-image: radial-gradient(circle at center, black 0%, rgba(0,0,0,0.85) 42%, transparent 74%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.env-panel {
+  position: absolute;
+  width: min(880px, 92%);
+  aspect-ratio: 1 / 1;
+  top: 50%;
+  left: 53%;
+  transform: translate(-50%, -50%) rotateX(8deg) rotateY(-7deg) translateZ(-165px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.92;
+}
+
+.env-panel::before,
+.env-panel::after {
+  content: "";
+  position: absolute;
+  inset: 12%;
+  border: 1px solid rgba(210, 225, 240, 0.07);
+  clip-path: polygon(22px 0, 100% 0, 100% calc(100% - 22px), calc(100% - 22px) 100%, 0 100%, 0 22px);
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent 24%, rgba(0,0,0,0.16) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.01), inset 0 -50px 80px rgba(0,0,0,0.22);
+}
+
+.env-panel::after {
+  inset: 21%;
+  border-color: rgba(93, 226, 255, 0.07);
+  box-shadow: 0 0 34px rgba(93, 226, 255, 0.04), inset 0 0 20px rgba(93, 226, 255, 0.015);
+}
+
+.orchestration-system {
+  position: relative;
+  width: min(900px, 100%);
+  aspect-ratio: 1 / 1;
+  transform-style: preserve-3d;
+  transform:
+    translate3d(calc(var(--scene-x) * 0.34), calc(var(--scene-y) * 0.34), 0)
+    rotateX(calc(15deg + var(--scene-rx)))
+    rotateY(calc(-11deg + var(--scene-ry)))
+    rotateZ(1.4deg)
+    scale(0.93);
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+  z-index: 3;
+}
+
+.scene-floor {
+  position: absolute;
+  width: 78%;
+  height: 54%;
+  left: 15%;
+  top: 31%;
+  transform: rotateX(82deg) translateZ(-108px);
+  border-radius: 28px;
+  background:
+    linear-gradient(var(--steel-faint) 1px, transparent 1px),
+    linear-gradient(90deg, var(--steel-faint) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(93, 226, 255, 0.04), transparent 54%);
+  background-size: 36px 36px, 36px 36px, auto;
+  opacity: 0.38;
+  -webkit-mask-image: radial-gradient(circle at center, black 0%, rgba(0,0,0,0.9) 48%, transparent 84%);
+  mask-image: radial-gradient(circle at center, black 0%, rgba(0,0,0,0.9) 48%, transparent 84%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.system-carrier {
+  position: absolute;
+  left: 16%;
+  top: 17%;
+  width: 68%;
+  height: 67%;
+  transform-style: preserve-3d;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.carrier-rear,
+.carrier-mid,
+.carrier-front {
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(24px 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%, 0 24px);
+  transform-style: preserve-3d;
+}
+
+.carrier-rear {
+  transform: translateZ(-82px);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0) 20%, rgba(0,0,0,0.18) 100%),
+    rgba(7, 10, 14, 0.9);
+  border: 1px solid rgba(210, 225, 240, 0.07);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.012), inset 0 0 50px rgba(0,0,0,0.46), 0 40px 90px rgba(0,0,0,0.34);
+}
+
+.carrier-mid {
+  inset: 4.5%;
+  transform: translateZ(-42px);
+  background:
+    linear-gradient(var(--steel-faint) 1px, transparent 1px),
+    linear-gradient(90deg, var(--steel-faint) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0) 22%, rgba(0,0,0,0.14) 100%),
+    rgba(9, 13, 18, 0.9);
+  background-size: 24px 24px, 24px 24px, auto, auto;
+  border: 1px solid rgba(210, 225, 240, 0.08);
+  box-shadow: inset 0 0 36px rgba(0,0,0,0.28), inset 0 0 0 1px rgba(255,255,255,0.01);
+  opacity: 0.92;
+}
+
+.carrier-front {
+  inset: 10%;
+  transform: translateZ(-6px);
+  background:
+    radial-gradient(circle at center, rgba(93, 226, 255, 0.04), transparent 36%),
+    linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0) 18%, rgba(0,0,0,0.12) 100%),
+    rgba(10, 14, 19, 0.52);
+  border: 1px solid rgba(210, 225, 240, 0.07);
+  box-shadow: inset 0 0 24px rgba(0,0,0,0.20), inset 0 0 0 1px rgba(255,255,255,0.01);
+}
+
+.carrier-glow {
+  position: absolute;
+  left: 18%;
+  top: 18%;
+  width: 64%;
+  height: 64%;
+  transform: translateZ(-34px);
+  background: radial-gradient(circle at center, rgba(93, 226, 255, 0.11), transparent 60%);
+  filter: blur(18px);
+  opacity: 0.38;
+}
+
+.carrier-shadow {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  bottom: 8%;
+  height: 20%;
+  transform: rotateX(86deg) translateZ(-90px);
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.48), transparent 72%);
+  filter: blur(18px);
+  opacity: 0.82;
+}
+
+.right-zone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 58% 54%, transparent 0%, transparent 56%, rgba(0,0,0,0.18) 82%, rgba(0,0,0,0.34) 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.orchestration-system::before {
+  content: "";
+  position: absolute;
+  left: 18%;
+  top: 18%;
+  width: 64%;
+  height: 64%;
+  clip-path: polygon(26px 0, 100% 0, 100% calc(100% - 26px), calc(100% - 26px) 100%, 0 100%, 0 26px);
+  border: 1px solid rgba(210, 225, 240, 0.05);
+  background:
+    radial-gradient(circle at 50% 46%, rgba(93,226,255,0.05), transparent 40%),
+    linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0) 24%, rgba(0,0,0,0.12) 100%);
+  transform: translateZ(-22px);
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.18);
+}
+
+.system-carrier::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  bottom: 4%;
+  width: 1px;
+  transform: translateX(-50%) translateZ(-12px);
+  background: linear-gradient(180deg, transparent 0%, rgba(210,225,240,0.12) 18%, rgba(93,226,255,0.18) 52%, rgba(210,225,240,0.10) 78%, transparent 100%);
+  opacity: 0.58;
+}
+
+.system-carrier::after {
+  content: "";
+  position: absolute;
+  left: 31%;
+  right: 31%;
+  bottom: 5%;
+  height: 11%;
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  transform: translateZ(-18px);
+  border: 1px solid rgba(210,225,240,0.07);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0) 24%, rgba(0,0,0,0.12) 100%),
+    rgba(10, 14, 19, 0.58);
+  box-shadow: inset 0 0 18px rgba(0,0,0,0.16);
+  opacity: 0.9;
+}
+
+.carrier-ribs {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: translateZ(-10px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.carrier-ribs span {
+  position: absolute;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(210,225,240,0.14), rgba(93,226,255,0.12), transparent);
+  opacity: 0.42;
+  filter: drop-shadow(0 0 6px rgba(93,226,255,0.05));
+  transform-origin: left center;
+}
+
+.carrier-ribs .rib-1 { width: 170px; left: 8%; top: 19%; transform: rotate(18deg); }
+.carrier-ribs .rib-2 { width: 170px; right: 8%; top: 19%; transform: rotate(-18deg); }
+.carrier-ribs .rib-3 { width: 164px; left: 8%; bottom: 21%; transform: rotate(-16deg); }
+.carrier-ribs .rib-4 { width: 164px; right: 8%; bottom: 21%; transform: rotate(16deg); }
+
+.sys-element {
+  opacity: 0;
+  animation: element-lock-in 1.4s var(--ease-out) forwards;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes element-lock-in {
+  0% {
+    opacity: 0;
+    transform: translateZ(calc(var(--z-depth, 0px) + 150px)) scale(0.96);
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateZ(var(--z-depth, 0px)) scale(1);
+    filter: blur(0);
+  }
+}
+
+.rail-network {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  --z-depth: 10px;
+  transform: translateZ(var(--z-depth));
+  z-index: 2;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.rail-shadow { fill: none; stroke: rgba(0, 0, 0, 0.4); stroke-width: 10; filter: blur(10px); }
+.rail-path { fill: none; stroke: rgba(210, 225, 240, 0.14); stroke-width: 1.1; }
+.rail-path-glow { fill: none; stroke-width: 2.2; opacity: 0.8; }
+.rail-cyan { stroke: var(--cyan); filter: drop-shadow(0 0 6px var(--cyan-glow)); }
+.rail-teal { stroke: var(--teal); filter: drop-shadow(0 0 6px var(--teal-glow)); }
+.dash-flow { stroke-dasharray: 6 14; animation: flow-lines 18s linear infinite; }
+.dash-flow-reverse { stroke-dasharray: 6 14; animation: flow-lines-reverse 18s linear infinite; }
+@keyframes flow-lines { to { stroke-dashoffset: -420; } }
+@keyframes flow-lines-reverse { to { stroke-dashoffset: 420; } }
+
+.rail-node { fill: rgba(220, 232, 244, 0.28); stroke: rgba(220, 232, 244, 0.18); stroke-width: 1; }
+.rail-node.active {
+  fill: var(--cyan);
+  stroke: rgba(255,255,255,0.48);
+  filter: drop-shadow(0 0 8px var(--cyan-glow));
+  animation: node-breathe 2.8s ease-in-out infinite;
+}
+.rail-node.active.teal {
+  fill: var(--teal);
+  filter: drop-shadow(0 0 8px var(--teal-glow));
+  animation-delay: 0.9s;
+}
+@keyframes node-breathe { 0%, 100% { opacity: 0.42; transform: scale(1); } 50% { opacity: 1; transform: scale(1.18); } }
+
+.chaos-field {
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  top: 13%;
+  left: -11%;
+  --z-depth: 28px;
+  transform: translateZ(var(--z-depth));
+  z-index: 3;
+  pointer-events: none;
+}
+
+.chaos-field::before {
+  content: "";
+  position: absolute;
+  inset: 18% 8% 18% 0;
+  background: radial-gradient(circle at 20% 50%, rgba(93, 226, 255, 0.08), transparent 52%);
+  filter: blur(12px);
+  opacity: 0.52;
+}
+
+.chaos-fragment {
+  position: absolute;
+  height: 2px;
+  background: rgba(210, 225, 240, 0.42);
+  opacity: 0;
+  box-shadow: 0 0 6px rgba(210, 225, 240, 0.18);
+  animation: fragment-funnel 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-origin: left center;
+}
+
+.f1 { width: 24px; top: 10%; left: 0%; animation-delay: 0s; }
+.f2 { width: 12px; top: 30%; left: 10%; animation-delay: 1.1s; background: rgba(39,198,184,0.72); }
+.f3 { width: 36px; top: 50%; left: -10%; animation-delay: 0.55s; }
+.f4 { width: 18px; top: 70%; left: 5%; animation-delay: 1.85s; background: rgba(93,226,255,0.84); }
+.f5 { width: 8px; top: 90%; left: -5%; animation-delay: 2.4s; }
+
+@keyframes fragment-funnel {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0; }
+  20% { opacity: 0.82; }
+  80% { transform: translate(138px, calc(42px - var(--top))) scale(0.52) rotate(6deg); opacity: 0.76; }
+  100% { transform: translate(168px, calc(52px - var(--top))) scale(0) rotate(10deg); opacity: 0; }
+}
+
+.sys-module {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  --z-depth: 42px;
+  transform-style: preserve-3d;
+  transform: translateZ(var(--z-depth));
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), border-color 260ms ease, box-shadow 260ms ease;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.01),
+    0 16px 28px rgba(0,0,0,0.22);
+}
+
+.sys-module::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: inherit;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0) 18%, rgba(0,0,0,0.15) 100%),
+    linear-gradient(135deg, rgba(93, 226, 255, 0.05), transparent 36%),
+    rgba(11, 15, 20, 0.72);
+  border: 1px solid rgba(210, 225, 240, 0.16);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: -18px 28px 36px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -16px 22px rgba(0,0,0,0.22);
+  pointer-events: none;
+}
+
+.sys-module::after {
+  content: "";
+  position: absolute;
+  inset: 8px 10px auto 10px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+  transform: translateZ(18px);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.sys-module .module-dock {
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: -12px;
+  height: 14px;
+  border-radius: 999px;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.36), transparent 72%);
+  transform: rotateX(84deg) translateZ(-14px);
+  opacity: 0.78;
+  pointer-events: none;
+}
+
+.sys-module:hover { transform: translateZ(calc(var(--z-depth) + 8px)) translateY(-2px); }
+
+.sys-module:hover::before {
+  border-color: rgba(93, 226, 255, 0.24);
+  box-shadow: -20px 32px 42px rgba(0,0,0,0.46), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -16px 22px rgba(0,0,0,0.22), 0 0 24px rgba(93, 226, 255, 0.08);
+}
+
+.mod-intake { top: 11%; left: 4%; width: 23%; height: 16%; animation-delay: 0.08s; }
+.mod-routing { top: 11%; left: 73%; width: 23%; height: 16%; animation-delay: 0.68s; }
+.mod-knowledge { top: 68%; left: 4%; width: 23%; height: 16%; animation-delay: 0.44s; }
+.mod-execution { top: 68%; left: 73%; width: 23%; height: 16%; animation-delay: 0.88s; }
+.mod-review { top: 85%; left: 38.5%; width: 23%; height: 13%; --z-depth: 34px; animation-delay: 1.08s; }
+
+.mod-header { position: relative; z-index: 2; padding: 16px 18px 0 18px; display: flex; flex-direction: column; gap: 4px; }
+.mod-kicker {
+  width: 36px; height: 2px; border-radius: 999px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.16), rgba(93,226,255,0.48));
+  box-shadow: 0 0 10px rgba(93, 226, 255, 0.12);
+  margin-bottom: 2px;
+}
+.mod-title { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--steel-bright); }
+.mod-sub { font-size: 9.5px; line-height: 1.38; color: rgba(220, 232, 244, 0.54); max-width: 92%; }
+
+.inner-logic {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  width: 100%;
+  padding: 10px 16px 16px 16px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.inner-logic::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 34px;
+  background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0.16));
+  pointer-events: none;
+}
+
+.logic-intake { display: flex; flex-direction: column; justify-content: center; gap: 7px; width: 100%; position: relative; }
+.logic-intake::before {
+  content: "";
+  position: absolute;
+  left: -12px; top: 50%; width: 22px; height: 22px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(93,226,255,0.25), transparent 68%);
+  filter: blur(4px);
+  opacity: 0.55;
+}
+.logic-intake .line { height: 1px; background: rgba(210, 225, 240, 0.16); width: 58%; transform-origin: left center; }
+.logic-intake .line-main {
+  height: 2px; width: 82%;
+  background: linear-gradient(90deg, var(--cyan), rgba(255,255,255,0.82));
+  box-shadow: 0 0 8px rgba(93, 226, 255, 0.26);
+}
+.logic-intake .line:nth-child(1) { animation: intake-snap 2.6s infinite alternate; }
+.logic-intake .line:nth-child(2) { animation: intake-snap 2.6s infinite alternate 0.45s; }
+@keyframes intake-snap { 0% { transform: scaleX(0.22) translateX(-18px); opacity: 0; } 45% { opacity: 0.7; } 100% { transform: scaleX(1) translateX(0); opacity: 1; } }
+
+.logic-routing { position: relative; width: 100%; height: 100%; display: flex; align-items: center; }
+.route-node {
+  width: 5px; height: 5px; background: var(--steel-bright);
+  border-radius: 50%; position: absolute; left: 0;
+  box-shadow: 0 0 6px rgba(255,255,255,0.18);
+}
+.route-path { position: absolute; left: 5px; height: 1px; transform-origin: left center; background: rgba(210, 225, 240, 0.18); }
+.route-path:nth-child(2) { width: 58px; transform: rotate(-24deg); background: linear-gradient(90deg, rgba(210,225,240,0.18), rgba(39,198,184,0.7)); animation: route-pulse 1.8s infinite; }
+.route-path:nth-child(3) { width: 82px; transform: rotate(0deg); background: linear-gradient(90deg, rgba(210,225,240,0.16), var(--cyan)); box-shadow: 0 0 10px rgba(93, 226, 255, 0.16); opacity: 0.95; }
+.route-path:nth-child(4) { width: 52px; transform: rotate(24deg); background: linear-gradient(90deg, rgba(210,225,240,0.18), rgba(39,198,184,0.72)); animation: route-pulse 1.8s infinite 0.72s; }
+@keyframes route-pulse { 0%, 100% { opacity: 0.22; } 50% { opacity: 0.84; } }
+
+.logic-knowledge { width: 100%; display: flex; gap: 5px; align-items: flex-end; }
+.know-block { position: relative; flex: 1; height: 24px; background: rgba(6, 10, 14, 0.88); border: 1px solid rgba(210,225,240,0.10); overflow: hidden; }
+.know-block::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent 24%); pointer-events: none; }
+.know-fill { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(210, 225, 240, 0.30); box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); }
+.know-block:nth-child(1) .know-fill { height: 38%; }
+.know-block:nth-child(2) .know-fill { height: 82%; background: linear-gradient(180deg, rgba(39,198,184,0.92), rgba(39,198,184,0.60)); box-shadow: 0 0 10px rgba(39, 198, 184, 0.18); }
+.know-block:nth-child(3) .know-fill { height: 58%; }
+.know-block:nth-child(4) .know-fill { height: 22%; animation: know-rise 3.2s infinite alternate; }
+@keyframes know-rise { 0% { height: 22%; background: rgba(210, 225, 240, 0.22); } 100% { height: 88%; background: linear-gradient(180deg, rgba(93,226,255,0.92), rgba(93,226,255,0.58)); box-shadow: 0 0 10px rgba(93, 226, 255, 0.16); } }
+
+.logic-execution { width: 100%; height: 28px; display: flex; align-items: flex-end; justify-content: space-between; gap: 5px; }
+.exec-bar { flex: 1; background: rgba(210, 225, 240, 0.14); animation: exec-wave 1.7s infinite ease-in-out alternate; transform-origin: bottom center; }
+.exec-bar:nth-child(1) { height: 44%; animation-delay: 0.12s; background: linear-gradient(180deg, rgba(93,226,255,0.85), rgba(93,226,255,0.55)); box-shadow: 0 0 10px rgba(93,226,255,0.14); }
+.exec-bar:nth-child(2) { height: 80%; animation-delay: 0.22s; }
+.exec-bar:nth-child(3) { height: 34%; animation-delay: 0.32s; background: linear-gradient(180deg, rgba(39,198,184,0.86), rgba(39,198,184,0.48)); }
+.exec-bar:nth-child(4) { height: 100%; animation-delay: 0.42s; }
+.exec-bar:nth-child(5) { height: 62%; animation-delay: 0.52s; background: linear-gradient(180deg, rgba(93,226,255,0.84), rgba(93,226,255,0.46)); }
+@keyframes exec-wave { 0% { transform: scaleY(0.56); opacity: 0.4; } 100% { transform: scaleY(1); opacity: 1; } }
+
+.logic-review { display: flex; align-items: center; gap: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: var(--steel-bright); letter-spacing: 1px; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px rgba(93, 226, 255, 0.28); animation: blink 2s infinite; }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.24; } }
+
+.core-chassis {
+  position: absolute;
+  top: 32%; left: 33%; width: 34%; height: 34%;
+  --z-depth: 78px;
+  transform-style: preserve-3d;
+  transform: translateZ(var(--z-depth));
+  z-index: 6;
+  animation-delay: 0.26s;
+}
+
+.core-shadow {
+  position: absolute;
+  inset: 12% 6% 0 6%;
+  background: radial-gradient(circle at center, rgba(0,0,0,0.50), transparent 72%);
+  filter: blur(18px);
+  transform: rotateX(84deg) translateZ(-88px);
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+.core-shell { position: absolute; inset: 0; transform-style: preserve-3d; }
+.core-layer { position: absolute; inset: 0; clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px); transform-style: preserve-3d; }
+
+.core-rear-frame {
+  transform: translateZ(-62px);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0) 18%, rgba(0,0,0,0.14) 100%),
+    rgba(7, 10, 14, 0.88);
+  border: 1px solid rgba(210, 225, 240, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.015), inset 0 0 56px rgba(0,0,0,0.52);
+}
+
+.core-back-plane {
+  inset: 6%;
+  transform: translateZ(-34px);
+  background:
+    linear-gradient(var(--steel-faint) 1px, transparent 1px),
+    linear-gradient(90deg, var(--steel-faint) 1px, transparent 1px),
+    radial-gradient(circle at center, rgba(93,226,255,0.04), transparent 34%),
+    rgba(8, 12, 17, 0.92);
+  background-size: 20px 20px, 20px 20px, auto, auto;
+  border: 1px solid rgba(210,225,240,0.10);
+  box-shadow: inset 0 0 36px rgba(0,0,0,0.48), inset 0 0 0 1px rgba(255,255,255,0.02);
+}
+
+.core-inner-chamber {
+  inset: 10%;
+  transform: translateZ(-2px);
+  border: 1px solid rgba(210,225,240,0.10);
+  background:
+    radial-gradient(circle at center, rgba(93,226,255,0.05), transparent 42%),
+    linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0) 24%, rgba(0,0,0,0.12) 100%),
+    rgba(9, 13, 18, 0.74);
+  box-shadow: inset 0 0 24px rgba(0,0,0,0.34), inset 0 0 0 1px rgba(255,255,255,0.015);
+}
+
+.core-inner-chamber::before,
+.core-inner-chamber::after {
+  content: "";
+  position: absolute;
+  border: 1px solid rgba(210,225,240,0.08);
+  clip-path: inherit;
+}
+.core-inner-chamber::before { inset: 12%; }
+.core-inner-chamber::after { inset: 24%; border-color: rgba(93,226,255,0.10); box-shadow: 0 0 18px rgba(93,226,255,0.05); }
+
+.core-lattice {
+  position: absolute;
+  inset: 18%;
+  transform: translateZ(14px);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 10px;
+  z-index: 2;
+}
+
+.core-node {
+  position: relative;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12)), rgba(210,225,240,0.04);
+  border: 1px solid rgba(210,225,240,0.10);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  overflow: hidden;
+}
+
+.core-node::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 34%;
+  background: linear-gradient(180deg, transparent, rgba(255,255,255,0.02));
+}
+
+.core-node:nth-child(2), .core-node:nth-child(7), .core-node:nth-child(10), .core-node:nth-child(15) { animation: process-flash 2.6s infinite; }
+.core-node:nth-child(7) { animation-delay: 0.4s; }
+.core-node:nth-child(10) { animation-delay: 0.72s; }
+.core-node:nth-child(15) { animation-delay: 0.18s; }
+
+@keyframes process-flash {
+  0%, 88% {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12)), rgba(210,225,240,0.04);
+    border-color: rgba(210,225,240,0.10);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+  94% {
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.02)), rgba(93,226,255,0.32);
+    border-color: rgba(93,226,255,0.56);
+    box-shadow: 0 0 16px rgba(93, 226, 255, 0.18), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  100% {
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.12)), rgba(210,225,240,0.04);
+    border-color: rgba(210,225,240,0.10);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+}
+
+.core-link-grid {
+  position: absolute;
+  inset: 18%;
+  transform: translateZ(10px);
+  opacity: 0.62;
+  z-index: 1;
+  pointer-events: none;
+}
+.core-link-grid .v, .core-link-grid .h { position: absolute; background: rgba(210,225,240,0.08); }
+.core-link-grid .v { top: 0; bottom: 0; width: 1px; }
+.core-link-grid .h { left: 0; right: 0; height: 1px; }
+.core-link-grid .v:nth-child(1) { left: 25%; }
+.core-link-grid .v:nth-child(2) { left: 50%; }
+.core-link-grid .v:nth-child(3) { left: 75%; }
+.core-link-grid .h:nth-child(4) { top: 25%; }
+.core-link-grid .h:nth-child(5) { top: 50%; }
+.core-link-grid .h:nth-child(6) { top: 75%; }
+
+.core-energy-ring {
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  border: 1px solid rgba(93,226,255,0.10);
+  transform: translateZ(24px) scale(0.72);
+  opacity: 0.55;
+  animation: ring-pulse 5.6s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(93,226,255,0.12));
+  pointer-events: none;
+}
+.core-energy-ring.r2 {
+  inset: 24%;
+  border-color: rgba(39,198,184,0.10);
+  transform: translateZ(22px) scale(0.92);
+  animation-delay: 1.4s;
+  opacity: 0.36;
+}
+@keyframes ring-pulse { 0%, 100% { transform: translateZ(24px) scale(0.72); opacity: 0.30; } 50% { transform: translateZ(30px) scale(1); opacity: 0.78; } }
+
+.core-chassis::before {
+  content: "";
+  position: absolute;
+  inset: -5%;
+  border-radius: 24px;
+  background: radial-gradient(circle at center, rgba(93,226,255,0.14), rgba(93,226,255,0.04) 28%, transparent 68%);
+  transform: translateZ(-8px);
+  filter: blur(14px);
+  opacity: 0.64;
+  pointer-events: none;
+}
+
+.core-front {
+  transform: translateZ(48px);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0) 18%, rgba(0,0,0,0.14) 100%),
+    rgba(11, 15, 20, 0.42);
+  border: 1px solid rgba(93, 226, 255, 0.22);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  box-shadow: -22px 42px 56px rgba(0,0,0,0.58), inset 0 1px 0 rgba(255,255,255,0.10), 0 0 24px rgba(93,226,255,0.05);
+  padding: 26px 24px 24px 24px;
+  animation: core-breathe 6.4s ease-in-out infinite alternate;
+  z-index: 4;
+}
+
+@keyframes core-breathe {
+  0% { transform: translateZ(48px); border-color: rgba(93, 226, 255, 0.18); }
+  100% { transform: translateZ(56px); border-color: rgba(93, 226, 255, 0.34); box-shadow: -24px 46px 62px rgba(0,0,0,0.62), inset 0 1px 0 rgba(255,255,255,0.10), 0 0 34px rgba(93,226,255,0.08); }
+}
+
+.core-front::before {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border: 1px solid rgba(210, 225, 240, 0.08);
+  clip-path: inherit;
+  pointer-events: none;
+}
+
+.core-front::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), rgba(93,226,255,0.40), rgba(255,255,255,0.18), transparent);
+  filter: drop-shadow(0 0 8px rgba(93,226,255,0.14));
+  pointer-events: none;
+}
+
+.core-title {
+  position: relative;
+  z-index: 2;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin-bottom: 7px;
+  text-shadow: 0 0 18px rgba(93,226,255,0.14);
+}
+.core-sub { position: relative; z-index: 2; font-size: 10px; line-height: 1.45; color: var(--steel-bright); max-width: 84%; }
+
+.core-meta-line {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 22px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(93,226,255,0.28), rgba(255,255,255,0.04));
+  opacity: 0.72;
+}
+
+.core-meta-line::after {
+  content: "";
+  position: absolute;
+  right: 24%; top: 50%; width: 10px; height: 10px; border-radius: 50%;
+  transform: translateY(-50%);
+  background: var(--cyan);
+  box-shadow: 0 0 12px rgba(93, 226, 255, 0.24);
+  animation: meta-node 2.8s ease-in-out infinite;
+}
+@keyframes meta-node { 0%, 100% { opacity: 0.42; transform: translateY(-50%) scale(0.9); } 50% { opacity: 1; transform: translateY(-50%) scale(1.15); } }
+
+.core-scanner {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 38%;
+  background: linear-gradient(180deg, rgba(93,226,255,0), rgba(93,226,255,0.08), rgba(93,226,255,0));
+  border-top: 1px solid rgba(93, 226, 255, 0.82);
+  transform: translateY(-120%);
+  opacity: 0;
+  animation: scan-core 3.3s linear infinite;
+  pointer-events: none;
+}
+@keyframes scan-core { 0% { transform: translateY(-120%); opacity: 0; } 8% { opacity: 0.9; } 88% { opacity: 0.9; } 100% { transform: translateY(260%); opacity: 0; } }
+
+.core-pulse-node {
+  position: absolute;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.95), rgba(93,226,255,0.82) 34%, rgba(93,226,255,0) 74%);
+  z-index: 5;
+  animation: pulse-hop 3.8s ease-in-out infinite;
+}
+.core-pulse-node.n1 { left: 29%; top: 38%; animation-delay: 0.2s; }
+.core-pulse-node.n2 { left: 56%; top: 52%; animation-delay: 1.2s; }
+.core-pulse-node.n3 { left: 66%; top: 28%; animation-delay: 2.1s; }
+@keyframes pulse-hop { 0%, 100% { opacity: 0.2; transform: translateZ(22px) scale(0.8); } 50% { opacity: 1; transform: translateZ(34px) scale(1.18); } }
+
+@media (max-width: 1100px) {
+  .hero-section { max-width: none; }
+  .left-zone { flex-basis: 40%; }
+  .right-zone { flex-basis: 60%; }
+  .orchestration-system { transform: rotateX(15deg) rotateY(-10deg) rotateZ(1.4deg) scale(0.86); }
+}
+
+@media (max-width: 820px) {
+  .left-zone { flex-basis: 36%; }
+  .right-zone { flex-basis: 64%; }
+  .orchestration-system { scale: 0.8; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition: none !important;
+  }
+  .orchestration-system { transform: rotateX(15deg) rotateY(-11deg) rotateZ(1.4deg) scale(0.93); }
+}
+
+
+  
+  .hero-section { width: 100%; height: 100%; max-width: none; }
+  .left-zone { display: none !important; }
+  .right-zone { flex: 1 1 auto !important; width: 100% !important; height: 100% !important; position: relative !important; z-index: 2 !important; pointer-events: auto !important; }
+  .right-zone::before,
+  .right-zone::after,
+  .env-grid,
+  .env-panel,
+  .scene-floor,
+  .system-carrier,
+  .rail-network,
+  .core-shadow { pointer-events: none !important; }
+</style>
+</head>
+<body>
+  <div class="hero-section">
+    <div class="left-zone"></div>
+
+
+<div class="right-zone" id="rightZone">
+  <div class="env-grid"></div>
+  <div class="env-panel"></div>
+
+  <div class="orchestration-system" id="orchestrationSystem">
+    <div class="scene-floor"></div>
+
+    <div class="system-carrier">
+      <div class="carrier-rear"></div>
+      <div class="carrier-mid"></div>
+      <div class="carrier-front"></div>
+      <div class="carrier-glow"></div>
+      <div class="carrier-shadow"></div>
+      <div class="carrier-ribs"><span class="rib-1"></span><span class="rib-2"></span><span class="rib-3"></span><span class="rib-4"></span></div>
+    </div>
+
+    <div class="chaos-field sys-element">
+      <div class="chaos-fragment f1" style="--top: 10%;"></div>
+      <div class="chaos-fragment f2" style="--top: 30%;"></div>
+      <div class="chaos-fragment f3" style="--top: 50%;"></div>
+      <div class="chaos-fragment f4" style="--top: 70%;"></div>
+      <div class="chaos-fragment f5" style="--top: 90%;"></div>
+    </div>
+
+    <svg class="rail-network sys-element" viewBox="0 0 860 860" aria-hidden="true">
+      <defs>
+        <filter id="glow-cyan" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+        <filter id="glow-teal" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="4" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+
+      <path d="M 230 160 H 280 V 430 H 330" class="rail-shadow" />
+      <path d="M 230 650 H 280 V 430 H 330" class="rail-shadow" />
+      <path d="M 530 430 H 580 V 160 H 630" class="rail-shadow" />
+      <path d="M 530 430 H 580 V 650 H 630" class="rail-shadow" />
+      <path d="M 430 530 V 730" class="rail-shadow" />
+
+      <path id="rail-in" d="M 230 160 H 280 V 430 H 330" class="rail-path" />
+      <path id="rail-know" d="M 230 650 H 280 V 430 H 330" class="rail-path" />
+      <path id="rail-route" d="M 530 430 H 580 V 160 H 630" class="rail-path" />
+      <path id="rail-exec" d="M 530 430 H 580 V 650 H 630" class="rail-path" />
+      <path id="rail-rev" d="M 430 530 V 730" class="rail-path" />
+
+      <path d="M 230 160 H 280 V 430 H 330" class="rail-path-glow rail-cyan dash-flow" />
+      <path d="M 230 650 H 280 V 430 H 330" class="rail-path-glow rail-teal dash-flow-reverse" />
+      <path d="M 530 430 H 580 V 160 H 630" class="rail-path-glow rail-cyan dash-flow" />
+      <path d="M 530 430 H 580 V 650 H 630" class="rail-path-glow rail-cyan dash-flow-reverse" />
+      <path d="M 430 530 V 730" class="rail-path-glow rail-teal dash-flow" />
+
+      <circle class="rail-node" cx="230" cy="160" r="4"></circle>
+      <circle class="rail-node active" cx="330" cy="430" r="5"></circle>
+      <circle class="rail-node" cx="230" cy="650" r="4"></circle>
+      <circle class="rail-node" cx="630" cy="160" r="4"></circle>
+      <circle class="rail-node" cx="630" cy="650" r="4"></circle>
+      <circle class="rail-node active teal" cx="430" cy="730" r="5"></circle>
+
+      <circle r="3.2" fill="#5DE2FF" filter="url(#glow-cyan)">
+        <animateMotion dur="3.2s" repeatCount="indefinite" calcMode="linear"><mpath href="#rail-in"></mpath></animateMotion>
+      </circle>
+      <circle r="3.2" fill="#27C6B8" filter="url(#glow-teal)">
+        <animateMotion dur="4.2s" begin="0.8s" repeatCount="indefinite" calcMode="linear"><mpath href="#rail-know"></mpath></animateMotion>
+      </circle>
+      <circle r="3.2" fill="#5DE2FF" filter="url(#glow-cyan)">
+        <animateMotion dur="2.6s" begin="0.45s" repeatCount="indefinite" calcMode="linear"><mpath href="#rail-route"></mpath></animateMotion>
+      </circle>
+      <circle r="3.2" fill="#5DE2FF" filter="url(#glow-cyan)">
+        <animateMotion dur="3.4s" begin="1.2s" repeatCount="indefinite" calcMode="linear"><mpath href="#rail-exec"></mpath></animateMotion>
+      </circle>
+      <circle r="3.2" fill="#27C6B8" filter="url(#glow-teal)">
+        <animateMotion dur="4.8s" begin="1.8s" repeatCount="indefinite" calcMode="linear"><mpath href="#rail-rev"></mpath></animateMotion>
+      </circle>
+    </svg>
+
+    <div class="sys-module sys-element mod-intake">
+      <div class="module-dock"></div>
+      <div class="mod-header">
+        <div class="mod-kicker"></div>
+        <div class="mod-title">Входящие обращения</div>
+        <div class="mod-sub">Собирает и квалифицирует входящий поток</div>
+      </div>
+      <div class="inner-logic logic-intake">
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line-main"></div>
       </div>
     </div>
-  </footer>
 
-  <script src="/assets/js/nav.js"></script>
-  <script src="/assets/js/ai-systems-hero-preview.js"></script>
+    <div class="sys-module sys-element mod-routing">
+      <div class="module-dock"></div>
+      <div class="mod-header">
+        <div class="mod-kicker"></div>
+        <div class="mod-title">Логика роутинга</div>
+        <div class="mod-sub">Распределяет запросы по структурным правилам</div>
+      </div>
+      <div class="inner-logic logic-routing">
+        <div class="route-node"></div>
+        <div class="route-path"></div>
+        <div class="route-path"></div>
+        <div class="route-path"></div>
+      </div>
+    </div>
+
+    <div class="sys-module sys-element mod-knowledge">
+      <div class="module-dock"></div>
+      <div class="mod-header">
+        <div class="mod-kicker"></div>
+        <div class="mod-title">Слой знаний</div>
+        <div class="mod-sub">Связывает контекст, память и опорные данные</div>
+      </div>
+      <div class="inner-logic logic-knowledge">
+        <div class="know-block"><div class="know-fill"></div></div>
+        <div class="know-block"><div class="know-fill"></div></div>
+        <div class="know-block"><div class="know-fill"></div></div>
+        <div class="know-block"><div class="know-fill"></div></div>
+      </div>
+    </div>
+
+    <div class="sys-module sys-element mod-execution">
+      <div class="module-dock"></div>
+      <div class="mod-header">
+        <div class="mod-kicker"></div>
+        <div class="mod-title">Контур исполнения</div>
+        <div class="mod-sub">Запускает действия в системах и процессах</div>
+      </div>
+      <div class="inner-logic logic-execution">
+        <div class="exec-bar"></div>
+        <div class="exec-bar"></div>
+        <div class="exec-bar"></div>
+        <div class="exec-bar"></div>
+        <div class="exec-bar"></div>
+      </div>
+    </div>
+
+    <div class="sys-module sys-element mod-review">
+      <div class="module-dock"></div>
+      <div class="mod-header">
+        <div class="mod-kicker"></div>
+        <div class="mod-title">Review &amp; Control</div>
+        <div class="mod-sub">Сохраняет видимость, границы и контроль</div>
+      </div>
+      <div class="inner-logic logic-review">
+        <div class="status-dot"></div>
+        <span>SYNCED &amp; GOVERNED</span>
+      </div>
+    </div>
+
+    <div class="core-chassis sys-element">
+      <div class="core-shadow"></div>
+      <div class="core-shell">
+        <div class="core-layer core-rear-frame"></div>
+        <div class="core-layer core-back-plane"></div>
+        <div class="core-layer core-inner-chamber"></div>
+
+        <div class="core-link-grid">
+          <div class="v"></div><div class="v"></div><div class="v"></div>
+          <div class="h"></div><div class="h"></div><div class="h"></div>
+        </div>
+
+        <div class="core-lattice">
+          <div class="core-node"></div><div class="core-node"></div><div class="core-node"></div><div class="core-node"></div>
+          <div class="core-node"></div><div class="core-node"></div><div class="core-node"></div><div class="core-node"></div>
+          <div class="core-node"></div><div class="core-node"></div><div class="core-node"></div><div class="core-node"></div>
+          <div class="core-node"></div><div class="core-node"></div><div class="core-node"></div><div class="core-node"></div>
+        </div>
+
+        <div class="core-energy-ring"></div>
+        <div class="core-energy-ring r2"></div>
+
+        <div class="core-pulse-node n1"></div>
+        <div class="core-pulse-node n2"></div>
+        <div class="core-pulse-node n3"></div>
+
+        <div class="core-layer core-front">
+          <div class="core-scanner"></div>
+          <div class="core-title">Ядро оркестрации</div>
+          <div class="core-sub">От разрозненных входов к управляемому исполнению</div>
+          <div class="core-meta-line"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+  </div>
+
+  <script>
+    (function () {
+      const zone = document.getElementById("rightZone");
+      const root = document.documentElement;
+      let rafId = null;
+      let targetX = 0;
+      let targetY = 0;
+      let currentX = 0;
+      let currentY = 0;
+
+      function render() {
+        currentX += (targetX - currentX) * 0.09;
+        currentY += (targetY - currentY) * 0.09;
+
+        root.style.setProperty("--scene-ry", `${currentX * 4.1}deg`);
+        root.style.setProperty("--scene-rx", `${-currentY * 3.3}deg`);
+        root.style.setProperty("--scene-x", `${currentX * 12}px`);
+        root.style.setProperty("--scene-y", `${currentY * 10}px`);
+
+        if (Math.abs(targetX - currentX) > 0.001 || Math.abs(targetY - currentY) > 0.001) {
+          rafId = requestAnimationFrame(render);
+        } else {
+          rafId = null;
+        }
+      }
+
+      function onMove(event) {
+        const rect = zone.getBoundingClientRect();
+        const px = (event.clientX - rect.left) / rect.width;
+        const py = (event.clientY - rect.top) / rect.height;
+
+        targetX = (px - 0.56) * 1.12;
+        targetY = (py - 0.5) * 1.02;
+
+        if (!rafId) rafId = requestAnimationFrame(render);
+      }
+
+      function reset() {
+        targetX = 0;
+        targetY = 0;
+        if (!rafId) rafId = requestAnimationFrame(render);
+      }
+
+      zone.addEventListener("mousemove", onMove, { passive: true });
+      zone.addEventListener("mouseleave", reset, { passive: true });
+    })();
+  </script>
+
+</body>
+</html>
+</textarea>
+
+<script>
+    const body = document.body;
+
+    const aiHeroMount = document.getElementById('aiHeroMount');
+    const aiHeroSrcdoc = document.getElementById('aiHeroSrcdoc');
+    function mountAiHero(mount, source) {
+        if (!mount || !source || mount.dataset.mounted === 'true') return;
+
+        const parser = new DOMParser();
+        const heroDoc = parser.parseFromString(source, 'text/html');
+        heroDoc.querySelectorAll('script').forEach((node) => node.remove());
+
+        let styleText = heroDoc.querySelector('style')?.textContent || '';
+        styleText = styleText
+            .replace(/:root/g, '.hero-shell-root')
+            .replace(/html,\s*body\s*\{/g, '.hero-shell-root {')
+            .replace(/(^|\n)body\s*\{/g, '$1.hero-shell-root {');
+
+        const bodyMarkup = heroDoc.body?.innerHTML || '';
+        const shadow = mount.attachShadow({ mode: 'open' });
+        shadow.innerHTML = `
+            <style>
+                :host {
+                    display: block;
+                    width: 100%;
+                    height: 100%;
+                }
+
+                .hero-shell-root {
+                    width: 100%;
+                    height: 100%;
+                    overflow: hidden;
+                    background: transparent;
+                }
+
+                .hero-shell-root .hero-section {
+                    width: 100%;
+                    height: 100%;
+                    max-width: none;
+                }
+
+                .hero-shell-root .left-zone {
+                    display: none !important;
+                }
+
+                .hero-shell-root .right-zone {
+                    flex: 1 1 auto !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    position: relative !important;
+                    z-index: 2 !important;
+                    pointer-events: auto !important;
+                }
+
+                .hero-shell-root .right-zone::before,
+                .hero-shell-root .right-zone::after,
+                .hero-shell-root .env-grid,
+                .hero-shell-root .env-panel,
+                .hero-shell-root .scene-floor,
+                .hero-shell-root .system-carrier,
+                .hero-shell-root .rail-network,
+                .hero-shell-root .core-shadow {
+                    pointer-events: none !important;
+                }
+
+${styleText}
+            </style>
+            <div class="hero-shell-root">${bodyMarkup}</div>
+        `;
+
+        const root = shadow.querySelector('.hero-shell-root');
+        const zone = shadow.getElementById('rightZone');
+        if (!root || !zone) return;
+
+        let rafId = null;
+        let targetX = 0;
+        let targetY = 0;
+        let currentX = 0;
+        let currentY = 0;
+
+        const render = () => {
+            currentX += (targetX - currentX) * 0.09;
+            currentY += (targetY - currentY) * 0.09;
+
+            root.style.setProperty('--scene-ry', `${currentX * 4.1}deg`);
+            root.style.setProperty('--scene-rx', `${-currentY * 3.3}deg`);
+            root.style.setProperty('--scene-x', `${currentX * 12}px`);
+            root.style.setProperty('--scene-y', `${currentY * 10}px`);
+
+            if (Math.abs(targetX - currentX) > 0.001 || Math.abs(targetY - currentY) > 0.001) {
+                rafId = requestAnimationFrame(render);
+            } else {
+                rafId = null;
+            }
+        };
+
+        const onMove = (event) => {
+            const rect = zone.getBoundingClientRect();
+            const px = (event.clientX - rect.left) / rect.width;
+            const py = (event.clientY - rect.top) / rect.height;
+
+            targetX = (px - 0.56) * 1.12;
+            targetY = (py - 0.5) * 1.02;
+
+            if (!rafId) rafId = requestAnimationFrame(render);
+        };
+
+        const reset = () => {
+            targetX = 0;
+            targetY = 0;
+            if (!rafId) rafId = requestAnimationFrame(render);
+        };
+
+        shadow.addEventListener('mousemove', onMove, { passive: true });
+        shadow.addEventListener('mouseleave', reset, { passive: true });
+        zone.addEventListener('mousemove', onMove, { passive: true });
+        zone.addEventListener('mouseleave', reset, { passive: true });
+
+        mount.dataset.mounted = 'true';
+        reset();
+    }
+    if (aiHeroMount && aiHeroSrcdoc) {
+        mountAiHero(aiHeroMount, aiHeroSrcdoc.value);
+    }
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    const siteNav = document.querySelector('.site-nav');
+
+    function closeMobileMenu() {
+        if (!siteNav || !mobileMenuToggle) return;
+        siteNav.classList.remove('is-open');
+        mobileMenuToggle.classList.remove('is-open');
+        mobileMenuToggle.setAttribute('aria-expanded', 'false');
+        body.classList.remove('menu-open');
+    }
+
+    function openMobileMenu() {
+        if (!siteNav || !mobileMenuToggle) return;
+        siteNav.classList.add('is-open');
+        mobileMenuToggle.classList.add('is-open');
+        mobileMenuToggle.setAttribute('aria-expanded', 'true');
+        body.classList.add('menu-open');
+    }
+
+    if (mobileMenuToggle && siteNav) {
+        mobileMenuToggle.addEventListener('click', () => {
+            if (siteNav.classList.contains('is-open')) closeMobileMenu();
+            else openMobileMenu();
+        });
+
+        siteNav.querySelectorAll('a').forEach((link) => {
+            link.addEventListener('click', () => closeMobileMenu());
+        });
+    }
+
+    const reveals = document.querySelectorAll('.reveal');
+    document.querySelectorAll('main > section:not(#hero)').forEach((section) => {
+        section.querySelectorAll('.reveal').forEach((el, index) => {
+            el.style.setProperty('--reveal-delay', `${(index % 4) * 55}ms`);
+        });
+    });
+    const revealObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                revealObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.18, rootMargin: '0px 0px -40px 0px' });
+
+    reveals.forEach((el) => revealObserver.observe(el));
+
+    const themedBody = document.body;
+    const activeObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            entry.target.classList.toggle('is-active', entry.isIntersecting && entry.intersectionRatio > 0.42);
+        });
+    }, { threshold: [0.42, 0.68], rootMargin: '-6% 0px -10% 0px' });
+
+    document.querySelectorAll('.delta-item, .governance-card').forEach((el) => activeObserver.observe(el));
+
+    const protocolGroups = document.querySelectorAll('.protocol-steps');
+    if (protocolGroups.length) {
+        let protocolTicking = false;
+        const updateProtocolGroups = () => {
+            const anchor = window.innerHeight * 0.48;
+            protocolGroups.forEach((group) => {
+                const steps = Array.from(group.querySelectorAll('.protocol-step'));
+                let activeIndex = -1;
+                let bestDistance = Number.POSITIVE_INFINITY;
+                steps.forEach((step, index) => {
+                    const rect = step.getBoundingClientRect();
+                    const visible = rect.bottom > window.innerHeight * 0.18 && rect.top < window.innerHeight * 0.86;
+                    if (!visible) return;
+                    const center = rect.top + rect.height * 0.5;
+                    const distance = Math.abs(center - anchor);
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        activeIndex = index;
+                    }
+                });
+                group.classList.toggle('has-active', activeIndex !== -1);
+                steps.forEach((step, index) => {
+                    step.classList.toggle('is-active', index === activeIndex);
+                    step.classList.toggle('is-passed', activeIndex !== -1 && index < activeIndex);
+                });
+            });
+            protocolTicking = false;
+        };
+        const queueProtocolUpdate = () => {
+            if (protocolTicking) return;
+            protocolTicking = true;
+            window.requestAnimationFrame(updateProtocolGroups);
+        };
+        queueProtocolUpdate();
+        window.addEventListener('scroll', queueProtocolUpdate, { passive: true });
+        window.addEventListener('resize', queueProtocolUpdate);
+    }
+
+    document.querySelectorAll('.matrix-row').forEach((row) => {
+        row.addEventListener('mouseenter', () => {
+            row.parentElement?.querySelectorAll('.matrix-row').forEach((item) => item.classList.remove('is-focused'));
+            row.classList.add('is-focused');
+        });
+        row.addEventListener('mouseleave', () => row.classList.remove('is-focused'));
+    });
+
+    const entropyStage = document.querySelector('#entropy .entropy-grid');
+    if (entropyStage) {
+        let entropyFrame = null;
+        let ex = 0;
+        let ey = 0;
+        let tx = 0;
+        let ty = 0;
+        const strength = themedBody.classList.contains('theme-ai') ? 8 : 6;
+        const renderEntropy = () => {
+            ex += (tx - ex) * 0.08;
+            ey += (ty - ey) * 0.08;
+            entropyStage.style.transform = `translate3d(${ex * 0.55}px, ${ey * 0.4}px, 0) rotateX(${(-ey / strength).toFixed(2)}deg) rotateY(${(ex / strength).toFixed(2)}deg)`;
+            if (Math.abs(tx - ex) > 0.02 || Math.abs(ty - ey) > 0.02) {
+                entropyFrame = requestAnimationFrame(renderEntropy);
+            } else {
+                entropyFrame = null;
+            }
+        };
+        const onEntropyMove = (event) => {
+            const rect = entropyStage.getBoundingClientRect();
+            tx = ((event.clientX - rect.left) / rect.width - 0.5) * 10;
+            ty = ((event.clientY - rect.top) / rect.height - 0.5) * 8;
+            if (!entropyFrame) entropyFrame = requestAnimationFrame(renderEntropy);
+        };
+        const resetEntropy = () => {
+            tx = 0;
+            ty = 0;
+            if (!entropyFrame) entropyFrame = requestAnimationFrame(renderEntropy);
+        };
+        entropyStage.style.transformStyle = 'preserve-3d';
+        entropyStage.style.willChange = 'transform';
+        entropyStage.addEventListener('mousemove', onEntropyMove, { passive: true });
+        entropyStage.addEventListener('mouseleave', resetEntropy, { passive: true });
+    }
+</script>
 </body>
 </html>

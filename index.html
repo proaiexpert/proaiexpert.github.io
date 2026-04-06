@@ -142,9 +142,26 @@
         body.scrolled .hero-left { opacity: 0; transform: translateX(-100px); pointer-events: none; }
         body.scrolled .scene { transform: scale(1.4) rotateX(45deg) translateY(-50px); filter: blur(15px); opacity: 0.3; }
 
-        .orbits-svg { position: absolute; width: 1000px; height: 1000px; opacity: 0.35; }
+        .orbits-svg { position: absolute; width: 1000px; height: 1000px; opacity: 0.35; overflow: visible; pointer-events: none; }
         .orbit-path { fill: none; stroke: var(--ai-cyan); stroke-width: 1.2; stroke-dasharray: 4, 12; }
+        .orbit-group { transform-box: view-box; transform-origin: 500px 500px; will-change: transform; }
+        .orbit-group-1 { animation: orbitSpinCw 84s linear infinite; }
+        .orbit-group-2 { animation: orbitSpinCcw 96s linear infinite; }
+        .orbit-dot-track { transform-origin: 0px 0px; will-change: transform; }
+        .orbit-dot-track-1 { animation: orbitDotCcw 24s linear infinite; }
+        .orbit-dot-track-2 { animation: orbitDotCw 28s linear infinite; }
+        .orbit-accent { fill: var(--ai-cyan); opacity: 0.94; filter: drop-shadow(0 0 8px rgba(93, 226, 255, 0.75)); }
+        .orbit-accent-soft { opacity: 0.78; filter: drop-shadow(0 0 6px rgba(93, 226, 255, 0.55)); }
         .ambient-glow { position: absolute; width: 700px; height: 700px; background: radial-gradient(circle, rgba(93, 226, 255, 0.15) 0%, transparent 70%); filter: blur(60px); }
+        @keyframes orbitSpinCw { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes orbitSpinCcw { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+        @keyframes orbitDotCw { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes orbitDotCcw { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+
+        @media (prefers-reduced-motion: reduce) {
+            .orbit-group, .orbit-dot-track { animation: none !important; }
+            .orbits-svg { opacity: 0.24; }
+        }
 
         .core-hub { width: 160px; height: 160px; transform-style: preserve-3d; animation: coreRotate 35s infinite linear; z-index: 50; }
         .core-face {
@@ -250,9 +267,10 @@
             padding: 60px;
             z-index: 1;
         }
-        .split-section:has(.side-ai:hover) .side-web { width: 38%; filter: blur(8px) grayscale(0.45); opacity: 0.45; }
-        .split-section:has(.side-web:hover) .side-ai { width: 38%; filter: blur(8px) grayscale(0.45); opacity: 0.45; }
-        .split-side:hover { width: 62% !important; z-index: 2; filter: blur(0) grayscale(0) !important; opacity: 1 !important; }
+        .split-section.is-ai-active .side-web { width: 38%; filter: blur(8px) grayscale(0.45); opacity: 0.45; }
+        .split-section.is-web-active .side-ai { width: 38%; filter: blur(8px) grayscale(0.45); opacity: 0.45; }
+        .split-section.is-ai-active .side-ai,
+        .split-section.is-web-active .side-web { width: 62% !important; z-index: 2; filter: blur(0) grayscale(0) !important; opacity: 1 !important; }
         .side-ai { background: radial-gradient(circle at var(--mouse-x, 100%) var(--mouse-y, 50%), rgba(93, 226, 255, 0.12) 0%, transparent 70%); border-right: 1px solid rgba(255,255,255,0.05); }
         .side-web { background: radial-gradient(circle at var(--mouse-x, 0%) var(--mouse-y, 50%), rgba(0, 122, 255, 0.12) 0%, transparent 70%); }
         .side-bg-text { position: absolute; font-size: 20vw; font-weight: 900; opacity: 0.03; pointer-events: none; white-space: nowrap; transition: 0.1s linear; z-index: 0; }
@@ -1284,7 +1302,7 @@
             .manifest-card { width: 100%; padding: 28px 24px; border-radius: 18px; }
             .split-section { height: auto; flex-direction: column; }
             .split-side, .split-side:hover { width: 100% !important; min-height: 72svh; padding: 54px 24px 46px; align-items: flex-start; justify-content: flex-end; filter: none !important; opacity: 1 !important; }
-            .split-section:has(.side-ai:hover) .side-web, .split-section:has(.side-web:hover) .side-ai { width: 100%; filter: none; opacity: 1; }
+            .split-section.is-ai-active .side-web, .split-section.is-web-active .side-ai { width: 100%; filter: none; opacity: 1; }
             .split-divider { display: none; }
             .side-content { max-width: 100%; text-align: left; }
             .side-bg-text { font-size: 27vw; top: 12%; left: 22px; transform: none !important; }
@@ -1546,9 +1564,37 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
 <div class="hero-visual">
 <div class="scene" id="scene">
 <div class="ambient-glow"></div>
-<svg class="orbits-svg" viewbox="0 0 1000 1000">
-<ellipse class="orbit-path" cx="500" cy="500" rx="460" ry="220" transform="rotate(-15 500 500)"></ellipse>
-<ellipse class="orbit-path" cx="500" cy="500" rx="420" ry="280" transform="rotate(25 500 500)"></ellipse>
+<svg class="orbits-svg" viewbox="0 0 1000 1000" aria-hidden="true">
+<defs>
+<path id="hero-orbit1-path" d="M 40 500 A 460 220 0 1 1 960 500 A 460 220 0 1 1 40 500"></path>
+<path id="hero-orbit1-path-rev" d="M 960 500 A 460 220 0 1 0 40 500 A 460 220 0 1 0 960 500"></path>
+<path id="hero-orbit2-path" d="M 80 500 A 420 280 0 1 1 920 500 A 420 280 0 1 1 80 500"></path>
+<path id="hero-orbit2-path-rev" d="M 920 500 A 420 280 0 1 0 80 500 A 420 280 0 1 0 920 500"></path>
+</defs>
+<g class="orbit-group orbit-group-1">
+<g transform="rotate(-15 500 500)">
+<use href="#hero-orbit1-path" class="orbit-path"></use>
+<g class="orbit-motion orbit-motion-1">
+<circle class="orbit-accent orbit-pulse" r="5.2">
+<animateMotion dur="24s" repeatCount="indefinite" rotate="auto">
+<mpath href="#hero-orbit1-path-rev"></mpath>
+</animateMotion>
+</circle>
+</g>
+</g>
+</g>
+<g class="orbit-group orbit-group-2">
+<g transform="rotate(25 500 500)">
+<use href="#hero-orbit2-path" class="orbit-path"></use>
+<g class="orbit-motion orbit-motion-2">
+<circle class="orbit-accent orbit-accent-soft orbit-pulse" r="4.6">
+<animateMotion dur="28s" repeatCount="indefinite" rotate="auto">
+<mpath href="#hero-orbit2-path"></mpath>
+</animateMotion>
+</circle>
+</g>
+</g>
+</g>
 </svg>
 <div class="core-hub">
 <div class="core-face c-front">AI Systems</div>
@@ -1818,6 +1864,8 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
     const divider = document.getElementById('divider');
     const bgTexts = document.querySelectorAll('.side-bg-text');
     const body = document.body;
+    const sideAi = splitSection ? splitSection.querySelector('.side-ai') : null;
+    const sideWeb = splitSection ? splitSection.querySelector('.side-web') : null;
 
     let lastMouseX = 0;
     let lastTime = Date.now();
@@ -1864,6 +1912,37 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
         });
         window.addEventListener('resize', () => {
             if (!isMobileViewport.matches) closeMobileMenu();
+        });
+    }
+
+    const finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
+    let splitLeaveTimeout;
+
+    function setSplitState(state) {
+        if (!splitSection) return;
+        splitSection.classList.remove('is-ai-active', 'is-web-active');
+        if (state === 'ai') splitSection.classList.add('is-ai-active');
+        if (state === 'web') splitSection.classList.add('is-web-active');
+    }
+
+    if (splitSection && sideAi && sideWeb && finePointerQuery.matches) {
+        const clearSplitLeave = () => {
+            if (splitLeaveTimeout) {
+                clearTimeout(splitLeaveTimeout);
+                splitLeaveTimeout = null;
+            }
+        };
+        sideAi.addEventListener('pointerenter', () => {
+            clearSplitLeave();
+            setSplitState('ai');
+        });
+        sideWeb.addEventListener('pointerenter', () => {
+            clearSplitLeave();
+            setSplitState('web');
+        });
+        splitSection.addEventListener('pointerleave', () => {
+            clearSplitLeave();
+            splitLeaveTimeout = setTimeout(() => setSplitState(null), 90);
         });
     }
 

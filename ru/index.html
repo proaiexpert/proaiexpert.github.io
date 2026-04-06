@@ -1712,32 +1712,47 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
 
     const finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
     let splitLeaveTimeout;
+    let splitState = null;
 
     function setSplitState(state) {
         if (!splitSection) return;
+        splitState = state || null;
         splitSection.classList.remove('is-ai-active', 'is-web-active');
         if (state === 'ai') splitSection.classList.add('is-ai-active');
         if (state === 'web') splitSection.classList.add('is-web-active');
     }
 
-    if (splitSection && sideAi && sideWeb && finePointerQuery.matches) {
-        const clearSplitLeave = () => {
-            if (splitLeaveTimeout) {
-                clearTimeout(splitLeaveTimeout);
-                splitLeaveTimeout = null;
-            }
-        };
-        sideAi.addEventListener('pointerenter', () => {
-            clearSplitLeave();
-            setSplitState('ai');
-        });
-        sideWeb.addEventListener('pointerenter', () => {
-            clearSplitLeave();
+    function clearSplitLeave() {
+        if (splitLeaveTimeout) {
+            clearTimeout(splitLeaveTimeout);
+            splitLeaveTimeout = null;
+        }
+    }
+
+    function updateSplitHoverState(mouseX, width) {
+        if (!splitSection || !finePointerQuery.matches) return;
+        const ratio = mouseX / width;
+        const enterThreshold = 0.5;
+        const hysteresis = 0.06;
+
+        clearSplitLeave();
+
+        if (!splitState) {
+            setSplitState(ratio < enterThreshold ? 'ai' : 'web');
+            return;
+        }
+
+        if (splitState === 'ai' && ratio > enterThreshold + hysteresis) {
             setSplitState('web');
-        });
+        } else if (splitState === 'web' && ratio < enterThreshold - hysteresis) {
+            setSplitState('ai');
+        }
+    }
+
+    if (splitSection && sideAi && sideWeb && finePointerQuery.matches) {
         splitSection.addEventListener('pointerleave', () => {
             clearSplitLeave();
-            splitLeaveTimeout = setTimeout(() => setSplitState(null), 90);
+            splitLeaveTimeout = setTimeout(() => setSplitState(null), 140);
         });
     }
 
@@ -1754,6 +1769,10 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
                 const splitPercent = (mouseX / rect.width) * 100;
+
+                if (finePointerQuery.matches) {
+                    updateSplitHoverState(mouseX, rect.width);
+                }
 
                 divider.style.left = `${splitPercent}%`;
                 splitSection.style.setProperty('--mouse-x', `${splitPercent}%`);

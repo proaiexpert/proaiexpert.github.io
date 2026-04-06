@@ -1934,32 +1934,25 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
         }
     }
 
-    function updateSplitHoverState(mouseX, width) {
-        if (!splitSection || !finePointerQuery.matches) return;
-        const ratio = mouseX / width;
-        const enterThreshold = 0.5;
-        const hysteresis = 0.06;
+    function armSplitDesktopInteraction() {
+        if (!splitSection || !sideAi || !sideWeb || !finePointerQuery.matches) return;
 
-        clearSplitLeave();
+        const activate = (state) => {
+            clearSplitLeave();
+            if (splitState === state) return;
+            setSplitState(state);
+        };
 
-        if (!splitState) {
-            setSplitState(ratio < enterThreshold ? 'ai' : 'web');
-            return;
-        }
+        sideAi.addEventListener('pointerenter', () => activate('ai'));
+        sideWeb.addEventListener('pointerenter', () => activate('web'));
 
-        if (splitState === 'ai' && ratio > enterThreshold + hysteresis) {
-            setSplitState('web');
-        } else if (splitState === 'web' && ratio < enterThreshold - hysteresis) {
-            setSplitState('ai');
-        }
-    }
-
-    if (splitSection && sideAi && sideWeb && finePointerQuery.matches) {
         splitSection.addEventListener('pointerleave', () => {
             clearSplitLeave();
-            splitLeaveTimeout = setTimeout(() => setSplitState(null), 140);
+            splitLeaveTimeout = setTimeout(() => setSplitState(null), 180);
         });
     }
+
+    armSplitDesktopInteraction();
 
     document.addEventListener('mousemove', (e) => {
         if (isMobileViewport.matches) return;
@@ -1975,10 +1968,6 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
                 const mouseX = e.clientX - rect.left;
                 const mouseY = e.clientY - rect.top;
                 const splitPercent = (mouseX / rect.width) * 100;
-
-                if (finePointerQuery.matches) {
-                    updateSplitHoverState(mouseX, rect.width);
-                }
 
                 divider.style.left = `${splitPercent}%`;
                 splitSection.style.setProperty('--mouse-x', `${splitPercent}%`);

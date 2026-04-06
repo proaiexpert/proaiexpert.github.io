@@ -828,17 +828,30 @@
             font-size: 17px;
         }
         .insights-link {
-            color: rgba(255,255,255,0.48);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(126,157,214,0.24);
+            background: rgba(255,255,255,0.018);
+            color: rgba(232,238,248,0.84);
             text-decoration: none;
             text-transform: uppercase;
             letter-spacing: 1px;
             font-size: 10px;
             font-weight: 600;
             white-space: nowrap;
-            transition: color 0.3s var(--ease), opacity 0.3s var(--ease);
-            opacity: 0.84;
+            transition: border-color 0.3s var(--ease), background 0.3s var(--ease), color 0.3s var(--ease), transform 0.3s var(--ease);
+            opacity: 0.94;
         }
-        .insights-link:hover { color: rgba(255,255,255,0.72); opacity: 1; }
+        .insights-link:hover {
+            color: rgba(255,255,255,0.98);
+            border-color: rgba(126,157,214,0.38);
+            background: rgba(255,255,255,0.03);
+            transform: translateY(-1px);
+        }
         .insights-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -846,25 +859,28 @@
         }
         .insight-card {
             border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 22px;
-            padding: 30px 30px 34px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.022) 0%, rgba(255,255,255,0.012) 100%);
+            border-radius: 24px;
+            padding: 30px 30px 28px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.024) 0%, rgba(255,255,255,0.012) 100%);
             backdrop-filter: blur(12px);
             transition: transform 0.42s var(--ease), border-color 0.42s var(--ease), background 0.42s var(--ease), box-shadow 0.42s var(--ease);
             position: relative;
             overflow: hidden;
             opacity: 0;
             transform: translateY(22px);
+            display: flex;
+            flex-direction: column;
+            min-height: 356px;
         }
         .insight-card::before {
             content: '';
             position: absolute;
             top: 0;
-            left: 22px;
-            right: 22px;
+            left: 26px;
+            right: 26px;
             height: 1px;
-            background: linear-gradient(90deg, rgba(93,226,255,0.34), rgba(93,226,255,0.08), transparent 82%);
-            opacity: 0.75;
+            background: linear-gradient(90deg, rgba(126,157,214,0.30), rgba(126,157,214,0.08), transparent 82%);
+            opacity: 0.8;
         }
         #insights.is-visible .insight-card {
             opacity: 1;
@@ -892,25 +908,56 @@
             display: flex;
             justify-content: space-between;
             text-transform: uppercase;
-            letter-spacing: 1.5px;
+            letter-spacing: 1.7px;
             font-weight: 600;
         }
         .insight-card h3 {
-            font-size: 26px;
-            line-height: 1.18;
-            font-weight: 700;
-            margin-bottom: 16px;
-            letter-spacing: -0.02em;
+            font-size: 25px;
+            line-height: 1.16;
+            font-weight: 600;
+            margin-bottom: 14px;
+            letter-spacing: -0.03em;
+            color: rgba(244,247,251,0.95);
             transition: color 0.35s var(--ease);
+            text-wrap: balance;
+        }
+        .insight-card h3 a {
+            color: inherit;
+            text-decoration: none;
         }
         .insight-card:hover h3 {
-            color: rgba(255,255,255,0.96);
+            color: rgba(255,255,255,0.985);
         }
         .insight-card p {
             font-size: 15px;
-            line-height: 1.7;
-            color: rgba(255,255,255,0.56);
-            pointer-events: none;
+            line-height: 1.68;
+            color: rgba(255,255,255,0.52);
+            margin-bottom: 26px;
+        }
+        .insight-action {
+            margin-top: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(207,216,232,0.88);
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-size: 10px;
+            font-weight: 600;
+            transition: color 0.32s var(--ease), gap 0.32s var(--ease), opacity 0.32s var(--ease);
+            opacity: 0.92;
+        }
+        .insight-action:hover,
+        .insight-card:hover .insight-action {
+            color: rgba(246,249,255,0.98);
+            gap: 14px;
+            opacity: 1;
+        }
+        .insight-action::after,
+        .insights-link::after {
+            content: '→';
+            display: inline-block;
         }
 
         /* 8. FOOTER */
@@ -1649,7 +1696,7 @@
 </div>
 <div>
 <p class="insights-intro">A selective set of practical notes on AI systems, websites, and business structure for companies that want better digital clarity.</p>
-<a class="insights-link" href="insights/index.html">View all →</a>
+<a class="insights-link" href="insights/index.html">View all</a>
 </div>
 </div>
 <div class="insights-grid">
@@ -1657,16 +1704,19 @@
 <div class="insight-meta"><span>AI Systems</span><span>7 min read</span></div>
 <h3><a href="insights/ai-agent-or-automation-what-your-business-actually-needs/index.html">AI Agent or Automation? What Your Business Actually Needs</a></h3>
 <p>Not every business needs an AI agent. In many cases, clear automation delivers faster ROI, more control, and less operational friction.</p>
+<a class="insight-action" href="insights/ai-agent-or-automation-what-your-business-actually-needs/index.html">Open Brief</a>
 </article>
 <article class="insight-card reveal" style="transition-delay: 0.1s;">
 <div class="insight-meta"><span>Automation</span><span>6 min read</span></div>
 <h3><a href="insights/where-automation-delivers-its-first-real-roi/index.html">Where Automation Delivers Its First Real ROI</a></h3>
 <p>The first measurable value from automation usually appears in intake, handoff, follow-up, and response preparation — long before a business needs heavier AI complexity.</p>
+<a class="insight-action" href="insights/where-automation-delivers-its-first-real-roi/index.html">Read Brief</a>
 </article>
 <article class="insight-card reveal" style="transition-delay: 0.2s;">
 <div class="insight-meta"><span>Digital Trust</span><span>7 min read</span></div>
 <h3><a href="insights/what-a-premium-website-really-means-for-a-service-business/index.html">What a Premium Website Really Means for a Service Business</a></h3>
 <p>A premium website is not decorative polish. It is a trust layer that shapes credibility, reduces friction, and helps a service business look as strong as it actually is.</p>
+<a class="insight-action" href="insights/what-a-premium-website-really-means-for-a-service-business/index.html">Explore Brief</a>
 </article>
 </div>
 </div>

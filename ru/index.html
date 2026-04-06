@@ -1713,13 +1713,17 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
     const finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
     let splitLeaveTimeout;
     let splitState = null;
+    const splitMidpoint = 0.5;
+    const splitHysteresis = 0.06;
 
     function setSplitState(state) {
         if (!splitSection) return;
-        splitState = state || null;
+        const nextState = state || null;
+        if (splitState === nextState) return;
+        splitState = nextState;
         splitSection.classList.remove('is-ai-active', 'is-web-active');
-        if (state === 'ai') splitSection.classList.add('is-ai-active');
-        if (state === 'web') splitSection.classList.add('is-web-active');
+        if (nextState === 'ai') splitSection.classList.add('is-ai-active');
+        if (nextState === 'web') splitSection.classList.add('is-web-active');
     }
 
     function clearSplitLeave() {
@@ -1729,21 +1733,34 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
         }
     }
 
-    function armSplitDesktopInteraction() {
-        if (!splitSection || !sideAi || !sideWeb || !finePointerQuery.matches) return;
+    function getStableSplitStateFromEvent(event) {
+        if (!splitSection) return null;
+        const rect = splitSection.getBoundingClientRect();
+        const ratio = (event.clientX - rect.left) / rect.width;
 
-        const activate = (state) => {
+        if (splitState === 'ai') {
+            return ratio > (splitMidpoint + splitHysteresis) ? 'web' : 'ai';
+        }
+        if (splitState === 'web') {
+            return ratio < (splitMidpoint - splitHysteresis) ? 'ai' : 'web';
+        }
+        return ratio < splitMidpoint ? 'ai' : 'web';
+    }
+
+    function armSplitDesktopInteraction() {
+        if (!splitSection || !finePointerQuery.matches) return;
+
+        const activateFromEvent = (event) => {
             clearSplitLeave();
-            if (splitState === state) return;
-            setSplitState(state);
+            const nextState = getStableSplitStateFromEvent(event);
+            setSplitState(nextState);
         };
 
-        sideAi.addEventListener('pointerenter', () => activate('ai'));
-        sideWeb.addEventListener('pointerenter', () => activate('web'));
-
+        splitSection.addEventListener('pointerenter', activateFromEvent);
+        splitSection.addEventListener('pointermove', activateFromEvent);
         splitSection.addEventListener('pointerleave', () => {
             clearSplitLeave();
-            splitLeaveTimeout = setTimeout(() => setSplitState(null), 180);
+            splitLeaveTimeout = setTimeout(() => setSplitState(null), 220);
         });
     }
 

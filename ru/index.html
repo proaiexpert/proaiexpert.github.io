@@ -305,12 +305,15 @@
         .side-ai { background: radial-gradient(circle at var(--mouse-x, 100%) var(--mouse-y, 50%), rgba(93, 226, 255, 0.12) 0%, transparent 70%); border-right: 1px solid rgba(255,255,255,0.05); }
         .side-web { background: radial-gradient(circle at var(--mouse-x, 0%) var(--mouse-y, 50%), rgba(0, 122, 255, 0.12) 0%, transparent 70%); }
         .side-bg-text { position: absolute; font-size: 20vw; font-weight: 900; opacity: 0.03; pointer-events: none; white-space: nowrap; transition: 0.1s linear; z-index: 0; }
-        .side-content { position: relative; z-index: 10; text-align: center; width: 100%; max-width: 560px; }
+        .side-content { position: relative; z-index: 18; text-align: center; width: 100%; max-width: 560px; pointer-events: none; }
         .side-tag { font-family: monospace; font-size: 12px; color: var(--ai-cyan); letter-spacing: 4px; margin-bottom: 20px; display: block; }
         .side-web .side-tag { color: var(--web-blue); }
         .side-title { font-size: clamp(40px, 5vw, 80px); font-weight: 900; line-height: 0.85; margin-bottom: 30px; letter-spacing: -3px; text-transform: uppercase; }
         .side-desc { font-size: clamp(14px, 1.1vw, 17px); color: rgba(255,255,255,0.54); line-height: 1.6; margin-bottom: 40px; }
         .split-btn {
+            position: relative;
+            z-index: 22;
+            pointer-events: auto;
             padding: 18px 40px;
             border: 1px solid rgba(255,255,255,0.2);
             border-radius: 100px;
@@ -325,6 +328,17 @@
         }
         .side-ai .split-btn:hover { background: var(--ai-cyan); color: #000; box-shadow: 0 0 40px var(--ai-cyan); }
         .side-web .split-btn:hover { background: var(--web-blue); color: #fff; box-shadow: 0 0 40px var(--web-blue); }
+        
+        .split-hitbox {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 50%;
+            z-index: 12;
+            background: transparent;
+        }
+        .split-hitbox-ai { left: 0; }
+        .split-hitbox-web { right: 0; }
         .split-divider {
             position: absolute;
             left: 50%;
@@ -1445,6 +1459,8 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
 </div>
 </section>
 <section class="split-section" id="core-split">
+<div class="split-hitbox split-hitbox-ai" aria-hidden="true"></div>
+<div class="split-hitbox split-hitbox-web" aria-hidden="true"></div>
 <div class="split-divider" id="divider"><div class="divider-core"></div></div>
 <div class="split-side side-ai">
 <div class="side-bg-text">СИСТЕМЫ</div>
@@ -1713,8 +1729,8 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
     const finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
     let splitLeaveTimeout;
     let splitState = null;
-    const splitMidpoint = 0.5;
-    const splitHysteresis = 0.06;
+    const splitHitboxAi = splitSection ? splitSection.querySelector('.split-hitbox-ai') : null;
+    const splitHitboxWeb = splitSection ? splitSection.querySelector('.split-hitbox-web') : null;
 
     function setSplitState(state) {
         if (!splitSection) return;
@@ -1733,31 +1749,22 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
         }
     }
 
-    function getStableSplitStateFromEvent(event) {
-        if (!splitSection) return null;
-        const rect = splitSection.getBoundingClientRect();
-        const ratio = (event.clientX - rect.left) / rect.width;
-
-        if (splitState === 'ai') {
-            return ratio > (splitMidpoint + splitHysteresis) ? 'web' : 'ai';
-        }
-        if (splitState === 'web') {
-            return ratio < (splitMidpoint - splitHysteresis) ? 'ai' : 'web';
-        }
-        return ratio < splitMidpoint ? 'ai' : 'web';
-    }
-
     function armSplitDesktopInteraction() {
         if (!splitSection || !finePointerQuery.matches) return;
 
-        const activateFromEvent = (event) => {
+        const activateAi = () => {
             clearSplitLeave();
-            const nextState = getStableSplitStateFromEvent(event);
-            setSplitState(nextState);
+            setSplitState('ai');
         };
 
-        splitSection.addEventListener('pointerenter', activateFromEvent);
-        splitSection.addEventListener('pointermove', activateFromEvent);
+        const activateWeb = () => {
+            clearSplitLeave();
+            setSplitState('web');
+        };
+
+        if (splitHitboxAi) splitHitboxAi.addEventListener('pointerenter', activateAi);
+        if (splitHitboxWeb) splitHitboxWeb.addEventListener('pointerenter', activateWeb);
+
         splitSection.addEventListener('pointerleave', () => {
             clearSplitLeave();
             splitLeaveTimeout = setTimeout(() => setSplitState(null), 220);

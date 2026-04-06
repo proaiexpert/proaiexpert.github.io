@@ -189,19 +189,29 @@
 
         .node {
             position: absolute;
+            width: 280px;
+            transform-style: preserve-3d;
+            z-index: 10;
+        }
+        .node-content {
+            position: absolute;
+            inset: 0;
+            min-height: 100%;
             background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 60%);
             backdrop-filter: blur(25px);
             border: 1px solid rgba(255,255,255,0.12);
             border-radius: 16px;
             padding: 24px;
-            width: 280px;
             transform-style: preserve-3d;
-            transition: 0.6s var(--ease);
+            transition: transform 0.6s var(--ease), border-color 0.45s var(--ease), background 0.45s var(--ease), box-shadow 0.5s var(--ease);
+            pointer-events: none;
         }
-        .node:hover {
+        .node:hover { z-index: 100; }
+        .node:hover .node-content {
             border-color: var(--ai-cyan);
             transform: translateZ(30px) scale(1.05);
             background: radial-gradient(circle at 20% 20%, rgba(93, 226, 255, 0.15) 0%, rgba(255,255,255,0.02) 60%);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.38);
         }
         .n1 { transform: translate3d(-330px, -150px, 100px); }
         .n2 { transform: translate3d(-310px, 170px, 60px); }
@@ -1624,21 +1634,28 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
 <div class="core-face c-bottom">Execution</div>
 </div>
 <div class="node n1">
+<div class="node-content">
 <span class="n-tag">AI Systems</span>
 <div class="n-desc"><div class="status-dot"></div>Knowledge tools and assistant workflows shaped around your real business context.</div>
 <div class="n-tech">Focus: Practical use</div>
 </div>
+</div>
 <div class="node n2">
+<div class="node-content">
 <span class="n-tag">Automation</span>
 <div class="n-desc"><div class="status-dot"></div>Connected operational flows for routing, follow-up, and repetitive internal work.</div>
 <div class="n-tech">Purpose: Less manual drag</div>
 </div>
+</div>
 <div class="node n3">
+<div class="node-content">
 <span class="n-tag" style="color: var(--web-blue);">Premium Websites</span>
 <div class="n-desc"><div class="status-dot"></div>Digital presentation built to create trust, clarify value, and support inquiry flow.</div>
 <div class="n-tech">Output: Stronger presentation</div>
 </div>
+</div>
 <div class="node n4">
+<div class="node-content">
 <span class="n-tag" style="color: var(--web-blue);">System Direction</span>
 <div class="n-desc"><div class="status-dot"></div>Clear delivery structure so the business logic and the presentation work together.</div>
 <div class="n-tech">Result: Better control</div>

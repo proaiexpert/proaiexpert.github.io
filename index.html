@@ -1656,6 +1656,89 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
 }
 
 </style>
+
+<style id="mobile-header-global-fix">
+@media (max-width: 1100px), ((max-height: 540px) and (orientation: landscape)) {
+  header {
+    transition: transform 0.28s ease, opacity 0.28s ease !important;
+    will-change: transform;
+  }
+  header.header-hidden {
+    transform: translateY(calc(-100% - 2px)) !important;
+  }
+  .header-container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    gap: 12px !important;
+  }
+  .logo-block {
+    min-width: 0;
+    flex: 1 1 auto;
+    gap: 10px !important;
+  }
+  .logo-cube-container {
+    width: 24px !important;
+    height: 24px !important;
+    flex: 0 0 24px;
+  }
+  .logo-text {
+    font-size: clamp(15px, 5vw, 20px) !important;
+    line-height: 0.92 !important;
+    letter-spacing: -0.8px !important;
+  }
+  .site-nav {
+    display: none !important;
+  }
+  .site-nav.is-open {
+    display: flex !important;
+    position: fixed !important;
+    inset: 0 !important;
+    top: var(--header-h) !important;
+    z-index: 1100 !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    padding: max(30px, 6svh) 20px calc(34px + env(safe-area-inset-bottom)) !important;
+    background: linear-gradient(180deg, rgba(5,5,6,0.98) 0%, rgba(5,5,6,0.96) 100%) !important;
+    backdrop-filter: blur(22px) !important;
+    -webkit-backdrop-filter: blur(22px) !important;
+    overflow: auto !important;
+    min-height: calc(100svh - var(--header-h)) !important;
+  }
+  .site-nav.is-open a {
+    width: min(100%, 420px) !important;
+    margin-inline: auto !important;
+    font-size: clamp(22px, 6vw, 34px) !important;
+    line-height: 1.05 !important;
+    letter-spacing: -0.03em !important;
+    text-transform: none !important;
+    padding: 12px 0 !important;
+    opacity: 1 !important;
+  }
+  .header-actions {
+    flex: 0 0 auto !important;
+    margin-left: auto !important;
+    gap: 12px !important;
+  }
+  .header-actions .start-btn {
+    display: none !important;
+  }
+  .lang-link {
+    font-size: 14px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.4px !important;
+  }
+  .mobile-menu-toggle {
+    display: inline-flex !important;
+    position: relative !important;
+    z-index: 1102 !important;
+    width: 44px !important;
+    height: 44px !important;
+    flex: 0 0 44px !important;
+  }
+}
+</style>
 </head>
 <body class="page-home">
 <div class="bg-grid"></div>
@@ -2349,6 +2432,77 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
 
     window.addEventListener('touchend', stopCaseDrag);
     window.addEventListener('touchcancel', stopCaseDrag);
+</script>
+
+<script id="mobile-header-global-fix-script">
+(function(){
+  const header = document.querySelector('header');
+  const siteNav = document.querySelector('.site-nav');
+  const menuToggle = document.querySelector('.mobile-menu-toggle');
+  if (!header) return;
+
+  const mobileQuery = window.matchMedia('(max-width: 1100px), ((max-height: 540px) and (orientation: landscape))');
+  let lastY = window.scrollY || 0;
+  let ticking = false;
+  const threshold = 10;
+
+  function syncHeaderVisibility(force){
+    if (!mobileQuery.matches) {
+      header.classList.remove('header-hidden');
+      lastY = window.scrollY || 0;
+      return;
+    }
+
+    const currentY = window.scrollY || 0;
+    const delta = currentY - lastY;
+    const menuOpen = !!(siteNav && siteNav.classList.contains('is-open'));
+
+    if (force || menuOpen || currentY < 20) {
+      header.classList.remove('header-hidden');
+      lastY = currentY;
+      return;
+    }
+
+    if (delta > threshold) {
+      header.classList.add('header-hidden');
+    } else if (delta < -threshold) {
+      header.classList.remove('header-hidden');
+    }
+
+    lastY = currentY;
+  }
+
+  function onScroll(){
+    if (!ticking) {
+      ticking = true;
+      window.requestAnimationFrame(function(){
+        syncHeaderVisibility(false);
+        ticking = false;
+      });
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('touchmove', onScroll, { passive: true });
+  window.addEventListener('orientationchange', function(){ setTimeout(function(){ syncHeaderVisibility(true); }, 120); });
+  window.addEventListener('resize', function(){ syncHeaderVisibility(true); });
+
+  if (menuToggle) {
+    menuToggle.addEventListener('click', function(){
+      setTimeout(function(){ syncHeaderVisibility(true); }, 0);
+    });
+  }
+
+  if (siteNav) {
+    siteNav.querySelectorAll('a').forEach(function(link){
+      link.addEventListener('click', function(){
+        setTimeout(function(){ syncHeaderVisibility(true); }, 0);
+      });
+    });
+  }
+
+  syncHeaderVisibility(true);
+})();
 </script>
 </body>
 </html>

@@ -59,8 +59,8 @@ The current site already includes:
 - all main pages in English and Russian
 - Insights hub pages in English and Russian
 - the first flagship article set in both languages
-  - 3 Russian articles
-  - 3 English articles
+  - 6 Russian articles
+  - 6 English articles
 
 ## Editing Guidance
 
@@ -102,14 +102,14 @@ Recommended practice:
 
 ## Current Status
 
-The site is in a refined pre-launch state.
+The site is in a structured pre-launch state with routing, shared component, mobile behavior, and head-layer cleanup already completed.
 
 Current work already covers:
 
 - bilingual main pages
 - bilingual Insights hubs
 - first bilingual flagship article set
-- launch-oriented cleanup of sitemap, robots, canonical / hreflang, and internal links
+- launch-oriented cleanup of sitemap, robots, canonical / hreflang, internal links, component consistency, and mobile behavior
 
 ## Next Steps
 

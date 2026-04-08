@@ -1,6 +1,8 @@
 (function () {
   const sections = document.querySelectorAll('.showcase-proof-section');
   if (!sections.length) return;
+  const params = new URLSearchParams(window.location.search);
+  const shouldQaScroll = params.get('qa_showcase') === '1';
 
   const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
   const observer = new IntersectionObserver((entries) => {
@@ -61,4 +63,13 @@
       if (!finePointer.matches) onLeave();
     });
   });
+
+  if (shouldQaScroll) {
+    window.addEventListener('load', () => {
+      window.setTimeout(() => {
+        const target = document.getElementById('showcase-proof');
+        target?.scrollIntoView({ block: 'start', behavior: 'auto' });
+      }, 600);
+    }, { once: true });
+  }
 })();

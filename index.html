@@ -260,7 +260,7 @@
             transition: width 0.8s var(--ease), filter 0.8s var(--ease), opacity 0.8s var(--ease);
             overflow: hidden;
             padding: 60px;
-            z-index: 1;
+            z-index: 14;
         }
         .split-section.is-ai-active .side-web { width: 38%; filter: blur(8px) grayscale(0.45); opacity: 0.45; }
         .split-section.is-web-active .side-ai { width: 38%; filter: blur(8px) grayscale(0.45); opacity: 0.45; }
@@ -269,7 +269,7 @@
         .side-ai { background: radial-gradient(circle at var(--mouse-x, 100%) var(--mouse-y, 50%), rgba(93, 226, 255, 0.12) 0%, transparent 70%); border-right: 1px solid rgba(255,255,255,0.05); }
         .side-web { background: radial-gradient(circle at var(--mouse-x, 0%) var(--mouse-y, 50%), rgba(0, 122, 255, 0.12) 0%, transparent 70%); }
         .side-bg-text { position: absolute; font-size: 20vw; font-weight: 900; opacity: 0.03; pointer-events: none; white-space: nowrap; transition: 0.1s linear; z-index: 0; }
-        .side-content { position: relative; z-index: 18; text-align: center; width: 100%; max-width: 560px; pointer-events: none; }
+        .side-content { position: relative; z-index: 18; text-align: center; width: 100%; max-width: 560px; pointer-events: auto; }
         .side-tag { font-family: monospace; font-size: 12px; color: var(--ai-cyan); letter-spacing: 4px; margin-bottom: 20px; display: block; }
         .side-web .side-tag { color: var(--web-blue); }
         .side-title { font-size: clamp(40px, 5vw, 80px); font-weight: 900; line-height: 0.85; margin-bottom: 30px; letter-spacing: -3px; text-transform: uppercase; }
@@ -298,8 +298,9 @@
             top: 0;
             bottom: 0;
             width: 50%;
-            z-index: 12;
+            z-index: 8;
             background: transparent;
+            pointer-events: none;
         }
         .split-hitbox-ai { left: 0; }
         .split-hitbox-web { right: 0; }
@@ -2096,9 +2097,6 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
     const finePointerQuery = window.matchMedia('(hover: hover) and (pointer: fine)');
     let splitLeaveTimeout;
     let splitState = null;
-    const splitHitboxAi = splitSection ? splitSection.querySelector('.split-hitbox-ai') : null;
-    const splitHitboxWeb = splitSection ? splitSection.querySelector('.split-hitbox-web') : null;
-
     function setSplitState(state) {
         if (!splitSection) return;
         const nextState = state || null;
@@ -2129,8 +2127,14 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
             setSplitState('web');
         };
 
-        if (splitHitboxAi) splitHitboxAi.addEventListener('pointerenter', activateAi);
-        if (splitHitboxWeb) splitHitboxWeb.addEventListener('pointerenter', activateWeb);
+        if (sideAi) {
+            sideAi.addEventListener('pointerenter', activateAi);
+            sideAi.addEventListener('focusin', activateAi);
+        }
+        if (sideWeb) {
+            sideWeb.addEventListener('pointerenter', activateWeb);
+            sideWeb.addEventListener('focusin', activateWeb);
+        }
 
         splitSection.addEventListener('pointerleave', () => {
             clearSplitLeave();

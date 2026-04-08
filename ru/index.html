@@ -225,7 +225,8 @@
             transform-style: preserve-3d;
             transition: 0.6s var(--ease);
         }
-        .node:hover {
+        .node:hover,
+        .node.is-hovered {
             border-color: var(--ai-cyan);
             transform: translateZ(30px) scale(1.05);
             background: radial-gradient(circle at 20% 20%, rgba(93, 226, 255, 0.15) 0%, rgba(255,255,255,0.02) 60%);
@@ -2139,10 +2140,14 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
     const body = document.body;
     const sideAi = splitSection ? splitSection.querySelector('.side-ai') : null;
     const sideWeb = splitSection ? splitSection.querySelector('.side-web') : null;
+    const heroVisual = document.querySelector('.hero-visual');
+    const heroNodes = Array.from(document.querySelectorAll('#hero .node'));
 
     let lastMouseX = 0;
     let lastTime = Date.now();
     let fadeTimeout;
+    let activeHeroNode = null;
+    let heroNodeLeaveTimeout = null;
 
     const methodologyWrapper = document.getElementById('methodology');
     const lunarCards = [
@@ -2239,8 +2244,43 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
 
     armSplitDesktopInteraction();
 
+    function clearHeroNodeLeave() {
+        if (heroNodeLeaveTimeout) {
+            clearTimeout(heroNodeLeaveTimeout);
+            heroNodeLeaveTimeout = null;
+        }
+    }
+
+    function setHeroNodeState(node) {
+        if (activeHeroNode === node) return;
+        activeHeroNode = node || null;
+        heroNodes.forEach((item) => item.classList.toggle('is-hovered', item === activeHeroNode));
+        if (heroVisual) heroVisual.classList.toggle('is-node-hovered', Boolean(activeHeroNode));
+    }
+
+    if (finePointerQuery.matches && heroNodes.length) {
+        heroNodes.forEach((node) => {
+            node.addEventListener('pointerenter', () => {
+                clearHeroNodeLeave();
+                setHeroNodeState(node);
+            });
+            node.addEventListener('focusin', () => {
+                clearHeroNodeLeave();
+                setHeroNodeState(node);
+            });
+            node.addEventListener('pointerleave', () => {
+                clearHeroNodeLeave();
+                heroNodeLeaveTimeout = setTimeout(() => setHeroNodeState(null), 140);
+            });
+            node.addEventListener('focusout', () => {
+                clearHeroNodeLeave();
+                heroNodeLeaveTimeout = setTimeout(() => setHeroNodeState(null), 140);
+            });
+        });
+    }
+
     document.addEventListener('mousemove', (e) => {
-        if (scene && !body.classList.contains('scrolled')) {
+        if (scene && !body.classList.contains('scrolled') && !activeHeroNode) {
             const x = (window.innerWidth / 2 - e.clientX) / 60;
             const y = (window.innerHeight / 2 - e.clientY) / 60;
             scene.style.transform = `rotateY(${-x}deg) rotateX(${y}deg)`;

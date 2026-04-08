@@ -2268,15 +2268,19 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
                 clearHeroNodeLeave();
                 setHeroNodeState(node);
             });
-            node.addEventListener('pointerleave', () => {
-                clearHeroNodeLeave();
-                heroNodeLeaveTimeout = setTimeout(() => setHeroNodeState(null), 140);
-            });
-            node.addEventListener('focusout', () => {
-                clearHeroNodeLeave();
-                heroNodeLeaveTimeout = setTimeout(() => setHeroNodeState(null), 140);
-            });
         });
+        if (heroVisual) {
+            heroVisual.addEventListener('pointerenter', clearHeroNodeLeave);
+            heroVisual.addEventListener('pointerleave', () => {
+                clearHeroNodeLeave();
+                heroNodeLeaveTimeout = setTimeout(() => setHeroNodeState(null), 260);
+            });
+            heroVisual.addEventListener('focusout', () => {
+                if (heroVisual.contains(document.activeElement)) return;
+                clearHeroNodeLeave();
+                heroNodeLeaveTimeout = setTimeout(() => setHeroNodeState(null), 260);
+            });
+        }
     }
 
     document.addEventListener('mousemove', (e) => {

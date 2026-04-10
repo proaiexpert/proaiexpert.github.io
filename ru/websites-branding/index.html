@@ -1688,9 +1688,7 @@ footer{
 </style>
 <link href="/mobile-behavior-v123.css" rel="stylesheet"/>
 <link href="/mobile-pass-v141.css" rel="stylesheet"/>
-
-<link href="/web-showcase-proof.css" rel="stylesheet"/>
-</head>
+<link href="/web-showcase-proof.css" rel="stylesheet"/></head>
 <body class="theme-web lang-ru footer-primary-mobile page-standard mobile-pass-v123">
 <div class="bg-grid"></div>
 <div class="bg-thread"></div>
@@ -3130,41 +3128,37 @@ footer{
 
     @media (max-width: 980px){
         .art-stage{
-            width:102vw;
-            right:-1vw;
-            top:59.6%;
-            justify-content:center;
-            transform:translateY(-50%) scale(0.8);
-            transform-origin:center center;
+            width:100vw;
+            right:0;
+            justify-content:flex-end;
+            transform:translateY(-50%) scale(0.84);
+            transform-origin:center right;
         }
     }
 
     @media (max-width: 780px){
         .art-stage{
-            top:59.8%;
-            transform:translateY(-50%) scale(0.74);
+            transform:translateY(-50%) scale(0.68);
         }
     }
 
     @media (max-width: 640px){
         .art-stage{
-            width:108vw;
-            right:-4vw;
-            top:60.4%;
-            justify-content:center;
-            transform:translateY(-50%) scale(0.76);
-            transform-origin:center center;
+            width:112vw;
+            right:-6vw;
+            top:58.5%;
+            transform:translateY(-50%) scale(0.8);
+            transform-origin:center right;
         }
     }
 
     @media (max-width: 1100px) and (orientation: landscape), (max-height: 540px){
         .art-stage{
-            width:92vw;
-            right:0;
-            top:58.8%;
-            justify-content:center;
-            transform:translateY(-50%) scale(0.72);
-            transform-origin:center center;
+            width:94vw;
+            right:-2vw;
+            top:56%;
+            transform:translateY(-50%) scale(0.74);
+            transform-origin:center right;
         }
     }
 
@@ -3319,7 +3313,7 @@ footer{
 }
 </style>
 <link href="/mobile-behavior-v123.css" rel="stylesheet"/>
-</head>
+<link href="/mobile-pass-v136.css" rel="stylesheet"/><link href="/mobile-pass-v137.css" rel="stylesheet"/><link href="/mobile-pass-v138.css" rel="stylesheet"/></head>
 <body>
 <div class="hero-shell">
     <div class="environment">
@@ -3848,5 +3842,621 @@ footer{
 })();
 </script>
 <script src="/mobile-behavior-v123.js"></script>
+</body>
+</html></textarea>
+<script>
+    const body = document.body;
+
+    const webHeroMount = document.getElementById('webHeroMount');
+    const webHeroSrcdoc = document.getElementById('webHeroSrcdoc');
+
+    function mountWebHero(mount, source) {
+        if (!mount || !source || mount.dataset.mounted === 'true') return;
+
+        const parser = new DOMParser();
+        const heroDoc = parser.parseFromString(source, 'text/html');
+        heroDoc.querySelectorAll('script').forEach((node) => node.remove());
+
+        let styleText = heroDoc.querySelector('style')?.textContent || '';
+        styleText = styleText
+            .replace(/:root/g, '.web-art-root')
+            .replace(/html,\s*body\s*\{/g, '.web-art-root {')
+            .replace(/(^|\n)body\s*\{/g, '$1.web-art-root {');
+
+        const bodyMarkup = heroDoc.body?.innerHTML || '';
+        const shadow = mount.attachShadow({ mode: 'open' });
+        shadow.innerHTML = `
+            <style>
+                :host {
+                    display: block;
+                    width: 100%;
+                    height: 100%;
+                }
+
+                ${styleText}
+
+                .web-art-root {
+                    width: 100%;
+                    height: 100%;
+                    overflow: visible;
+                    background: transparent !important;
+                }
+
+                .web-art-root .hero-shell {
+                    width: 100%;
+                    height: 100%;
+                    overflow: visible;
+                    background: transparent !important;
+                    isolation: isolate;
+                }
+
+                .web-art-root .hero-shell::before,
+                .web-art-root .hero-shell::after,
+                .web-art-root .web-art-root::before,
+                .web-art-root .web-art-root::after {
+                    display: none !important;
+                    content: none !important;
+                }
+
+                .web-art-root .environment,
+                .web-art-root .field-lines,
+                .web-art-root .halo-layer,
+                .web-art-root .ribbon-stage,
+                .web-art-root .particles {
+                    inset: -6% -8%;
+                }
+
+                .web-art-root .art-stage {
+                    right: clamp(10px, 1.2vw, 28px);
+                    top: 62.6%;
+                    width: min(108%, 1080px);
+                    height: min(102%, 720px);
+                }
+
+                .web-art-root .field-lines,
+                .web-art-root .halo-layer,
+                .web-art-root .particles,
+                .web-art-root .ribbon-stage,
+                .web-art-root .ribbon-wrap,
+                .web-art-root .ribbon-travel,
+                .web-art-root .depth-haze,
+                .web-art-root .main-contact-shadow,
+                .web-art-root .left-contact-shadow {
+                    pointer-events: none !important;
+                }
+            
+/* footer normalization override: primary pages */
+footer{
+  padding:132px 0 52px 0 !important;
+}
+.f-backmark{
+  left:50% !important;
+  right:auto !important;
+  top:24px !important;
+  transform:translateX(-50%) !important;
+  font-size:clamp(120px,18vw,320px) !important;
+  font-weight:900 !important;
+  letter-spacing:-0.08em !important;
+  line-height:.9 !important;
+  color:rgba(255,255,255,.052) !important;
+  text-shadow:0 0 40px rgba(93,226,255,.09) !important;
+  white-space:nowrap !important;
+  pointer-events:none !important;
+  user-select:none !important;
+}
+.f-bottom .logo-block{
+  opacity:.36 !important;
+  transform:scale(.84) !important;
+  transform-origin:left !important;
+}
+@media (max-width: 900px){
+  .f-backmark{
+    top:42px !important;
+    font-size:clamp(88px,20vw,180px) !important;
+    letter-spacing:-0.06em !important;
+  }
+}
+
+
+/* FOOTER CANONICAL OVERRIDE v77 — main pages */
+footer{position:relative!important;overflow:hidden!important;padding:112px 0 40px!important;border-top:1px solid rgba(255,255,255,.08)!important}
+footer::after{content:""!important;position:absolute!important;left:50%!important;top:-108px!important;transform:translateX(-50%)!important;width:min(1040px,86vw)!important;height:230px!important;background:radial-gradient(circle, rgba(93,226,255,.055) 0%, rgba(0,122,255,.018) 38%, transparent 74%)!important;filter:blur(54px)!important;opacity:.36!important;pointer-events:none!important}
+.footer-container{position:relative!important;max-width:1600px!important;width:100%!important;margin:0 auto!important;padding:0 40px!important;z-index:2!important}
+.f-backmark{position:absolute!important;left:50%!important;top:18px!important;transform:translateX(-50%)!important;width:min(1340px,94vw)!important;text-align:center!important;font-size:clamp(148px,16.2vw,318px)!important;line-height:.82!important;font-weight:900!important;letter-spacing:-.078em!important;text-transform:uppercase!important;color:rgba(255,255,255,.048)!important;text-shadow:0 0 42px rgba(93,226,255,.08)!important;white-space:nowrap!important;pointer-events:none!important;user-select:none!important;-webkit-user-select:none!important;z-index:0!important}
+.f-top{display:grid!important;grid-template-columns:minmax(0,1.18fr) minmax(360px,.82fr)!important;gap:clamp(64px,7vw,120px)!important;align-items:start!important;margin-bottom:74px!important;position:relative!important;z-index:2!important}
+.f-contact-grid{display:grid!important;gap:42px!important;align-content:start!important;justify-items:start!important}
+.f-divider{position:relative!important;z-index:2!important;margin:0 0 18px!important}
+.f-bottom{display:grid!important;grid-template-columns:auto 1fr auto!important;align-items:end!important;gap:28px!important;position:relative!important;z-index:2!important}
+footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transform-origin:left bottom!important}
+@media (max-width: 980px){footer{padding:92px 0 34px!important}.footer-container{padding:0 24px!important}.f-backmark{top:22px!important;width:min(1100px,96vw)!important;font-size:clamp(92px,22vw,180px)!important}.f-top{grid-template-columns:1fr!important;gap:34px!important;margin-bottom:52px!important}.f-bottom{grid-template-columns:1fr!important;gap:16px!important}.f-contact-grid{gap:24px!important}}
+
+/* MOBILE HEADER RECOVERY v109 */
+@media (max-width: 980px) {
+  :root { --header-h: 78px; }
+  html, body { overflow-x: clip !important; }
+  header {
+    height: var(--header-h) !important;
+    background: rgba(5,5,6,0.78) !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
+  }
+  .header-container {
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+    overflow: hidden !important;
+  }
+  .logo-block {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    transform: none !important;
+  }
+  .logo-cube-container {
+    width: 28px !important;
+    height: 28px !important;
+    margin-right: 12px !important;
+  }
+  .logo-text {
+    font-size: clamp(22px, 7vw, 32px) !important;
+    letter-spacing: -0.04em !important;
+    white-space: nowrap !important;
+  }
+  .site-nav {
+    display: none !important;
+  }
+  .header-actions {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-left: auto !important;
+  }
+  .header-actions .start-btn {
+    display: none !important;
+  }
+  .lang-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 28px !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+  }
+  .mobile-menu-toggle {
+    display: inline-flex !important;
+    position: relative !important;
+    z-index: 1102 !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 999px !important;
+    flex: 0 0 44px !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .mobile-menu-toggle span {
+    width: 18px !important;
+  }
+  .site-nav.is-open {
+    display: flex !important;
+    position: fixed !important;
+    inset: 0 !important;
+    top: var(--header-h) !important;
+    z-index: 1100 !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    padding: max(24px, 5svh) 24px calc(34px + env(safe-area-inset-bottom)) !important;
+    min-height: calc(100svh - var(--header-h)) !important;
+    max-height: calc(100svh - var(--header-h)) !important;
+    overflow: auto !important;
+    background: linear-gradient(180deg, rgba(5,5,6,0.985) 0%, rgba(5,5,6,0.96) 100%) !important;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.46) !important;
+  }
+  .site-nav.is-open a {
+    width: 100% !important;
+    padding: 12px 0 !important;
+    font-size: clamp(20px, 7vw, 28px) !important;
+    line-height: 1.1 !important;
+  }
+}
+@media (max-width: 640px) {
+  .header-container {
+    gap: 10px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  .logo-cube-container {
+    width: 24px !important;
+    height: 24px !important;
+    margin-right: 10px !important;
+  }
+  .logo-text {
+    font-size: clamp(18px, 7vw, 28px) !important;
+  }
+  .lang-link {
+    font-size: 12px !important;
+  }
+  .mobile-menu-toggle {
+    width: 42px !important;
+    height: 42px !important;
+    flex-basis: 42px !important;
+  }
+}
+
+</style>
+            <div class="web-art-root">${bodyMarkup}</div>
+        `;
+
+        const root = shadow.querySelector('.web-art-root');
+        const panelMain = shadow.getElementById('panelMain');
+        const panelLeft = shadow.getElementById('panelLeft');
+        const panelRight = shadow.getElementById('panelRight');
+        const surfaceA = shadow.getElementById('surfaceA');
+        const surfaceB = shadow.getElementById('surfaceB');
+        const reflMain = shadow.getElementById('reflMain');
+        const reflLeft = shadow.getElementById('reflLeft');
+        const reflRight = shadow.getElementById('reflRight');
+        const reflSurfaceA = shadow.getElementById('reflSurfaceA');
+        const reflSurfaceB = shadow.getElementById('reflSurfaceB');
+        const ribbonBack = shadow.getElementById('ribbonBack');
+        const ribbonFront = shadow.getElementById('ribbonFront');
+        const ribbonSoft = shadow.getElementById('ribbonSoft');
+        const ribbonWrapBack = shadow.getElementById('ribbonWrapBack');
+        const ribbonWrapFront = shadow.getElementById('ribbonWrapFront');
+        const ribbonTravel = shadow.getElementById('ribbonTravel');
+        const glowA = shadow.getElementById('glowA');
+        const glowB = shadow.getElementById('glowB');
+        const glowC = shadow.getElementById('glowC');
+        const halo1 = shadow.getElementById('halo1');
+        const halo2 = shadow.getElementById('halo2');
+        const halo3 = shadow.getElementById('halo3');
+        const depthHaze = shadow.getElementById('depthHaze');
+        const mainContactShadow = shadow.getElementById('mainContactShadow');
+        const leftContactShadow = shadow.getElementById('leftContactShadow');
+        const mainEdgeGlow = shadow.getElementById('mainEdgeGlow');
+
+        if (!root || !panelMain || !panelLeft || !panelRight || !surfaceA || !surfaceB) return;
+
+        const state = { tx: 0, ty: 0, x: 0, y: 0 };
+
+        const onMove = (event) => {
+            const rect = root.getBoundingClientRect();
+            state.tx = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+            state.ty = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+        };
+
+        const reset = () => {
+            state.tx = 0;
+            state.ty = 0;
+        };
+
+        const setReflection = (el, intensity, spread, angleOffset = 0, xShift = 0) => {
+            if (!el) return;
+            const pos = 50 + state.x * 18 + xShift;
+            const angle = 112 + state.y * 10 + angleOffset;
+            el.style.background = `
+                linear-gradient(
+                    ${angle}deg,
+                    transparent ${pos - spread}%,
+                    rgba(255,255,255,${intensity}) ${pos}%,
+                    rgba(238,246,255,${intensity * 0.55}) ${pos + spread * 0.35}%,
+                    transparent ${pos + spread}%
+                )
+            `;
+        };
+
+        const animate = (now) => {
+            const t = now * 0.001;
+
+            state.x += (state.tx - state.x) * 0.07;
+            state.y += (state.ty - state.y) * 0.07;
+
+            const mx = state.x;
+            const my = state.y;
+
+            const floatMain = Math.sin(t * 0.85) * 6;
+            const floatLeft = Math.sin(t * 0.92 + 1.2) * 8;
+            const floatRight = Math.sin(t * 0.72 + 2.1) * 5;
+            const floatA = Math.sin(t * 1.06 + 0.5) * 6;
+            const floatB = Math.sin(t * 0.82 + 2.6) * 7;
+
+            panelMain.style.transform = `
+                translate3d(${124 + mx * 14}px, ${-18 + floatMain - my * 10}px, 42px)
+                rotateX(${-my * 5.2 - 1.0}deg)
+                rotateY(${mx * 9.2 - 10.2}deg)
+                rotateZ(${mx * 0.62}deg)
+            `;
+
+            panelLeft.style.transform = `
+                translate3d(${-72 + mx * 18}px, ${122 + floatLeft + my * 8}px, 132px)
+                rotateX(${3.6 - my * 3.2}deg)
+                rotateY(${16 + mx * 5.6}deg)
+                rotateZ(${-5.0 + my * 0.9}deg)
+            `;
+
+            panelRight.style.transform = `
+                translate3d(${156 + mx * 6}px, ${-134 + floatRight + my * 3}px, -118px)
+                rotateX(${10 - my * 1.4}deg)
+                rotateY(${-11 + mx * 3.8}deg)
+                rotateZ(${1.8 - mx * 0.3}deg)
+                scale(0.955)
+            `;
+
+            surfaceA.style.transform = `
+                translate3d(${12 + mx * 4}px, ${-126 + floatA + my * 2}px, -72px)
+                rotateX(${7 - my * 2.0}deg)
+                rotateY(${-7 + mx * 2.6}deg)
+                rotateZ(${-4 - mx * 0.35}deg)
+            `;
+
+            surfaceB.style.transform = `
+                translate3d(${286 + mx * 5}px, ${126 + floatB + my * 3}px, -92px)
+                rotateX(${-2 - my * 1.4}deg)
+                rotateY(${-18 + mx * 4.4}deg)
+                rotateZ(${12 + my * 0.7}deg)
+            `;
+
+            if (ribbonFront) ribbonFront.style.transform = `translate3d(${74 + mx * -12}px, ${my * -8}px, 0)`;
+            if (ribbonBack) ribbonBack.style.transform = `translate3d(${118 + mx * -14}px, ${my * -10}px, 0)`;
+            if (ribbonSoft) ribbonSoft.style.transform = `translate3d(${138 + mx * -16}px, ${my * -12}px, 0)`;
+            if (ribbonWrapBack) ribbonWrapBack.style.transform = `translate3d(${82 + mx * -6}px, ${my * -3}px, 0)`;
+            if (ribbonWrapFront) ribbonWrapFront.style.transform = `translate3d(${64 + mx * -8}px, ${my * -4}px, 0)`;
+            if (ribbonTravel) {
+                ribbonTravel.style.transform = `translate3d(${66 + mx * -10}px, ${my * -4}px, 0)`;
+                ribbonTravel.style.opacity = `${0.28 + Math.abs(mx) * 0.08}`;
+            }
+
+            if (glowA) glowA.style.transform = `translate3d(${mx * 10}px, ${my * 6}px, 0)`;
+            if (glowB) glowB.style.transform = `translate3d(${mx * -6}px, ${my * -4}px, 0)`;
+            if (glowC) glowC.style.transform = `translate3d(${mx * 4}px, ${my * -3}px, 0)`;
+            if (halo1) halo1.style.transform = `translate3d(${mx * -6}px, ${my * 4}px, 0) rotate(-7deg)`;
+            if (halo2) halo2.style.transform = `translate3d(${mx * -4}px, ${my * 3}px, 0) rotate(13deg)`;
+            if (halo3) halo3.style.transform = `translate3d(${mx * -2}px, ${my * 2}px, 0) rotate(-18deg)`;
+            if (depthHaze) depthHaze.style.transform = `translate(calc(-18% + ${mx * -5}px), calc(-50% + ${my * 3}px)) scale(${1 + Math.abs(mx) * 0.012})`;
+            if (mainContactShadow) mainContactShadow.style.transform = `translate(calc(-50% + ${mx * 4}px), calc(178px + ${my * 2}px)) scale(${1 + Math.abs(mx) * 0.01})`;
+            if (leftContactShadow) leftContactShadow.style.transform = `translate3d(${148 + mx * 6}px, ${470 + my * 2}px, 0) scale(${1 + Math.abs(mx) * 0.01})`;
+            if (mainEdgeGlow) mainEdgeGlow.style.opacity = `${0.88 + Math.abs(mx) * 0.06}`;
+
+            setReflection(reflMain, 0.142, 15, 0, 0);
+            setReflection(reflLeft, 0.084, 18, 3, -3);
+            setReflection(reflRight, 0.052, 17, -2, 3);
+            setReflection(reflSurfaceA, 0.070, 20, 6, -6);
+            setReflection(reflSurfaceB, 0.060, 18, -6, 8);
+
+            requestAnimationFrame(animate);
+        };
+
+        root.addEventListener('mousemove', onMove, { passive: true });
+        root.addEventListener('mouseleave', reset, { passive: true });
+
+        mount.dataset.mounted = 'true';
+        requestAnimationFrame(animate);
+    }
+
+    if (webHeroMount && webHeroSrcdoc) {
+        mountWebHero(webHeroMount, webHeroSrcdoc.value);
+    }
+    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+    const siteNav = document.querySelector('.site-nav');
+
+    function closeMobileMenu() {
+        if (!siteNav || !mobileMenuToggle) return;
+        siteNav.classList.remove('is-open');
+        mobileMenuToggle.classList.remove('is-open');
+        mobileMenuToggle.setAttribute('aria-expanded', 'false');
+        body.classList.remove('menu-open');
+    }
+
+    function openMobileMenu() {
+        if (!siteNav || !mobileMenuToggle) return;
+        siteNav.classList.add('is-open');
+        mobileMenuToggle.classList.add('is-open');
+        mobileMenuToggle.setAttribute('aria-expanded', 'true');
+        body.classList.add('menu-open');
+    }
+
+    if (mobileMenuToggle && siteNav) {
+        mobileMenuToggle.addEventListener('click', () => {
+            if (siteNav.classList.contains('is-open')) closeMobileMenu();
+            else openMobileMenu();
+        });
+
+        siteNav.querySelectorAll('a').forEach((link) => {
+            link.addEventListener('click', () => closeMobileMenu());
+        });
+    }
+
+    const reveals = document.querySelectorAll('.reveal');
+    document.querySelectorAll('main > section:not(#hero)').forEach((section) => {
+        section.querySelectorAll('.reveal').forEach((el, index) => {
+            el.style.setProperty('--reveal-delay', `${(index % 4) * 65}ms`);
+        });
+    });
+    const shortLandscapeReveal = window.matchMedia('(orientation: landscape) and (max-height: 540px)').matches;
+    if (shortLandscapeReveal) {
+        reveals.forEach((el) => el.classList.add('is-visible'));
+    } else {
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.06, rootMargin: '0px 0px -12px 0px' });
+
+        reveals.forEach((el) => revealObserver.observe(el));
+    }
+
+    const themedBody = document.body;
+    const activeObserver = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            entry.target.classList.toggle('is-active', entry.isIntersecting && entry.intersectionRatio > 0.42);
+        });
+    }, { threshold: [0.42, 0.68], rootMargin: '-6% 0px -10% 0px' });
+
+    document.querySelectorAll('.delta-item, .governance-card').forEach((el) => activeObserver.observe(el));
+
+    const protocolGroups = document.querySelectorAll('.protocol-steps');
+    if (protocolGroups.length) {
+        let protocolTicking = false;
+        const updateProtocolGroups = () => {
+            const anchor = window.innerHeight * 0.48;
+            protocolGroups.forEach((group) => {
+                const steps = Array.from(group.querySelectorAll('.protocol-step'));
+                let activeIndex = -1;
+                let bestDistance = Number.POSITIVE_INFINITY;
+                steps.forEach((step, index) => {
+                    const rect = step.getBoundingClientRect();
+                    const visible = rect.bottom > window.innerHeight * 0.18 && rect.top < window.innerHeight * 0.86;
+                    if (!visible) return;
+                    const center = rect.top + rect.height * 0.5;
+                    const distance = Math.abs(center - anchor);
+                    if (distance < bestDistance) {
+                        bestDistance = distance;
+                        activeIndex = index;
+                    }
+                });
+                group.classList.toggle('has-active', activeIndex !== -1);
+                steps.forEach((step, index) => {
+                    step.classList.toggle('is-active', index === activeIndex);
+                    step.classList.toggle('is-passed', activeIndex !== -1 && index < activeIndex);
+                });
+            });
+            protocolTicking = false;
+        };
+        const queueProtocolUpdate = () => {
+            if (protocolTicking) return;
+            protocolTicking = true;
+            window.requestAnimationFrame(updateProtocolGroups);
+        };
+        queueProtocolUpdate();
+        window.addEventListener('scroll', queueProtocolUpdate, { passive: true });
+        window.addEventListener('resize', queueProtocolUpdate);
+    }
+
+    document.querySelectorAll('.matrix-row').forEach((row) => {
+        row.addEventListener('mouseenter', () => {
+            row.parentElement?.querySelectorAll('.matrix-row').forEach((item) => item.classList.remove('is-focused'));
+            row.classList.add('is-focused');
+        });
+        row.addEventListener('mouseleave', () => row.classList.remove('is-focused'));
+    });
+
+    const entropyStage = document.querySelector('#entropy .entropy-grid');
+    if (entropyStage) {
+        let entropyFrame = null;
+        let ex = 0;
+        let ey = 0;
+        let tx = 0;
+        let ty = 0;
+        const strength = themedBody.classList.contains('theme-web') ? 10 : 8;
+        const renderEntropy = () => {
+            ex += (tx - ex) * 0.075;
+            ey += (ty - ey) * 0.075;
+            entropyStage.style.transform = `translate3d(${ex * 0.42}px, ${ey * 0.34}px, 0) rotateX(${(-ey / strength).toFixed(2)}deg) rotateY(${(ex / strength).toFixed(2)}deg)`;
+            if (Math.abs(tx - ex) > 0.02 || Math.abs(ty - ey) > 0.02) {
+                entropyFrame = requestAnimationFrame(renderEntropy);
+            } else {
+                entropyFrame = null;
+            }
+        };
+        const onEntropyMove = (event) => {
+            const rect = entropyStage.getBoundingClientRect();
+            tx = ((event.clientX - rect.left) / rect.width - 0.5) * 8;
+            ty = ((event.clientY - rect.top) / rect.height - 0.5) * 6;
+            if (!entropyFrame) entropyFrame = requestAnimationFrame(renderEntropy);
+        };
+        const resetEntropy = () => {
+            tx = 0;
+            ty = 0;
+            if (!entropyFrame) entropyFrame = requestAnimationFrame(renderEntropy);
+        };
+        entropyStage.style.transformStyle = 'preserve-3d';
+        entropyStage.style.willChange = 'transform';
+        entropyStage.addEventListener('mousemove', onEntropyMove, { passive: true });
+        entropyStage.addEventListener('mouseleave', resetEntropy, { passive: true });
+    }
+</script>
+<script id="mobile-header-global-fix-script">
+(function(){
+  const header = document.querySelector('header');
+  const siteNav = document.querySelector('.site-nav');
+  const menuToggle = document.querySelector('.mobile-menu-toggle');
+  if (!header) return;
+
+  const mobileQuery = window.matchMedia('(max-width: 1100px), ((max-height: 540px) and (orientation: landscape))');
+  let lastY = window.scrollY || 0;
+  let ticking = false;
+  const threshold = 10;
+
+  function syncHeaderVisibility(force){
+    if (!mobileQuery.matches) {
+      header.classList.remove('header-hidden');
+      lastY = window.scrollY || 0;
+      return;
+    }
+
+    const currentY = window.scrollY || 0;
+    const delta = currentY - lastY;
+    const menuOpen = !!(siteNav && siteNav.classList.contains('is-open'));
+
+    if (force || menuOpen || currentY < 20) {
+      header.classList.remove('header-hidden');
+      lastY = currentY;
+      return;
+    }
+
+    if (delta > threshold) {
+      header.classList.add('header-hidden');
+    } else if (delta < -threshold) {
+      header.classList.remove('header-hidden');
+    }
+
+    lastY = currentY;
+  }
+
+  function onScroll(){
+    if (!ticking) {
+      ticking = true;
+      window.requestAnimationFrame(function(){
+        syncHeaderVisibility(false);
+        ticking = false;
+      });
+    }
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('touchmove', onScroll, { passive: true });
+  window.addEventListener('orientationchange', function(){ setTimeout(function(){ syncHeaderVisibility(true); }, 120); });
+  window.addEventListener('resize', function(){ syncHeaderVisibility(true); });
+
+  if (menuToggle) {
+    menuToggle.addEventListener('click', function(){
+      setTimeout(function(){ syncHeaderVisibility(true); }, 0);
+    });
+  }
+
+  if (siteNav) {
+    siteNav.querySelectorAll('a').forEach(function(link){
+      link.addEventListener('click', function(){
+        setTimeout(function(){ syncHeaderVisibility(true); }, 0);
+      });
+    });
+  }
+
+  syncHeaderVisibility(true);
+})();
+</script>
+</div></div></section></main>
+<footer id="contact"><div class="footer-container"><div aria-hidden="true" class="f-backmark">PROAI EXPERT</div><div class="f-top"><div class="f-cta"><h2>Готовы обсудить<br/><span>сайт и брендинг для бизнеса?</span></h2><p>Если вам нужен более сильный сайт, более чёткое позиционирование и более убедительная подача бизнеса в онлайне, мы можем помочь определить правильный следующий шаг.</p><a class="f-cta-btn" href="/ru/contact/#project-intake">Обсудить проект</a></div><div class="f-contact-grid"><div class="f-contact-block"><span class="f-label">Контакт</span><a class="f-link" href="mailto:hello@proai-expert.com">hello@proai-expert.com</a><a class="f-link" href="https://t.me/proai_expert" style="font-size:16px; opacity:0.6; margin-top:10px;">@proai_expert</a></div><div class="f-contact-block"><span class="f-label">Фокус</span><a class="f-link subtle-link" href="/ru/ai-systems/">AI-системы</a><a class="f-link subtle-link" href="/ru/websites-branding/" style="margin-top:10px;">Сайты и брендинг</a></div></div></div><div aria-hidden="true" class="f-divider"></div><div class="f-bottom"><div class="logo-block" style="opacity:0.3; transform:scale(0.8); transform-origin:left;"><div class="logo-text">PROAI <span>EXPERT</span></div></div><div class="f-socials"><a href="https://www.linkedin.com/in/ihorhorb" rel="noopener noreferrer" target="_blank">LinkedIn</a><a href="https://t.me/proai_expert" rel="noopener noreferrer" target="_blank">Telegram</a></div><div class="f-copy">© 2026 ProAI Expert. AI-системы • Автоматизация бизнеса • Сайты и брендинг.</div></div></div></footer><script src="/web-showcase-proof.js"></script><script src="/mobile-behavior-v123.js"></script>
 </body>
 </html>

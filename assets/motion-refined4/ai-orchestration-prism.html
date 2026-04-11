@@ -29,7 +29,7 @@ body{
   background: transparent;
 }
 body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:0;}
-.stage-wrap{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:10px; background:transparent;}
+.stage-wrap{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; padding:18px; background:transparent;}
 .stage{
   position:relative;
   width:min(100%, 720px);
@@ -64,37 +64,12 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:0;}
   pointer-events:none;
 }
 canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
-.hud{position:absolute; left:22px; top:18px; z-index:2; display:flex; flex-direction:column; gap:8px; pointer-events:none}
-.kicker{
-  font-size:10px; letter-spacing:.34em; text-transform:uppercase; color:rgba(180,224,247,.78);
-  display:flex; align-items:center; gap:12px;
-}
-.kicker::before{
-  content:""; width:34px; height:1px;
-  background:linear-gradient(90deg, rgba(113,198,255,.95), rgba(113,198,255,0));
-  box-shadow:0 0 14px rgba(113,198,255,.36);
-}
-.title{font-size:15px; font-weight:600; letter-spacing:.02em; color:rgba(244,248,252,.92)}
-.note{
-  position:absolute; right:18px; bottom:16px; z-index:2; pointer-events:none;
-  font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:rgba(172,208,230,.38);
-}
-.badge{
-  position:absolute; left:22px; bottom:18px; z-index:2; pointer-events:none;
-  padding:8px 12px; border-radius:999px; font-size:10px; letter-spacing:.22em; text-transform:uppercase;
-  color:rgba(214,234,247,.62); border:1px solid rgba(145,188,220,.12);
-  background:linear-gradient(180deg, rgba(9,18,28,.58), rgba(7,14,23,.22));
-  backdrop-filter: blur(10px);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 10px 30px rgba(0,0,0,.18);
-}
 .vignette{position:absolute; inset:-10%; pointer-events:none; border-radius:38px; box-shadow: inset 0 0 190px rgba(0,0,0,.58)}
 </style>
 </head>
 <body>
 <div class="stage-wrap">
   <div class="stage" id="stage">
-    <div class="title">Orchestration Prism Array</div>
-    </div>
     <canvas id="canvas"></canvas>
     <div class="vignette"></div>
   </div>
@@ -196,7 +171,7 @@ const nodes = [
   vec(-148,128,-46), vec(0,148,-4), vec(146,126,-38)
 ];
 const routes = [[0,1],[1,2],[0,4],[1,4],[1,5],[2,5],[3,4],[4,5],[5,6],[3,7],[4,8],[5,8],[6,9],[7,8],[8,9],[4,5],[0,3],[2,6]];
-const dust = Array.from({length:64}, (_,i)=>([
+const dust = Array.from({length:36}, (_,i)=>([
   Math.random()*2-1,
   Math.random()*2-1,
   Math.random()*2-1,
@@ -211,9 +186,8 @@ function panelQuad(cx,cy,w,h,skew,depth){
   ];
 }
 const slabs = [
-  {q:panelQuad(0,0,244,196,28,-32), tint:'rgba(16,35,58,.54)', edge:'rgba(135,227,255,.46)'},
-  {q:panelQuad(0,0,196,146,22,8), tint:'rgba(12,25,42,.44)', edge:'rgba(226,244,255,.40)'},
-  {q:panelQuad(0,0,130,90,18,36), tint:'rgba(19,50,80,.30)', edge:'rgba(150,234,255,.58)'}
+  {q:panelQuad(0,0,186,138,20,6), tint:'rgba(12,25,42,.46)', edge:'rgba(226,244,255,.42)'},
+  {q:panelQuad(0,0,124,88,16,34), tint:'rgba(19,50,80,.32)', edge:'rgba(150,234,255,.58)'}
 ];
 function render(t){
   requestAnimationFrame(render);
@@ -240,7 +214,7 @@ function render(t){
   function xf(p){
     let q = add(p, vec(swayX, swayY + Math.sin(time*0.6 + p.x*.01)*2.5, 0));
     q = rotX(q, camRX); q = rotY(q, camRY); q = rotZ(q, camRZ);
-    return project(q, 690, 1);
+    return project(q, 690, 0.82);
   }
 
   slabs.forEach((slab, i)=>{
@@ -294,7 +268,7 @@ function render(t){
     fillCircle(p, 0.8 + (i%3)*0.2, 'rgba(185,231,255,'+(0.06 + 0.08*Math.sin(time*0.3+d[3])**2)+')', 4);
   }
 
-  const spine = [xf(vec(0,-132,-12)), xf(vec(0,0,18)), xf(vec(0,132,-10))];
+  const spine = [xf(vec(0,-116,-8)), xf(vec(0,0,14)), xf(vec(0,116,-8))];
   linePath(spine, 'rgba(210,243,255,.22)', 1.1, 8);
   fillCircle(spine[1], 5, 'rgba(178,235,255,.54)', 18);
 }

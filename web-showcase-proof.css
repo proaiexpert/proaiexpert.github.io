@@ -80,7 +80,7 @@
     position: relative;
     min-height: 720px;
     border-radius: 30px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .wbcs-stage-bg,
@@ -94,9 +94,10 @@
 .wbcs-stage-bg {
     border-radius: 30px;
     background:
-      radial-gradient(circle at 72% 28%, rgba(93,226,255,0.14), transparent 23%),
-      linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
-      linear-gradient(180deg, rgba(9,16,25,0.95) 0%, rgba(6,8,12,0.98) 100%);
+      radial-gradient(circle at 72% 26%, rgba(93,226,255,0.17), transparent 24%),
+      radial-gradient(circle at 38% 86%, rgba(93,226,255,0.07), transparent 28%),
+      linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)),
+      linear-gradient(180deg, rgba(9,16,25,0.94) 0%, rgba(5,8,12,0.99) 100%);
     border: 1px solid rgba(255,255,255,0.08);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 30px 80px rgba(0,0,0,0.34);
 }
@@ -127,17 +128,19 @@
 }
 
 .wbcs-desktop {
-    left: 6%;
-    top: 8%;
-    width: min(82%, 760px);
+    left: 8%;
+    top: 7%;
+    width: min(79%, 760px);
     border-radius: 22px;
     overflow: hidden;
     background: rgba(9,12,18,0.94);
     border: 1px solid rgba(255,255,255,0.08);
     box-shadow: 0 40px 110px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.02) inset;
-    transform: perspective(1600px) rotateY(-9deg) rotateX(4deg) translate3d(calc(var(--wbcs-shift-x) * 0.16), calc(var(--wbcs-shift-y) * 0.12), 0);
+    opacity: 0;
+    transform: perspective(1600px) rotateY(-9deg) rotateX(4deg) translate3d(calc(var(--wbcs-shift-x) * 0.16), calc(var(--wbcs-shift-y) * 0.12 + 42px), 0) scale(0.95);
     transform-origin: center center;
     z-index: 2;
+    transition: transform 0.95s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.7s ease;
 }
 
 .wbcs-desktop-bar {
@@ -181,27 +184,57 @@
     pointer-events: none;
 }
 
-.wbcs-phone {
+.wbcs-desktop::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -78px;
+    width: 108px;
+    height: 64px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, rgba(32,36,42,0.94), rgba(12,14,18,0.98));
+    clip-path: polygon(23% 0%, 77% 0%, 100% 100%, 0% 100%);
+    filter: drop-shadow(0 18px 24px rgba(0,0,0,0.44));
+    z-index: -1;
+}
+
+.wbcs-desktop::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -88px;
     width: 168px;
-    padding: 9px;
-    border-radius: 32px;
+    height: 8px;
+    border-radius: 999px;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, rgba(16,18,22,0.2), rgba(48,52,60,0.95) 50%, rgba(16,18,22,0.2));
+    box-shadow: 0 14px 30px rgba(0,0,0,0.52);
+    z-index: -1;
+}
+
+.wbcs-phone {
+    width: 154px;
+    padding: 8px;
+    border-radius: 30px;
     background: linear-gradient(180deg, #12161d, #060709);
     border: 1px solid rgba(255,255,255,0.08);
     box-shadow: 0 24px 54px rgba(0,0,0,0.64), 0 0 0 1px rgba(255,255,255,0.02) inset;
+    opacity: 0;
+    transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.7s ease;
 }
 
 .wbcs-phone-financial {
-    left: 8%;
-    bottom: 5%;
+    left: 10%;
+    bottom: 2%;
     z-index: 4;
-    transform: translate3d(calc(var(--wbcs-shift-x) * 0.2), calc(var(--wbcs-shift-y) * 0.18), 0) rotate(-7deg);
+    transform: translate3d(calc(var(--wbcs-shift-x) * 0.2 - 10px), calc(var(--wbcs-shift-y) * 0.18 + 56px), 0) rotate(-8deg);
 }
 
 .wbcs-phone-proai {
-    right: 5%;
-    bottom: 6%;
+    right: 4%;
+    bottom: 9%;
     z-index: 5;
-    transform: translate3d(calc(var(--wbcs-shift-x) * -0.14), calc(var(--wbcs-shift-y) * 0.14), 0) rotate(6deg);
+    transform: translate3d(calc(var(--wbcs-shift-x) * -0.14 + 10px), calc(var(--wbcs-shift-y) * 0.14 + 52px), 0) rotate(8deg);
 }
 
 .wbcs-phone-notch {
@@ -232,28 +265,20 @@
     pointer-events: none;
 }
 
-.wbcs-caption {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 14px 18px 18px;
-}
-
-.wbcs-caption strong {
-    font-size: 13px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #f3f6fa;
-}
-
-.wbcs-caption span {
-    font-size: 14px;
-    line-height: 1.5;
-    color: rgba(255,255,255,0.6);
-}
-
 .wbcs-shell.is-live .wbcs-desktop {
+    opacity: 1;
+    transform: perspective(1600px) rotateY(-9deg) rotateX(4deg) translate3d(calc(var(--wbcs-shift-x) * 0.16), calc(var(--wbcs-shift-y) * 0.12), 0) scale(1);
     box-shadow: 0 48px 125px rgba(0,0,0,0.62), 0 0 0 1px rgba(255,255,255,0.02) inset;
+}
+
+.wbcs-shell.is-live .wbcs-phone-financial {
+    opacity: 1;
+    transform: translate3d(calc(var(--wbcs-shift-x) * 0.2), calc(var(--wbcs-shift-y) * 0.18), 0) rotate(-8deg);
+}
+
+.wbcs-shell.is-live .wbcs-phone-proai {
+    opacity: 1;
+    transform: translate3d(calc(var(--wbcs-shift-x) * -0.14), calc(var(--wbcs-shift-y) * 0.14), 0) rotate(8deg);
 }
 
 @media (max-width: 1180px) {
@@ -310,14 +335,21 @@
         left: 5%;
         top: 5%;
         width: 90%;
+        opacity: 1;
         transform: none !important;
         border-radius: 18px;
+    }
+
+    .wbcs-desktop::before,
+    .wbcs-desktop::after {
+        display: none;
     }
 
     .wbcs-phone {
         width: 138px;
         padding: 7px;
         border-radius: 26px;
+        opacity: 1;
     }
 
     .wbcs-phone-screen {
@@ -325,15 +357,15 @@
     }
 
     .wbcs-phone-financial {
-        left: 5%;
-        bottom: 5%;
-        transform: rotate(-4deg) !important;
+        left: 4%;
+        bottom: 4%;
+        transform: rotate(-6deg) !important;
     }
 
     .wbcs-phone-proai {
-        right: 4%;
-        bottom: 6%;
-        transform: rotate(4deg) !important;
+        right: 2%;
+        bottom: 8%;
+        transform: rotate(6deg) !important;
     }
 }
 
@@ -377,6 +409,7 @@
         width: 84%;
         left: 6%;
         top: 7%;
+        opacity: 1;
         transform: none !important;
         border-radius: 16px;
     }
@@ -385,22 +418,11 @@
         height: 22px;
     }
 
-    .wbcs-caption {
-        padding: 10px 12px 12px;
-    }
-
-    .wbcs-caption strong {
-        font-size: 11px;
-    }
-
-    .wbcs-caption span {
-        font-size: 11px;
-    }
-
     .wbcs-phone {
         width: 102px;
         padding: 6px;
         border-radius: 22px;
+        opacity: 1;
     }
 
     .wbcs-phone-screen {
@@ -408,12 +430,12 @@
     }
 
     .wbcs-phone-financial {
-        left: 4%;
-        bottom: 2%;
+        left: 2%;
+        bottom: 1%;
     }
 
     .wbcs-phone-proai {
-        right: 3%;
-        bottom: 3%;
+        right: 1%;
+        bottom: 5%;
     }
 }

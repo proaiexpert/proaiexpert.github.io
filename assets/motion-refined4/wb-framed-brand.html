@@ -42,7 +42,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:0;}
 .stage::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 46%, rgba(91,190,255,.10), transparent 34%),radial-gradient(circle at 62% 54%, rgba(248,184,104,.05), transparent 44%);mix-blend-mode:screen;opacity:.42;}
 .stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg, rgba(255,255,255,.012), transparent 22%, transparent 78%, rgba(255,255,255,.015));opacity:.7;}
 canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
-.vignette{position:absolute; inset:0; pointer-events:none; border-radius:0; box-shadow: inset 0 0 140px rgba(0,0,0,.42)}
+.vignette{position:absolute; inset:0; pointer-events:none; border-radius:0; box-shadow: inset 0 0 90px rgba(0,0,0,.22)}
 </style>
 </head>
 <body>
@@ -115,14 +115,7 @@ function fillCircle(p,r,color,blur=0){
   ctx.save(); ctx.fillStyle=color; if(blur){ctx.shadowBlur=blur; ctx.shadowColor=color;}
   ctx.beginPath(); ctx.arc(p.x,p.y,r,0,TAU); ctx.fill(); ctx.restore();
 }
-function drawGrid(alpha=.08){
-  ctx.save();
-  ctx.strokeStyle='rgba(122,184,223,'+alpha+')';
-  ctx.lineWidth=1;
-  for(let x=40;x<W;x+=44){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-  for(let y=34;y<H;y+=44){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  ctx.restore();
-}
+function drawGrid(alpha=.08){}
 function bezier(a,b,c,d,t){
   const mt = 1-t;
   return {
@@ -144,9 +137,9 @@ function glowText(text,x,y,color){
 }
 
 const frames = [
-  {w:332,h:212,z:-22,sk:18,dx:-16,dy:8, border:'rgba(118,213,246,.34)', fillA:'rgba(8,16,25,.42)', fillB:'rgba(18,34,50,.12)'},
-  {w:276,h:176,z:12,sk:14,dx:8,dy:-10, border:'rgba(228,240,251,.32)', fillA:'rgba(10,18,28,.46)', fillB:'rgba(19,30,41,.10)'},
-  {w:218,h:132,z:44,sk:10,dx:26,dy:-24, border:'rgba(230,186,122,.28)', fillA:'rgba(12,23,34,.40)', fillB:'rgba(25,37,49,.10)'}
+  {w:362,h:232,z:-18,sk:18,dx:-10,dy:8, border:'rgba(118,213,246,.34)', fillA:'rgba(8,16,25,.42)', fillB:'rgba(18,34,50,.12)'},
+  {w:304,h:194,z:16,sk:14,dx:14,dy:-10, border:'rgba(228,240,251,.32)', fillA:'rgba(10,18,28,.46)', fillB:'rgba(19,30,41,.10)'},
+  {w:244,h:148,z:48,sk:10,dx:34,dy:-24, border:'rgba(230,186,122,.28)', fillA:'rgba(12,23,34,.40)', fillB:'rgba(25,37,49,.10)'}
 ];
 const rails = [
   {x:-112,y:-52,w:120,h:10,z:28,c:'rgba(127,218,246,.20)'},
@@ -154,7 +147,7 @@ const rails = [
   {x:-24,y:46,w:136,h:14,z:18,c:'rgba(230,243,252,.14)'},
   {x:-148,y:78,w:72,h:10,z:8,c:'rgba(127,218,246,.16)'}
 ];
-const guideDots = Array.from({length:24}, (_,i)=>({a:i/24*TAU, r:136 + (i%3)*22, y:(i%2?1:-1)*(20 + (i%5)*8)}));
+const guideDots = Array.from({length:18}, (_,i)=>({a:i/18*TAU, r:120 + (i%3)*20, y:(i%2?1:-1)*(18 + (i%5)*7)}));
 function quad(cx,cy,w,h,sk,z){
   return [vec(cx-w*.5+sk, cy-h*.5, z), vec(cx+w*.5+sk, cy-h*.5, z), vec(cx+w*.5-sk, cy+h*.5, z), vec(cx-w*.5-sk, cy+h*.5, z)];
 }
@@ -163,7 +156,6 @@ function render(t){
   pointer.x = lerp(pointer.x, pointer.tx, .05);
   pointer.y = lerp(pointer.y, pointer.ty, .05);
   ctx.clearRect(0,0,W,H);
-  drawGrid(.026);
   const time = t*0.001;
 
   const haze = ctx.createRadialGradient(W*0.52,H*0.48,12,W*0.52,H*0.48, W*.36);
@@ -177,7 +169,7 @@ function render(t){
     let q = add(p, vec(Math.sin(time*0.18+p.y*.01)*1.5, Math.cos(time*0.16+p.x*.008)*1.4, 0));
     q = rotX(q, camRX); q = rotY(q, camRY); q = rotZ(q, camRZ);
     q = add(q, vec(pointer.x*10, pointer.y*8, 0));
-    return project(q, 720, 1);
+    return project(q, 680, 1.18);
   }
 
   frames.forEach((f, idx)=>{

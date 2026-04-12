@@ -42,7 +42,7 @@ body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:0;}
 .stage::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 46%, rgba(91,190,255,.10), transparent 34%),radial-gradient(circle at 62% 54%, rgba(248,184,104,.05), transparent 44%);mix-blend-mode:screen;opacity:.42;}
 .stage::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg, rgba(255,255,255,.012), transparent 22%, transparent 78%, rgba(255,255,255,.015));opacity:.7;}
 canvas{position:absolute; inset:0; width:100%; height:100%; display:block}
-.vignette{position:absolute; inset:0; pointer-events:none; border-radius:0; box-shadow: inset 0 0 140px rgba(0,0,0,.42)}
+.vignette{position:absolute; inset:0; pointer-events:none; border-radius:0; box-shadow: inset 0 0 90px rgba(0,0,0,.22)}
 </style>
 </head>
 <body>
@@ -115,14 +115,7 @@ function fillCircle(p,r,color,blur=0){
   ctx.save(); ctx.fillStyle=color; if(blur){ctx.shadowBlur=blur; ctx.shadowColor=color;}
   ctx.beginPath(); ctx.arc(p.x,p.y,r,0,TAU); ctx.fill(); ctx.restore();
 }
-function drawGrid(alpha=.08){
-  ctx.save();
-  ctx.strokeStyle='rgba(122,184,223,'+alpha+')';
-  ctx.lineWidth=1;
-  for(let x=40;x<W;x+=44){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
-  for(let y=34;y<H;y+=44){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
-  ctx.restore();
-}
+function drawGrid(alpha=.08){}
 function bezier(a,b,c,d,t){
   const mt = 1-t;
   return {
@@ -144,9 +137,9 @@ function glowText(text,x,y,color){
 }
 
 const nodes = [
-  vec(-160,-118,-70), vec(0,-148,-30), vec(168,-116,-65),
-  vec(-198,10,18), vec(-58,-24,72), vec(74,-18,92), vec(208,12,14),
-  vec(-148,128,-46), vec(0,148,-4), vec(146,126,-38)
+  vec(-176,-128,-70), vec(0,-162,-30), vec(182,-126,-65),
+  vec(-214,12,18), vec(-64,-26,78), vec(82,-20,100), vec(224,14,14),
+  vec(-160,140,-46), vec(0,162,-4), vec(158,138,-38)
 ];
 const routes = [[0,1],[1,2],[0,4],[1,4],[1,5],[2,5],[3,4],[4,5],[5,6],[3,7],[4,8],[5,8],[6,9],[7,8],[8,9],[4,5],[0,3],[2,6]];
 const dust = Array.from({length:36}, (_,i)=>([
@@ -164,15 +157,14 @@ function panelQuad(cx,cy,w,h,skew,depth){
   ];
 }
 const slabs = [
-  {q:panelQuad(0,0,186,138,20,6), tint:'rgba(12,25,42,.46)', edge:'rgba(226,244,255,.42)'},
-  {q:panelQuad(0,0,124,88,16,34), tint:'rgba(19,50,80,.32)', edge:'rgba(150,234,255,.58)'}
+  {q:panelQuad(0,0,208,154,20,8), tint:'rgba(12,25,42,.46)', edge:'rgba(226,244,255,.42)'},
+  {q:panelQuad(0,0,142,102,16,38), tint:'rgba(19,50,80,.32)', edge:'rgba(150,234,255,.58)'}
 ];
 function render(t){
   requestAnimationFrame(render);
   pointer.x = lerp(pointer.x, pointer.tx, .05);
   pointer.y = lerp(pointer.y, pointer.ty, .05);
   ctx.clearRect(0,0,W,H);
-  drawGrid(.038);
   const time = t*0.001;
   const swayX = pointer.x*18;
   const swayY = pointer.y*14;
@@ -192,7 +184,7 @@ function render(t){
   function xf(p){
     let q = add(p, vec(swayX, swayY + Math.sin(time*0.6 + p.x*.01)*2.5, 0));
     q = rotX(q, camRX); q = rotY(q, camRY); q = rotZ(q, camRZ);
-    return project(q, 690, 0.82);
+    return project(q, 650, 0.98);
   }
 
   slabs.forEach((slab, i)=>{

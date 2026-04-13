@@ -58,10 +58,7 @@
         width:100%;
         height:100%;
         overflow:hidden;
-        background:
-            radial-gradient(1200px 720px at 18% 48%, rgba(93,226,255,0.038), transparent 62%),
-            radial-gradient(980px 660px at 88% 28%, rgba(41,112,255,0.060), transparent 62%),
-            linear-gradient(135deg, var(--bg-0) 0%, var(--bg-1) 42%, var(--bg-2) 100%);
+        background:transparent;
         color:#fff;
     }
 
@@ -71,10 +68,16 @@
 
     .hero-shell{
         position:relative;
-        width:100vw;
-        height:100vh;
+        width:100%;
+        height:100%;
         overflow:hidden;
         isolation:isolate;
+        -webkit-mask-image: radial-gradient(128% 122% at 58% 54%, rgba(0,0,0,1) 58%, rgba(0,0,0,0.96) 70%, rgba(0,0,0,0.84) 80%, rgba(0,0,0,0.52) 89%, rgba(0,0,0,0) 98%);
+        mask-image: radial-gradient(128% 122% at 58% 54%, rgba(0,0,0,1) 58%, rgba(0,0,0,0.96) 70%, rgba(0,0,0,0.84) 80%, rgba(0,0,0,0.52) 89%, rgba(0,0,0,0) 98%);
+        -webkit-mask-repeat:no-repeat;
+        mask-repeat:no-repeat;
+        -webkit-mask-size:100% 100%;
+        mask-size:100% 100%;
     }
 
     .environment,
@@ -318,10 +321,10 @@
 
     .art-stage{
         position:absolute;
-        top:47%;
-        right:2.8vw;
-        width:min(58vw, 980px);
-        height:min(72vh, 650px);
+        top:50%;
+        right:1.2vw;
+        width:min(56vw, 940px);
+        height:min(68vh, 620px);
         transform:translateY(-50%);
         z-index:10;
         display:flex;
@@ -332,12 +335,11 @@
 
     @media (min-width: 1100px){
         body.lang-ru .hero-embed{
-            margin-right:-1.1%;
-            transform:translateY(6px);
+            margin-right:-2.5%;
         }
         body.lang-ru .art-stage{
-            top:52.2%;
-            right:5.0vw;
+            top:50.5%;
+            right:1.6vw;
         }
     }
 
@@ -464,6 +466,7 @@
     }
 
     .panel-main{
+        border-color: transparent;
         width:660px;
         height:432px;
         left:50%;
@@ -475,11 +478,7 @@
         box-shadow:
             0 88px 172px rgba(0,0,0,0.92),
             0 32px 56px rgba(0,0,0,0.58),
-            0 10px 20px rgba(0,0,0,0.26),
-            inset 0 1px 0 rgba(255,255,255,0.21),
-            inset 0 -30px 52px rgba(0,0,0,0.32),
-            inset 1px 0 0 rgba(255,255,255,0.08),
-            inset -1px 0 0 rgba(134,200,255,0.038);
+            0 10px 20px rgba(0,0,0,0.26);
     }
 
     .panel-side{
@@ -502,6 +501,17 @@
         width:372px;
         height:236px;
         border-radius:28px;
+    }
+
+    .panel-main::before,
+    .panel-main::after{
+        display:none;
+    }
+
+    .main-edge-glow,
+    .main-thickness,
+    .main-rim{
+        display:none;
     }
 
     .panel-rear{
@@ -560,11 +570,10 @@
         pointer-events:none;
         border-radius:inherit;
         background:
-            linear-gradient(90deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.015) 6%, transparent 13%, transparent 88%, rgba(134,200,255,0.080) 96%, rgba(255,255,255,0.03) 100%),
-            linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.018) 10%, transparent 16%, transparent 84%, rgba(255,255,255,0.045) 100%),
-            radial-gradient(140% 100% at 0% 50%, rgba(134,200,255,0.030), transparent 22%),
-            radial-gradient(140% 100% at 100% 50%, rgba(93,226,255,0.040), transparent 22%);
-        opacity:0.76;
+            radial-gradient(96% 78% at 24% 14%, rgba(255,255,255,0.050), transparent 34%),
+            radial-gradient(88% 72% at 52% 54%, rgba(255,255,255,0.026), transparent 44%),
+            radial-gradient(92% 76% at 82% 40%, rgba(93,226,255,0.040), transparent 26%);
+        opacity:0.48;
         mix-blend-mode:screen;
     }
 
@@ -1164,9 +1173,9 @@
 
     @media (max-width: 1280px){
         .art-stage{
-            width:min(61vw, 920px);
-            height:min(70vh, 620px);
-            right:1.8vw;
+            width:min(58vw, 900px);
+            height:min(68vh, 600px);
+            right:0.5vw;
         }
 
         .panel-main{
@@ -1193,38 +1202,89 @@
 
     @media (max-width: 980px){
         .art-stage{
-            width:100vw;
-            right:0;
+            width:108vw;
+            right:-2vw;
+            top:50.8%;
             justify-content:flex-end;
-            transform:translateY(-50%) scale(0.84);
+            transform:translateY(-50%) scale(0.88);
             transform-origin:center right;
         }
+        .panel,
+        .micro-surface{
+            border-color:rgba(255,255,255,0.055);
+        }
+        .panel::after,
+        .micro-surface::after{
+            border-color:rgba(255,255,255,0.018);
+        }
+        .main-edge-glow{ opacity:0.58; }
+        .main-rim{ opacity:0.62; }
     }
 
     @media (max-width: 780px){
         .art-stage{
-            transform:translateY(-50%) scale(0.68);
+            width:112vw;
+            right:-3vw;
+            transform:translateY(-50%) scale(0.84);
         }
     }
 
     @media (max-width: 640px){
         .art-stage{
-            width:112vw;
-            right:-6vw;
-            top:58.5%;
-            transform:translateY(-50%) scale(0.8);
+            width:108vw;
+            right:0;
+            top:57.6%;
+            transform:translateY(-50%) scale(0.80);
             transform-origin:center right;
         }
+        .panel,
+        .micro-surface{
+            border-color:rgba(255,255,255,0.046);
+        }
+        .panel::after,
+        .micro-surface::after{
+            border-color:rgba(255,255,255,0.014);
+        }
+        .main-edge-glow{ opacity:0.46; }
+        .main-rim{ opacity:0.52; }
     }
 
     @media (max-width: 1100px) and (orientation: landscape), (max-height: 540px){
         .art-stage{
-            width:94vw;
+            width:108vw;
             right:-2vw;
-            top:56%;
-            transform:translateY(-50%) scale(0.74);
+            top:55.8%;
+            transform:translateY(-50%) scale(0.86);
             transform-origin:center right;
         }
+        .panel,
+        .micro-surface{
+            border-color:rgba(255,255,255,0.052);
+        }
+        .panel::after,
+        .micro-surface::after{
+            border-color:rgba(255,255,255,0.016);
+        }
+        .panel-main{
+            width:700px;
+            height:448px;
+            margin-left:-350px;
+            margin-top:-224px;
+            box-shadow:
+                0 72px 146px rgba(0,0,0,0.82),
+                0 22px 42px rgba(0,0,0,0.42),
+                0 8px 16px rgba(0,0,0,0.18);
+        }
+        #panelRight{
+            width:372px;
+            height:236px;
+        }
+        .main-edge-glow{ opacity:0.40; }
+        .main-rim{ opacity:0.44; }
+    }
+
+    @media (max-width: 1100px){
+        .panel-main, .panel-main::before, .panel-main::after{ border-color: transparent !important; }
     }
 
 /* footer normalization override: primary pages */
@@ -1640,6 +1700,35 @@ footer{
     .svc-motion-copy p { font-size: 15px; line-height: 1.64; }
 }
 
+
+    /* v216 mobile hero cleanup: remove hard frame feel on Websites & Branding hero */
+    @media (max-width: 640px){
+        .art-stage{
+            width:min(112vw, 700px);
+            height:min(66vh, 500px);
+            right:4vw;
+            top:56.5%;
+        }
+        .scene{ transform:scale(0.90); transform-origin:center center; }
+        .panel-main{ border-color: rgba(255,255,255,0.018); }
+        .panel-main::after{ opacity:0; border-color:transparent; }
+        .main-edge-glow{ opacity:0.15; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 1px 0 0 rgba(255,255,255,0.02), inset -1px 0 0 rgba(134,200,255,0.014), inset 0 16px 26px rgba(255,255,255,0.006); }
+        .main-thickness, .main-rim{ opacity:0.08; }
+    }
+
+    @media (max-width: 1100px) and (orientation: landscape), (max-height: 540px){
+        .art-stage{
+            width:min(108vw, 780px);
+            height:min(70vh, 388px);
+            right:0;
+            top:54.8%;
+        }
+        .scene{ transform:scale(0.92); transform-origin:center center; }
+        .panel-main{ border-color: rgba(255,255,255,0.016); }
+        .panel-main::after{ opacity:0; border-color:transparent; }
+        .main-edge-glow{ opacity:0.14; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), inset 1px 0 0 rgba(255,255,255,0.018), inset -1px 0 0 rgba(134,200,255,0.012), inset 0 16px 24px rgba(255,255,255,0.005); }
+        .main-thickness, .main-rim{ opacity:0.06; }
+    }
 </style>
 <link href="/mobile-behavior-v123.css" rel="stylesheet"/>
 <link href="/mobile-pass-v136.css" rel="stylesheet"/><link href="/mobile-pass-v137.css" rel="stylesheet"/><link href="/mobile-pass-v138.css" rel="stylesheet"/></head>

@@ -41,15 +41,6 @@
   if (siteNav) {
     const observer = new MutationObserver(syncMenuState);
     observer.observe(siteNav, { attributes: true, attributeFilter: ['class'] });
-
-    siteNav.querySelectorAll('a').forEach((link) => {
-      link.addEventListener('click', () => {
-        window.requestAnimationFrame(() => {
-          if (header) header.classList.remove('header-hidden');
-          syncMenuState();
-        });
-      });
-    });
   }
 
   window.addEventListener('hashchange', () => {

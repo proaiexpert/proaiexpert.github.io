@@ -23,8 +23,4 @@ After changes, report only:
 2. Which files changed
 3. How to verify
 4. Risks / what was intentionally not touched
-## Commit message output
-After changes, also provide:
 5. Commit title
-
-Provide commit description only if explicitly requested.

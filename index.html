@@ -2218,7 +2218,7 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
             scene.style.transform = `rotateY(${-x}deg) rotateX(${y}deg)`;
         }
 
-        if (splitSection) {
+        if (splitSection && divider) {
             const rect = splitSection.getBoundingClientRect();
             if (rect.top < window.innerHeight && rect.bottom > 0) {
                 const mouseX = e.clientX - rect.left;
@@ -2263,6 +2263,8 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
         } else {
             body.classList.remove('scrolled');
         }
+
+        if (!methodologyWrapper || !textZone || !lunarGlow) return;
 
         const pRect = methodologyWrapper.getBoundingClientRect();
         const progress = Math.max(0, Math.min(1, -pRect.top / (pRect.height - window.innerHeight)));
@@ -2344,7 +2346,8 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
     const caseMonitor = document.getElementById('monitor');
     const casePhone = document.getElementById('phone');
     const caseArea = document.getElementById('area');
-    const caseImages = caseSection.querySelectorAll('img');
+    const hasCaseDom = Boolean(caseSection && caseMonitor && casePhone && caseArea);
+    const caseImages = caseSection ? caseSection.querySelectorAll('img') : [];
 
     const caseObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
@@ -2356,7 +2359,7 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
         });
     }, { threshold: 0.3 });
 
-    if (caseSection) caseObserver.observe(caseSection);
+    if (hasCaseDom) caseObserver.observe(caseSection);
 
     let caseIsDragging = false;
     let caseCurrentX = 0;
@@ -2382,71 +2385,73 @@ footer .logo-block{opacity:.34!important;transform:scale(.84)!important;transfor
         casePhone.style.transform = 'translate(0, 0)';
     }
 
-    casePhone.addEventListener('dragstart', (e) => e.preventDefault());
-    caseImages.forEach(img => {
-        img.addEventListener('dragstart', (e) => e.preventDefault());
-    });
+    if (hasCaseDom) {
+        casePhone.addEventListener('dragstart', (e) => e.preventDefault());
+        caseImages.forEach((img) => {
+            img.addEventListener('dragstart', (e) => e.preventDefault());
+        });
 
-    caseArea.addEventListener('selectstart', (e) => {
-        if (caseIsDragging || e.target === casePhone || casePhone.contains(e.target)) {
+        caseArea.addEventListener('selectstart', (e) => {
+            if (caseIsDragging || e.target === casePhone || casePhone.contains(e.target)) {
+                e.preventDefault();
+            }
+        });
+
+        caseArea.addEventListener('mousemove', (e) => {
+            if (caseIsDragging) return;
+            const rect = caseArea.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width;
+            const y = (e.clientY - rect.top) / rect.height;
+
+            caseMonitor.style.transform = `translate(${(x - 0.5) * -30}px, ${(y - 0.5) * -15}px)`;
+            casePhone.style.transform = `translate(${(x - 0.5) * 50}px, ${(y - 0.5) * 30}px) rotate(${(x - 0.5) * 8}deg)`;
+        });
+
+        caseArea.addEventListener('mouseleave', () => {
+            if (!caseIsDragging) {
+                caseMonitor.style.transform = 'translate(0,0)';
+                casePhone.style.transform = 'translate(0,0) rotate(0)';
+            }
+        });
+
+        casePhone.addEventListener('mousedown', (e) => {
             e.preventDefault();
-        }
-    });
+            startCaseDrag();
+            caseStartX = e.clientX - caseCurrentX;
+            caseStartY = e.clientY - caseCurrentY;
+        });
 
-    caseArea.addEventListener('mousemove', (e) => {
-        if (caseIsDragging) return;
-        const rect = caseArea.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width;
-        const y = (e.clientY - rect.top) / rect.height;
+        window.addEventListener('mousemove', (e) => {
+            if (!caseIsDragging) return;
+            e.preventDefault();
+            caseCurrentX = e.clientX - caseStartX;
+            caseCurrentY = e.clientY - caseStartY;
+            casePhone.style.transform = `translate(${caseCurrentX}px, ${caseCurrentY}px) scale(1.02) rotate(2deg)`;
+        });
 
-        caseMonitor.style.transform = `translate(${(x - 0.5) * -30}px, ${(y - 0.5) * -15}px)`;
-        casePhone.style.transform = `translate(${(x - 0.5) * 50}px, ${(y - 0.5) * 30}px) rotate(${(x - 0.5) * 8}deg)`;
-    });
+        window.addEventListener('mouseup', stopCaseDrag);
+        window.addEventListener('blur', stopCaseDrag);
 
-    caseArea.addEventListener('mouseleave', () => {
-        if (!caseIsDragging) {
-            caseMonitor.style.transform = 'translate(0,0)';
-            casePhone.style.transform = 'translate(0,0) rotate(0)';
-        }
-    });
+        casePhone.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startCaseDrag();
+            const t = e.touches[0];
+            caseStartX = t.clientX - caseCurrentX;
+            caseStartY = t.clientY - caseCurrentY;
+        }, { passive: false });
 
-    casePhone.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        startCaseDrag();
-        caseStartX = e.clientX - caseCurrentX;
-        caseStartY = e.clientY - caseCurrentY;
-    });
+        window.addEventListener('touchmove', (e) => {
+            if (!caseIsDragging) return;
+            e.preventDefault();
+            const t = e.touches[0];
+            caseCurrentX = t.clientX - caseStartX;
+            caseCurrentY = t.clientY - caseStartY;
+            casePhone.style.transform = `translate(${caseCurrentX}px, ${caseCurrentY}px) scale(1.05)`;
+        }, { passive: false });
 
-    window.addEventListener('mousemove', (e) => {
-        if (!caseIsDragging) return;
-        e.preventDefault();
-        caseCurrentX = e.clientX - caseStartX;
-        caseCurrentY = e.clientY - caseStartY;
-        casePhone.style.transform = `translate(${caseCurrentX}px, ${caseCurrentY}px) scale(1.02) rotate(2deg)`;
-    });
-
-    window.addEventListener('mouseup', stopCaseDrag);
-    window.addEventListener('blur', stopCaseDrag);
-
-    casePhone.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        startCaseDrag();
-        const t = e.touches[0];
-        caseStartX = t.clientX - caseCurrentX;
-        caseStartY = t.clientY - caseCurrentY;
-    }, { passive: false });
-
-    window.addEventListener('touchmove', (e) => {
-        if (!caseIsDragging) return;
-        e.preventDefault();
-        const t = e.touches[0];
-        caseCurrentX = t.clientX - caseStartX;
-        caseCurrentY = t.clientY - caseStartY;
-        casePhone.style.transform = `translate(${caseCurrentX}px, ${caseCurrentY}px) scale(1.05)`;
-    }, { passive: false });
-
-    window.addEventListener('touchend', stopCaseDrag);
-    window.addEventListener('touchcancel', stopCaseDrag);
+        window.addEventListener('touchend', stopCaseDrag);
+        window.addEventListener('touchcancel', stopCaseDrag);
+    }
 </script>
 <script id="mobile-header-global-fix-script">
 (function(){

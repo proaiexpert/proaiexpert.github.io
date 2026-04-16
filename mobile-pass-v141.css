@@ -98,25 +98,79 @@ body.theme-web .cta-shell h2 {
   body.lang-ru.theme-web .hero-embed { transform: translate(-3%, -4px) !important; }
 }
 
-@media (max-width: 768px) {
-  body.theme-ai .hero-actions,
-  body.theme-web .hero-actions {
-    width: 100% !important;
-    max-width: 360px !important;
-    flex-direction: column !important;
+/*
+ * Theme hero (AI Systems + Websites & Branding, EN/RU): two CTAs in one row at all widths.
+ * Inline styles use flex-wrap:wrap on .hero-actions; narrow .hero-copy + nowrap .start-btn
+ * stacked the second CTA below on desktop. Landscape pass previously set flex-wrap:wrap again.
+ */
+body.theme-ai #hero .hero-actions,
+body.theme-web #hero .hero-actions {
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: stretch !important;
+  gap: clamp(8px, 1vw, 14px) !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+body.theme-ai #hero .hero-actions > .start-btn,
+body.theme-ai #hero .hero-actions > .secondary-btn,
+body.theme-web #hero .hero-actions > .start-btn,
+body.theme-web #hero .hero-actions > .secondary-btn {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0.04em !important;
+  white-space: normal !important;
+}
+
+/*
+ * Home page only: inline CSS stacks hero CTAs (column) for all viewports ≤980px.
+ * Portrait phones/tablets: same L–R row as theme pages; landscape ≤980px unchanged (separate rules).
+ */
+@media (max-width: 980px) and (orientation: portrait) {
+  body.page-home #hero .hero-cta-group {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     align-items: stretch !important;
-    gap: 10px !important;
-  }
-  body.theme-ai .hero-actions > .start-btn,
-  body.theme-ai .hero-actions > .secondary-btn,
-  body.theme-web .hero-actions > .start-btn,
-  body.theme-web .hero-actions > .secondary-btn {
     width: 100% !important;
-    min-height: 48px !important;
+    max-width: 100% !important;
+    gap: clamp(8px, 2.5vw, 12px) !important;
+  }
+  body.page-home #hero .hero-cta-group > .start-btn {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    box-sizing: border-box !important;
+    text-align: center !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0.03em !important;
+    white-space: normal !important;
+    min-height: 48px !important;
+    padding: 10px 8px !important;
+    font-size: clamp(10px, 2.8vw, 12px) !important;
+  }
+}
+
+/* Smaller type + padding on narrow viewports */
+@media (max-width: 1100px) {
+  body.theme-ai #hero .hero-actions > .start-btn,
+  body.theme-ai #hero .hero-actions > .secondary-btn,
+  body.theme-web #hero .hero-actions > .start-btn,
+  body.theme-web #hero .hero-actions > .secondary-btn {
+    min-height: 48px !important;
+    padding: 10px 8px !important;
+    font-size: clamp(10px, 2.5vw, 12px) !important;
   }
 }
 
@@ -151,23 +205,24 @@ body.theme-web .cta-shell h2 {
   body.theme-ai .hero-copy h1 { max-width: 8.8ch !important; font-size: clamp(30px, 4.8vw, 39px) !important; line-height: 0.96 !important; letter-spacing: -1.35px !important; margin-bottom: 12px !important; }
   body.lang-ru.theme-ai .hero-copy h1 { max-width: 8.1ch !important; }
   body.theme-ai .hero-copy p { font-size: 13px !important; line-height: 1.5 !important; max-width: 41ch !important; margin-bottom: 16px !important; }
-  body.theme-ai .hero-actions,
-  body.theme-web .hero-actions {
+  body.theme-ai #hero .hero-actions,
+  body.theme-web #hero .hero-actions {
     flex-direction: row !important;
-    flex-wrap: wrap !important;
-    width: auto !important;
-    max-width: none !important;
-    align-items: center !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    align-items: stretch !important;
     gap: 8px !important;
   }
-  body.theme-ai .hero-actions > .start-btn,
-  body.theme-ai .hero-actions > .secondary-btn,
-  body.theme-web .hero-actions > .start-btn,
-  body.theme-web .hero-actions > .secondary-btn {
+  body.theme-ai #hero .hero-actions > .start-btn,
+  body.theme-ai #hero .hero-actions > .secondary-btn,
+  body.theme-web #hero .hero-actions > .start-btn,
+  body.theme-web #hero .hero-actions > .secondary-btn {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
     width: auto !important;
     min-height: 44px !important;
-    padding: 12px 18px !important;
-    flex: 0 1 auto !important;
+    padding: 12px 10px !important;
   }
   body.theme-ai .hero-visual { min-height: 308px !important; justify-content: center !important; align-items: center !important; }
   body.theme-ai .hero-embed { width: min(100%, 760px) !important; min-height: 292px !important; margin: 0 auto !important; transform: translateY(0) !important; }

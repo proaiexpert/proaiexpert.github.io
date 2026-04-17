@@ -17,6 +17,13 @@
 - Keep changes scoped to the requested issue.
 - Stop after the requested change is done.
 
+## Social Preview Rule
+- All English pages must always use `https://proai-expert.com/screenshots/proai-home-en-desktop.png` for both `og:image` and `twitter:image`.
+- All Russian pages under `/ru/` must always use `https://proai-expert.com/screenshots/proai-home-ru-desktop.png` for both `og:image` and `twitter:image`.
+- English pages must use `ProAI Expert homepage preview` for `og:image:alt`.
+- Russian pages must use `Превью главной страницы ProAI Expert` for `og:image:alt`.
+- Do not use client or case images such as `case-financial-desktop.webp` as the default social preview for studio pages.
+
 ## Output format
 After changes, report only:
 1. What changed

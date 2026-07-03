@@ -65,6 +65,8 @@ Check:
 - No 404s caused by wrong relative paths.
 - Case-sensitive filenames match the deployed filesystem.
 
+OG/social checks here are only deployment path/cache checks: verify that assets are reachable, cache-busted when needed, and not stale after deployment. This document does not define OG/social content policy; handle that in the future social-preview/OG policy migration task.
+
 ## Live Acceptance Criteria
 
 - Expected commit is live.

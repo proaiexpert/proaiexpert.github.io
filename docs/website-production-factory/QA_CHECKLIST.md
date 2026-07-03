@@ -89,10 +89,7 @@ Use this as the general production QA checklist. Use `MOBILE_QA.md` for detailed
 - Do not ship hidden content that appears only if JavaScript succeeds.
 
 ## Deployment
-- Source HEAD equals intended commit.
-- `origin/main` equals intended commit.
-- Live cache-busted HTML/CSS checked.
-- Rendered live QA done before final ready status.
+- For source-vs-live, GitHub Pages, cache, CDN, asset-path, and deployment acceptance checks, run `DEPLOYMENT_QA.md`.
 
 ## Final QA Report
 - Files checked.

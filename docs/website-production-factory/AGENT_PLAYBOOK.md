@@ -36,9 +36,10 @@ See `CODEX_WORKFLOW.md` for the command-level Codex procedure.
 ## Freeze Policy
 
 - Treat stable main routes, demo pages, and live areas as frozen unless the task explicitly allows changes.
-- Only P0/P1 bugs justify touching frozen areas by default.
-- P2/P3 and polish changes require an explicit business reason and explicit scope.
+- P0/P1 fixes may justify touching stable or frozen areas by default.
+- P2/P3 and polish changes require an explicit business reason and explicit target-file scope.
 - Do not "improve" stable pages opportunistically.
+- Do not opportunistically improve stable pages or demo baselines.
 - Stop after the requested change is complete.
 
 ## Reporting Standard
@@ -61,6 +62,7 @@ Every report must include:
 - Rendering bugs require screenshot/browser QA.
 - Mobile blank-content bugs require rendered mobile QA.
 - Live/source mismatches require cache-busted checks.
+- Use the dedicated QA docs for full checklists; this section is only an escalation reminder.
 
 ## Stop Conditions
 

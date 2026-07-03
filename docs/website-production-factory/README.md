@@ -63,6 +63,7 @@ For a new Codex/agent session:
 ## Core Docs
 
 - `BLUEPRINT.md` - full operating model
+- `NEW_SITE_TASK_PACK.md` - operational starter pack for launching a new local-service site
 - `QUICK_START.md` - start a new site in 30-60 minutes
 - `PIPELINE.md` - phase-by-phase production workflow
 - `TEMPLATES.md` - reusable page templates

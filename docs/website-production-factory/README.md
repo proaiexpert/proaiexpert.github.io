@@ -32,6 +32,7 @@ The factory is not only a website. It is a repeatable pipeline:
 ## Related Docs
 
 - Recovery audit: `../recovery/`
+- Docs dedup/recovery audit: `../recovery/FACTORY_DOCS_DEDUP_AUDIT.md`
 
 ## Factory Rule
 

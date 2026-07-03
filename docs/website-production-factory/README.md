@@ -2,14 +2,38 @@
 
 This folder is the source-of-truth operating system for producing premium local-service websites across niches.
 
-The current testbed is:
+The current v2 reference implementation is:
 - Repo: `proaiexpert/handyman-vancouver-portland-demo`
 - Live demo: `https://proai-expert.com/handyman-vancouver-portland-demo/`
 - Demo business: `Local Repair Pro`
 
+Handyman Website v2 is not just a one-off demo. It is the reference implementation and testbed for the broader Website Production Factory. Use it to understand structure, conversion flow, mobile behavior, QA discipline, and proof-safe local-service patterns before adapting the system to a new niche.
+
 The factory is not only a website. It is a repeatable pipeline:
 
-`Research -> Intake -> Sitemap -> Copy -> Visual Direction -> Homepage Prototype -> QA -> Launch -> Reusable Template`
+`Intake -> Niche/Competitor Research -> Sitemap -> Conversion Strategy -> Copy Strategy -> Visual Direction -> Homepage Prototype -> QA -> Deployment -> Launch Readiness -> Reusable Template Extraction`
+
+## Reuse Boundaries
+
+Reusable across future sites:
+- structure logic
+- QA checklists
+- mobile behavior rules
+- local-service CRO patterns
+- intake-first strategy
+- trust architecture
+- deployment QA
+- Codex workflow
+- prompt/task patterns
+
+Client-specific for every new site:
+- business name, phone, email, and service area
+- real photos, reviews, testimonials, proof, and before/after examples
+- licenses, insurance, certifications, guarantees, warranties, and other claims
+- pricing and availability
+- language scope, URL structure, and deployment target
+
+Use `LOCAL_SERVICE_GUARDRAILS.md` before converting any reusable pattern into public client copy.
 
 ## Core Docs
 

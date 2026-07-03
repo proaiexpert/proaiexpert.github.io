@@ -27,16 +27,23 @@ Pages:
 
 ## UX/CRO Lessons
 
+- Finished-result hero imagery works better than defect/tools-first hero imagery for a premium local-service demo.
+- Before/after or scenario blocks can sit below the hero; they do not need to carry the first screen.
 - Header should include services, work examples, service area, pricing, guides, about, FAQ, phone, request CTA.
 - Footer should be compact and structured.
 - Local-service websites need clear request flow and mobile CTA.
 - Scenario imagery is safer than fake completed-project proof.
+- For handyman/home-service sites, a photo-based request flow is a strong default.
+- Service scope should be reviewed before scheduling.
+- Avoid fake portfolio, fake proof, and unsupported before/after claims.
 
 ## Mobile Lessons
 
 - Mobile QA is mandatory.
 - Test 430, 390, 375, 360, 320.
 - Sticky CTA must not cover content.
+- Mobile header and sticky CTA behavior need explicit click/visibility QA.
+- Horizontal galleries are risky on mobile unless carefully tested.
 - Mobile reliability beats animation.
 
 ## Reveal Bug Root Cause

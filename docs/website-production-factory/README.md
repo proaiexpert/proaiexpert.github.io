@@ -9,6 +9,8 @@ The current v2 reference implementation is:
 
 Handyman Website v2 is not just a one-off demo. It is the reference implementation and testbed for the broader Website Production Factory. Use it to understand structure, conversion flow, mobile behavior, QA discipline, and proof-safe local-service patterns before adapting the system to a new niche.
 
+The handyman demo is reference material only. Do not treat its demo business, visuals, scenarios, service areas, or proof language as verified client facts for another site.
+
 The factory is not only a website. It is a repeatable pipeline:
 
 `Intake -> Niche/Competitor Research -> Sitemap -> Conversion Strategy -> Copy Strategy -> Visual Direction -> Homepage Prototype -> QA -> Deployment -> Launch Readiness -> Reusable Template Extraction`
@@ -34,6 +36,29 @@ Client-specific for every new site:
 - language scope, URL structure, and deployment target
 
 Use `LOCAL_SERVICE_GUARDRAILS.md` before converting any reusable pattern into public client copy.
+
+## Read First
+
+For a new Codex/agent session:
+1. Read this `README.md`.
+2. Identify the task mode: docs-only, implementation, QA, deployment, or recovery.
+3. Read the relevant canonical docs before editing.
+4. Respect docs-only vs implementation scope.
+5. Report old HEAD, new HEAD, files changed, validation, and anything intentionally not changed.
+
+## Canonical Docs
+
+- Overall factory concept: `BLUEPRINT.md`
+- Production pipeline: `PIPELINE.md`
+- New-site startup: `QUICK_START.md` and `CHECKLIST_NEW_SITE.md`
+- Local-service claim safety and proof rules: `LOCAL_SERVICE_GUARDRAILS.md`
+- General rendered/browser QA: `QA_CHECKLIST.md`
+- Mobile QA: `MOBILE_QA.md`
+- Deployment/live-source/cache QA: `DEPLOYMENT_QA.md`
+- Codex execution workflow: `CODEX_WORKFLOW.md`
+- Agent scope, stop rules, and freeze policy: `AGENT_PLAYBOOK.md`
+- Handyman v2 lessons: `HANDYMAN_CASE_STUDY.md`
+- Reusable vs client-specific boundaries: this `README.md` and `BLUEPRINT.md`
 
 ## Core Docs
 

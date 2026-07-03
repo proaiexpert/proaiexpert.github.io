@@ -59,11 +59,7 @@ Use this as the general production QA checklist. Use `MOBILE_QA.md` for detailed
 - No blank strip or unwanted right-side whitespace.
 
 ## Content Safety
-- No fake reviews or ratings.
-- No fake license/insured/warranty claims.
-- No fake completed projects.
-- No guaranteed outcomes.
-- No "free estimate" or "free consultation" unless explicitly approved and true.
+- For claim safety, fake-proof prevention, demo/testbed wording, pricing, service-area, regulated-niche, and OG/social preview content policy, run `LOCAL_SERVICE_GUARDRAILS.md`.
 
 ## Accessibility Basics
 - Viewport meta.

@@ -32,6 +32,22 @@ Check:
 - Compare visible live behavior with source expectations.
 - If source and live disagree, document the exact mismatch before changing files.
 
+## Static-Site Smoke Routes
+
+Check:
+- `/`
+- `/ru/`
+- `/contact/`
+- `/ru/contact/`
+- `sitemap.xml`
+- `robots.txt`
+- canonical tags where relevant
+- hreflang tags where relevant
+- desktop header
+- mobile menu
+- one primary CTA path
+- one contact/form/request path if present
+
 ## Live Checks
 
 - cache-busted HTML URL
@@ -65,7 +81,7 @@ Check:
 - No 404s caused by wrong relative paths.
 - Case-sensitive filenames match the deployed filesystem.
 
-OG/social checks here are only deployment path/cache checks: verify that assets are reachable, cache-busted when needed, and not stale after deployment. This document does not define OG/social content policy; handle that in the future social-preview/OG policy migration task.
+OG/social checks here are only deployment path/cache checks: verify that assets are reachable, cache-busted when needed, and not stale after deployment. For OG/social preview content policy, use `LOCAL_SERVICE_GUARDRAILS.md`.
 
 ## Live Acceptance Criteria
 

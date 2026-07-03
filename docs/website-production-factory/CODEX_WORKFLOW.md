@@ -51,6 +51,14 @@ If the repo is dirty, behind unexpectedly, on the wrong branch, or not the inten
 - If deleting, moving, or renaming files appears necessary, stop and report.
 - If useful historical material might be lost, preserve it in a recovery note instead of removing it.
 
+## Bilingual / Static-Site Structure Discipline
+
+- Preserve existing EN/RU folder and URL structure.
+- Do not create random new folders or URL patterns unless explicitly requested.
+- Keep `/ru/` structure aligned with English pages where applicable.
+- Do not change slugs, canonical paths, sitemap structure, or language relationships without explicit scope.
+- Stop and report if the task appears to require URL structure changes.
+
 ## Final Report
 
 - repo

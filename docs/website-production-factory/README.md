@@ -66,17 +66,17 @@ For a new Codex/agent session:
 - `QUICK_START.md` - start a new site in 30-60 minutes
 - `PIPELINE.md` - phase-by-phase production workflow
 - `TEMPLATES.md` - reusable page templates
-- `PROMPT_LIBRARY.md` - reusable Codex/agent prompts
-- `QA_CHECKLIST.md` - desktop, mobile, content, link, deployment QA
+- `PROMPT_LIBRARY.md` - v2: 18 copy-paste-ready prompts (role/context/inputs/output/constraints/acceptance criteria each)
+- `QA_CHECKLIST.md` - v2: full acceptance checklist with pass/fail criteria and required evidence per section
 - `AGENT_PLAYBOOK.md` - how to manage Codex/agent work safely
-- `NICHE_ADAPTATION.md` - adapting to handyman, construction, accounting, clinics, and other niches
+- `NICHE_ADAPTATION.md` - v2: page-by-page adaptation playbook for 6 niches (handyman, construction, accounting, dental, medical, professional services)
 - `HANDYMAN_CASE_STUDY.md` - lessons from the current demo
 - `FACTORY_STATUS.md` - current state and next recommended actions
 - `CHECKLIST_NEW_SITE.md` - checklist for starting a new client/niche site
 - `LOCAL_SERVICE_GUARDRAILS.md` - safe copy and proof rules
-- `MOBILE_QA.md` - mobile-specific rendering checklist
+- `MOBILE_QA.md` - v2: full rendered mobile QA protocol, 20 checks across all required widths, pass/fail report template
 - `DEPLOYMENT_QA.md` - GitHub Pages/cache/live QA checklist
-- `CODEX_WORKFLOW.md` - recovery and production workflow for Codex
+- `CODEX_WORKFLOW.md` - v2: full Codex operating protocol (repo verification, wrong-repo prevention, commit/push rules, stop conditions, example commands/report)
 
 ## Related Docs
 

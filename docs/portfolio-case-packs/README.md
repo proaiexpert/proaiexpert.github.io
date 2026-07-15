@@ -6,8 +6,8 @@ Internal source-of-truth materials for building the ProAI Expert portfolio, Sele
 
 | Project | Folder | Public status | Case pack | Screenshots / evidence |
 |---|---|---|---|---|
-| Financial Stream LLC | `financial-stream/` | Live client project · ongoing optimization | Added and validated | 6 SEO/GSC originals validated; clean live portfolio captures pending |
-| Alina Horb Psychology Practice Website | `alina-horb/` | Live project — ongoing refinement | Added | Pending |
+| Financial Stream LLC | `financial-stream/` | Live client project · ongoing optimization | Added and validated | Existing desktop/mobile assets, owner testimonial, SEO/GSC evidence; expanded capture set in progress |
+| Alina Horb Psychology Practice Website | `alina-horb/` | Live project — ongoing refinement | Added | Pending after Financial Stream |
 | Local Repair Pro | `local-repair-pro/` | Website concept — in development | Added | Pending showcase cleanup and capture |
 
 ## Working rules
@@ -19,7 +19,7 @@ Internal source-of-truth materials for building the ProAI Expert portfolio, Sele
 5. Personal images, credentials, documents, testimonials, and identifying information require publication permission where applicable.
 6. Screenshot assets should be stored under each project folder in a future `screenshots/` directory, with desktop/mobile masters and web-ready derivatives clearly separated.
 7. Final public case-study copy should be shorter than the source packs and should preserve all claim, privacy, and safety constraints.
-8. Financial Stream payroll references are legacy conflicts and must not appear as a current service in public portfolio copy.
+8. Payroll is a confirmed, active Financial Stream service and may appear in current portfolio copy and screenshots when accurately represented.
 
 ## Current structure
 
@@ -45,10 +45,11 @@ docs/portfolio-case-packs/
     └── CASE_PACK.md
 ```
 
-## Current next actions
+## Current build order
 
-1. Confirm publication permissions for the Alina Horb project.
-2. Clean and verify the Local Repair Pro showcase before final screenshots.
-3. Remove legacy payroll references before capturing Financial Stream portfolio visuals.
-4. Capture approved desktop, mobile, section, full-page, SEO, and sanitized automation screenshot sets.
-5. Build the public `/work/` or `/portfolio/` architecture only after the evidence packs and image assets are ready.
+1. Upgrade the existing Financial Stream EN/RU case into the flagship portfolio case.
+2. Reuse the approved owner testimonial and existing desktop/mobile assets.
+3. Capture the missing website, intake, bilingual, content, SEO, and sanitized automation visuals.
+4. Build and publish the Alina Horb case in the same portfolio system.
+5. Clean the Local Repair Pro showcase, then build and publish its concept case.
+6. Update the case-study index and homepage Selected Work presentation after all three cases are ready.

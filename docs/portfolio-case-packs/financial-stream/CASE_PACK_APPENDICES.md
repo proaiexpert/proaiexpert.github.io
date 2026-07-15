@@ -26,6 +26,14 @@
 - https://proai-expert.com/case-studies/financial-stream/
 - https://proai-expert.com/ru/case-studies/financial-stream/
 
+Existing reusable proof on ProAI Expert:
+
+- Financial Stream desktop website asset;
+- Financial Stream mobile website asset;
+- homepage owner testimonial from Tetiana Horb;
+- EN/RU case-page owner perspective;
+- current case-study index card.
+
 ## Current integration URLs
 
 - Google Form: `https://docs.google.com/forms/d/e/1FAIpQLSeGVohbKaOOEevQnt3kPCTz7LuKFYxtgVx2o3trXWTPL7pIxw/viewform?usp=publish-editor`
@@ -49,8 +57,8 @@
 | Gmail | human-reviewed draft workflow | current screenshot/uplink | auto-sent client replies |
 | Twilio | architecture/testing | current production proof | fully live missed-call system |
 | SEO | dated GSC snapshot | query/page exports | universal ranking claim |
-| Services | bookkeeping, tax, DOR, setup, consulting | L&I exact scope | payroll |
-| Testimonials | owner quote if approved | each client approval | invented/fake reviews |
+| Services | bookkeeping, payroll, tax, DOR, setup, consulting and document review as currently offered | exact scope wording for specialized filings | unsupported guarantees or legal/representation claims |
+| Testimonials | approved Financial Stream owner quote currently published on ProAI Expert | approval for any additional client quote | invented/fake reviews |
 | Metrics | 3.88K/19/41 dated | 127+/300+ | unsupported growth |
 
 ---
@@ -59,7 +67,8 @@
 
 Portfolio refresh считается готовым, когда:
 
-- [ ] case copy не содержит payroll;
+- [x] payroll подтверждён владельцем как действующая услуга;
+- [ ] case copy точно отражает текущий service scope;
 - [ ] роли Tetiana и Ihor разделены;
 - [ ] показана EN/RU архитектура;
 - [ ] показаны обе формы;
@@ -70,12 +79,14 @@ Portfolio refresh считается готовым, когда:
 - [ ] manual SERP screenshot подписан как contextual;
 - [ ] Gmail assistant имеет sanitized proof;
 - [ ] partial Twilio layer не назван complete;
-- [ ] все screenshots сняты с current live site;
-- [ ] нет old ZIP assets;
+- [x] существующие desktop/mobile assets найдены;
+- [x] существующий owner testimonial найден;
+- [ ] testimonial section снят отдельным portfolio screenshot;
+- [ ] все новые screenshots сняты с current live site;
+- [ ] нет old ZIP website assets в публичном кейсе;
 - [ ] метрики имеют дату и фильтр;
-- [ ] testimonials имеют approval;
-- [ ] current ProAI case page исправлена;
-- [ ] EN/RU case pages синхронизированы.
+- [ ] EN/RU case pages синхронизированы;
+- [ ] Financial Stream case усилен до статуса flagship portfolio case.
 
 ---
 

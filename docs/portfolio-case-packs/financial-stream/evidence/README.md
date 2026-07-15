@@ -1,15 +1,26 @@
-# Evidence Manifest
+# Financial Stream Evidence
 
 These screenshots were supplied by the project owner and are preserved as internal supporting evidence for the Financial Stream portfolio case.
 
-## Files
+## Repository review copies
 
-1. `seo-serp-russian-accountant-seattle-01.png` — manual mobile Google SERP showing Financial Stream for a Russian-language Seattle accountant query.
-2. `seo-serp-russian-accountant-seattle-02.png` — additional mobile SERP view showing Financial Stream near other local Russian-speaking accounting results.
-3. `seo-serp-irs-inflation-article.png` — manual Google SERP showing a Financial Stream informational IRS article.
-4. `seo-gsc-performance-3-months.png` — Google Search Console three-month snapshot: 19 clicks and approximately 3.88K impressions.
-5. `seo-gsc-indexing-overview.png` — Google Search Console indexing snapshot: 41 indexed pages and 22 not indexed.
-6. `seo-gsc-noindex-notification.png` — Google Search Console notification concerning pages blocked by a `noindex` tag.
+1. `01-local-serp-ru-primary-excerpt.webp` — readable derivative of the first Russian-language local Google SERP screenshot.
+2. `02-local-serp-ru-secondary-excerpt.webp` — readable derivative of the second Russian-language local Google SERP screenshot.
+3. `03-irs-article-serp-excerpt.webp` — readable derivative showing a Financial Stream informational IRS article in Google results.
+4. `04-gsc-performance-excerpt.webp` — readable derivative of the Google Search Console three-month performance snapshot.
+5. `05-gsc-indexing-excerpt.webp` — readable derivative of the Google Search Console indexing overview.
+6. `06-gsc-noindex-notification-excerpt.webp` — readable derivative of the Google Search Console `noindex` notification.
+
+## Canonical source originals in the validated ZIP
+
+1. `seo-serp-russian-accountant-seattle-01.png`
+2. `seo-serp-russian-accountant-seattle-02.png`
+3. `seo-serp-irs-inflation-article.png`
+4. `seo-gsc-performance-3-months.png`
+5. `seo-gsc-indexing-overview.png`
+6. `seo-gsc-noindex-notification.png`
+
+Exact source-file sizes and SHA-256 hashes are recorded in `../SOURCE_PACKAGE_MANIFEST.md`. The WebP files in this directory are optimized internal derivatives, not byte-identical replacements for the source PNGs.
 
 ## Use rules
 

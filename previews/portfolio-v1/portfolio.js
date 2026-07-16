@@ -3,6 +3,18 @@
 (() => {
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const root = document.body;
+  const scriptElement = document.currentScript;
+
+  if (scriptElement?.src && !document.querySelector('link[data-pv-refinements]')) {
+    const refinementLink = document.createElement('link');
+    refinementLink.rel = 'stylesheet';
+    refinementLink.href = new URL('portfolio-refinements.css', scriptElement.src).href;
+    refinementLink.dataset.pvRefinements = 'true';
+    refinementLink.addEventListener('load', () => {
+      window.requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+    });
+    document.head.append(refinementLink);
+  }
 
   const revealItems = [...document.querySelectorAll('.pv-reveal')];
   if (reduceMotion || !('IntersectionObserver' in window)) {

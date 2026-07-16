@@ -39,14 +39,8 @@
     if (!sections.length || !railLinks.length) return;
     const anchor = window.innerHeight * 0.42;
     let activeId = sections[0].id;
-    let best = Infinity;
     sections.forEach((section) => {
-      const rect = section.getBoundingClientRect();
-      const distance = Math.abs(rect.top - anchor);
-      if (rect.bottom > 90 && distance < best) {
-        best = distance;
-        activeId = section.id;
-      }
+      if (section.getBoundingClientRect().top <= anchor) activeId = section.id;
     });
     railLinks.forEach((link) => {
       const isActive = link.getAttribute('href') === `#${activeId}`;
@@ -58,21 +52,46 @@
 
   const systemItems = [...document.querySelectorAll('.pv-system-item')];
   const systemDots = [...document.querySelectorAll('.pv-system-dot')];
+  const systemCore = document.querySelector('.pv-system-core');
+  const systemLabels = [
+    'Bilingual architecture',
+    'Services + Payroll',
+    'Structured intake',
+    'Calendar after context',
+    'Content + SEO',
+    'AI support + human control'
+  ];
+  let lastSystemIndex = 0;
+
+  const renderSystemCore = (index) => {
+    if (!systemCore) return;
+    systemCore.setAttribute('aria-live', 'polite');
+    systemCore.setAttribute('aria-atomic', 'true');
+    systemCore.replaceChildren();
+    const label = document.createElement('small');
+    label.textContent = `Active layer ${String(index + 1).padStart(2, '0')}`;
+    const value = document.createElement('span');
+    value.textContent = systemLabels[index] || systemLabels[0];
+    systemCore.append(label, value);
+  };
+
   const updateSystem = () => {
     if (!systemItems.length) return;
     const anchor = window.innerHeight * 0.52;
-    let activeIndex = 0;
     let best = Infinity;
+    let candidate = lastSystemIndex;
     systemItems.forEach((item, index) => {
       const rect = item.getBoundingClientRect();
       const distance = Math.abs(rect.top + rect.height / 2 - anchor);
       if (rect.bottom > 0 && rect.top < window.innerHeight && distance < best) {
         best = distance;
-        activeIndex = index;
+        candidate = index;
       }
     });
-    systemItems.forEach((item, index) => item.classList.toggle('is-active', index === activeIndex));
-    systemDots.forEach((dot, index) => dot.style.opacity = index === activeIndex ? '1' : '.16');
+    lastSystemIndex = candidate;
+    systemItems.forEach((item, index) => item.classList.toggle('is-active', index === candidate));
+    systemDots.forEach((dot, index) => { dot.style.opacity = index === candidate ? '1' : '.16'; });
+    renderSystemCore(candidate);
   };
 
   let ticking = false;

@@ -2,22 +2,25 @@
 
 Internal source-of-truth materials for building the ProAI Expert Case Studies archive, individual EN/RU case pages, homepage/service-page proof modules, screenshot sets, and supporting promotional assets.
 
-## Master planning documents
+## Start here
 
-Use these first:
+1. `PORTFOLIO_REBRAND_CURRENT_HANDOFF.md` — current operational status, latest corrections, rejected work, exact next action, and session rules.
+2. `PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md` — strategic architecture, integration matrix, safe rollout, QA and rollback.
+3. `PORTFOLIO_EXPERIENCE_BLUEPRINT.md` — approved visual and interaction direction.
+4. `VISUAL_ASSET_CORRECTION_2026-07-15.md` — binding real-visual rule and rejected synthetic work.
+5. `REAL_SCREENSHOT_CAPTURE_TASK.md` — baseline screenshot capture requirements.
+6. `PORTFOLIO_PREIMPLEMENTATION_REVIEW_TASK.md` — independent architecture/design/deployment review before implementation.
+7. `PORTFOLIO_DESIGN_REVIEW_TASK.md` — focused visual and interaction critique.
 
-1. `PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md` — current-state audit, final architecture, integration matrix, safe rollout, QA and rollback.
-2. `PORTFOLIO_EXPERIENCE_BLUEPRINT.md` — approved visual and interaction direction.
-3. `PORTFOLIO_PREIMPLEMENTATION_REVIEW_TASK.md` — independent architecture/design/deployment review before implementation.
-4. `PORTFOLIO_DESIGN_REVIEW_TASK.md` — focused visual and interaction critique.
+The current handoff controls operational status when older planning documents contain stale completion statements. Strategic architecture remains controlled by the master plan.
 
 ## Projects
 
 | Priority | Project | Folder / route role | Public status | Production state |
 |---:|---|---|---|---|
-| 1 | Financial Stream LLC | `financial-stream/` · primary flagship client case | Live client project · ongoing optimization | Research complete; V2 ready after source/live parity recovery |
-| 2 | Alina Horb Psychology Practice Website | `alina-horb/` · primary portfolio case | Live project · ongoing refinement | Case pack complete; permissions and production follow Financial Stream prototype |
-| 3 | Local Repair Pro | `local-repair-pro/` · primary concept/showcase case | Website concept · in development | Case pack complete; showcase cleanup required before capture |
+| 1 | Financial Stream LLC | `financial-stream/` · primary flagship client case | Live client project · ongoing optimization | Research complete; screenshot package requires renewed visual audit before case production |
+| 2 | Alina Horb Psychology Practice Website | `alina-horb/` · primary portfolio case | Live project · ongoing refinement | Case pack complete; current real screenshots not yet approved |
+| 3 | Local Repair Pro | `local-repair-pro/` · primary concept/showcase case | Website concept · in development | Case pack complete; current real screenshots not yet approved |
 | Secondary | ProAI Expert | existing `/case-studies/proai-expert/` studio case | Internal studio project · live | Preserve existing EN/RU URLs; show as secondary Studio Case rather than deleting it |
 
 ## Final portfolio architecture
@@ -50,14 +53,19 @@ Do not create a competing `/work/` or `/portfolio/` architecture.
 8. Existing public routes must not be deleted without preservation or deliberate redirects.
 9. Do not modify public portfolio HTML/CSS/JS directly in `main`.
 10. Resolve source/live parity and create a backup point before any implementation branch work.
+11. Closed GitHub issues, image dimensions, checksums, and capture logs do not equal visual approval.
+12. Do not batch-capture or replace a full screenshot package before one actual raw test image is visually approved.
 
 ## Current structure
 
 ```text
 docs/portfolio-case-packs/
 ├── README.md
+├── PORTFOLIO_REBRAND_CURRENT_HANDOFF.md
 ├── PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md
 ├── PORTFOLIO_EXPERIENCE_BLUEPRINT.md
+├── VISUAL_ASSET_CORRECTION_2026-07-15.md
+├── REAL_SCREENSHOT_CAPTURE_TASK.md
 ├── PORTFOLIO_PREIMPLEMENTATION_REVIEW_TASK.md
 ├── PORTFOLIO_DESIGN_REVIEW_TASK.md
 ├── financial-stream/
@@ -89,29 +97,32 @@ docs/portfolio-case-packs/
 
 Use documents in this order:
 
-1. `CASE_V2_MASTER_BRIEF.md`
-2. `CASE_V2_BUILD_TASK.md`
-3. `PACKAGE_STATUS.md`
-4. `SCREENSHOT_MANIFEST.md`
-5. `EVIDENCE_INDEX.md`
-6. legacy source-pack parts only for additional historical detail
+1. `PORTFOLIO_REBRAND_CURRENT_HANDOFF.md` for current operational status.
+2. `financial-stream/CASE_V2_MASTER_BRIEF.md` for case strategy and verified facts.
+3. `financial-stream/CASE_V2_BUILD_TASK.md` for the intended case build.
+4. `financial-stream/PACKAGE_STATUS.md` for source/evidence package tracking.
+5. `financial-stream/SCREENSHOT_MANIFEST.md` after it has been updated with visually approved files.
+6. `financial-stream/EVIDENCE_INDEX.md` for evidence framing.
+7. legacy source-pack parts only for additional historical detail.
 
 The V2 master brief supersedes older internal statements that treated Payroll as obsolete or required its removal.
 
 ## Current production order
 
-1. Resolve the live/source deployment mismatch and selectively restore the existing Case Studies source in a non-main branch.
-2. Create the archive + Financial Stream opening prototype defined in the experience blueprint.
-3. Run the independent pre-implementation review and incorporate blocking corrections.
-4. Build the complete Financial Stream EN/RU flagship case.
-5. Build the scalable Case Studies archive while preserving the existing ProAI Expert studio case.
-6. Build the Alina Horb case after permission and evidence checks.
-7. Clean and build the Local Repair Pro concept case.
-8. Integrate homepage, Websites & Branding, optional AI Systems proof, navigation, footer, sitemap, metadata and redirects.
-9. Run full no-regression QA and perform one controlled launch.
+1. Complete the Financial Stream screenshot visual audit and obtain one approved replacement test.
+2. Finish the visually approved Financial Stream screenshot set and manifest.
+3. Resolve or fully document the live/source deployment mismatch before public implementation.
+4. Update the archive + Financial Stream prototype using only approved real captures.
+5. Run the independent pre-implementation review and incorporate blocking corrections.
+6. Build the complete Financial Stream EN/RU flagship case.
+7. Build the scalable Case Studies archive while preserving the existing ProAI Expert studio case.
+8. Capture and build the Alina Horb case after permission and evidence checks.
+9. Clean, capture, and build the Local Repair Pro concept case.
+10. Integrate homepage, Websites & Branding, optional AI Systems proof, navigation, footer, sitemap, metadata and redirects.
+11. Run full no-regression QA and perform one controlled launch.
 
 ## P0 source/live mismatch
 
-The live ProAI `/case-studies/` routes currently display full EN/RU archive and case pages, while current `main` contains a redirect at `case-studies/index.html`, omits the RU archive source through the Contents API, and does not represent Case Studies in the sitemap. Git history includes commit `5fa342a64b464493a0935047c7c84d6c3884c4f0` labelled `Delete case-studies directory`.
+The live ProAI `/case-studies/` routes have displayed full EN/RU archive and case pages, while current `main` contains a redirect at `case-studies/index.html`, omits the RU archive source through the Contents API, and does not represent Case Studies in the sitemap. Git history includes commit `5fa342a64b464493a0935047c7c84d6c3884c4f0` labelled `Delete case-studies directory`.
 
-Do not overwrite or rebuild the live case pages from an arbitrary historical file until the actual deployment source is identified and source/live parity is restored.
+Do not overwrite or rebuild the live case pages from an arbitrary historical file until the actual deployment source is identified and source/live parity is restored or fully documented.

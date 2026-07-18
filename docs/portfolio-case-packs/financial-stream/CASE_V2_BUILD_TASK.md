@@ -2,44 +2,57 @@
 
 ## Role
 
-Act as the implementation agent for the ProAI Expert website repository.
+Act as the technical implementation agent for the ProAI Expert website repository.
 
-## Goal
-
-Rebuild the existing Financial Stream LLC portfolio case as the strongest real-client case on ProAI Expert, using the verified materials in:
-
-`docs/portfolio-case-packs/financial-stream/CASE_V2_MASTER_BRIEF.md`
-
-Do not restart research. Do not redesign the entire ProAI website. Do not create a separate `/work/` system.
-
-Use the existing Case Studies architecture:
-
-- `/case-studies/`
-- `/ru/case-studies/`
-- `/case-studies/financial-stream/`
-- `/ru/case-studies/financial-stream/`
+Strategy, final structure, claims, metrics and selected visuals are already locked. Do not restart research or redesign the portfolio architecture.
 
 ---
 
-## Critical facts
+## Repository and branch
 
-1. **Payroll is an active Financial Stream service.**
-   - Do not remove it.
-   - Do not label it legacy.
-   - Include it naturally in service architecture and relevant screenshots.
+Repository:
 
-2. Financial Stream is a real live client project.
+`proaiexpert/proaiexpert.github.io`
 
-3. Tetiana Horb is the owner of Financial Stream LLC.
+Work only on:
 
-4. Use only verified claims. Do not invent traffic, lead, conversion or revenue outcomes.
+`portfolio-rebrand-v1`
 
-5. Automation status must be separated into:
-   - live / implemented;
-   - tested / partial;
-   - planned.
+Do not:
 
-6. The existing live Financial Stream case must not be overwritten from an old historical HTML file without first resolving source/live parity.
+- modify `main`;
+- publish;
+- create a PR;
+- change the production custom domain;
+- rewrite unrelated homepage, service or Insights code;
+- create a competing `/work/` or `/portfolio/` route system.
+
+---
+
+## Required source documents
+
+Read in this order:
+
+1. `docs/portfolio-case-packs/PORTFOLIO_REBRAND_CURRENT_HANDOFF.md`
+2. `docs/portfolio-case-packs/PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md`
+3. `docs/portfolio-case-packs/financial-stream/CASE_V2_MASTER_BRIEF.md`
+4. `docs/portfolio-case-packs/financial-stream/SCREENSHOT_MANIFEST.md`
+5. `docs/portfolio-case-packs/financial-stream/EVIDENCE_INDEX.md`
+
+Do not use older dated notes to override these files.
+
+---
+
+## Final goal
+
+Implement the Financial Stream flagship case in English and Russian:
+
+- `/case-studies/financial-stream/`
+- `/ru/case-studies/financial-stream/`
+
+The pages must present a real bilingual accounting, Payroll and tax-support website system built around trust, structured intake, content/search depth and practical AI-assisted operations.
+
+This task does **not** build the full Alina or Local Repair cases and does not perform final site-wide integration.
 
 ---
 
@@ -47,119 +60,126 @@ Use the existing Case Studies architecture:
 
 ### Problem
 
-The live ProAI URLs currently show full case-study pages, but the current `main` branch contains a redirect at `case-studies/index.html`, and the Financial Stream case HTML is not available through the current GitHub Contents API.
+The live ProAI Case Studies URLs have displayed full pages, while current `main` does not cleanly contain the matching source tree.
 
 ### Required investigation
 
-Determine the actual source used by the live deployment:
+1. Record current branch and `main` HEAD values.
+2. Inspect GitHub Pages settings and deployment source.
+3. Inspect relevant workflow files, recent Pages runs and available artifacts.
+4. Inspect relevant branches and historical Case Studies commits.
+5. Save current live EN/RU Financial Stream HTML and asset references for comparison.
+6. Determine whether live pages are served from:
+   - a historical Pages deployment;
+   - another branch;
+   - a workflow artifact;
+   - a cache/proxy layer;
+   - another verified source.
+7. Identify the latest complete source that matches the current live narrative and shell.
+8. Restore only required source files into `portfolio-rebrand-v1`.
+9. Reproduce the existing routes locally before V2 changes.
+10. Confirm that homepage, service pages, Insights and language routes are not reverted.
 
-- inspect GitHub Pages settings and deployment workflow;
-- inspect recent Pages deployments and artifacts;
-- inspect branches and workflow outputs;
-- determine whether Cloudflare or another cache/deployment layer serves historical files;
-- compare live HTML with historical refs.
-
-Useful historical refs:
-
-- `a3108b66b3601ce04542492c7328689d3e7c50eb`
-- `2a1d6095a93415c7528fa67be7472d78c33b1aa9`
-- `90e1da831ba48a17542f2ba4759c1b456c978025`
+Useful historical references remain documented in the master plan and prior Git history. Restoration must be selective, not a repository rollback.
 
 ### Gate
 
-Before changing public pages, document:
+Continue to implementation only if:
 
-- current real source branch or artifact;
-- exact source file paths;
-- whether the live pages are stale cached files;
-- safest method to restore the pages into the current source of truth.
+- the active source can be explained;
+- a safe recovery method is documented;
+- relevant routes work locally on the working branch;
+- no unrelated current work is reverted.
 
-Do not proceed with blind replacement.
+If the source cannot be resolved safely, stop and report the blocker. Do not guess and do not overwrite the live case.
 
 ---
 
-## Phase 1 — Preserve and inventory existing assets
+## Phase 1 — Preserve and prepare selected assets
 
-### Confirmed current-main assets
+### Canonical PNG masters
 
-- `assets/img/cases/financial-stream/fs-home-desktop-en-1600w.webp`
-- `assets/img/cases/financial-stream/fs-home-mobile-en-640w.webp`
+Use the ten selected files under:
 
-These are currently used in the ProAI homepage Financial Stream testimonial/device composition.
+`assets/img/cases/financial-stream/final-v1/`
 
-### Historical assets to recover only if still useful
+Do not recapture, rename or replace them without explicit owner instruction.
 
-From commit `2a1d6095a93415c7528fa67be7472d78c33b1aa9`:
+Do not restore rejected Materials mobile-landscape files.
 
-- `assets/images/case-fs/fs-home-en.webp`
-- `assets/images/case-fs/fs-home-ru.webp`
-- `assets/images/case-fs/fs-services-en.webp`
-- `assets/images/case-fs/fs-services-ru.webp`
+Do not create a second PNG-master directory such as `assets/images/case-fs-v2/`.
 
-Prefer fresh live captures when the old screenshots no longer match the current Financial Stream site.
+### Delivery derivatives
+
+Create optimized WebP derivatives only where needed for the implemented pages.
+
+Requirements:
+
+- preserve all PNG masters;
+- use descriptive filenames;
+- maintain sufficient resolution for retina displays;
+- avoid visible compression artifacts;
+- record dimensions and output sizes in the final report;
+- use `loading="lazy"` for non-hero visuals;
+- use explicit width/height or aspect-ratio to reduce layout shift.
 
 ### Evidence assets
 
-Use the internal files under:
+Search performance and indexing evidence is separate from the ten-image website package.
 
-`docs/portfolio-case-packs/financial-stream/evidence/`
+Use only redacted, contextual evidence that is suitable for public display.
 
-Do not publish raw evidence without redaction and contextual captions.
+Do not expose:
 
----
-
-## Phase 2 — Capture current Financial Stream screens
-
-Capture from the current live production website, not old ZIPs or local legacy previews.
-
-### Required captures
-
-1. EN homepage hero — desktop 1440×900.
-2. RU homepage hero — same viewport and crop.
-3. Homepage mobile — 390×844.
-4. Services architecture including Payroll / L&I.
-5. Start Here decision path.
-6. Contact overview showing structured request first.
-7. Deep Google Form with sanitized test information.
-8. Short Formspree form.
-9. Calendar after context with private details hidden.
-10. Chatbase open state with empty or sanitized conversation.
-11. EN and RU Materials hubs.
-12. One matched EN/RU article pair.
-13. Full homepage desktop.
-14. Full homepage mobile.
-
-### Automation captures
-
-1. Sanitized Gmail generated draft.
-2. Sanitized Make scenario overview.
-3. Twilio/Make flow only with `Tested / partial` label.
-4. Google Sheet logging only if current working proof exists.
-
-### Asset output
-
-For each public visual retain:
-
-- lossless PNG master;
-- cropped portfolio PNG;
-- optimized WebP;
-- source URL;
-- viewport;
-- capture date;
-- caption;
-- privacy/redaction note.
-
-Store final case assets under a clean dedicated directory, for example:
-
-`assets/images/case-fs-v2/`
-
-Use consistent descriptive filenames.
+- account identities;
+- private properties;
+- unrelated search history;
+- email addresses;
+- client names/messages;
+- tokens, webhook URLs or credentials.
 
 ---
 
-## Phase 3 — Build the EN case page
+## Phase 2 — Build the shared case-page foundation
 
-### Required page structure
+Create or restore only the reusable components required by the Financial Stream case.
+
+The implementation may include:
+
+- case hero;
+- status/meta strip;
+- chapter navigation;
+- proof strip;
+- system-layer cards;
+- screenshot panels;
+- bilingual comparison module;
+- evidence block;
+- status-labelled automation block;
+- testimonial module;
+- verified outcomes;
+- next-case transition shell;
+- responsive typography and spacing tokens.
+
+Requirements:
+
+- scope styles to the portfolio/case system;
+- avoid generic global selectors that can break existing pages;
+- avoid introducing an unnecessary framework or build system;
+- support `prefers-reduced-motion`;
+- keep motion purposeful and restrained;
+- make content readable without animation.
+
+Do not build the full archive in this task. A minimal route/back-link shell is acceptable only when needed for local navigation.
+
+---
+
+## Phase 3 — Build the EN Financial Stream page
+
+Route:
+
+`/case-studies/financial-stream/`
+
+Use this chapter order:
 
 1. Hero.
 2. Proof strip.
@@ -168,33 +188,27 @@ Use consistent descriptive filenames.
 5. Bilingual experience.
 6. Service architecture.
 7. Intake before booking.
-8. Content and SEO foundation.
+8. Content and search foundation.
 9. AI and automation status.
 10. Owner testimonial.
 11. Verified outcomes.
 12. Live project and ProAI CTA.
 
-### Hero direction
+### Positioning direction
 
-Position the project as:
+Present Financial Stream as a bilingual accounting, Payroll and tax-support website system designed for trust, structured inquiries, search depth and practical AI-assisted operations.
 
-**Financial Stream LLC — a bilingual accounting, payroll and tax-support website system built for trust, structured inquiries and long-term search depth.**
+Do not paste that entire sentence into the H1 if a tighter editorial headline works better.
 
-Do not overpack the H1. Use the above as direction, not necessarily verbatim.
-
-### Proof strip
-
-Use concise proof points:
+### Required proof points
 
 - Live EN/RU architecture
 - Structured + short inquiry paths
 - Calendar after context
 - AI-assisted navigation
-- Dated GSC evidence
+- Dated search evidence
 
 ### Five layers
-
-Present:
 
 1. Trust and presentation.
 2. Services and client self-selection.
@@ -202,181 +216,244 @@ Present:
 4. Content and search.
 5. AI and automation.
 
-### Metrics
+### Service scope
 
-Use only the dated line:
+Represent accurately:
 
-> In a three-month Google Search Console snapshot reviewed in late June 2026, Financial Stream recorded approximately 3.88K search impressions and 19 clicks, with 41 pages indexed.
+- business formation;
+- QuickBooks bookkeeping;
+- cleanup/catch-up;
+- Payroll and L&I;
+- Sales Tax and DOR;
+- tax preparation;
+- document review and consulting.
 
-Do not imply growth without a baseline.
-
-### Owner testimonial
-
-Use one canonical quote:
-
-> ProAI Expert helped us create a stronger business website — one that looks professional, builds more trust, and presents our services more clearly. At the same time, we gained a more practical structure for both our clients and our team.
-
-**Tetiana Horb**  
-**CEO, Financial Stream LLC**
-
-Use the existing desktop/mobile device composition or a refined version of it.
+Payroll is active. Do not remove or downgrade it.
 
 ---
 
-## Phase 4 — Build the RU case page
+## Phase 4 — Build the RU Financial Stream page
+
+Route:
+
+`/ru/case-studies/financial-stream/`
 
 The Russian page must be an independent natural edition, not a mechanical translation.
 
 Requirements:
 
 - same verified facts;
-- same section order;
-- same screenshot logic;
+- same chapter order;
 - same metric context;
-- same automation statuses;
+- same automation status labels;
+- equivalent visual hierarchy;
 - natural Russian business language;
-- use English regulatory/product terms where appropriate: QuickBooks, Payroll, L&I, Sales Tax, DOR, Chatbase, Make, Google Search Console.
+- concise use of English product/regulatory terms where natural.
 
-Avoid dense mixed-language headings.
+Terms such as QuickBooks, Payroll, L&I, Sales Tax, DOR, Chatbase, Make and Google Search Console may remain in English.
 
----
-
-## Phase 5 — Update the Case Studies index
-
-The archive should present three projects in this order:
-
-1. Financial Stream LLC — flagship real client project.
-2. Alina Horb — live personal-brand website.
-3. Local Repair Pro — concept in development.
-
-For this task, implement or preserve the Financial Stream card and create structurally ready slots for the following two projects only when their public cases are not yet built.
-
-Do not present Local Repair Pro as a real client.
+Do not create dense mixed-language headings.
 
 ---
 
-## Phase 6 — Homepage integration
+## Current metrics — use exactly this framing
 
-Preserve the current Financial Stream testimonial section on the ProAI homepage.
+### Performance
 
-Required behavior:
+EN:
 
-- keep the owner quote;
-- keep or improve desktop/mobile device visuals;
-- add a clear route to the full Financial Stream case study when source parity is restored;
-- keep the live Financial Stream site link available;
-- do not duplicate long case copy on the homepage.
+> In a three-month Google Search Console snapshot reviewed in July 2026, Financial Stream recorded 19 clicks and approximately 4.17K search impressions.
+
+RU:
+
+> По трёхмесячному срезу Google Search Console, просмотренному в июле 2026 года, сайт Financial Stream получил 19 кликов и около 4,17 тыс. показов в поиске.
+
+### Indexing
+
+EN:
+
+> A separate Google Search Console indexing snapshot, last updated July 9, 2026, showed 51 indexed pages.
+
+RU:
+
+> Отдельный срез индексирования Google Search Console, обновлённый 9 июля 2026 года, показывал 51 проиндексированную страницу.
+
+Keep these as separate snapshots.
+
+Do not use `3.88K` or `41 indexed pages` as current headline values. Those figures belong to older historical evidence.
 
 ---
 
-## Claim guardrails
+## Canonical owner testimonial
 
-### Allowed
+Use one main testimonial:
+
+> ProAI Expert helped us create a stronger business website — one that looks professional, builds more trust, and presents our services more clearly. At the same time, we gained a more practical structure for both our clients and our team.
+
+**Tetiana Horb**  
+**CEO, Financial Stream LLC**
+
+Create one natural approved Russian rendering for the RU page.
+
+Do not introduce multiple materially different owner quotes.
+
+---
+
+## Automation status labels
+
+### Live / implemented
+
+- Chatbase website assistant;
+- Gmail + Make + OpenAI draft workflow with human review.
+
+### Tested / partial
+
+- Twilio missed-call and service-SMS architecture;
+- routing/webhook work;
+- status logging where current proof exists.
+
+### Planned
+
+- stable end-to-end missed-call recovery if not freshly proven;
+- full CRM;
+- automation reporting/ROI;
+- autonomous communication.
+
+The UI must make these statuses unambiguous.
+
+---
+
+## Claims guardrails
+
+Allowed:
 
 - real live client project;
 - bilingual EN/RU website;
-- Payroll is an active service;
+- active Payroll service;
 - structured request and short form;
-- consultation booking after context;
+- booking after context;
 - Chatbase as AI-assisted navigation;
-- Gmail drafts with human review;
-- Twilio/Make as partial or tested when shown;
-- dated GSC figures;
-- contextual manual SERP examples.
+- human-reviewed Gmail draft workflow;
+- Twilio/Make as tested/partial;
+- dated GSC values;
+- contextual manual SERP examples;
+- responsive desktop/mobile implementation.
 
-### Prohibited without new evidence
+Prohibited without new evidence:
 
-- specific lead increase;
-- conversion-rate increase;
-- revenue increase;
-- exact number of customers generated by the website;
+- lead growth;
+- conversion-rate growth;
+- revenue growth;
+- customers generated by the website;
 - measured time savings;
-- universal Google ranking;
-- guaranteed SEO performance;
-- fully automated accounting;
-- autonomous client communication;
-- fully production-ready Twilio missed-call recovery;
+- SEO ROI;
+- traffic growth without a baseline;
+- universal or guaranteed ranking;
+- fully production-ready Twilio recovery;
 - production CRM;
+- autonomous client communication;
 - guaranteed outcomes.
 
 ---
 
-## Technical requirements
+## SEO and language requirements
 
-- semantic HTML;
-- preserve the existing ProAI design system unless a case-specific extension is needed;
-- no unnecessary framework or build-system introduction;
-- responsive from 320px to wide desktop;
-- no horizontal overflow;
-- accessible headings and landmarks;
-- meaningful alt text;
-- visible keyboard focus;
-- reduced-motion support for any new motion;
-- optimized WebP delivery;
-- lazy-load non-hero images;
-- retain PNG masters outside the web delivery path or in the documented asset archive;
-- correct canonical and reciprocal hreflang;
-- Open Graph and Twitter image;
-- update sitemap only after final routes are confirmed;
-- no broken EN/RU switch.
+Each page must have:
+
+- one H1;
+- unique title and meta description;
+- self-referencing canonical;
+- reciprocal `hreflang="en"` and `hreflang="ru"`;
+- `x-default` pointing to EN;
+- correct language attribute;
+- meaningful Open Graph/Twitter image;
+- descriptive alt text;
+- internal links to the live project, ProAI contact and archive route;
+- breadcrumb/schema only if implemented accurately.
+
+Do not add routes to the production sitemap until source parity and final launch are approved.
 
 ---
 
-## QA matrix
+## Accessibility and responsive requirements
 
-### Content
+- semantic landmarks;
+- logical heading hierarchy;
+- keyboard-operable navigation and controls;
+- visible focus styles;
+- sufficient contrast;
+- reduced-motion support;
+- no content available only through hover;
+- no horizontal overflow;
+- readable screenshots and captions;
+- no tiny text inside decorative device frames.
 
-- Payroll represented correctly.
-- Tetiana / Tатьяна naming is consistent per language.
-- No unsupported performance claims.
-- GSC numbers include period/date context.
-- Automation statuses are explicit.
+Test at minimum:
 
-### Visual
+- 320px;
+- 375px;
+- 390px;
+- 430px;
+- 768px;
+- 1024px;
+- 1440px;
+- short-height landscape mobile.
 
-- hero is not overloaded;
-- testimonial/device composition is prominent;
-- screenshots are readable on desktop and mobile;
-- no tiny text inside decorative device frames;
-- no repeated near-identical screens;
-- evidence screens are redacted.
+---
 
-### Functional
+## Functional QA
 
-- all case links work;
-- Financial Stream live-site CTA works;
+Confirm:
+
+- both case routes load locally;
+- EN/RU switch maps exact case pairs;
+- archive/back links do not lead to unrelated pages;
+- live Financial Stream CTA works;
 - ProAI contact CTA works;
-- EN/RU routes pair correctly;
-- mobile menu works;
-- no console errors caused by the case page;
-- no missing assets.
+- chapter navigation works with keyboard and reduced motion;
+- images exist and do not cause layout shift;
+- no console errors are introduced;
+- no missing assets;
+- no global style collision;
+- existing homepage, service, Insights and contact behavior remains intact.
 
-### SEO
+---
 
-- unique EN/RU titles and descriptions;
-- self canonical;
-- reciprocal hreflang;
-- x-default points to EN;
-- one H1;
-- descriptive headings;
-- valid OG image URL;
-- case pages appear in sitemap only after source parity and deployment are stable.
+## Commit plan
+
+Keep commits atomic and reviewable:
+
+1. source/live parity recovery;
+2. shared case foundation;
+3. EN Financial Stream page;
+4. RU Financial Stream page;
+5. WebP/asset optimization;
+6. metadata/accessibility/responsive QA fixes.
+
+Do not squash unrelated work into these commits.
+
+Do not merge to `main`.
 
 ---
 
 ## Required final report
 
-After implementation provide:
+Return:
 
 1. source/live parity finding;
-2. exact files created and changed;
-3. screenshot inventory with paths and dimensions;
-4. EN/RU content summary;
-5. metrics and claims used;
-6. automation status labels used;
-7. QA results by viewport;
-8. commit SHA;
-9. live URLs after deployment;
-10. remaining limitations, if any.
+2. active deployment source or remaining blocker;
+3. exact files restored, created and changed;
+4. routes implemented;
+5. asset inventory and WebP dimensions/sizes;
+6. EN/RU content summary;
+7. metrics used;
+8. automation labels used;
+9. QA results by viewport;
+10. console/link test results;
+11. commit SHAs;
+12. remaining limitations;
+13. local preview instructions.
 
-Do not create a ZIP unless specifically requested. Save all production files directly in the repository.
+Then stop.
+
+Do not build Alina, Local Repair Pro, final archive integration, global navigation, sitemap publication or production deployment in this task.

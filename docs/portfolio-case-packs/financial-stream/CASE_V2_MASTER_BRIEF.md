@@ -156,6 +156,24 @@ The live materials hub covers:
 
 This layer is central to the case because it proves the project has search and educational depth beyond a brochure website.
 
+#### Business and SEO value
+
+- Expands the site's indexable footprint beyond core service pages through practical, intent-specific topic clusters.
+- Creates additional search entry points for people researching bookkeeping, tax preparation, QuickBooks, payroll, business setup and document-readiness questions before they are ready to contact a provider.
+- Supports localized discovery for Russian-speaking prospects in Seattle, Federal Way and Washington State, while the paired English content broadens relevance for the wider U.S. market.
+- Strengthens topical authority by connecting educational articles, local context, service pages, Start Here paths and structured intake through internal links.
+- Builds a reusable content asset: each useful article can continue supporting discovery, trust and assisted conversion after publication instead of functioning as a short-lived campaign.
+- Helps visitors arrive with better context, understand the service scope and choose a more appropriate next step before submitting a request.
+
+#### Evidence-safe public framing
+
+Available GSC and manual SERP evidence confirms that Google has indexed and surfaced Financial Stream pages, including Russian-language local content and an informational article. Present this as early, measurable search visibility and growing organic coverage—not as a guaranteed or permanent ranking position.
+
+Fresh portfolio proof for this layer is stored as matching live-page captures:
+
+- `assets/img/cases/financial-stream/final-v1/ru/desktop/fs-ru-04-materials-desktop.png`
+- `assets/img/cases/financial-stream/final-v1/en/desktop/fs-en-04-materials-desktop.png`
+
 ---
 
 ## 4. ProAI Expert work scope

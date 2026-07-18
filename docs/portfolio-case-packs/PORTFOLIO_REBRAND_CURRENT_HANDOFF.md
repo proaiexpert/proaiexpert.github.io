@@ -1,9 +1,9 @@
 # ProAI Expert — Portfolio Rebrand Current Handoff
 
-**Last updated:** 2026-07-17  
+**Last updated:** 2026-07-18  
 **Repository:** `proaiexpert/proaiexpert.github.io`  
 **Working branch:** `portfolio-rebrand-v1`  
-**Branch state before this final handoff update:** `991516eafb82b8c1145ba1c216719f9440752edc`  
+**Branch state before this handoff update:** `ecc0708f699e389258bc4795824dc4e9cec8558a`  
 **Public status:** no portfolio-rebrand work from this branch has been merged into `main` or intentionally published.
 
 ---
@@ -17,9 +17,10 @@ Read in this order:
 1. `PORTFOLIO_REBRAND_CURRENT_HANDOFF.md`
 2. `PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md`
 3. project master brief
-4. project build task
-5. screenshot/evidence manifests
-6. older dated documents as historical reference only
+4. approved Production Spec when present
+5. project build task
+6. screenshot/evidence manifests
+7. older dated documents as historical reference only
 
 An older file cannot override this handoff.
 
@@ -36,20 +37,22 @@ An older file cannot override this handoff.
 - screenshot selection and visual review;
 - repository documentation;
 - implementation sequence;
+- ordinary GitHub documentation and asset-status updates that do not require browser or production-code execution;
 - final Codex tasks.
 
-### Executed in Codex
+### Executed in Codex only when technically necessary
 
 - source/deployment investigation;
 - selective source recovery;
 - HTML/CSS/JavaScript;
 - responsive implementation;
+- controlled browser capture when a real browser context is required;
 - local/browser preview;
 - asset optimization;
 - link, metadata, accessibility and regression QA;
 - production-code commits.
 
-Do not spend Codex limits repeating strategy or documentation completed here.
+Do not spend Codex limits repeating strategy, documentation, ordinary GitHub edits or other work that can be completed here.
 
 ---
 
@@ -163,15 +166,17 @@ Never claim guaranteed rankings, permanent top positions, traffic growth without
 
 ---
 
-## 7. Financial Stream — selected visual package
+## 7. Financial Stream — visual package status
+
+### Current canonical masters
 
 Canonical root:
 
 `assets/img/cases/financial-stream/final-v1/`
 
-Exactly ten selected PNG masters:
+It currently contains exactly ten PNG masters:
 
-### RU
+#### RU
 
 1. `ru/desktop/fs-ru-01-home-hero-desktop.png`
 2. `ru/desktop/fs-ru-02-request-desktop.png`
@@ -179,7 +184,7 @@ Exactly ten selected PNG masters:
 4. `ru/desktop/fs-ru-04-materials-desktop.png`
 5. `ru/mobile/fs-ru-04-company-formation-mobile-portrait.png`
 
-### EN
+#### EN
 
 6. `en/desktop/fs-en-01-home-hero-desktop.png`
 7. `en/desktop/fs-en-02-request-desktop.png`
@@ -187,14 +192,42 @@ Exactly ten selected PNG masters:
 9. `en/desktop/fs-en-04-materials-desktop.png`
 10. `en/mobile/fs-en-04-company-formation-mobile-portrait.png`
 
-Decisions:
+### Owner-approved V2 replacement candidates
 
-- rejected RU/EN Materials mobile-landscape files were removed;
+Review root:
+
+`assets/img/cases/financial-stream/review-candidates-v2/`
+
+The owner visually approved all four V2 candidates on 2026-07-18:
+
+- `ru/desktop/fs-ru-02-request-desktop-v2-candidate.png`;
+- `ru/desktop/fs-ru-03-reporting-chat-desktop-v2-candidate.png`;
+- `en/desktop/fs-en-02-request-desktop-v2-candidate.png`;
+- `en/desktop/fs-en-03-reporting-chat-desktop-v2-candidate.png`.
+
+They correct the earlier Request and Reporting frames:
+
+- RU/EN Request: Chatbase closed and greeting cards absent;
+- RU/EN Reporting: Chatbase intentionally open with a complete localized answer;
+- matching CSS viewport `1440×1000`, DPR `2`, physical PNG `2880×2000`;
+- captured from the live site without browser chrome or artificial upscale.
+
+The four candidates are visually approved but are deliberately not yet promoted into `final-v1`. Promotion and deletion of the review folder occur only after the Production Spec locks:
+
+- exact section placement;
+- page opening sequence;
+- captions and claim linkage;
+- desktop/mobile presentation;
+- crop and panel treatment;
+- paired comparison versus individual placement.
+
+Decisions already locked:
+
+- rejected RU/EN Materials mobile-landscape files remain removed;
 - Materials is represented by matching RU/EN desktop captures;
 - mobile proof uses matching Company Formation portrait captures;
 - open Chatbase is allowed only in the two deliberate reporting/chat frames;
-- six superseded review-test PNGs were deleted after final copies were verified;
-- selected masters must not be recaptured, renamed or duplicated without explicit owner instruction;
+- no additional recapture of the four approved V2 files is needed;
 - WebP delivery derivatives are created only during implementation;
 - final visual lock occurs in the complete page preview.
 
@@ -210,6 +243,7 @@ Decisions:
 - Dimensions, hashes and logs are technical evidence—not visual approval.
 - Avoid near-duplicate screens.
 - Retain PNG masters.
+- Screenshot approval does not by itself approve final placement, captions, crop or page choreography.
 
 ---
 
@@ -292,24 +326,41 @@ Use in both languages:
 
 EN and RU share verified facts and structure but use natural independent copy.
 
+The twelve-part architecture is locked at chapter level. Exact copy, visual placement, captions, transitions, sticky states and responsive choreography are not yet locked and belong in the Production Spec.
+
 ---
 
-## 11. Documentation cleanup status
+## 11. Documentation status
 
-Completed in this management pass:
+Completed:
 
 - current metrics updated;
 - performance and indexing separated;
-- ten-image package recorded;
+- ten-image canonical package recorded;
 - rejected landscape files removed from current status;
-- six review-test duplicates deleted;
-- capture log synchronized;
-- screenshot manifest finalized;
-- Financial Stream package status finalized;
+- six superseded review-test duplicates deleted;
+- original capture log synchronized;
+- screenshot manifest established;
 - Financial Stream master brief finalized;
-- Codex build task finalized;
+- experience blueprint created;
+- Codex build task retained for later technical execution;
 - portfolio README and master rollout plan synchronized;
-- old control-transfer file marked historical.
+- old control-transfer file marked historical;
+- unauthorized Alina prototype reverted and documented;
+- four corrected Financial Stream V2 screenshots captured and visually approved;
+- screenshot manifest updated to separate visual approval from final placement and promotion.
+
+Still required before implementation:
+
+- `FINANCIAL_STREAM_FLAGSHIP_CASE_PRODUCTION_SPEC_V1.md`;
+- exact EN and RU copy;
+- exact role and placement of each screenshot/evidence asset;
+- captions and alt-text foundation;
+- opening sequence and page choreography;
+- responsive behavior;
+- motion timings and reduced-motion/no-JS fallbacks;
+- owner review of the complete production specification;
+- controlled independent design review in ordinary Chat, followed by final integration here.
 
 No production code was changed.
 
@@ -317,23 +368,50 @@ No production code was changed.
 
 ## 12. Exact next action
 
-Give Codex the current:
+Do **not** send the current build task to Codex yet.
 
-`docs/portfolio-case-packs/financial-stream/CASE_V2_BUILD_TASK.md`
+The next controlled deliverable is:
 
-Codex must perform source/live parity investigation and, only after that gate passes, implement the Financial Stream EN/RU flagship case on `portfolio-rebrand-v1`.
+`docs/portfolio-case-packs/financial-stream/FINANCIAL_STREAM_FLAGSHIP_CASE_PRODUCTION_SPEC_V1.md`
 
-Do not include Alina, Local Repair Pro, final archive integration or publication in the same Codex task.
+It must lock one final implementation direction, including:
+
+1. exact EN copy;
+2. exact natural RU copy;
+3. the twelve-section order;
+4. exact screenshot/evidence placement;
+5. captions, alt text and claim linkage;
+6. page opening and hero choreography;
+7. chapter-navigation and sticky behavior;
+8. desktop, tablet and mobile treatment;
+9. exact motion storyboard and timings;
+10. reduced-motion and no-JS fallbacks;
+11. light/dark transitions if retained;
+12. CTA destinations;
+13. acceptance criteria for the complete preview.
+
+Workflow:
+
+1. prepare the Production Spec here;
+2. give the complete draft and source documents to one ordinary Chat for an independent design/experience review;
+3. return that review here;
+4. resolve findings into one final Production Spec;
+5. obtain owner approval;
+6. only then promote approved V2 screenshots, complete the P0 source/live parity gate and issue the final Codex implementation task.
+
+Do not mix Alina, Local Repair Pro, archive integration or publication into this stage.
 
 ---
 
 ## 13. Session rules
 
 - Read this handoff first.
-- Keep strategy/content work here and implementation work in Codex.
+- Keep strategy, copy, evidence, documentation and ordinary GitHub work here.
+- Use Codex only for tasks that materially require repository execution, browser automation, source recovery, code implementation or technical QA.
 - Do not modify `main`.
 - Do not publish without owner approval.
-- Do not recreate completed Financial Stream screenshots.
+- Do not recreate the approved Financial Stream screenshots.
+- Do not promote or delete V2 candidates before the Production Spec and complete-page placement are approved.
 - Separate current metrics from historical snapshots.
 - Separate selected assets from final preview approval.
 - Use one controlled task at a time.

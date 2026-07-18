@@ -1,164 +1,103 @@
-# ProAI Expert — Portfolio Site Audit and Master Rollout Plan
+# ProAI Expert — Portfolio Site Audit and Final Master Rollout Plan
 
-**Status:** Pre-implementation source of truth  
+**Status:** final pre-implementation source of truth  
 **Prepared:** July 2026  
 **Repository:** `proaiexpert/proaiexpert.github.io`  
-**Public code freeze:** No portfolio-related public HTML, CSS, JavaScript, navigation, sitemap, redirects, or assets may be changed until the readiness gates in this document are completed.
+**Working branch:** `portfolio-rebrand-v1`  
+**Public code rule:** no portfolio change is merged into `main` or published before source parity, preview QA and owner approval.
+
+This document defines the final portfolio architecture, implementation order, content ownership, technical gates and launch rules. Current operational status remains controlled by `PORTFOLIO_REBRAND_CURRENT_HANDOFF.md`.
 
 ---
 
-## 1. Executive decision
+## 1. Executive decisions
 
-The correct portfolio architecture is:
+The final system is:
 
-1. **One shared Case Studies archive** in English and Russian.
-2. **One dedicated page per case** in English and Russian.
-3. **Selected proof modules on the homepage and relevant service pages** that point into the case-study system without duplicating the entire case.
-4. A scalable structure that starts with three priority portfolio cases and can later grow to 5, 10, or 20 projects without changing the URL model.
+1. one shared Case Studies archive in English and Russian;
+2. one dedicated EN/RU page pair per case;
+3. concise proof modules on the homepage and relevant service pages;
+4. real project captures only;
+5. a reusable case-page system that can scale from three projects to twenty without changing routes;
+6. Financial Stream as the flagship system that establishes the reusable design/components before the archive is finalized.
 
-### Priority portfolio cases
+### Locked primary cases
 
-1. **Financial Stream LLC** — flagship real client case.
-2. **Alina Horb Psychology Practice** — real/live personal-brand website case, subject to publication permissions.
-3. **Local Repair Pro** — concept/showcase case, always labelled as a concept rather than a completed client engagement.
+1. **Financial Stream LLC** — real flagship client project.
+2. **Alina Horb** — real live personal-brand/psychology website project.
+3. **Local Repair Pro** — concept/showcase project in development.
 
-### Existing studio case that must be preserved
+### Preserved studio case
 
-4. **ProAI Expert** — existing internal studio flagship case.
-
-The ProAI Expert case must not be deleted merely because the first portfolio rollout focuses on three external/concept projects. Its existing EN/RU URLs should remain valid. It can live in a secondary **Studio Case** position rather than competing with the three priority projects.
-
----
-
-## 2. Confirmed current-state audit
-
-### 2.1 Live URLs currently accessible
-
-The following live routes currently return full pages:
-
-- `/case-studies/`
-- `/ru/case-studies/`
-- `/case-studies/financial-stream/`
-- `/ru/case-studies/financial-stream/`
-- `/case-studies/proai-expert/`
-- `/ru/case-studies/proai-expert/`
-
-The live archive currently presents Financial Stream and ProAI Expert.
-
-### 2.2 Current `main` branch does not match the live site
-
-The current repository state is materially different from what the custom domain serves:
-
-- `case-studies/index.html` in `main` is only a redirect to `/` with `noindex`.
-- `ru/case-studies/index.html` is absent through the current Contents API.
-- the individual Financial Stream and ProAI Expert case HTML files are absent from current `main` through the Contents API;
-- the current sitemap does not include any Case Studies archive or case-page URLs;
-- Git history contains commit `5fa342a64b464493a0935047c7c84d6c3884c4f0` with message **Delete case-studies directory**.
-
-### 2.3 Risk classification
-
-This is a **P0 source/live parity problem**.
-
-The live site may be serving a historical deployment, cached content, a different deployment source, or a layer that is not represented by the current `main` tree. The exact mechanism must be verified before implementation.
-
-Do not:
-
-- overwrite the live case pages from an arbitrary historical commit;
-- merge new archive code directly into `main`;
-- add navigation to `/case-studies/` while the source/deployment mismatch remains unresolved;
-- assume that a URL opening today proves the corresponding source exists in the active deployment branch.
-
-### 2.4 Sitemap and discoverability gap
-
-The current `main` sitemap includes core pages and insights, but no Case Studies routes. Therefore the intended portfolio system is not represented consistently in the source-controlled SEO map.
-
-### 2.5 Navigation inconsistency
-
-The current main homepage, AI Systems page, and Websites & Branding page use a navigation set without **Case Studies**.
-
-The live Case Studies pages use a different navigation set that includes **Case Studies**.
-
-This creates two competing shells and must be normalized only after the archive source is restored safely.
+4. **ProAI Expert** — existing internal studio case, retained as a secondary Studio Case.
 
 ---
 
-## 3. Existing Financial Stream placements
+## 2. Work division
 
-Financial Stream already appears in multiple places. These placements should be retained, clarified, and connected rather than duplicated or removed blindly.
+### ChatGPT / project management
 
-### 3.1 Homepage
+Responsible for:
 
-Current role:
+- strategy;
+- case architecture;
+- public copy;
+- evidence/claim control;
+- screenshot selection;
+- documentation;
+- implementation sequence;
+- final Codex task specifications.
 
-- major interactive Financial Stream proof section;
-- owner testimonial;
-- desktop and mobile device composition;
-- CTA currently goes to the Financial Stream live website.
+### Codex / technical implementation
 
-Existing assets:
+Responsible for:
 
-- `assets/img/cases/financial-stream/fs-home-desktop-en-1600w.webp`
-- `assets/img/cases/financial-stream/fs-home-mobile-en-640w.webp`
+- source/deployment investigation;
+- selective source recovery;
+- HTML/CSS/JavaScript;
+- responsive behavior;
+- local preview;
+- asset optimization;
+- metadata, accessibility and regression QA;
+- production-code commits.
 
-Future role:
-
-- retain it as the strongest homepage proof module;
-- strengthen it into a **Featured Client Case** teaser;
-- preserve the owner testimonial;
-- add a primary `View Case Study` CTA;
-- retain a lower-emphasis `View Live Site` CTA;
-- do not reproduce the full case narrative on the homepage.
-
-### 3.2 Websites & Branding page
-
-Current role:
-
-- Financial Stream and ProAI Expert are shown together in an examples/showcase section;
-- Financial Stream desktop and mobile assets are reused;
-- the section demonstrates visual and structural quality but does not currently function as a strong gateway into the dedicated case.
-
-Future role:
-
-- retain this as a service-specific proof module;
-- use one concise Financial Stream explanation;
-- link directly to the Financial Stream case page;
-- optionally link to the overall archive;
-- do not duplicate the full testimonial, GSC evidence, forms, or automation story here.
-
-### 3.3 AI Systems page
-
-Current role:
-
-- no dedicated Financial Stream case module was identified in the current live page content.
-
-Future role:
-
-- do not force a full Financial Stream block onto the page;
-- only add a small **Operational Layer Example** after sanitized Gmail/Make evidence is available;
-- describe Chatbase and human-reviewed email drafting accurately;
-- label Twilio as tested/partial unless current production proof is attached;
-- link to the automation chapter of the Financial Stream case where possible.
-
-### 3.4 Case Studies archive
-
-Future role:
-
-- the canonical browse/discovery layer for all projects;
-- no full testimonials or long project essays;
-- each project contains title, classification, status, one concise outcome, visual, tags, and `View Case` CTA.
-
-### 3.5 Individual Financial Stream case
-
-Future role:
-
-- canonical full case narrative;
-- the only place where all layers come together: business context, bilingual architecture, services including Payroll, inquiry flow, SEO/content, automation, owner testimonial, and dated evidence.
+Do not use Codex to repeat already completed strategy or documentation work.
 
 ---
 
-## 4. Final information architecture
+## 3. Current-state audit and P0 risk
 
-### 4.1 English routes
+### Live/source mismatch
+
+The live ProAI Case Studies routes have displayed complete pages, while current `main` does not cleanly contain the matching Case Studies source tree or sitemap representation.
+
+Possible causes include:
+
+- historical GitHub Pages deployment;
+- another branch;
+- workflow artifact;
+- cache/proxy layer;
+- deleted source that remains in an older deployment.
+
+### P0 rule
+
+Before any production case code is replaced:
+
+1. identify the actual deployment source;
+2. inspect Pages settings, workflows, artifacts and relevant branches;
+3. preserve current live HTML and asset paths;
+4. compare live output with verified historical source;
+5. restore only required files into `portfolio-rebrand-v1`;
+6. reproduce current routes locally;
+7. confirm no unrelated current work is reverted.
+
+Never overwrite the live site from an arbitrary historical commit and never roll the whole repository back.
+
+---
+
+## 4. Final route architecture
+
+### English
 
 ```text
 /case-studies/
@@ -168,7 +107,7 @@ Future role:
 /case-studies/proai-expert/
 ```
 
-### 4.2 Russian routes
+### Russian
 
 ```text
 /ru/case-studies/
@@ -178,70 +117,19 @@ Future role:
 /ru/case-studies/proai-expert/
 ```
 
-### 4.3 Route policy
+### Route policy
 
 - preserve existing Financial Stream and ProAI Expert URLs;
-- do not introduce a competing `/work/` or `/portfolio/` system;
-- create static redirect stubs from `/work/` and `/portfolio/` only if those routes have already been published or linked externally;
-- all EN/RU case pairs must have canonical, `hreflang="en"`, `hreflang="ru"`, and `x-default`;
-- archive language switches must map archive-to-archive;
-- case language switches must map the exact case pair;
-- a missing translation must not silently redirect to an unrelated homepage.
+- do not introduce `/work/` or `/portfolio/` alternatives;
+- EN/RU archive switches map archive to archive;
+- case switches map exact case pairs;
+- every launched pair uses self canonical, reciprocal hreflang and `x-default`;
+- missing translations must not silently redirect to an unrelated homepage;
+- redirects are added only for routes known to have been published or linked externally.
 
 ---
 
-## 5. Archive design and scale model
-
-### 5.1 Launch state
-
-The archive launches with three primary project stages:
-
-1. Financial Stream.
-2. Alina Horb.
-3. Local Repair Pro.
-
-A secondary **Studio Case** module preserves ProAI Expert.
-
-### 5.2 Visual direction
-
-Use the approved **Cinematic Editorial Systems** direction:
-
-- dark ProAI shell;
-- large editorial typography;
-- real project captures;
-- controlled project-color transitions;
-- restrained sticky storytelling;
-- motion that reveals hierarchy rather than decorating every element.
-
-### 5.3 Scaling from 3 to 20 projects
-
-#### 3–5 projects
-
-- large editorial stages;
-- strong visual distinction;
-- no category filters;
-- one secondary studio/internal section if needed.
-
-#### 6–10 projects
-
-- retain 2–3 featured editorial stages at the top;
-- add a structured project grid below;
-- introduce status/category labels;
-- filters are optional only if categories are materially useful.
-
-#### 11–20 projects
-
-- featured projects remain editorial;
-- searchable/filterable archive below;
-- pagination or progressive load;
-- consistent project metadata;
-- no redesign of individual case URLs.
-
-The route architecture remains unchanged at every scale.
-
----
-
-## 6. Project classification and truth labels
+## 5. Project classifications
 
 ### Financial Stream
 
@@ -252,451 +140,489 @@ The route architecture remains unchanged at every scale.
 ### Alina Horb
 
 - `Real Website Project`
-- `Live` or `In Refinement`, according to verified status at launch;
-- name, portrait, diploma, and testimonial usage require explicit permission.
+- `Live` or `In Refinement` according to verified launch status
+- client site languages: UA/RU
+- portrait, diploma and testimonial require appropriate permission
 
 ### Local Repair Pro
 
 - `Concept Project`
 - `Website Production Factory Showcase`
-- never describe it as a completed paid client engagement;
-- no fake phone, email, reviews, licensing, years, metrics, or customer outcomes.
+- `In Development`
+- never present as a completed paid client engagement
 
 ### ProAI Expert
 
 - `Internal Studio Project`
 - `Live`
-- position as a studio flagship, not as an external client case.
+- secondary Studio Case position
 
 ---
 
-## 7. Individual case-page system
+## 6. Final implementation order
 
-Each case uses the same reusable narrative shell while adopting its own project art direction.
+The order below is locked because it minimizes rework.
+
+### Stage 0 — Source and deployment parity
+
+Deliverables:
+
+- deployment-source report;
+- current live route/source comparison;
+- selectively restored Case Studies source on `portfolio-rebrand-v1`;
+- local reproduction of existing routes;
+- no live changes.
+
+Gate:
+
+- the current live pages can be explained and reproduced safely.
+
+### Stage 1 — Financial Stream flagship detail pages
+
+Build first:
+
+- `/case-studies/financial-stream/`
+- `/ru/case-studies/financial-stream/`
+
+Why first:
+
+Financial Stream is the deepest real case and defines the reusable components for every later case:
+
+- cinematic/editorial hero;
+- status and metadata strip;
+- chapter navigation;
+- proof strip;
+- system map;
+- screenshot panels;
+- evidence blocks;
+- automation status labels;
+- testimonial;
+- verified outcomes;
+- next-case transition;
+- language metadata.
+
+Gate:
+
+- EN/RU pages complete locally;
+- selected visuals work in context;
+- content/claims approved;
+- mobile/reduced-motion QA passes;
+- owner approves the flagship direction.
+
+### Stage 2 — Case Studies archive foundation
+
+Build the archive only after the Financial Stream system is stable.
+
+Archive launch structure:
+
+1. completed Financial Stream feature stage;
+2. structurally ready Alina stage with truthful status;
+3. structurally ready Local Repair Pro stage with concept label;
+4. secondary ProAI Expert Studio Case.
+
+The archive is a discovery/comparison layer—not a replacement for detail pages.
+
+Gate:
+
+- desktop/mobile hierarchy approved;
+- unfinished cases are not represented as complete;
+- archive routes and case links work locally.
+
+### Stage 3 — Alina Horb detail pages
+
+Requirements:
+
+- use current real UA/RU website captures;
+- preserve the approved editorial sanctuary direction;
+- describe the actual project accurately;
+- create natural EN/RU portfolio narratives without pretending the client site is English;
+- confirm portrait, diploma and testimonial permissions;
+- no synthetic portrait or obsolete arch concepts.
+
+Gate:
+
+- real visual package approved;
+- permissions and claims verified;
+- EN/RU portfolio pages complete.
+
+### Stage 4 — Local Repair Pro detail pages
+
+Requirements:
+
+- preserve `Concept Project` classification;
+- remove internal/demo-only wording before public use;
+- use current real demo captures;
+- disable or clearly label non-production form behavior;
+- do not invent reviews, licensing, phone, years, metrics, clients or outcomes.
+
+Gate:
+
+- current demo works responsively;
+- truthful labels are visible;
+- no fake proof appears.
+
+### Stage 5 — Final archive polish
+
+After all three primary cases exist:
+
+- finalize project transitions;
+- balance card/stage hierarchy;
+- refine comparison metadata;
+- complete next-case navigation;
+- verify all EN/RU routes;
+- retain ProAI Expert Studio Case.
+
+### Stage 6 — Site integration
+
+- strengthen homepage Financial Stream module as `Featured Client Case`;
+- add `View Case Study` while retaining `View Live Site` as secondary;
+- link Websites & Branding proof to the case/archive;
+- add a compact AI Systems proof teaser only when sanitized automation evidence exists;
+- normalize global navigation and footer;
+- do not duplicate full case narratives outside detail pages.
+
+### Stage 7 — SEO, accessibility, performance and regression QA
+
+- canonical/hreflang/x-default;
+- unique metadata;
+- sitemap only for approved live routes;
+- OG/Twitter assets;
+- alt text;
+- keyboard/focus QA;
+- reduced motion;
+- image optimization;
+- broken-link crawl;
+- EN/RU pair crawl;
+- responsive and short-height landscape QA;
+- no-regression tests.
+
+### Stage 8 — Controlled launch
+
+- owner approves complete preview;
+- final branch is reviewed;
+- backup/rollback point retained;
+- approved commits merged once;
+- deployment verified;
+- live smoke test completed;
+- sitemap resubmitted only after live validation.
+
+---
+
+## 7. Shared case-page system
+
+Every case uses a reusable narrative shell while keeping its own art direction.
 
 ### Required chapters
 
-1. **Overview / Cinematic Hero**
-2. **Business Context**
-3. **System or Scope Map**
-4. **Visual Walkthrough**
-5. **Proof / Verified Outcomes**
-6. **Owner or Project Perspective**
-7. **Next Case Transition**
+1. Overview / cinematic hero.
+2. Business or project context.
+3. System/scope map.
+4. Visual walkthrough.
+5. Proof / verified outcomes.
+6. Owner or project perspective.
+7. Next-case transition.
+
+Financial Stream may use a deeper twelve-chapter structure defined in its master brief.
 
 ### Shared components
 
-- case status badge;
-- live-site CTA where a live public site exists;
+- truthful status badge;
 - project metadata;
-- chapter progress navigation;
-- reusable screenshot panels;
-- proof cards;
+- live-site CTA where applicable;
+- chapter progress/navigation;
+- screenshot panels;
+- proof/evidence cards;
 - testimonial module;
 - next-case module;
-- reduced-motion alternative;
-- EN/RU metadata component.
+- reduced-motion behavior;
+- EN/RU metadata/language pairing.
 
-### Project-specific worlds
+### Technical rules
+
+- scope portfolio styles;
+- avoid generic global selectors;
+- avoid unnecessary frameworks;
+- content remains readable without JavaScript motion;
+- no horizontal overflow from 320px upward;
+- meaningful keyboard and focus behavior;
+- image dimensions/aspect ratios prevent layout shift.
+
+---
+
+## 8. Visual direction
+
+Overall direction:
+
+**Cinematic Editorial Systems**
+
+Characteristics:
+
+- dark ProAI shell;
+- large editorial typography;
+- real project captures;
+- controlled project-color transitions;
+- restrained sticky storytelling;
+- motion used for hierarchy, not decoration.
+
+Project worlds:
 
 - Financial Stream: midnight navy, ice blue, white, restrained financial green.
 - Alina Horb: ivory, stone, sage, muted terracotta.
 - Local Repair Pro: deep forest, warm stone, amber, off-white.
 - ProAI Expert: graphite, cyan, metallic neutrals.
 
+Visual rules:
+
+- no generated UI or synthetic project imagery;
+- no fake dashboards;
+- no placeholder portraits;
+- no browser chrome in portfolio masters;
+- open chatbot only in a deliberate proof frame;
+- do not distort screenshots to fit device frames;
+- keep text inside screenshots readable;
+- use presentation masters separately from raw evidence captures.
+
 ---
 
-## 8. Content ownership and anti-duplication rules
+## 9. Archive design and scaling
 
-### Canonical content ownership
+### Three to five projects
+
+- large editorial project stages;
+- strong visual distinction;
+- no unnecessary category filters;
+- secondary Studio Case section.
+
+### Six to ten projects
+
+- retain 2–3 featured stages;
+- add a structured project grid;
+- introduce useful status/category labels;
+- filters only when categories materially help.
+
+### Eleven to twenty projects
+
+- featured editorial cases remain at top;
+- searchable/filterable archive below;
+- pagination or progressive loading;
+- consistent metadata;
+- unchanged individual case URLs.
+
+---
+
+## 10. Content ownership and anti-duplication
 
 | Content | Canonical location | Other placements |
 |---|---|---|
-| Full project story | Individual case page | Short teaser only |
-| Full owner testimonial | Individual case page | Homepage may reuse a shorter approved version |
-| Financial Stream live-site proof | Individual case | Homepage and Websites page may show visual teaser |
-| GSC/SEO evidence | Financial Stream case | No raw metric dashboard on homepage/service pages |
-| Intake architecture | Financial Stream case | One sentence on homepage or Websites page maximum |
-| Gmail/Make workflow | Financial Stream automation chapter | Small AI Systems teaser after evidence is sanitized |
-| Portfolio browsing | Case Studies archive | Homepage links to archive |
-| Studio methodology | Service/About pages | Cases show only project-specific application |
+| Full project story | Individual case page | concise teaser only |
+| Full testimonial | Individual case | shortened approved excerpt where useful |
+| Financial Stream GSC evidence | Financial Stream case | no raw dashboard on homepage/service pages |
+| Financial Stream intake architecture | Financial Stream case | one capability line elsewhere |
+| Gmail/Make workflow | Financial Stream automation chapter | compact AI Systems teaser after sanitization |
+| Project browsing/comparison | Case Studies archive | homepage links to archive |
+| Studio methodology | Services/About | cases show project-specific application only |
 
-### Duplicate-content prevention
+Placement roles:
 
-- do not paste the same 150–250 word case summary across homepage, archive, service page, and case page;
-- each placement has a distinct commercial role;
 - homepage: credibility and curiosity;
 - service page: capability proof;
-- archive: comparison and discovery;
-- individual case: complete evidence-backed narrative.
+- archive: discovery and comparison;
+- detail page: complete evidence-backed narrative.
+
+Do not repeat the same long summary in all four placements.
 
 ---
 
-## 9. Homepage integration decision
+## 11. Homepage and service integration
 
-The existing Financial Stream section should be **retained and strengthened**, not removed.
+### Homepage
 
-### Keep
+Retain the existing Financial Stream module and owner feedback.
 
-- interactive desktop/mobile composition;
-- owner feedback;
-- premium visual treatment;
-- current placement as the strongest proof module.
+Later improvements:
 
-### Improve later
+- label `Featured Client Case`;
+- primary `View Case Study` CTA;
+- secondary `View Live Site` CTA;
+- concise proof line;
+- `View All Case Studies` route.
 
-- label as `Featured Client Case`;
-- add `View Case Study` CTA;
-- retain `View Live Site` as secondary;
-- add one concise proof line such as `Bilingual website · structured intake · AI-assisted support`;
-- add a `View All Case Studies` route after the section or near the homepage CTA;
-- align EN/RU testimonial/name formatting;
-- keep animation performance-safe.
-
-### Do not
-
-- replace the homepage section with a generic three-card grid;
-- insert all three cases into the already dense homepage before the archive is stable;
-- duplicate GSC screenshots or automation diagrams on the homepage.
-
----
-
-## 10. Service-page integration decisions
+Do not replace it with a generic three-card grid and do not insert full case evidence into the homepage.
 
 ### Websites & Branding
 
-- keep the current Financial Stream + ProAI visual showcase;
-- add a clear link to the Financial Stream case;
-- add a discreet `View all cases` link;
-- do not duplicate the full case story;
-- preserve service-page focus.
+- retain concise Financial Stream and ProAI visual proof;
+- link to Financial Stream case and archive;
+- do not duplicate full testimonial, metrics, intake or automation story.
 
 ### AI Systems
 
-- no large Financial Stream duplicate;
-- later add one compact operational proof module only if sanitized automation evidence is ready;
-- link to the Financial Stream automation chapter or case page;
+- add only a compact operational proof module after sanitized evidence exists;
+- describe Chatbase and human-reviewed email drafting accurately;
+- label Twilio tested/partial;
 - do not imply full business automation.
 
-### About
+### About / Insights
 
-- add only a small Selected Work link or project-count proof if it improves navigation;
-- no duplicate case cards unless the page needs a proof strip.
-
-### Insights
-
-- cases may be referenced contextually from relevant articles;
-- no site-wide automatic insertion until the archive is stable.
-
----
-
-## 11. Navigation and footer plan
-
-### After source/live parity is resolved
-
-Add `Case Studies` / `Кейсы` consistently to:
-
-- homepage header;
-- AI Systems header;
-- Websites & Branding header;
-- About header;
-- Insights header;
-- Contact header;
-- EN/RU footer service/explore navigation.
-
-### Guardrails
-
-- do not add navigation before `/case-studies/` is source-controlled and preview-tested;
-- mobile menu must be tested at 320, 360, 390, 430, 768, and landscape heights;
-- no wrapping or overflow in the desktop header;
-- active-state logic must work on archive and individual cases.
+- use small contextual links only;
+- no automatic site-wide case insertion until the archive is stable.
 
 ---
 
 ## 12. SEO and metadata plan
 
-At launch, add to the sitemap:
-
-- both archive URLs;
-- all published EN/RU case URLs;
-- accurate `lastmod` values.
-
-Each case needs:
+Each launched archive/case page requires:
 
 - unique title and meta description;
-- canonical;
-- EN/RU/x-default hreflang;
-- OG and Twitter image;
-- meaningful alt text;
-- `WebPage` or appropriate `CreativeWork`/`Article`-style schema only if implemented accurately;
-- breadcrumbs where useful;
-- noindex only for temporary preview pages, never for launched cases.
+- one H1;
+- self canonical;
+- reciprocal EN/RU hreflang;
+- `x-default` to EN;
+- correct language attribute;
+- OG/Twitter image;
+- descriptive alt text;
+- accurate breadcrumbs/schema if used;
+- meaningful internal links.
 
-Do not publish:
+Sitemap rules:
 
-- unsupported performance outcomes;
-- fake conversion uplift;
-- fake client metrics;
-- undated SEO claims;
-- testimonial text without permission/source.
-
----
-
-## 13. Source recovery and deployment investigation — P0
-
-Before any visual implementation:
-
-1. record current `main` HEAD;
-2. create a protected backup branch/tag, for example:
-   - `backup/pre-portfolio-v2-2026-07`;
-3. inspect repository Pages settings and deployment source manually;
-4. inspect Actions/Pages deployment history if present;
-5. identify what currently serves the custom domain;
-6. capture raw live HTML and asset paths for all existing case URLs;
-7. compare live content against historical commits immediately before the deletion commit;
-8. identify the latest complete, valid source version;
-9. restore source files into a dedicated implementation branch only;
-10. verify no unrelated current homepage/service work is reverted.
-
-### Historical evidence
-
-- `5fa342a64b464493a0935047c7c84d6c3884c4f0` — deleted the case-studies directory;
-- earlier commits contain progressively refined Financial Stream, ProAI Expert, EN/RU archive, screenshots, and case styles;
-- restoration must be selective, not a full repository rollback.
+- include only approved live canonical routes;
+- use accurate `lastmod` values;
+- do not index temporary previews;
+- do not publish undated or unsupported SEO claims.
 
 ---
 
-## 14. Safe implementation workflow
+## 13. Branch and commit model
 
-### Branch model
+Work only on `portfolio-rebrand-v1` for the current rollout.
 
-Do not work directly on `main`.
+Recommended atomic commits:
 
-Recommended branches:
+1. source/deployment recovery;
+2. shared case foundation;
+3. Financial Stream EN;
+4. Financial Stream RU;
+5. archive foundation;
+6. Alina case;
+7. Local Repair case;
+8. final archive polish;
+9. navigation/footer integration;
+10. metadata/sitemap;
+11. QA fixes.
 
-```text
-portfolio-v2-foundation
-portfolio-v2-financial-stream
-portfolio-v2-alina
-portfolio-v2-local-repair
-portfolio-v2-integration
-```
-
-A simpler single branch is acceptable only if commits remain atomic and reviewable.
-
-### Preview model
-
-- run locally with a static server;
-- use Codex/browser preview for desktop and mobile;
-- produce screenshots or a screen recording for approval;
-- do not publish incomplete case routes on the custom domain;
-- preview pages must not be indexable.
-
-### Commit model
-
-Separate commits for:
-
-1. source recovery;
-2. shared portfolio styles/components;
-3. archive prototype;
-4. Financial Stream case;
-5. Alina case;
-6. Local Repair case;
-7. navigation/footer integration;
-8. sitemap/metadata;
-9. QA fixes.
-
-This makes rollback possible without reverting unrelated site work.
+Do not merge or publish partial work.
 
 ---
 
-## 15. Production phases
+## 14. QA matrix
 
-### Phase 0 — Source and deployment parity
+### Content and truth
 
-Deliverables:
+- correct project classification;
+- Payroll active in Financial Stream;
+- no unsupported performance claims;
+- current metrics include date/period;
+- historical metrics labelled historical;
+- automation statuses explicit;
+- permissions confirmed where required.
 
-- deployment-source report;
-- restored source tree in an implementation branch;
-- route inventory;
-- asset inventory;
-- no live changes.
+### Responsive
 
-Gate:
+Test at minimum:
 
-- repository source and current live pages can be explained and reproduced locally.
+- 320px;
+- 360/375px;
+- 390px;
+- 430px;
+- 768px;
+- 1024px;
+- 1440px;
+- short-height mobile landscape.
 
-### Phase 1 — Portfolio experience prototype
+Check:
 
-Build only:
+- no horizontal overflow;
+- no clipped headings;
+- readable screenshots;
+- stable sticky behavior;
+- usable mobile menus;
+- no excessive blank space.
 
-- archive hero;
-- three primary project stages;
-- secondary ProAI studio case treatment;
-- Financial Stream hero;
-- chapter navigation;
-- one system-map interaction;
-- one visual walkthrough interaction;
-- testimonial;
-- next-case transition.
+### Accessibility
 
-Gate:
-
-- desktop/mobile motion and layout approved before full case production.
-
-### Phase 2 — Independent design/architecture review
-
-Use `PORTFOLIO_PREIMPLEMENTATION_REVIEW_TASK.md`.
-
-Gate:
-
-- risks and corrections resolved in the blueprint/prototype.
-
-### Phase 3 — Financial Stream flagship case
-
-Use:
-
-- `financial-stream/CASE_V2_MASTER_BRIEF.md`;
-- `financial-stream/CASE_V2_BUILD_TASK.md`;
-- current live captures and sanitized evidence.
-
-Gate:
-
-- EN/RU complete;
-- Payroll correctly represented;
-- testimonial approved;
-- evidence wording accurate;
-- mobile QA passed.
-
-### Phase 4 — Archive V2
-
-- connect Financial Stream;
-- add Alina and Local Repair states;
-- preserve ProAI Expert studio case;
-- verify all routes and transitions.
-
-### Phase 5 — Alina case
-
-- confirm publication permissions;
-- create EN/RU strategy deliberately; do not manufacture an English client site if the actual project is UA/RU only;
-- case page language may describe the project in EN/RU while clearly stating the client-site languages.
-
-### Phase 6 — Local Repair Pro case
-
-- clean demo/internal wording first;
-- preserve concept classification;
-- disable misleading form behavior;
-- create final screenshots;
-- publish as concept/showcase.
-
-### Phase 7 — Site integration
-
-- homepage Featured Client Case CTA;
-- Websites & Branding case links;
-- optional AI Systems proof teaser;
-- global navigation/footer normalization;
-- archive links.
-
-### Phase 8 — SEO, accessibility, performance, and regression QA
-
-- sitemap;
-- canonical/hreflang;
-- metadata;
-- OG images;
+- semantic landmarks/headings;
 - keyboard navigation;
+- visible focus;
+- sufficient contrast;
 - reduced motion;
-- responsive widths;
-- image sizes;
-- broken-link crawl;
-- language-pair crawl;
-- no-regression checks.
+- no hover-only content;
+- meaningful alt text.
 
-### Phase 9 — Controlled launch
+### Functional/no regression
 
-- final approved branch merged;
-- deployment verified;
-- live smoke test;
-- rollback point retained;
-- Search Console sitemap resubmission only after live validation.
-
----
-
-## 16. No-regression checklist
-
-Before merge, confirm:
-
-- homepage interactive hero still works;
-- homepage Financial Stream section still works;
-- homepage testimonial remains correct;
-- Websites & Branding showcase still works;
-- AI Systems interactions still work;
-- mobile menus close and reopen correctly;
-- EN/RU language switches map correctly;
-- contact anchors still work;
-- Insights routes remain unchanged;
-- no CSS namespace collisions;
-- no global `.section`, `.card`, `.reveal`, or device-frame rule breaks existing pages;
-- no horizontal overflow from 320px upward;
-- `prefers-reduced-motion` is supported;
-- all new assets exist and are optimized;
-- existing Financial Stream and ProAI case URLs remain valid;
-- no temporary preview URL is indexed;
-- sitemap contains only live canonical routes;
-- 404 behavior remains correct for genuinely missing pages.
+- homepage interactions still work;
+- Financial Stream homepage module still works;
+- service and Insights routes remain intact;
+- contact anchors/forms remain intact;
+- language switches map correctly;
+- no console errors;
+- no missing assets;
+- no CSS collisions;
+- 404 behavior remains correct.
 
 ---
 
-## 17. Rollback plan
+## 15. Rollback plan
 
 Before public merge:
 
-1. preserve the pre-portfolio source state in a backup branch/tag;
+1. preserve the pre-portfolio source state;
 2. record the last known-good deployment SHA;
-3. keep portfolio changes in atomic commits;
-4. if launch fails, revert only the integration/portfolio commits;
-5. do not force-reset unrelated homepage, insights, or service-page work;
+3. retain atomic commits;
+4. revert only portfolio/integration commits if necessary;
+5. do not force-reset unrelated work;
 6. validate rollback on the custom domain and language routes.
 
 ---
 
-## 18. Definition of Ready
+## 16. Definition of ready
 
-Implementation may begin only when:
+Implementation can begin when:
 
-- [ ] the source of the current live Case Studies pages is identified;
-- [ ] live/source parity is documented;
-- [ ] a backup branch/tag exists;
-- [ ] the latest valid case source is restored in a non-main branch;
-- [ ] the archive and case route map is approved;
-- [ ] Financial Stream, Alina, Local Repair, and ProAI classifications are locked;
-- [ ] the interaction prototype scope is approved;
-- [ ] existing Financial Stream placements are inventoried;
-- [ ] the independent review task is ready;
-- [ ] no public code has been changed prematurely.
+- the source/live mismatch is investigated;
+- safe source recovery is defined;
+- current routes reproduce locally;
+- the route map and project classifications are locked;
+- Financial Stream master brief/build task are current;
+- the selected Financial Stream visual package remains intact;
+- no public code has been changed prematurely.
 
 ---
 
-## 19. Definition of Done
+## 17. Definition of done
 
 The portfolio rollout is complete when:
 
-- [ ] one scalable EN/RU archive exists;
-- [ ] Financial Stream, Alina, and Local Repair have dedicated pages;
-- [ ] the existing ProAI Expert case remains valid;
-- [ ] homepage and service-page proof modules point to the canonical cases;
-- [ ] navigation and footer are consistent;
-- [ ] sitemap and metadata are complete;
-- [ ] all case classifications and claims are accurate;
-- [ ] desktop/mobile/reduced-motion QA passes;
-- [ ] no existing page, route, integration, or language pair regresses;
-- [ ] a rollback point remains available after launch.
+- one scalable EN/RU archive exists;
+- Financial Stream, Alina and Local Repair have dedicated pages;
+- ProAI Expert Studio Case remains valid;
+- homepage/service proof links to canonical cases;
+- navigation/footer are consistent;
+- sitemap and metadata are correct;
+- classifications and claims are accurate;
+- desktop/mobile/reduced-motion QA passes;
+- no existing route or integration regresses;
+- owner approves the complete preview;
+- one controlled launch succeeds;
+- rollback remains available.
 
 ---
 
-## 20. Immediate next action
+## 18. Immediate next action
 
-Do not modify the public site yet.
+The next technical task is:
 
-The next action is **Phase 0: source/deployment parity investigation and selective recovery of the existing Case Studies source into a dedicated implementation branch**.
+**Codex performs source/live parity investigation and, after the gate passes, implements the Financial Stream EN/RU flagship case using `financial-stream/CASE_V2_BUILD_TASK.md`.**
 
-Only after Phase 0 is complete should the interactive archive + Financial Stream opening prototype be built.
+Do not build Alina, Local Repair Pro, final archive integration or publish in that same task.

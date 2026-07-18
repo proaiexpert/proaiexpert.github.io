@@ -1,76 +1,110 @@
-# Package Status
+# Financial Stream LLC — Package Status
 
-## Current stage
+**Current stage:** core case package assembled; canonical documentation synchronized; implementation may begin after source/live parity recovery.
 
-**Ready for implementation after source/live parity recovery.**
+---
 
-Research and source collection are complete. The next work is production: reconcile the live Case Studies deployment with the current repository source, capture missing current screens, and build Financial Stream Case Study V2.
+## 1. Completed
 
-## Validation
+### Research and verified facts
 
-- Source ZIP inspected: complete.
-- Full source-of-truth Markdown present and readable.
-- Evidence README present and readable.
-- Six expected PNG originals present and readable in the validated ZIP.
-- Unexpected files: none.
-- Missing expected files: none.
-- Payroll confirmed by the business owner as an active Financial Stream service.
-- Live Financial Stream EN/RU website, Contact, Start Here and Materials architecture rechecked in July 2026.
-- Existing ProAI Financial Stream case, owner testimonial and homepage device composition rechecked.
+- Business and service scope verified.
+- Payroll confirmed as an active service.
+- EN/RU website architecture verified.
+- Structured request, short form and calendar-after-context hierarchy verified.
+- Chatbase and human-reviewed Gmail/Make/OpenAI workflow documented.
+- Twilio/Make status constrained to tested/partial unless stronger proof is added.
+- Canonical owner testimonial identified.
+- Claims and privacy guardrails documented.
 
-## Primary production documents
+### Current search evidence
 
-Use these first:
+- Current GSC performance snapshot reviewed 2026-07-17:
+  - 3-month period;
+  - 19 clicks;
+  - approximately 4.17K impressions.
+- Separate indexing snapshot last updated 2026-07-09:
+  - 51 indexed pages.
+- Older repository evidence showing approximately 3.88K impressions and 41 indexed pages remains historical only.
 
-1. `CASE_V2_MASTER_BRIEF.md` — final consolidated source of truth.
-2. `CASE_V2_BUILD_TASK.md` — executable implementation task.
-3. `SCREENSHOT_MANIFEST.md` — capture and asset requirements.
-4. `EVIDENCE_INDEX.md` — metric and SERP evidence rules.
-5. `SOURCE_PACKAGE_MANIFEST.md` — original package integrity and hashes.
+### Core website visual package
 
-`CASE_V2_MASTER_BRIEF.md` supersedes any older internal wording that treated Payroll as obsolete or required its removal.
+The selected package is stored under:
 
-## Saved in this repository
+`assets/img/cases/financial-stream/final-v1/`
 
-- Full source-of-truth content.
-- Final V2 master brief.
-- Executable V2 build task.
-- Evidence index.
-- Screenshot manifest.
-- Exact ZIP and per-file SHA-256 checksum manifest.
-- Six real, readable WebP evidence derivatives stored under `evidence/`.
-- Existing current-main Financial Stream desktop and mobile portfolio assets identified.
-- Existing first-party owner testimonial identified.
-- Historical case-study source refs identified for controlled recovery.
+It contains ten PNG masters:
 
-## Confirmed current-main assets
+- four RU desktop captures;
+- one RU portrait-mobile service capture;
+- four EN desktop captures;
+- one EN portrait-mobile service capture.
 
-- `assets/img/cases/financial-stream/fs-home-desktop-en-1600w.webp`
-- `assets/img/cases/financial-stream/fs-home-mobile-en-640w.webp`
+Current decisions:
 
-## Confirmed P0 technical issue
+- rejected RU/EN Materials mobile-landscape files removed;
+- matching RU/EN Materials desktop captures retained;
+- matching RU/EN Company Formation portrait-mobile captures retained;
+- open Chatbase appears only in deliberate reporting/chat proof frames;
+- six superseded review-test PNGs removed after final copies were verified.
 
-The live ProAI Case Studies pages display full portfolio content, but the current `main` branch contains a redirect at `case-studies/index.html`, and the Financial Stream case HTML is not present through the current GitHub Contents API.
+The package is selected and ready for case-page composition. Final owner visual lock still occurs in the page preview.
 
-Before V2 page edits:
+---
 
-- identify the actual live deployment source;
-- determine whether the live pages are served from an old Pages artifact, another branch or a cache layer;
-- restore source/live parity without overwriting the current live page from an outdated historical file.
+## 2. Primary production documents
 
-## Binary evidence policy
+Use in this order:
 
-The exact six source PNG files remain preserved in the validated ZIP and are the canonical originals. GitHub also contains six optimized WebP derivatives made from those originals for direct internal inspection.
+1. `../PORTFOLIO_REBRAND_CURRENT_HANDOFF.md`
+2. `CASE_V2_MASTER_BRIEF.md`
+3. `CASE_V2_BUILD_TASK.md`
+4. `SCREENSHOT_MANIFEST.md`
+5. `EVIDENCE_INDEX.md`
+6. `SOURCE_PACKAGE_MANIFEST.md`
 
-The WebP evidence files are internal review copies. Public use still requires the redaction and claims rules documented in `EVIDENCE_INDEX.md`.
+Older source-pack parts remain historical reference only.
 
-## Remaining production work
+---
 
-1. Resolve source/live parity.
-2. Capture missing current Financial Stream screens.
-3. Build and publish EN Financial Stream Case Study V2.
-4. Build and publish the independent RU edition.
-5. Update the Case Studies index and homepage case route.
-6. Run visual, responsive, metadata and claims QA.
-7. Continue with Alina Horb.
-8. Continue with Local Repair Pro.
+## 3. P0 technical gate
+
+The live ProAI Case Studies pages and current `main` source are not fully aligned.
+
+Before production case code is changed:
+
+1. identify the actual live deployment source;
+2. inspect Pages settings, workflows, artifacts and relevant branches;
+3. preserve current live HTML and asset references;
+4. selectively restore required source into `portfolio-rebrand-v1`;
+5. reproduce all relevant routes locally;
+6. verify no unrelated current work is reverted.
+
+Do not overwrite the live case from an arbitrary historical commit.
+
+---
+
+## 4. Remaining work
+
+1. Resolve and document source/live parity.
+2. Build the Financial Stream EN flagship case.
+3. Build the independent RU edition.
+4. Create optimized WebP derivatives from selected PNG masters for delivery.
+5. Add only selected, redacted GSC evidence.
+6. Add sanitized automation proof only where current evidence exists.
+7. Build the Case Studies archive foundation.
+8. Build Alina Horb and Local Repair Pro cases in the locked order.
+9. Complete navigation, footer, metadata, sitemap and regression QA.
+10. Perform one controlled launch after owner approval.
+
+---
+
+## 5. Prohibited shortcuts
+
+- Do not recapture the selected ten-image package without explicit owner instruction.
+- Do not create a second PNG-master directory.
+- Do not call old GSC values current.
+- Do not claim traffic growth without a baseline.
+- Do not claim lead, conversion, revenue or SEO ROI outcomes.
+- Do not label Local Repair Pro as a real client project.
+- Do not modify `main` or publish during implementation work.

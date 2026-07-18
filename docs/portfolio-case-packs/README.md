@@ -11,11 +11,14 @@ These documents control strategy, verified facts, claims, content structure, ass
 Read in this order:
 
 1. `PORTFOLIO_REBRAND_CURRENT_HANDOFF.md` — current operational state and exact next action.
-2. `PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md` — final architecture, rollout, QA and safety plan.
-3. `PORTFOLIO_EXPERIENCE_BLUEPRINT.md` — visual/interaction direction.
-4. Project master brief — verified content and evidence.
-5. Project build task — executable Codex instruction.
+2. `PORTFOLIO_CASE_ART_DIRECTION_AND_MOTION_SYSTEM_V1.md` — reusable portfolio art-direction, screenshot and motion rules.
+3. `PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md` — final architecture, rollout, QA and safety plan.
+4. Approved project Production Spec when present.
+5. Project master brief — verified content and evidence.
 6. Project screenshot/evidence manifests.
+7. Updated project build task — executable Codex instruction after owner approval.
+
+`PORTFOLIO_EXPERIENCE_BLUEPRINT.md` remains a historical design-prototyping reference. It cannot override the current handoff, the reusable V1 system or an approved project Production Spec.
 
 Older dated transfer, correction and research files are historical reference only. They do not override the current handoff or current project master brief.
 
@@ -78,8 +81,8 @@ Do not create a competing `/work/` or `/portfolio/` architecture.
 
 | Priority | Project | Truth label | Current production state |
 |---:|---|---|---|
-| 1 | Financial Stream LLC | Real Client Project · Live · Ongoing Optimization | Core website visual package assembled; metrics and canonical documents synchronized; source/live parity and EN/RU case implementation next |
-| 2 | Alina Horb | Real Website Project · Live / In Refinement | Case facts available; real current screenshot package and publication permissions still required |
+| 1 | Financial Stream LLC | Real Client Project · Live · Ongoing Optimization | Production Spec draft created; owner review, V2 placement approval, source/live parity and implementation remain |
+| 2 | Alina Horb | Real Website Project · Live / In Refinement | Case facts available; real current screenshot package, final portfolio narrative and publication permissions still required |
 | 3 | Local Repair Pro | Concept Project · Website Production Factory Showcase | Demo/concept exists; public cleanup, truthful labeling and current screenshot package still required |
 | Secondary | ProAI Expert | Internal Studio Project · Live | Preserve existing EN/RU URLs as a secondary Studio Case |
 
@@ -87,16 +90,18 @@ Do not create a competing `/work/` or `/portfolio/` architecture.
 
 ## 5. Locked production order
 
-1. Resolve Case Studies source/live deployment parity.
-2. Build the complete Financial Stream EN/RU flagship detail pages.
-3. Build the Case Studies archive foundation around the approved Financial Stream system.
-4. Capture and build the Alina Horb detail pages.
-5. Clean, capture and build the Local Repair Pro concept pages.
-6. Finalize archive hierarchy, transitions and all three project stages.
-7. Integrate homepage/service links, navigation and footer.
-8. Add final metadata, canonical/hreflang, sitemap and OG assets.
-9. Run accessibility, responsive, performance and no-regression QA.
-10. Perform one controlled owner-approved launch.
+1. Complete and owner-approve the Financial Stream Production Spec.
+2. Resolve Case Studies source/live deployment parity.
+3. Promote approved Financial Stream V2 assets only under the approved placement procedure.
+4. Build the complete Financial Stream EN/RU flagship detail pages.
+5. Build the Case Studies archive foundation around the approved Financial Stream system.
+6. Capture and build the Alina Horb detail pages.
+7. Clean, capture and build the Local Repair Pro concept pages.
+8. Finalize archive hierarchy, transitions and all three project stages.
+9. Integrate homepage/service links, navigation and footer.
+10. Add final metadata, canonical/hreflang, sitemap and OG assets.
+11. Run accessibility, responsive, performance and no-regression QA.
+12. Perform one controlled owner-approved launch.
 
 Do not complete the archive visually before the Financial Stream detail-page system establishes the reusable case components.
 
@@ -107,19 +112,23 @@ Do not complete the archive visually before the Financial Stream detail-page sys
 Use in this order:
 
 1. `PORTFOLIO_REBRAND_CURRENT_HANDOFF.md`
-2. `financial-stream/CASE_V2_MASTER_BRIEF.md`
-3. `financial-stream/CASE_V2_BUILD_TASK.md`
-4. `financial-stream/SCREENSHOT_MANIFEST.md`
-5. `financial-stream/EVIDENCE_INDEX.md`
-6. `financial-stream/PACKAGE_STATUS.md`
-7. legacy source-pack files only for historical detail.
+2. `PORTFOLIO_CASE_ART_DIRECTION_AND_MOTION_SYSTEM_V1.md`
+3. `financial-stream/FINANCIAL_STREAM_FLAGSHIP_CASE_PRODUCTION_SPEC_V1.md` after owner approval
+4. `financial-stream/CASE_V2_MASTER_BRIEF.md`
+5. `financial-stream/SCREENSHOT_MANIFEST.md`
+6. `financial-stream/EVIDENCE_INDEX.md`
+7. `financial-stream/PACKAGE_STATUS.md`
+8. an updated final Codex build task after the Production Spec is approved
+9. legacy source-pack files only for historical detail.
 
-The current master brief supersedes older wording that:
+The current handoff, reusable system and approved Production Spec supersede older wording that:
 
 - removed Payroll;
 - used older GSC values as current;
 - treated rejected landscape mobile files as selected;
-- required recapturing the completed ten-image core package.
+- required recapturing the completed screenshot package;
+- used fake device frames, browser chrome, blur-to-sharp or generic device choreography;
+- treated legacy Request/Reporting frames as the final public placement.
 
 ---
 
@@ -150,22 +159,34 @@ Canonical root:
 
 `assets/img/cases/financial-stream/final-v1/`
 
-Selected package:
+Current canonical package:
 
 - four RU desktop PNGs;
 - one RU Company Formation portrait-mobile PNG;
 - four EN desktop PNGs;
 - one EN Company Formation portrait-mobile PNG.
 
+Owner-approved V2 review root:
+
+`assets/img/cases/financial-stream/review-candidates-v2/`
+
+It contains four visually approved Request/Reporting replacement candidates:
+
+- RU Request V2;
+- RU Reporting/Chatbase V2;
+- EN Request V2;
+- EN Reporting/Chatbase V2.
+
 Decisions:
 
-- rejected RU/EN Materials mobile-landscape files removed;
-- matching RU/EN Materials desktop files selected;
-- matching RU/EN Company Formation portrait-mobile files selected;
-- six superseded review-test PNGs removed;
-- selected PNG masters must not be recaptured or renamed without owner instruction;
+- rejected RU/EN Materials mobile-landscape files remain removed;
+- matching RU/EN Materials desktop files remain selected;
+- matching RU/EN Company Formation portrait-mobile files remain selected;
+- V2 Request/Reporting candidates are visually approved but not yet promoted;
+- approved V2 files must not be recaptured;
 - optimized WebP derivatives are created only during implementation;
-- final owner visual lock occurs in the actual page preview.
+- final owner visual lock occurs in the complete EN/RU page preview;
+- real screenshots are presented as proof surfaces, not inside Apple, laptop, phone or browser mockups.
 
 ---
 
@@ -182,7 +203,9 @@ Decisions:
 9. Closed issues, dimensions, hashes and logs do not equal visual approval.
 10. Use real captures only; no synthetic UI or placeholder project imagery.
 11. Keep evidence captures separate from presentation masters.
-12. Keep strategy/content work here and implementation work in Codex.
+12. Do not use Apple device frames, generic hardware mockups or fake browser chrome as the default screenshot treatment.
+13. Keep strategy/content work here and implementation work in Codex.
+14. Do not issue the final Codex implementation task before the project Production Spec is owner-approved.
 
 ---
 
@@ -192,15 +215,19 @@ Decisions:
 docs/portfolio-case-packs/
 ├── README.md
 ├── PORTFOLIO_REBRAND_CURRENT_HANDOFF.md
+├── PORTFOLIO_CASE_ART_DIRECTION_AND_MOTION_SYSTEM_V1.md
 ├── PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md
-├── PORTFOLIO_EXPERIENCE_BLUEPRINT.md
+├── PORTFOLIO_EXPERIENCE_BLUEPRINT.md                  # historical prototyping reference
 ├── VISUAL_ASSET_CORRECTION_2026-07-15.md
 ├── REAL_SCREENSHOT_CAPTURE_TASK.md
 ├── PORTFOLIO_PREIMPLEMENTATION_REVIEW_TASK.md
 ├── PORTFOLIO_DESIGN_REVIEW_TASK.md
 ├── financial-stream/
 │   ├── CASE_V2_MASTER_BRIEF.md
-│   ├── CASE_V2_BUILD_TASK.md
+│   ├── CASE_V2_BUILD_TASK.md                          # not final for implementation
+│   ├── FINANCIAL_STREAM_FLAGSHIP_CASE_EXPERIENCE_BLUEPRINT_V1.md
+│   ├── FINANCIAL_STREAM_FLAGSHIP_CASE_PRODUCTION_REVIEW_TASK_V1.md
+│   ├── FINANCIAL_STREAM_FLAGSHIP_CASE_PRODUCTION_SPEC_V1.md
 │   ├── PACKAGE_STATUS.md
 │   ├── SCREENSHOT_MANIFEST.md
 │   ├── EVIDENCE_INDEX.md

@@ -3,61 +3,57 @@
 **Last updated:** 2026-07-17  
 **Repository:** `proaiexpert/proaiexpert.github.io`  
 **Working branch:** `portfolio-rebrand-v1`  
-**Branch state before this document update:** `e9d6b3b528e02268bba0d0699d073ea2a2fb9f37`  
+**Branch state before this final handoff update:** `991516eafb82b8c1145ba1c216719f9440752edc`  
 **Public status:** no portfolio-rebrand work from this branch has been merged into `main` or intentionally published.
 
 ---
 
-## 1. Purpose and authority
+## 1. Authority
 
-This file is the current operational source of truth for the ProAI Expert portfolio rebrand.
+This is the current operational source of truth.
 
-Read it first in every new ChatGPT or Codex session.
+Read in this order:
 
-Authority order:
+1. `PORTFOLIO_REBRAND_CURRENT_HANDOFF.md`
+2. `PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md`
+3. project master brief
+4. project build task
+5. screenshot/evidence manifests
+6. older dated documents as historical reference only
 
-1. `PORTFOLIO_REBRAND_CURRENT_HANDOFF.md` — current operational state and exact next action.
-2. `PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md` — final architecture, rollout order, QA and safety rules.
-3. Project master briefs — verified facts, content and evidence.
-4. Project build tasks — executable instructions for Codex.
-5. Older dated transfer, correction and research documents — historical reference only.
-
-When an older file conflicts with this handoff, this handoff controls current status.
+An older file cannot override this handoff.
 
 ---
 
 ## 2. Work division
 
-### ChatGPT / management chat
-
-Use this chat for:
+### Managed here in ChatGPT
 
 - strategy;
 - information architecture;
 - public copy and case narrative;
-- evidence and claim review;
-- screenshot selection and visual QA with the owner;
-- repository documentation cleanup;
-- implementation sequencing;
-- final technical task specifications for Codex.
+- evidence and claim control;
+- screenshot selection and visual review;
+- repository documentation;
+- implementation sequence;
+- final Codex tasks.
 
-### Codex
+### Executed in Codex
 
-Use Codex only for:
+- source/deployment investigation;
+- selective source recovery;
+- HTML/CSS/JavaScript;
+- responsive implementation;
+- local/browser preview;
+- asset optimization;
+- link, metadata, accessibility and regression QA;
+- production-code commits.
 
-- source/deployment investigation requiring repository or browser execution;
-- HTML, CSS and JavaScript implementation;
-- responsive behavior;
-- local preview and browser QA;
-- asset conversion and optimization;
-- link, metadata and regression testing;
-- commits containing production code.
-
-Do not spend Codex limits on repeated strategy, research summaries, copy planning or documentation that can be completed here.
+Do not spend Codex limits repeating strategy or documentation completed here.
 
 ---
 
-## 3. Locked portfolio architecture
+## 3. Locked route architecture
 
 English:
 
@@ -75,33 +71,42 @@ Russian:
 - `/ru/case-studies/local-repair-pro/`
 - `/ru/case-studies/proai-expert/`
 
-Do not introduce a competing `/work/` or `/portfolio/` route system.
+Do not create a competing `/work/` or `/portfolio/` system.
 
-Project order and truth labels:
+Project truth labels:
 
 1. **Financial Stream LLC** — real flagship client project; live; ongoing optimization.
-2. **Alina Horb** — real live website project; client site is UA/RU.
+2. **Alina Horb** — real live website project; actual client site is UA/RU.
 3. **Local Repair Pro** — concept/showcase; in development; not a completed client engagement.
-4. **ProAI Expert** — internal studio case; preserve existing EN/RU routes as a secondary Studio Case.
+4. **ProAI Expert** — internal Studio Case; preserve existing EN/RU routes.
 
 ---
 
-## 4. Safety state
+## 4. Safety and P0 gate
 
 - `main` is the public baseline and must not be edited directly.
-- `portfolio-rebrand-v1` is the only active working branch for this stage.
-- Existing backup/reference branches must be retained.
-- Do not create a PR or publish until the owner approves the completed preview.
-- The source/live Case Studies mismatch remains a P0 implementation risk.
-- Restoration must be selective; never roll the whole repository back to an old commit.
+- `portfolio-rebrand-v1` is the active working branch.
+- Do not create a PR or publish before owner approval.
+- The live/source Case Studies mismatch remains a P0 implementation gate.
+- Source recovery must be selective; never roll the whole repository back.
+
+Before production page code changes, Codex must:
+
+1. identify the active GitHub Pages/deployment source;
+2. inspect relevant workflows, artifacts and branches;
+3. preserve current live EN/RU case HTML and asset references;
+4. compare with verified historical source;
+5. restore only required files into `portfolio-rebrand-v1`;
+6. reproduce routes locally;
+7. confirm no current homepage, service, Insights or language work is reverted.
 
 ---
 
-## 5. Financial Stream — verified case facts
+## 5. Financial Stream — verified scope
 
-Financial Stream is a real, live client project.
+Financial Stream is a real live client project.
 
-Verified scope includes:
+Verified scope:
 
 - English and Russian website architecture;
 - business formation and company setup;
@@ -115,197 +120,162 @@ Verified scope includes:
 - structured request first;
 - shorter message form second;
 - calendar after context;
-- Chatbase website assistant;
+- Chatbase assistant;
 - Gmail + Make + OpenAI draft workflow with human review;
-- Twilio/Make only as tested or partial unless stronger current proof is added.
+- Twilio/Make only as tested/partial unless stronger proof is added.
 
-Payroll is an active service. Any older instruction that removes or labels Payroll as obsolete is superseded.
+Payroll is active. Older instructions removing or downgrading Payroll are superseded.
 
 ---
 
-## 6. Financial Stream — current search evidence
+## 6. Current search metrics
 
-Keep performance and indexing evidence as separate dated snapshots.
+Performance and indexing are separate dated snapshots.
 
-### Current performance snapshot
+### Performance snapshot
 
-Owner-supplied Google Search Console screenshot reviewed on **2026-07-17**:
+Owner-supplied Google Search Console screenshot reviewed **2026-07-17**:
 
 - period: **3 months**;
-- total clicks: **19**;
-- total impressions: **approximately 4.17K**.
+- clicks: **19**;
+- impressions: **approximately 4.17K**.
 
-Safe public framing:
+Approved EN line:
 
 > In a three-month Google Search Console snapshot reviewed in July 2026, Financial Stream recorded 19 clicks and approximately 4.17K search impressions.
 
-Russian:
+Approved RU line:
 
 > По трёхмесячному срезу Google Search Console, просмотренному в июле 2026 года, сайт Financial Stream получил 19 кликов и около 4,17 тыс. показов в поиске.
 
-### Current indexing snapshot
+### Indexing snapshot
 
-Separate indexing evidence supplied by the owner:
+Separate owner-supplied evidence:
 
 - **51 indexed pages**;
-- indexing screenshot last updated **2026-07-09**.
+- last updated **2026-07-09**.
 
-Do not merge the two dates into one claim.
+Do not merge the dates.
 
-Historical evidence files showing approximately 3.88K impressions and 41 indexed pages remain valid only as older dated snapshots. They are not the current headline metrics.
+Older repository evidence showing approximately `3.88K` impressions and `41` indexed pages remains historical only.
 
-Never claim:
-
-- guaranteed ranking positions;
-- permanent top results;
-- traffic growth without a comparable baseline;
-- lead, conversion or revenue growth;
-- SEO ROI;
-- future performance.
+Never claim guaranteed rankings, permanent top positions, traffic growth without a baseline, leads, conversion, revenue, SEO ROI or future performance.
 
 ---
 
-## 7. Financial Stream — selected core visual package
+## 7. Financial Stream — selected visual package
 
-Location:
+Canonical root:
 
 `assets/img/cases/financial-stream/final-v1/`
 
-The current core package contains exactly ten selected PNG masters.
+Exactly ten selected PNG masters:
 
-### RU desktop
+### RU
 
 1. `ru/desktop/fs-ru-01-home-hero-desktop.png`
 2. `ru/desktop/fs-ru-02-request-desktop.png`
 3. `ru/desktop/fs-ru-03-reporting-chat-desktop.png`
 4. `ru/desktop/fs-ru-04-materials-desktop.png`
-
-### RU mobile
-
 5. `ru/mobile/fs-ru-04-company-formation-mobile-portrait.png`
 
-### EN desktop
+### EN
 
 6. `en/desktop/fs-en-01-home-hero-desktop.png`
 7. `en/desktop/fs-en-02-request-desktop.png`
 8. `en/desktop/fs-en-03-reporting-chat-desktop.png`
 9. `en/desktop/fs-en-04-materials-desktop.png`
-
-### EN mobile
-
 10. `en/mobile/fs-en-04-company-formation-mobile-portrait.png`
 
-Current package decisions:
+Decisions:
 
-- the rejected RU/EN Materials mobile-landscape files were removed;
-- the approved direction uses portrait Company Formation service captures for mobile proof;
-- Materials is represented with matching RU/EN desktop captures;
-- the open Chatbase state is allowed only in the two deliberate reporting/chat proof frames;
-- all other selected frames must remain unobstructed;
-- six superseded review-test PNGs were removed after matching final copies were verified.
-
-`final-v1` is a package path, not automatic evidence of owner approval. The owner’s final visual lock is still required during page composition and preview review.
-
-Do not recapture or rename these ten files without explicit owner instruction.
+- rejected RU/EN Materials mobile-landscape files were removed;
+- Materials is represented by matching RU/EN desktop captures;
+- mobile proof uses matching Company Formation portrait captures;
+- open Chatbase is allowed only in the two deliberate reporting/chat frames;
+- six superseded review-test PNGs were deleted after final copies were verified;
+- selected masters must not be recaptured, renamed or duplicated without explicit owner instruction;
+- WebP delivery derivatives are created only during implementation;
+- final visual lock occurs in the complete page preview.
 
 ---
 
 ## 8. Visual rules
 
-- Use only real current website captures or exact production assets.
-- No generated UI, fake dashboards, synthetic portraits or placeholder canvases.
-- No browser chrome in portfolio masters.
-- Do not alter page CSS or `document.body.style.zoom` to force a composition.
-- Open every selected image and inspect the actual PNG.
-- Dimensions, hashes and capture logs prove technical integrity only.
-- Avoid near-duplicate screenshots.
-- Retain PNG masters; create optimized WebP derivatives only for final delivery.
-- Evidence screenshots and portfolio presentation screenshots are separate asset classes.
+- Use real current captures only.
+- No synthetic UI, fake dashboards, placeholder portraits or generated project imagery.
+- No browser chrome in presentation masters.
+- Do not manipulate site CSS/zoom to force a screenshot composition.
+- Evidence captures and presentation masters are separate asset classes.
+- Dimensions, hashes and logs are technical evidence—not visual approval.
+- Avoid near-duplicate screens.
+- Retain PNG masters.
 
 ---
 
-## 9. Source/live parity — P0 implementation gate
+## 9. Final implementation order
 
-The live ProAI Case Studies URLs have displayed full pages, while current `main` does not cleanly contain the matching source tree.
+This order is locked.
 
-Before production page code is changed, Codex must:
+### Stage 0 — Source/live parity
 
-1. identify the actual GitHub Pages deployment source;
-2. inspect recent Pages workflows/artifacts and relevant branches;
-3. capture the current live HTML and asset references;
-4. compare them with the verified historical Case Studies source;
-5. restore only required source files into `portfolio-rebrand-v1`;
-6. reproduce the routes locally;
-7. confirm that no current homepage, service, insight or language work is reverted.
+Resolve and reproduce the current Case Studies source safely.
 
-Do not overwrite the live cases from an arbitrary historical commit.
+### Stage 1 — Financial Stream flagship detail pages
 
----
-
-## 10. Final implementation order
-
-This order is locked to minimize redesign and duplicate work.
-
-### Stage 1 — Financial Stream flagship detail page
-
-Build the EN and RU Financial Stream case first.
-
-It establishes the reusable system for:
+Build EN and RU Financial Stream first. It establishes:
 
 - case hero;
 - proof strip;
 - chapter navigation;
 - screenshot panels;
-- verified evidence blocks;
-- testimonial;
+- evidence blocks;
 - status labels;
+- testimonial;
 - next-case transition;
 - EN/RU metadata and language pairing.
 
 ### Stage 2 — Case Studies archive foundation
 
-After the Financial Stream page direction is stable, build the strong archive shell with:
+After Financial Stream is stable, build the archive shell with:
 
 - completed Financial Stream stage;
-- structurally ready Alina stage;
-- structurally ready Local Repair Pro stage;
+- truthful Alina stage;
+- truthful Local Repair Pro concept stage;
 - secondary ProAI Expert Studio Case.
 
-Do not treat unfinished cases as completed.
-
-### Stage 3 — Alina Horb detail page
+### Stage 3 — Alina Horb detail pages
 
 - use real current UA/RU site captures;
 - preserve the editorial sanctuary direction;
-- obtain permission for portrait, diploma and testimonial use where required;
-- describe actual client-site languages accurately;
+- confirm portrait, diploma and testimonial permissions;
 - create natural EN/RU portfolio narratives without pretending the client site is English.
 
-### Stage 4 — Local Repair Pro detail page
+### Stage 4 — Local Repair Pro detail pages
 
 - retain `Concept Project` classification;
-- remove internal/demo-only wording before public use;
-- use real current demo captures;
-- do not invent client proof, reviews, licensing, metrics, phone numbers or outcomes.
+- remove internal/demo wording;
+- use current real demo captures;
+- never invent client proof, reviews, licensing, phone, metrics or outcomes.
 
 ### Stage 5 — Final archive and site integration
 
-Only after all three primary cases exist:
+After all three primary cases exist:
 
 - finalize archive hierarchy and transitions;
 - strengthen homepage Financial Stream teaser;
 - connect Websites & Branding proof;
-- add optional AI Systems teaser only when sanitized automation proof exists;
+- add optional AI Systems teaser only with sanitized evidence;
 - normalize navigation and footer;
-- update sitemap, metadata, canonical and hreflang;
-- run full regression QA;
-- prepare one controlled launch.
+- update metadata, canonical, hreflang and sitemap;
+- run full no-regression QA;
+- perform one controlled launch.
 
 ---
 
-## 11. Financial Stream public case structure
+## 10. Financial Stream page structure
 
-Use this chapter order in both languages:
+Use in both languages:
 
 1. Hero.
 2. Proof strip.
@@ -320,31 +290,51 @@ Use this chapter order in both languages:
 11. Verified outcomes.
 12. Live project and ProAI CTA.
 
-EN and RU must share verified facts and structure but use natural independent copy.
+EN and RU share verified facts and structure but use natural independent copy.
 
 ---
 
-## 12. Current next action
+## 11. Documentation cleanup status
 
-The documentation and asset package are being synchronized in this chat.
+Completed in this management pass:
 
-After synchronization, the next Codex task is:
+- current metrics updated;
+- performance and indexing separated;
+- ten-image package recorded;
+- rejected landscape files removed from current status;
+- six review-test duplicates deleted;
+- capture log synchronized;
+- screenshot manifest finalized;
+- Financial Stream package status finalized;
+- Financial Stream master brief finalized;
+- Codex build task finalized;
+- portfolio README and master rollout plan synchronized;
+- old control-transfer file marked historical.
 
-**perform the source/live parity investigation and then implement the Financial Stream EN/RU flagship case on `portfolio-rebrand-v1` using the final master brief, build task and selected ten-image package.**
+No production code was changed.
 
-Do not begin Alina, Local Repair Pro, global integration or publication in that same task.
+---
+
+## 12. Exact next action
+
+Give Codex the current:
+
+`docs/portfolio-case-packs/financial-stream/CASE_V2_BUILD_TASK.md`
+
+Codex must perform source/live parity investigation and, only after that gate passes, implement the Financial Stream EN/RU flagship case on `portfolio-rebrand-v1`.
+
+Do not include Alina, Local Repair Pro, final archive integration or publication in the same Codex task.
 
 ---
 
 ## 13. Session rules
 
 - Read this handoff first.
+- Keep strategy/content work here and implementation work in Codex.
 - Do not modify `main`.
-- Do not publish without explicit owner approval.
+- Do not publish without owner approval.
 - Do not recreate completed Financial Stream screenshots.
-- Do not infer claims from filenames or old notes.
 - Separate current metrics from historical snapshots.
-- Separate selected assets from final owner approval.
-- Keep strategic/content work here and implementation work in Codex.
+- Separate selected assets from final preview approval.
 - Use one controlled task at a time.
 - Stop after the requested deliverable.

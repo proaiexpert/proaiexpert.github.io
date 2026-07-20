@@ -15,6 +15,16 @@ The factory is not only a website. It is a repeatable pipeline:
 
 `Intake -> Niche/Competitor Research -> Sitemap -> Conversion Strategy -> Copy Strategy -> Visual Direction -> Homepage Prototype -> QA -> Deployment -> Launch Readiness -> Reusable Template Extraction`
 
+## Premiumity, Motion and Evidence
+
+The current reusable art-direction and premiumity source is:
+
+- `PREMIUM_WEBSITE_ART_DIRECTION_MOTION_AND_EVIDENCE_PLAYBOOK_V1.md`
+
+Read it before defining visual direction, motion, evidence presentation, responsive choreography or premiumity QA for a new site. It consolidates lessons from Financial Stream, Alina Horb, Local Repair Pro and the ProAI portfolio system.
+
+It does not authorize copying any project’s client-specific visuals, claims or proof into another site.
+
 ## Reuse Boundaries
 
 Reusable across future sites:
@@ -27,6 +37,9 @@ Reusable across future sites:
 - deployment QA
 - Codex workflow
 - prompt/task patterns
+- premiumity principles
+- motion grammar
+- evidence presentation patterns
 
 Client-specific for every new site:
 - business name, phone, email, and service area
@@ -34,6 +47,7 @@ Client-specific for every new site:
 - licenses, insurance, certifications, guarantees, warranties, and other claims
 - pricing and availability
 - language scope, URL structure, and deployment target
+- project-specific visual identity and signature effect
 
 Use `LOCAL_SERVICE_GUARDRAILS.md` before converting any reusable pattern into public client copy.
 
@@ -49,6 +63,7 @@ For a new Codex/agent session:
 ## Canonical Docs
 
 - Overall factory concept: `BLUEPRINT.md`
+- Premium art direction, motion and evidence: `PREMIUM_WEBSITE_ART_DIRECTION_MOTION_AND_EVIDENCE_PLAYBOOK_V1.md`
 - Production pipeline: `PIPELINE.md`
 - New-site startup: `QUICK_START.md` and `CHECKLIST_NEW_SITE.md`
 - Local-service claim safety and proof rules: `LOCAL_SERVICE_GUARDRAILS.md`
@@ -63,6 +78,7 @@ For a new Codex/agent session:
 ## Core Docs
 
 - `BLUEPRINT.md` - full operating model
+- `PREMIUM_WEBSITE_ART_DIRECTION_MOTION_AND_EVIDENCE_PLAYBOOK_V1.md` - accumulated premiumity, narrative, visual, motion, evidence, mobile and performance rules
 - `NEW_SITE_TASK_PACK.md` - operational starter pack for launching a new local-service site
 - `QUICK_START.md` - start a new site in 30-60 minutes
 - `PIPELINE.md` - phase-by-phase production workflow
@@ -83,7 +99,10 @@ For a new Codex/agent session:
 
 - Recovery audit: `../recovery/`
 - Docs dedup/recovery audit: `../recovery/FACTORY_DOCS_DEDUP_AUDIT.md`
+- Portfolio premiumity system: `../portfolio-case-packs/PORTFOLIO_PREMIUMITY_MOTION_AND_EVIDENCE_SYSTEM_V2.md`
 
 ## Factory Rule
 
 Every demo should become a reusable niche template. Do not build one-off pages that cannot be adapted.
+
+Every completed project should also contribute explicit lessons back into the factory without transferring client-specific facts, proof or visual identity.

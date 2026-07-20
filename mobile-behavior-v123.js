@@ -138,6 +138,12 @@
     requestHeaderVisibilitySync();
   });
 
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !siteNav || !siteNav.classList.contains('is-open')) return;
+    resetMenuState();
+    if (menuToggle) menuToggle.focus();
+  });
+
   window.addEventListener('pageshow', syncViewportFlags);
 
   window.addEventListener('orientationchange', () => {

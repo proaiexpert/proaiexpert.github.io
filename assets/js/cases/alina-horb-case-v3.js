@@ -51,7 +51,7 @@
   updateHeader();
   window.addEventListener('scroll', updateHeader, { passive: true });
 
-  const animated = [...document.querySelectorAll('[data-threshold], [data-accent], [data-lock], [data-pair], [data-handoff]')];
+  const animated = [...document.querySelectorAll('[data-threshold], [data-accent], [data-lock], [data-pair], .ahv3-section h2')];
   if (!animated.length || reduceMotion || !('IntersectionObserver' in window)) {
     animated.forEach((element) => element.classList.add('is-active'));
     return;

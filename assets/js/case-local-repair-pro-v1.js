@@ -109,6 +109,14 @@
   var effectSelector = '.lrp-proof-settle,.lrp-field-lock,.lrp-scope-align,.lrp-surface-handoff,.lrp-cta-closure';
   var effectTargets = Array.prototype.slice.call(document.querySelectorAll(effectSelector));
 
+  function effectDuration(target) {
+    if (target.classList.contains('lrp-scope-align')) return 580;
+    if (target.classList.contains('lrp-proof-settle')) return 500;
+    if (target.classList.contains('lrp-cta-closure')) return 500;
+    if (target.classList.contains('lrp-surface-handoff')) return 420;
+    return 320;
+  }
+
   function runNextEffect() {
     while (activeEffects < 2 && motionQueue.length) {
       var target = motionQueue.shift();
@@ -118,7 +126,7 @@
       window.setTimeout(function () {
         activeEffects = Math.max(0, activeEffects - 1);
         runNextEffect();
-      }, 590);
+      }, effectDuration(target));
     }
   }
 

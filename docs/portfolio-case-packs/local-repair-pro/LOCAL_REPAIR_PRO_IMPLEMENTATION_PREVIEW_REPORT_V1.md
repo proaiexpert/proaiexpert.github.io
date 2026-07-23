@@ -2,7 +2,7 @@
 
 ## Статус
 
-Branch preview готов для визуального review владельца. PR, merge и deployment не выполнялись.
+Feature branch готов к production merge: premiumity pass завершён, обязательный QA пройден. Итоговые merge/deployment identifiers фиксируются в release result после публикации.
 
 ## Контрольные источники
 
@@ -30,11 +30,23 @@ Branch preview готов для визуального review владельц�
 - Реализованы ровно пять motion classes: Proof Surface Settle, Field Note Lock, Scope Alignment, Surface Handoff, CTA Closure.
 - JavaScript выполняет только progressive enhancement: mobile menu, chapter state, безопасный sticky state и одноразовые эффекты.
 - Открытое mobile menu удерживает keyboard focus внутри route-local boundary: `Tab` и `Shift+Tab` циклически проходят между toggle и пунктами меню; `Escape` закрывает меню и возвращает focus toggle.
-- Next Case оставлен без broken link, поскольку парный EN target `/case-studies/proaiexpert/` отсутствует. Интеграция остаётся pending до отдельного решения владельца.
+- Неактивный Next Case удалён; Back to Case Studies сохранён, несуществующий route не публикуется.
+
+## Flagship premiumity pass
+
+- Hero сохранил утверждённую структуру 5/7 и весь approved copy, но proof стал визуально доминирующим за счёт тонкого project edge, двух amber registration marks, одного контролируемого shadow и более тихого статуса.
+- Chapter 01 получил непрерывную editorial route sequence `01–06` с естественной шириной labels, общей registration baseline и вертикальным mobile flow вместо шести равных dashboard-boxes.
+- Chapter 03 стал signature moment: `AREA`, `DETAIL`, `PRIORITY`, `FIT`, source rail, dominant proof edge и amber registration mark собраны в одну field-registration систему. Четыре шага намеренно не выглядят одинаковыми cards; service inset остаётся вторичным.
+- `Scope Alignment` сохранён как одна из ровно пяти motion categories: движение дочерних registration targets не превышает `8 px`, длительность `560 ms`, easing `cubic-bezier(.22,1,.36,1)`, запуск одноразовый.
+- Chapter 04 отделён от method-led Chapter 03 как более чистая exhibition surface с крупнейшим image proof и меньшим количеством структурных линий.
+- Chapter 07 получил live HTML/CSS Responsive Recomposition Matrix для `DESKTOP`, `TABLET`, `MOBILE`, показывающую порядок `H1`, `Proof`, `Services`, `CTA`, `Navigation`, `Request intent`, `Form start` без device frames и fake screenshots.
+- Три `Surface Handoff` усилены до тихих `40 px` material seams между главами `01→02`, `04→05`, `07→08`; новые motion categories не добавлялись.
+- Chapter 08 получил более собранный CTA registration rule и контролируемый переход из Local Repair off-white в canonical ProAI black.
+- Утверждённые восемь глав, palette, truthful claim boundaries и shared ProAI shell сохранены без изменения.
 
 ## Correction-and-review pass
 
-- EN/RU Hero preload переведён на responsive `imagesrcset` (`640w`, `1120w`, `1920w`) и layout-accurate `imagesizes`; `fetchpriority="high"` сохранён.
+- EN/RU Hero preload использует responsive `imagesrcset` (`640w`, `1120w`, `1920w`) и breakpoint-aware `imagesizes`; mobile preload согласован с утверждённым `640w` `<picture>` source, `fetchpriority="high"` сохранён.
 - Изолированный mobile network check при `390 × 843` зафиксировал один Hero resource: `lrp-01-homepage-hero-640.webp`. Параллельная загрузка `1120.webp` отсутствует.
 - В RU route внесены только согласованные editorial replacements; факты и claim boundaries не менялись.
 - EN/RU Open Graph и Twitter image alt уточнены как описание концепта сайта, без намёка на выполненную работу Local Repair Pro.
@@ -56,9 +68,6 @@ Branch preview готов для визуального review владельц�
 - `assets/js/case-local-repair-pro-v1.js`
 - `docs/portfolio-case-packs/local-repair-pro/LOCAL_REPAIR_PRO_IMPLEMENTATION_PREVIEW_REPORT_V1.md`
 - `assets/img/cases/local-repair-pro/production-v1/capture-log.md`
-- `docs/portfolio-case-packs/local-repair-pro/implementation-review-v1/README.md`
-- `docs/portfolio-case-packs/local-repair-pro/implementation-review-v1/local-repair-pro-page-review-v1.jpg`
-- `docs/portfolio-case-packs/local-repair-pro/implementation-review-v1/local-repair-pro-sections-review-v1.jpg`
 
 ### Production image derivatives
 
@@ -108,8 +117,9 @@ Shared files не изменялись. Route-local HTML/CSS/JS полность
 
 ### Responsive proof
 
-- Chapter 07 использует только live HTML/CSS.
-- Проверены реальные breakpoint behaviors готовой страницы, порядок контента, action stacking, mobile navigation и normal-flow chapter navigation.
+- Chapter 07 использует только live HTML/CSS Responsive Recomposition Matrix.
+- Матрица показывает разные composition states на desktop/tablet и переходит в одну ясную reading sequence на mobile.
+- Проверены реальные breakpoint behaviors готовой страницы, content ordering, action stacking, mobile navigation и normal-flow chapter navigation.
 - Phone frames, fake screenshots, synthetic imagery и повторное использование source screenshots отсутствуют.
 
 ### Reduced motion
@@ -151,27 +161,25 @@ Shared files не изменялись. Route-local HTML/CSS/JS полность
 
 | Route | Performance | Accessibility | Best Practices | SEO | LCP | CLS | TBT |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| EN | 99 | 100 | 100 | 100 | 2.0 s (`1953 ms`) | 0 | 0 ms |
-| RU | 99 | 100 | 100 | 100 | 2.0 s (`1954 ms`) | 0.003 | 0 ms |
+| EN | 99 | 100 | 100 | 100 | 1.6 s | 0 | 0 ms |
+| RU | 99 | 100 | 100 | 100 | 1.6 s | 0 | 0 ms |
 
 Результаты Lighthouse являются внутренним QA и не используются как публичные claims.
 
-## Temporary owner-review artifacts
+## Local release-review captures
 
-- `docs/portfolio-case-packs/local-repair-pro/implementation-review-v1/local-repair-pro-page-review-v1.jpg` — EN desktop 1440, EN mobile 390, RU desktop 1440, RU mobile 390.
-- `docs/portfolio-case-packs/local-repair-pro/implementation-review-v1/local-repair-pro-sections-review-v1.jpg` — Chapter 03, Chapter 06, Chapter 07, Chapter 08.
-- Contact sheets собраны из существующих локальных captures; новые screenshots live demo не создавались.
-- Папка помечена в `README.md` как временная и должна быть удалена перед final merge, если artifacts не нужны в `main`.
+- Новые production screenshots и screenshots live demo не создавались.
+- Локально сохранены full EN/RU desktop captures, EN/RU mobile Hero captures и focused captures Hero, Chapter 01, Chapter 03, Chapter 07, Chapter 08.
+- Review captures не входят в production branch; tracked `implementation-review-v1` удалён перед merge согласно release task.
 
-## Известные ограничения и owner-review items
+## Известные ограничения и post-launch review
 
 - Browser viewport controller округляет некоторые запрошенные размеры; 1024/768 классы проверены на 1023/767 и дополнительно покрыты соседними 1280 и 430/390/320 breakpoints.
-- Next Case target требует отдельной интеграции после появления парного EN route.
-- Требуется только визуальный review владельца: Hero balance, proof crop readability, section rhythm и EN/RU typographic balance.
+- Next Case намеренно отсутствует до появления реального валидного destination.
+- После публикации остаётся только cross-case visual review владельца; технических release blockers нет.
 
 ## Safety confirmation
 
 - Financial Stream и Alina Horb files не изменялись.
 - Case Studies archive, `sitemap.xml`, `robots.txt`, homepage и production deployment files не изменялись.
-- `main` не изменён.
-- PR, merge и deployment не выполнялись.
+- Feature-branch implementation не содержит изменений перечисленных файлов; production merge выполняется отдельным безопасным release step после повторного fetch и diff review.

@@ -29,7 +29,17 @@ Branch preview готов для визуального review владельц�
 - Chapter navigation sticky только при `min-width: 1200px` и `min-height: 760px`; JavaScript отключает sticky при небезопасном zoom/focus-состоянии.
 - Реализованы ровно пять motion classes: Proof Surface Settle, Field Note Lock, Scope Alignment, Surface Handoff, CTA Closure.
 - JavaScript выполняет только progressive enhancement: mobile menu, chapter state, безопасный sticky state и одноразовые эффекты.
+- Открытое mobile menu удерживает keyboard focus внутри route-local boundary: `Tab` и `Shift+Tab` циклически проходят между toggle и пунктами меню; `Escape` закрывает меню и возвращает focus toggle.
 - Next Case оставлен без broken link, поскольку парный EN target `/case-studies/proaiexpert/` отсутствует. Интеграция остаётся pending до отдельного решения владельца.
+
+## Correction-and-review pass
+
+- EN/RU Hero preload переведён на responsive `imagesrcset` (`640w`, `1120w`, `1920w`) и layout-accurate `imagesizes`; `fetchpriority="high"` сохранён.
+- Изолированный mobile network check при `390 × 843` зафиксировал один Hero resource: `lrp-01-homepage-hero-640.webp`. Параллельная загрузка `1120.webp` отсутствует.
+- В RU route внесены только согласованные editorial replacements; факты и claim boundaries не менялись.
+- EN/RU Open Graph и Twitter image alt уточнены как описание концепта сайта, без намёка на выполненную работу Local Repair Pro.
+- Для RU reflow на 320 px использован `minmax(0,1fr)` в существующих one-column grid и route-local root clipping; EN/RU page-level horizontal overflow равен нулю.
+- Reduced-motion режим теперь полностью отключает animation и transition, сохраняя финальные состояния элементов.
 
 ## Изменённые и созданные файлы
 
@@ -46,6 +56,9 @@ Branch preview готов для визуального review владельц�
 - `assets/js/case-local-repair-pro-v1.js`
 - `docs/portfolio-case-packs/local-repair-pro/LOCAL_REPAIR_PRO_IMPLEMENTATION_PREVIEW_REPORT_V1.md`
 - `assets/img/cases/local-repair-pro/production-v1/capture-log.md`
+- `docs/portfolio-case-packs/local-repair-pro/implementation-review-v1/README.md`
+- `docs/portfolio-case-packs/local-repair-pro/implementation-review-v1/local-repair-pro-page-review-v1.jpg`
+- `docs/portfolio-case-packs/local-repair-pro/implementation-review-v1/local-repair-pro-sections-review-v1.jpg`
 
 ### Production image derivatives
 
@@ -82,9 +95,16 @@ Shared files не изменялись. Route-local HTML/CSS/JS полность
 - `1024 × 768` landscape class: эффективный controller viewport `1023 × 767` из-за округления browser override; normal-flow chapter navigation и single-column proof flow — пройдено.
 - `768 × 1024`: effective `767 × 1023`; one-column reading flow — пройдено.
 - `430 × 932`: CTA stack, mobile menu, no overflow — пройдено.
-- `390 × 844`: effective `390 × 843`; EN/RU Hero, captions, menu — пройдено.
-- `320 × 800`: complete one-column reflow, stacked CTAs, no negative margins — пройдено.
+- `390 × 844`: effective `390 × 843`; EN/RU Hero, captions, menu и responsive preload — пройдено.
+- `320 × 800`: complete one-column reflow, stacked CTAs, no negative margins; EN/RU `scrollWidth - clientWidth = 0` — пройдено.
 - На всех проверенных ширинах `documentElement.scrollWidth - clientWidth = 0`.
+
+### Responsive preload / network
+
+- EN/RU preload содержит одинаковые `imagesrcset`, `imagesizes` и `fetchpriority="high"`, соответствующие Hero `srcset` и layout widths.
+- При mobile viewport `390 × 843` browser выбрал `lrp-01-homepage-hero-640.webp`.
+- Изолированный page-assets inventory содержит только `640.webp`; двойной mobile request к `1120.webp` не обнаружен.
+- При desktop viewport `1440 × 1000` browser выбрал `lrp-01-homepage-hero-1120.webp`; качество desktop Hero не снижено.
 
 ### Responsive proof
 
@@ -94,7 +114,7 @@ Shared files не изменялись. Route-local HTML/CSS/JS полность
 
 ### Reduced motion
 
-- Все пять effect classes отключают transforms/transitions внутри `prefers-reduced-motion: reduce`.
+- Все пять effect classes отключают transforms; animation и transition полностью отключаются внутри `prefers-reduced-motion: reduce`.
 - JavaScript сразу переводит элементы в финальное состояние.
 - Смысл, порядок, anchor navigation и focus behavior сохраняются.
 
@@ -109,7 +129,7 @@ Shared files не изменялись. Route-local HTML/CSS/JS полность
 
 - Один H1, восемь последовательных chapter H2, semantic `header`, `main`, `nav`, `section`, `figure`, `figcaption`, `footer`.
 - Skip link, видимый focus, touch targets около 44 px, descriptive alt text и live-text equivalents реализованы.
-- Keyboard QA: menu открывается Enter, первый пункт получает focus, Escape закрывает меню и возвращает focus toggle.
+- Keyboard QA: menu открывается, первый пункт получает focus; `Shift+Tab` с первого пункта переводит focus на toggle, следующий `Shift+Tab` — на последний пункт; `Tab` с последнего пункта возвращает focus на toggle, а следующий `Tab` — на первый пункт. Focus в скрытый контент страницы не уходит. `Escape` закрывает меню и возвращает focus toggle.
 - Lighthouse accessibility: EN `100`, RU `100`.
 
 ### Links и console
@@ -131,25 +151,20 @@ Shared files не изменялись. Route-local HTML/CSS/JS полность
 
 | Route | Performance | Accessibility | Best Practices | SEO | LCP | CLS | TBT |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| EN | 92 | 100 | 100 | 100 | 2.7 s | 0 | 0 ms |
-| RU | 91 | 100 | 100 | 100 | 2.8 s | 0.003 | 0 ms |
+| EN | 99 | 100 | 100 | 100 | 2.0 s (`1953 ms`) | 0 | 0 ms |
+| RU | 99 | 100 | 100 | 100 | 2.0 s (`1954 ms`) | 0.003 | 0 ms |
 
 Результаты Lighthouse являются внутренним QA и не используются как публичные claims.
 
-## Temporary review captures — локальные, не для commit
+## Temporary owner-review artifacts
 
-- `.tmp/lrp-review/en-desktop-1440.png`
-- `.tmp/lrp-review/en-mobile-390.png`
-- `.tmp/lrp-review/ru-desktop-1440.png`
-- `.tmp/lrp-review/ru-mobile-390.png`
-- `.tmp/lrp-review/en-ch03-photo-to-scope.png`
-- `.tmp/lrp-review/en-ch06-intake-crops.png`
-- `.tmp/lrp-review/en-ch07-responsive-proof.png`
-- `.tmp/lrp-review/en-ch08-closing-next-case.png`
+- `docs/portfolio-case-packs/local-repair-pro/implementation-review-v1/local-repair-pro-page-review-v1.jpg` — EN desktop 1440, EN mobile 390, RU desktop 1440, RU mobile 390.
+- `docs/portfolio-case-packs/local-repair-pro/implementation-review-v1/local-repair-pro-sections-review-v1.jpg` — Chapter 03, Chapter 06, Chapter 07, Chapter 08.
+- Contact sheets собраны из существующих локальных captures; новые screenshots live demo не создавались.
+- Папка помечена в `README.md` как временная и должна быть удалена перед final merge, если artifacts не нужны в `main`.
 
 ## Известные ограничения и owner-review items
 
-- Локальный Lighthouse LCP `2.7–2.8 s` выше внутренней цели `2.5 s`; основная задержка связана с render-blocking font/CSS path текущего shared shell. Публичный performance claim не добавлялся.
 - Browser viewport controller округляет некоторые запрошенные размеры; 1024/768 классы проверены на 1023/767 и дополнительно покрыты соседними 1280 и 430/390/320 breakpoints.
 - Next Case target требует отдельной интеграции после появления парного EN route.
 - Требуется только визуальный review владельца: Hero balance, proof crop readability, section rhythm и EN/RU typographic balance.

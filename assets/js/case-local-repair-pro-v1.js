@@ -48,7 +48,20 @@
       if (event.target.closest('a')) closeMenu(false);
     });
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && navigation.classList.contains('is-open')) closeMenu(true);
+      if (!navigation.classList.contains('is-open')) return;
+      if (event.key === 'Escape') {
+        closeMenu(true);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+
+      var menuFocusables = [toggle].concat(Array.prototype.slice.call(navigation.querySelectorAll('a[href]')));
+      var currentIndex = menuFocusables.indexOf(document.activeElement);
+      var direction = event.shiftKey ? -1 : 1;
+      var nextIndex = currentIndex < 0 ? 1 : (currentIndex + direction + menuFocusables.length) % menuFocusables.length;
+
+      event.preventDefault();
+      menuFocusables[nextIndex].focus();
     });
   }
 

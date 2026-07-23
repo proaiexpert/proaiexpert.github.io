@@ -5,7 +5,7 @@
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const motionTargets = [
     ...document.querySelectorAll(
-      "[data-archive-hero], [data-role-baseline], [data-case-proof], [data-case-copy]"
+      "[data-proof-stage], [data-role-baseline], [data-case-proof], [data-case-copy]"
     )
   ];
 

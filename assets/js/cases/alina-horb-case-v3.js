@@ -86,4 +86,47 @@
   }, { rootMargin: '0px 0px -8% 0px', threshold: 0.14 });
 
   animated.forEach((element) => observer.observe(element));
+
+  // Progress Orientation & Theme Sync
+  const sections = document.querySelectorAll('.ahv3-section, .ahv3-hero');
+  const progressLinks = document.querySelectorAll('.ahv3-progress-link');
+  const rail = document.getElementById('progress-rail');
+  const mobileBar = document.getElementById('mobile-progress-bar');
+
+  if (sections.length && 'IntersectionObserver' in window) {
+    const sectionObserver = new IntersectionObserver((entries) => {
+      let activeSectionId = null;
+      let activeTheme = null;
+
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          activeSectionId = entry.target.id;
+          activeTheme = entry.target.getAttribute('data-theme') || null;
+        }
+      });
+
+      if (activeSectionId) {
+        if (activeSectionId !== 'hero' && rail) {
+          rail.classList.add('is-visible');
+        } else if (rail) {
+          rail.classList.remove('is-visible');
+        }
+
+        progressLinks.forEach(link => {
+          link.classList.toggle('is-active', link.getAttribute('data-section') === activeSectionId);
+        });
+
+        body.classList.toggle('ivory-active', activeTheme === 'ivory');
+
+        if (mobileBar) {
+          const total = sections.length - 1;
+          const index = Array.from(sections).findIndex(s => s.id === activeSectionId);
+          const percent = total > 0 ? Math.max(0, index) / total : 0;
+          mobileBar.style.transform = `scaleX(${percent})`;
+        }
+      }
+    }, { rootMargin: '-40% 0px -50% 0px', threshold: 0 });
+
+    sections.forEach(s => sectionObserver.observe(s));
+  }
 })();

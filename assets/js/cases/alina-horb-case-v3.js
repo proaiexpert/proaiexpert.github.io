@@ -7,12 +7,13 @@
   const menuButton = document.querySelector('.mobile-menu-toggle');
   const navigation = document.querySelector('#site-navigation');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isRussian = () => document.documentElement.lang === 'ru';
 
   const closeMenu = () => {
     if (!menuButton || !navigation) return;
     menuButton.classList.remove('is-open');
     menuButton.setAttribute('aria-expanded', 'false');
-    menuButton.setAttribute('aria-label', body.lang === 'ru' ? 'Открыть меню' : 'Open menu');
+    menuButton.setAttribute('aria-label', isRussian() ? 'Открыть меню' : 'Open menu');
     navigation.classList.remove('is-open');
     body.classList.remove('menu-open');
   };
@@ -23,8 +24,8 @@
       menuButton.classList.toggle('is-open', willOpen);
       menuButton.setAttribute('aria-expanded', String(willOpen));
       menuButton.setAttribute('aria-label', willOpen
-        ? (body.lang === 'ru' ? 'Закрыть меню' : 'Close menu')
-        : (body.lang === 'ru' ? 'Открыть меню' : 'Open menu'));
+        ? (isRussian() ? 'Закрыть меню' : 'Close menu')
+        : (isRussian() ? 'Открыть меню' : 'Open menu'));
       navigation.classList.toggle('is-open', willOpen);
       body.classList.toggle('menu-open', willOpen);
     });
@@ -51,19 +52,37 @@
   updateHeader();
   window.addEventListener('scroll', updateHeader, { passive: true });
 
-  const animated = [...document.querySelectorAll('[data-threshold], [data-accent], [data-lock], [data-pair], .ahv3-section h2')];
+  const animated = [...document.querySelectorAll('[data-threshold], [data-lock], [data-pair], .ahv3-section h2')];
   if (!animated.length || reduceMotion || !('IntersectionObserver' in window)) {
     animated.forEach((element) => element.classList.add('is-active'));
     return;
   }
 
   root.classList.add('motion-ready');
+  let activeGroups = 0;
+  const motionQueue = [];
+  const maxConcurrentEffects = () => window.matchMedia('(max-width: 767px)').matches ? 1 : 2;
+
+  const runNext = () => {
+    while (activeGroups < maxConcurrentEffects() && motionQueue.length) {
+      const element = motionQueue.shift();
+      if (element.classList.contains('is-active')) continue;
+      activeGroups += 1;
+      element.classList.add('is-active');
+      window.setTimeout(() => {
+        activeGroups = Math.max(0, activeGroups - 1);
+        runNext();
+      }, 640);
+    }
+  };
+
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
       if (!entry.isIntersecting) return;
-      entry.target.classList.add('is-active');
       observer.unobserve(entry.target);
+      motionQueue.push(entry.target);
     });
+    runNext();
   }, { rootMargin: '0px 0px -8% 0px', threshold: 0.14 });
 
   animated.forEach((element) => observer.observe(element));

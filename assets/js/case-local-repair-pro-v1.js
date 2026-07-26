@@ -14,6 +14,10 @@
   var activeEffects = 0;
   var motionQueue = [];
 
+  function maxConcurrentEffects() {
+    return window.matchMedia('(max-width: 767px)').matches ? 1 : 2;
+  }
+
   function isRussian() {
     return body.lang === 'ru';
   }
@@ -110,15 +114,15 @@
   var effectTargets = Array.prototype.slice.call(document.querySelectorAll(effectSelector));
 
   function effectDuration(target) {
-    if (target.classList.contains('lrp-scope-align')) return 580;
-    if (target.classList.contains('lrp-proof-settle')) return 500;
-    if (target.classList.contains('lrp-cta-closure')) return 500;
+    if (target.classList.contains('lrp-scope-align')) return 620;
+    if (target.classList.contains('lrp-proof-settle')) return 560;
+    if (target.classList.contains('lrp-cta-closure')) return 560;
     if (target.classList.contains('lrp-surface-handoff')) return 420;
-    return 320;
+    return 460;
   }
 
   function runNextEffect() {
-    while (activeEffects < 2 && motionQueue.length) {
+    while (activeEffects < maxConcurrentEffects() && motionQueue.length) {
       var target = motionQueue.shift();
       if (target.classList.contains('is-visible')) continue;
       activeEffects += 1;

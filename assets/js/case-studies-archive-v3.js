@@ -64,6 +64,7 @@
     root.classList.add("archive-v3-motion-ready");
     const activeTimers = new Set();
     const queue = [];
+    const maxConcurrentEffects = () => window.matchMedia("(max-width: 767px)").matches ? 1 : 2;
 
     const release = (target) => {
       target.classList.add(
@@ -72,7 +73,7 @@
       const timer = window.setTimeout(() => {
         activeTimers.delete(timer);
         if (queue.length) release(queue.shift());
-      }, 540);
+      }, 640);
       activeTimers.add(timer);
     };
 
@@ -82,7 +83,7 @@
         target.classList.contains("is-registered") ||
         queue.includes(target)
       ) return;
-      if (activeTimers.size < 2) release(target);
+      if (activeTimers.size < maxConcurrentEffects()) release(target);
       else queue.push(target);
     };
 

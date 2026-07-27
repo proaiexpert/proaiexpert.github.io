@@ -98,18 +98,32 @@
     const footerNav = document.querySelector('.case-cross-nav');
 
     if (sections.length) {
+      let activeSectionId = null;
+      let isCaseEndVisible = false;
+
+      const updateRailVisibility = () => {
+        if (rail) {
+          if (activeSectionId && activeSectionId !== 'hero' && !isCaseEndVisible) {
+            rail.classList.add('is-visible');
+          } else {
+            rail.classList.remove('is-visible');
+          }
+        }
+      };
+
       const sectionObserver = new IntersectionObserver((entries) => {
-        let activeSectionId = null;
         let activeTheme = null;
+        let changed = false;
 
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             activeSectionId = entry.target.id;
             activeTheme = entry.target.getAttribute('data-theme') || null;
+            changed = true;
           }
         });
 
-        if (activeSectionId) {
+        if (changed && activeSectionId) {
           progressLinks.forEach(link => {
             const isActive = link.getAttribute('data-section') === activeSectionId;
             link.classList.toggle('is-active', isActive);
@@ -128,31 +142,22 @@
             const percent = total > 0 ? Math.max(0, index) / total : 0;
             mobileBar.style.transform = `scaleX(${percent})`;
           }
+
+          updateRailVisibility();
         }
       }, { rootMargin: '-40% 0px -50% 0px', threshold: 0 });
 
       sections.forEach(s => sectionObserver.observe(s));
-    }
 
-    if (rail && footerNav) {
-      const endObserver = new IntersectionObserver((entries) => {
-        const isEndVisible = entries[0].isIntersecting;
-        if (isEndVisible) {
-          rail.classList.remove('is-visible');
-        } else {
-          // Check if we are past hero to show rail
-          const hero = document.getElementById('hero');
-          if (hero) {
-            const heroRect = hero.getBoundingClientRect();
-            if (heroRect.bottom < window.innerHeight / 2) {
-              rail.classList.add('is-visible');
-            }
-          } else {
-            rail.classList.add('is-visible');
-          }
-        }
-      }, { rootMargin: '0px', threshold: 0 });
-      endObserver.observe(footerNav);
+      if (rail && footerNav) {
+        const endObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            isCaseEndVisible = entry.isIntersecting;
+          });
+          updateRailVisibility();
+        }, { rootMargin: '0px', threshold: 0 });
+        endObserver.observe(footerNav);
+      }
     }
   }
 })();

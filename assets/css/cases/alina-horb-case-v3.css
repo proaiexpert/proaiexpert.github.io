@@ -81,7 +81,7 @@ body.ahv3-case.menu-open { overflow: hidden; }
 .ahv3-heading .ahv3-lead { margin-top: 0; }
 
 .ahv3-hero { position: relative; padding: calc(var(--header-h) + 68px) 0 84px; border-bottom: 1px solid var(--ah-rule); }
-.ahv3-hero-grid { min-height: 690px; display: grid; grid-template-columns: minmax(500px,.9fr) minmax(620px,1.1fr); gap: clamp(64px,7vw,112px); align-items: center; }
+.ahv3-hero-grid { min-height: 690px; display: grid; grid-template-columns: minmax(430px,.9fr) minmax(500px,1.1fr); gap: clamp(48px,6vw,112px); align-items: center; }
 .ahv3-hero-copy { position: relative; z-index: 2; }
 .ahv3-hero h1 { max-width: 15.8ch; margin: 26px 0 0; color: #fff; font-size: clamp(50px,3.6vw,62px); font-weight: 800; line-height: .95; letter-spacing: -.048em; text-wrap: balance; }
 .ahv3-case--ru .ahv3-hero h1 { max-width: 16.6ch; font-size: clamp(46px,3.25vw,54px); }
@@ -178,18 +178,24 @@ body.ahv3-case.menu-open { overflow: hidden; }
 .ahv3-scope { max-width: 800px; margin: 42px 0 0; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.42); font-size: 13px; line-height: 1.7; }
 
 /* Progress Orientation */
-.ahv3-progress-rail { position: fixed; z-index: 100; top: 50%; right: 40px; transform: translateY(-50%); display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.4s var(--ease); mix-blend-mode: difference; color: #fff; }
+.ahv3-progress-rail { position: fixed; z-index: 100; top: 50%; right: 40px; transform: translateY(-50%); display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.4s var(--ease); color: #fff; }
 .ahv3-progress-rail.is-visible { opacity: 1; pointer-events: auto; }
 .ahv3-progress-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
-.ahv3-progress-link { display: flex; align-items: center; justify-content: flex-end; color: #888; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; transition: color 0.3s var(--ease); }
+.ahv3-progress-link { display: flex; align-items: center; justify-content: flex-end; color: rgba(255,255,255,0.35); font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; transition: color 0.3s var(--ease); }
 .ahv3-progress-link::after { content: ""; display: block; width: 4px; height: 4px; border-radius: 50%; background: currentColor; margin-left: 12px; transition: transform 0.3s var(--ease), background 0.3s var(--ease); }
-.ahv3-progress-link:hover, .ahv3-progress-link:focus-visible { color: #ccc; }
-.ahv3-progress-link.is-active { color: #fff; }
+.ahv3-progress-link:hover, .ahv3-progress-link:focus-visible { color: rgba(255,255,255,0.7); }
+.ahv3-progress-link.is-active { color: var(--ah-terracotta); }
 .ahv3-progress-link.is-active::after { transform: scale(1.5); }
+
+body.ahv3-case.ivory-active .ahv3-progress-link { color: rgba(24,23,22,0.35); }
+body.ahv3-case.ivory-active .ahv3-progress-link:hover, body.ahv3-case.ivory-active .ahv3-progress-link:focus-visible { color: rgba(24,23,22,0.7); }
+body.ahv3-case.ivory-active .ahv3-progress-link.is-active { color: var(--ah-terracotta); }
 
 .ahv3-mobile-progress { display: none; position: fixed; z-index: 999; top: var(--header-h); left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.06); pointer-events: none; }
 .ahv3-mobile-progress-bar { height: 100%; width: 100%; background: var(--ah-terracotta); transform-origin: left center; transform: scaleX(0); transition: transform 0.15s linear; }
-body.ahv3-case.ivory-active .ahv3-mobile-progress { background: rgba(24,23,22,0.06); }
+body.ahv3-case.ivory-active .ahv3-mobile-progress { background: rgba(24,23,22,0.08); }
+
+html:not(.js) .ahv3-progress-rail, html:not(.js) .ahv3-mobile-progress { display: none !important; }
 
 .ahv3-next { padding: 42px 0; border-block: 1px solid var(--ah-rule); background: #020203; }
 .ahv3-next-link { display: grid; grid-template-columns: 160px 1fr auto; gap: 28px; align-items: center; text-decoration: none; }
@@ -403,6 +409,7 @@ body.ahv3-case.ivory-active .ahv3-mobile-progress { background: rgba(24,23,22,0.
   .motion-ready [data-accent] { background-size: 100% 100% !important; }
   .logo-cube { animation: none !important; transform: rotateX(-18deg) rotateY(32deg) !important; }
   .f-cta h2 { animation: none !important; background: #fff !important; -webkit-text-fill-color: #fff !important; }
+  .ahv3-progress-link::after, .ahv3-mobile-progress-bar, .ahv3-surface--ivory { transition: none !important; }
 }
 
 @media (forced-colors: active) {

@@ -53,37 +53,111 @@
   window.addEventListener('scroll', updateHeader, { passive: true });
 
   const animated = [...document.querySelectorAll('[data-threshold], [data-lock], [data-pair], .ahv3-section h2')];
-  if (!animated.length || reduceMotion || !('IntersectionObserver' in window)) {
+  if (!('IntersectionObserver' in window)) {
     animated.forEach((element) => element.classList.add('is-active'));
-    return;
-  }
+    // fallback for no IO
+  } else {
+    if (reduceMotion) {
+      animated.forEach((element) => element.classList.add('is-active'));
+    } else {
+      root.classList.add('motion-ready');
+      let activeGroups = 0;
+      const motionQueue = [];
+      const maxConcurrentEffects = () => window.matchMedia('(max-width: 767px)').matches ? 1 : 2;
 
-  root.classList.add('motion-ready');
-  let activeGroups = 0;
-  const motionQueue = [];
-  const maxConcurrentEffects = () => window.matchMedia('(max-width: 767px)').matches ? 1 : 2;
+      const runNext = () => {
+        while (activeGroups < maxConcurrentEffects() && motionQueue.length) {
+          const element = motionQueue.shift();
+          if (element.classList.contains('is-active')) continue;
+          activeGroups += 1;
+          element.classList.add('is-active');
+          window.setTimeout(() => {
+            activeGroups = Math.max(0, activeGroups - 1);
+            runNext();
+          }, 640);
+        }
+      };
 
-  const runNext = () => {
-    while (activeGroups < maxConcurrentEffects() && motionQueue.length) {
-      const element = motionQueue.shift();
-      if (element.classList.contains('is-active')) continue;
-      activeGroups += 1;
-      element.classList.add('is-active');
-      window.setTimeout(() => {
-        activeGroups = Math.max(0, activeGroups - 1);
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          observer.unobserve(entry.target);
+          motionQueue.push(entry.target);
+        });
         runNext();
-      }, 640);
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.14 });
+
+      animated.forEach((element) => observer.observe(element));
     }
-  };
 
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      observer.unobserve(entry.target);
-      motionQueue.push(entry.target);
-    });
-    runNext();
-  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.14 });
+    // Progress Orientation & Theme Sync
+    const sections = document.querySelectorAll('.ahv3-section, .ahv3-hero');
+    const progressLinks = document.querySelectorAll('.ahv3-progress-link');
+    const rail = document.getElementById('progress-rail');
+    const mobileBar = document.getElementById('mobile-progress-bar');
+    const footerNav = document.querySelector('.case-cross-nav');
 
-  animated.forEach((element) => observer.observe(element));
+    if (sections.length) {
+      let activeSectionId = null;
+      let isCaseEndVisible = false;
+
+      const updateRailVisibility = () => {
+        if (rail) {
+          if (activeSectionId && activeSectionId !== 'hero' && !isCaseEndVisible) {
+            rail.classList.add('is-visible');
+          } else {
+            rail.classList.remove('is-visible');
+          }
+        }
+      };
+
+      const sectionObserver = new IntersectionObserver((entries) => {
+        let activeTheme = null;
+        let changed = false;
+
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            activeSectionId = entry.target.id;
+            activeTheme = entry.target.getAttribute('data-theme') || null;
+            changed = true;
+          }
+        });
+
+        if (changed && activeSectionId) {
+          progressLinks.forEach(link => {
+            const isActive = link.getAttribute('data-section') === activeSectionId;
+            link.classList.toggle('is-active', isActive);
+            if (isActive) {
+              link.setAttribute('aria-current', 'location');
+            } else {
+              link.removeAttribute('aria-current');
+            }
+          });
+
+          body.classList.toggle('ivory-active', activeTheme === 'ivory');
+
+          if (mobileBar) {
+            const total = sections.length - 1;
+            const index = Array.from(sections).findIndex(s => s.id === activeSectionId);
+            const percent = total > 0 ? Math.max(0, index) / total : 0;
+            mobileBar.style.transform = `scaleX(${percent})`;
+          }
+
+          updateRailVisibility();
+        }
+      }, { rootMargin: '-40% 0px -50% 0px', threshold: 0 });
+
+      sections.forEach(s => sectionObserver.observe(s));
+
+      if (rail && footerNav) {
+        const endObserver = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            isCaseEndVisible = entry.isIntersecting;
+          });
+          updateRailVisibility();
+        }, { rootMargin: '0px', threshold: 0 });
+        endObserver.observe(footerNav);
+      }
+    }
+  }
 })();

@@ -11,6 +11,7 @@
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   var stickyViewport = window.matchMedia('(min-width: 1200px) and (min-height: 760px)');
   var wideNavigation = window.matchMedia('(min-width: 1101px)');
+  var mobileViewport = window.matchMedia('(max-width: 767px)');
   var activeEffects = 0;
   var motionQueue = [];
 
@@ -138,7 +139,7 @@
     effectTargets.forEach(function (target) { target.classList.add('is-visible'); });
   }
 
-  if (!effectTargets.length || reducedMotion.matches || !('IntersectionObserver' in window)) {
+  if (!effectTargets.length || reducedMotion.matches || mobileViewport.matches || !('IntersectionObserver' in window)) {
     revealAll();
   } else {
     var motionObserver = new IntersectionObserver(function (entries) {

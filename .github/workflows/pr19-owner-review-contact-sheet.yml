@@ -1,0 +1,85 @@
+name: PR19 Owner Review Contact Sheet
+
+on:
+  push:
+    branches:
+      - owner-review-pr19-final
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-review-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout temporary review branch
+        uses: actions/checkout@v4
+
+      - name: Build visual contact sheet
+        run: |
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageDraw, ImageFont
+          import json, math
+
+          source = Path('owner-review/pr19-final')
+          manifest = json.loads((source / 'manifest.json').read_text(encoding='utf-8'))
+          files = [source / item['filename'] for item in manifest]
+          assert len(files) == 13, f'Expected 13 PNGs, found {len(files)}'
+
+          thumb_w, thumb_h = 480, 300
+          label_h = 54
+          cols = 3
+          rows = math.ceil(len(files) / cols)
+          margin = 24
+          sheet_w = margin + cols * (thumb_w + margin)
+          sheet_h = margin + rows * (thumb_h + label_h + margin)
+          sheet = Image.new('RGB', (sheet_w, sheet_h), (18, 18, 20))
+          draw = ImageDraw.Draw(sheet)
+          font = ImageFont.load_default()
+
+          for i, path in enumerate(files):
+              with Image.open(path) as im:
+                  im = im.convert('RGB')
+                  im.thumbnail((thumb_w, thumb_h), Image.Resampling.LANCZOS)
+                  tile = Image.new('RGB', (thumb_w, thumb_h), (5, 5, 6))
+                  x0 = (thumb_w - im.width) // 2
+                  y0 = (thumb_h - im.height) // 2
+                  tile.paste(im, (x0, y0))
+              col = i % cols
+              row = i // cols
+              x = margin + col * (thumb_w + margin)
+              y = margin + row * (thumb_h + label_h + margin)
+              sheet.paste(tile, (x, y))
+              draw.rectangle((x, y, x + thumb_w - 1, y + thumb_h - 1), outline=(80, 80, 88), width=1)
+              draw.text((x, y + thumb_h + 10), path.name, fill=(235, 235, 240), font=font)
+
+          output = source / '00-contact-sheet.png'
+          sheet.save(output, optimize=True)
+          print(output, output.stat().st_size)
+          PY
+
+      - name: Verify assets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          p = Path('owner-review/pr19-final')
+          pngs = sorted(p.glob('*.png'))
+          print('PNG_COUNT', len(pngs))
+          for f in pngs:
+              with Image.open(f) as im:
+                  print(f.name, im.size, f.stat().st_size)
+          PY
+
+      - name: Upload owner-review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr19-owner-review-assets
+          path: |
+            owner-review/pr19-final/*.png
+            owner-review/pr19-final/manifest.json
+          if-no-files-found: error
+          retention-days: 3

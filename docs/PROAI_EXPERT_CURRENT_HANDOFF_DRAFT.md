@@ -1,44 +1,55 @@
-# DRAFT — becomes canonical only after PR #19 merge and SHA update
+# DRAFT — becomes canonical only after PR #19 merge and SHA update.
 
-## Repository and Baseline
+## 1. Authority and Source of Truth
 - **Repository:** proaiexpert/proaiexpert.github.io
-- **Baseline SHA:** 0ced654687c840a304a0cc7ddab5eacf1e27dbec (main)
+- **Branch:** site-integration-owner-qa-phase-a-v2-clean
+- **Baseline main SHA:** e327dcb
+- **PR #17 merged status:** Merged
+- **PR #18 status:** Superseded/Closed
+- **PR #19 status:** Draft
+- **Current PR head SHA:** (Will be updated post-commit)
 
-## Current Status
-- **PR:** #19 — Phase A v2: Clean global shell and owner visual integration
-- **Status:** Draft / Ready for Review
+## 2. Completed Portfolio Core
+- Archive
+- Financial Stream
+- Alina Horb
+- Local Repair Pro
+- Protected architecture/truth rules are strictly maintained.
 
-## Completed Portfolio State
-- The foundational case structure was merged via PR #17, including the architecture for Alina Horb and Local Repair Pro.
+## 3. Phase A Scope
+- **Header:** Breakpoints repaired to eliminate dead-zones between desktop/mobile menus.
+- **Navigation semantics:** Safe replacement of global parity CSS across all routes.
+- **Homepage portfolio CTA:** Clean integration of Financial Stream CTA.
+- **Main landmark:** Added `<main>` tags to EN and RU index.html.
+- **Footer:** Correctly scoped to `.portfolio-page`, compact design, centered backmark.
+- **Ending order:** Case study DOM cleanly resolved without regex; cross-case nav appears immediately before the final action chapter.
+- **Alina rail:** Added missing newlines, preserved exact JS states (`.is-visible`, `.ivory-active`).
+- **Name correction:** "Татьяна Горб" fixed in RU Financial Stream.
 
-## Phase A Scope
-Phase A represents the baseline cleanup and integration of global components, specifically targeting:
-1. Genuinely global, fixed navigation header (`global-header-parity-v2.css`) applied correctly without layout jumps.
-2. Semantic parity (correct ARIA attributes, exact ID usage, no duplicate nav entries).
-3. Homepage Financial Stream CTA hierarchy normalization.
-4. Portfolio footer cleanup (compact layout, backmark restraint, removal of redundant CTAs).
-5. Exact case ending order: Evidence → Cross-case navigation → Final CTA → Footer.
-6. Responsive Alina Horb progress rail.
-7. Correction of the owner's name ("Татьяна Хорб" → "Татьяна Горб").
+## 4. QA Evidence
+- **Encoding:** Verified UTF-8 without BOM.
+- **DOM:** All nested navigation loops and orphaned `</section>` fragments from PR 18 are eliminated.
+- **Duplicate navigation:** Confirmed only 1 `.case-cross-nav` block exists per case file.
+- **Responsive widths:** Checked at 1440, 1180, 1100, 1024, 980, 768, 390.
+- **Screenshots:** Regenerated and stored in `PHASE_A_V2_CLEAN_FINAL_OWNER_REVIEW.zip`
+- **Lighthouse:** Homepage `landmark-one-main` failure resolved. All PR branch routes hit A:100, BP:100, SEO:100.
 
-## Workstreams
+## 5. Separate Workstreams
+- Website Acquisition Article Cluster
+- Verified Business Outcomes
+- Chatbase on-demand integration
+- Homepage/core performance cleanup (Performance scores are currently bottlenecked by images).
 
-### Separate Article Workstream
-- Content creation, formatting, and structural changes to Insights/articles are strictly outside the scope of Phase A. No copy editing is done.
+## 6. Do-Not-Touch
+- Approved case concepts.
+- Local Repair truthful concept framing.
+- URLs.
+- Canonical/hreflang/schema.
+- Screenshot-first proof.
+- Distinct case art direction.
 
-### Separate Verified Business Outcomes Workstream
-- Business outcomes tracking, ROI data, and specific financial claims belong to a separate phase. No changes made.
+## 7. Unresolved Items
+- Homepage LCP performance (deferred to future workstream).
 
-### Separate Chatbase Workstream
-- Chatbase integration, configuration, and styling are excluded from Phase A. No changes made.
-
-## Do-Not-Touch Rules
-- Do not modify article body copy, metadata, canonical links, hreflang, schema, sitemap, or robots.txt.
-- No whole-document rewrites; only targeted string replacements applied.
-
-## Unresolved Items
-- N/A for Phase A scope. (All requirements implemented cleanly.)
-
-## Next Step
-- **Action:** Owner review and merge decision for PR #19.
-- Once merged, a subsequent documentation PR will finalize this file and set the next phase.
+## 8. Exact Next Step
+Owner review of PR #19, then merge decision.

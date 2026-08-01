@@ -81,6 +81,11 @@
     text-shadow: 0 0 10px #5DE2FF;
 }
 
+.global-header .site-nav a:focus-visible {
+    outline: 2px solid #5DE2FF;
+    outline-offset: 4px;
+}
+
 .global-header .header-actions {
     display: flex;
     align-items: center;
@@ -142,35 +147,126 @@
     height: 2px;
     background: white;
     position: absolute;
-    transition: 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .global-header .mobile-menu-toggle span:nth-child(1) { transform: translateY(-8px); }
 .global-header .mobile-menu-toggle span:nth-child(3) { transform: translateY(8px); }
 
-html:not(.js) .global-header {
-    position: fixed; /* It needs to be fixed even without js */
+.menu-open .global-header .mobile-menu-toggle span:nth-child(1) { transform: translateY(0) rotate(45deg); }
+.menu-open .global-header .mobile-menu-toggle span:nth-child(2) { opacity: 0; }
+.menu-open .global-header .mobile-menu-toggle span:nth-child(3) { transform: translateY(0) rotate(-45deg); }
+
+@media (prefers-reduced-motion: reduce) {
+    .global-header,
+    .global-header .mobile-menu-toggle span {
+        transition: none;
+    }
 }
 
-/* Base override for nav to handle display specifically via breakpoints */
+/* Mobile Nav Styles - applied universally where mobile nav triggers */
+.global-header .site-nav.is-mobile-state {
+    position: absolute;
+    top: 85px;
+    left: 0;
+    right: 0;
+    background: #050506;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-direction: column;
+    padding: 30px 40px;
+    gap: 0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.global-header .site-nav.is-mobile-state.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    display: flex !important;
+}
+
+.global-header .site-nav.is-mobile-state a {
+    font-size: 16px;
+    width: 100%;
+    padding: 15px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.global-header .site-nav.is-mobile-state a:last-child {
+    border-bottom: none;
+}
+
+/* RU Breakpoint - 1200px */
+html[lang="ru"] .global-header .site-nav {
+    @media (max-width: 1200px) {
+        position: absolute;
+        top: 85px;
+        left: 0;
+        right: 0;
+        background: #050506;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        flex-direction: column;
+        padding: 30px 20px;
+        gap: 0;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        display: flex;
+    }
+}
+
 @media (max-width: 1200px) {
-    html[lang="ru"] .global-header .site-nav { display: none; }
+    html[lang="ru"] .global-header .site-nav a {
+        font-size: 16px;
+        width: 100%;
+        padding: 15px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    html[lang="ru"] .global-header .site-nav.is-open {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
     html[lang="ru"] .global-header .start-btn { display: none; }
     html[lang="ru"] .global-header .mobile-menu-toggle { display: flex; }
     html[lang="ru"] .global-header .header-container { padding: 0 20px; }
 }
+
+/* EN Breakpoint - 1100px */
+html[lang="en"] .global-header .site-nav {
+    @media (max-width: 1100px) {
+        position: absolute;
+        top: 85px;
+        left: 0;
+        right: 0;
+        background: #050506;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        flex-direction: column;
+        padding: 30px 20px;
+        gap: 0;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        display: flex;
+    }
+}
+
 @media (max-width: 1100px) {
-    html[lang="en"] .global-header .site-nav { display: none; }
+    html[lang="en"] .global-header .site-nav a {
+        font-size: 16px;
+        width: 100%;
+        padding: 15px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    html[lang="en"] .global-header .site-nav.is-open {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
     html[lang="en"] .global-header .start-btn { display: none; }
     html[lang="en"] .global-header .mobile-menu-toggle { display: flex; }
     html[lang="en"] .global-header .header-container { padding: 0 20px; }
 }
-
-/* Allow open state to override */
-.global-header .site-nav.is-open {
-    display: flex !important;
-}
-
-.menu-open .global-header .mobile-menu-toggle span:nth-child(1) { transform: translateY(0) rotate(45deg); }
-.menu-open .global-header .mobile-menu-toggle span:nth-child(2) { opacity: 0; }
-.menu-open .global-header .mobile-menu-toggle span:nth-child(3) { transform: translateY(0) rotate(-45deg); }

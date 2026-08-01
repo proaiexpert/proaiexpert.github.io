@@ -39,7 +39,7 @@ jobs:
       - name: Capture corrected owner-review evidence
         run: |
           mkdir -p owner-review/pr19-corrected
-          cat > /tmp/capture-pr19.js <<'JS'
+          cat > capture-pr19.js <<'JS'
           const { chromium } = require('playwright');
           const fs = require('fs');
           const path = require('path');
@@ -54,7 +54,7 @@ jobs:
           }
 
           async function shot(browser, name, route, viewport, setup) {
-            const page = await browser.newPage({ viewportSize: viewport, deviceScaleFactor: 1 });
+            const page = await browser.newPage({ viewport, deviceScaleFactor: 1 });
             await page.goto(base + route, { waitUntil: 'networkidle' });
             await settle(page);
             if (setup) await setup(page);
@@ -64,11 +64,6 @@ jobs:
             const stat = fs.statSync(file);
             results.push({ name, route, viewport, bytes: stat.size });
             await page.close();
-          }
-
-          function intersects(a, b) {
-            if (!a || !b) return false;
-            return !(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
           }
 
           (async () => {
@@ -87,8 +82,6 @@ jobs:
             });
 
             await shot(browser, '04-home-en-financial-stream-cta.png', '/', { width: 1440, height: 900 }, async page => {
-              const target = page.locator('#section-trigger');
-              await target.scrollIntoViewIfNeeded();
               await page.evaluate(() => document.querySelector('#section-trigger')?.scrollIntoView({ block: 'center' }));
               await page.waitForTimeout(1000);
               const labels = await page.locator('.fs-cta-group a').allTextContents();
@@ -96,8 +89,6 @@ jobs:
             });
 
             await shot(browser, '05-home-ru-financial-stream-cta.png', '/ru/', { width: 1440, height: 900 }, async page => {
-              const target = page.locator('#section-trigger');
-              await target.scrollIntoViewIfNeeded();
               await page.evaluate(() => document.querySelector('#section-trigger')?.scrollIntoView({ block: 'center' }));
               await page.waitForTimeout(1000);
               const labels = await page.locator('.fs-cta-group a').allTextContents();
@@ -133,8 +124,8 @@ jobs:
                 return {
                   visible: !!rail && getComputedStyle(rail).display !== 'none' && getComputedStyle(rail).opacity !== '0',
                   ivory: document.body.classList.contains('ivory-active'),
-                  rail: rail?.getBoundingClientRect().toJSON(),
-                  content: content?.getBoundingClientRect().toJSON()
+                  rail: rail ? JSON.parse(JSON.stringify(rail.getBoundingClientRect())) : null,
+                  content: content ? JSON.parse(JSON.stringify(content.getBoundingClientRect())) : null
                 };
               });
               railChecks.push({ state: 'dark', ...check });
@@ -151,8 +142,8 @@ jobs:
                 return {
                   visible: !!rail && getComputedStyle(rail).display !== 'none' && getComputedStyle(rail).opacity !== '0',
                   ivory: document.body.classList.contains('ivory-active'),
-                  rail: rail?.getBoundingClientRect().toJSON(),
-                  text: text?.getBoundingClientRect().toJSON()
+                  rail: rail ? JSON.parse(JSON.stringify(rail.getBoundingClientRect())) : null,
+                  text: text ? JSON.parse(JSON.stringify(text.getBoundingClientRect())) : null
                 };
               });
               railChecks.push({ state: 'ivory', ...check });
@@ -173,7 +164,7 @@ jobs:
             process.exit(1);
           });
           JS
-          node /tmp/capture-pr19.js
+          node capture-pr19.js
 
       - name: Build corrected contact sheet
         run: |

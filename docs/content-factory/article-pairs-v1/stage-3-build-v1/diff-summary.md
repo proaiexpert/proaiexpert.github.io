@@ -1,8 +1,7 @@
-# Diff Summary - Stage 3 Final Correction V2
+# Diff Summary - Stage 3 Final Repair V3
 
-- Extracted header and footer partials directly from the current production baseline in `main` via Cheerio to enforce strict shell parity.
-- Implemented specific CSS wrappers `.premium-source-block`, `.premium-quote`, and `.risk-red/yellow/green` to stylize the approved premium modules without altering the DOM text content.
-- Updated `build-v3.js` to dynamically calculate word count and reading time.
-- Updated metadata blocks to include Twitter cards.
-- Refactored TOC layout to include `.premium-toc-mobile` which displays without JS.
-- Automated tests outputted to `content-integrity-report.json` and `metadata-manifest.json` to verify no missing tags or text.
+- Enhanced `build-v4.js` to correctly remove 'is-active' from `Contact` and assign it to `Insights/Материалы` respectively.
+- Set risk table styling explicitly for approved strings avoiding substring false positives.
+- Introduced proper semantic wrappers across the article bodies matching headings specifically listed in `final-page-module-map-v1.md`.
+- `verify-integrity.js` deployed to run a deterministic tag-by-tag HTML structure analysis against parsed markdown, proving zero missing/added/changed content.
+- `take-screenshots-v4.js` updated to invoke `scrollIntoViewIfNeeded` to securely capture deep module targets.

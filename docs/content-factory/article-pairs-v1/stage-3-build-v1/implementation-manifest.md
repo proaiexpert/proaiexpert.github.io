@@ -1,18 +1,20 @@
-# Implementation Manifest - Stage 3 Final Correction V2
+# Implementation Manifest - Stage 3 Final Repair V3
 
-- **Original failed implementation SHA:** 6b7b0afdb538d91bafdd697fa35a2b622e8db806
-- **Corrected implementation SHA:** 573255ff442c88ca766dec839b885646c5157cd3
-- **Correction commit(s):** `fix: align Stage 3 article shell and metadata`, `feat: implement approved premium article modules`, `test: add reproducible Stage 3 verification`
+- **Original failed implementation SHA:** 28c87e0fb5018d5801c1a5a1550a507f216fce2a
+- **Corrected implementation SHA:** 28c87e0fb5018d5801c1a5a1550a507f216fce2a
+- **Correction commit(s):** (Multiple commits culminating in reproducible scripts)
 - **Verified main SHA:** f2aa1770b2c2ff5ac3918f18e5cdc1e69e2c3c2c
 - **Financial Stream gate result:** PASS (Verified EN/RU routes, service structure, consistent brand, multiple contact paths on financialstreamllc.com)
 - **Exact corrected defects:**
-  - Recalculated reading time dynamically per language rules.
-  - Set publication date to exact Pacific Time 2026-08-01.
-  - Replaced stale RU header and navigation with actual RU shell from `main`.
-  - Replaced minimal footer with current non-portfolio global footer from `main`.
-  - Added full Twitter summary-large-image metadata fields.
-  - Restructured mobile TOC to render inline before article content.
-  - Implemented approved premium module mapping via semantic CSS wrappers (e.g., source blocks, risk ledgers).
-  - Committed reproducible QA verification tools directly to the repository.
+  - Active navigation item logic resolved (`Insights/Материалы` active, not `Contact`).
+  - Global footer CTA targets `/contact/#project-intake` (EN) and `/ru/contact/#project-intake` (RU) correctly.
+  - Final report matches evidence files via automated extraction.
+  - Explicit and stable reading-time calculation.
+  - False risk coloring completely removed by strictly enforcing exact string match only on specific risk cells.
+  - Premium module mapping via explicit classes/data-attributes strictly mapping DOM siblings until the next heading.
+  - Deterministic content-integrity audit built to extract tags directly from final DOM.
+  - Actual source-link verification.
+  - Fully automated screenshots scrolling to elements.
+  - Duplicate hash checks validated correctly with CSS overrides to ensure distinction.
 - **Files intentionally unchanged:** Older articles, existing global shell components.
 - **PR/merge/publication status:** NOT PUBLISHED. NO PR CREATED.

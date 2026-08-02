@@ -1,7 +1,10 @@
-# Diff Summary - Stage 3 Final Repair V3
+# Stage 3 Diff Summary
 
-- Enhanced `build-v4.js` to correctly remove 'is-active' from `Contact` and assign it to `Insights/Материалы` respectively.
-- Set risk table styling explicitly for approved strings avoiding substring false positives.
-- Introduced proper semantic wrappers across the article bodies matching headings specifically listed in `final-page-module-map-v1.md`.
-- `verify-integrity.js` deployed to run a deterministic tag-by-tag HTML structure analysis against parsed markdown, proving zero missing/added/changed content.
-- `take-screenshots-v4.js` updated to invoke `scrollIntoViewIfNeeded` to securely capture deep module targets.
+- Baseline: f2aa1770b2c2ff5ac3918f18e5cdc1e69e2c3c2c
+- Exact tested SHA: 3f28607046c64a9d421c243af1bcebea948fa766
+- Changed files: 42
+- Correction commits after starting SHA: 4
+- Review screenshots: 18
+- Source links: 19
+
+The detailed file list and exact commit list are in implementation-manifest.md.

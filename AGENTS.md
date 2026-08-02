@@ -4,6 +4,15 @@
 - Work only in Russian for planning, reports, and owner communication.
 - Preserve the natural language of user-facing EN/RU content.
 
+## Required Read Order
+1. `AI_START_HERE.md`
+2. `AI_CURRENT_HANDOFF.md`
+3. `README.md`
+4. task-specific canonical documents named in the handoff or owner instruction
+5. current branch/PR metadata when active work is referenced
+
+Do not begin broad exploration before completing this read order.
+
 ## Execution Routing
 - ChatGPT direct GitHub work is the default execution path.
 - Tier 1: one ChatGPT chat for small, scoped, reversible work, normally 1–3 files.
@@ -11,6 +20,13 @@
 - Tier 3: use Codex only when a local dev server, Playwright/browser automation, screenshots, complex build/test pipelines, broad debugging, large refactoring, or prolonged terminal work is materially required.
 - Gemini and other third-party or weak substitute models are not default workflow tools.
 - The owner-level canonical policy is `proaiexpert/ai-os/00_Operating_System/CHATGPT_FIRST_OPERATING_MODEL.md`; these local rules remain standalone when that private repository is unavailable.
+
+## Chat Lifecycle
+- One Builder chat normally owns one task and one implementation branch.
+- One Reviewer chat normally owns one independent review pass.
+- Start a new chat for a new major phase, repository, architecture, or independent review.
+- Use the same Builder chat only for a narrow correction to the same branch and acceptance criteria.
+- Preserve continuity through `AI_CURRENT_HANDOFF.md`, canonical docs, branch, base SHA, and head SHA rather than one endless chat.
 
 ## Project Working Style
 - Prefer minimal safe patches.
@@ -59,6 +75,9 @@ For Tier 2 and Tier 3 work:
 - Do not route ordinary code edits through Codex merely because Codex is available.
 - Do not search for free substitute models when ChatGPT can complete the task directly.
 - If the first pass does not create clear progress, narrow scope or escalate by risk tier.
+
+## Handoff Maintenance
+After meaningful merged work, update `AI_CURRENT_HANDOFF.md` with the new stable state, current priority, unresolved risks, canonical documents, and next approved action.
 
 ## Output Format
 After changes, report:

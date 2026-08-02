@@ -1,7 +1,7 @@
 # QA Report - Targeted Correction Stage 3 V2
 
 ## 1. Tested Commit SHA
-628c46489bbf2beb1012aa186e49a3adbdea78f2
+573255ff442c88ca766dec839b885646c5157cd3
 
 ## 2. Route HTTP Status Matrix
 - `/ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/`: 200 OK

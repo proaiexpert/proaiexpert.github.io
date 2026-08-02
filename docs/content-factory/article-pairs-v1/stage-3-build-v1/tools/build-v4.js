@@ -3,6 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { marked } = require('marked');
 const cheerio = require('cheerio');
+const { MODULES } = require('./stage3-config');
 
 const repoRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
 
@@ -118,7 +119,7 @@ const enParts = extractNavAndFooter('contact/index.html', false);
 const ruParts = extractNavAndFooter('ru/contact/index.html', true);
 
 function normalizeText(text) {
-  return text.replace(/\\s+/g, ' ').trim();
+  return text.replace(/\s+/g, ' ').trim();
 }
 
 function processArticle(r) {
@@ -142,11 +143,18 @@ function processArticle(r) {
   let bodyHtml = marked.parse(publicMd);
 
   const $ = cheerio.load(bodyHtml, null, false);
+  if (!execSummaryHtml) {
+    const firstQuote = $('blockquote').first();
+    if (firstQuote.length) {
+      execSummaryHtml = $.html(firstQuote);
+      firstQuote.remove();
+    }
+  }
   
   // Add premium source blocks
   $('p, li').each((i, el) => {
     const text = $(el).text();
-    if (/Google|WCAG|Digital\\.gov|ICANN|Copyright|W3C/i.test(text) && $(el).find('a').length > 0) {
+    if (/Google|WCAG|Digital\.gov|ICANN|Copyright|W3C/i.test(text) && $(el).find('a').length > 0) {
       $(el).addClass('premium-source-block');
     }
   });
@@ -169,7 +177,7 @@ function processArticle(r) {
   $('blockquote').addClass('premium-quote');
   
   // Premium Module semantic wrappers
-  const moduleMap = {
+  const legacyModuleMap = {
     'Гипотетический сценарий: разорванный языковой путь': 'broken-language-journey',
     'Hypothetical scenario: The broken language journey': 'broken-language-journey',
     'Три модели сайта': 'three-model',
@@ -238,7 +246,12 @@ function processArticle(r) {
     'A practical decision sequence': 'ten-step-decision-sequence'
   };
 
-  $('h2, h3').each((i, el) => {
+  const moduleMap = Object.fromEntries(
+    (MODULES[r.id] || []).map(([tokens, heading]) => [heading, tokens.join(' ')])
+  );
+
+  const moduleHeadings = $('h3').toArray().concat($('h2').toArray());
+  moduleHeadings.forEach((el) => {
     const text = $(el).text().trim();
     if (moduleMap[text]) {
       // Find all subsequent siblings until next heading of same or higher level
@@ -246,13 +259,14 @@ function processArticle(r) {
       let nextSelector = tag === 'h2' ? 'h1, h2' : 'h1, h2, h3';
       let nextSiblings = $(el).nextUntil(nextSelector);
       // Wrap them
-      const wrapper = $(`<div class="premium-module" data-module="${moduleMap[text]}"></div>`);
+      const moduleTokens = moduleMap[text];
+      const wrapper = $(`<section class="premium-module" data-module="${moduleTokens}"></section>`);
       $(el).before(wrapper);
       wrapper.append(el);
       wrapper.append(nextSiblings);
       
       // If it's a risk module, color its table cells
-      if (moduleMap[text] === 'abc-comparison' || moduleMap[text] === 'proposal-risk-ledger' || moduleMap[text] === 'explicit-risk-summary') {
+      if (/\b(?:abc-comparison|proposal-risk-ledger|explicit-risk-summary)\b/.test(moduleTokens)) {
         wrapper.find('td, th').each((j, td) => {
           const tdText = $(td).text().trim();
           if (riskLabels[tdText]) {
@@ -336,8 +350,8 @@ function processArticle(r) {
 <meta name="twitter:image:alt" content="${r.seoTitle}"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/css/global-header-parity-v2.css">
-<link rel="stylesheet" href="/assets/css/premium-insights-v1.css">
 <link rel="stylesheet" href="/mobile-behavior-v123.css">
+<link rel="stylesheet" href="/assets/css/premium-insights-v1.css">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -381,13 +395,13 @@ function processArticle(r) {
         <span>${r.category}</span>
         <span>${visibleDate}</span>
       </div>
-      ${execSummaryHtml ? `<div class="premium-exec-summary" data-module="executive-summary">${execSummaryHtml}</div>` : ''}
+      ${execSummaryHtml ? `<div class="premium-exec-summary" data-module="executive-summary">${execSummaryHtml.trim()}</div>` : ''}
     </header>
 
     <div class="premium-layout">
       <div class="premium-content">
-        ${mobileTocHtml}
-        ${bodyHtml}
+        ${mobileTocHtml.trim()}
+        ${bodyHtml.trim()}
       </div>
       <aside>
         ${tocHtml}
@@ -399,6 +413,7 @@ function processArticle(r) {
 ${r.lang === 'ru' ? ruParts.footer : enParts.footer}
 
 <script src="/mobile-behavior-v123.js"></script>
+<script src="/assets/js/premium-insights-v1.js"></script>
 </body>
 </html>`;
 
@@ -424,74 +439,10 @@ for (const r of routes) {
   processArticle(r);
 }
 
-// Ensure the CSS includes the newly required premium blocks and responsive TOC rules
-const extraCSS = `
-/* Premium Source Block */
-.premium-source-block {
-  padding: 16px 20px;
-  background: rgba(255, 255, 255, 0.02);
-  border-left: 3px solid rgba(255, 255, 255, 0.15);
-  font-size: 15px !important;
-  color: rgba(255, 255, 255, 0.6) !important;
-  margin: 32px 0;
-  border-radius: 4px;
-}
-.premium-source-block a {
-  color: rgba(255, 255, 255, 0.8) !important;
-}
-
-/* Premium Quote */
-.premium-quote {
-  font-size: 20px;
-  line-height: 1.6;
-  font-style: italic;
-  padding: 24px 32px;
-  border-left: 4px solid var(--violet);
-  background: rgba(184, 182, 236, 0.04);
-  margin: 40px 0;
-  border-radius: 6px;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-/* Premium Modules */
-.premium-module {
-  margin: 40px 0;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.01);
-}
-
-/* Risk colors for tables */
-.risk-red { color: #ff6b6b; font-weight: bold; }
-.risk-yellow { color: #feca57; font-weight: bold; }
-.risk-green { color: #1dd1a1; font-weight: bold; }
-
-/* Responsive TOC */
-.premium-toc-mobile { display: none; }
-@media (max-width: 1024px) {
-  .premium-toc { display: none; }
-  .premium-toc-mobile {
-    display: block;
-    margin-bottom: 40px;
-    padding: 20px;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 8px;
-  }
-  .premium-toc-mobile .premium-toc-title {
-    font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; color: var(--cyan); font-weight: 800;
-  }
-  .premium-toc-mobile ul { list-style: none; padding: 0; margin: 0; }
-  .premium-toc-mobile li { margin-bottom: 10px; }
-  .premium-toc-mobile a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 14px; }
-}
-`;
-
 const cssPath = path.join(repoRoot, 'assets/css/premium-insights-v1.css');
-let cssContent = fs.readFileSync(cssPath, 'utf8');
-if (!cssContent.includes('.premium-source-block')) {
-  fs.writeFileSync(cssPath, cssContent + '\\n' + extraCSS);
+const cssContent = fs.readFileSync(cssPath, 'utf8');
+if (!cssContent.includes('.premium-module')) {
+  throw new Error('premium-insights-v1.css must contain tracked .premium-module styling');
 }
 
 console.log('Build V4 completed');

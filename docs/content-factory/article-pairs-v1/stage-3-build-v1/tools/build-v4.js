@@ -29,7 +29,10 @@ const routes = [
     hubText: '← Назад к инсайтам',
     category: 'Стратегия сайта',
     menuAria: 'Открыть меню',
-    footerCtaLink: '/ru/contact/#project-intake'
+    footerCtaLink: '/ru/contact/#project-intake',
+    relatedLabel: 'Связанный материал',
+    relatedHref: '/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/',
+    relatedTitle: 'Как проверить подрядчика и предложение на разработку сайта'
   },
   {
     id: 'A1-EN',
@@ -50,7 +53,10 @@ const routes = [
     hubText: '← Back to insights',
     category: 'Website Strategy',
     menuAria: 'Open menu',
-    footerCtaLink: '/contact/#project-intake'
+    footerCtaLink: '/contact/#project-intake',
+    relatedLabel: 'Related insight',
+    relatedHref: '/insights/how-to-evaluate-a-website-proposal/',
+    relatedTitle: 'How to Evaluate a Website Proposal Before You Sign'
   },
   {
     id: 'A2-RU',
@@ -71,7 +77,10 @@ const routes = [
     hubText: '← Назад к инсайтам',
     category: 'Стратегия сайта',
     menuAria: 'Открыть меню',
-    footerCtaLink: '/ru/contact/#project-intake'
+    footerCtaLink: '/ru/contact/#project-intake',
+    relatedLabel: 'Связанный материал',
+    relatedHref: '/ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/',
+    relatedTitle: 'Сайт для русскоязычного бизнеса в США: какой вариант выбрать'
   },
   {
     id: 'A2-EN',
@@ -92,7 +101,10 @@ const routes = [
     hubText: '← Back to insights',
     category: 'Website Strategy',
     menuAria: 'Open menu',
-    footerCtaLink: '/contact/#project-intake'
+    footerCtaLink: '/contact/#project-intake',
+    relatedLabel: 'Related insight',
+    relatedHref: '/insights/does-your-service-business-need-a-multilingual-website/',
+    relatedTitle: 'Does Your U.S. Service Business Need a Multilingual Website?'
   }
 ];
 
@@ -313,6 +325,7 @@ function processArticle(r) {
 
   bodyHtml = $.html();
   bodyHtml += `
+    <p class="premium-related-insight"><strong>${r.relatedLabel}</strong><a href="${r.relatedHref}">${r.relatedTitle}</a></p>
     <div class="premium-cta">
       <a href="${r.ctaLink}" class="btn btn-primary start-btn">${r.ctaLabel}</a>
     </div>
@@ -351,7 +364,7 @@ function processArticle(r) {
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/css/global-header-parity-v2.css">
 <link rel="stylesheet" href="/mobile-behavior-v123.css">
-<link rel="stylesheet" href="/assets/css/premium-insights-v1.css">
+<link rel="stylesheet" href="/assets/css/premium-insights-v1.css?v=20260802.5">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -413,7 +426,7 @@ function processArticle(r) {
 ${r.lang === 'ru' ? ruParts.footer : enParts.footer}
 
 <script src="/mobile-behavior-v123.js"></script>
-<script src="/assets/js/premium-insights-v1.js"></script>
+<script src="/assets/js/premium-insights-v1.js?v=20260802.5"></script>
 </body>
 </html>`;
 

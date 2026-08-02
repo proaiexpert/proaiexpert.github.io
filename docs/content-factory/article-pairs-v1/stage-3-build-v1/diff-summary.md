@@ -1,8 +1,8 @@
-# Diff Summary - Stage 3 Correction
+# Diff Summary - Stage 3 Final Correction V2
 
-- Rebuilt all four HTML pages using deterministic Markdown extraction directly from the approved git blobs.
-- Removed duplicate `<h1>` generated from the Markdown body.
-- Removed `| ProAI Expert` from the `<title>` tags to match exact strings required.
-- Corrected Mojibake in Russian articles by enforcing UTF-8 decoding in the build script.
-- Replaced `content-integrity-report.json` with an automated count of headers, paragraphs, lists, links, and table cells.
-- Updated `qa-report.md` with detailed matrix results including Lighthouse scores.
+- Extracted header and footer partials directly from the current production baseline in `main` via Cheerio to enforce strict shell parity.
+- Implemented specific CSS wrappers `.premium-source-block`, `.premium-quote`, and `.risk-red/yellow/green` to stylize the approved premium modules without altering the DOM text content.
+- Updated `build-v3.js` to dynamically calculate word count and reading time.
+- Updated metadata blocks to include Twitter cards.
+- Refactored TOC layout to include `.premium-toc-mobile` which displays without JS.
+- Automated tests outputted to `content-integrity-report.json` and `metadata-manifest.json` to verify no missing tags or text.

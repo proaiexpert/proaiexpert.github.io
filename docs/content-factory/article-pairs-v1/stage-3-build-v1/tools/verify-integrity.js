@@ -1,115 +1,72 @@
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
-const { marked } = require('marked');
-const cheerio = require('cheerio');
+const { fs, path, repoRoot, normalizeText, publicSourceDom, publicRenderedDom, writeJson, gitSha } = require('./stage3-utils');
+const { ROUTES } = require('./stage3-config');
 
-const repoRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
+function recordsFrom($, rootSelector, indexName) {
+  const selector = 'h1,h2,h3,h4,h5,h6,p,li,th,td';
+  const elements = rootSelector ? $(rootSelector).find(selector).add($(rootSelector).filter(selector)) : $(selector);
+  return elements.filter((_, element) => {
+    const node = $(element);
+    if (node.is('p') && node.parents('li').length) return false;
+    if (node.is('li') && node.children('ul,ol').length) return false;
+    return !node.parents('.premium-toc,.premium-toc-mobile,.premium-cta').length;
+  }).map((index, element) => {
+    const node = $(element);
+    const type = element.tagName.toLowerCase();
+    const cell = node.is('th,td');
+    const row = cell ? node.closest('tr').index() : null;
+    const column = cell ? node.index() : null;
+    return {
+      type,
+      headingLevel: /^h[1-6]$/.test(type) ? Number(type.slice(1)) : null,
+      text: normalizeText(node.clone().find('ul,ol').remove().end().text()),
+      links: node.find('a').add(node.filter('a')).map((_, link) => ({
+        text: normalizeText($(link).text()), href: $(link).attr('href') || ''
+      })).get(),
+      tableContext: cell ? { row, column } : null,
+      [indexName]: index
+    };
+  }).get();
+}
 
-const routes = [
-  {
-    id: 'A1-RU',
-    srcFile: 'docs/content-factory/article-pairs-v1/gemini-workspace/final-editorial-synthesis-v1/article-01-ru-final-candidate-v7.md',
-    destFile: 'ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html',
-  },
-  {
-    id: 'A1-EN',
-    srcFile: 'docs/content-factory/article-pairs-v1/gemini-workspace/final-editorial-synthesis-v1/article-01-en-final-candidate-v5.md',
-    destFile: 'insights/does-your-service-business-need-a-multilingual-website/index.html',
-  },
-  {
-    id: 'A2-RU',
-    srcFile: 'docs/content-factory/article-pairs-v1/gemini-workspace/final-editorial-synthesis-v1/article-02-ru-final-candidate-v6.md',
-    destFile: 'ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/index.html',
-  },
-  {
-    id: 'A2-EN',
-    srcFile: 'docs/content-factory/article-pairs-v1/gemini-workspace/final-editorial-synthesis-v1/article-02-en-final-candidate-v6.md',
-    destFile: 'insights/how-to-evaluate-a-website-proposal/index.html',
+function comparable(record) {
+  return JSON.stringify({ type: record.type, headingLevel: record.headingLevel, text: record.text,
+    links: record.links, tableContext: record.tableContext });
+}
+
+const reports = ROUTES.map((route) => {
+  const source$ = publicSourceDom(route);
+  const rendered$ = publicRenderedDom(route);
+  const source = recordsFrom(source$, null, 'sourceIndex');
+  const rendered = [
+    ...recordsFrom(rendered$, '.premium-article-header', 'renderedIndex'),
+    ...recordsFrom(rendered$, '.premium-content', 'renderedIndex')
+  ].map((record, index) => ({ ...record, renderedIndex: index }));
+  const changed = [], missing = [], added = [], moved = [], typeChanged = [], linkChanged = [];
+  const max = Math.max(source.length, rendered.length);
+  for (let index = 0; index < max; index += 1) {
+    const s = source[index], d = rendered[index];
+    if (!s) { added.push(d); continue; }
+    if (!d) { missing.push(s); continue; }
+    if (comparable(s) === comparable(d)) continue;
+    const sourceExactElsewhere = rendered.findIndex((record) => comparable(record) === comparable(s));
+    if (sourceExactElsewhere >= 0) moved.push({ sourceIndex: index, renderedIndex: sourceExactElsewhere, text: s.text });
+    else if (s.text === d.text && s.type !== d.type) typeChanged.push({ source: s, rendered: d });
+    else if (s.text === d.text && JSON.stringify(s.links) !== JSON.stringify(d.links)) linkChanged.push({ source: s, rendered: d });
+    else changed.push({ source: s, rendered: d });
   }
-];
+  const status = [changed, missing, added, moved, typeChanged, linkChanged].every((items) => items.length === 0) ? 'PASS' : 'FAIL';
+  return { id: route.id, sourceFile: route.sourceFile, renderedFile: route.file,
+    sourceRecordCount: source.length, renderedRecordCount: rendered.length,
+    changed, missing, added, moved, typeChanged, linkChanged, status };
+});
 
-function normalize(str) {
-  if (!str) return '';
-  // decode entities
-  let text = str;
-  text = text.replace(/&amp;/g, '&');
-  text = text.replace(/&lt;/g, '<');
-  text = text.replace(/&gt;/g, '>');
-  text = text.replace(/&quot;/g, '"');
-  text = text.replace(/&#39;/g, "'");
-  text = text.replace(/&nbsp;/g, ' ');
-  // remove multiple whitespace
-  return text.replace(/\\s+/g, ' ').trim();
-}
-
-function extractElements($) {
-  const elements = [];
-  $('h1, h2, h3, h4, h5, h6, p, li, td, th').each((i, el) => {
-    // Exclude TOC links
-    if ($(el).parents('.premium-toc').length > 0 || $(el).parents('.premium-toc-mobile').length > 0) return;
-    if ($(el).parents('nav').length > 0) return; // skip nav elements
-    if ($(el).parents('footer').length > 0) return; // skip footer
-    
-    // For CTA button which is just an 'a' not inside 'p', it might not be caught here if it's not in p. 
-    // We only compare main tags.
-    const text = normalize($(el).text());
-    if (text) {
-      elements.push({ type: el.tagName.toLowerCase(), text });
-    }
-  });
-  return elements;
-}
-
-const reports = [];
-
-for (const r of routes) {
-  const rawMd = execSync(`git show origin/article-pairs-gemini-stage-v1:${r.srcFile}`, { encoding: 'utf8', cwd: repoRoot });
-  const h1Match = rawMd.match(/^# (.*?)(?:\\r?\\n|$)/m);
-  let publicMd = rawMd.substring(rawMd.indexOf(h1Match[0]));
-  
-  const sourceHtml = marked.parse(publicMd);
-  const source$ = cheerio.load(sourceHtml, null, false);
-  const sourceElements = extractElements(source$);
-
-  const destHtml = fs.readFileSync(path.join(repoRoot, r.destFile), 'utf8');
-  const dest$ = cheerio.load(destHtml, null, false);
-  
-  // Extract elements from main content area
-  const mainContent$ = cheerio.load(dest$('main').html(), null, false);
-  const destElements = extractElements(mainContent$);
-
-  let differences = [];
-  let missing = [];
-  let added = [];
-  
-  const len = Math.max(sourceElements.length, destElements.length);
-  for (let i=0; i<len; i++) {
-    const s = sourceElements[i];
-    const d = destElements[i];
-    if (s && d) {
-      if (s.text !== d.text) {
-        differences.push({ index: i, expected: s.text, actual: d.text });
-      }
-    } else if (s) {
-      missing.push(s);
-    } else if (d) {
-      added.push(d);
-    }
+const report = { testedSha: gitSha(), testedAt: new Date().toISOString(), routes: reports,
+  status: reports.every((item) => item.status === 'PASS') ? 'PASS' : 'FAIL' };
+writeJson('content-integrity-report.json', report);
+if (report.status !== 'PASS') {
+  for (const item of reports.filter((route) => route.status === 'FAIL')) {
+    console.error(`${item.id}: changed=${item.changed.length} missing=${item.missing.length} added=${item.added.length} moved=${item.moved.length} typeChanged=${item.typeChanged.length} linkChanged=${item.linkChanged.length}`);
   }
-
-  reports.push({
-    id: r.id,
-    sourceFile: r.srcFile,
-    sourceElementCount: sourceElements.length,
-    destElementCount: destElements.length,
-    differences: differences.length,
-    missing: missing.length,
-    added: added.length,
-    status: (differences.length === 0 && missing.length === 0 && added.length === 0) ? 'PASS' : 'FAIL',
-    details: { differences, missing, added }
-  });
+  process.exit(1);
 }
-
-fs.writeFileSync(path.join(repoRoot, 'docs/content-factory/article-pairs-v1/stage-3-build-v1/content-integrity-report.json'), JSON.stringify(reports, null, 2));
-console.log('Integrity verification complete.');
+console.log('Content integrity PASS: type, text, links, tables, and order match 4/4 frozen sources');

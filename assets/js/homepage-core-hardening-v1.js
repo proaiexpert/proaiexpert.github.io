@@ -17,6 +17,19 @@
 
   root.classList.add('homepage-ready');
 
+  function loadWorkflowEnvironment() {
+    if (!document.getElementById('tech-section-en')) return;
+    if (document.querySelector('script[data-homepage-workflow-environment]')) return;
+
+    var script = document.createElement('script');
+    script.src = '/assets/js/homepage-workflow-environment-v1.js?v=20260803.1';
+    script.async = false;
+    script.setAttribute('data-homepage-workflow-environment', 'v1');
+    document.head.appendChild(script);
+  }
+
+  loadWorkflowEnvironment();
+
   function focusMain(event) {
     if (!main) return;
     if (event) event.preventDefault();

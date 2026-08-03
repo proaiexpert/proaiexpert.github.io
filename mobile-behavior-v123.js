@@ -30,6 +30,21 @@
     document.head.appendChild(style);
   }
 
+  function syncFounderVoiceLinks() {
+    if (!body.classList.contains('page-article')) return;
+
+    const isRussian = (document.documentElement.lang || '').toLowerCase().startsWith('ru');
+    const label = isRussian ? 'Мой подход' : 'My approach';
+    const ariaLabel = isRussian
+      ? 'Мой подход к работе ProAI Expert'
+      : 'My approach at ProAI Expert';
+
+    document.querySelectorAll('.premium-author-link, .lead-author-link').forEach((link) => {
+      link.textContent = label;
+      link.setAttribute('aria-label', ariaLabel);
+    });
+  }
+
   function resetMenuState() {
     body.classList.remove('mobile-nav-open', 'menu-open');
     if (siteNav) siteNav.classList.remove('is-open');
@@ -113,6 +128,7 @@
   }
 
   installRuntimeFixes();
+  syncFounderVoiceLinks();
 
   if (siteNav) {
     const observer = new MutationObserver(() => {

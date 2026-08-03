@@ -1,122 +1,134 @@
-# ProAI Expert Website
+# ProAI Expert
 
-A bilingual studio website for ProAI Expert, built as a clean static site with parallel English and Russian content layers.
+**AI systems, business automation, and premium multilingual websites for service businesses.**
 
-The project brings together practical AI systems, business automation, premium websites, branding, and digital business structure for modern service businesses.
+ProAI Expert helps service companies reduce manual work, strengthen trust, and create clearer paths from discovery to inquiry. The work connects strategy, website architecture, localized content, structured intake, automation, and human-reviewed AI into practical business systems.
 
-## Positioning
+## Live website
 
-ProAI Expert is a studio working across:
+- **English:** https://proai-expert.com/
+- **Русский:** https://proai-expert.com/ru/
+- **Case Studies:** https://proai-expert.com/case-studies/
+- **Кейсы:** https://proai-expert.com/ru/case-studies/
+- **Insights:** https://proai-expert.com/insights/
+- **Материалы:** https://proai-expert.com/ru/insights/
+- **Contact:** https://proai-expert.com/contact/
 
-- practical AI systems
-- business automation
-- premium websites
-- branding
-- digital business structure
+## What ProAI Expert builds
 
-The site is designed to present these directions as one coherent studio offering rather than as disconnected services.
+### AI Systems & Business Automation
 
-## Website Structure
+- structured lead intake and routing;
+- email triage and human-reviewed AI drafts;
+- follow-up and reminder workflows;
+- website assistants and knowledge systems;
+- operational automation with clear human boundaries.
 
-The core website includes:
+### Premium Websites & Brand Systems
 
-- Home
-- About
-- AI Systems
-- Websites & Branding
-- Contact
-- Insights
-- Insight article pages
+- positioning and information architecture;
+- multilingual websites with natural localization;
+- service pages, editorial content, and trust design;
+- responsive production and accessible interaction;
+- conversion paths from search and content to inquiry.
 
-The Insights layer includes editorial hub pages plus article pages in both languages.
+### Search, Content & Inquiry Architecture
 
-## Bilingual Structure
+- localized search-entry pages;
+- practical editorial content;
+- internal linking and multilingual SEO structure;
+- structured forms, scheduling, and contact pathways;
+- evidence-led measurement without guaranteed ranking or revenue claims.
 
-The site uses a language-specific folder structure:
+## Who we work with
 
-- English pages live at the root (`/`)
-- Russian pages live under `/ru/`
-- English Insights content lives under `/insights/`
-- Russian Insights content lives under `/ru/insights/`
+The current focus is on service businesses where trust, clear communication, and a useful first step directly affect client acquisition and operations:
 
-The Russian and English versions are language-specific adaptations. They are not intended to be crude mirror translations.
+- accounting and financial services;
+- expert-led personal practices;
+- local service businesses;
+- professional service SMBs.
 
-## Repository Structure
+## Selected work
 
-Key project paths:
+| Project | Status | Focus | Links |
+|---|---|---|---|
+| **Financial Stream LLC** | Live client project · EN/RU | Bilingual financial-services website, structured intake, localized content, website assistant, and human-reviewed automation | [Case study](https://proai-expert.com/case-studies/financial-stream/) · [Live website](https://financialstreamllc.com/) |
+| **Alina Horb** | Live client project · UA/RU | Human-first psychologist website, personal brand, professional boundaries, bilingual editorial content, and first-contact UX | [Case study](https://proai-expert.com/case-studies/alina-horb/) · [Live website](https://alinahorb.com/) |
+| **Local Repair Pro** | Website case · In development | Local-service architecture, Photo-to-Scope request preparation, regional content, and responsive intake design | [Case study](https://proai-expert.com/case-studies/local-repair-pro/) |
 
-- `/` — English root pages
-- `/ru/` — Russian root pages
-- `/insights/` — English Insights hub and article pages
-- `/ru/insights/` — Russian Insights hub and article pages
-- `sitemap.xml` — sitemap for search engines
-- `robots.txt` — crawl and sitemap directives
+## Verified project signals
 
-## Current Content Layer
+Financial Stream includes dated Google Search Console evidence reviewed in July 2026:
 
-The current site already includes:
+- **19 organic clicks** over the reviewed three-month period;
+- **approximately 4.17K search impressions**;
+- **51 indexed pages** at the recorded indexing snapshot;
+- no claim that these visibility signals alone prove leads, conversion growth, revenue, or guaranteed future rankings.
 
-- all main pages in English and Russian
-- Insights hub pages in English and Russian
-- the first flagship article set in both languages
-  - 6 Russian articles
-  - 6 English articles
+Full evidence and limitations are documented in the [Financial Stream case study](https://proai-expert.com/case-studies/financial-stream/).
 
-## Editing Guidance
+## Website architecture
 
-Use the existing folder structure consistently.
+The production website includes:
 
-- Edit root pages directly inside the corresponding folder
-- Edit Russian pages inside `/ru/`
-- Add English articles inside `/insights/<slug>/`
-- Add Russian articles inside `/ru/insights/<slug>/`
+- English pages at `/`;
+- Russian pages under `/ru/`;
+- service pages for AI Systems and Websites & Branding;
+- EN/RU Case Studies archive and individual case routes;
+- EN/RU Insights hubs and localized article routes;
+- structured project intake and contact paths;
+- canonical, reciprocal `hreflang`, and `x-default` relationships;
+- sitemap and robots directives;
+- responsive layouts, keyboard support, and reduced-motion handling.
 
-When updating content:
+English and Russian pages are maintained as language-specific experiences rather than mechanical browser translations.
 
-- keep English and Russian parity thoughtful, not literal
-- avoid random renaming of folders or files
-- avoid structure drift between language layers
-- preserve clean version progression across release archives
+## Production principles
 
-## Deployment Note
+- **Strategy before surface** — positioning, audience, and first-step logic guide design decisions.
+- **Truthful framing** — live, implemented, tested, partial, planned, and concept statuses remain distinct.
+- **Natural localization** — language versions preserve intent and clarity instead of mirroring line by line.
+- **Evidence discipline** — implementation facts and dated evidence take priority over unsupported marketing claims.
+- **Human-reviewed AI** — automation supports defined tasks without pretending to replace professional judgment.
+- **Responsive recomposition** — mobile is designed as a deliberate layout, not a scaled desktop page.
+- **Controlled motion** — interaction supports hierarchy and respects `prefers-reduced-motion`.
 
-This is a static website suitable for GitHub Pages or comparable static hosting.
+## Technical approach
 
-Before deployment, verify:
+The site is built as a static production system using:
 
-- internal links
-- sitemap
-- robots.txt
-- canonical and hreflang logic
-- contact form behavior
+- semantic HTML5;
+- CSS and responsive media queries;
+- minimal vanilla JavaScript;
+- optimized responsive imagery;
+- GitHub-based source control and review workflows;
+- GitHub Pages and custom-domain deployment.
 
-## Versioning Note
+The repository also contains project documentation, portfolio case packs, QA records, current handoffs, and implementation standards.
 
-The project uses sequential ZIP / version naming to keep releases clean and traceable.
+## Founder
 
-Recommended practice:
+**Ihor Horb**  
+Founder · Strategy & Systems Architecture, ProAI Expert  
+Washington, USA  
+Working in English, Russian, and Ukrainian.
 
-- keep one clear version line
-- avoid parallel inconsistent copies
-- treat the latest approved archive as the working source
+- Website: https://proai-expert.com/
+- LinkedIn: https://www.linkedin.com/in/ihorhorb/
+- Email: hello@proai-expert.com
+- Telegram: https://t.me/proAiexpert
 
-## Current Status
+## Repository status
 
-The site is in a structured pre-launch state with routing, shared component, mobile behavior, and head-layer cleanup already completed.
+This repository is the production source for the ProAI Expert website. The website is live and continues to evolve through controlled feature branches, pull requests, evidence review, EN/RU parity checks, and responsive QA.
 
-Current work already covers:
+Major changes should preserve:
 
-- bilingual main pages
-- bilingual Insights hubs
-- first bilingual flagship article set
-- launch-oriented cleanup of sitemap, robots, canonical / hreflang, internal links, component consistency, and mobile behavior
-
-## Next Steps
-
-Likely next steps include:
-
-- final launch checks
-- performance optimization
-- additional Insights articles
-- ongoing SEO refinement
-- visual polish and selective front-end enhancements
+- current production routes;
+- natural EN/RU localization;
+- canonical and `hreflang` integrity;
+- truthful project statuses;
+- accessibility and reduced-motion behavior;
+- evidence-backed case-study claims;
+- reviewable, reversible implementation scope.

@@ -7,14 +7,27 @@
 
   if (!section || section.querySelector('.hwe-environment')) return;
 
-  function installStyles() {
-    if (document.querySelector('link[data-homepage-workflow-environment]')) return;
+  function appendStylesheet(href, attribute, value) {
+    if (document.querySelector('link[' + attribute + ']')) return;
 
     var link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = '/assets/css/homepage-workflow-environment-v1.css?v=20260803.1';
-    link.setAttribute('data-homepage-workflow-environment', 'v1');
+    link.href = href;
+    link.setAttribute(attribute, value);
     document.head.appendChild(link);
+  }
+
+  function installStyles() {
+    appendStylesheet(
+      '/assets/css/homepage-workflow-environment-v1.css?v=20260803.2',
+      'data-homepage-workflow-environment',
+      'v1'
+    );
+    appendStylesheet(
+      '/assets/css/homepage-tool-marquee-premium-v1.css?v=20260803.1',
+      'data-homepage-tool-marquee-premium',
+      'v1'
+    );
   }
 
   function buildMarkup(russian) {
@@ -69,6 +82,29 @@
     '</div>';
   }
 
+  function renderToolGroup(group, names, hidden) {
+    group.innerHTML = names.map(function (name) {
+      return '<div class="t-node">' + name + '</div>';
+    }).join('');
+
+    if (hidden) group.setAttribute('aria-hidden', 'true');
+  }
+
+  function refreshToolMarquee(tools) {
+    var rows = tools.querySelectorAll('.t-main-row, .t-secondary-row');
+    var toolSets = [
+      ['OpenAI', 'Claude', 'Gemini', 'Chatbase', 'Make', 'n8n', 'Airtable'],
+      ['Twilio', 'Google', 'GitHub', 'HubSpot', 'Cloudflare', 'Notion', 'Stripe']
+    ];
+
+    Array.prototype.forEach.call(rows, function (row, rowIndex) {
+      var groups = row.querySelectorAll('.t-group');
+      Array.prototype.forEach.call(groups, function (group, groupIndex) {
+        renderToolGroup(group, toolSets[rowIndex], groupIndex > 0);
+      });
+    });
+  }
+
   installStyles();
 
   var label = section.querySelector('.t-label');
@@ -90,13 +126,14 @@
 
   if (!tools) return;
 
+  refreshToolMarquee(tools);
   tools.insertAdjacentHTML('beforebegin', buildMarkup(isRussian));
 
   var caption = document.createElement('p');
   caption.className = 'hwe-tools-caption';
   caption.textContent = isRussian
-    ? 'Подходящие инструменты — только там, где они нужны процессу.'
-    : 'Selected tools, used where the workflow requires them.';
+    ? 'Платформы подбираются под процесс — не наоборот.'
+    : 'Platforms follow the workflow — not the other way around.';
   tools.insertAdjacentElement('beforebegin', caption);
   tools.setAttribute('role', 'group');
   tools.setAttribute('aria-label', isRussian ? 'Инструменты рабочей среды' : 'Workflow environment tools');

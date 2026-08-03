@@ -59,13 +59,13 @@
     }).join('');
 
     var principles = content.principles.map(function (item) {
-      return '<span>' + item + '</span>';
+      return '<span role="listitem">' + item + '</span>';
     }).join('');
 
-    return '<div class="hwe-environment" role="region" aria-label="' + content.aria + '">' +
+    return '<div class="hwe-environment" role="group" aria-label="' + content.aria + '">' +
       '<ol class="hwe-rail">' + items + '</ol>' +
       '<div class="hwe-signal" aria-hidden="true"></div>' +
-      '<div class="hwe-principles" aria-label="' + content.principlesLabel + '">' + principles + '</div>' +
+      '<div class="hwe-principles" role="list" aria-label="' + content.principlesLabel + '">' + principles + '</div>' +
     '</div>';
   }
 
@@ -77,7 +77,11 @@
   var tools = section.querySelector('.t-container');
 
   if (label) label.textContent = isRussian ? '// СРЕДА РАБОЧЕГО ПРОЦЕССА' : '// WORKFLOW ENVIRONMENT';
-  if (title) title.textContent = isRussian ? 'Сначала рабочий процесс. Инструменты — после.' : 'The workflow comes first. Tools support it.';
+  if (title) {
+    title.id = 'workflow-environment-title';
+    title.textContent = isRussian ? 'Сначала рабочий процесс. Инструменты — после.' : 'The workflow comes first. Tools support it.';
+    section.setAttribute('aria-labelledby', title.id);
+  }
   if (description) {
     description.textContent = isRussian
       ? 'Сначала мы проектируем путь от обращения до следующего действия, а затем выбираем подходящий слой автоматизации или AI. Инструменты могут меняться; ответственность, проверка человеком и прослеживаемость должны оставаться понятными.'
@@ -94,5 +98,6 @@
     ? 'Подходящие инструменты — только там, где они нужны процессу.'
     : 'Selected tools, used where the workflow requires them.';
   tools.insertAdjacentElement('beforebegin', caption);
+  tools.setAttribute('role', 'group');
   tools.setAttribute('aria-label', isRussian ? 'Инструменты рабочей среды' : 'Workflow environment tools');
 }());

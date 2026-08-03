@@ -4,6 +4,7 @@
   var root = document.documentElement;
   var body = document.body;
   var main = document.getElementById('main-content');
+  var header = document.querySelector('header');
   var footer = document.querySelector('footer');
   var skipLink = document.querySelector('.skip-link');
   var nav = document.querySelector('.site-nav');
@@ -41,8 +42,8 @@
   }
 
   function getFocusableItems() {
-    if (!nav || !toggle) return [];
-    return [toggle].concat(Array.prototype.slice.call(nav.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')))
+    if (!header) return [];
+    return Array.prototype.slice.call(header.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'))
       .filter(function (element) {
         return !element.hasAttribute('disabled') && element.offsetParent !== null;
       });

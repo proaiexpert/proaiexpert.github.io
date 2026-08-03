@@ -55,7 +55,7 @@ The current focus is on service businesses where trust, clear communication, and
 |---|---|---|---|
 | **Financial Stream LLC** | Live client project · EN/RU | Bilingual financial-services website, structured intake, localized content, website assistant, and human-reviewed automation | [Case study](https://proai-expert.com/case-studies/financial-stream/) · [Live website](https://financialstreamllc.com/) · [GitHub](https://github.com/Financialstream/financialstream.github.io) |
 | **Alina Horb** | Live client project · UA/RU | Human-first psychologist website, personal brand, professional boundaries, bilingual editorial content, and first-contact UX | [Case study](https://proai-expert.com/case-studies/alina-horb/) · [Live website](https://alinahorb.com/) · [GitHub](https://github.com/proaiexpert/alina-horb-website) |
-| **Local Repair Pro** | Website case · In development | Local-service architecture, Photo-to-Scope request preparation, regional content, and responsive intake design | [Case study](https://proai-expert.com/case-studies/local-repair-pro/) · [GitHub](https://github.com/proaiexpert/handyman-vancouver-portland-demo) |
+| **Local Repair Pro** | Website concept · Client-facing demonstration | Local-service architecture, Photo-to-Scope request preparation, regional content, and responsive intake design | [Case study](https://proai-expert.com/case-studies/local-repair-pro/) · [GitHub](https://github.com/proaiexpert/handyman-vancouver-portland-demo) |
 
 ## Verified project signals
 
@@ -106,6 +106,16 @@ The site is built as a static production system using:
 - GitHub Pages and custom-domain deployment.
 
 The repository also contains project documentation, portfolio case packs, QA records, current handoffs, and implementation standards.
+
+## Public repository standard
+
+This repository maintains the [ProAI Expert Public GitHub Repository Standard](docs/GITHUB_PUBLIC_REPOSITORY_STANDARD.md). It defines:
+
+- repository classes and truthful status labels;
+- professional Description, Website, and Topics requirements;
+- first-screen README structure for live projects, concepts, and future public products;
+- language, evidence, visual, archive, and contribution policies;
+- release and growth standards for future tools and applications.
 
 ## Founder
 

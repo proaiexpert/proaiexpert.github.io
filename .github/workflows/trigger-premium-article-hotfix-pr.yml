@@ -25,14 +25,14 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import textwrap
 
           workflow = Path('.github/workflows/apply-premium-article-hotfix.yml').read_text(encoding='utf-8')
           start_marker = "          python3 - <<'PY'\n"
           end_marker = "\n          PY\n\n      - name: Validate syntax and scoped output"
           start = workflow.index(start_marker) + len(start_marker)
           end = workflow.index(end_marker, start)
-          script = textwrap.dedent(workflow[start:end])
+          lines = workflow[start:end].splitlines()
+          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines) + '\n'
           Path('/tmp/apply-premium-article-hotfix.py').write_text(script, encoding='utf-8')
           PY
           python3 /tmp/apply-premium-article-hotfix.py

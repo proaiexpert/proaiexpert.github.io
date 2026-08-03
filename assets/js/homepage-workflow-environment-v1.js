@@ -7,14 +7,27 @@
 
   if (!section || section.querySelector('.hwe-environment')) return;
 
-  function installStyles() {
-    if (document.querySelector('link[data-homepage-workflow-environment]')) return;
+  function appendStylesheet(href, attribute, value) {
+    if (document.querySelector('link[' + attribute + ']')) return;
 
     var link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = '/assets/css/homepage-workflow-environment-v1.css?v=20260803.2';
-    link.setAttribute('data-homepage-workflow-environment', 'v1');
+    link.href = href;
+    link.setAttribute(attribute, value);
     document.head.appendChild(link);
+  }
+
+  function installStyles() {
+    appendStylesheet(
+      '/assets/css/homepage-workflow-environment-v1.css?v=20260803.2',
+      'data-homepage-workflow-environment',
+      'v1'
+    );
+    appendStylesheet(
+      '/assets/css/homepage-tool-marquee-premium-v1.css?v=20260803.1',
+      'data-homepage-tool-marquee-premium',
+      'v1'
+    );
   }
 
   function buildMarkup(russian) {

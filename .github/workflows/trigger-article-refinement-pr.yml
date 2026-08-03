@@ -32,6 +32,9 @@ jobs:
           lines = workflow[start:end].splitlines()
           script = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines)
           script = script.replace('data-module="portfolio-evidence"', 'data-module="evidence-taxonomy"')
+          script = script.replace('The platform matters because of the operating model, not because one product name is universally better.', 'The platform matters because of how it is owned, maintained, paid for, and transferred—not because one product name is universally better.')
+          script = script.replace('The same applies to CRM, email automation, chat, payment systems, and other external services.', 'The same discipline applies to CRM, forms, payment services, email automation, chat, and other connected systems.')
+          script = script.replace('8. How to evaluate portfolio evidence', 'Review evidence, not just portfolio aesthetics')
           Path('/tmp/refine.py').write_text(script + '\n', encoding='utf-8')
           PY
           python3 /tmp/refine.py

@@ -1,0 +1,212 @@
+name: Build homepage materials editorial v2
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.head_ref == 'homepage-materials-editorial-v2'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: homepage-materials-editorial-v2
+          fetch-depth: 0
+
+      - name: Build current EN/RU materials block
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin homepage-materials-editorial-v1:refs/remotes/origin/homepage-materials-editorial-v1
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          import subprocess
+
+          def git_show(ref, path):
+              return subprocess.check_output(['git', 'show', f'{ref}:{path}'], text=True)
+
+          def extract_reference_section(text):
+              start = text.index('<section id="insights" class="materials-editorial"')
+              end = text.index('<section class="portfolio-entry-section portfolio-entry-section--home" id="selected-work"', start)
+              return text[start:end].rstrip() + '\n'
+
+          def move_archive_inside_wrapper(section):
+              section = section.replace('<header class="materials-editorial-header">', '<div class="materials-editorial-header">', 1)
+              pattern = re.compile(r'</header>\s*(<a class="materials-editorial-archive".*?</a>)', re.S)
+              match = pattern.search(section)
+              if not match:
+                  raise SystemExit('Archive/header structure not found')
+              return section[:match.start()] + match.group(1) + '\n</div>' + section[match.end():]
+
+          def replace_card_three(section, language):
+              pattern = re.compile(
+                  r'<article class="materials-editorial-card materials-editorial-card--secondary reveal">\s*'
+                  r'<span class="materials-editorial-number" aria-hidden="true">03</span>.*?</article>',
+                  re.S,
+              )
+              matches = list(pattern.finditer(section))
+              if len(matches) != 1:
+                  raise SystemExit(f'Expected one card 03, found {len(matches)}')
+              if language == 'en':
+                  replacement = '''<article class="materials-editorial-card materials-editorial-card--secondary reveal">
+<span class="materials-editorial-number" aria-hidden="true">03</span>
+<p class="materials-editorial-label">LEAD OPERATIONS · 14 MIN</p>
+<h3>What Happens After a Lead Arrives?</h3>
+<p class="materials-editorial-summary">See how service businesses capture context, assign ownership, respond, follow up, and prevent inquiries from disappearing between disconnected tools.</p>
+<div class="materials-editorial-diagram materials-editorial-diagram--compact" aria-hidden="true"><span>CAPTURE</span><span class="materials-editorial-arrow">→</span><span>ROUTE</span><span class="materials-editorial-arrow">→</span><span>RESPOND</span><span class="materials-editorial-arrow">→</span><span>FOLLOW UP</span></div>
+<a class="materials-editorial-link" href="/insights/what-happens-after-a-lead-arrives/">Explore the system <span aria-hidden="true">→</span></a>
+</article>'''
+              else:
+                  replacement = '''<article class="materials-editorial-card materials-editorial-card--secondary reveal">
+<span class="materials-editorial-number" aria-hidden="true">03</span>
+<p class="materials-editorial-label">РАБОТА С ЗАЯВКАМИ · 14 МИН</p>
+<h3>Что происходит после заявки: как сервисному бизнесу не терять обращения</h3>
+<p class="materials-editorial-summary">Как фиксировать контекст, назначать ответственного, отвечать и выстраивать follow-up, чтобы обращения не терялись между формами, почтой и другими инструментами.</p>
+<div class="materials-editorial-diagram materials-editorial-diagram--compact" aria-hidden="true"><span>ЗАФИКСИРОВАТЬ</span><span class="materials-editorial-arrow">→</span><span>НАПРАВИТЬ</span><span class="materials-editorial-arrow">→</span><span>ОТВЕТИТЬ</span><span class="materials-editorial-arrow">→</span><span>ПРОДОЛЖИТЬ</span></div>
+<a class="materials-editorial-link" href="/ru/insights/chto-proiskhodit-posle-zayavki/">Разобрать систему <span aria-hidden="true">→</span></a>
+</article>'''
+              return section[:matches[0].start()] + replacement + section[matches[0].end():]
+
+          def install_section(path, reference_path, language):
+              current = Path(path).read_text(encoding='utf-8')
+              reference = git_show('origin/homepage-materials-editorial-v1', reference_path)
+              section = replace_card_three(move_archive_inside_wrapper(extract_reference_section(reference)), language)
+              start = current.index('<section id="insights">')
+              end = current.index('<section class="portfolio-entry-section portfolio-entry-section--home" id="selected-work"', start)
+              stylesheet = '<link rel="stylesheet" href="/assets/css/homepage-materials-editorial-v2.css?v=20260803.1">'
+              if stylesheet not in current:
+                  current = current.replace('</head>', stylesheet + '\n</head>', 1)
+                  start = current.index('<section id="insights">')
+                  end = current.index('<section class="portfolio-entry-section portfolio-entry-section--home" id="selected-work"', start)
+              updated = current[:start] + section + current[end:]
+              Path(path).write_text(updated, encoding='utf-8')
+
+          install_section('index.html', 'index.html', 'en')
+          install_section('ru/index.html', 'ru/index.html', 'ru')
+
+          css = git_show('origin/homepage-materials-editorial-v1', 'assets/css/homepage-materials-editorial-v1.css')
+          css = css.replace('/* Homepage materials editorial block v1 */', '/* Homepage materials editorial block v2 */', 1)
+          css = re.sub(
+              r'\.materials-editorial-shell \{.*?\}\n\n\.materials-editorial-header \{ display: contents; \}',
+              '''.materials-editorial-shell {
+  width: min(100% - 80px, 1400px);
+  margin-inline: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.materials-editorial-header {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(320px, 5fr);
+  grid-template-areas:
+    "heading intro"
+    "heading archive";
+  column-gap: clamp(40px, 6vw, 96px);
+  row-gap: 18px;
+  align-items: end;
+}''',
+              css,
+              count=1,
+              flags=re.S,
+          )
+          css = css.replace('.materials-editorial-layout { grid-area: layout; margin-top: clamp(34px, 4.5vw, 66px); }', '.materials-editorial-layout { margin-top: clamp(34px, 4.5vw, 66px); }', 1)
+          css = css.replace(
+              '.materials-editorial-shell { width: min(100% - 64px, 1120px); grid-template-columns: minmax(0, 1fr) minmax(320px, 0.78fr); }',
+              '.materials-editorial-shell { width: min(100% - 64px, 1120px); }\n  .materials-editorial-header { grid-template-columns: minmax(0, 1fr) minmax(320px, 0.78fr); }',
+              1,
+          )
+          css = css.replace(
+              '''  .materials-editorial-shell {
+    width: min(100% - 36px, 640px);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "heading"
+      "intro"
+      "layout"
+      "archive";
+    row-gap: 0;
+  }''',
+              '''  .materials-editorial-shell { width: min(100% - 36px, 640px); }
+  .materials-editorial-header {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "heading"
+      "intro"
+      "archive";
+    row-gap: 0;
+  }''',
+              1,
+          )
+          css += '''
+
+.materials-editorial-diagram--compact {
+  gap: 7px 9px;
+  font-size: 10px;
+  letter-spacing: 0.065em;
+}
+
+@media (max-height: 540px) and (orientation: landscape) {
+  #insights.materials-editorial { padding: 70px 0; }
+  .materials-editorial-shell { width: min(100% - 48px, 960px); }
+  .materials-editorial-header { grid-template-columns: minmax(0, 1fr) minmax(280px, 0.9fr); column-gap: 34px; }
+  .materials-editorial-heading h2,
+  body.lang-ru .materials-editorial-heading h2 { font-size: clamp(34px, 5.6vw, 48px); }
+  .materials-editorial-layout { grid-template-columns: 1fr; margin-top: 34px; }
+  .materials-editorial-card--featured,
+  .materials-editorial-card--secondary { min-height: 0; }
+  .materials-editorial-secondary { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; }
+}
+'''
+          if 'display: contents' in css:
+              raise SystemExit('display: contents remains in v2 CSS')
+          Path('assets/css/homepage-materials-editorial-v2.css').write_text(css, encoding='utf-8')
+          PY
+
+      - name: Validate and commit production-only diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          checks = {
+              'index.html': [
+                  'homepage-materials-editorial-v2.css?v=20260803.1',
+                  'What Happens After a Lead Arrives?',
+                  '/insights/what-happens-after-a-lead-arrives/',
+                  'How to Evaluate a Website Proposal Before You Sign',
+                  'Does Your U.S. Service Business Need a Multilingual Website?',
+              ],
+              'ru/index.html': [
+                  'homepage-materials-editorial-v2.css?v=20260803.1',
+                  'Что происходит после заявки: как сервисному бизнесу не терять обращения',
+                  '/ru/insights/chto-proiskhodit-posle-zayavki/',
+                  'Как проверить подрядчика и предложение на разработку сайта',
+                  'Сайт для русскоязычного бизнеса в США: какой вариант выбрать',
+              ],
+          }
+          for path, needles in checks.items():
+              text = Path(path).read_text(encoding='utf-8')
+              assert text.count('id="insights"') == 1, path
+              assert text.count('materials-editorial-number') == 3, path
+              assert 'AI Agent or Automation? What Your Business Actually Needs' not in text, path
+              assert text.index('id="insights"') < text.index('id="selected-work"'), path
+              for needle in needles:
+                  assert needle in text, (path, needle)
+          css = Path('assets/css/homepage-materials-editorial-v2.css').read_text(encoding='utf-8')
+          assert 'display: contents' not in css
+          assert '.materials-editorial-header {' in css and 'display: grid' in css
+          assert '@media (max-height: 540px) and (orientation: landscape)' in css
+          print('Homepage materials v2 validation passed.')
+          PY
+          git config user.name "ProAI Expert Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/trigger-homepage-materials-v2.yml
+          git add index.html ru/index.html assets/css/homepage-materials-editorial-v2.css
+          git commit -m "feat: add current premium editorial materials block"
+          git push origin HEAD:homepage-materials-editorial-v2

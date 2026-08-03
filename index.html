@@ -2,13 +2,56 @@
 permalink: /
 ---
 {% capture homepage_base %}{% include homepage-current-en.html %}{% endcapture %}
-{% capture homepage_stylesheet %}<link rel="stylesheet" href="/assets/css/homepage-materials-editorial-v2.css?v=20260803.1">
+
+{% capture homepage_head_injection %}<script>(function(d,w){var r=d.documentElement;r.classList.add('homepage-js');function recover(){if(!r.classList.contains('homepage-ready'))r.classList.remove('homepage-js');}w.addEventListener('error',recover,{once:true});w.addEventListener('unhandledrejection',recover,{once:true});w.setTimeout(recover,5000);})(document,window);</script>
+<link rel="stylesheet" href="/assets/css/homepage-materials-editorial-v2.css?v=20260803.1">
+<link rel="stylesheet" href="/assets/css/homepage-core-hardening-v1.css?v=20260803.1">
 </head>{% endcapture %}
-{% assign homepage_with_styles = homepage_base | replace: '</head>', homepage_stylesheet %}
+{% assign homepage_refined = homepage_base | replace_first: '</head>', homepage_head_injection %}
+
+{% capture old_body_start %}<div class="bg-grid"></div>{% endcapture %}
+{% capture new_body_start %}<a class="skip-link" href="#main-content">Skip to main content</a>
+<div class="bg-grid"></div>{% endcapture %}
+{% assign homepage_refined = homepage_refined | replace_first: old_body_start, new_body_start %}
+
+{% capture old_main %}<main>{% endcapture %}
+{% capture new_main %}<main id="main-content" tabindex="-1">{% endcapture %}
+{% assign homepage_refined = homepage_refined | replace_first: old_main, new_main %}
+
+{% capture old_secondary_cta %}<a class="start-btn" href="#section-trigger" style="background:none; border-color: rgba(93,226,255,0.2);">See Example</a>{% endcapture %}
+{% capture new_secondary_cta %}<a class="start-btn" href="/case-studies/financial-stream/" style="background:none; border-color: rgba(93,226,255,0.2);">View Client Case</a>{% endcapture %}
+{% assign homepage_refined = homepage_refined | replace_first: old_secondary_cta, new_secondary_cta %}
+
+{% capture old_process_heading %}<h2 class="reveal-box"><span class="reveal-text">A practical path</span></h2>
+<h2 class="reveal-box"><span class="reveal-text highlight">from idea to launch.</span></h2>{% endcapture %}
+{% capture new_process_heading %}<h2 class="reveal-box"><span class="reveal-text">A practical path</span><span class="reveal-text highlight">from idea to launch.</span></h2>{% endcapture %}
+{% assign homepage_refined = homepage_refined | replace_first: old_process_heading, new_process_heading %}
+
+{% capture old_phase_title %}<h3 class="step-title">Launch &amp; Calibration</h3>{% endcapture %}
+{% capture new_phase_title %}<h3 class="step-title">Launch &amp; Verification</h3>{% endcapture %}
+{% assign homepage_refined = homepage_refined | replace_first: old_phase_title, new_phase_title %}
+
+{% capture old_phase_copy %}<p class="step-desc">We launch, watch how people use it, and improve the parts that affect speed, trust, and inquiries most.</p>{% endcapture %}
+{% capture new_phase_copy %}<p class="step-desc">We launch, verify the critical journeys, and define what should be measured or improved next.</p>{% endcapture %}
+{% assign homepage_refined = homepage_refined | replace_first: old_phase_copy, new_phase_copy %}
+
+{% capture old_case_section %}<section class="case-study-interactive" id="section-trigger">{% endcapture %}
+{% capture new_case_section %}<section class="case-study-interactive" id="section-trigger" aria-labelledby="financial-stream-heading">{% endcapture %}
+{% assign homepage_refined = homepage_refined | replace_first: old_case_section, new_case_section %}
+
+{% capture old_case_start %}<div class="case-info"><span class="case-label reveal">FINANCIAL STREAM CASE</span>{% endcapture %}
+{% capture new_case_start %}<div class="case-info"><h2 class="visually-hidden" id="financial-stream-heading">Financial Stream client case</h2><span class="case-label reveal">FINANCIAL STREAM CASE</span>{% endcapture %}
+{% assign homepage_refined = homepage_refined | replace_first: old_case_start, new_case_start %}
+
+{% capture old_body_end %}</body>{% endcapture %}
+{% capture new_body_end %}<script src="/assets/js/homepage-core-hardening-v1.js?v=20260803.1" defer></script>
+</body>{% endcapture %}
+{% assign homepage_refined = homepage_refined | replace_first: old_body_end, new_body_end %}
+
 {% capture insights_marker %}<section id="insights">{% endcapture %}
 {% capture selected_work_marker %}<section class="portfolio-entry-section portfolio-entry-section--home" id="selected-work"{% endcapture %}
-{% assign homepage_before_insights = homepage_with_styles | split: insights_marker | first %}
-{% assign homepage_after_insights = homepage_with_styles | split: selected_work_marker | last %}
+{% assign homepage_before_insights = homepage_refined | split: insights_marker | first %}
+{% assign homepage_after_insights = homepage_refined | split: selected_work_marker | last %}
 {{ homepage_before_insights }}
 <section id="insights" class="materials-editorial" aria-labelledby="materials-editorial-title">
   <div class="materials-editorial-shell">

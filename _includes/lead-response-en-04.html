@@ -1,0 +1,27 @@
+Salesforce guidelines for lead and case assignment rules</a>.</p>
+<h3>5. Response</h3><p>The first response acknowledges receipt, sets truthful expectations, and asks only the next necessary questions. It should not pretend that the lead is qualified or promise availability that has not been confirmed.</p>
+<h3>6. Follow-up</h3><p>If the conversation does not reach a decision, the system creates the next task with an owner and due time. Follow-up is not a vague instruction to “check later.” It is a scheduled operational obligation.</p>
+<h3>7. Outcome</h3><p>The lead reaches a defined state: scheduled, qualified and active, awaiting customer information, declined, referred, unresponsive, lost, or nurture. The taxonomy should be small enough that staff use it consistently.</p>
+</section><section><h2 id="section-3">Failure Point Ledger</h2>
+<p>A failure ledger is more useful than a generic list of tools because it identifies where control can break.</p>
+<section class="premium-module" data-module="explicit-risk-summary"><ul class="failure-ledger">
+<li><strong>Missed call</strong><span>The ring event exists, but no callback task, caller context, or recovery path is created.</span></li>
+<li><strong>Form notification failure</strong><span>The website appears successful to the visitor, while delivery or downstream recording fails silently.</span></li>
+<li><strong>Shared inbox ambiguity</strong><span>Several people can see the inquiry, but nobody is explicitly accountable.</span></li>
+<li><strong>Missing lead context</strong><span>The responder must repeat discovery or cannot choose the correct route.</span></li>
+<li><strong>No owner</strong><span>The lead sits in a queue without a named person responsible for the next step.</span></li>
+<li><strong>Duplicate response</strong><span>Two people answer independently, creating confusion or conflicting promises.</span></li>
+<li><strong>No follow-up</strong><span>The first attempt is logged, but no task exists after silence or incomplete information.</span></li>
+<li><strong>No final status</strong><span>The business cannot distinguish active, lost, declined, referred, or dormant inquiries.</span></li>
+<li><strong>No measurement</strong><span>Management sees total leads but not where they stall, age, or require escalation.</span></li>
+</ul></section>
+<p>Measurement should follow the map. Useful operational questions include: How many records lacked an owner? How many acknowledgements failed? Which channel creates the most incomplete context? How many follow-up tasks became overdue? How many leads remain in an intermediate status beyond the business’s own service standard?</p>
+<p>These are process measures, not promises of revenue. They reveal bottlenecks that the team can actually correct.</p>
+</section><section><h2 id="section-4">What should be automated deterministically</h2>
+<p>Stable, repeatable actions should usually be implemented with ordinary rules. Deterministic automation is easier to explain, test, and audit because the same condition produces the same action.</p>
+<ul><li><strong>Record the timestamp:</strong> preserve when the channel event occurred and when each subsequent step happened.</li><li><strong>Attribute the source:</strong> store channel, campaign or referral detail when available, and preserve the original value.</li><li><strong>Create the lead record:</strong> write the inquiry into the system of record rather than leaving it only in email.</li><li><strong>Notify the correct team:</strong> use service line, geography, language, schedule, or other explicit criteria.</li><li><strong>Assign one owner:</strong> route to a person or accountable queue with a fallback owner.</li><li><strong>Acknowledge receipt:</strong> send a truthful confirmation that states what happens next and avoids unsupported promises.</li><li><strong>Create a follow-up task:</strong> set due time, owner, and escalation behavior.</li><li><strong>Log status changes:</strong> preserve who changed the state and when.</li></ul>
+<p>Rules also need exception paths. What happens when the preferred owner is away, the phone number is invalid, a form payload is incomplete, the notification provider fails, or a record already exists? A workflow is not complete until its fallback behavior is defined.</p>
+<p>The broader design principle is consistent with <a href="/insights/process-clarity-comes-before-scalable-automation/">process clarity before scalable automation</a>: automation should encode an agreed operating rule, not conceal an unresolved decision.</p>
+</section><section><h2 id="section-5">Where AI can help—and where it should stop</h2>
+<p>AI is useful when the input is unstructured and the output is advisory. It can reduce reading and drafting effort, but it should not silently become the authority for high-impact decisions.</p>
+<ul><li>classify the likely service category from a free-text inquiry;</li><li>extract location, requested timing, language, and mentioned constraints;</li><li>summarize a long email thread or voicemail transcript;</li><li>

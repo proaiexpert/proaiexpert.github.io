@@ -107,6 +107,16 @@ The site is built as a static production system using:
 
 The repository also contains project documentation, portfolio case packs, QA records, current handoffs, and implementation standards.
 
+## Public repository standard
+
+This repository maintains the [ProAI Expert Public GitHub Repository Standard](docs/GITHUB_PUBLIC_REPOSITORY_STANDARD.md). It defines:
+
+- repository classes and truthful status labels;
+- professional Description, Website, and Topics requirements;
+- first-screen README structure for live projects, concepts, and future public products;
+- language, evidence, visual, archive, and contribution policies;
+- release and growth standards for future tools and applications.
+
 ## Founder
 
 **Ihor Horb**  

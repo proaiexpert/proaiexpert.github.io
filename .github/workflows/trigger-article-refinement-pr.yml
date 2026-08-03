@@ -31,6 +31,7 @@ jobs:
           end = workflow.index(end_marker, start)
           lines = workflow[start:end].splitlines()
           script = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines)
+          script = script.replace('data-module="portfolio-evidence"', 'data-module="evidence-taxonomy"')
           Path('/tmp/refine.py').write_text(script + '\n', encoding='utf-8')
           PY
           python3 /tmp/refine.py

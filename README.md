@@ -53,9 +53,9 @@ The current focus is on service businesses where trust, clear communication, and
 
 | Project | Status | Focus | Links |
 |---|---|---|---|
-| **Financial Stream LLC** | Live client project · EN/RU | Bilingual financial-services website, structured intake, localized content, website assistant, and human-reviewed automation | [Case study](https://proai-expert.com/case-studies/financial-stream/) · [Live website](https://financialstreamllc.com/) |
-| **Alina Horb** | Live client project · UA/RU | Human-first psychologist website, personal brand, professional boundaries, bilingual editorial content, and first-contact UX | [Case study](https://proai-expert.com/case-studies/alina-horb/) · [Live website](https://alinahorb.com/) |
-| **Local Repair Pro** | Website case · In development | Local-service architecture, Photo-to-Scope request preparation, regional content, and responsive intake design | [Case study](https://proai-expert.com/case-studies/local-repair-pro/) |
+| **Financial Stream LLC** | Live client project · EN/RU | Bilingual financial-services website, structured intake, localized content, website assistant, and human-reviewed automation | [Case study](https://proai-expert.com/case-studies/financial-stream/) · [Live website](https://financialstreamllc.com/) · [GitHub](https://github.com/Financialstream/financialstream.github.io) |
+| **Alina Horb** | Live client project · UA/RU | Human-first psychologist website, personal brand, professional boundaries, bilingual editorial content, and first-contact UX | [Case study](https://proai-expert.com/case-studies/alina-horb/) · [Live website](https://alinahorb.com/) · [GitHub](https://github.com/proaiexpert/alina-horb-website) |
+| **Local Repair Pro** | Website case · In development | Local-service architecture, Photo-to-Scope request preparation, regional content, and responsive intake design | [Case study](https://proai-expert.com/case-studies/local-repair-pro/) · [GitHub](https://github.com/proaiexpert/handyman-vancouver-portland-demo) |
 
 ## Verified project signals
 

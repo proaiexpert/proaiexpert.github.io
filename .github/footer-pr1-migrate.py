@@ -15,6 +15,12 @@ start = wrapper_source.index("\nold_check = '''")
 end = wrapper_source.index("\nnamespace = {", start)
 wrapper_source = wrapper_source[:start] + wrapper_source[end:]
 
+source_anchor = 'source = urllib.request.urlopen(SOURCE_URL, timeout=30).read().decode("utf-8")'
+source_patch = source_anchor + '\nsource = source.replace("No runtime injection and no legacy .f-* selectors.", "No runtime injection and no legacy footer selectors.")'
+if source_anchor not in wrapper_source:
+    raise RuntimeError("Wrapper source anchor was not found")
+wrapper_source = wrapper_source.replace(source_anchor, source_patch, 1)
+
 namespace = {
     "__name__": "__main__",
     "__file__": ".github/footer-pr1-migrate.py",

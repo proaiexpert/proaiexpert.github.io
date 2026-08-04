@@ -24,10 +24,20 @@
       'v1'
     );
     appendStylesheet(
-      '/assets/css/homepage-tool-marquee-premium-v1.css?v=20260803.2',
+      '/assets/css/homepage-tool-marquee-premium-v1.css?v=20260803.3',
       'data-homepage-tool-marquee-premium',
       'v1'
     );
+  }
+
+  function principleIcon(index) {
+    var icons = [
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 18.5 6v5.2c0 4.2-2.6 7.2-6.5 9.3-3.9-2.1-6.5-5.1-6.5-9.3V6L12 3.5Z"/><path d="m9.4 12.1 1.7 1.7 3.7-4"/></svg>',
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M6.8 19c.7-3.1 2.5-4.7 5.2-4.7s4.5 1.6 5.2 4.7"/><path d="m16.8 10.8 1.4 1.4 2.3-2.6"/></svg>',
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="2"/><circle cx="18" cy="17" r="2"/><path d="M8 7h3.5a4 4 0 0 1 4 4v2a4 4 0 0 0 2.5 3.7"/><path d="m15.7 14.4 2.3 2.3 2.3-2.3"/></svg>'
+    ];
+
+    return icons[index] || icons[0];
   }
 
   function buildMarkup(russian) {
@@ -71,8 +81,8 @@
       '</li>';
     }).join('');
 
-    var principles = content.principles.map(function (item) {
-      return '<span role="listitem">' + item + '</span>';
+    var principles = content.principles.map(function (item, index) {
+      return '<span role="listitem"><span class="hwe-principle-icon">' + principleIcon(index) + '</span><span class="hwe-principle-text">' + item + '</span></span>';
     }).join('');
 
     return '<div class="hwe-environment" role="group" aria-label="' + content.aria + '">' +
@@ -103,6 +113,26 @@
         renderToolGroup(group, toolSets[rowIndex], groupIndex > 0);
       });
     });
+  }
+
+  function installTapGlow(root) {
+    if (!window.matchMedia('(hover: none), (pointer: coarse)').matches) return;
+
+    var timer = null;
+    root.addEventListener('pointerdown', function (event) {
+      var target = event.target.closest('.t-node, .hwe-principles > span');
+      if (!target || !root.contains(target)) return;
+
+      root.querySelectorAll('.is-tap-glow').forEach(function (element) {
+        element.classList.remove('is-tap-glow');
+      });
+
+      target.classList.add('is-tap-glow');
+      window.clearTimeout(timer);
+      timer = window.setTimeout(function () {
+        target.classList.remove('is-tap-glow');
+      }, 620);
+    }, { passive: true });
   }
 
   installStyles();
@@ -137,4 +167,6 @@
   tools.insertAdjacentElement('beforebegin', caption);
   tools.setAttribute('role', 'group');
   tools.setAttribute('aria-label', isRussian ? 'Инструменты рабочей среды' : 'Workflow environment tools');
+
+  installTapGlow(section);
 }());

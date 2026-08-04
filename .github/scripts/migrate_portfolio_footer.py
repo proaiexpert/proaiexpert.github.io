@@ -84,8 +84,9 @@ def migrate_page(path: str, config: dict[str, str]) -> dict[str, object]:
 
     include = (
         "{% include footer-system/footer.html "
-        f"family=\"portfolio\" variant=\"{config['variant']}\" "
-        f"lang=\"{config['lang']}\" locale_href=\"{config['locale_href']}\" %}"
+        + f"family=\"portfolio\" variant=\"{config['variant']}\" "
+        + f"lang=\"{config['lang']}\" locale_href=\"{config['locale_href']}\""
+        + " %}"
     )
     match = footer_matches[0]
     source = source[: match.start()] + include + source[match.end() :]

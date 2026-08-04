@@ -24,18 +24,33 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
-      - name: Repair migration runner delimiter
+      - name: Repair and instrument migration runner
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           path = Path('.github/footer-pr1-migrate.py')
           text = path.read_text(encoding='utf-8')
+
           old = "f'lang=\"{lang}\" variant=\"{variant}\" locale_href=\"{locale_href}\" %}'"
           new = "f'lang=\"{lang}\" variant=\"{variant}\" locale_href=\"{locale_href}\" ' + '%}'"
           if old not in text:
               raise SystemExit('Expected migration delimiter was not found')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          text = text.replace(old, new, 1)
+
+          old_check = '''    if ".f-" in value:
+        raise RuntimeError(f"{relative_path}: legacy .f-* selector remains")'''
+          new_check = '''    if ".f-" in value:
+        contexts = []
+        for match in re.finditer(r".{0,120}\\.f-[A-Za-z0-9_-]+.{0,120}", value, flags=re.S):
+            contexts.append(match.group(0).replace("\\n", " "))
+        print(json.dumps({"path": relative_path, "legacy_contexts": contexts[:20]}, ensure_ascii=False, indent=2))
+        raise RuntimeError(f"{relative_path}: legacy .f-* selector remains")'''
+          if old_check not in text:
+              raise SystemExit('Expected legacy assertion was not found')
+          text = text.replace(old_check, new_check, 1)
+
+          path.write_text(text, encoding='utf-8')
           PY
 
       - name: Apply migration and run full QA

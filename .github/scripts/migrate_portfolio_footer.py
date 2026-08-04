@@ -107,8 +107,8 @@ def migrate_page(path: str, config: dict[str, str]) -> dict[str, object]:
         raise RuntimeError(f"{path}: Footer System include count is not one")
     if "portfolio-footer-compact-v1.css" in source:
         raise RuntimeError(f"{path}: legacy Portfolio stylesheet remains")
-    if FOOTER_RE.search(source):
-        raise RuntimeError(f"{path}: legacy footer markup remains")
+    if re.search(r'<footer\b[^>]*class=[\"\'][^\"\']*global-footer', source, re.IGNORECASE):
+        raise RuntimeError(f"{path}: legacy global page footer remains")
 
     write(path, source)
     return {
@@ -234,7 +234,7 @@ def verify_source_contract() -> None:
         assert f'locale_href="{config["locale_href"]}"' in text, path
         assert "footer-system-v1.css" in text, path
         assert "portfolio-footer-compact-v1.css" not in text, path
-        assert not FOOTER_RE.search(text), path
+        assert not re.search(r'<footer\b[^>]*class=[\"\'][^\"\']*global-footer', text, re.IGNORECASE), path
 
 
 def remove_temporary_harness() -> None:

@@ -1,0 +1,67 @@
+name: Finalize client acquisition plan
+
+on:
+  push:
+    paths:
+      - '.github/workflows/finalize-client-plan.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/add-social-client-acquisition-plan
+          fetch-depth: 0
+      - name: Apply approved corrections
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('docs/CLIENT_ACQUISITION_SOCIAL_AND_SALES_PLAN.md')
+          text = path.read_text(encoding='utf-8')
+
+          old_header = "**Approved:** 2026-08-04  \n**Repository:** `proaiexpert/proaiexpert.github.io`  "
+          new_header = (
+              "**Approved:** 2026-08-04  \n"
+              "**Operating owner:** Ihor Horb  \n"
+              "**Social strategy owner:** Social Media Project  \n"
+              "**Sales strategy owner:** ProAI Expert Business Development Project  \n"
+              "**Review cadence:** Weekly operating review; monthly strategic review  \n"
+              "**Repository:** `proaiexpert/proaiexpert.github.io`  "
+          )
+
+          if old_header not in text:
+              raise SystemExit('Expected header block was not found')
+          text = text.replace(old_header, new_header, 1)
+
+          bad_email = (
+              "> Hi [Name],\n"
+              "+>\n"
+              "+> I found [Business] through [source]. The business appears active, but [specific observation] may make it harder for a new customer to [understand/request/book/contact].\n"
+              "+>\n"
+              "+> I work with service businesses on websites, intake, and practical follow-up systems. I can send a concise private review showing what I would change first. Should I send it?"
+          )
+          good_email = (
+              "> Hi [Name],\n"
+              ">\n"
+              "> I found [Business] through [source]. The business appears active, but [specific observation] may make it harder for a new customer to [understand/request/book/contact].\n"
+              ">\n"
+              "> I work with service businesses on websites, intake, and practical follow-up systems. I can send a concise private review showing what I would change first. Should I send it?"
+          )
+
+          if bad_email not in text:
+              raise SystemExit('Expected malformed cold-email block was not found')
+          text = text.replace(bad_email, good_email, 1)
+          path.write_text(text, encoding='utf-8')
+      - name: Remove temporary workflow and commit
+        run: |
+          rm .github/workflows/finalize-client-plan.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/CLIENT_ACQUISITION_SOCIAL_AND_SALES_PLAN.md .github/workflows/finalize-client-plan.yml
+          git commit -m 'Finalize client acquisition plan governance'
+          git push origin HEAD:agent/add-social-client-acquisition-plan

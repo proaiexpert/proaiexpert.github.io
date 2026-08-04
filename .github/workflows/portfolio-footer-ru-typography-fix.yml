@@ -25,23 +25,9 @@ jobs:
           path = Path('assets/css/footer-system-v1.css')
           text = path.read_text(encoding='utf-8')
           marker = '/* Portfolio Russian title readability. */'
+          block = "\n\n/* Portfolio Russian title readability. */\n.site-footer--portfolio:lang(ru) .site-footer__cta h2 {\n  overflow-wrap: normal;\n  word-break: normal;\n  hyphens: none;\n}\n@media (max-width:700px) {\n  .site-footer--portfolio:lang(ru) .site-footer__cta h2 {\n    max-width: 100%;\n    font-size: clamp(32px,9.2vw,40px);\n    line-height: 1.04;\n  }\n}\n"
           if marker not in text:
-              text = text.rstrip() + '''
-
-/* Portfolio Russian title readability. */
-.site-footer--portfolio:lang(ru) .site-footer__cta h2 {
-  overflow-wrap: normal;
-  word-break: normal;
-  hyphens: none;
-}
-@media (max-width:700px) {
-  .site-footer--portfolio:lang(ru) .site-footer__cta h2 {
-    max-width: 100%;
-    font-size: clamp(32px,9.2vw,40px);
-    line-height: 1.04;
-  }
-}
-''' 
+              text = text.rstrip() + block
           path.write_text(text, encoding='utf-8')
           PY
       - name: Commit production typography correction

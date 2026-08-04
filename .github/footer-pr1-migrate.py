@@ -151,7 +151,7 @@ def _css_split_selectors(selector_text: str) -> list[str]:
 
 def _is_legacy_footer_selector(selector: str) -> bool:
     return bool(re.search(
-        r"(?<![-\\w])footer(?=(?:[\\s.:#\\[\\]>+~]|$))|\\.footer-container\\b|\\.f-[A-Za-z0-9_-]+\\b",
+        r"(?<![-\w])footer(?=(?:[\s.:#\[\]>+~]|$))|\.footer-container\b|\.f-[A-Za-z0-9_-]+\b",
         selector,
         flags=re.I,
     ))
@@ -197,7 +197,7 @@ def strip_embedded_legacy_footer_css(value: str) -> str:
         return match.group(1) + _strip_legacy_footer_rules(match.group(2)) + match.group(3)
 
     return re.sub(
-        r"(<style\\b[^>]*>)(.*?)(</style>)",
+        r"(<style\b[^>]*>)(.*?)(</style>)",
         clean_style,
         value,
         flags=re.I | re.S,
@@ -214,6 +214,18 @@ new_call = "    value = remove_footer_owned_css(value)\n    value = strip_embedd
 if old_call not in source:
     raise RuntimeError("Footer CSS cleanup call was not found")
 source = source.replace(old_call, new_call, 1)
+
+old_check = '''    if ".f-" in value:
+        raise RuntimeError(f"{relative_path}: legacy .f-* selector remains")'''
+new_check = '''    if ".f-" in value:
+        contexts = []
+        for match in re.finditer(r".{0,120}\.f-[A-Za-z0-9_-]+.{0,120}", value, flags=re.S):
+            contexts.append(match.group(0).replace("\n", " "))
+        print(json.dumps({"path": relative_path, "legacy_contexts": contexts[:20]}, ensure_ascii=False, indent=2))
+        raise RuntimeError(f"{relative_path}: legacy .f-* selector remains")'''
+if old_check not in source:
+    raise RuntimeError("Legacy assertion anchor was not found")
+source = source.replace(old_check, new_check, 1)
 
 namespace = {
     "__name__": "__main__",

@@ -1,0 +1,22 @@
+{% assign footer_lang = include.lang | default: 'en' %}
+{% assign footer_copy = site.data.footer[footer_lang] %}
+{% assign social_data = site.data['social-links'] %}
+{% assign social_keys = social_data.by_language[footer_lang] %}
+<div class="site-footer__bottom">
+  <a class="site-footer__logo" href="{{ footer_copy.home_href }}" aria-label="{{ footer_copy.home_label }}">
+    <span>PROAI</span><strong>EXPERT</strong>
+  </a>
+
+  <nav class="site-footer__socials" aria-label="{{ footer_copy.social_label }}">
+    {% for social_key in social_keys %}
+      {% assign social = social_data.profiles[social_key] %}
+      <a href="{{ social.href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ social.labels[footer_lang] }}">{{ social.name }}</a>
+    {% endfor %}
+  </nav>
+
+  <nav class="site-footer__locale" aria-label="{{ footer_copy.locale_label }}">
+    <a href="{{ include.locale_href }}" lang="{{ footer_copy.locale_lang }}" hreflang="{{ footer_copy.locale_lang }}">{{ footer_copy.locale_text }}</a>
+  </nav>
+
+  <p class="site-footer__copyright">{{ footer_copy.copyright }}</p>
+</div>

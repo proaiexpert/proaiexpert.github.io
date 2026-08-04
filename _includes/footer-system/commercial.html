@@ -1,0 +1,39 @@
+{% assign footer_lang = include.lang | default: 'en' %}
+{% assign footer_variant = include.variant | default: 'service' %}
+{% assign footer_copy = site.data.footer[footer_lang] %}
+{% assign variant_copy = footer_copy.variants[footer_variant] %}
+
+<footer class="site-footer site-footer--commercial site-footer--{{ footer_variant }}" data-footer-family="commercial" data-footer-variant="{{ footer_variant }}">
+  <div class="site-footer__shell">
+    <div class="site-footer__main">
+      <div class="site-footer__cta" role="group" aria-labelledby="site-footer-title-{{ footer_lang }}-{{ footer_variant }}">
+        <p class="site-footer__eyebrow">{{ variant_copy.eyebrow }}</p>
+        <h2 id="site-footer-title-{{ footer_lang }}-{{ footer_variant }}">{{ variant_copy.title }}</h2>
+        <p class="site-footer__summary">{{ variant_copy.summary }}</p>
+        {% if variant_copy.show_action %}
+        <a class="site-footer__primary-action" href="{{ footer_copy.action_href }}">{{ variant_copy.action_label }} <span aria-hidden="true">→</span></a>
+        {% endif %}
+      </div>
+
+      <div class="site-footer__details">
+        <div class="site-footer__detail-group" role="group" aria-labelledby="site-footer-contact-{{ footer_lang }}-{{ footer_variant }}">
+          <h3 id="site-footer-contact-{{ footer_lang }}-{{ footer_variant }}">{{ footer_copy.contact_title }}</h3>
+          <a href="mailto:hello@proai-expert.com">hello@proai-expert.com</a>
+          {% if footer_lang == 'ru' %}
+          <a href="https://t.me/proAiexpert" target="_blank" rel="noopener noreferrer">Telegram <span aria-hidden="true">↗</span></a>
+          {% endif %}
+        </div>
+
+        <nav class="site-footer__detail-group site-footer__services" aria-label="{{ footer_copy.services_title }}">
+          <h3>{{ footer_copy.services_title }}</h3>
+          {% for service in footer_copy.services %}
+          <a href="{{ service.href }}">{{ service.label }}</a>
+          {% endfor %}
+        </nav>
+      </div>
+    </div>
+
+    {% include footer-system/brand-zone.html %}
+    {% include footer-system/bottom.html lang=footer_lang locale_href=include.locale_href %}
+  </div>
+</footer>

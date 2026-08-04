@@ -30,11 +30,20 @@
     );
   }
 
+  function svgOpen() {
+    return '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false" style="display:block!important;width:15px!important;height:15px!important;opacity:1!important;visibility:visible!important;overflow:visible!important;fill:none!important;stroke:#75e7ff!important;stroke-width:1.9!important;stroke-linecap:round!important;stroke-linejoin:round!important">';
+  }
+
+  function visibleShape(tag) {
+    return tag.replace('/>', ' style="opacity:1!important;visibility:visible!important;fill:none!important;stroke:#75e7ff!important;stroke-width:1.9!important;stroke-dasharray:none!important;stroke-dashoffset:0!important"/>');
+  }
+
   function principleIcon(index) {
+    var open = svgOpen();
     var icons = [
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 18.5 6v5.2c0 4.2-2.6 7.2-6.5 9.3-3.9-2.1-6.5-5.1-6.5-9.3V6L12 3.5Z"/><path d="m9.4 12.1 1.7 1.7 3.7-4"/></svg>',
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3"/><path d="M6.8 19c.7-3.1 2.5-4.7 5.2-4.7s4.5 1.6 5.2 4.7"/><path d="m16.8 10.8 1.4 1.4 2.3-2.6"/></svg>',
-      '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="7" r="2"/><circle cx="18" cy="17" r="2"/><path d="M8 7h3.5a4 4 0 0 1 4 4v2a4 4 0 0 0 2.5 3.7"/><path d="m15.7 14.4 2.3 2.3 2.3-2.3"/></svg>'
+      open + visibleShape('<path d="M12 3.5 18.5 6v5.2c0 4.2-2.6 7.2-6.5 9.3-3.9-2.1-6.5-5.1-6.5-9.3V6L12 3.5Z"/>') + visibleShape('<path d="m9.4 12.1 1.7 1.7 3.7-4"/>') + '</svg>',
+      open + visibleShape('<circle cx="12" cy="8" r="3"/>') + visibleShape('<path d="M6.8 19c.7-3.1 2.5-4.7 5.2-4.7s4.5 1.6 5.2 4.7"/>') + visibleShape('<path d="m16.8 10.8 1.4 1.4 2.3-2.6"/>') + '</svg>',
+      open + visibleShape('<circle cx="6" cy="7" r="2"/>') + visibleShape('<circle cx="18" cy="17" r="2"/>') + visibleShape('<path d="M8 7h3.5a4 4 0 0 1 4 4v2a4 4 0 0 0 2.5 3.7"/>') + visibleShape('<path d="m15.7 14.4 2.3 2.3 2.3-2.3"/>') + '</svg>'
     ];
 
     return icons[index] || icons[0];

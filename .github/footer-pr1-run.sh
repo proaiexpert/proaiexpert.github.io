@@ -29,6 +29,12 @@ if old_liquid_check not in source:
     raise RuntimeError("Generated-output Liquid assertion was not found")
 source = source.replace(old_liquid_check, new_liquid_check, 1)
 
+old_legal_check = "    assert 'Privacy' not in text and 'Terms' not in text, output"
+new_legal_check = "    assert not re.search(r'<footer\\b.*?(Privacy|Terms).*?</footer>', text, flags=re.I | re.S), output"
+if old_legal_check not in source:
+    raise RuntimeError("Generated-output legal-link assertion was not found")
+source = source.replace(old_legal_check, new_legal_check, 1)
+
 path = Path("/tmp/footer-pr1-run-original.sh")
 path.write_text(source, encoding="utf-8")
 path.chmod(0o755)

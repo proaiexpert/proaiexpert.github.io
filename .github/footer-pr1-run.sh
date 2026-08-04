@@ -23,24 +23,6 @@ if old_gems not in source:
     raise RuntimeError("Jekyll install block was not found")
 source = source.replace(old_gems, new_gems, 1)
 
-cleanup_anchor = "rm -f .github/footer-pr1-run.sh\n"
-if cleanup_anchor not in source:
-    raise RuntimeError("Runner cleanup anchor was not found")
-source = source.replace(
-    cleanup_anchor,
-    cleanup_anchor + "rm -f .github/footer-pr1-trigger.txt\n",
-    1,
-)
-
-stage_anchor = "    .github/footer-pr1-run.sh \\\n"
-if stage_anchor not in source:
-    raise RuntimeError("Runner staging anchor was not found")
-source = source.replace(
-    stage_anchor,
-    stage_anchor + "    .github/footer-pr1-trigger.txt \\\n",
-    1,
-)
-
 path = Path("/tmp/footer-pr1-run-original.sh")
 path.write_text(source, encoding="utf-8")
 path.chmod(0o755)

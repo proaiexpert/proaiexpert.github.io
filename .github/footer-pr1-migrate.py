@@ -5,7 +5,7 @@ import re
 import urllib.request
 
 # Compatibility marker for the already-registered validation job's repair step.
-MARKER = "f'lang=\"{lang}\" variant=\"{variant}\" locale_href=\"{locale_href}\" %}'"
+MARKER = '''f'lang="{lang}" variant="{variant}" locale_href="{locale_href}" %}' '''
 
 SOURCE_URL = (
     "https://raw.githubusercontent.com/proaiexpert/proaiexpert.github.io/"

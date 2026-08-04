@@ -1,6 +1,6 @@
-/* Global Header Parity v3 — canonical legacy bridge
-   Temporary bridge for pages not yet converted to the shared include.
-   Visual geometry and mobile behavior mirror header-system-v1.css. */
+/* Global Header Parity v4 — frozen canonical legacy bridge
+   Existing legacy pages keep their copied markup, but all visual geometry,
+   typography, cube motion and mobile behavior are owned here. */
 
 .global-header {
   --legacy-header-height: 85px;
@@ -24,7 +24,19 @@
   background: var(--legacy-header-bg);
   backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  font-kerning: normal;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
   transition: background-color .25s ease, box-shadow .25s ease, transform .25s ease;
+}
+
+.global-header,
+.global-header *,
+.global-header *::before,
+.global-header *::after {
+  box-sizing: border-box;
 }
 
 .global-header.is-scrolled {
@@ -67,7 +79,13 @@
   height: 20px;
   margin: 6px auto;
   transform-style: preserve-3d;
-  animation: logoSpin 10s linear infinite;
+  animation: proaiLegacyHeaderCubeSpin 10s linear infinite;
+  animation-play-state: running;
+}
+
+@keyframes proaiLegacyHeaderCubeSpin {
+  from { transform: rotateX(0) rotateY(0); }
+  to { transform: rotateX(360deg) rotateY(360deg); }
 }
 
 .global-header .l-face {
@@ -145,10 +163,17 @@
   align-items: center;
   justify-content: center;
   width: 52px;
+  min-width: 52px;
+  max-width: 52px;
+  height: 44px;
   min-height: 44px;
+  max-height: 44px;
+  padding: 0;
   color: var(--legacy-header-cyan);
   text-decoration: none;
+  text-align: center;
   font-size: 13px;
+  line-height: 1;
   font-weight: 900;
   letter-spacing: .5px;
 }
@@ -158,7 +183,11 @@
   align-items: center;
   justify-content: center;
   width: var(--legacy-header-cta-width);
+  min-width: var(--legacy-header-cta-width);
+  max-width: var(--legacy-header-cta-width);
+  height: 44px;
   min-height: 44px;
+  max-height: 44px;
   padding: 0 20px;
   border: 1.5px solid var(--legacy-header-cyan);
   border-radius: 4px;
@@ -167,6 +196,7 @@
   text-decoration: none;
   white-space: nowrap;
   font-size: 11px;
+  line-height: 1;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -301,7 +331,11 @@ body.mobile-nav-open { overflow: hidden; }
     gap: 8px;
     min-width: 98px;
   }
-  .global-header .lang-link { width: 46px; }
+  .global-header .lang-link {
+    width: 46px;
+    min-width: 46px;
+    max-width: 46px;
+  }
   .global-header .site-nav {
     padding-inline: max(28px, env(safe-area-inset-left)) !important;
   }

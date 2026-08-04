@@ -56,7 +56,6 @@ Historical documents may mention their dated values for audit history, but curre
 
 Asset repair validation completed August 4, 2026: all six responsive files passed RIFF/WEBP signature checks, Pillow decoding, and exact dimension validation.
 
-
 These files are optimized, readable derivatives. They preserve the visible Google Search Console metrics and chart context without adding arrows, badges, marketing labels, or altered figures.
 
 Use them only with the dates, selected period, limitations, EN/RU copy, and responsive markup defined in `FINANCIAL_STREAM_GSC_EVIDENCE_IMPLEMENTATION_READY_2026-08-04.md`.

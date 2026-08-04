@@ -11,6 +11,7 @@ permalink: /ru/
 <link rel="stylesheet" href="/assets/css/homepage-materials-editorial-v2.css?v=20260803.1">
 <link rel="stylesheet" href="/assets/css/homepage-core-hardening-v1.css?v=20260803.1">
 <link rel="stylesheet" href="/assets/css/homepage-commercial-refinement-v1.css?v=20260803.1">
+<link rel="stylesheet" href="/assets/css/footer-commercial-v1.css?v=20260803.1">
 <style id="homepage-mobile-hero-cta-hotfix-v1">@media (max-width:980px){body.scrolled .hero-left{pointer-events:auto!important}}</style>
 </head>{% endcapture %}
 {% assign homepage_refined = homepage_refined | replace_first: '</head>', homepage_head_injection %}
@@ -122,6 +123,11 @@ permalink: /ru/
 {% capture new_body_end %}<script src="/assets/js/homepage-core-hardening-v1.js?v=20260803.1" defer></script>
 </body>{% endcapture %}
 {% assign homepage_refined = homepage_refined | replace_first: old_body_end, new_body_end %}
+
+{% capture homepage_footer_v1 %}{% include footer-commercial-v1.html lang="ru" %}{% endcapture %}
+{% assign homepage_footer_before = homepage_refined | split: '<footer' | first %}
+{% assign homepage_footer_after = homepage_refined | split: '</footer>' | last %}
+{% assign homepage_refined = homepage_footer_before | append: homepage_footer_v1 | append: homepage_footer_after %}
 
 {% capture insights_marker %}<section id="insights">{% endcapture %}
 {% capture selected_work_marker %}<section class="portfolio-entry-section portfolio-entry-section--home" id="selected-work"{% endcapture %}

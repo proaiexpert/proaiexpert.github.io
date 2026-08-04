@@ -1,337 +1,297 @@
-# ProAI Expert — Client Acquisition Plan
+# ProAI Expert — Client Acquisition Operating Plan
 
-**Status:** Working cross-project strategy document  
-**Primary author of Part I:** Social Media Project  
-**Primary owner of Part II:** ProAI Expert Business Development  
-**Date:** 2026-08-04  
-**Repository:** `proaiexpert/proaiexpert.github.io`
+**Status:** Canonical client-acquisition operating plan  
+**Approved:** 2026-08-04  
+**Repository:** `proaiexpert/proaiexpert.github.io`  
+**Canonical path:** `docs/CLIENT_ACQUISITION_SOCIAL_AND_SALES_PLAN.md`
 
-## 1. Purpose and authority
+## 1. Authority and source-of-truth rule
 
-This document defines the current client-acquisition direction for ProAI Expert across two connected workstreams:
+This file is the single source of truth for ProAI Expert client acquisition across two connected systems:
 
-1. **Social Media and Personal Brand** — owned primarily by the Social Media Project.
-2. **Sales and Business Development** — owned primarily by ProAI Expert Business Development and implemented as the operating system in Part II.
+1. **Part I — Social Media and Personal Brand:** creates relevant attention, trust, and conversations.
+2. **Part II — Sales and Business Development:** qualifies conversations and converts them into proposals, deposits, delivery, proof, and referrals.
 
-This file is not a website implementation specification and does not override `docs/PROAI_EXPERT_CURRENT_HANDOFF.md`. It is a commercial operating document. Website, article, footer, header, SEO, and other implementation workstreams remain governed by their own canonical documents and PRs.
+The two parts are one operating system. They must not be split into competing master documents.
 
-The immediate objective is not audience growth for its own sake. The objective is to create qualified conversations, proposals, deposits, completed projects, verified proof, repeat work, and referrals.
+This file governs commercial positioning, target markets, channel priorities, prospecting, offers, qualification, CRM, sales process, commercial KPIs, and the current execution backlog.
+
+It does **not** replace:
+
+- `docs/PROAI_EXPERT_CURRENT_HANDOFF.md` for website implementation status and technical constraints;
+- approved portfolio evidence rules;
+- separate implementation specifications for website, SEO, articles, header, footer, forms, Google Business Profile, or production code.
+
+### Supersession rule
+
+The following are historical inputs, not current authority:
+
+- earlier chat recommendations;
+- preliminary sales drafts;
+- the generic `Lead Fix Sprint` concept;
+- outdated KPI volumes not tied to delivery capacity;
+- old PR descriptions or comments that conflict with this file;
+- standalone notes that duplicate social or sales rules in this document.
+
+When a future recommendation conflicts with this plan, the recommendation must identify the exact conflict, evidence for changing it, and the section to update. Do not create a new master strategy merely because one tactic changes.
 
 ---
 
-# Part I — Social Media Strategy
+# Part I — Social Media and Personal Brand
 
-## 2. Strategic position
+## 2. Social objective
 
-ProAI Expert should not present itself as a broad technology studio selling "AI, websites, branding, automation, and consulting" all at once.
+Social activity exists to produce:
 
-The public message should be simpler:
+`Qualified attention → Business conversation → CRM lead → Sales process`
 
-> ProAI Expert helps service businesses stop losing leads by improving their website, client intake, follow-up, and practical automation.
+Audience size, impressions, likes, and comments are secondary indicators. They are not commercial outcomes unless they produce identifiable prospects, conversations, proposals, deposits, or referrals.
 
-The personal brand should lead the sale. Small local businesses are more likely to trust a visible founder than an abstract agency logo.
+## 3. Public positioning
 
-**Founder positioning:**
-
-> Ihor Horb — founder of ProAI Expert. Builds premium websites and practical AI/automation systems for service businesses, with a focus on clear business outcomes rather than technology for its own sake.
-
-## 3. Primary audience
-
-Priority audience for the first 30 days:
-
-1. Russian- and Ukrainian-speaking service-business owners in Washington State.
-2. English-speaking local service-business owners in the Seattle–Tacoma–Federal Way market.
-3. Professional-services businesses where trust, bilingual communication, intake, and follow-up matter.
-
-Priority verticals:
-
-- accountants, tax professionals, insurance agents, mortgage brokers, realtors, consultants, lawyers;
-- massage, beauty, wellness, med-spa and private-practice businesses;
-- contractors, handyman services, remodeling, windows, roofing, cleaning, landscaping, HVAC and other home services.
-
-## 4. Channel priorities
-
-### 4.1 Facebook — immediate priority
-
-Facebook is the strongest short-term channel for Russian- and Ukrainian-speaking local business owners because it combines existing personal connections, friend-of-friend visibility, local groups, direct messaging, comments, and community trust.
-
-Use the personal profile as the primary surface. Do not depend on a company page for initial traction.
-
-Required activity:
-
-- add 5–10 relevant local people per day;
-- review each new contact before messaging;
-- comment meaningfully on posts from owners and community connectors;
-- identify active businesses with weak websites, unclear offers, poor mobile UX, weak booking or missing follow-up;
-- send personalized observations, not generic sales messages;
-- use local groups to identify owners and conversations, not to mass-post the same advertisement.
-
-### 4.2 LinkedIn — authority and professional-services pipeline
-
-LinkedIn should be developed as the strongest long-term English-language authority channel and the main professional-services prospecting channel.
-
-Required profile assets:
-
-- clear headline connecting AI systems, automation, premium websites, and business outcomes;
-- strong About section written for business owners rather than technical peers;
-- Featured section containing Financial Stream, portfolio cases, website/branding offer, AI systems offer, and contact path;
-- personal LinkedIn Service Page;
-- recommendations or reviews from real clients and collaborators where available.
-
-Daily LinkedIn activity:
-
-- 10 targeted connection requests;
-- 5 personalized follow-up messages;
-- 10 substantive comments on posts from local owners, advisors, accountants, realtors, contractors, chambers, and community leaders;
-- 1–2 requests per day for a warm introduction where a mutual connection exists.
-
-### 4.3 Telegram — trust layer, not acquisition engine
-
-Telegram should support credibility after a person discovers Ihor or ProAI Expert elsewhere.
-
-Use it for:
-
-- concise case studies;
-- practical AI and website observations;
-- behind-the-scenes project decisions;
-- Russian-language explanations of business problems;
-- selected repurposed content from LinkedIn and Facebook.
-
-Do not invest heavily in Telegram subscriber growth until Facebook and LinkedIn consistently generate conversations.
-
-### 4.4 Instagram, X and TikTok
-
-For the first 30 days:
-
-- Instagram: maintain only if content can be repurposed efficiently;
-- X: low priority for local client acquisition;
-- TikTok: no dedicated production until the core sales system works.
-
-No channel should be developed merely because it exists. Resources must follow measurable commercial yield.
-
-## 5. Content architecture
-
-Content should move prospects through four stages:
-
-1. **Recognition:** "This is a problem in my business."
-2. **Trust:** "He understands the commercial issue, not only design or AI."
-3. **Proof:** "He has done credible work and can explain decisions."
-4. **Action:** "There is a simple next step."
-
-Recommended monthly content mix:
-
-- **35% diagnostic content:** website reviews, lost-lead problems, poor mobile flow, unclear offers, weak intake;
-- **25% case evidence:** Financial Stream, portfolio decisions, before/after structure, process and constraints;
-- **20% practical automation:** missed-call SMS, intake routing, follow-up, CRM, FAQ handling and manual-work reduction;
-- **10% founder perspective:** transition from construction/business experience to practical AI and websites;
-- **10% direct commercial offers:** audits, limited sprint capacity, consultation or project availability.
-
-Content rules:
-
-- one post should communicate one commercial idea;
-- show actual screens, workflows, decisions and examples where possible;
-- translate technical language into lost leads, wasted time, unclear trust and missed follow-up;
-- avoid unsupported revenue, traffic, ranking or conversion claims;
-- every case post should state what changed and why;
-- not every post requires a sales CTA, but every week must contain at least one explicit offer.
-
-## 6. Recommended recurring content series
-
-1. **Local Business Website Review** — one visible problem, one implication, one correction.
-2. **Where Leads Get Lost** — forms, calls, booking, response delay, unclear offers and weak mobile flow.
-3. **Built for a Real Business** — project decisions from Financial Stream and future cases.
-4. **Practical AI, Not AI Theater** — small automations with clear operational value.
-5. **Washington Business Spotlight** — constructive observations about local businesses without public humiliation.
-6. **Founder Notes** — short observations from real business and implementation work.
-
-## 7. Seven-day social sprint
-
-### Day 1 — Foundation
-
-- finalize one commercial positioning statement;
-- update LinkedIn profile and Featured section;
-- confirm Facebook bio and visible ProAI Expert links;
-- prepare a simple prospect tracker;
-- identify 30 target businesses and 20 possible referral contacts.
-
-### Day 2 — Proof
-
-- publish a Financial Stream case post;
-- contact 10 warm relationships for one specific introduction;
-- send 5 personalized Facebook messages;
-- send 5 personalized LinkedIn messages.
-
-### Day 3 — Diagnostic authority
-
-- publish one local-business website review or general diagnostic example;
-- create 2–3 private video audits for qualified prospects;
-- perform daily connection and comment activity;
-- follow up with all Day 2 responders.
-
-### Day 4 — Practical automation
-
-- publish a missed-call, intake, follow-up or routing example;
-- contact 10 new qualified prospects;
-- request two warm introductions;
-- move interested prospects toward a short diagnostic call.
-
-### Day 5 — Offer
-
-- publish a direct limited-capacity offer for two qualified entry-sprint slots, using the niche-appropriate offer defined in Part II;
-- conduct diagnostic calls;
-- follow up with every active conversation;
-- collect objections and update messaging.
-
-### Day 6 — Local outreach
-
-- focus on home services, beauty/wellness and businesses near Federal Way, Tacoma, Auburn, Kent, Renton and Seattle;
-- combine direct messages, phone calls and, where appropriate, in-person contact;
-- publish one founder or local-market post.
-
-### Day 7 — Conversion review
-
-- follow up with all qualified prospects;
-- send concrete proposals only where a real problem and buying intent are present;
-- review channel performance;
-- identify which segment, message and offer produced the strongest response;
-- define the next weekly sprint from evidence, not preference.
-
-## 8. Thirty-day social plan
-
-### Week 1 — Build and activate
-
-- fix profiles and proof assets;
-- begin consistent targeted outreach;
-- publish 3–4 strong posts;
-- start private audits and warm-introduction requests.
-
-### Week 2 — Establish repeatable series
-
-- launch the recurring content series;
-- increase direct conversations;
-- record objections and audience language;
-- publish at least one case and one direct offer.
-
-### Week 3 — Strengthen proof
-
-- publish early work, process or client feedback where truthful;
-- collect LinkedIn recommendations;
-- turn common objections into posts;
-- refine the best-performing segment and offer.
-
-### Week 4 — Consolidate
-
-- compare Facebook, LinkedIn, referrals and direct outreach;
-- cut low-yield activity;
-- double down on the strongest two acquisition paths;
-- prepare the next 30-day plan from actual pipeline data.
-
-## 9. Social operating metrics
-
-Do not treat likes and follower count as primary KPIs.
-
-Track:
-
-- qualified new connections;
-- personalized outreach sent;
-- warm introductions requested and received;
-- substantive replies;
-- audit requests accepted;
-- diagnostic calls booked;
-- proposals generated from social conversations;
-- deposits and revenue attributed to each channel;
-- content pieces that created direct business conversations.
-
-The following targets apply in **Acquisition Mode**. The capacity controls in Part II override these volumes when delivery load increases.
-
-Minimum weekly social activity target:
-
-- 50 targeted new connections;
-- 40–50 personalized first contacts;
-- 50 substantive comments;
-- 4–8 private audits or detailed observations;
-- 3–4 original posts;
-- 20 follow-ups;
-- 5 qualified conversations;
-- 2–3 proposal opportunities;
-- 1 paid deposit as the target outcome.
-
----
-
-# Part II — Sales and Business Development Operating System
-
-## 10. Status, objective, and operating principles
-
-Part II replaces the preliminary sales draft with the working sales operating system for ProAI Expert. It is complete enough to execute, measure, and improve, but the document remains a **Working cross-project strategy document** until Part I and Part II are jointly reviewed and approved.
-
-The 30-day commercial objective is:
-
-1. close the first unrelated local client;
-2. deliver a narrow, high-quality result;
-3. obtain verified review and case-study permission;
-4. generate at least two referral introductions;
-5. identify one repeatable ICP, message, and offer combination.
-
-Operating principles:
-
-- sell a concrete business improvement, not technology categories;
-- use websites as the easiest trust-building entry point and automation as a specific operational improvement;
-- prioritize direct conversations over passive audience growth;
-- keep every active lead tied to a dated next action;
-- reduce scope instead of discounting price without reason;
-- do not promise rankings, leads, revenue, or conversion gains that cannot be verified;
-- do not automate outbound until a manual message has produced reliable positive responses;
-- protect delivery quality by changing prospecting volume when capacity changes.
-
-## 11. Final commercial positioning
-
-### 11.1 Company position
+### 3.1 Company message
 
 > ProAI Expert builds premium multilingual websites and practical lead-response systems for service businesses that need stronger trust, clearer intake, and faster follow-up.
 
-### 11.2 Founder-led sales position
+### 3.2 Founder message
 
 > Ihor Horb helps service-business owners improve how prospects understand the business, submit a request, and receive a response. The work combines premium websites, clear positioning, and practical automation without unnecessary technical complexity.
 
-### 11.3 Market focus for the first 90 days
+### 3.3 Communication rule
 
-- primary geography: Washington State, with immediate emphasis on Federal Way, Tacoma, Kent, Auburn, Renton, Bellevue, and Seattle;
-- primary language advantage: English plus Russian or Ukrainian where commercially useful;
-- primary buyer: owner or principal of an active service business;
-- primary problem: weak trust, unclear offer, fragmented intake, missed inquiries, or slow first response;
-- primary sales motion: founder-led, relationship-led, local, personalized, and evidence-based.
+Do not lead with a broad catalogue of AI, websites, branding, automation, strategy, and consulting.
 
-ProAI Expert may serve broader clients, but outbound should not target everyone. For the first 30 days, the operating message remains local service-business growth infrastructure rather than broad AI consulting.
+Lead with one recognizable business problem:
 
-## 12. ICP, vertical priority, and lead qualification
+- the business looks weaker online than it is in reality;
+- prospects do not understand the offer;
+- the mobile contact or booking path is weak;
+- calls or inquiries are missed;
+- intake is incomplete or fragmented;
+- follow-up is slow or inconsistent.
 
-### 12.1 Vertical priority
+Technology is the implementation method, not the opening message.
 
-#### Tier A1 — Home services
+## 4. Priority audience
+
+### Primary market for the first 90 days
+
+- owner-operated service businesses in Washington State;
+- immediate emphasis on Federal Way, Tacoma, Kent, Auburn, Renton, Bellevue, and Seattle;
+- Russian- and Ukrainian-speaking owners where language and community trust create a real advantage;
+- English-speaking local businesses where existing proof and founder expertise fit.
+
+### Priority verticals
+
+1. Home services.
+2. Professional services.
+3. Beauty, massage, and wellness.
+
+Detailed ICP and qualification rules are defined in Part II and override broad social targeting.
+
+## 5. Channel priorities
+
+### 5.1 Facebook — immediate acquisition priority
+
+Use the personal profile as the primary surface for:
+
+- local and community relationships;
+- friend-of-friend discovery;
+- Russian- and Ukrainian-speaking business owners;
+- direct messages;
+- local groups;
+- visible founder trust.
+
+Required behavior:
+
+- add 5–10 relevant local people per day in Acquisition Mode;
+- review the person and business before messaging;
+- comment meaningfully on owner and connector posts;
+- move a commercial signal into the CRM;
+- use groups for discovery and relationship building, not repetitive advertising;
+- never mass-message new contacts with identical copy.
+
+### 5.2 LinkedIn — durable professional-services channel
+
+Use LinkedIn for:
+
+- English-language authority;
+- accountants, advisors, realtors, mortgage, insurance, consultants, and other professional services;
+- partnerships and warm introductions;
+- founder credibility;
+- case evidence and practical business analysis.
+
+Required profile assets:
+
+- outcome-led headline;
+- business-owner-focused About section;
+- Featured links to relevant cases, offers, and contact path;
+- personal Service Page where available;
+- truthful recommendations from actual clients and collaborators.
+
+Daily activity in Acquisition Mode:
+
+- up to 10 targeted connection requests;
+- up to 5 personalized messages or follow-ups;
+- substantive comments on relevant local and professional posts;
+- 1–2 warm-introduction requests where a genuine mutual connection exists.
+
+Do not automate LinkedIn outreach or use high-volume invitation behavior.
+
+### 5.3 Telegram — trust and retention layer
+
+Telegram is not the primary acquisition engine during the first 30 days.
+
+Use it for:
+
+- concise Russian-language case analysis;
+- practical AI and website observations;
+- founder notes;
+- project decisions and lessons;
+- repurposed content that supports credibility.
+
+### 5.4 Instagram, X, and TikTok
+
+- Instagram: maintain through efficient repurposing; use selectively for beauty/wellness discovery.
+- X: low priority for local client acquisition.
+- TikTok: no dedicated production until the sales system consistently produces commercial conversations.
+
+Resources follow measured commercial yield, not platform availability.
+
+## 6. Content architecture
+
+Content should move a prospect through:
+
+1. **Recognition:** this problem exists in my business.
+2. **Trust:** the founder understands the commercial issue.
+3. **Proof:** the work is credible and evidence-led.
+4. **Action:** the next step is clear and low-friction.
+
+### Monthly content mix
+
+- 35% diagnostic content;
+- 25% case and implementation evidence;
+- 20% practical automation;
+- 10% founder perspective;
+- 10% direct offers.
+
+### Recurring series
+
+- Local Business Website Review;
+- Where Leads Get Lost;
+- Built for a Real Business;
+- Practical AI, Not AI Theater;
+- Washington Business Spotlight;
+- Founder Notes.
+
+### Content rules
+
+- one post communicates one commercial idea;
+- show real screens, workflows, and decisions when possible;
+- distinguish observations from assumptions;
+- do not imply access to analytics that is unavailable;
+- do not promise traffic, rankings, leads, conversion, or revenue;
+- every case post explains what changed and why;
+- every week includes at least one explicit commercial next step;
+- public criticism of a specific business requires permission or anonymization.
+
+## 7. Social-to-sales handoff
+
+Every meaningful interaction ends in one state:
+
+1. no commercial signal — normal engagement;
+2. possible fit — create CRM lead and research;
+3. problem acknowledged — offer a private audit or diagnostic call;
+4. active intent — qualify and schedule discovery;
+5. not now — set a dated nurture action;
+6. no fit or decline — close cleanly.
+
+A follower, friend, like, or comment is not pipeline unless the CRM records:
+
+- business;
+- decision-maker;
+- problem hypothesis;
+- source;
+- next action;
+- next-action date.
+
+## 8. Social activity targets
+
+Targets depend on the capacity mode defined in Section 22.
+
+### Acquisition Mode
+
+- 50 targeted new connections per week;
+- 40–50 personalized first contacts across channels;
+- approximately 50 substantive comments;
+- 3–4 original posts;
+- 4–8 private audits or detailed observations;
+- 20–30 follow-ups;
+- 5–8 meaningful sales conversations;
+- 2–3 qualified proposals;
+- one paid deposit as the weekly target.
+
+### Capacity override
+
+Balanced Mode and Capacity-Protection Mode automatically reduce connection, outreach, audit, and content volume. Delivery quality takes priority over artificial activity targets.
+
+---
+
+# Part II — Sales and Business Development
+
+## 9. Commercial objective
+
+### First 30 days
+
+1. Close the first unrelated local client.
+2. Deliver a controlled, high-quality result.
+3. Obtain a verified review and case-study permission.
+4. Generate two direct referral introductions.
+5. Identify one repeatable combination of ICP, problem, message, channel, and offer.
+
+### Sales principles
+
+- sell a concrete business improvement;
+- prioritize direct conversations over passive audience growth;
+- use websites as the easiest trust-building entry and automation as a specific operational improvement;
+- reduce scope instead of discounting unchanged work;
+- every active lead must have a dated next action;
+- no proposal without qualification;
+- no work before agreement and cleared deposit;
+- no unsupported performance guarantees;
+- manual outbound must work before automation is considered;
+- acquisition volume must follow delivery capacity.
+
+## 10. ICP and vertical priority
+
+### Tier A1 — Home services
 
 Examples:
 
 - handyman and repair;
 - windows and doors;
 - remodeling and painting;
-- roofing, flooring, landscaping, cleaning;
+- roofing and flooring;
+- landscaping and cleaning;
 - HVAC, plumbing, pressure washing, and related trades.
 
-Why this tier is first:
+Best problems:
 
-- a single qualified job may have meaningful value;
-- missed calls, slow estimates, and weak photo intake are visible operational problems;
-- the founder has relevant construction-market context;
-- the Local Repair Pro concept can demonstrate the intended customer journey without being represented as a completed client outcome.
+- missed calls;
+- weak estimate requests;
+- no photo intake;
+- poor mobile trust;
+- slow follow-up;
+- no lead logging.
 
-Best entry path:
+Why first:
 
-- website trust and estimate-flow improvement;
-- photo-based intake;
-- missed-call response;
-- lead logging and owner notification.
+- meaningful value per qualified job;
+- visible operational problems;
+- founder construction-market experience;
+- Local Repair Pro can demonstrate architecture while remaining explicitly labelled as a concept.
 
-#### Tier A2 — Professional services
+### Tier A2 — Professional services
 
 Examples:
 
@@ -339,1322 +299,1109 @@ Examples:
 - insurance and mortgage;
 - real estate;
 - legal and immigration-related professional services;
-- consultants, psychologists, private practices, and other trust-led experts.
+- consultants, psychologists, and private practices.
 
-Why this tier is first:
+Best problems:
 
-- trust, expertise, language, intake, and document collection are central;
-- bilingual structure can be a genuine differentiator;
-- Financial Stream provides relevant proof of process and design decisions;
-- higher-value relationships can lead to referrals and recurring work.
+- weak trust and positioning;
+- unclear bilingual communication;
+- scattered intake;
+- document and request routing;
+- inconsistent follow-up.
 
-Best entry path:
+Why first:
 
-- website trust and positioning;
-- bilingual information architecture;
-- structured intake;
-- document/request routing;
-- follow-up automation.
+- high trust requirement;
+- language advantage;
+- strong referral potential;
+- Financial Stream provides relevant implemented proof.
 
-#### Tier B — Beauty, massage, and wellness
+### Tier B — Beauty, massage, and wellness
 
-Examples:
+Best problems:
 
-- hair and color specialists;
-- massage therapists;
-- estheticians and nail studios;
-- med-spa and wellness providers;
-- private trainers and coaches.
+- mobile trust;
+- unclear specialization;
+- fragmented Instagram-to-booking path;
+- weak personal brand;
+- outdated or absent website.
 
-Why this tier is secondary:
+This segment is accessible but may have lower budgets and higher price sensitivity.
 
-- owners are reachable through Facebook and Instagram;
-- visual proof and booking-flow defects are easy to identify;
-- budgets may be lower and the market can be price-sensitive.
+### Tier C — Opportunistic only
 
-Best entry path:
-
-- personal-brand and service clarity;
-- mobile trust and booking flow;
-- simple website or focused conversion sprint.
-
-#### Tier C — Opportunistic only
-
-- restaurants with weak margins and complex operational needs;
-- early-stage startups without revenue or budget;
+- restaurants with weak economics;
+- pre-revenue startups;
 - e-commerce builds;
 - enterprise AI transformations;
-- organizations requiring regulated, security-heavy, or deeply integrated systems before trust is established.
+- security-heavy or deeply regulated systems.
 
-Tier C is accepted only through a strong referral, clear budget, and controlled scope.
+Accept only through strong referral, clear budget, responsible scope, and verified capability.
 
-### 12.2 Required ICP signals
+## 11. Lead priority and qualification
 
-A qualified target should have at least four of the following:
+### 11.1 Target score
 
-- an active operating business with visible evidence of customers;
-- owner or decision-maker can be identified;
-- a weak, absent, outdated, or confusing website;
-- a visible intake, booking, missed-call, or response problem;
-- meaningful value per new customer or job;
-- recent social activity, reviews, hiring, expansion, or other growth signal;
-- existing spending on branding, ads, software, staff, or business development;
-- an English/Russian/Ukrainian communication advantage;
-- a problem ProAI Expert can demonstrate without unsupported assumptions;
-- ability to start within 30 days.
-
-### 12.3 Lead-priority score
-
-Score each target before substantial outreach.
+Score each target from 0 to 2 on eight criteria.
 
 | Criterion | 0 | 1 | 2 |
 |---|---:|---:|---:|
-| Business activity | unclear or inactive | active but limited proof | clearly active with customers/reviews |
-| Problem severity | no visible problem | moderate friction | obvious trust, intake, or response failure |
-| Buyer access | no identifiable owner | indirect access | owner/direct decision-maker reachable |
-| Customer value | low or unclear | moderate | one customer/job has meaningful value |
-| Fit with proof | weak | partial | strong match to existing case or demo |
-| Language/local advantage | none | some | clear Washington or bilingual advantage |
-| Buying signal | none | possible | investing, expanding, advertising, or actively improving |
-| Delivery fit | custom/uncertain | manageable | repeatable and narrow |
+| Business activity | unclear | active | clearly active with customer proof |
+| Problem severity | none visible | moderate | obvious trust/intake/response failure |
+| Buyer access | unavailable | indirect | direct decision-maker reachable |
+| Customer value | low/unknown | moderate | meaningful value per customer/job |
+| Proof fit | weak | partial | strong match to case/demo |
+| Local/language advantage | none | some | clear advantage |
+| Buying signal | none | possible | investing, hiring, expanding, advertising |
+| Delivery fit | uncertain | manageable | narrow and repeatable |
 
-Priority bands:
+Priority:
 
-- **P1 — 13–16:** contact within 24 hours; personalized observation; audit considered.
-- **P2 — 9–12:** contact after P1 list; lighter personalization; no audit until interest.
-- **P3 — 6–8:** nurture, social engagement, or partner route.
-- **Disqualify — 0–5:** do not spend active selling time.
+- **P1 — 13–16:** contact within 24 hours.
+- **P2 — 9–12:** contact after P1; lighter personalization.
+- **P3 — 6–8:** nurture, engagement, or partner route.
+- **0–5:** disqualify from active selling.
 
-### 12.4 Opportunity qualification
+### 11.2 Qualified opportunity rule
 
-A lead becomes a qualified opportunity only when all five conditions are present:
+A lead becomes a qualified opportunity only when all are true:
 
-1. a specific business problem is acknowledged by the prospect;
+1. the prospect acknowledges a specific business problem;
 2. the decision-maker is involved or directly accessible;
-3. there is a credible reason to act within 90 days;
-4. a budget path exists for the recommended scope;
-5. ProAI Expert can deliver the result without uncontrolled custom work.
+3. a credible reason to act exists within 90 days;
+4. a budget path exists;
+5. ProAI Expert can deliver without uncontrolled custom work.
 
-### 12.5 Disqualification rules
+### 11.3 Disqualification
 
-Disqualify or move to nurture when any of the following applies:
+Disqualify or nurture when:
 
-- no active business or no evidence of real demand;
-- the person only wants free strategy or a speculative partnership;
-- required budget is below the minimum viable scope;
-- the buyer requests guaranteed leads, revenue, rankings, or legal/compliance outcomes;
-- the project requires unpaid competition or extensive speculative design;
-- there is no decision-maker access after reasonable attempts;
-- the buyer repeatedly misses meetings or will not provide required information;
-- the work requires capabilities or regulatory assurances ProAI Expert cannot responsibly provide;
-- the prospect is abusive, deceptive, or creates unacceptable payment risk.
+- no active business or visible demand exists;
+- the buyer only wants free strategy;
+- budget is below minimum viable scope;
+- guaranteed rankings, leads, revenue, legal, or compliance outcomes are demanded;
+- extensive unpaid speculative work is required;
+- the decision-maker remains inaccessible;
+- meetings and information requests are repeatedly ignored;
+- required capability or regulatory assurance is unavailable;
+- payment, behavior, or integrity risk is unacceptable.
 
-A disqualified lead is not a failed lead. It is protected time.
+Disqualification protects capacity. It is not a sales failure.
 
-## 13. Offer architecture
+## 12. Offer architecture
 
-### 13.1 Offer ladder
+### 12.1 Offer ladder
 
-The commercial ladder is:
+1. Free qualified observation or private audit.
+2. Fixed-scope entry sprint.
+3. Core website, branding, or automation project.
+4. Expansion: bilingual work, workflows, content, integrations, optimization.
+5. Ongoing support and monitoring.
 
-1. **Free qualified diagnostic** — a short observation or private audit used selectively.
-2. **Entry sprint** — one narrow, implemented result with fixed scope.
-3. **Core project** — website, branding, or automation system.
-4. **Expansion** — bilingual version, additional workflows, content, integrations, or optimization.
-5. **Ongoing support** — maintenance, reporting, automation monitoring, and iterative improvements.
+The free audit is a qualification and trust tool, not the product.
 
-The free diagnostic is not the product. It exists to prove relevance and determine the correct paid next step.
+### 12.2 Deprecated offer
 
-### 13.2 Decision on the original Lead Fix Sprint
+`Lead Fix Sprint` is deprecated because it is vague, mixes unrelated work, and can imply guaranteed lead creation.
 
-The name **Lead Fix Sprint** should not be the default public offer because:
+Do not restore this name without new evidence and an explicit revision to this plan.
 
-- it is vague;
-- it combines unrelated website, booking, missed-call, intake, and automation work;
-- it can imply that ProAI Expert will directly create or guarantee leads;
-- its scope is difficult to control at one price.
+### 12.3 Website Trust & Conversion Sprint
 
-Replace it with two primary entry offers and one optional diagnostic offer.
+**Use when:** an active business has an existing site with one clear trust, messaging, mobile, CTA, or contact-flow problem.
 
-### 13.3 Entry offer A — Website Trust & Conversion Sprint
+**Outcome:** improve one defined prospect journey.
 
-**Best for:** an active business with an existing website that has a clear trust, messaging, mobile, CTA, or contact-flow problem.
-
-**Outcome:** improve one defined prospect journey so the business is easier to understand and contact.
-
-**Standard scope:**
+**Scope:**
 
 - 20–30 minute diagnostic call;
-- written definition of the single conversion problem;
-- improvements to up to three agreed surfaces, such as homepage hero/offer, one service section, CTA/contact path, or mobile presentation;
-- focused copy refinement using client-approved facts;
-- implementation in the existing site when technically reasonable;
+- one written problem definition;
+- improvements to up to three agreed surfaces;
+- focused copy refinement using approved facts;
+- implementation in the existing site where technically reasonable;
 - mobile and link QA;
-- concise before/after record and recommendations for the next phase.
+- concise before/after record and next-phase recommendations.
 
-**Exclusions:**
+**Excludes:** full redesign, complete rebrand, broad SEO, migration, custom application, multiple integrations, unlimited revisions, and performance guarantees.
 
-- full-site redesign;
-- complete rebrand;
-- new custom application;
-- broad SEO campaign;
-- unlimited copywriting;
-- major platform migration;
-- multiple integrations;
-- guaranteed traffic, leads, rankings, or revenue.
+**Pricing:**
 
-**Timeline:** normally 5 business days after deposit, access, and required content are received.
+- `$1,250` standard one-language scope;
+- `$950` controlled micro-scope floor only for one page/flow, no bilingual work, and strategic independent proof value;
+- `$1,500` for bilingual or higher-complexity scope.
 
-**Initial pricing rule:**
+**Timeline:** normally five business days after deposit, access, and content are received.
 
-- **$1,250 standard fixed price** for one-language, technically straightforward scope;
-- **$950 controlled floor** only for a one-page or one-flow micro-scope with no bilingual work or integration, and only when the client is strategically valuable as independent proof;
-- **$1,500** when the sprint includes bilingual work, three substantial surfaces, or higher implementation complexity.
+### 12.4 Lead Response Automation Sprint
 
-The original `$950–$1,500` range is therefore viable only when tied to explicit scope bands. It should not be quoted as an undefined range.
+**Use when:** the business already receives inquiries but acknowledgement, routing, logging, or first response is inconsistent.
 
-### 13.4 Entry offer B — Lead Response Automation Sprint
+**Scope:**
 
-**Best for:** home-service or professional-service businesses that already receive calls, forms, messages, or photo requests but respond inconsistently.
+- one lead source;
+- one response path;
+- one automatic acknowledgement;
+- one owner/staff notification;
+- one lead log;
+- normal and failure-case testing;
+- operating guide;
+- one correction window.
 
-**Outcome:** create one controlled first-response workflow so a new inquiry is acknowledged, routed, and logged.
+**Excludes:** full CRM implementation, autonomous sales agent, multi-department routing, complex migration, unlimited workflows, and regulated advice.
 
-**Standard scope:**
+**Pricing:**
 
-- map one lead source and one response path;
-- configure one automatic acknowledgement;
-- notify the owner or assigned staff member;
-- log the inquiry in an agreed system;
-- test normal and failure cases;
-- provide a short operating guide;
-- include one post-launch correction window.
+- starts at `$1,500`;
+- `$2,000–$2,500` when SMS, telephony, CRM, branching, or complex testing is required.
 
-**Exclusions:**
+Do not sell this to a business without stable inquiry volume or a person able to follow up.
 
-- complete CRM implementation;
-- multi-department routing;
-- autonomous sales agent;
-- regulated advice;
-- complex data migration;
-- unlimited channels or workflows.
+### 12.5 Brand & Offer Clarity Sprint
 
-**Initial pricing rule:**
-
-- **starting at $1,500** for one source, one response, one notification, and one log;
-- **$2,000–$2,500** when SMS, telephony, CRM, multiple branches, or more complex testing is required.
-
-This offer should not be forced on a business with no stable lead volume or no owner capable of following up.
-
-### 13.5 Optional entry offer C — Brand & Offer Clarity Sprint
-
-**Best for:** a professional, beauty, or wellness business whose site cannot be improved effectively because the offer, audience, or visual position is unclear.
+**Use when:** a credible site cannot be built because audience, differentiation, offer, or message hierarchy is unclear.
 
 **Scope:**
 
 - target-customer definition;
 - core offer and differentiation;
 - message hierarchy;
-- homepage content outline;
+- homepage outline;
 - compact visual direction;
-- implementation brief for the next website phase.
+- implementation brief.
 
-**Initial price:** **$1,250–$2,000**, based on research and number of service lines.
+**Price:** `$1,250–$2,000`.
 
-This is not a full brand identity and should not include unlimited naming, logo concepts, or collateral.
+This is not a full identity system.
 
-### 13.6 Core website offers
+### 12.6 Core website offers
 
 #### Website Essentials
 
 - one language;
-- approximately 5–7 core pages or equivalent structured sections;
+- approximately 5–7 core pages or equivalent sections;
 - responsive design;
-- conversion path and contact flow;
-- basic technical SEO setup;
+- conversion and contact path;
+- basic technical SEO;
 - analytics and launch QA;
-- starting range: **$2,900–$4,500**.
+- `$2,900–$4,500` initial range.
 
 #### Bilingual Website System
 
 - English plus Russian or Ukrainian;
-- localized structure rather than literal duplication;
+- natural localization;
 - mapped language navigation;
-- bilingual contact and trust flow;
-- starting range: **$3,900–$6,500**.
+- bilingual trust and contact flow;
+- `$3,900–$6,500` initial range.
 
 #### Website + Lead Flow System
 
-- website scope plus one controlled intake or first-response workflow;
-- starting range: **$4,500–$8,000**, depending on languages, forms, messaging, and integrations.
+- website plus one controlled intake or first-response workflow;
+- `$4,500–$8,000` initial range.
 
-These are initial operating ranges, not permanent published promises. Recalibrate after three unrelated paid projects using actual delivery time, revision load, and close rate.
+Recalibrate after three unrelated paid projects using actual hours, revisions, close rate, and margin.
 
-### 13.7 Branding offers
+### 12.7 Branding
 
-Branding can be sold:
+- brand foundation add-on: `$1,500–$3,500`;
+- standalone brand system: `$2,500–$6,000`;
+- larger systems: separately scoped.
 
-- as a prerequisite when the offer and identity are too weak for a credible website;
-- as an add-on to a website;
-- as a standalone engagement only when the buyer has a clear commercial use for it.
+Branding must connect to positioning, trust, and sales use.
 
-Initial ranges:
+### 12.8 AI and automation
 
-- brand foundation add-on: **$1,500–$3,500**;
-- standalone brand system: **$2,500–$6,000**;
-- larger collateral or multi-channel systems: separately scoped.
-
-Branding must connect to positioning, trust, and sales use. Do not sell aesthetics without a business application.
-
-### 13.8 AI and automation offers
-
-AI should be sold as a specific operational capability, not a broad transformation promise.
-
-Good initial use cases:
+Sell defined capabilities:
 
 - missed-call acknowledgement;
 - structured intake and routing;
-- FAQ assistance with defined boundaries;
-- draft responses requiring human approval;
-- document/request classification;
-- lead logging and follow-up reminders;
+- human-reviewed draft responses;
+- FAQ assistance with boundaries;
+- request or document classification;
+- lead logging and reminders;
 - internal summaries and handoffs.
 
 Initial ranges:
 
-- narrow automation sprint: **$1,500–$2,500**;
-- multi-step business workflow: **$3,500–$8,000**;
-- larger integrated system: **$8,000–$12,000+**, only after discovery and technical validation;
-- ongoing monitoring/support: **$250–$1,000 per month**, based on workflow count, support level, and third-party costs.
+- narrow automation: `$1,500–$2,500`;
+- multi-step workflow: `$3,500–$8,000`;
+- larger integrated system: `$8,000–$12,000+` after technical validation;
+- support/monitoring: `$250–$1,000` monthly.
 
-Third-party fees, usage charges, phone/SMS costs, and paid software must be shown separately.
+Third-party software, phone, SMS, and usage costs are separate.
 
-### 13.9 Niche-specific offer mapping
+### 12.9 Niche-to-offer map
 
-| Niche | First problem to lead with | Preferred entry offer | Natural expansion |
+| Niche | Lead problem | Entry offer | Expansion |
 |---|---|---|---|
-| Home services | missed call, weak estimate request, no photo intake | Lead Response Automation Sprint or Website Trust & Conversion Sprint | Website + photo intake + lead log |
-| Accounting/tax/insurance | trust, bilingual clarity, scattered intake | Website Trust & Conversion Sprint | Bilingual Website System + structured request |
-| Realtor/mortgage | weak differentiation and follow-up | Brand & Offer Clarity Sprint or Website Trust & Conversion Sprint | website + lead routing |
-| Beauty/massage/wellness | mobile trust and booking friction | Website Trust & Conversion Sprint | personal-brand website |
-| Private practice/consultant | unclear specialization and qualification | Brand & Offer Clarity Sprint | bilingual website + intake |
+| Home services | missed call, estimate/photo friction | Automation Sprint or Website Sprint | website + photo intake + lead log |
+| Accounting/tax/insurance | trust, bilingual clarity, intake | Website Sprint | bilingual site + structured request |
+| Realtor/mortgage | differentiation and follow-up | Brand Sprint or Website Sprint | website + routing |
+| Beauty/wellness | mobile trust and booking | Website Sprint | personal-brand website |
+| Consultant/private practice | unclear specialization | Brand Sprint | bilingual site + intake |
 
-### 13.10 Pricing rules
+## 13. Pricing and commercial rules
 
-- quote fixed scope and deliverables, not an unexplained hourly number;
-- estimate internally using delivery effort, complexity, risk, revisions, tools, and opportunity cost;
-- never reduce price without reducing scope, timeline priority, or included revisions;
-- no public discount language for the first clients; use a controlled **local launch-partner scope**;
-- no more than one main option and one lower-scope alternative in a proposal;
-- projects under $5,000 normally require a 50% deposit and 50% before launch or handoff;
-- larger projects may use 40% start, 30% approved midpoint, 30% before launch;
+- quote scope and deliverables, not unexplained hours;
+- calculate internally from effort, complexity, risk, revisions, tooling, and opportunity cost;
+- reduce scope rather than discounting unchanged work;
+- use controlled `local launch-partner scope`, not public discount language;
+- proposal contains one main recommendation and at most one reduced-scope alternative;
+- projects under `$5,000`: normally 50% deposit and 50% before launch/handoff;
+- larger projects may use 40/30/30 milestones;
 - recurring services are paid in advance;
-- third-party costs are separate and require client approval;
-- proposal pricing expires after 7 calendar days unless stated otherwise;
-- a start date is not reserved until agreement and deposit are received.
+- third-party costs require approval;
+- pricing normally expires after seven calendar days;
+- start date is not reserved before agreement and deposit;
+- scope additions require a written change order.
 
-## 14. Acquisition motions
+## 14. Acquisition priority
 
-### 14.1 Priority order for the first 30 days
+For the first 30 days:
 
-1. warm relationships and direct introductions;
-2. referrals from existing clients, collaborators, and professional contacts;
+1. warm relationships and introductions;
+2. referrals;
 3. personalized Facebook and LinkedIn outreach;
-4. Google Maps and local-directory prospecting;
-5. partner development;
-6. chambers, local business communities, and in-person networking;
-7. content-generated inbound;
-8. paid advertising only after an offer closes organically.
+4. Google Maps and local directories;
+5. partnerships;
+6. chambers and local communities;
+7. selective offline outreach;
+8. content-generated inbound;
+9. paid advertising only after an offer closes organically.
 
-### 14.2 Warm outreach
+## 15. Warm outreach and referrals
 
-Build a list of:
+### Warm list
 
-- prior construction contacts;
-- contractors, suppliers, property managers, realtors, inspectors, and tradespeople;
-- Financial Stream relationships where an introduction is appropriate and consented;
-- professional contacts around existing portfolio projects;
-- local friends who know business owners;
-- Russian- and Ukrainian-speaking community connectors.
+- former construction contacts;
+- contractors, suppliers, property managers, inspectors, and realtors;
+- permission-based Financial Stream introductions;
+- professional contacts around existing projects;
+- local friends who know owners;
+- Russian- and Ukrainian-speaking connectors.
 
-The request must be specific: ask for one or two introductions to active owners with a visible website, intake, or follow-up problem. Do not ask people to broadcast a generic advertisement to their entire network.
+Ask for one or two direct introductions to active owners with a visible website, intake, or follow-up problem. Do not ask contacts to broadcast generic advertising.
 
-### 14.3 Referrals
+### Referral timing
 
-Referral requests happen at four moments:
+Ask:
 
-1. after a client verbally confirms value;
-2. after a successful launch or milestone;
+1. after the client acknowledges value;
+2. after a successful milestone or launch;
 3. after a positive review;
-4. 30–45 days after completion, when the result has been used.
+4. 30–45 days after completion.
 
-Ask for an introduction, not a name list. Track the referring person and thank them promptly. Do not offer referral fees until legal, tax, disclosure, and channel implications are understood; use reciprocal introductions first.
+Ask for an introduction, not a list of names.
 
-### 14.4 Personalized outbound
+Do not introduce referral fees until legal, tax, disclosure, and channel rules are understood.
 
-The outbound sequence is:
+## 16. Personalized outbound
 
-1. select a P1 or strong P2 target;
-2. verify owner, business activity, and one real problem;
-3. choose the relevant entry offer before writing;
+Sequence:
+
+1. choose a P1 or strong P2 target;
+2. verify activity, owner, and one real problem;
+3. select the likely entry offer;
 4. send a short observation and permission-based next step;
-5. record the message and next-action date;
-6. follow the cadence in Section 22;
-7. stop when the sequence is complete or the prospect declines.
+5. log the message and next-action date;
+6. follow the cadence in Section 25;
+7. stop after decline or completed sequence.
 
-Do not send a personalized audit to an unqualified business merely because the website looks bad.
+Do not produce a free audit merely because a website looks bad.
 
-### 14.5 Google Maps and local directories
+### Research limits
 
-Use Google Maps and local directories to build targeted lists, not generic databases.
+- P1: up to 10 minutes before first contact;
+- P2: up to 5 minutes;
+- deeper research only after engagement;
+- audit production only after qualification, acceptance, or strong warm introduction.
 
-Search by service and city, then record:
+## 17. Google Maps and local directories
 
-- business name and category;
-- website quality;
+Search by service and city. Record:
+
+- business and category;
+- owner/manager where public;
+- website and mobile quality;
 - review volume and recency;
-- owner or manager name where publicly available;
-- phone, email, social profile, and preferred contact route;
+- contact routes;
 - visible problem;
-- lead score;
-- language or community relevance;
-- last activity or buying signal.
+- score and tier;
+- language/community relevance;
+- growth or buying signal;
+- next action.
 
 Priority patterns:
 
-- many reviews but poor website;
-- active business with no website;
-- social profile used as the entire sales system;
-- mobile contact path is broken or confusing;
-- no estimate/photo/request flow;
-- unclear language structure;
-- obvious expansion, hiring, new location, or rebrand activity.
+- many reviews with a weak site;
+- active business with no site;
+- Instagram/Facebook functioning as the entire sales system;
+- broken mobile contact path;
+- no estimate or photo flow;
+- unclear bilingual structure;
+- expansion, hiring, new location, rebrand, or active advertising.
 
-### 14.6 Partnerships
+## 18. Partnerships
 
 Priority partners:
 
 - accountants and bookkeepers;
-- realtors, mortgage brokers, and insurance agents;
+- realtors, mortgage, and insurance professionals;
 - photographers and videographers;
-- marketing consultants and ad specialists;
-- IT support providers;
+- marketing and advertising specialists;
+- IT providers;
 - printers and sign companies;
-- business coaches;
+- coaches and consultants;
 - chambers and community organizers;
-- industry suppliers serving local contractors or beauty businesses.
+- contractor and beauty-industry suppliers.
 
-Partner proposition:
+Partner rule:
 
-- ProAI Expert handles website, intake, and automation work the partner does not provide;
-- the partner remains the trusted primary relationship;
+- each party preserves the primary client relationship;
 - introductions are permission-based;
-- scope and client ownership are clear;
-- no unapproved use of the partner's name, logo, list, or endorsement.
+- scope and ownership are explicit;
+- names, logos, lists, and endorsements are never used without approval;
+- partner records include next action and quarterly check-in.
 
-Create a partner record in the CRM and schedule a quarterly check-in even when no immediate referral exists.
+## 19. Chambers, communities, and offline outreach
 
-### 14.7 Chambers and business communities
+### Chambers and communities
 
-Use chambers and local business communities for repeated relationship exposure, not one-time card distribution.
+Before paying dues:
 
-For each community:
-
-- evaluate member fit before paying dues;
-- attend at least two relevant events before judging value;
+- evaluate ICP fit;
+- attend or inspect at least two relevant activities where possible;
 - identify five connectors and ten target businesses;
 - follow up within 24 hours;
-- offer a useful diagnostic or short educational session only after understanding the group;
-- track conversations, introductions, calls, proposals, and deposits by community.
+- track introductions, calls, proposals, deposits, and revenue.
 
-Membership is justified only when the community produces access, trust, or partner relationships that cannot be obtained more efficiently elsewhere.
+Membership is justified by access, trust, or partner relationships—not logo placement.
 
-### 14.8 Offline outreach
+### Offline outreach
 
-Use in-person outreach selectively for owner-operated businesses where the owner is commonly present.
-
-Suitable targets:
-
-- salons and studios;
-- local contractors with a public office or showroom;
-- professional offices;
-- community events and chamber meetings.
+Use selectively for owner-operated businesses.
 
 Rules:
 
-- visit outside peak customer hours;
-- lead with one observation, not a full pitch;
-- ask who is responsible for the website or client intake;
+- visit outside peak hours;
+- lead with one observation;
+- ask who owns website/intake decisions;
 - request permission to send a short audit;
-- leave one simple card or one-page proof sheet;
-- log the conversation immediately;
-- do not repeatedly visit after a decline.
+- leave one proof sheet or card;
+- log immediately;
+- do not return after a clear decline.
 
-### 14.9 Social-to-sales handoff
+## 20. Daily prospecting block
 
-Every meaningful social interaction must end in one of five states:
-
-- no commercial signal — continue normal engagement;
-- possible fit — create CRM lead and research;
-- problem acknowledged — offer audit or diagnostic call;
-- active intent — qualify and book discovery;
-- not now — set nurture date.
-
-Likes, comments, and friend connections do not count as pipeline unless a business, decision-maker, problem, and next action are recorded.
-
-## 15. Daily prospecting system
-
-### 15.1 Acquisition Mode daily block
-
-When there are zero or one active delivery projects:
+In Acquisition Mode:
 
 - research 10–15 businesses;
 - send 8–10 first contacts;
 - send 4–6 follow-ups;
 - request 1–2 warm introductions;
-- create no more than two personalized audits;
-- perform one partner or local-community action;
-- update all CRM next actions before ending the day.
+- create no more than two audits;
+- complete one partner or community action;
+- clear and update CRM next actions before ending the day.
 
-### 15.2 List-building standard
+A list is valid only when each lead has business, decision-maker hypothesis, source, segment, city, problem, score, channel, next action, and date.
 
-A lead is added only when the record includes:
+## 21. CRM fields
 
-- business name;
-- owner or decision-maker hypothesis;
-- source;
-- segment and city;
-- visible problem;
-- lead score;
-- preferred contact channel;
-- next action and date.
+### Identity
 
-A list of company names without observations and next actions is not a prospect list.
-
-### 15.3 Research time limit
-
-- P1 lead: up to 10 minutes before first contact;
-- P2 lead: up to 5 minutes;
-- deeper research occurs only after engagement;
-- free audit production begins only after qualification or clear interest.
-
-The objective is sufficient relevance, not a free consulting project before contact.
-
-## 16. CRM and pipeline control
-
-### 16.1 Required CRM fields
-
-#### Identity
-
-- business name;
-- owner/decision-maker;
-- role;
-- email;
-- phone;
-- social profile;
-- website;
+- business;
+- decision-maker and role;
+- email, phone, social profile, website;
 - city;
 - preferred language.
 
-#### Segmentation
+### Segmentation
 
 - vertical;
 - ICP tier;
 - P1/P2/P3 score;
 - source;
-- referring person or partner;
-- local/community connection.
+- referrer or partner;
+- local/community relationship.
 
-#### Commercial diagnosis
+### Commercial diagnosis
 
 - observed problem;
 - acknowledged problem;
-- estimated business consequence stated by prospect;
+- consequence stated by prospect;
 - current lead sources;
 - current response process;
-- relevant entry offer;
+- entry offer;
 - potential core project;
 - budget path;
 - urgency;
 - decision process.
 
-#### Activity
+### Activity
 
 - date added;
-- first-contact date;
-- last-contact date;
+- first and last contact dates;
 - response status;
-- audit status and link;
-- discovery date;
-- proposal date;
+- audit status/link;
+- discovery and proposal dates;
 - next action;
 - next-action date;
-- owner of next action.
+- action owner.
 
-#### Revenue and outcome
+### Revenue and outcome
 
-- estimated deal value;
-- proposal value;
-- deposit requested;
-- deposit received;
+- estimated and proposed value;
+- deposit requested/received;
 - close date;
 - lost reason;
 - nurture date;
 - delivery status;
-- review requested/received;
-- case permission requested/received;
-- referrals requested/received.
+- review status;
+- case-permission status;
+- referral status.
 
-### 16.2 Pipeline stages and exit criteria
+## 22. Pipeline and capacity
 
-| Stage | Entry condition | Required exit |
+### Pipeline stages
+
+| Stage | Entry | Required exit |
 |---|---|---|
-| Target | basic fit found | score completed or disqualified |
-| Qualified lead | score is P1/P2 and problem is real | first contact sent |
-| Contacted | personalized contact logged | reply, sequence completion, or nurture |
-| Engaged | substantive reply received | audit/call accepted or clear decline |
-| Audit | audit agreed or delivered | discovery call, nurture, or close |
-| Discovery booked | calendar commitment exists | call completed or rescheduled once |
-| Qualified opportunity | five opportunity conditions met | proposal or documented no-fit decision |
-| Proposal | written scope and price sent | decision date, revision, won, lost, or nurture |
-| Decision | buyer is actively deciding | deposit, explicit decline, or dated delay |
-| Closed won | agreement and deposit received | onboarding completed |
-| Closed lost | explicit no or sequence exhausted | lost reason and future eligibility recorded |
-| Nurture | fit exists but timing is absent | dated reactivation action |
-| Delivery | onboarding complete | accepted milestone or completion |
-| Proof and referral | value acknowledged | review, case permission, and referrals resolved |
+| Target | possible fit | scored or disqualified |
+| Qualified lead | P1/P2 and real problem | first contact sent |
+| Contacted | contact logged | reply, completed sequence, or nurture |
+| Engaged | substantive reply | audit/call/decline |
+| Audit | accepted or delivered | discovery, nurture, or close |
+| Discovery booked | calendar commitment | completed or one reschedule |
+| Qualified opportunity | five qualification conditions | proposal or documented no-fit |
+| Proposal | written scope/price | decision date, won, lost, or nurture |
+| Decision | active buyer decision | deposit, decline, or dated delay |
+| Closed won | agreement and deposit | onboarding complete |
+| Closed lost | decline or exhausted sequence | reason recorded |
+| Nurture | fit without timing | dated reactivation |
+| Delivery | onboarding complete | accepted completion |
+| Proof/referral | value acknowledged | review, permission, referrals resolved |
 
-### 16.3 Non-negotiable next-action rules
+### Next-action rules
 
-- no open lead or opportunity may exist without a dated next action;
-- next action must describe a behavior, not a vague state such as "follow up";
-- every conversation is logged the same day;
-- every proposal has a scheduled decision follow-up before it is sent;
-- every lost opportunity records one primary loss reason;
-- overdue next actions are reviewed each morning;
-- no prospect remains in Proposal for more than 21 days without a documented decision or nurture date;
-- no-show discovery calls receive one reschedule invitation, then move to nurture or lost.
+- no active record without a dated action;
+- action must be behavioral, not “follow up”;
+- conversations are logged the same day;
+- decision follow-up is scheduled before proposal is sent;
+- every loss has one primary reason;
+- overdue actions are reviewed each morning;
+- Proposal cannot remain open more than 21 days without decision or nurture date;
+- no-show receives one reschedule invitation.
 
-### 16.4 Capacity modes
+### Capacity modes
 
 #### Acquisition Mode
 
-Condition: zero or one active client project.
-
-Weekly target:
+Condition: zero or one active project.
 
 - 40–50 first contacts;
 - 20–30 follow-ups;
 - 4–8 audits;
 - 5–8 sales conversations;
-- 2–3 proposals.
+- 2–3 proposals weekly.
 
 #### Balanced Mode
 
-Condition: two active client projects or delivery is approximately half to three-quarters of available capacity.
-
-Weekly target:
+Condition: two active projects or 50–75% delivery capacity.
 
 - 25–30 first contacts;
 - 15–20 follow-ups;
 - 3–4 audits;
-- 3–5 sales conversations;
-- partner and referral activity maintained.
+- 3–5 conversations;
+- referrals and partners maintained.
 
 #### Capacity-Protection Mode
 
-Condition: three active projects, a launch week, or delivery is near full capacity.
+Condition: three active projects, launch week, or near-full delivery capacity.
 
-Weekly target:
-
-- 10–15 high-priority first contacts;
+- 10–15 P1 contacts;
 - all required follow-ups;
 - referrals and partners prioritized;
-- no more than two audits;
-- new starts scheduled rather than accepted immediately.
+- maximum two audits;
+- new starts scheduled, not accepted immediately.
 
-Social activity must follow these modes. High activity without delivery capacity creates poor service and weak proof.
+## 23. Outreach scripts
 
-## 17. Outreach scripts
+Every message must include one truthful business-specific detail.
 
-Scripts are frameworks. Every first contact must include a truthful business-specific detail.
+### Warm introduction request
 
-### 17.1 Warm introduction request
+> I am building ProAI Expert around premium websites and practical lead-response systems for service businesses in Washington. I am looking for one or two active owners whose website, intake, or follow-up is weaker than the business itself. Would you be comfortable introducing me? I will start with a short private observation and will not pressure them.
 
-> I am building ProAI Expert around premium websites and practical lead-response systems for service businesses in Washington. I am looking for one or two active owners whose website, intake, or follow-up is clearly weaker than the business itself. Would you be comfortable introducing me? I will start with a short private observation and will not pressure them.
+### Warm prospect
 
-### 17.2 Warm prospect message
+> Hi [Name]. I reviewed [Business] and noticed [specific observation]. It may be creating unnecessary friction around [trust/contact/booking/estimate]. I can record a short private review with the two or three changes I would prioritize. Would that be useful?
 
-> Hi [Name]. I have been looking more closely at how local service businesses handle the path from first impression to inquiry. I reviewed [Business] and noticed [specific observation]. It may be creating unnecessary friction around [trust/contact/booking/estimate]. I can record a short private review with the two or three changes I would prioritize. Would that be useful?
+### Cold Facebook or LinkedIn
 
-### 17.3 Cold Facebook or LinkedIn message
+> Hi [Name]. I found [Business] through [source] and reviewed the customer path on mobile. One thing stood out: [specific observation]. A customer may [specific consequence]. I build websites and lead-response systems for service businesses in Washington. Would you like a short private review of that flow?
 
-> Hi [Name]. I found [Business] through [source] and looked at the customer path on mobile. One thing stood out: [specific observation]. The likely issue is not the design alone; it is that a customer may [specific consequence without exaggeration]. I build websites and lead-response systems for service businesses in Washington. Would you like a short private review of that flow?
-
-### 17.4 Cold email
+### Cold email
 
 **Subject:** One observation about [Business]
 
 > Hi [Name],
->
-> I reviewed [Business] after finding it through [source]. The business appears active, but [specific website/intake observation] may make it harder for a new customer to [understand the offer/request an estimate/book/contact you].
->
-> I work with service businesses on websites, intake, and practical follow-up systems. I can send a concise private review showing what I would change first. No obligation and no generic report.
->
-> Should I send it?
++>
++> I found [Business] through [source]. The business appears active, but [specific observation] may make it harder for a new customer to [understand/request/book/contact].
++>
++> I work with service businesses on websites, intake, and practical follow-up systems. I can send a concise private review showing what I would change first. Should I send it?
 
-### 17.5 Phone or in-person opener
+### Phone or in-person
 
 > I am not calling to sell a full website on the spot. I noticed one specific issue in how a new customer reaches you: [observation]. Who is the right person to send a two-minute summary to?
 
-### 17.6 Audit delivery message
+### Audit delivery
 
-> I recorded the review. I kept it focused on [problem] and the customer path, not a full redesign. The first change I would make is [one-sentence recommendation]. After you watch it, tell me whether the issue matches what you see in the business. If it does, I can outline a fixed-scope next step.
+> I kept the review focused on [problem], not a full redesign. The first change I would make is [recommendation]. After you watch it, tell me whether this matches what you see in the business. If it does, I can outline a fixed-scope next step.
 
-### 17.7 Referral-partner message
+### Referral request
 
-> I am developing ProAI Expert as a specialist partner for service-business websites, bilingual customer journeys, and practical lead-response automation. Your clients may occasionally need that work, while mine may need [partner service]. I would like to understand what a good referral looks like for you and whether there is a clean, non-competitive way to collaborate.
+> Who are one or two business owners you know whose website or inquiry process is weaker than the quality of their actual business? A direct introduction would be more useful than forwarding a general advertisement.
 
-### 17.8 Direct referral request after delivery
+## 24. Personalized audit
 
-> I am glad this is now working the way we planned. I am building the next group of local client cases. Who are one or two business owners you know whose website or inquiry process is weaker than the quality of their actual business? A direct introduction would be more useful than forwarding a general advertisement.
+Create only when:
 
-## 18. Personalized audit standard
-
-### 18.1 When to create an audit
-
-Create an audit when:
-
-- the lead is P1 or a strong P2;
+- lead is P1 or strong P2;
 - the problem is visible and material;
-- the owner has responded, accepted the audit, or there is a strong warm introduction;
-- there is a plausible paid next step;
-- production will not displace higher-priority sales or delivery work.
+- owner accepted, responded, or arrived through strong introduction;
+- a paid next step is plausible;
+- audit work will not displace delivery or higher-value sales activity.
 
-### 18.2 Audit format
+### Format: 5–7 minutes
 
-Length: normally 5–7 minutes.
-
-Structure:
-
-1. identify the business and customer scenario;
-2. acknowledge one thing that is already credible;
-3. show the first trust or clarity problem;
+1. identify business and customer scenario;
+2. acknowledge one credible strength;
+3. show one trust/clarity problem;
 4. show the mobile/contact/intake consequence;
 5. recommend one immediate change;
-6. show one larger system opportunity only if relevant;
-7. invite a 15–20 minute diagnostic conversation.
+6. mention one larger opportunity only if relevant;
+7. invite a 15–20 minute diagnostic call.
 
-### 18.3 Audit rules
+### Rules
 
-- do not publicly criticize a target without permission;
-- do not claim access to analytics or customer behavior that is not available;
+- no public criticism without permission;
+- no invented analytics or behavior claims;
 - distinguish observation from inference;
-- do not provide a complete implementation blueprint for free;
-- use the prospect's actual language and service context;
-- end with one recommended paid next step, not the entire service catalog;
-- log time spent so the audit channel can be evaluated economically.
+- do not give a full implementation blueprint for free;
+- end with one paid next step;
+- track time spent and downstream conversion.
 
-## 19. Discovery call operating standard
+## 25. Follow-up cadence
 
-### 19.1 Call objective
+### First contact
 
-The objective is not to impress the prospect with every ProAI Expert capability. It is to decide whether there is a problem worth solving, a buyer able to act, and a controlled first project.
+- Day 0: personalized contact;
+- Day 2: one added observation or clarification;
+- Day 5: relevant case, example, or recommendation;
+- Day 10: close-the-loop message;
+- Day 21: final useful touch or nurture;
+- Day 45/90: only with a real future trigger.
 
-### 19.2 Recommended 25-minute structure
+Stop immediately after decline or opt-out.
 
-1. **Context — 3 minutes**
-   - confirm why the prospect agreed to speak;
-   - confirm the most relevant observation.
+### Proposal
 
-2. **Current state — 7 minutes**
-   - where do inquiries come from;
-   - what happens after a call, form, booking, or message;
-   - who responds and how quickly;
-   - what customers repeatedly misunderstand;
-   - where work becomes manual or inconsistent.
+- send with agreed decision date;
+- confirm receipt where needed;
+- follow up on decision date;
+- one clarification 2–3 business days later;
+- close at 7–10 days unless buyer established another timeline;
+- nurture only with trigger and date.
 
-3. **Business consequence — 5 minutes**
-   - what types of inquiries matter most;
-   - what happens when response or qualification fails;
-   - what the owner has already tried;
-   - why the issue matters now.
+## 26. Discovery call
 
-4. **Decision and constraints — 5 minutes**
-   - decision-maker;
-   - desired timing;
-   - budget path;
-   - technical or content constraints;
-   - required approvals.
+### Objective
 
-5. **Recommendation — 5 minutes**
-   - summarize the problem in the prospect's language;
-   - recommend one entry sprint or one core project;
-   - confirm whether a proposal is wanted;
-   - agree on the decision date.
+Determine whether there is a material problem, responsible buyer, reason to act, budget path, and controlled project.
 
-### 19.3 Required discovery questions
+### 25-minute structure
 
-- What is the main way new customers find you today?
-- Which type of customer or job is most valuable?
+1. Context — 3 minutes.
+2. Current process — 7 minutes.
+3. Business consequence — 5 minutes.
+4. Decision, timing, budget, constraints — 5 minutes.
+5. Recommendation and decision date — 5 minutes.
+
+### Required questions
+
+- Where do new customers come from?
+- Which customer or job is most valuable?
 - What happens from first inquiry to confirmed next step?
 - Where do inquiries become delayed, incomplete, or lost?
-- What do prospects ask repeatedly before they are ready?
-- What have you already tried?
-- Why consider changing this now?
-- Who besides you needs to approve the project?
-- Is there a budget already considered, or should I recommend the smallest responsible scope?
-- What would make this project clearly worthwhile operationally, without relying on an unsupported revenue promise?
+- What do prospects repeatedly misunderstand?
+- What has already been tried?
+- Why address this now?
+- Who approves the project?
+- Is there a budget path?
+- What operational result would make the project worthwhile?
 
-## 20. Opportunity decision rule
+Outcome must be one of:
 
-After discovery, choose one of four outcomes:
+- entry sprint;
+- core project;
+- nurture;
+- disqualify.
 
-1. **Entry sprint** — one narrow problem, limited risk, fast implementation.
-2. **Core project** — the problem is systemic and the buyer has budget, urgency, and decision authority.
-3. **Nurture** — real fit but timing, budget, or internal readiness is absent.
-4. **Disqualify** — no responsible commercial fit.
+A call alone does not justify a proposal.
 
-Do not send a proposal merely because a call occurred.
+## 27. Objection handling
 
-## 21. Objection handling
+### Too expensive
 
-### 21.1 "It is too expensive"
+Identify whether the issue is budget, timing, or value. Reduce scope, not the price of unchanged work.
 
-Response path:
+### Need to think
 
-1. confirm whether the objection is total budget, timing, or perceived value;
-2. restate the business problem and agreed scope;
-3. offer a smaller scope, not the same work at a lower price;
-4. preserve deposit and payment discipline;
-5. walk away if the minimum viable result cannot be funded.
+> Which part is still uncertain: the need, scope, price, timing, or confidence in execution?
 
-### 21.2 "I need to think"
+Set a decision date.
 
-> That makes sense. Which part is still uncertain: the need, the scope, the price, the timing, or confidence in execution? If we identify that, I can either resolve it or close the proposal cleanly.
+### Send information
 
-Set a specific decision date. Do not respond with indefinite pressure or daily checking.
+Send one relevant case, scope sheet, or audit. Ask what decision the information should support.
 
-### 21.3 "Send me information"
+### Already have a website
 
-Send one relevant case, one-page scope, or short audit. Do not send the entire website and hope the prospect interprets it.
+Evaluate whether it explains the offer, creates mobile trust, and supports a workable inquiry process. Do not assume replacement is necessary.
 
-Ask:
+### AI is risky or unnecessary
 
-> What decision should the information help you make?
+AI is optional. Use a form, notification, or rule-based automation when it is simpler and more reliable.
 
-### 21.4 "We already have a website"
+### Guarantee leads or rankings
 
-> The question is not whether a website exists. The question is whether it clearly explains the business, builds trust on mobile, and moves the right customer into a workable inquiry process. I am recommending a narrow improvement, not automatically a replacement.
+Guarantee agreed deliverables, implementation, testing, and documentation—not external commercial outcomes.
 
-### 21.5 "AI is risky or unnecessary"
+### No time
 
-> AI is not required. The first decision is the business workflow. If a simple form, notification, or rule-based automation solves it more reliably, that is the correct solution.
+Define minimum client responsibilities. Do not start if approvals, access, and facts will not be provided.
 
-### 21.6 "Can you guarantee leads or rankings?"
+### Cheaper competitor
 
-> I can guarantee the agreed deliverables, implementation standard, testing, and documented process. I cannot responsibly guarantee traffic, rankings, leads, or revenue because those depend on factors outside the project scope.
+Compare scope, proof, languages, implementation, responsibilities, exclusions, and support. Disqualify buyers selecting only the lowest price.
 
-### 21.7 "I do not have time"
+## 28. Proposal, closing, and deposit
 
-Clarify the minimum client responsibilities, identify one content owner, and propose a controlled schedule. If the client cannot provide approvals, access, or facts, do not start.
+Send proposal within 24 hours of qualified discovery where possible.
 
-### 21.8 "Another provider is cheaper"
+Required contents:
 
-Compare scope, proof, responsibilities, languages, implementation, support, and exclusions. Do not attack the competitor. If the buyer only wants the lowest price, disqualify.
-
-## 22. Proposal, follow-up, closing, and deposits
-
-### 22.1 Proposal standard
-
-Send within 24 hours of a qualified discovery call whenever possible.
-
-Every proposal contains:
-
-- prospect's stated problem;
-- observed evidence and assumptions;
-- recommended outcome;
-- exact scope;
-- exclusions;
+- prospect’s stated problem;
+- observations and assumptions;
+- outcome;
+- exact scope and exclusions;
 - timeline and dependencies;
 - client responsibilities;
-- price and payment schedule;
+- price and payments;
 - third-party costs;
 - measurable deliverables;
-- proof or relevant case;
+- relevant proof;
 - decision date and expiration;
-- one primary option and, when useful, one reduced-scope alternative;
-- next step: agreement, invoice, and kickoff scheduling.
+- main option and optional smaller scope;
+- agreement, invoice, and kickoff next step.
 
-### 22.2 Follow-up cadence for first contact
-
-- **Day 0:** personalized first contact.
-- **Day 2:** concise follow-up with one added observation or clarification.
-- **Day 5:** send a relevant example, case, or one-sentence recommendation.
-- **Day 10:** direct close-the-loop message.
-- **Day 21:** final useful touch or move to nurture.
-- **Day 45 or 90:** nurture only when a real fit or future trigger exists.
-
-Stop immediately after a clear decline or opt-out.
-
-### 22.3 Follow-up cadence after proposal
-
-- proposal is sent with a pre-agreed decision date;
-- confirm receipt the same day if needed;
-- follow up on the agreed decision date;
-- one clarification follow-up 2–3 business days later;
-- close the loop at 7–10 days unless the buyer established a different timeline;
-- move to nurture only with a real trigger and date.
-
-### 22.4 Closing standard
-
-Closing language should be direct:
+### Closing language
 
 > Based on what we agreed, the recommended first step is [offer] at [price]. If the scope is correct, I will send the agreement and 50% deposit invoice today. Once both are complete, we schedule kickoff and reserve the start date.
 
-Do not end a qualified call with "let me know." Agree on a decision, next action, owner, and date.
+Never end a qualified process with an undefined “let me know.”
 
-### 22.5 Deposit rules
+### Closed Won
 
-- no work begins before signed scope and cleared deposit;
-- no production start date is promised before deposit;
-- deposits fund reserved capacity and project initiation;
-- milestone approvals and final payments are documented;
-- launch files, production deployment, or final handoff occur after the applicable payment milestone;
-- exceptions require a written business reason and explicit approval, not informal pressure.
+A deal is Closed Won only after:
 
-## 23. Onboarding and delivery handoff
-
-### 23.1 Closed-won trigger
-
-A deal is Closed Won only when:
-
-- scope is agreed;
-- agreement is accepted;
-- deposit is received;
-- primary contact is confirmed;
-- start window is confirmed.
+- scope accepted;
+- agreement accepted;
+- cleared deposit;
+- primary contact confirmed;
+- start window confirmed.
 
 A verbal yes is not Closed Won.
 
-### 23.2 Onboarding checklist
+## 29. Onboarding and delivery protection
 
-- client and business legal/contact details;
-- primary decision-maker and content owner;
-- objectives and scope confirmation;
-- access inventory;
-- content and proof inventory;
-- brand assets;
-- required approvals;
-- third-party accounts and costs;
+Onboarding includes:
+
+- legal/contact information;
+- decision-maker and content owner;
+- objectives and scope;
+- access and content inventory;
+- brand and proof assets;
+- approval process;
+- third-party accounts/costs;
 - communication channel;
-- milestone calendar;
+- milestones;
 - change-request rule;
-- review and case-study permission status;
-- known legal, privacy, or compliance constraints.
+- review and case-permission status;
+- privacy, legal, or compliance constraints.
 
-### 23.3 Delivery protection
+Rules:
 
-- kickoff occurs only after required access and content are available;
-- missing client inputs pause the timeline rather than forcing unverified content;
-- scope additions become a written change order;
+- kickoff after required access/content;
+- missing inputs pause the timeline;
+- additions require change order;
 - approvals are recorded;
-- every project receives a completion checklist and handoff;
-- support boundaries are stated before launch.
+- every project receives completion checklist and handoff;
+- support boundaries are defined before launch.
 
-## 24. Reviews, proof, case studies, and referrals
+## 30. Reviews, proof, case studies, and referrals
 
-### 24.1 Proof hierarchy
+### Proof hierarchy
 
-Use proof in this order:
-
-1. verified client outcome or testimonial;
+1. verified outcome or testimonial;
 2. screenshots and implemented deliverables;
-3. documented process and decision rationale;
-4. concept/demo clearly labeled as concept;
-5. founder claim only when independently supportable.
+3. process and decision rationale;
+4. clearly labelled concept/demo;
+5. founder claim only when supportable.
 
-Related-party or founder-network projects may be valid portfolio work, but they should not be presented as equivalent to broad independent market validation. The first unrelated local client is therefore a strategic priority.
+Related-party work is valid portfolio evidence but not equivalent to independent market validation.
 
-### 24.2 Review request
+### Review request
 
-Request a review after the client has acknowledged a concrete value or successful milestone.
+> Would you be willing to describe the original problem, what it was like to work together, and what is clearer or easier now? Please use only results you have personally observed.
 
-> Would you be willing to write a short review describing the original problem, what it was like to work together, and what is clearer or easier now? Please use only results you have personally observed.
-
-Do not write unsupported outcome claims for the client to copy.
-
-### 24.3 Case-study permission
+### Case permission
 
 Obtain explicit permission for:
 
-- business name and logo;
-- screenshots;
-- public URL;
+- business name/logo;
+- screenshots and URL;
 - process description;
 - testimonial;
-- metrics or outcomes;
-- confidential information exclusions.
+- metrics/outcomes;
+- confidential exclusions.
 
-If metrics are unavailable, publish process and deliverable evidence without inventing performance results.
+### Referral target
 
-### 24.4 Referral request
+Each satisfied client should be asked for two direct introductions. Record request date, introductions, referrer, outcome, and thank-you action.
 
-Ask for referrals after review or successful handoff. Record:
+## 31. KPI system
 
-- date requested;
-- names introduced;
-- referring client;
-- outcome;
-- thank-you action.
-
-The target from each satisfied client is two direct introductions, not a promise that the client will "tell people."
-
-## 25. KPI system
-
-### 25.1 Weekly activity KPIs in Acquisition Mode
+### Weekly Acquisition Mode targets
 
 - 50 qualified businesses researched;
 - 40–50 first contacts;
 - 20–30 follow-ups;
-- 8–10 warm-introduction requests or referral conversations;
-- 4–8 personalized audits or detailed observations;
-- 5–8 meaningful sales conversations;
+- 8–10 warm-introduction or referral requests;
+- 4–8 audits;
+- 5–8 meaningful conversations;
 - 2–3 qualified proposals;
-- 1 paid deposit as the target outcome.
+- one paid deposit target.
 
-The earlier target of 20 warm-introduction requests every week is not the default because it can exhaust a small network and reduce request quality. Use 8–10 high-quality requests initially, then measure introductions received.
-
-### 25.2 Funnel KPIs
+### Funnel metrics
 
 Track by source, vertical, language, city, and offer:
 
-- contact-to-reply rate;
-- reply-to-positive-interest rate;
-- interest-to-call rate;
-- call-to-qualified-opportunity rate;
-- opportunity-to-proposal rate;
-- proposal-to-deposit rate;
-- average days from first contact to deposit;
-- average proposed and closed value;
-- lost-reason distribution;
-- delivery hours by offer;
-- gross revenue by source;
-- referrals generated per completed project.
+- contact-to-reply;
+- reply-to-positive-interest;
+- interest-to-call;
+- call-to-qualified-opportunity;
+- opportunity-to-proposal;
+- proposal-to-deposit;
+- days from contact to deposit;
+- proposed and closed value;
+- lost reasons;
+- delivery hours and margin by offer;
+- revenue by source;
+- referrals per project.
 
-### 25.3 Diagnostic trigger rules
+### Diagnostic triggers
 
-These are internal investigation triggers, not universal market benchmarks:
+- 30 comparable contacts and almost no replies: change targeting, channel, or opener;
+- replies without positive interest: weak problem/message or wrong segment;
+- audits without calls: audit too generic, long, or commercially unclear;
+- calls without qualified opportunities: poor list or discovery;
+- qualified opportunities without proposals: offer or confidence problem;
+- three qualified proposals without deposit: review proof, price, scope, risk, and closing;
+- sold work exceeds delivery estimate: narrow scope or increase price;
+- engagement without deposits: channel is not yet commercially validated.
 
-- after 30 comparable first contacts, almost no replies: change targeting, contact channel, or opener;
-- replies occur but positive interest is rare: observation or consequence is weak or the segment is wrong;
-- audits are watched but calls are not booked: audit is too generic, too long, or lacks a credible paid next step;
-- calls occur but few opportunities qualify: list quality or discovery discipline is weak;
-- qualified opportunities do not receive proposals: offer or delivery confidence is unclear;
-- three or more qualified proposals receive no deposit: review proof, pricing, scope, risk, and closing process;
-- projects sell but delivery time exceeds plan: raise price, narrow scope, or change offer;
-- one channel creates conversations but no deposits: do not call it successful until downstream conversion is understood.
+### First-month targets
 
-### 25.4 Monthly targets for the first 30 days
-
-- 180–220 qualified targets researched;
-- 140–180 first contacts, adjusted for capacity;
+- 180–220 qualified targets;
+- 140–180 first contacts adjusted for capacity;
 - 80–100 follow-ups;
-- 20–30 meaningful sales conversations;
+- 20–30 sales conversations;
 - 8–12 qualified opportunities;
 - 5–8 proposals;
 - 2–4 deposits;
-- at least one unrelated completed or actively delivering client project;
-- at least one verified review or recommendation;
+- at least one unrelated active/completed project;
+- at least one verified review;
 - at least two direct referral introductions.
 
-These are operating targets, not forecasts or guarantees.
+These are targets, not forecasts or guarantees.
 
-## 26. Seven-day launch plan
+## 32. Seven-day execution plan
 
-### Day 1 — Commercial foundation
+### Day 1 — Foundation
 
-- approve final positioning;
-- create CRM with required fields and stages;
-- finalize three entry-offer one-page scopes;
+- create CRM and stages;
+- finalize one-page entry-offer scopes;
 - prepare proposal and invoice process;
-- build 30 P1/P2 targets and 20 warm/referral contacts;
-- define current capacity mode.
-
-**Output:** functioning CRM, offer sheets, 50 named contacts.
+- identify 30 P1/P2 targets and 20 warm/referral contacts;
+- set capacity mode;
+- update LinkedIn/Facebook positioning.
 
 ### Day 2 — Warm activation
 
-- send 8–10 specific introduction requests;
+- send 8–10 introduction requests;
 - contact 8–10 warm prospects;
-- publish one proof-based Financial Stream post;
-- research 10 additional home-service targets;
-- book or schedule first audits/calls.
-
-**Output:** introductions, replies, and dated next actions.
+- publish Financial Stream proof content;
+- research 10 home-service targets;
+- book audits/calls.
 
 ### Day 3 — Local outbound
 
-- send 10 personalized P1 contacts;
-- create up to two audits for accepted or strongly qualified prospects;
-- contact one chamber/community connector and one potential partner;
-- follow up with Day 2 responders.
-
-**Output:** at least two substantive conversations or clear messaging evidence.
+- send 10 P1 contacts;
+- create up to two qualified audits;
+- contact one connector and one partner;
+- follow up with responders.
 
 ### Day 4 — Automation proof
 
 - publish one practical lead-response example;
-- target home-service businesses with missed-call or estimate-flow problems;
-- conduct discovery calls;
+- target home-service response problems;
+- conduct discovery;
 - send same-day proposals to qualified opportunities;
 - record objections verbatim.
 
-**Output:** first qualified opportunity and proposal target.
-
 ### Day 5 — Direct offer
 
-- publish two limited entry-sprint slots, naming the correct sprint rather than generic Lead Fix Sprint;
+- publish two limited entry-sprint slots;
 - follow up with all engaged leads;
-- ask two clients/collaborators for direct introductions;
-- make one in-person or phone outreach block where appropriate.
+- request two introductions;
+- complete one phone or in-person block.
 
-**Output:** explicit commercial conversations, not only engagement.
+### Day 6 — Concentration
 
-### Day 6 — Segment concentration
+- compare home services, professional services, and beauty/wellness;
+- allocate 70% of outreach to the strongest segment;
+- create up to two audits;
+- schedule proposal decisions.
 
-- review reply quality by home services, professional services, and beauty/wellness;
-- spend 70% of outreach time on the strongest segment;
-- create up to two additional audits;
-- send proposals only to qualified opportunities;
-- schedule decision follow-ups.
+### Day 7 — Review and close
 
-**Output:** one leading segment and one leading offer hypothesis.
-
-### Day 7 — Pipeline review and close
-
-- follow up on all active decisions;
+- follow up on decisions;
 - request deposit where scope is agreed;
 - close or nurture inactive opportunities;
 - calculate funnel by source, segment, and message;
-- choose next week's capacity mode and activity targets;
-- document one keep, one stop, and one test decision.
+- choose next capacity mode;
+- record one Keep, one Stop, and one Test.
 
-**Output:** clean pipeline, decision dates, and the next sprint.
-
-## 27. Thirty-day execution plan
+## 33. Thirty-day plan
 
 ### Week 1 — Build and validate
 
-- complete the seven-day launch plan;
-- validate positioning and entry-offer language;
-- obtain first calls and proposals;
-- identify the strongest initial vertical.
+Complete the seven-day plan and identify the strongest early segment, message, and offer.
 
 ### Week 2 — Concentrate
 
-- focus 60–70% of outbound on the strongest vertical;
-- maintain warm and referral activity;
-- start two partner conversations;
-- improve scripts using actual objections;
-- close the first controlled project or identify the exact blocker.
+Allocate 60–70% of outbound to the strongest segment, maintain referrals, begin two partner conversations, and close the first controlled project or identify the precise blocker.
 
-### Week 3 — Deliver and create proof
+### Week 3 — Deliver and document
 
-- protect delivery quality;
-- document before/after evidence;
-- request feedback at an appropriate milestone;
-- publish process evidence without unsupported outcomes;
-- continue Balanced Mode prospecting so pipeline does not stop.
+Protect delivery quality, capture before/after evidence, request milestone feedback, and maintain Balanced Mode prospecting.
 
 ### Week 4 — Institutionalize
 
-- request review, case permission, and two introductions;
-- compare all channels on deposits and revenue, not reach;
-- reprice or rescope offers using actual delivery data;
-- cut the lowest-yield channel or segment;
-- select the primary 60-day ICP and offer;
-- create the next 30-day operating plan.
+Request review, permission, and referrals; compare channels by deposits and revenue; reprice from actual delivery data; remove the weakest channel; select the primary 60-day ICP and offer.
 
-## 28. Weekly operating review
+## 34. Weekly operating review
 
 Conduct one 45–60 minute review at the same time each week.
 
-### 28.1 Required dashboard
+### Dashboard
 
-- current capacity mode;
-- new leads by source and tier;
-- contacts and follow-ups completed;
-- overdue next actions;
+- capacity mode;
+- leads by source and tier;
+- contacts and follow-ups;
+- overdue actions;
 - replies and positive interest;
-- audits created and calls booked;
+- audits and calls;
 - qualified opportunities;
 - proposals and value;
-- deposits and closed revenue;
-- active delivery capacity;
+- deposits and revenue;
+- delivery capacity;
 - lost reasons;
-- review, case, and referral status.
+- reviews, cases, and referrals.
 
-### 28.2 Review questions
+### Questions
 
 1. Which source produced qualified conversations?
-2. Which vertical produced acknowledged problems and budget?
+2. Which vertical acknowledged a material problem and budget?
 3. Which message produced positive replies?
 4. Which offer was easiest to understand and buy?
-5. Where did leads stop in the pipeline?
-6. Which objection appeared repeatedly?
-7. Did free audit time produce calls or only consume capacity?
-8. Did proposals have a decision date and follow-up?
+5. Where did pipeline stop?
+6. Which objection repeated?
+7. Did audit time produce calls?
+8. Did every proposal have a decision date?
 9. Is delivery quality at risk?
-10. What should be kept, stopped, and tested next week?
+10. What will be kept, stopped, and tested?
 
-### 28.3 Required decisions
+### Required decisions
 
-End every weekly review with:
+- **Keep:** one proven action;
+- **Stop:** one low-yield action;
+- **Test:** one controlled variable;
+- **Capacity:** Acquisition, Balanced, or Capacity-Protection;
+- **Owner/date:** assigned for every action.
 
-- **Keep:** one proven activity to continue;
-- **Stop:** one low-yield activity to remove;
-- **Test:** one controlled change in segment, message, channel, offer, or price;
-- **Capacity:** Acquisition, Balanced, or Capacity-Protection Mode;
-- **Owner and date:** every action assigned and dated.
+Do not change several major variables simultaneously with limited evidence.
 
-Do not change several variables at once when evidence is limited.
+## 35. Implementation dependencies
 
-## 29. Website, portfolio, contact-flow, GBP, and proof dependencies
+These are separate workstreams and are not implemented by this strategy document.
 
-These are separate implementation dependencies. They must not be changed in this documentation PR.
+### Website
 
-### 29.1 Website
+- outcome-first homepage positioning;
+- clear separation and connection of websites, branding, and automation;
+- local-service-business path;
+- approved entry-offer sections/pages;
+- appropriate starting-price or qualification guidance;
+- campaign CTAs mapped to relevant contact paths;
+- preservation of technical, language, and evidence constraints.
 
-Required future commercial review:
+### Portfolio
 
-- ensure the homepage states the service-business outcome before listing all capabilities;
-- make websites, branding, and automation understandable as separate offers with a connected path;
-- add a clear local-service-business entry path;
-- add one page or section for the Website Trust & Conversion Sprint;
-- add one page or section for practical lead-response automation;
-- show starting prices or qualification guidance only after offer approval;
-- ensure every campaign CTA reaches a relevant contact path;
-- preserve existing canonical technical, localization, and evidence rules.
+- Financial Stream remains the strongest live proof;
+- Local Repair Pro remains explicitly a concept;
+- related-party, concept, and independent proof are distinguished;
+- first unrelated Washington client is the proof priority;
+- outreach proof assets use one screenshot, problem, decision, and verified result/deliverable;
+- no metrics without approved evidence.
 
-### 29.2 Portfolio
+### Contact flow
 
-Required future proof work:
+A separate approved review must determine whether to add:
 
-- retain Financial Stream as the strongest live commercial proof;
-- retain Local Repair Pro's explicit concept framing;
-- distinguish related-party, concept, and independent client proof;
-- prioritize the first unrelated Washington client case;
-- create compact proof assets for outreach: one screenshot, one problem, one decision, one result or deliverable;
-- do not publish metrics without an approved evidence package.
-
-### 29.3 Contact flow
-
-The current canonical handoff protects contact-form fields from unrelated changes. Any modification requires a separate approved implementation task.
-
-Future review should determine whether the contact flow needs:
-
-- service/offer selection;
+- service selection;
 - business type and city;
 - website URL;
 - primary problem;
-- preferred language;
+- language;
 - timing;
 - responsible budget band;
-- source/referral tracking;
-- audit request consent;
-- clear response-time expectation.
+- source attribution;
+- audit consent;
+- response-time expectation.
 
-The form should qualify without becoming so long that good prospects abandon it.
+Do not change protected contact fields through an unrelated task.
 
-### 29.4 Google Business Profile
+### Google Business Profile
 
-Before creation or major optimization:
+- verify current eligibility and service-area/address rules before creation;
+- use accurate business identity, category, services, and areas;
+- use real founder, process, and project images;
+- link to a trackable contact path;
+- request reviews only from real clients;
+- never misrepresent a virtual office or location;
+- attribute calls, visits, messages, and pipeline separately.
 
-- verify that ProAI Expert meets current eligibility and address/service-area rules;
-- use consistent business name, category, contact information, and service descriptions;
-- define service areas accurately;
-- add real project, founder, and process images;
-- link to a trackable, relevant landing/contact path;
-- request reviews only from real clients with first-hand experience;
-- do not use a virtual-office address or misleading location representation;
-- track calls, website visits, messages, and resulting pipeline separately.
+### Proof and operating assets
 
-### 29.5 Proof assets
-
-Create in a separate content/implementation workstream:
-
-- one-page Financial Stream proof sheet;
-- one-page Website Trust & Conversion Sprint scope;
-- one-page Lead Response Automation Sprint scope;
-- short EN/RU founder introduction;
-- two private-audit templates by niche;
+- Financial Stream proof sheet;
+- Website Sprint scope sheet;
+- Automation Sprint scope sheet;
+- EN/RU founder introduction;
+- niche audit templates;
 - proposal template;
 - review and case-permission forms;
-- referral-introduction template;
-- before/after evidence checklist.
+- referral template;
+- before/after evidence checklist;
+- CRM implementation.
 
-## 30. Governance and GitHub workflow
+## 36. Current execution register
 
-- Keep this as one cross-project master document rather than creating competing social and sales strategy files.
-- Continue review in PR #64 and its branch unless technically impossible.
-- Do not modify `main` directly.
-- The Social Media Project owns substantive changes to Part I.
-- ProAI Expert Business Development owns substantive changes to Part II.
-- Either project may flag cross-section conflicts, but should not silently rewrite the other project's section.
-- Part I changes in this revision are limited to replacing the generic Lead Fix Sprint reference and making audit volume capacity-aware.
-- Website, portfolio, contact-flow, GBP, SEO, article, header, footer, and production-code changes require separate scoped workstreams.
-- Once both parts are reviewed, reconciled, and explicitly approved, update the top-level status from `Working cross-project strategy document` to `Canonical client-acquisition operating plan`.
-- Do not merge this document into unrelated implementation PRs.
+This section is the high-level answer to: **What has been decided, what exists, and what should happen next?**
 
-## 31. Decision record for this revision
+### Decided and canonical
 
-### Preserved from the original strategy
+- final positioning;
+- initial geography and language advantage;
+- ICP tier order;
+- lead scoring and disqualification;
+- offer architecture and initial pricing;
+- acquisition-channel order;
+- CRM and pipeline rules;
+- capacity modes;
+- outreach, audit, discovery, proposal, closing, deposit, onboarding, proof, and referral standards;
+- weekly and monthly KPI system;
+- seven-day and 30-day execution plans.
 
-- Facebook, warm introductions, and direct local prospecting as the fastest short-term paths;
-- LinkedIn as the longer-term professional-services and English-language authority channel;
-- Russian- and Ukrainian-speaking Washington businesses as the initial market advantage;
-- websites as the easiest first sale and AI/automation as a concrete operational add-on;
-- personalized observations and private audits instead of generic mass outreach;
-- one paid deposit as the immediate weekly commercial objective;
-- truthful proof and no unsupported performance guarantees;
-- one shared social-and-sales document rather than competing master files.
+### Existing proof
 
-### Replaced or narrowed
+- Financial Stream: strongest live commercial proof;
+- Alina Horb: implemented live portfolio work, with related-party context handled truthfully;
+- Local Repair Pro: concept/demo, not a completed client outcome.
 
-- replaced the generic Lead Fix Sprint with Website Trust & Conversion Sprint and Lead Response Automation Sprint;
-- replaced an undefined `$950–$1,500` range with scope-based price rules and a `$1,250` default for the website sprint;
-- reduced default warm-introduction volume from 20 per week to 8–10 high-quality requests;
-- made audit volume dependent on delivery capacity;
-- replaced broad ICP lists with tiering, scoring, qualification, and disqualification;
-- replaced a stage list with entry/exit criteria and mandatory next-action rules;
-- replaced general follow-up advice with dated outreach and proposal cadences.
+### Not yet implemented or verified
 
-### Added
+- operating CRM populated with live prospects;
+- entry-offer one-page assets;
+- final proposal/invoice workflow;
+- approved website implementation of new positioning/offers;
+- contact-flow changes;
+- verified Google Business Profile setup;
+- first unrelated Washington client;
+- first independent review and case;
+- measured pricing and delivery calibration from three unrelated projects.
 
-- final positioning and 90-day market focus;
-- three entry-offer structures and connected core offers;
-- pricing, deposit, and change-scope rules;
-- warm, outbound, referral, partner, chamber, directory, and offline motions;
-- complete CRM field set and pipeline controls;
-- capacity modes linking social activity to delivery capability;
-- scripts, audit standards, discovery structure, objections, proposals, closing, and onboarding;
-- review, case-study, and referral operating loop;
-- weekly and monthly KPIs;
-- 7-day and 30-day execution plans;
-- weekly operating review;
-- implementation dependencies for website, portfolio, contact flow, Google Business Profile, and proof assets.
+### Immediate default action
 
-## 32. Current default recommendation
+Unless current capacity or new evidence requires otherwise:
+
+1. operate in Acquisition Mode;
+2. create the CRM and offer sheets;
+3. build the first 50 named prospects/contacts;
+4. activate warm introductions;
+5. begin P1 local outreach;
+6. run the seven-day plan;
+7. review results weekly;
+8. update this register when an item changes state.
+
+## 37. Governance and change control
+
+- This file is the only commercial master plan.
+- Do not create parallel social, sales, outreach, or client-acquisition master documents.
+- Supporting templates, CRM files, proof sheets, and implementation specifications may exist separately but must link back to this plan.
+- New evidence updates the relevant section and decision record in this file.
+- Outdated guidance should be removed or marked superseded, not left as a competing rule.
+- Website and production changes require their own scoped branch and PR.
+- Strategy changes require a dedicated documentation PR or a clearly scoped continuation of the current PR.
+- Main is never modified directly.
+- Every future client-acquisition discussion should begin by checking this file and the current execution register.
+
+### Non-negotiable daily operating rules
+
+1. Every active lead has a dated next action.
+2. Every sales conversation is logged the same day.
+3. No proposal without qualification.
+4. No undefined “let me know” ending.
+5. No unchanged scope at a discounted price.
+6. No work before agreement and cleared deposit.
+7. No unsupported outcome claims.
+8. No free audit without fit and plausible paid next step.
+9. No social activity counted as pipeline without a business, problem, and action.
+10. No acquisition volume that damages delivery quality.
+11. Every completed project enters the review → case permission → referral loop.
+12. Every week ends with Keep, Stop, Test, Capacity, Owner, and Date decisions.
+
+## 38. Final default recommendation
 
 For the next 30 days:
 
-1. operate in Acquisition Mode until two active projects are in delivery;
-2. prioritize home services and professional services, with beauty/wellness as a secondary accessible segment;
-3. use warm introductions, Facebook, and direct local prospecting for immediate conversations;
-4. build LinkedIn as the durable professional-services channel;
-5. sell Website Trust & Conversion Sprint at a standard `$1,250` or Lead Response Automation Sprint starting at `$1,500` when the problem fits;
-6. propose a full website only when the business lacks a viable existing foundation;
-7. obtain agreement and deposit before delivery begins;
-8. convert the first unrelated local client into verified proof, a review, and two referral introductions;
-9. review funnel and capacity every week;
-10. do not mark this document canonical until both parts receive explicit cross-project approval.
+1. prioritize home services and professional services;
+2. use warm introductions, Facebook, and direct local prospecting for immediate conversations;
+3. build LinkedIn as the durable professional-services channel;
+4. sell the Website Trust & Conversion Sprint at `$1,250` or the Lead Response Automation Sprint starting at `$1,500` when the problem fits;
+5. propose a full website only when the current foundation is not viable;
+6. obtain agreement and deposit before delivery;
+7. convert the first unrelated client into verified proof, a review, and two introductions;
+8. measure deposits and delivery economics—not reach alone;
+9. update the execution register weekly;
+10. treat this document as the canonical answer to future questions about where ProAI Expert should focus and what should happen next.

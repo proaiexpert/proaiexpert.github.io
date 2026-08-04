@@ -107,6 +107,14 @@ The site is built as a static production system using:
 
 The repository also contains project documentation, portfolio case packs, QA records, current handoffs, and implementation standards.
 
+## Canonical commercial operating plan
+
+Client acquisition, social media, sales, offers, CRM, pipeline, KPI, and current execution priorities are governed by one document:
+
+- [Client Acquisition Operating Plan](docs/CLIENT_ACQUISITION_SOCIAL_AND_SALES_PLAN.md)
+
+Earlier chats, preliminary drafts, and isolated sales or social notes are historical inputs when they conflict with this plan. Supporting templates and implementation specifications must link back to the canonical plan rather than becoming competing strategy documents.
+
 ## Public repository standard
 
 This repository maintains the [ProAI Expert Public GitHub Repository Standard](docs/GITHUB_PUBLIC_REPOSITORY_STANDARD.md). It defines:

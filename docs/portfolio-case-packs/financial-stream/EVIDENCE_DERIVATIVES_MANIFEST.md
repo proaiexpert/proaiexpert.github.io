@@ -16,8 +16,8 @@ This manifest records the active optimized evidence images used by the Financial
 | Repository file | Format | Dimensions | Bytes | SHA-256 |
 |---|---:|---:|---:|---|
 | `assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-640.webp` | WebP | 640 × 364 | 21,952 | `6e93abcf663381eba0eb6085efdca818fbd2234c6daf0663abf65aa154b789f1` |
-| `assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-1120.webp` | WebP | 1120 × 638 | 43,128 | `043f4db149b7ca807990c3bf8866b0ca3e9de24a150c715959511ec9fbac2d2d` |
-| `assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-1845.webp` | WebP | 1845 × 1051 | 79,402 | `b1398e7e121cea3b6c09676c0e81dbe84e825b7e0c51533502e1ffd4aff00e43` |
+| `assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-1120.webp` | WebP | 1120 × 638 | 47,182 | `b6a3072d642f07f0bed58c4242b67fb01e586ee070d78c8f19fd7ce33ac7b2b1` |
+| `assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-1845.webp` | WebP | 1845 × 1051 | 80,090 | `21bd5abe9809c9f892f6655f3ede5ebc416cc3c495423aa6894320a1d63733c5` |
 
 Visible snapshot values:
 
@@ -33,8 +33,8 @@ Visible snapshot values:
 | Repository file | Format | Dimensions | Bytes | SHA-256 |
 |---|---:|---:|---:|---|
 | `assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-640.webp` | WebP | 640 × 342 | 8,306 | `650daa109153400c549670fa2f974e535dd6b73e0c37822d006ed4d146e3d60a` |
-| `assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-1120.webp` | WebP | 1120 × 599 | 15,640 | `9c4cd1961887970590c5a4a43c7e22d94feb617901b3cc33056c5c7bfa9b5c8f` |
-| `assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-1845.webp` | WebP | 1845 × 986 | 28,404 | `7ae49c19b3a47bf60e819c613a5b92c5793be8e302cefb97e80908190dd7a6c4` |
+| `assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-1120.webp` | WebP | 1120 × 599 | 20,042 | `98443d92bde06f9aab47d71e4e79ec8a23e25588638531474c83d9d25ae53657` |
+| `assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-1845.webp` | WebP | 1845 × 986 | 33,992 | `541db6d95c83e96719b0a7899f0e0301ec087967a1e1eb519c65d1670e6d0df8` |
 
 Visible snapshot values:
 
@@ -53,6 +53,8 @@ The following old active derivatives were removed from this evidence set:
 Historical documents may mention their dated values for audit history, but current public pages and README evidence sections must use the responsive sets listed above.
 
 ## Integrity and use note
+
+Asset repair validation completed August 4, 2026: all six responsive files passed RIFF/WEBP signature checks, Pillow decoding, and exact dimension validation.
 
 These files are optimized, readable derivatives. They preserve the visible Google Search Console metrics and chart context without adding arrows, badges, marketing labels, or altered figures.
 

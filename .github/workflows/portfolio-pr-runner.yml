@@ -24,9 +24,6 @@ jobs:
       - name: Apply Portfolio migration
         run: python .github/scripts/migrate_portfolio_footer.py
 
-      - name: Remove temporary PR runner
-        run: rm -f .github/workflows/portfolio-pr-runner.yml
-
       - name: Install Jekyll and build
         shell: bash
         run: |
@@ -61,12 +58,21 @@ jobs:
           print('Portfolio Footer build verification passed for 8 routes.')
           PY
 
-      - name: Remove temporary report and commit migration
+      - name: Commit verified non-workflow migration
         shell: bash
         run: |
-          rm -f portfolio-footer-migration-report.json
+          rm -rf _site portfolio-footer-migration-report.json
+          git restore --source=HEAD -- .github/workflows
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
+          if git diff --cached --name-only | grep -q '^_site/'; then
+            echo "Generated _site files entered the commit" >&2
+            exit 1
+          fi
+          if git diff --cached --name-only | grep -q '^\.github/workflows/'; then
+            echo "Workflow files entered the bot commit" >&2
+            exit 1
+          fi
           git commit -m "Migrate Portfolio pages to Footer System"
           git push origin HEAD:agent/footer-system-portfolio-pr4

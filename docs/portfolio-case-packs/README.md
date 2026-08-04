@@ -1,26 +1,62 @@
 # ProAI Expert — Portfolio Case Packs
 
-Internal source-of-truth materials for building the ProAI Expert Case Studies archive, individual EN/RU case pages, homepage/service-page proof modules, screenshot sets, and supporting promotional assets.
+Internal evidence, production guidance, screenshot records, and historical planning materials for the ProAI Expert Case Studies system.
 
-## Master planning documents
+## Current authority
 
-Use these first:
+Public production source and current evidence take priority over historical planning documents.
 
-1. `PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md` — current-state audit, final architecture, integration matrix, safe rollout, QA and rollback.
-2. `PORTFOLIO_EXPERIENCE_BLUEPRINT.md` — approved visual and interaction direction.
-3. `PORTFOLIO_PREIMPLEMENTATION_REVIEW_TASK.md` — independent architecture/design/deployment review before implementation.
-4. `PORTFOLIO_DESIGN_REVIEW_TASK.md` — focused visual and interaction critique.
+For the Financial Stream case, use sources in this order:
+
+1. current production source:
+   - `case-studies/financial-stream/index.html`;
+   - `ru/case-studies/financial-stream/index.html`;
+2. `financial-stream/FINANCIAL_STREAM_GSC_EVIDENCE_IMPLEMENTATION_READY_2026-08-04.md`;
+3. `financial-stream/EVIDENCE_INDEX.md`;
+4. `financial-stream/EVIDENCE_DERIVATIVES_MANIFEST.md`;
+5. `financial-stream/SCREENSHOT_MANIFEST.md`;
+6. repository and profile `README.md` evidence summaries.
+
+The approved Financial Stream GSC evidence is:
+
+- performance snapshot captured August 4, 2026: 57 clicks, 7.24K impressions, 0.8% average CTR, 35.2 average position, selected six-month Web-search window;
+- page-indexing snapshot last updated July 23, 2026: 50 indexed pages, 13 pages not indexed, four reason groups;
+- ongoing publication of several practical articles each month may be described as publishing activity, not as proof of rankings, leads, conversion, revenue, or SEO ROI.
+
+## Live verification status
+
+The approved August 2026 Financial Stream evidence is present in current production source and was independently verified on the custom domain on August 4, 2026:
+
+- current EN and RU evidence markers returned from the public routes;
+- all six responsive evidence WebPs returned HTTP 200 with `image/webp` and valid RIFF/WEBP signatures;
+- the approved 13-viewport EN/RU browser matrix completed without evidence overflow, crop, decode, link-access, or JavaScript-disabled failures.
+
+Live deployment and browser behavior must be reverified after future source or publishing changes; a source merge alone is not proof that production updated correctly.
+
+## Historical Financial Stream planning files
+
+The following paths are retained as explicit `HISTORICAL / SUPERSEDED` tombstones. Their original contents remain available in Git history and must not be used as current instructions:
+
+- `financial-stream/CASE_PACK.md`;
+- `financial-stream/CASE_PACK_PART_2_ARCHITECTURE.md`;
+- `financial-stream/CASE_PACK_PART_3_EVIDENCE_AND_FRAMING.md`;
+- `financial-stream/CASE_PACK_APPENDICES.md`;
+- `financial-stream/CASE_V2_MASTER_BRIEF.md`;
+- `financial-stream/CASE_V2_BUILD_TASK.md`;
+- `financial-stream/PACKAGE_STATUS.md`.
+
+Do not restore old GSC values, removed derivative names, obsolete source/live assumptions, or superseded implementation instructions from those historical revisions.
 
 ## Projects
 
-| Priority | Project | Folder / route role | Public status | Production state |
-|---:|---|---|---|---|
-| 1 | Financial Stream LLC | `financial-stream/` · primary flagship client case | Live client project · ongoing optimization | Research complete; V2 ready after source/live parity recovery |
-| 2 | Alina Horb Psychology Practice Website | `alina-horb/` · primary portfolio case | Live project · ongoing refinement | Case pack complete; permissions and production follow Financial Stream prototype |
-| 3 | Local Repair Pro | `local-repair-pro/` · primary concept/showcase case | Website concept · in development | Case pack complete; showcase cleanup required before capture |
-| Secondary | ProAI Expert | existing `/case-studies/proai-expert/` studio case | Internal studio project · live | Preserve existing EN/RU URLs; show as secondary Studio Case rather than deleting it |
+| Priority | Project | Public status | Current guidance |
+|---:|---|---|---|
+| 1 | Financial Stream LLC | Live client project · EN/RU · ongoing optimization | Use the current production source and active evidence documents listed above |
+| 2 | Alina Horb Psychology Practice Website | Live project · ongoing refinement | Use the project-specific current case pack and permission/evidence controls |
+| 3 | Local Repair Pro | Website concept · in development | Preserve concept status and avoid client-proof claims |
+| Secondary | ProAI Expert | Internal studio project · live | Preserve existing EN/RU routes and truthful studio-project status |
 
-## Final portfolio architecture
+## Portfolio architecture
 
 ```text
 /case-studies/
@@ -36,82 +72,26 @@ Use these first:
 /ru/case-studies/proai-expert/
 ```
 
-Do not create a competing `/work/` or `/portfolio/` architecture.
+Do not create a competing `/work/` or `/portfolio/` route system.
 
 ## Working rules
 
-1. These files are internal evidence and production documents, not final public copy.
-2. Public claims must be limited to verified facts recorded in the relevant current master brief.
-3. Demo/concept work must never be represented as a completed client engagement.
-4. Unverified performance, conversion, traffic, revenue, lead or client-satisfaction claims are prohibited.
-5. Personal images, credentials, documents, testimonials and identifying information require publication permission where applicable.
-6. Final public case-study copy must be materially shorter than the source packs and preserve all claim, privacy and safety constraints.
-7. Payroll is a confirmed active Financial Stream service and may appear in current portfolio copy and screenshots when accurately represented.
-8. Existing public routes must not be deleted without preservation or deliberate redirects.
-9. Do not modify public portfolio HTML/CSS/JS directly in `main`.
-10. Resolve source/live parity and create a backup point before any implementation branch work.
+1. Public claims must be tied to current, dated evidence.
+2. Impressions are not visits.
+3. Search Console snapshots do not prove lead growth, conversion improvement, revenue, SEO ROI, guaranteed rankings, or future results.
+4. Historical documents must be explicitly marked and must not appear as current implementation authority.
+5. Demo or concept work must never be represented as a completed client engagement.
+6. Personal images, credentials, documents, testimonials, and identifying information require appropriate publication permission and redaction.
+7. Payroll is a confirmed active Financial Stream service and may appear when accurately represented.
+8. Preserve existing public routes, canonical URLs, reciprocal `hreflang`, `x-default`, forms, analytics, integrations, Chatbase, navigation, and unrelated case sections unless a separately verified defect requires a change.
+9. Do not modify production directly in `main`; use a fresh branch and reviewable PR.
+10. A live visual/network acceptance claim requires actual browser verification, not source inspection alone.
 
-## Current structure
+## Portfolio-level planning documents
 
-```text
-docs/portfolio-case-packs/
-├── README.md
-├── PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md
-├── PORTFOLIO_EXPERIENCE_BLUEPRINT.md
-├── PORTFOLIO_PREIMPLEMENTATION_REVIEW_TASK.md
-├── PORTFOLIO_DESIGN_REVIEW_TASK.md
-├── financial-stream/
-│   ├── CASE_V2_MASTER_BRIEF.md
-│   ├── CASE_V2_BUILD_TASK.md
-│   ├── PACKAGE_STATUS.md
-│   ├── CASE_PACK.md
-│   ├── CASE_PACK_PART_2_ARCHITECTURE.md
-│   ├── CASE_PACK_PART_3_EVIDENCE_AND_FRAMING.md
-│   ├── CASE_PACK_APPENDICES.md
-│   ├── PAYROLL_STATUS_CORRECTION.md
-│   ├── FLAGSHIP_CASE_BUILD_PLAN.md
-│   ├── EVIDENCE_INDEX.md
-│   ├── SCREENSHOT_MANIFEST.md
-│   ├── SOURCE_PACKAGE_MANIFEST.md
-│   ├── EVIDENCE_DERIVATIVES_MANIFEST.md
-│   ├── evidence/
-│   │   ├── README.md
-│   │   └── six WebP review derivatives
-│   └── source/
-│       └── README.md
-├── alina-horb/
-│   └── CASE_PACK.md
-└── local-repair-pro/
-    └── CASE_PACK.md
-```
+These documents remain useful for portfolio-wide architecture and review, subject to current production and project-specific evidence taking precedence:
 
-## Financial Stream source-of-truth hierarchy
-
-Use documents in this order:
-
-1. `CASE_V2_MASTER_BRIEF.md`
-2. `CASE_V2_BUILD_TASK.md`
-3. `PACKAGE_STATUS.md`
-4. `SCREENSHOT_MANIFEST.md`
-5. `EVIDENCE_INDEX.md`
-6. legacy source-pack parts only for additional historical detail
-
-The V2 master brief supersedes older internal statements that treated Payroll as obsolete or required its removal.
-
-## Current production order
-
-1. Resolve the live/source deployment mismatch and selectively restore the existing Case Studies source in a non-main branch.
-2. Create the archive + Financial Stream opening prototype defined in the experience blueprint.
-3. Run the independent pre-implementation review and incorporate blocking corrections.
-4. Build the complete Financial Stream EN/RU flagship case.
-5. Build the scalable Case Studies archive while preserving the existing ProAI Expert studio case.
-6. Build the Alina Horb case after permission and evidence checks.
-7. Clean and build the Local Repair Pro concept case.
-8. Integrate homepage, Websites & Branding, optional AI Systems proof, navigation, footer, sitemap, metadata and redirects.
-9. Run full no-regression QA and perform one controlled launch.
-
-## P0 source/live mismatch
-
-The live ProAI `/case-studies/` routes currently display full EN/RU archive and case pages, while current `main` contains a redirect at `case-studies/index.html`, omits the RU archive source through the Contents API, and does not represent Case Studies in the sitemap. Git history includes commit `5fa342a64b464493a0935047c7c84d6c3884c4f0` labelled `Delete case-studies directory`.
-
-Do not overwrite or rebuild the live case pages from an arbitrary historical file until the actual deployment source is identified and source/live parity is restored.
+- `PORTFOLIO_SITE_AUDIT_AND_MASTER_PLAN.md`;
+- `PORTFOLIO_EXPERIENCE_BLUEPRINT.md`;
+- `PORTFOLIO_PREIMPLEMENTATION_REVIEW_TASK.md`;
+- `PORTFOLIO_DESIGN_REVIEW_TASK.md`.

@@ -1,0 +1,40 @@
+name: Visual QA v4 — Financial Stream fast clean captures
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/visual-qa-financial-stream-v4.yml
+      - .github/scripts/financial-stream-clean-captures-fast.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  clean-captures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Capture clean sections and verify anchor offsets
+        env:
+          QA_OUT: financial-stream-clean-captures-fast
+          QA_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node .github/scripts/financial-stream-clean-captures-fast.mjs
+
+      - name: Upload clean captures and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: financial-stream-clean-captures-v4
+          path: financial-stream-clean-captures-fast
+          if-no-files-found: error
+          retention-days: 14

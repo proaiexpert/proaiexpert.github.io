@@ -1,0 +1,49 @@
+name: Materialize Financial Stream GSC assets
+
+on:
+  push:
+    branches:
+      - financial-stream-gsc-evidence-v2-ready
+    paths:
+      - '.github/workflows/materialize-financial-stream-gsc-assets.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out preparation branch
+        uses: actions/checkout@v4
+        with:
+          ref: financial-stream-gsc-evidence-v2-ready
+          fetch-depth: 0
+
+      - name: Reconstruct and verify optimized evidence assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p assets/img/cases/financial-stream/evidence
+
+          cat tmp/gsc-assets/performance-1120.part-*.b64 | base64 --decode > assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-1120.avif
+          cat tmp/gsc-assets/performance-640.part-*.b64 | base64 --decode > assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-640.webp
+          cat tmp/gsc-assets/indexing-1120.part-*.b64 | base64 --decode > assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-1120.avif
+
+          echo 'b62de8731d942b5cf883d579426d1986b5a0971ee87d1a80388918175e89cc60  assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-1120.avif' | sha256sum --check
+          echo 'e25b9bbaa28120f8d16f0b8bc63979fc8fe9a2eeb3ff5f8038c16809d732b057  assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-640.webp' | sha256sum --check
+          echo 'dfe5b216bb46bb1b7f2f76e170501fffe62e81d8757de064d33ae9b057e3f2f9  assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-1120.avif' | sha256sum --check
+
+          rm -rf tmp/gsc-assets
+          rm -f .github/workflows/materialize-financial-stream-gsc-assets.yml
+
+      - name: Commit materialized assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'assets: prepare current Financial Stream GSC evidence'
+          git push origin HEAD:financial-stream-gsc-evidence-v2-ready

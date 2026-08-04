@@ -59,12 +59,13 @@ The current focus is on service businesses where trust, clear communication, and
 
 ## Verified project signals
 
-Financial Stream includes dated Google Search Console evidence reviewed in July 2026:
+Financial Stream includes current, dated Google Search Console evidence:
 
-- **19 organic clicks** over the reviewed three-month period;
-- **approximately 4.17K search impressions**;
-- **51 indexed pages** at the recorded indexing snapshot;
-- no claim that these visibility signals alone prove leads, conversion growth, revenue, or guaranteed future rankings.
+- **57 organic clicks** in the selected six-month window captured August 4, 2026;
+- **7.24K search impressions**, **0.8% average CTR**, and **35.2 average position** in the same snapshot;
+- **50 indexed pages** and **13 pages not indexed across four reason groups** in the separate July 23, 2026 indexing snapshot;
+- several new practical articles continue to be published each month as the bilingual content system develops;
+- no claim that these signals alone prove lead growth, conversion improvement, revenue, SEO ROI, guaranteed rankings, or future performance.
 
 Full evidence and limitations are documented in the [Financial Stream case study](https://proai-expert.com/case-studies/financial-stream/).
 

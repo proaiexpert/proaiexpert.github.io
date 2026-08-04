@@ -23,6 +23,12 @@ if old_gems not in source:
     raise RuntimeError("Jekyll install block was not found")
 source = source.replace(old_gems, new_gems, 1)
 
+old_liquid_check = "    assert '{%' not in text and '{{' not in text, output"
+new_liquid_check = "    assert '{% include footer-system/' not in text and '{{ footer_' not in text and '{{ variant_copy' not in text, output"
+if old_liquid_check not in source:
+    raise RuntimeError("Generated-output Liquid assertion was not found")
+source = source.replace(old_liquid_check, new_liquid_check, 1)
+
 path = Path("/tmp/footer-pr1-run-original.sh")
 path.write_text(source, encoding="utf-8")
 path.chmod(0o755)

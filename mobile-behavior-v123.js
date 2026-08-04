@@ -7,9 +7,9 @@
   const body = document.body;
 
   function installRuntimeFixes() {
-    if (document.getElementById('mobile-behavior-runtime-fixes-v126')) return;
+    if (document.getElementById('mobile-behavior-runtime-fixes-v127')) return;
     const style = document.createElement('style');
-    style.id = 'mobile-behavior-runtime-fixes-v126';
+    style.id = 'mobile-behavior-runtime-fixes-v127';
     style.textContent = `
       @keyframes proaiLegacyHeaderCubeSpin {
         from { transform: rotateX(0deg) rotateY(0deg); }
@@ -30,6 +30,7 @@
         font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
         font-synthesis: none !important;
         font-kerning: normal !important;
+        box-sizing: border-box !important;
       }
       .global-header .start-btn {
         width: 184px !important;
@@ -38,12 +39,23 @@
         height: 44px !important;
         min-height: 44px !important;
         padding: 0 20px !important;
+        font-size: 11px !important;
+        font-weight: 800 !important;
         line-height: 1 !important;
+        letter-spacing: 1px !important;
+        text-transform: uppercase !important;
       }
       .global-header .lang-link {
         width: 52px !important;
         min-width: 52px !important;
+        max-width: 52px !important;
+        height: 44px !important;
+        min-height: 44px !important;
+        padding: 0 !important;
+        font-size: 13px !important;
+        font-weight: 900 !important;
         line-height: 1 !important;
+        letter-spacing: .5px !important;
         text-align: center !important;
       }
       @media (max-width: 1200px), ((max-height: 540px) and (orientation: landscape)) {
@@ -53,6 +65,30 @@
         body.menu-open header,
         body.menu-open header.header-hidden { transform: translateY(0) !important; }
         .global-header .start-btn { display: none !important; }
+        .global-header .site-nav a {
+          font-size: clamp(17px, 4.2vw, 23px) !important;
+          font-weight: 760 !important;
+          line-height: 1.15 !important;
+          letter-spacing: .02em !important;
+          text-transform: none !important;
+        }
+      }
+      @media (max-width: 620px) {
+        .global-header .lang-link {
+          width: 46px !important;
+          min-width: 46px !important;
+          max-width: 46px !important;
+        }
+        .global-header .site-nav a {
+          font-size: clamp(17px, 5.5vw, 21px) !important;
+        }
+      }
+      @media (max-height: 540px) and (orientation: landscape) {
+        .global-header .site-nav a {
+          font-size: clamp(14px, 2.4vw, 17px) !important;
+          min-height: 47px !important;
+          padding: 10px 0 !important;
+        }
       }
       @media (prefers-reduced-motion: reduce) {
         .global-header .logo-cube {

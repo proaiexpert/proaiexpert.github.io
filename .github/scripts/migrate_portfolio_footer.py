@@ -78,9 +78,13 @@ def migrate_page(path: str, config: dict[str, str]) -> dict[str, object]:
 
     source = LEGACY_STYLESHEET_RE.sub("", source)
 
-    footer_matches = list(FOOTER_RE.finditer(source))
+    footer_matches = [
+        match
+        for match in FOOTER_RE.finditer(source)
+        if "global-footer" in source[match.start() : source.find(">", match.start()) + 1]
+    ]
     if len(footer_matches) != 1:
-        raise RuntimeError(f"{path}: expected exactly one legacy <footer>, found {len(footer_matches)}")
+        raise RuntimeError(f"{path}: expected exactly one visible global footer, found {len(footer_matches)}")
 
     include = (
         "{% include footer-system/footer.html "

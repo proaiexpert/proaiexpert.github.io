@@ -1,0 +1,162 @@
+name: Verify live Financial Stream publication
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/verify-live-financial-stream.yml
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify public EN/RU pages and responsive evidence assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -u
+
+          api_base="https://api.github.com/repos/${GITHUB_REPOSITORY}"
+          accept_header="Accept: application/vnd.github+json"
+          auth_header="Authorization: Bearer ${GH_TOKEN}"
+          version_header="X-GitHub-Api-Version: 2022-11-28"
+          cache_buster="qa-${GITHUB_SHA}-$(date +%s)"
+
+          post_status() {
+            local context="$1"
+            local state="$2"
+            local description="$3"
+            local payload
+            payload="$(jq -n \
+              --arg state "${state}" \
+              --arg context "${context}" \
+              --arg description "${description:0:140}" \
+              '{state: $state, context: $context, description: $description}')"
+
+            curl --fail-with-body --silent --show-error --location \
+              --request POST \
+              --header "${accept_header}" \
+              --header "${auth_header}" \
+              --header "${version_header}" \
+              --header "Content-Type: application/json" \
+              "${api_base}/statuses/${GITHUB_SHA}" \
+              --data "${payload}" >/dev/null
+          }
+
+          fetch_page() {
+            local url="$1"
+            local body_file="$2"
+            local meta
+            meta="$(curl --silent --show-error --location \
+              --connect-timeout 20 --max-time 90 \
+              --header 'Cache-Control: no-cache, no-store, max-age=0' \
+              --header 'Pragma: no-cache' \
+              --output "${body_file}" \
+              --write-out '%{http_code}|%{url_effective}|%{content_type}' \
+              "${url}?${cache_buster}" 2>&1)" || true
+            printf '%s' "${meta}"
+          }
+
+          en_body="$(mktemp)"
+          ru_body="$(mktemp)"
+          en_meta="$(fetch_page 'https://proai-expert.com/case-studies/financial-stream/' "${en_body}")"
+          ru_meta="$(fetch_page 'https://proai-expert.com/ru/case-studies/financial-stream/' "${ru_body}")"
+
+          en_ok=true
+          for marker in \
+            '57 clicks' \
+            '7.24K impressions' \
+            '50 indexed pages' \
+            '13 not indexed' \
+            'CAPTURED AUGUST 4, 2026'; do
+            grep -Fq "${marker}" "${en_body}" || en_ok=false
+          done
+          [[ "${en_meta}" == 200\|* ]] || en_ok=false
+
+          ru_ok=true
+          for marker in \
+            '57 кликов' \
+            '7,24 тыс. показов' \
+            '50 проиндексированных' \
+            '13 не проиндексированы' \
+            'СНИМОК ОТ 4 АВГУСТА 2026 ГОДА'; do
+            grep -Fq "${marker}" "${ru_body}" || ru_ok=false
+          done
+          [[ "${ru_meta}" == 200\|* ]] || ru_ok=false
+
+          if [[ "${en_ok}" == true ]]; then
+            post_status 'live-en-evidence-current' 'success' "Current EN evidence is live; ${en_meta}"
+          else
+            post_status 'live-en-evidence-current' 'failure' "EN public response is stale or incomplete; ${en_meta}"
+          fi
+
+          if [[ "${ru_ok}" == true ]]; then
+            post_status 'live-ru-evidence-current' 'success' "Current RU evidence is live; ${ru_meta}"
+          else
+            post_status 'live-ru-evidence-current' 'failure' "RU public response is stale or incomplete; ${ru_meta}"
+          fi
+
+          assets=(
+            '/assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-640.webp?v=20260804.2'
+            '/assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-1120.webp?v=20260804.2'
+            '/assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-1845.webp?v=20260804.2'
+            '/assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-640.webp?v=20260804.2'
+            '/assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-1120.webp?v=20260804.2'
+            '/assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-1845.webp?v=20260804.2'
+          )
+
+          assets_ok=true
+          asset_failures=0
+          for asset in "${assets[@]}"; do
+            asset_file="$(mktemp)"
+            separator='&'
+            [[ "${asset}" == *\?* ]] || separator='?'
+            asset_meta="$(curl --silent --show-error --location \
+              --connect-timeout 20 --max-time 90 \
+              --header 'Cache-Control: no-cache, no-store, max-age=0' \
+              --header 'Pragma: no-cache' \
+              --output "${asset_file}" \
+              --write-out '%{http_code}|%{content_type}|%{size_download}' \
+              "https://proai-expert.com${asset}${separator}${cache_buster}" 2>&1)" || true
+
+            magic_1="$(head -c 4 "${asset_file}" 2>/dev/null || true)"
+            magic_2="$(dd if="${asset_file}" bs=1 skip=8 count=4 status=none 2>/dev/null || true)"
+
+            if [[ "${asset_meta}" != 200\|image/webp\|* || "${magic_1}" != 'RIFF' || "${magic_2}" != 'WEBP' ]]; then
+              assets_ok=false
+              asset_failures=$((asset_failures + 1))
+            fi
+          done
+
+          if [[ "${assets_ok}" == true ]]; then
+            post_status 'live-six-webps-valid' 'success' 'All six public evidence assets returned HTTP 200, image/webp, and RIFF/WEBP signatures.'
+          else
+            post_status 'live-six-webps-valid' 'failure' "${asset_failures} of six public evidence assets failed HTTP, MIME, or RIFF/WEBP validation."
+          fi
+
+          resolved_ips="$(getent ahostsv4 proai-expert.com 2>/dev/null | awk '{print $1}' | sort -u | paste -sd, -)"
+          if [[ -n "${resolved_ips}" ]]; then
+            post_status 'live-domain-resolves' 'success' "proai-expert.com resolves to ${resolved_ips}"
+          else
+            post_status 'live-domain-resolves' 'failure' 'proai-expert.com did not resolve from the GitHub-hosted runner.'
+          fi
+
+          {
+            echo '## Live Financial Stream verification'
+            echo
+            echo "- EN metadata: ${en_meta}"
+            echo "- EN current: ${en_ok}"
+            echo "- RU metadata: ${ru_meta}"
+            echo "- RU current: ${ru_ok}"
+            echo "- Six WebPs valid: ${assets_ok}"
+            echo "- Asset failures: ${asset_failures}"
+            echo "- Resolved IPv4 addresses: ${resolved_ips}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          [[ "${en_ok}" == true && "${ru_ok}" == true && "${assets_ok}" == true ]]

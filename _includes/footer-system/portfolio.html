@@ -1,0 +1,40 @@
+{% assign footer_lang = include.lang | default: 'en' %}
+{% assign footer_variant = include.variant | default: 'case' %}
+{% assign footer_copy = site.data.footer[footer_lang] %}
+{% assign portfolio_copy = footer_copy.portfolio[footer_variant] %}
+
+<footer class="site-footer site-footer--portfolio site-footer--portfolio-{{ footer_variant }}" data-footer-family="portfolio" data-footer-variant="{{ footer_variant }}">
+  <div class="site-footer__shell">
+    <div class="site-footer__main">
+      <div class="site-footer__cta site-footer__portfolio-closing" role="group" aria-labelledby="site-footer-title-{{ footer_lang }}-portfolio-{{ footer_variant }}">
+        <p class="site-footer__eyebrow">{{ portfolio_copy.eyebrow }}</p>
+        <h2 id="site-footer-title-{{ footer_lang }}-portfolio-{{ footer_variant }}">{{ portfolio_copy.title }}</h2>
+        <p class="site-footer__summary">{{ portfolio_copy.summary }}</p>
+        <a class="site-footer__primary-action" href="{{ portfolio_copy.action_href }}">{{ portfolio_copy.action_label }} <span aria-hidden="true">→</span></a>
+      </div>
+
+      <div class="site-footer__details">
+        <nav class="site-footer__detail-group site-footer__services" aria-label="{{ portfolio_copy.navigation_title }}">
+          <h3>{{ portfolio_copy.navigation_title }}</h3>
+          {% if portfolio_copy.show_back %}
+          <a href="{{ portfolio_copy.back_href }}">{{ portfolio_copy.back_label }}</a>
+          {% endif %}
+          {% for service in footer_copy.services limit: 2 %}
+          <a href="{{ service.href }}">{{ service.label }}</a>
+          {% endfor %}
+        </nav>
+
+        <div class="site-footer__detail-group" role="group" aria-labelledby="site-footer-contact-{{ footer_lang }}-portfolio-{{ footer_variant }}">
+          <h3 id="site-footer-contact-{{ footer_lang }}-portfolio-{{ footer_variant }}">{{ footer_copy.contact_title }}</h3>
+          <a href="mailto:hello@proai-expert.com">hello@proai-expert.com</a>
+          {% if footer_lang == 'ru' %}
+          <a href="https://t.me/proAiexpert" target="_blank" rel="noopener noreferrer">Telegram <span aria-hidden="true">↗</span></a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% include footer-system/brand-zone.html %}
+    {% include footer-system/bottom.html lang=footer_lang locale_href=include.locale_href %}
+  </div>
+</footer>

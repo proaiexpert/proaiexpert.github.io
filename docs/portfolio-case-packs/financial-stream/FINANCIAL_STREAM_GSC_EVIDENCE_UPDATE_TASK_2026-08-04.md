@@ -17,4 +17,4 @@ Current approved evidence:
 - performance snapshot captured August 4, 2026: 57 clicks, 7.24K impressions, 0.8% average CTR, 35.2 average position in the selected six-month window;
 - page-indexing snapshot last updated July 23, 2026: 50 indexed pages, 13 not indexed, four reason groups.
 
-The live website remains unchanged until a separate production implementation is explicitly approved, applied from the then-current `main`, reviewed, and merged.
+Production implementation was completed through PR #77 and squash-merged as `96a524e1e6fd656ce52b168bc0b0454360c182eb` on August 4, 2026. Use the live EN/RU case pages and the implementation-ready document for the current public state and limitations.

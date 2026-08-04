@@ -1,0 +1,39 @@
+name: Portfolio Footer Diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    if: github.head_ref == 'agent/footer-system-portfolio-pr4'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/footer-system-portfolio-pr4
+      - name: Print footer contexts
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          for path in [
+              'case-studies/financial-stream/index.html',
+              'ru/case-studies/financial-stream/index.html',
+          ]:
+              text = Path(path).read_text(encoding='utf-8')
+              matches = list(re.finditer(r'<footer\b[^>]*>.*?</footer>', text, re.I | re.S))
+              print(f'FILE {path} MATCHES {len(matches)}')
+              for i, match in enumerate(matches):
+                  opening_end = text.find('>', match.start()) + 1
+                  print(f'--- MATCH {i} START {match.start()} END {match.end()}')
+                  print('OPENING:', repr(text[match.start():opening_end]))
+                  print('BEFORE:', repr(text[max(0, match.start()-500):match.start()]))
+                  print('AFTER:', repr(text[match.end():match.end()+500]))
+          PY

@@ -64,6 +64,41 @@ jobs:
           print('Footer System generated output verified for 8 routes.')
           PY
 
+      - name: Verify Portfolio Footer generated output
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          routes = {
+              'case-studies/index.html': ('en', '/ru/case-studies/'),
+              'ru/case-studies/index.html': ('ru', '/case-studies/'),
+              'case-studies/financial-stream/index.html': ('en', '/ru/case-studies/financial-stream/'),
+              'ru/case-studies/financial-stream/index.html': ('ru', '/case-studies/financial-stream/'),
+              'case-studies/alina-horb/index.html': ('en', '/ru/case-studies/alina-horb/'),
+              'ru/case-studies/alina-horb/index.html': ('ru', '/case-studies/alina-horb/'),
+              'case-studies/local-repair-pro/index.html': ('en', '/ru/case-studies/local-repair-pro/'),
+              'ru/case-studies/local-repair-pro/index.html': ('ru', '/case-studies/local-repair-pro/'),
+          }
+
+          for route, (lang, locale_href) in routes.items():
+              output = Path('_site') / route
+              text = output.read_text(encoding='utf-8')
+              assert text.count('data-footer-family="portfolio"') == 1, route
+              assert text.count('site-footer__brand-zone') == 1, route
+              assert text.count('site-footer__watermark') == 1, route
+              assert '{% include footer-system/' not in text, route
+              assert '{{ footer_' not in text, route
+              assert 'portfolio-footer-compact-v1.css' not in text, route
+              assert 'https://github.com/proaiexpert' in text, route
+              assert f'href="{locale_href}"' in text, route
+              if lang == 'en':
+                  assert 'https://t.me/proAiexpert' not in text, route
+              else:
+                  assert 'https://t.me/proAiexpert' in text, route
+          print('Portfolio Footer generated output verified for 8 routes.')
+          PY
+
       - name: Upload generated site artifact
         uses: actions/upload-pages-artifact@v4
         with:

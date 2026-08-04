@@ -24,13 +24,29 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
+      - name: Repair migration runner delimiter
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/footer-pr1-migrate.py')
+          text = path.read_text(encoding='utf-8')
+          old = "f'lang=\"{lang}\" variant=\"{variant}\" locale_href=\"{locale_href}\" %}'"
+          new = "f'lang=\"{lang}\" variant=\"{variant}\" locale_href=\"{locale_href}\" ' + '%}'"
+          if old not in text:
+              raise SystemExit('Expected migration delimiter was not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
       - name: Apply migration and run full QA
         shell: bash
         run: bash .github/footer-pr1-run.sh
 
       - name: Upload QA screenshots
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: footer-pr1-qa
           path: /tmp/footer-pr1-qa
+          if-no-files-found: ignore
           retention-days: 14

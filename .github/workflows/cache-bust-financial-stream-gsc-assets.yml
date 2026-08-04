@@ -1,0 +1,71 @@
+name: Cache-bust Financial Stream GSC assets
+
+on:
+  push:
+    branches:
+      - agent/repair-financial-stream-gsc-assets-2026-08-04
+    paths:
+      - .github/workflows/cache-bust-financial-stream-gsc-assets.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cache-bust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/repair-financial-stream-gsc-assets-2026-08-04
+          fetch-depth: 0
+
+      - name: Version repaired evidence URLs
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import re
+
+          version = 'v=20260804.2'
+          pages = [
+              Path('case-studies/financial-stream/index.html'),
+              Path('ru/case-studies/financial-stream/index.html'),
+          ]
+          assets = [
+              '/assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-640.webp',
+              '/assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-1120.webp',
+              '/assets/img/cases/financial-stream/evidence/fs-gsc-performance-6-months-2026-08-04-1845.webp',
+              '/assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-640.webp',
+              '/assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-1120.webp',
+              '/assets/img/cases/financial-stream/evidence/fs-gsc-indexing-2026-07-23-1845.webp',
+          ]
+
+          for page in pages:
+              text = page.read_text(encoding='utf-8')
+              for asset in assets:
+                  pattern = re.compile(re.escape(asset) + r'(?!\?v=)')
+                  count = len(pattern.findall(text))
+                  if count == 0:
+                      raise SystemExit(f'Expected unversioned reference not found: {page}: {asset}')
+                  text = pattern.sub(asset + '?' + version, text)
+              for asset in assets:
+                  if re.search(re.escape(asset) + r'(?!\?v=)', text):
+                      raise SystemExit(f'Unversioned reference remains: {page}: {asset}')
+              page.write_text(text, encoding='utf-8')
+
+          print('Versioned all six repaired GSC asset URLs on EN and RU case pages.')
+          PY
+
+      - name: Remove one-time workflow and commit cache bust
+        shell: bash
+        run: |
+          rm .github/workflows/cache-bust-financial-stream-gsc-assets.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            case-studies/financial-stream/index.html \
+            ru/case-studies/financial-stream/index.html \
+            .github/workflows/cache-bust-financial-stream-gsc-assets.yml
+          git commit -m "Bust cache for repaired Financial Stream GSC assets"
+          git push origin HEAD:agent/repair-financial-stream-gsc-assets-2026-08-04

@@ -35,6 +35,31 @@ if old_legal_check not in source:
     raise RuntimeError("Generated-output legal-link assertion was not found")
 source = source.replace(old_legal_check, new_legal_check, 1)
 
+old_overflow_state = "          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,"
+new_overflow_state = """          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          overflowing: [...document.querySelectorAll('body *')].map(el => {
+            const r = el.getBoundingClientRect();
+            const style = getComputedStyle(el);
+            return {
+              tag: el.tagName.toLowerCase(),
+              id: el.id || '',
+              className: typeof el.className === 'string' ? el.className : '',
+              left: r.left, right: r.right, width: r.width,
+              position: style.position,
+              transform: style.transform,
+              overflowX: style.overflowX,
+            };
+          }).filter(item => item.left < -1 || item.right > document.documentElement.clientWidth + 1).slice(0, 30),"""
+if old_overflow_state not in source:
+    raise RuntimeError("Browser overflow state anchor was not found")
+source = source.replace(old_overflow_state, new_overflow_state, 1)
+
+old_overflow_failure = "      if (state.overflow > 1) routeFailures.push(`horizontal overflow=${state.overflow}`);"
+new_overflow_failure = "      if (state.overflow > 1) routeFailures.push(`horizontal overflow=${state.overflow}; elements=${JSON.stringify(state.overflowing)}`);"
+if old_overflow_failure not in source:
+    raise RuntimeError("Browser overflow failure anchor was not found")
+source = source.replace(old_overflow_failure, new_overflow_failure, 1)
+
 path = Path("/tmp/footer-pr1-run-original.sh")
 path.write_text(source, encoding="utf-8")
 path.chmod(0o755)

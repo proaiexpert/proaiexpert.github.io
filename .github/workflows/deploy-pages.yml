@@ -1,0 +1,74 @@
+name: Deploy Jekyll site to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build site with Jekyll
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+
+      - name: Verify Footer System generated output
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          routes = [
+              'about/index.html',
+              'ru/about/index.html',
+              'contact/index.html',
+              'ru/contact/index.html',
+              'ai-systems/index.html',
+              'ru/ai-systems/index.html',
+              'websites-branding/index.html',
+              'ru/websites-branding/index.html',
+          ]
+
+          for route in routes:
+              output = Path('_site') / route
+              text = output.read_text(encoding='utf-8')
+              assert text.count('data-footer-family="commercial"') == 1, route
+              assert '{% include footer-system/' not in text, route
+              assert '{{ footer_' not in text, route
+              assert text.count('site-footer__brand-zone') == 1, route
+          print('Footer System generated output verified for 8 routes.')
+          PY
+
+      - name: Upload generated site artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

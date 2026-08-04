@@ -1,0 +1,27 @@
+name: Request legacy GitHub Pages rebuild
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/request-legacy-pages-build.yml
+
+permissions:
+  contents: read
+  pages: write
+
+jobs:
+  request-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request build from latest default-branch revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl --fail-with-body --location \
+            --request POST \
+            --header "Accept: application/vnd.github+json" \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header "X-GitHub-Api-Version: 2026-03-10" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages/builds"

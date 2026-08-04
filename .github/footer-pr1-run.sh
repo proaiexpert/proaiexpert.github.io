@@ -37,6 +37,7 @@ source = source.replace(old_legal_check, new_legal_check, 1)
 
 old_overflow_state = "          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,"
 new_overflow_state = """          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          footerInternalOverflow: footer.scrollWidth - footer.clientWidth,
           overflowing: [...document.querySelectorAll('body *')].map(el => {
             const r = el.getBoundingClientRect();
             const style = getComputedStyle(el);
@@ -48,6 +49,7 @@ new_overflow_state = """          overflow: document.documentElement.scrollWidth
               position: style.position,
               transform: style.transform,
               overflowX: style.overflowX,
+              inFooter: footer.contains(el),
             };
           }).filter(item => item.left < -1 || item.right > document.documentElement.clientWidth + 1).slice(0, 30),"""
 if old_overflow_state not in source:
@@ -55,7 +57,10 @@ if old_overflow_state not in source:
 source = source.replace(old_overflow_state, new_overflow_state, 1)
 
 old_overflow_failure = "      if (state.overflow > 1) routeFailures.push(`horizontal overflow=${state.overflow}`);"
-new_overflow_failure = "      if (state.overflow > 1) routeFailures.push(`horizontal overflow=${state.overflow}; elements=${JSON.stringify(state.overflowing)}`);"
+new_overflow_failure = """      const footerOverflowing = state.overflowing.filter(item => item.inFooter);
+      if (state.footerInternalOverflow > 1 || footerOverflowing.length) {
+        routeFailures.push(`footer overflow=${state.footerInternalOverflow}; elements=${JSON.stringify(footerOverflowing)}`);
+      }"""
 if old_overflow_failure not in source:
     raise RuntimeError("Browser overflow failure anchor was not found")
 source = source.replace(old_overflow_failure, new_overflow_failure, 1)

@@ -24,7 +24,7 @@
       'v1'
     );
     appendStylesheet(
-      '/assets/css/homepage-tool-marquee-premium-v1.css?v=20260803.1',
+      '/assets/css/homepage-tool-marquee-premium-v1.css?v=20260803.2',
       'data-homepage-tool-marquee-premium',
       'v1'
     );

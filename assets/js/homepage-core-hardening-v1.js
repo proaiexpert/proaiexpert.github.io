@@ -22,7 +22,7 @@
     if (document.querySelector('script[data-homepage-workflow-environment]')) return;
 
     var script = document.createElement('script');
-    script.src = '/assets/js/homepage-workflow-environment-v1.js?v=20260803.2';
+    script.src = '/assets/js/homepage-workflow-environment-v1.js?v=20260803.3';
     script.async = false;
     script.setAttribute('data-homepage-workflow-environment', 'v1');
     document.head.appendChild(script);

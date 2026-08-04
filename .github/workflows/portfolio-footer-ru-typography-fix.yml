@@ -1,0 +1,54 @@
+name: Portfolio Footer RU Typography Fix
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'agent/footer-system-portfolio-pr4' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/footer-system-portfolio-pr4
+          fetch-depth: 0
+      - name: Prevent broken Russian words in Portfolio Footer titles
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('assets/css/footer-system-v1.css')
+          text = path.read_text(encoding='utf-8')
+          marker = '/* Portfolio Russian title readability. */'
+          if marker not in text:
+              text = text.rstrip() + '''
+
+/* Portfolio Russian title readability. */
+.site-footer--portfolio:lang(ru) .site-footer__cta h2 {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+@media (max-width:700px) {
+  .site-footer--portfolio:lang(ru) .site-footer__cta h2 {
+    max-width: 100%;
+    font-size: clamp(32px,9.2vw,40px);
+    line-height: 1.04;
+  }
+}
+''' 
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit production typography correction
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/css/footer-system-v1.css
+          git commit -m "Polish Russian Portfolio footer title wrapping"
+          git push origin HEAD:agent/footer-system-portfolio-pr4

@@ -2,6 +2,10 @@
 
 **Status:** Canonical client-acquisition operating plan  
 **Approved:** 2026-08-04  
+**Operating owner:** Ihor Horb  
+**Social strategy owner:** Social Media Project  
+**Sales strategy owner:** ProAI Expert Business Development Project  
+**Review cadence:** Weekly operating review; monthly strategic review  
 **Repository:** `proaiexpert/proaiexpert.github.io`  
 **Canonical path:** `docs/CLIENT_ACQUISITION_SOCIAL_AND_SALES_PLAN.md`
 
@@ -844,10 +848,10 @@ Every message must include one truthful business-specific detail.
 **Subject:** One observation about [Business]
 
 > Hi [Name],
-+>
-+> I found [Business] through [source]. The business appears active, but [specific observation] may make it harder for a new customer to [understand/request/book/contact].
-+>
-+> I work with service businesses on websites, intake, and practical follow-up systems. I can send a concise private review showing what I would change first. Should I send it?
+>
+> I found [Business] through [source]. The business appears active, but [specific observation] may make it harder for a new customer to [understand/request/book/contact].
+>
+> I work with service businesses on websites, intake, and practical follow-up systems. I can send a concise private review showing what I would change first. Should I send it?
 
 ### Phone or in-person
 

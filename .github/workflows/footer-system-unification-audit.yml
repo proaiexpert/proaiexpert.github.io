@@ -1,0 +1,64 @@
+name: Footer System Unification Audit
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: github.head_ref == 'agent/footer-system-unification-final'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/footer-system-unification-final
+          fetch-depth: 0
+      - name: Inventory Footer System and Editorial sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p footer-audit/source
+          {
+            echo 'HEAD:'
+            git rev-parse HEAD
+            echo
+            echo 'PUBLIC INSIGHTS FILES:'
+            find insights ru/insights -type f 2>/dev/null | sort
+            echo
+            echo 'FOOTER SYSTEM FILES:'
+            find _includes/footer-system _data assets/css -maxdepth 3 -type f 2>/dev/null | grep -E '(footer|social)' | sort || true
+            echo
+            echo 'FOOTER INCLUDE REFERENCES:'
+            grep -RInE 'footer-system/|footer-commercial-v1|<footer|f-backmark|f-socials|site-footer__' --include='*.html' --include='*.md' --include='*.liquid' . \
+              --exclude-dir=.git --exclude-dir=_site --exclude-dir=node_modules | sort || true
+            echo
+            echo 'ARTICLE TEMPLATE / GENERATOR CANDIDATES:'
+            find . -type f \( -iname '*article*' -o -iname '*insight*' -o -iname '*premium*' -o -iname '*generator*' \) \
+              | grep -vE '^./(.git|_site|node_modules)/' | sort || true
+            echo
+            echo 'VK REFERENCES:'
+            grep -RInE 'vk\.com|ВКонтакте|VKontakte|\bVK\b' . --exclude-dir=.git --exclude-dir=_site --exclude-dir=node_modules || true
+          } | tee footer-audit/audit.txt
+
+          while IFS= read -r path; do
+            rel="${path#./}"
+            mkdir -p "footer-audit/source/$(dirname "$rel")"
+            cp "$rel" "footer-audit/source/$rel"
+          done < <(
+            find _includes _data insights ru/insights assets/css assets/js scripts tools docs .github/workflows \
+              -type f 2>/dev/null \
+              | grep -E '\.(html|md|yml|yaml|css|js|rb|py|sh|json)$' \
+              | grep -vE '/(node_modules|_site)/' \
+              | sort -u
+          )
+      - name: Upload audit source pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: footer-system-unification-audit
+          path: footer-audit
+          if-no-files-found: error
+          retention-days: 7

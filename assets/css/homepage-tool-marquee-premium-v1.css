@@ -1,21 +1,25 @@
 /* Premium visibility and interaction layer for the homepage technology marquee. */
 
 #tech-section-en .t-main-row .t-node {
-  color: rgba(232, 241, 246, .24);
-  text-shadow: 0 0 18px rgba(93, 226, 255, .045);
+  color: rgba(239, 246, 249, .40);
+  text-shadow: 0 0 18px rgba(93, 226, 255, .08);
 }
 
 #tech-section-en .t-secondary-row .t-node {
-  color: rgba(222, 234, 240, .20);
-  text-shadow: 0 0 18px rgba(93, 226, 255, .035);
+  color: rgba(231, 240, 244, .34);
+  text-shadow: 0 0 18px rgba(93, 226, 255, .065);
 }
 
 #tech-section-en .t-node {
+  position: relative;
   transition:
-    color .32s var(--ease),
-    text-shadow .32s var(--ease),
-    transform .32s var(--ease);
+    color .28s var(--ease),
+    text-shadow .28s var(--ease),
+    transform .28s var(--ease),
+    filter .28s var(--ease);
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 #tech-section-en .t-main-row .t-track {
@@ -27,58 +31,68 @@
 }
 
 #tech-section-en .hwe-tools-caption {
-  color: rgba(255, 255, 255, .42);
+  color: rgba(255, 255, 255, .52);
+  font-size: 11px;
+  letter-spacing: .16em;
 }
 
 @media (hover: hover) and (pointer: fine) {
   #tech-section-en .t-node:hover {
     color: rgba(255, 255, 255, .96);
     text-shadow:
-      0 0 9px rgba(93, 226, 255, .52),
-      0 0 24px rgba(93, 226, 255, .26);
+      0 0 7px rgba(255, 255, 255, .16),
+      0 0 16px rgba(93, 226, 255, .34),
+      0 0 30px rgba(93, 226, 255, .16);
     transform: translateY(-1px);
+    filter: saturate(1.08);
   }
 }
 
 @media (max-width: 700px) {
   #tech-section-en .t-main-row .t-node {
-    color: rgba(242, 247, 250, .50);
-    text-shadow: 0 0 16px rgba(93, 226, 255, .055);
+    color: rgba(246, 250, 252, .64);
+    text-shadow:
+      0 0 12px rgba(255, 255, 255, .05),
+      0 0 20px rgba(93, 226, 255, .10);
   }
 
   #tech-section-en .t-secondary-row .t-node {
-    color: rgba(234, 242, 246, .44);
-    text-shadow: 0 0 16px rgba(93, 226, 255, .045);
+    color: rgba(238, 245, 248, .57);
+    text-shadow:
+      0 0 12px rgba(255, 255, 255, .04),
+      0 0 20px rgba(93, 226, 255, .085);
   }
 
   #tech-section-en .hwe-tools-caption {
-    color: rgba(255, 255, 255, .50);
+    color: rgba(255, 255, 255, .60);
+    font-size: 11px;
+    line-height: 1.62;
+    letter-spacing: .14em;
   }
 }
 
 @media (hover: none), (pointer: coarse) {
   #tech-section-en .t-node {
-    pointer-events: none;
-    transform: none !important;
+    cursor: default;
   }
 
-  #tech-section-en .t-main-row .t-node,
-  #tech-section-en .t-main-row .t-node:hover,
-  #tech-section-en .t-main-row .t-node:active {
-    color: rgba(242, 247, 250, .50);
-    text-shadow: 0 0 16px rgba(93, 226, 255, .055);
-  }
-
-  #tech-section-en .t-secondary-row .t-node,
-  #tech-section-en .t-secondary-row .t-node:hover,
-  #tech-section-en .t-secondary-row .t-node:active {
-    color: rgba(234, 242, 246, .44);
-    text-shadow: 0 0 16px rgba(93, 226, 255, .045);
+  #tech-section-en .t-node.is-tap-glow {
+    color: rgba(255, 255, 255, .98) !important;
+    text-shadow:
+      0 0 7px rgba(255, 255, 255, .20),
+      0 0 18px rgba(93, 226, 255, .42),
+      0 0 32px rgba(93, 226, 255, .18) !important;
+    transform: translateY(-1px) scale(1.012);
+    filter: saturate(1.08);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   #tech-section-en .t-node {
     transition: none;
+  }
+
+  #tech-section-en .t-node.is-tap-glow {
+    transform: none;
   }
 }

@@ -4,6 +4,7 @@ permalink: /
 {% capture homepage_base %}{% include homepage-current-en.html %}{% endcapture %}
 
 {% capture homepage_head_injection %}<script>(function(d,w){var r=d.documentElement;r.classList.add('homepage-js');function recover(){if(!r.classList.contains('homepage-ready'))r.classList.remove('homepage-js');}w.addEventListener('error',recover,{once:true});w.addEventListener('unhandledrejection',recover,{once:true});w.setTimeout(recover,5000);})(document,window);</script>
+<link rel="stylesheet" href="/assets/css/header-system-v1.css?v=20260804.1">
 <link rel="stylesheet" href="/assets/css/homepage-materials-editorial-v2.css?v=20260803.1">
 <link rel="stylesheet" href="/assets/css/homepage-core-hardening-v1.css?v=20260803.1">
 <link rel="stylesheet" href="/assets/css/homepage-commercial-refinement-v1.css?v=20260803.1">
@@ -107,8 +108,14 @@ permalink: /
 </ul>{% endcapture %}
 {% assign homepage_refined = homepage_refined | replace_first: old_selected_work, new_selected_work %}
 
+{% capture homepage_header_v1 %}{% include header-system/header.html lang="en" current_page="home" locale_url="/ru/" variant="standard" %}{% endcapture %}
+{% assign homepage_header_before = homepage_refined | split: '<header' | first %}
+{% assign homepage_header_after = homepage_refined | split: '</header>' | last %}
+{% assign homepage_refined = homepage_header_before | append: homepage_header_v1 | append: homepage_header_after %}
+
 {% capture old_body_end %}</body>{% endcapture %}
 {% capture new_body_end %}<script src="/assets/js/homepage-core-hardening-v1.js?v=20260803.1" defer></script>
+<script src="/assets/js/header-system-v1.js?v=20260804.1" defer></script>
 </body>{% endcapture %}
 {% assign homepage_refined = homepage_refined | replace_first: old_body_end, new_body_end %}
 

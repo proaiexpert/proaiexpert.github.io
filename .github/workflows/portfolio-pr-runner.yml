@@ -1,0 +1,72 @@
+name: Portfolio Footer PR Runner
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.head_ref == 'agent/footer-system-portfolio-pr4' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v6
+        with:
+          ref: agent/footer-system-portfolio-pr4
+          fetch-depth: 0
+
+      - name: Apply Portfolio migration
+        run: python .github/scripts/migrate_portfolio_footer.py
+
+      - name: Remove temporary PR runner
+        run: rm -f .github/workflows/portfolio-pr-runner.yml
+
+      - name: Install Jekyll and build
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+
+      - name: Verify generated output
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          routes = [
+              'case-studies/index.html',
+              'ru/case-studies/index.html',
+              'case-studies/financial-stream/index.html',
+              'ru/case-studies/financial-stream/index.html',
+              'case-studies/alina-horb/index.html',
+              'ru/case-studies/alina-horb/index.html',
+              'case-studies/local-repair-pro/index.html',
+              'ru/case-studies/local-repair-pro/index.html',
+          ]
+          for route in routes:
+              text = (Path('_site') / route).read_text(encoding='utf-8')
+              assert text.count('data-footer-family="portfolio"') == 1, route
+              assert text.count('site-footer__brand-zone') == 1, route
+              assert 'https://github.com/proaiexpert' in text, route
+              assert '{% include footer-system/' not in text, route
+              assert 'portfolio-footer-compact-v1.css' not in text, route
+          print('Portfolio Footer build verification passed for 8 routes.')
+          PY
+
+      - name: Remove temporary report and commit migration
+        shell: bash
+        run: |
+          rm -f portfolio-footer-migration-report.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Migrate Portfolio pages to Footer System"
+          git push origin HEAD:agent/footer-system-portfolio-pr4

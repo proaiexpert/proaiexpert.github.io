@@ -7,20 +7,92 @@
   const body = document.body;
 
   function installRuntimeFixes() {
-    if (document.getElementById('mobile-behavior-runtime-fixes-v125')) return;
+    if (document.getElementById('mobile-behavior-runtime-fixes-v126')) return;
     const style = document.createElement('style');
-    style.id = 'mobile-behavior-runtime-fixes-v125';
+    style.id = 'mobile-behavior-runtime-fixes-v126';
     style.textContent = `
+      @keyframes proaiLegacyHeaderCubeSpin {
+        from { transform: rotateX(0deg) rotateY(0deg); }
+        to { transform: rotateX(360deg) rotateY(360deg); }
+      }
+      .global-header .logo-cube {
+        animation-name: proaiLegacyHeaderCubeSpin !important;
+        animation-duration: 10s !important;
+        animation-timing-function: linear !important;
+        animation-iteration-count: infinite !important;
+        animation-play-state: running !important;
+        transform-style: preserve-3d !important;
+      }
+      .global-header .logo-text,
+      .global-header .site-nav a,
+      .global-header .lang-link,
+      .global-header .start-btn {
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        font-synthesis: none !important;
+        font-kerning: normal !important;
+      }
+      .global-header .start-btn {
+        width: 184px !important;
+        min-width: 184px !important;
+        max-width: 184px !important;
+        height: 44px !important;
+        min-height: 44px !important;
+        padding: 0 20px !important;
+        line-height: 1 !important;
+      }
+      .global-header .lang-link {
+        width: 52px !important;
+        min-width: 52px !important;
+        line-height: 1 !important;
+        text-align: center !important;
+      }
       @media (max-width: 1200px), ((max-height: 540px) and (orientation: landscape)) {
         header.header-hidden { transform: translateY(calc(-100% - 2px)) !important; }
         body.mobile-nav-open header,
         body.mobile-nav-open header.header-hidden,
         body.menu-open header,
         body.menu-open header.header-hidden { transform: translateY(0) !important; }
+        .global-header .start-btn { display: none !important; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .global-header .logo-cube {
+          animation: none !important;
+          transform: rotateX(-18deg) rotateY(28deg) !important;
+        }
       }
       body.lang-ru .f-socials { display: none !important; }
     `;
     document.head.appendChild(style);
+  }
+
+  function normalizeHeaderContent() {
+    if (!header) return;
+    const isRussian = (document.documentElement.lang || '').toLowerCase().startsWith('ru');
+    const currentPath = window.location.pathname.replace(/\/+$/, '') || '/';
+    const cta = header.querySelector('.start-btn');
+    const locale = header.querySelector('.lang-link');
+
+    if (cta) {
+      cta.textContent = isRussian ? 'Обсудить проект' : 'Discuss Project';
+      cta.setAttribute('href', isRussian ? '/ru/contact/#project-intake' : '/contact/#project-intake');
+      cta.setAttribute('aria-label', isRussian ? 'Обсудить проект с ProAI Expert' : 'Discuss a project with ProAI Expert');
+    }
+
+    if (locale) {
+      locale.textContent = isRussian ? 'EN' : 'RU';
+    }
+
+    if (siteNav) {
+      siteNav.querySelectorAll('a').forEach((link) => {
+        const linkPath = new URL(link.href, window.location.origin).pathname.replace(/\/+$/, '') || '/';
+        const exact = currentPath === linkPath;
+        const familyMatch = linkPath !== '/' && currentPath.startsWith(`${linkPath}/`);
+        const active = exact || familyMatch;
+        link.classList.toggle('is-active', active);
+        if (active) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+      });
+    }
   }
 
   function syncFounderVoiceLinks() {
@@ -43,6 +115,7 @@
     siteNav.classList.toggle('is-open', open);
     menuToggle.classList.toggle('is-open', open);
     menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    menuToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
     body.classList.toggle('mobile-nav-open', open);
     body.classList.toggle('menu-open', open);
     if (open && header) header.classList.remove('header-hidden');
@@ -107,7 +180,6 @@
   function installCanonicalMenuOwner() {
     if (!siteNav || !menuToggle) return;
 
-    /* Capture phase prevents older inline listeners from becoming a second owner. */
     menuToggle.addEventListener('click', (event) => {
       if (!mobileQuery.matches) return;
       event.preventDefault();
@@ -135,16 +207,21 @@
   }
 
   installRuntimeFixes();
+  normalizeHeaderContent();
   syncFounderVoiceLinks();
   installCanonicalMenuOwner();
 
   window.addEventListener('scroll', requestHeaderVisibilitySync, { passive: true });
   window.addEventListener('hashchange', () => {
     closeMenu(false);
+    normalizeHeaderContent();
     if (header) header.classList.remove('header-hidden');
     requestHeaderVisibilitySync();
   });
-  window.addEventListener('pageshow', syncViewportFlags);
+  window.addEventListener('pageshow', () => {
+    normalizeHeaderContent();
+    syncViewportFlags();
+  });
   window.addEventListener('orientationchange', () => window.setTimeout(syncViewportFlags, 120));
   window.addEventListener('resize', syncViewportFlags);
   syncViewportFlags();

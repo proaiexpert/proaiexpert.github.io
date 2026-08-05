@@ -1,3 +1,27 @@
-# Contact referring URL correction
+# Contact referring URL targeted correction QA
 
-- Two-file symmetric patch applied: PASS
+- Symmetric EN/RU sanitizer: PASS
+- Absolute HTTPS URL: PASS
+- Absolute HTTP URL: PASS
+- Harmless percent-encoded URL: PASS
+- Relative path rejection: PASS
+- `javascript:` rejection: PASS
+- `data:` rejection: PASS
+- URL credentials rejection: PASS
+- Raw markup rejection: PASS
+- Once-encoded markup rejection: PASS
+- Double-encoded markup rejection: PASS
+- C0/C1 control-character rejection: PASS
+- Raw input over 500 characters: PASS
+- Normalized URL over 500 characters: PASS
+- Jekyll 4.3.4 build: PASS
+- Generated EN/RU output: PASS
+- Direct EN/RU defaults: PASS
+- Private Review context: PASS
+- Direction interaction and `aria-pressed`: PASS
+- Mobile widths 320/360/375/390/430: PASS
+- Short-phone landscape 844x390: PASS
+- Horizontal overflow assertion: PASS
+- Fixed-header anchor clearance: PASS
+- Browser back/forward context restoration: PASS
+- Live Formspree submission: NOT RUN

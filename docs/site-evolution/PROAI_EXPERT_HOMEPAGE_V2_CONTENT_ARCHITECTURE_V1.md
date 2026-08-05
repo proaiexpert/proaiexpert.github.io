@@ -1,12 +1,12 @@
 # PROAI EXPERT HOMEPAGE V2 — CONTENT ARCHITECTURE V1
 
-**Status:** Content architecture candidate for independent review  
-**Version:** V1  
-**Date:** 2026-08-04  
+**Status:** Corrected content architecture candidate for focused correction review  
+**Version:** V1.1  
+**Date:** 2026-08-05  
 **Repository:** `proaiexpert/proaiexpert.github.io`  
 **Branch:** `agent/homepage-v2-content-architecture`  
 **Branch base:** `main` at `7bcc09ae28388f8e4a5e6e5a715aa5ba7b3fbf50`  
-**Scope:** Complete EN/RU Homepage V2 content architecture, CTA contracts, proof map, responsive order and future Jekyll data ownership  
+**Scope:** Complete EN/RU Homepage V2 content architecture, metadata contract, CTA/link identifiers, proof map, responsive order and future Jekyll data ownership  
 **Production code authorization:** none  
 **Homepage production PR authorization:** none
 
@@ -21,14 +21,16 @@ It is authoritative for the current content-review phase only.
 It does not authorize:
 
 - Homepage source changes;
+- Contact source changes;
 - Header or Footer changes;
-- CSS or JavaScript production;
+- CSS, YAML or JavaScript production;
 - image generation or publication;
 - partial Hero publication;
 - EN-only publication;
-- a Homepage production PR.
+- a Homepage production PR;
+- low-fidelity page-map production before focused correction review acceptance.
 
-The next gate is an independent content-architecture review. After accepted corrections, the content architecture becomes the input for a low-fidelity full-page map and visual concept comparison.
+The independent Content Architecture V1 review returned `TARGETED CORRECTION`. Corrections 1–7 are incorporated in this V1.1 document. The next gate is one focused correction review. Only after an `ACCEPT` verdict may this document become the input for a low-fidelity full-page map and visual concept comparison.
 
 Canonical strategic authorities:
 
@@ -198,6 +200,158 @@ RU:
 /ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake
 ```
 
+## Contact query allowlist boundary
+
+Only these production Contact machine values may appear in Contact query parameters:
+
+```text
+intent=private_review | project_inquiry
+source_page=homepage | contact
+source_cta=homepage_hero | homepage_ways_to_start | homepage_final | direct_contact
+selected_direction=ai_systems_automation | websites_branding | both | not_sure
+```
+
+Internal Homepage action IDs, section-origin IDs, project IDs and article IDs defined below must never be passed as unsupported Contact query parameters.
+
+---
+
+# 4A. COMPLETE EN/RU META CONTRACT
+
+The future localized `meta` object is not optional. EN and RU must contain the same keys, explicit absolute URLs and independently reviewed localized copy.
+
+## Required keys
+
+```text
+title
+description
+canonical
+locale_url
+alternate_en
+alternate_ru
+x_default
+og_title
+og_description
+og_url
+og_image
+og_image_alt
+twitter_title
+twitter_description
+twitter_image
+twitter_image_alt
+```
+
+The implementation may additionally expose stable presentational fields such as `og_locale`, `og_type`, `og_site_name` and `twitter_card`, but the required keys above must remain present in both locale files.
+
+## EN metadata candidate
+
+```yaml
+title: "ProAI Expert | AI Systems, Automation & Premium Websites"
+description: "AI systems, automation, websites, and branding for service businesses that need less manual work, stronger trust, and better control over how work and inquiries move."
+canonical: "https://proai-expert.com/"
+locale_url: "https://proai-expert.com/ru/"
+alternate_en: "https://proai-expert.com/"
+alternate_ru: "https://proai-expert.com/ru/"
+x_default: "https://proai-expert.com/"
+og_title: "ProAI Expert | AI Systems, Automation & Premium Websites"
+og_description: "AI systems, automation, websites, and branding for service businesses that need less manual work, stronger trust, and better control over how work and inquiries move."
+og_url: "https://proai-expert.com/"
+og_image: "https://proai-expert.com/screenshots/proai-home-en-desktop.png"
+og_image_alt: "ProAI Expert homepage preview"
+twitter_title: "ProAI Expert | AI Systems, Automation & Premium Websites"
+twitter_description: "AI systems, automation, websites, and branding for service businesses that need less manual work, stronger trust, and better control over how work and inquiries move."
+twitter_image: "https://proai-expert.com/screenshots/proai-home-en-desktop.png"
+twitter_image_alt: "ProAI Expert homepage preview"
+```
+
+## RU metadata candidate
+
+```yaml
+title: "ProAI Expert | AI-системы, автоматизация бизнеса, сайты и брендинг"
+description: "AI-системы, автоматизация бизнеса, сайты и брендинг для сервисных компаний в США — чтобы сократить ручную работу, усилить доверие и лучше контролировать путь обращения."
+canonical: "https://proai-expert.com/ru/"
+locale_url: "https://proai-expert.com/"
+alternate_en: "https://proai-expert.com/"
+alternate_ru: "https://proai-expert.com/ru/"
+x_default: "https://proai-expert.com/"
+og_title: "ProAI Expert | AI-системы, автоматизация бизнеса, сайты и брендинг"
+og_description: "AI-системы, автоматизация бизнеса, сайты и брендинг для сервисных компаний в США — чтобы сократить ручную работу, усилить доверие и лучше контролировать путь обращения."
+og_url: "https://proai-expert.com/ru/"
+og_image: "https://proai-expert.com/screenshots/proai-home-ru-desktop.png"
+og_image_alt: "Превью главной страницы ProAI Expert"
+twitter_title: "ProAI Expert | AI-системы, автоматизация бизнеса, сайты и брендинг"
+twitter_description: "AI-системы, автоматизация бизнеса, сайты и брендинг для сервисных компаний в США — чтобы сократить ручную работу, усилить доверие и лучше контролировать путь обращения."
+twitter_image: "https://proai-expert.com/screenshots/proai-home-ru-desktop.png"
+twitter_image_alt: "Превью главной страницы ProAI Expert"
+```
+
+## Metadata image boundary
+
+The current absolute screenshot URLs are verified fallback assets already referenced by the existing Homepage metadata. They may remain until a V2-specific social preview is separately designed, reviewed and approved. Replacing either image requires an explicit asset path, dimensions, crop role, localized alt text and generated-output verification. No new social image is authorized by this content correction.
+
+---
+
+# 4B. CTA AND LINK IDENTIFIER MAP
+
+Three identifier layers must remain separate:
+
+1. `action_id` — what the visitor is doing;
+2. `origin_id` — which Homepage block generated the action;
+3. Contact query values — only the production allowlist defined in Section 4.
+
+## Stable section-origin IDs
+
+```text
+homepage_hero
+homepage_directions
+homepage_flagship_proof
+homepage_ways_to_start
+homepage_founder
+homepage_selected_work
+homepage_insights
+homepage_final
+```
+
+## Stable action and item IDs
+
+```text
+request_private_review
+view_client_work
+explore_ai_systems
+explore_websites_branding
+view_financial_stream_case
+visit_financial_stream_site
+view_about
+view_linkedin
+view_all_case_studies
+view_all_insights
+financial_stream
+alina_horb
+local_repair_pro
+multilingual_website
+website_proposal
+lead_arrival
+```
+
+## Exact action map
+
+| Location | `action_id` / item ID | `origin_id` | Destination | Contact query behavior |
+|---|---|---|---|---|
+| Hero primary | `request_private_review` | `homepage_hero` | localized Contact URL | uses `source_cta=homepage_hero`; no selected direction |
+| Hero secondary | `view_client_work` | `homepage_hero` | `#client-work` | no Contact query |
+| AI direction | `explore_ai_systems` | `homepage_directions` | localized AI Systems route | no Contact query |
+| Website direction | `explore_websites_branding` | `homepage_directions` | localized Websites & Branding route | no Contact query |
+| Financial Stream case | `view_financial_stream_case` + item `financial_stream` | `homepage_flagship_proof` | localized case route | no Contact query |
+| Financial Stream live site | `visit_financial_stream_site` + item `financial_stream` | `homepage_flagship_proof` | external live site | no Contact query |
+| Ways review CTA | `request_private_review` | `homepage_ways_to_start` | localized Contact URL | uses `source_cta=homepage_ways_to_start` plus approved `selected_direction` |
+| Ways service links | `explore_ai_systems` and/or `explore_websites_branding` | `homepage_ways_to_start` | localized service routes | no Contact query |
+| Founder About | `view_about` | `homepage_founder` | localized About route | no Contact query |
+| Founder LinkedIn | `view_linkedin` | `homepage_founder` | external LinkedIn URL | no Contact query |
+| Selected Work case/demo links | project item ID plus explicit link action | `homepage_selected_work` | localized case/live route | no Contact query |
+| Insight article | article item ID | `homepage_insights` | explicit localized article route | no Contact query |
+| Final primary | `request_private_review` | `homepage_final` | localized Contact URL | uses `source_cta=homepage_final`; no selected direction |
+
+Project and article item IDs identify content objects. They are not substitutions for `action_id`, `origin_id` or Contact `source_cta`.
+
 ---
 
 # 5. TEN-BLOCK PAGE MAP
@@ -338,6 +492,16 @@ Mobile:
 - system tableau reduces to a compact four-state strip or may move below the CTA group;
 - no minimum-height requirement that creates a tall empty Hero.
 
+## RU Hero provisional acceptance gate
+
+The current RU eyebrow, H1 and supporting-copy combination remains provisional until the low-fidelity stage is authorized and demonstrates the real first-screen hierarchy at:
+
+- 390 px portrait;
+- 320 px portrait;
+- approximately 844 × 390 short landscape.
+
+The RU Hero may be shortened only if those maps demonstrate that the current composition delays the primary CTA, lets the eyebrow dominate the opening or creates an excessively long first-screen sequence. This gate does not authorize shortening now, changing the EN Hero, reordering Hero elements or beginning the low-fidelity map before focused correction review acceptance.
+
 ## Interaction and accessibility
 
 - one H1 only;
@@ -459,7 +623,7 @@ The website shapes the decision before contact. Automation protects the handoff 
 **Label:** `Сбои в работе`
 
 ```text
-Ответственный, ответ и дальнейшая связь слишком сильно зависят от памяти, ручного копирования и разрозненных инструментов.
+Назначение ответственного, первый ответ и дальнейшая связь слишком сильно зависят от памяти, ручного копирования и разрозненных инструментов.
 ```
 
 ### Four-step connected journey
@@ -690,7 +854,7 @@ Live client project · EN/RU
 RU:
 
 ```text
-Реальный клиентский проект · EN/RU
+Действующий клиентский проект · EN/RU
 ```
 
 ## EN production-copy candidate
@@ -706,7 +870,7 @@ A clearer path from service discovery to structured inquiry.
 **Body:**
 
 ```text
-Financial Stream needed to explain accounting and tax support in two languages without forcing every prospect into a long first call. ProAI Expert rebuilt the information hierarchy, created an EN/RU service and content system, and placed a structured request before calendar booking.
+Financial Stream needed to explain accounting and tax support in two languages while reducing reliance on long first calls. ProAI Expert rebuilt the information hierarchy, created an EN/RU service and content system, and placed a structured request before calendar booking.
 ```
 
 **Evidence points**
@@ -742,7 +906,7 @@ The case demonstrates live implementation and system capability. It does not cla
 **Body:**
 
 ```text
-Financial Stream требовалось объяснить бухгалтерские и налоговые услуги на двух языках, не превращая каждый первый контакт в долгий звонок. ProAI Expert перестроил информационную иерархию, создал EN/RU-систему услуг и контента и поставил структурированный запрос перед бронированием консультации.
+Financial Stream требовалось объяснить бухгалтерские и налоговые услуги на двух языках и снизить зависимость от долгих первичных звонков. ProAI Expert перестроил информационную иерархию, создал EN/RU-систему услуг и контента и поставил структурированный запрос перед бронированием консультации.
 ```
 
 **Evidence points**
@@ -835,7 +999,10 @@ Clarify positioning, organize services and proof, and create a stronger path fro
 This does not automatically require a full rebrand, a large website, or every possible feature.
 ```
 
-**Service link:** `Explore Websites & Branding`  
+**Service links:**
+
+- `websites_branding` — `Explore Websites & Branding` → `/websites-branding/`
+
 **Review CTA:** `Review this starting point`  
 **Machine direction:** `websites_branding`
 
@@ -859,7 +1026,10 @@ Map the handoff, define responsibility, and improve the focused intake, notifica
 This does not mean replacing every tool, removing human review, or automating decisions that require judgment.
 ```
 
-**Service link:** `Explore AI Systems`  
+**Service links:**
+
+- `ai_systems_automation` — `Explore AI Systems` → `/ai-systems/`
+
 **Review CTA:** `Review this starting point`  
 **Machine direction:** `ai_systems_automation`
 
@@ -883,7 +1053,11 @@ Define one connected path from positioning and proof to structured inquiry and r
 This does not require a large transformation program. The first release can remain deliberately bounded.
 ```
 
-**Service links:** both service pages  
+**Service links:**
+
+- `ai_systems_automation` — `Explore AI Systems` → `/ai-systems/`
+- `websites_branding` — `Explore Websites & Branding` → `/websites-branding/`
+
 **Review CTA:** `Review the connected system`  
 **Machine direction:** `both`
 
@@ -900,7 +1074,7 @@ Ongoing support begins after a controlled first project, when there is a real sy
 **Heading:**
 
 ```text
-Начните с участка, который создаёт больше всего потерь и лишней работы.
+Начните с участка, который создаёт больше всего препятствий и лишней ручной работы.
 ```
 
 **Introduction:**
@@ -929,7 +1103,10 @@ Ongoing support begins after a controlled first project, when there is a real sy
 Это не обязательно требует полного ребрендинга, большого сайта или всех возможных функций.
 ```
 
-**Service link:** `Сайты и брендинг`  
+**Service links:**
+
+- `websites_branding` — `Сайты и брендинг` → `/ru/websites-branding/`
+
 **Review CTA:** `Разобрать эту точку старта`  
 **Machine direction:** `websites_branding`
 
@@ -953,7 +1130,10 @@ Ongoing support begins after a controlled first project, when there is a real sy
 Это не означает замену всех инструментов, отказ от проверки человеком или автоматизацию решений, где требуется профессиональное суждение.
 ```
 
-**Service link:** `AI-системы и автоматизация`  
+**Service links:**
+
+- `ai_systems_automation` — `AI-системы и автоматизация` → `/ru/ai-systems/`
+
 **Review CTA:** `Разобрать эту точку старта`  
 **Machine direction:** `ai_systems_automation`
 
@@ -977,7 +1157,11 @@ Ongoing support begins after a controlled first project, when there is a real sy
 Для этого не обязательно запускать большую программу преобразований. Первый этап может оставаться намеренно ограниченным.
 ```
 
-**Service links:** оба направления  
+**Service links:**
+
+- `ai_systems_automation` — `AI-системы и автоматизация` → `/ru/ai-systems/`
+- `websites_branding` — `Сайты и брендинг` → `/ru/websites-branding/`
+
 **Review CTA:** `Разобрать единую систему`  
 **Machine direction:** `both`
 
@@ -986,6 +1170,29 @@ Ongoing support begins after a controlled first project, when there is a real sy
 ```text
 Постоянная поддержка начинается после контролируемого первого проекта, когда уже существует реальная система, которую нужно поддерживать, измерять или улучшать.
 ```
+
+## Deterministic `service_links` data contract
+
+Every Ways-to-Start situation owns a `service_links` collection. A singular `service_link` field is prohibited.
+
+Required item shape:
+
+```yaml
+service_links:
+  - id: ai_systems_automation | websites_branding
+    label: "localized public label"
+    href: "/explicit-localized-route/"
+```
+
+Required collection counts:
+
+```text
+Situation 1: 1 item — websites_branding
+Situation 2: 1 item — ai_systems_automation
+Situation 3: 2 items — ai_systems_automation and websites_branding
+```
+
+EN and RU use the same item IDs and collection order. Labels and `href` values are localized explicitly. No route is inferred from a localized label, and no arbitrary HTML is stored inside the collection.
 
 ## Composition contract
 
@@ -1065,7 +1272,7 @@ No black-box handoff: strategy, architecture, implementation, and acceptance rem
 **Introduction:**
 
 ```text
-Работа остаётся связанной от бизнес-контекста до приёмки. Каждый этап должен дать решение, материал или проверенный результат, прежде чем расширяется следующий слой.
+Работа остаётся связанной от бизнес-контекста до приёмки. Каждый этап должен завершаться решением, материалом или проверенным результатом до перехода к следующему этапу.
 ```
 
 ### Phase 1 — Разобрать контекст
@@ -1270,13 +1477,13 @@ This is a concept and live demo in development. It is not presented as a paid cl
 **Status:**
 
 ```text
-Действующий связанный проект · UA/RU
+Действующий проект, связанный с основателем · UA/RU
 ```
 
 **Description:**
 
 ```text
-Действующий многоязычный сайт личного бренда и услуг с фокусом на позиционировании, визуальной айдентике, иерархии контента и согласованных украинском и русском маршрутах.
+Действующий многоязычный сайт личного бренда и услуг с фокусом на позиционировании, визуальной айдентике, иерархии контента и согласованных маршрутах на украинском и русском языках.
 ```
 
 **Required disclosure:**
@@ -1293,13 +1500,13 @@ This is a concept and live demo in development. It is not presented as a paid cl
 **Status:**
 
 ```text
-Концепция сайта · Действующее демо · В разработке
+Концепция сайта · Рабочее демо · В разработке
 ```
 
 **Description:**
 
 ```text
-Концепция премиального сайта локального сервиса, показывающая позиционирование, архитектуру ремонтных сценариев, обращение по фотографиям, подачу зоны обслуживания и адаптивное производство.
+Концепция премиального сайта локального сервиса, показывающая позиционирование, архитектуру ремонтных сценариев, обращение по фотографиям, подачу зоны обслуживания и адаптивную реализацию.
 ```
 
 **Required boundary:**
@@ -1347,6 +1554,8 @@ Practical guides for service-business owners evaluating website scope, multiling
 
 ### Article 1
 
+**Item ID:** `multilingual_website`
+
 **Category:** `Language strategy`
 
 **Title:**
@@ -1365,6 +1574,8 @@ Choose between English-only, focused language support, and full multilingual cov
 
 ### Article 2
 
+**Item ID:** `website_proposal`
+
 **Category:** `Website buying decision`
 
 **Title:**
@@ -1382,6 +1593,8 @@ Compare scope, responsibilities, ownership, acceptance, and support before page 
 **Route:** `/insights/how-to-evaluate-a-website-proposal/`
 
 ### Article 3
+
+**Item ID:** `lead_arrival`
 
 **Category:** `Inquiry operations`
 
@@ -1408,7 +1621,7 @@ See how service businesses capture context, assign ownership, respond, follow up
 **Heading:**
 
 ```text
-Полезные решения до вложений и реализации.
+Полезные ориентиры до инвестиций и начала реализации.
 ```
 
 **Introduction:**
@@ -1418,6 +1631,8 @@ See how service businesses capture context, assign ownership, respond, follow up
 ```
 
 ### Article 1
+
+**Item ID:** `multilingual_website`
 
 **Category:** `Языковая стратегия`
 
@@ -1437,6 +1652,8 @@ See how service businesses capture context, assign ownership, respond, follow up
 
 ### Article 2
 
+**Item ID:** `website_proposal`
+
 **Category:** `Выбор сайта и подрядчика`
 
 **Title:**
@@ -1454,6 +1671,8 @@ See how service businesses capture context, assign ownership, respond, follow up
 **Route:** `/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/`
 
 ### Article 3
+
+**Item ID:** `lead_arrival`
 
 **Category:** `Работа с обращениями`
 
@@ -1524,7 +1743,7 @@ No-cost and bounded. This is not a complete audit, detailed implementation plan,
 **Heading:**
 
 ```text
-Начните с самой ценной проблемы, а не с самого большого возможного проекта.
+Начните с проблемы, которая сильнее всего влияет на бизнес, а не с максимально большого проекта.
 ```
 
 **Body:**
@@ -1622,7 +1841,8 @@ Required priority:
 - headings may wrap naturally;
 - CTA buttons may expand or wrap;
 - status and disclosure remain visible;
-- no fixed-height copy containers.
+- no fixed-height copy containers;
+- RU Hero remains provisional until the authorized map demonstrates 390 px, 320 px and approximately 844 × 390 hierarchy.
 
 ---
 
@@ -1725,16 +1945,19 @@ insights:
 private_review:
 ```
 
+The `meta` object must implement every key and absolute URL defined in Section 4A.
+
 Required stable collection counts:
 
 - 4 connected-journey steps;
 - 2 directions;
 - 3 Ways to Start situations;
+- Ways `service_links` counts of 1, 1 and 2 respectively;
 - 5 process phases;
 - 2 Selected Work items;
 - 3 Insights items.
 
-Required machine IDs:
+Required Contact machine values:
 
 ```text
 private_review
@@ -1745,12 +1968,27 @@ ai_systems_automation
 websites_branding
 both
 not_sure
+```
+
+Required non-Contact action/origin identifiers are defined in Section 4B and remain separate from Contact query values.
+
+Required project IDs:
+
+```text
 financial_stream
 alina_horb
 local_repair_pro
 ```
 
-Data owns localized copy, links, status text, disclosures, alt text, CTA context and image objects.
+Required article IDs:
+
+```text
+multilingual_website
+website_proposal
+lead_arrival
+```
+
+Data owns localized copy, explicit localized links, status text, disclosures, alt text, CTA context, identifier fields and image objects.
 
 Data does not own arbitrary HTML, inline styles, JavaScript or dynamic include names.
 
@@ -1758,7 +1996,9 @@ Data does not own arbitrary HTML, inline styles, JavaScript or dynamic include n
 
 # 20. LOW-FIDELITY PAGE-MAP INPUT
 
-The next artifact after content acceptance must show the complete page at minimum in:
+This section defines a future gate only. It does not authorize beginning the map before the focused correction review returns `ACCEPT`.
+
+After content acceptance, the next artifact must show the complete page at minimum in:
 
 - desktop 1440 px;
 - mobile 390 px;
@@ -1771,7 +2011,7 @@ The low-fidelity map must demonstrate:
 - proof placement;
 - copy hierarchy;
 - CTA locations;
-- Russian expansion;
+- actual RU Hero expansion and first-action position;
 - screenshot roles;
 - absence of horizontal poster layouts on mobile;
 - Header and Footer boundaries;
@@ -1813,23 +2053,26 @@ The comparison must be full-page, not Hero-only.
 
 # 22. ACCEPTANCE GATE FOR THIS DOCUMENT
 
-The Content Architecture may advance only when an independent Reviewer confirms:
+The corrected Content Architecture may advance only when a focused independent Reviewer confirms:
 
-1. the ten-block order matches approved strategy;
-2. Hero is commercially clear within the first screen;
-3. AI and Websites remain the only two top-level directions;
-4. the before/after inquiry thesis is understandable without animation;
-5. CTA URLs exactly match the merged Contact contract;
-6. Financial Stream claims remain factual and bounded;
-7. Alina disclosure is visible and sufficient;
-8. Local Repair Pro status is exact;
-9. no unsupported lead, revenue, conversion or ROI claim appears;
-10. Ways to Start does not become a hidden pricing table;
-11. EN/RU business meaning is equivalent;
-12. RU terminology is natural and avoids unexplained English process jargon;
-13. responsive content priority is viable at 320 px and short landscape;
-14. the future YAML structure can represent all content without arbitrary HTML;
-15. the document is ready to drive a low-fidelity full-page map.
+1. the ten-block order still matches approved strategy;
+2. the complete EN/RU `meta` contract is deterministic and uses explicit absolute URLs;
+3. CTA `action_id`, `origin_id` and Contact query values are correctly separated;
+4. the `service_links` collection represents one, one and two service links without arbitrary HTML;
+5. the Financial Stream first-call statement is bounded;
+6. RU proof statuses use the exact approved taxonomy;
+7. only the listed RU language corrections were applied;
+8. the RU Hero remains provisional behind the 390 px, 320 px and approximately 844 × 390 map gate;
+9. CTA URLs exactly match the merged Contact contract;
+10. Financial Stream claims remain factual and bounded;
+11. Alina disclosure is visible and sufficient;
+12. Local Repair Pro status is exact;
+13. no unsupported lead, revenue, conversion or ROI claim appears;
+14. Ways to Start does not become a hidden pricing table;
+15. EN/RU business meaning remains equivalent;
+16. responsive content priority remains viable at 320 px and short landscape;
+17. future YAML can represent all content without arbitrary HTML;
+18. the document is ready to drive a low-fidelity full-page map only after an `ACCEPT` verdict.
 
 Reviewer verdict must be one of:
 
@@ -1846,19 +2089,27 @@ Completed:
 - Homepage V2 strategy approved;
 - technical implementation contract approved;
 - Contact prerequisite merged and verified;
-- new content-architecture branch created from current `main`;
+- content-architecture branch created from the reviewed `main` baseline;
 - complete EN/RU ten-block copy candidate defined;
-- exact Contact CTA contracts defined;
-- proof status and claim boundaries defined;
-- responsive content priority defined;
-- future Jekyll data ownership defined.
+- independent Content Architecture V1 review completed with `TARGETED CORRECTION`;
+- Corrections 1–7 applied;
+- complete EN/RU metadata contract defined;
+- CTA/action/origin identifier separation defined;
+- deterministic Ways-to-Start `service_links` schema defined;
+- exact proof-status and RU language corrections applied;
+- RU Hero provisional map gate recorded;
+- exact Contact CTA contracts retained;
+- proof status and claim boundaries retained;
+- responsive content priority retained;
+- future Jekyll data ownership completed.
 
 Not started:
 
+- focused correction review verdict;
 - Homepage source implementation;
 - low-fidelity page map;
 - visual concept production;
-- Homepage CSS/JavaScript;
+- Homepage CSS/JavaScript/YAML;
 - Homepage production PR.
 
-**Current gate:** independent Content Architecture V1 review.
+**Current gate:** focused Content Architecture correction review.

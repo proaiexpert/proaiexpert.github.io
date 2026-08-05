@@ -1,0 +1,120 @@
+name: Footer Title Pulse Migration
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    if: github.head_ref == 'agent/footer-title-pulse-lock' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/footer-title-pulse-lock
+          fetch-depth: 0
+
+      - name: Consolidate pulse ownership and documentation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          polish = Path('assets/css/footer-commercial-v1-polish.css')
+          text = polish.read_text(encoding='utf-8')
+          old = '''.site-footer.site-footer--homepage .site-footer__cta h2 {
+  margin-top: 0;
+  transform: none;
+  animation: siteFooterTitlePulseV4 4.6s ease-in-out infinite;
+  will-change: text-shadow,filter;
+}
+'''
+          new = '''.site-footer.site-footer--homepage .site-footer__cta h2 {
+  margin-top: 0;
+  transform: none;
+}
+'''
+          assert old in text
+          text = text.replace(old, new, 1)
+          text, count = re.subn(
+              r'\n@keyframes siteFooterTitlePulseV4 \{.*?\n\}\n',
+              '\n',
+              text,
+              count=1,
+              flags=re.S,
+          )
+          assert count == 1
+          reduced = '''
+@media (prefers-reduced-motion:reduce) {
+  .site-footer.site-footer--homepage .site-footer__cta h2 {
+    animation: none;
+    filter: none;
+    text-shadow: none;
+    will-change: auto;
+  }
+}
+'''
+          assert reduced in text
+          text = text.replace(reduced, '\n', 1)
+          polish.write_text(text.rstrip() + '\n', encoding='utf-8')
+
+          handoff = Path('docs/FOOTER_SYSTEM_HANDOFF.md')
+          text = handoff.read_text(encoding='utf-8')
+          replacements = {
+              '- homepage CTA title uses a restrained periodic light pulse;': '- full Commercial, Portfolio and Editorial footer titles use one restrained periodic light pulse;',
+              '- homepage may retain the approved title pulse;': '- full Commercial, Portfolio and Editorial footers use the approved restrained title pulse;',
+              'The homepage title pulse is not a watermark animation and must not be generalized to all footer families without approval.': 'The title pulse is shared across full Commercial, Portfolio and Editorial footers. It remains decorative, does not move layout, and is disabled under reduced motion.',
+              '- VK must be enabled through the same data source after the canonical profile/community URL is verified; a guessed or dead VK link is prohibited.\n': '',
+          }
+          for old, new in replacements.items():
+              assert old in text, old
+              text = text.replace(old, new, 1)
+          handoff.write_text(text.rstrip() + '\n', encoding='utf-8')
+
+          spec = Path('docs/FOOTER_SYSTEM_SPEC.md')
+          text = spec.read_text(encoding='utf-8')
+          replacements = {
+              '| Telegram | No | Yes |': '| Telegram | Yes | Yes |',
+              '- EN footers must not show the RU Telegram channel;\n- RU footers may show Telegram;': '- EN and RU footers show the canonical Telegram channel;',
+              '- social destinations except Telegram visibility;': '- social destinations;',
+              '- Telegram visibility;\n': '',
+              '- EN contains no Telegram footer link;\n- RU uses only `https://t.me/proAiexpert`;': '- EN and RU use only `https://t.me/proAiexpert`;',
+              '- Telegram on EN pages;\n': '',
+              '- VK must be enabled through the same data source after the canonical profile/community URL is verified; a guessed or dead VK link is prohibited.\n': '',
+          }
+          for old, new in replacements.items():
+              assert old in text, old
+              text = text.replace(old, new, 1)
+          motion_anchor = 'All animation must be disabled under `prefers-reduced-motion: reduce`.'
+          motion_rule = motion_anchor + '\n\nCanonical implementation: one restrained title glow/pulse is shared by full Commercial, Portfolio and Editorial footers. It must not animate the watermark, logo, links, or layout geometry.'
+          assert motion_anchor in text
+          text = text.replace(motion_anchor, motion_rule, 1)
+          spec.write_text(text.rstrip() + '\n', encoding='utf-8')
+
+          forbidden = re.compile(r'(?i)(?<![A-Za-z0-9])vk(?![A-Za-z0-9])|vk\.com|vkontakte|вконтакте')
+          for path in (handoff, spec):
+              assert not forbidden.search(path.read_text(encoding='utf-8')), path
+
+          pulse = Path('assets/css/footer-title-pulse-v1.css').read_text(encoding='utf-8')
+          assert 'siteFooterTitlePulseV5' in pulse
+          assert 'prefers-reduced-motion: reduce' in pulse
+          assert 'site-footer__watermark' not in pulse
+          assert 'site-footer__logo' not in pulse
+          print('Pulse ownership and canonical documentation updated.')
+          PY
+
+      - name: Commit migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/css/footer-commercial-v1-polish.css docs/FOOTER_SYSTEM_HANDOFF.md docs/FOOTER_SYSTEM_SPEC.md
+          git diff --cached --check
+          git commit -m "Centralize Footer title pulse policy"
+          git push origin HEAD:agent/footer-title-pulse-lock

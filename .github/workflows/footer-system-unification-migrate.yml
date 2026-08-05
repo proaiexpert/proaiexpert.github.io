@@ -20,7 +20,14 @@ jobs:
       - name: Install migration runtime
         run: python -m pip install --disable-pip-version-check pyyaml
       - name: Apply centralized Footer System migration
-        run: python scripts/footer_system_unification_migrate.py
+        shell: bash
+        run: |
+          python scripts/footer_system_unification_migrate.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('assets/css/footer-system-v1.css')
+          path.write_text(path.read_text(encoding='utf-8').rstrip() + '\n', encoding='utf-8')
+          PY
       - name: Commit production migration
         shell: bash
         run: |

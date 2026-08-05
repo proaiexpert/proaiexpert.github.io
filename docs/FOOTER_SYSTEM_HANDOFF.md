@@ -1,462 +1,193 @@
-# Footer System — Canonical Handoff
+# Footer System — Final Handoff
 
-Status: ready for implementation in a fresh working chat.
+Status: closed and production-owned
 
 Repository: `proaiexpert/proaiexpert.github.io`
 
-Baseline main verified before this document: `5ae15bbecfca6c66addbd7d3d2cdaf8641460cfc`
+## 1. Scope
 
-Open pull requests at handoff preparation: none.
+This handoff covers only the ProAI Expert website in this repository. It does not govern any separately hosted client or portfolio project.
 
-## 1. Objective
+The Footer System owns the public EN/RU footer experience for:
 
-Complete and lock one coherent Footer System across the entire ProAI Expert website without changing the approved Header System or unrelated page content.
+- Homepage;
+- About;
+- Contact;
+- AI Systems;
+- Websites & Branding;
+- Case Studies archive and individual cases;
+- Insights hub and current articles.
 
-The work is not a visual patch. It is a controlled migration from copied and overridden footer implementations to four explicit footer families with shared design, accessibility, localization and maintenance rules.
+The Header System, page content, SEO metadata, case evidence and unrelated projects remain outside Footer ownership.
 
-Completion means:
+## 2. Canonical families
 
-- every public route is mapped to an approved footer family;
-- new pages cannot introduce an arbitrary footer;
-- EN/RU social and language behavior is consistent;
-- watermark placement is structural and collision-free;
-- footer layout is stable on laptop, phone portrait and phone landscape;
-- legacy footer overrides are removed only after their page family is migrated;
-- Header System files and behavior remain unchanged.
-
-## 2. Frozen boundary: Header System
-
-The Header System was closed at main commit:
-
-`5ae15bbecfca6c66addbd7d3d2cdaf8641460cfc`
-
-Footer work must not change:
-
-- `_includes/header-system/`;
-- `_data/navigation.yml`;
-- `_data/header.yml`;
-- `assets/css/header-system-v1.css`;
-- `assets/js/header-system-v1.js`;
-- `assets/css/global-header-parity-v2.css`;
-- header markup, menu behavior, logo cube, language control or CTA geometry;
-- `mobile-behavior-v123.js` except in a separately approved future cleanup after footer migration.
-
-If a footer implementation appears to require a header change, stop and treat that as a footer architecture error.
-
-## 3. Current verified footer state
-
-### 3.1 Homepage EN/RU — approved benchmark
-
-The new Commercial Footer is currently implemented only on:
-
-- `/`;
-- `/ru/`.
-
-Canonical homepage component:
-
-- `_includes/footer-commercial-v1.html`;
-- `assets/css/footer-commercial-v1.css`;
-- `assets/css/footer-commercial-v1-polish.css`.
-
-Current approved characteristics:
-
-- separate CTA/content zone;
-- dedicated watermark brand zone between main content and bottom row;
-- watermark does not sit behind readable copy;
-- mobile portrait watermark is fully visible and centered;
-- phone landscape has a deliberate compact layout;
-- homepage CTA title uses a restrained periodic light pulse;
-- `prefers-reduced-motion` disables that pulse;
-- GitHub appears on EN and RU;
-- Telegram appears only on RU;
-- footer language switch exists;
-- no dead Privacy or Terms links;
-- current GitHub destination: `https://github.com/proaiexpert`;
-- current Telegram destination: `https://t.me/proAiexpert`.
-
-The homepage footer is the visual-quality benchmark. Do not redesign it casually. Refactor only when necessary to create the shared system, and preserve the approved appearance and behavior.
-
-### 3.2 Remaining site
-
-Most other routes still use copied legacy footer markup and page-local or shared overrides.
-
-Known implementation patterns include:
-
-- full footer HTML copied into standalone pages;
-- footer markup embedded inside Jekyll includes;
-- article footer markup embedded inside article outputs or include chains;
-- Portfolio footer created by hiding/rearranging Commercial markup through CSS;
-- premium article CSS hiding legacy watermark markup instead of replacing it;
-- global mobile CSS affecting legacy footer classes;
-- pages with no footer, including the current `404.html`.
-
-Do not claim that the site-wide footer migration is already complete.
-
-## 4. Required footer families
-
-There are four families, not three.
-
-### A. Commercial Footer
+### Commercial
 
 Routes:
 
-- Homepage EN/RU;
-- About EN/RU;
-- Contact EN/RU;
-- AI Systems EN/RU;
-- Websites & Branding EN/RU.
+- `/` and `/ru/`;
+- `/about/` and `/ru/about/`;
+- `/contact/` and `/ru/contact/`;
+- `/ai-systems/` and `/ru/ai-systems/`;
+- `/websites-branding/` and `/ru/websites-branding/`.
 
-Approved variants:
+Variants: Homepage, About, Contact and Service.
 
-- `commercial--homepage`;
-- `commercial--service`;
-- `commercial--about`;
-- `commercial--contact`.
-
-Rules:
-
-- strong but contextual CTA;
-- homepage may retain the approved title pulse;
-- Contact should use a compact closing and must not repeat excessive contact CTAs;
-- service pages may link to relevant capabilities and case studies;
-- dedicated watermark brand zone;
-- Telegram is available on EN and RU;
-
-### B. Editorial Footer
+### Portfolio
 
 Routes:
 
-- Insights hub EN/RU;
-- all article pages EN/RU;
-- future editorial resources.
+- `/case-studies/` and `/ru/case-studies/`;
+- all current EN/RU case-study routes.
 
-Rules:
+Variants: Archive and Case.
 
-- lower commercial pressure than the homepage;
-- contextual CTA based on the article or Insights context;
-- clear link back to Insights;
-- relevant service links;
-- compact or absent watermark depending on the approved editorial variant;
-- no large generic Commercial CTA copied into every article;
-- article generator/templates must be updated before or together with generated outputs.
-
-### C. Portfolio Footer
+### Editorial
 
 Routes:
 
-- Case Studies archive EN/RU;
-- Financial Stream case EN/RU;
-- Alina Horb case EN/RU;
-- Local Repair Pro case EN/RU;
-- future case studies.
+- `/insights/` and `/ru/insights/`;
+- all current EN/RU article routes.
 
-Rules:
+Variants: Hub and Article.
 
-- compact project-closing structure;
-- link back to Case Studies;
-- relevant next project, service or contact path;
-- no hidden Commercial CTA markup;
-- no pseudo-element that duplicates an existing watermark element;
-- case-specific GitHub links only where a public repository exists and disclosure is safe;
-- do not claim stars, users, adoption or open-source community without evidence.
+### Utility
 
-### D. Utility Footer
+Reserved for `404.html` and future approved system or legal routes. Dead or placeholder legal links are prohibited.
 
-Routes:
+## 3. Source ownership
 
-- `404.html`;
-- future Privacy pages;
-- future Terms pages;
-- future Thank-you pages;
-- future system/status pages.
-
-Rules:
-
-- minimal brand identity;
-- copyright;
-- GitHub;
-- mapped language route when one exists;
-- existing legal links only;
-- no large CTA;
-- no large watermark.
-
-Privacy, Terms and Thank-you routes do not currently exist. Do not create dead links or pretend that those page families already exist.
-
-## 5. Route-to-family map
-
-| Route family | EN | RU | Target footer |
-|---|---:|---:|---|
-| Homepage | `/` | `/ru/` | Commercial — Homepage |
-| About | `/about/` | `/ru/about/` | Commercial — About |
-| Contact | `/contact/` | `/ru/contact/` | Commercial — Contact compact |
-| AI Systems | `/ai-systems/` | `/ru/ai-systems/` | Commercial — Service |
-| Websites & Branding | `/websites-branding/` | `/ru/websites-branding/` | Commercial — Service |
-| Case Studies archive | `/case-studies/` | `/ru/case-studies/` | Portfolio — Archive |
-| Individual cases | `/case-studies/.../` | `/ru/case-studies/.../` | Portfolio — Case |
-| Insights hub | `/insights/` | `/ru/insights/` | Editorial — Hub |
-| Articles | `/insights/.../` | `/ru/insights/.../` | Editorial — Article |
-| 404 | `404.html` | bilingual navigation where appropriate | Utility — Minimal |
-| Privacy / Terms / Thank-you | absent | absent | Do not render links until routes exist |
-
-## 6. Social and localization contract
-
-### EN
-
-- LinkedIn: yes;
-- GitHub: yes;
-- X: yes;
-- Telegram: yes;
-- Facebook: no.
-
-### RU
-
-- LinkedIn: yes;
-- GitHub: yes;
-- X: yes;
-- Telegram: yes;
-- Facebook: no.
-
-Canonical destinations:
-
-- LinkedIn: `https://www.linkedin.com/in/ihorhorb/`;
-- GitHub: `https://github.com/proaiexpert`;
-- X: `https://x.com/proaiexpert`;
-- Telegram: `https://t.me/proAiexpert`.
-
-The stale/conflicting Telegram form `https://t.me/proai_expert` must not be introduced.
-
-Language links must point to the mapped equivalent page, not automatically to the language homepage, when an equivalent route exists.
-
-External profile links require:
-
-- `target="_blank"` where approved;
-- `rel="noopener noreferrer"`;
-- clear accessible labels;
-- a labelled social `<nav>`.
-
-## 7. Watermark contract
-
-The watermark is decorative and must be inside a dedicated structural zone.
-
-Required order:
-
-1. footer main content;
-2. footer brand/watermark zone;
-3. footer bottom row.
-
-Required behavior:
-
-- `aria-hidden="true"`;
-- no link;
-- no pointer events;
-- no animation;
-- no absolute `top` positioning relative to the complete footer;
-- no negative margin pulling it behind content;
-- clipping is allowed only inside the brand zone;
-- no collision with CTA, contacts, social links or copyright;
-- it may be hidden in forced-colors mode;
-- mobile portrait must show the complete approved wordmark treatment;
-- phone landscape must stay compact.
-
-The homepage title pulse is not a watermark animation and must not be generalized to all footer families without approval.
-
-## 8. Recommended source architecture
-
-Use build-time composition. Do not inject a footer with client-side JavaScript.
-
-Recommended target:
+Canonical build-time sources:
 
 ```text
 _includes/footer-system/
   footer.html
   commercial.html
-  editorial.html
   portfolio.html
-  utility.html
+  editorial.html
+  contact-links.html
   brand-zone.html
   bottom.html
 _data/
   footer.yml
   social-links.yml
 assets/css/
+  footer-system-foundation-v1.css
   footer-system-v1.css
+  footer-title-pulse-v1.css
 ```
 
-The existing homepage files may be migrated into this structure or used as the initial Commercial variant, but there must be one documented source of truth after migration.
-
-New selectors must be scoped to the Footer System namespace, for example:
+Homepage-specific layout polish remains in:
 
 ```text
-.site-footer
-.site-footer__shell
-.site-footer__main
-.site-footer__cta
-.site-footer__details
-.site-footer__brand-zone
-.site-footer__watermark
-.site-footer__bottom
-.site-footer__socials
-.site-footer__locale
+_includes/footer-commercial-v1.html
+assets/css/footer-commercial-v1-polish.css
 ```
 
-Forbidden patterns:
+Rules:
 
-- generic `footer { ... }` ownership;
-- new `.f-*` legacy classes;
-- JavaScript footer injection;
-- permanent copied social URLs across dozens of files;
-- CSS hiding of irrelevant Commercial markup;
-- pseudo-elements duplicating real watermark content;
-- new `!important` override layers except a documented temporary migration boundary;
-- dead legal links;
-- unverified or dead social URLs;
-- unsupported GitHub proof claims.
+- use build-time includes;
+- do not inject footer markup with JavaScript;
+- do not copy social destinations into individual pages;
+- do not create page-local footer variants outside the approved families;
+- article and case generation must preserve the canonical family include.
 
-## 9. Migration sequence
+## 4. Shared structural contract
 
-Do not perform a blind site-wide rewrite in one PR.
+Full footers use this order:
 
-### PR 1 — Commercial secondary pages
+1. contextual CTA/content;
+2. contact group;
+3. related paths or capabilities;
+4. dedicated brand/watermark zone;
+5. bottom row with wordmark, profiles, locale switch and copyright.
 
-Migrate:
+Contact is always the first detail group. Related navigation is always the second.
 
-- About EN/RU;
-- Contact EN/RU;
-- AI Systems EN/RU;
-- Websites & Branding EN/RU.
+The watermark:
 
-Preserve the approved homepage footer.
+- is decorative and `aria-hidden`;
+- stays inside `.site-footer__brand-zone`;
+- never overlaps readable content or controls;
+- never moves or pulses;
+- is hidden where forced-colors requires it.
 
-Acceptance gate:
+## 5. Contact and profile policy
 
-- no footer/header collision;
-- correct contextual CTA per page type;
-- EN/RU social matrix exact;
-- mapped language links;
-- laptop, phone portrait and landscape verified;
-- no unrelated page changes.
+Both EN and RU full footers include:
 
-### PR 2 — Editorial hub and current templates
+- `hello@proai-expert.com`;
+- LinkedIn;
+- GitHub;
+- X;
+- Telegram.
 
-Migrate:
+Canonical destinations are stored only in `_data/social-links.yml`.
 
-- Insights hub EN/RU;
-- premium/current article templates;
-- include chains used by current article generation.
+Language controls must point to the mapped equivalent route whenever one exists.
 
-Do not migrate all old generated articles until the source templates and generator are corrected.
+External profile links require accessible labels and `rel="noopener noreferrer"`.
 
-### PR 3 — Editorial legacy outputs
+## 6. Motion contract
 
-Migrate existing static article outputs after generator/template ownership is correct.
+One restrained title glow/pulse is shared across full Commercial, Portfolio and Editorial footers.
 
-Acceptance gate:
+Canonical source:
 
-- future generation cannot restore the old footer;
-- no old footer markup is reintroduced.
+```text
+assets/css/footer-title-pulse-v1.css
+```
 
-### PR 4 — Portfolio
+Behavior:
 
-Migrate:
+- targets only `.site-footer__cta h2`;
+- uses `siteFooterTitlePulseV5` with a 4.6-second cycle;
+- remains static for most of the cycle and briefly adds a soft cyan glow;
+- never changes size, position or layout geometry;
+- never animates the watermark, wordmark, links or controls;
+- works on desktop, phone portrait and phone landscape;
+- is disabled under `prefers-reduced-motion: reduce` and forced-colors.
 
-- Case Studies archive EN/RU;
-- all current individual cases EN/RU.
+Homepage layout CSS must not define a second animation.
 
-Remove the need for `portfolio-footer-compact-v1.css` only after every Portfolio route is migrated and verified.
+## 7. Responsive and accessibility contract
 
-### PR 5 — Utility
+Required:
 
-Add the minimal Utility Footer to `404.html`.
-
-Do not add Privacy, Terms or Thank-you links until those routes are explicitly created and approved.
-
-### PR 6 — Cleanup and lock
-
-- repository search for legacy footer markup/classes;
-- delete obsolete page-local/footer override rules only when unused;
-- update documentation with final source ownership;
-- full regression audit;
-- mark Footer System closed.
-
-## 10. Required QA
-
-Test each migrated family on:
-
-- 1920×1080;
-- 1600×900;
-- 1440×900;
-- 1366×768;
-- 1024×768;
-- 768×1024;
-- 430×932;
-- 390×844;
-- 932×430;
-- 844×390.
-
-Verify:
-
-- no horizontal overflow;
-- no watermark/content intersection;
-- no duplicate footer;
-- no missing links;
-- no dead legal routes;
+- no footer horizontal overflow;
+- no document-overflow regression caused by the footer;
+- stable desktop, portrait and landscape layouts;
+- minimum 44 px interactive targets where practical;
+- visible `:focus-visible` states;
 - logical keyboard order;
-- visible focus;
-- 44px mobile targets;
-- 200% zoom usability;
-- reduced-motion behavior;
-- forced-colors behavior;
-- EN/RU parity;
-- no console errors;
-- no Header System regression;
-- no unrelated content, SEO or case-evidence changes.
+- labelled social and locale navigation;
+- safe-area support;
+- readable EN/RU wrapping;
+- no Header geometry or behavior regression.
 
-## 11. Parallel-work protocol
+## 8. Deployment gate
 
-Before every branch:
+GitHub Pages must build Jekyll output into `_site` before deployment.
 
-1. verify current `main` SHA;
-2. verify open PRs;
-3. declare exact file scope;
-4. do not edit files owned by another active branch;
-5. update the branch from current `main` before merge;
-6. inspect the final diff for stale file restoration.
+The deployment workflow verifies generated footer ownership, structural brand zones, canonical contacts and profiles, contact-first detail order and rendered Liquid output.
 
-Footer work must not overwrite concurrent Financial Stream, case-image, article-content or other unrelated production changes.
+Any future Footer System change must also verify that the shared title-pulse stylesheet is present on every full-footer route.
 
-## 12. First action for the fresh chat
+## 9. Change protocol
 
-The fresh chat must:
+A future footer change requires:
 
-1. read this document and inspect the actual current `main`;
-2. confirm that no newer PR changed Footer System files;
-3. perform a read-only audit of the eight Commercial secondary pages against the approved homepage benchmark;
-4. produce a precise file-level plan;
-5. implement only PR 1 — Commercial secondary pages;
-6. build or inspect generated output where Jekyll includes are involved;
-7. merge only after the acceptance gate passes;
-8. stop and report before starting Editorial migration.
+1. current `main` and open-PR review;
+2. a focused branch and PR;
+3. generated-output verification;
+4. EN/RU review;
+5. desktop, portrait and landscape regression checks;
+6. reduced-motion verification;
+7. final diff review for temporary files or unrelated changes.
 
-## 13. Definition of done
+The Header System must not be changed to compensate for a footer defect.
 
-Footer System is closed only when:
+## 10. Closed-state rule
 
-- four footer families are implemented on all mapped public routes;
-- new pages use an explicit footer-family contract;
-- approved homepage appearance remains intact;
-- all social/localization rules are centralized;
-- watermark behavior is structural;
-- article generation cannot restore legacy footer markup;
-- Portfolio no longer depends on CSS hiding Commercial content;
-- Utility pages have the minimal approved footer;
-- obsolete legacy footer rules are removed;
-- final site-wide QA passes;
-- the Header System remains unchanged.
-
-## User-approved cross-family consistency override (2026-08-04)
-
-- Contact details are the first detail group; related paths/capabilities are the second group in every full footer family.
-- Email and Telegram are rendered in both EN and RU.
-- Social/profile destinations are owned only by `_data/social-links.yml`.
-- VK must be enabled through the same data source after the canonical profile/community URL is verified; a guessed or dead VK link is prohibited.
-- Editorial hubs, article source include chains, and current canonical article outputs use the Editorial Footer family with the same structural brand zone and bottom wordmark treatment.
+The Footer System is considered closed after the shared title pulse is published and verified. New work should treat these files as a stable component system, not as page-by-page styling territory.

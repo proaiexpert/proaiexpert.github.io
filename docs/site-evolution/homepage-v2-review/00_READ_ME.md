@@ -1,6 +1,6 @@
 # ProAI Expert Homepage V2 — Review Workspace
 
-**Status:** Temporary docs-only strategy workspace  
+**Status:** Strategy V2 Final prepared after independent review  
 **Branch:** `agent/homepage-v2-strategy-review`  
 **Baseline:** `af9b7288a9a5fc36de57afd816302e80e17e0d8a`  
 **Owner:** Ihor Horb  
@@ -12,13 +12,15 @@ This folder is the shared source of truth for the strategic design and independe
 
 No production implementation is authorized from this workspace.
 
-## Read order
+## Current read order
 
 1. Repository root `AI_START_HERE.md`.
 2. Repository root `AGENTS.md`.
 3. Current root `AI_CURRENT_HANDOFF.md`.
-4. `01_HOMEPAGE_V2_STRATEGY_V1.md`.
-5. `02_INDEPENDENT_REVIEW_TASK.md`.
+4. `01_HOMEPAGE_V2_STRATEGY_V1.md` — original consolidated strategy.
+5. `02_INDEPENDENT_REVIEW_TASK.md` — independent-review contract.
+6. `03_INDEPENDENT_REVIEW_REPORT.md` — completed `TARGETED CORRECTION` review.
+7. `04_HOMEPAGE_V2_STRATEGY_FINAL.md` — final strategy candidate with accepted corrections.
 
 ## Roles
 
@@ -36,17 +38,28 @@ The main Homepage V2 strategy chat owns:
 
 ### Independent Reviewer
 
-The neighboring chat reviews the strategy independently. It must not create a competing master strategy or broaden the project.
+The neighboring chat completed an independent strategy review and saved the report in `03_INDEPENDENT_REVIEW_REPORT.md`.
 
-## Required Reviewer output
+The Reviewer did not create a competing strategy or modify production files.
 
-The Reviewer must write the final report to:
+## Current decision state
 
-`docs/site-evolution/homepage-v2-review/03_INDEPENDENT_REVIEW_REPORT.md`
+The independent verdict was:
 
-Use the same branch:
+`TARGETED CORRECTION`
 
-`agent/homepage-v2-strategy-review`
+The final strategy candidate resolves the required corrections, including:
+
+- bounded no-cost `Private Review` definition;
+- Contact-context requirements;
+- reduced Hero responsibility;
+- merged connected-journey section;
+- ten-block final narrative;
+- exact proof-status labels and disclosures;
+- four-step mobile signature system;
+- five-phase process;
+- independently composed EN/RU directions;
+- clean V2 source-architecture requirement without further broad `replace_first` accumulation.
 
 ## Locked boundaries
 
@@ -61,8 +74,6 @@ Use the same branch:
 
 ## Current stage
 
-The current stage is:
+`Strategy V2 Final → Owner Approval → Canonical Strategy → Production Specification`
 
-`Strategy V1 → Independent Review → Strategy V2 Final → Owner Approval`
-
-Implementation begins only after a separate approved production specification.
+Implementation begins only after owner approval and a separate production specification.

@@ -1,0 +1,156 @@
+name: Temporary Contact private review QA
+
+on:
+  push:
+    branches:
+      - agent/contact-private-review-prerequisite
+
+permissions:
+  contents: write
+
+jobs:
+  qa-contact:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/contact-private-review-prerequisite
+          fetch-depth: 0
+
+      - name: Build site with Jekyll
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+
+      - name: Static generated-output checks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          expected = {
+              '_site/contact/index.html': ('en', 'Request a Private Review'),
+              '_site/ru/contact/index.html': ('ru', 'Запросить первичный разбор'),
+          }
+          fields = ['intent','selected_direction','source_page','source_cta','source_context','referring_url','language']
+          values = ['private_review','project_inquiry','ai_systems_automation','websites_branding','both','not_sure','homepage_hero','homepage_ways_to_start','homepage_final','direct_contact']
+          for name, (lang, panel) in expected.items():
+              text = Path(name).read_text(encoding='utf-8')
+              assert text.count('https://formspree.io/f/xbdakqoz') == 1, name
+              assert panel in text, name
+              assert 'innerHTML' not in text, name
+              assert f'name="language" type="hidden" value="{lang}"' in text, name
+              for field in fields:
+                  assert f'name="{field}"' in text, (name, field)
+              for value in values:
+                  assert value in text, (name, value)
+              assert text.count('name="company_website"') == 1, name
+              assert text.count('name="form_started_at"') == 1, name
+              assert text.count('footer-system/footer.html') == 0, 'Liquid leaked into output'
+          print('static checks passed')
+          PY
+
+      - name: Browser behavior checks
+        run: |
+          python -m pip install --quiet selenium
+          python -m http.server 8000 --directory _site >/tmp/contact-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID' EXIT
+          sleep 2
+          python - <<'PY'
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.common.by import By
+          from selenium.webdriver.support.ui import WebDriverWait
+          from selenium.webdriver.support import expected_conditions as EC
+
+          opts = Options()
+          opts.add_argument('--headless=new')
+          opts.add_argument('--no-sandbox')
+          opts.add_argument('--disable-gpu')
+          opts.add_argument('--disable-dev-shm-usage')
+          opts.add_argument('--window-size=390,844')
+          driver = webdriver.Chrome(options=opts)
+          wait = WebDriverWait(driver, 10)
+
+          def value(field):
+              return driver.find_element(By.ID, field).get_attribute('value')
+
+          try:
+              for route, lang in [('/contact/', 'en'), ('/ru/contact/', 'ru')]:
+                  driver.get('http://127.0.0.1:8000' + route)
+                  wait.until(EC.presence_of_element_located((By.ID, 'contactForm')))
+                  assert value('intent') == 'project_inquiry'
+                  assert value('source_page') == 'contact'
+                  assert value('source_cta') == 'direct_contact'
+                  assert value('selected_direction') == 'not_sure'
+                  assert value('language') == lang
+                  panel = driver.find_element(By.ID, 'privateReviewContext')
+                  assert panel.get_attribute('aria-hidden') == 'true'
+                  driver.find_element(By.CSS_SELECTOR, '[data-value="ai_systems_automation"]').click()
+                  assert value('selected_direction') == 'ai_systems_automation'
+
+                  private_url = (
+                      'http://127.0.0.1:8000' + route
+                      + '?intent=private_review&source_page=homepage&source_cta=homepage_hero'
+                      + '&selected_direction=both&source_context=financial_stream'
+                      + '&referring_url=https%3A%2F%2Fproai-expert.com%2Fcase-studies%2Ffinancial-stream%2F'
+                      + '#project-intake'
+                  )
+                  driver.get(private_url)
+                  wait.until(EC.presence_of_element_located((By.ID, 'contactForm')))
+                  assert value('intent') == 'private_review'
+                  assert value('source_page') == 'homepage'
+                  assert value('source_cta') == 'homepage_hero'
+                  assert value('selected_direction') == 'both'
+                  assert value('source_context') == 'financial_stream'
+                  assert value('referring_url').startswith('https://proai-expert.com/case-studies/financial-stream/')
+                  panel = driver.find_element(By.ID, 'privateReviewContext')
+                  assert panel.get_attribute('aria-hidden') == 'false'
+                  assert 'is-visible' in panel.get_attribute('class')
+
+                  invalid_url = (
+                      'http://127.0.0.1:8000' + route
+                      + '?intent=unsafe&source_page=unsafe&source_cta=unsafe'
+                      + '&selected_direction=unsafe&source_context=%3Cscript%3E'
+                      + '&referring_url=javascript%3Aalert(1)'
+                  )
+                  driver.get(invalid_url)
+                  wait.until(EC.presence_of_element_located((By.ID, 'contactForm')))
+                  assert value('intent') == 'project_inquiry'
+                  assert value('source_page') == 'contact'
+                  assert value('source_cta') == 'direct_contact'
+                  assert value('selected_direction') == 'not_sure'
+                  assert value('source_context') == ''
+                  assert value('referring_url') == ''
+              print('browser checks passed')
+          finally:
+              driver.quit()
+          PY
+
+      - name: Write QA report
+        run: |
+          cat > tmp-contact-private-review-qa.md <<'EOF'
+          # Temporary Contact private review QA
+
+          - Jekyll 4.3.4 build: PASS
+          - Generated EN Contact checks: PASS
+          - Generated RU Contact checks: PASS
+          - Formspree endpoint preservation: PASS
+          - Canonical hidden-field schema: PASS
+          - Direct-visit defaults in Chrome: PASS
+          - Private Review query context in Chrome: PASS
+          - Invalid query fallback in Chrome: PASS
+          - EN/RU direction pill interaction: PASS
+          - No live Formspree submission was performed.
+          EOF
+
+      - name: Commit QA report
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tmp-contact-private-review-qa.md
+          git commit -m "Record temporary Contact private review QA"
+          git push origin HEAD:agent/contact-private-review-prerequisite

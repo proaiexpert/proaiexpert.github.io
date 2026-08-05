@@ -1,0 +1,75 @@
+name: Footer System CSS Hardening
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'agent/footer-system-unification-final' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/footer-system-unification-final
+          fetch-depth: 0
+      - name: Isolate footer box sizing and restore touch targets
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          shared = Path('assets/css/footer-system-v1.css')
+          text = shared.read_text(encoding='utf-8')
+          marker = '/* Footer System layout isolation. */'
+          block = '''/* Footer System layout isolation. */
+.site-footer,
+.site-footer *,
+.site-footer *::before,
+.site-footer *::after {
+  box-sizing: border-box;
+}
+'''
+          if marker not in text:
+              anchor = '/* Footer System V1 — shared Commercial and Portfolio families.\n   Build-time component ownership. No runtime injection and no legacy footer selectors. */\n'
+              assert anchor in text
+              text = text.replace(anchor, anchor + block, 1)
+          shared.write_text(text.rstrip() + '\n', encoding='utf-8')
+
+          homepage = Path('assets/css/footer-commercial-v1-polish.css')
+          text = homepage.read_text(encoding='utf-8')
+          marker = '/* Homepage Footer interaction ownership. */'
+          block = '''
+/* Homepage Footer interaction ownership. */
+.site-footer.site-footer--homepage,
+.site-footer.site-footer--homepage *,
+.site-footer.site-footer--homepage *::before,
+.site-footer.site-footer--homepage *::after {
+  box-sizing: border-box;
+}
+
+.site-footer.site-footer--homepage .site-footer__detail-group a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+}
+'''
+          if marker not in text:
+              text = text.rstrip() + block + '\n'
+          text = text.replace('    min-height: 42px;\n', '    min-height: 44px;\n')
+          homepage.write_text(text.rstrip() + '\n', encoding='utf-8')
+          PY
+      - name: Commit production CSS correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/css/footer-system-v1.css assets/css/footer-commercial-v1-polish.css
+          git diff --cached --check
+          git commit -m "Harden shared Footer layout and touch targets"
+          git push origin HEAD:agent/footer-system-unification-final

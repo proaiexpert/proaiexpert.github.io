@@ -302,7 +302,8 @@ const SOURCE_CTAS=new Set(['homepage_hero','homepage_ways_to_start','homepage_fi
 const DIRECTIONS=new Set(['ai_systems_automation','websites_branding','both','not_sure']);
 function allowlisted(params,key,allowed,fallback){const value=params.get(key);return value&&allowed.has(value)?value:fallback;}
 function boundedIdentifier(value,maxLength){if(!value||value.length>maxLength||!/^[a-z0-9_-]+$/.test(value)){return '';}return value;}
-function boundedUrl(value,maxLength){if(!value||value.length>maxLength){return '';}try{const parsed=new URL(value,window.location.origin);return parsed.protocol==='http:'||parsed.protocol==='https:'?parsed.href:'';}catch(error){return '';}}
+function containsUnsafeUrlSyntax(value){let probe=value;for(let depth=0;depth<3;depth+=1){if(/[\u0000-\u001F\u007F-\u009F<>]/.test(probe)){return true;}let decoded;try{decoded=decodeURIComponent(probe);}catch(error){break;}if(decoded===probe){break;}probe=decoded;}return /[\u0000-\u001F\u007F-\u009F<>]/.test(probe);}
+function boundedUrl(value,maxLength){if(!value||value.length>maxLength||containsUnsafeUrlSyntax(value)||!/^https?:\/\//i.test(value)){return '';}try{const parsed=new URL(value);if((parsed.protocol!=='http:'&&parsed.protocol!=='https:')||parsed.username||parsed.password){return '';}const normalized=parsed.href;return normalized.length<=maxLength&&!containsUnsafeUrlSyntax(normalized)?normalized:'';}catch(error){return '';}}
 function setDirection(value){const safeValue=DIRECTIONS.has(value)?value:'not_sure';directionButtons.forEach((button)=>{const active=button.dataset.value===safeValue;button.classList.toggle('is-active',active);button.setAttribute('aria-pressed',String(active));});selectedDirectionInput.value=safeValue;}
 const pageParams=new URLSearchParams(window.location.search);
 const requestContext={

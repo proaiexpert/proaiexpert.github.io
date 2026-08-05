@@ -1,24 +1,25 @@
 name: Footer Title Pulse Migration
 
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - agent/footer-title-pulse-lock
 
 permissions:
   contents: write
 
 jobs:
-  migrate:
-    if: github.head_ref == 'agent/footer-title-pulse-lock' && github.actor != 'github-actions[bot]'
+  migrate-and-qa:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v6
         with:
           ref: agent/footer-title-pulse-lock
           fetch-depth: 0
 
-      - name: Consolidate pulse ownership and documentation
+      - name: Consolidate pulse ownership and canonical documentation
         shell: bash
         run: |
           python - <<'PY'
@@ -39,17 +40,11 @@ jobs:
   transform: none;
 }
 '''
-          assert old in text
-          text = text.replace(old, new, 1)
-          text, count = re.subn(
-              r'\n@keyframes siteFooterTitlePulseV4 \{.*?\n\}\n',
-              '\n',
-              text,
-              count=1,
-              flags=re.S,
-          )
-          assert count == 1
-          reduced = '''
+          if old in text:
+              text = text.replace(old, new, 1)
+              text, count = re.subn(r'\n@keyframes siteFooterTitlePulseV4 \{.*?\n\}\n', '\n', text, count=1, flags=re.S)
+              assert count == 1
+              reduced = '''
 @media (prefers-reduced-motion:reduce) {
   .site-footer.site-footer--homepage .site-footer__cta h2 {
     animation: none;
@@ -59,9 +54,10 @@ jobs:
   }
 }
 '''
-          assert reduced in text
-          text = text.replace(reduced, '\n', 1)
-          polish.write_text(text.rstrip() + '\n', encoding='utf-8')
+              assert reduced in text
+              text = text.replace(reduced, '\n', 1)
+              polish.write_text(text.rstrip() + '\n', encoding='utf-8')
+          assert 'siteFooterTitlePulseV4' not in polish.read_text(encoding='utf-8')
 
           handoff = Path('docs/FOOTER_SYSTEM_HANDOFF.md')
           text = handoff.read_text(encoding='utf-8')
@@ -72,8 +68,7 @@ jobs:
               '- VK must be enabled through the same data source after the canonical profile/community URL is verified; a guessed or dead VK link is prohibited.\n': '',
           }
           for old, new in replacements.items():
-              assert old in text, old
-              text = text.replace(old, new, 1)
+              text = text.replace(old, new)
           handoff.write_text(text.rstrip() + '\n', encoding='utf-8')
 
           spec = Path('docs/FOOTER_SYSTEM_SPEC.md')
@@ -88,35 +83,204 @@ jobs:
               '- VK must be enabled through the same data source after the canonical profile/community URL is verified; a guessed or dead VK link is prohibited.\n': '',
           }
           for old, new in replacements.items():
-              assert old in text, old
-              text = text.replace(old, new, 1)
-          motion_anchor = 'All animation must be disabled under `prefers-reduced-motion: reduce`.'
-          motion_rule = motion_anchor + '\n\nCanonical implementation: one restrained title glow/pulse is shared by full Commercial, Portfolio and Editorial footers. It must not animate the watermark, logo, links, or layout geometry.'
-          assert motion_anchor in text
-          text = text.replace(motion_anchor, motion_rule, 1)
+              text = text.replace(old, new)
+          anchor = 'All animation must be disabled under `prefers-reduced-motion: reduce`.'
+          rule = anchor + '\n\nCanonical implementation: one restrained title glow/pulse is shared by full Commercial, Portfolio and Editorial footers. It must not animate the watermark, logo, links, or layout geometry.'
+          if rule not in text:
+              assert anchor in text
+              text = text.replace(anchor, rule, 1)
           spec.write_text(text.rstrip() + '\n', encoding='utf-8')
 
           forbidden = re.compile(r'(?i)(?<![A-Za-z0-9])vk(?![A-Za-z0-9])|vk\.com|vkontakte|вконтакте')
           for path in (handoff, spec):
               assert not forbidden.search(path.read_text(encoding='utf-8')), path
+          PY
+
+      - name: Install Jekyll and Chromium
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python -m pip install --disable-pip-version-check playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Build baseline and branch
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          git fetch origin main
+          git worktree add /tmp/footer-pulse-base origin/main
+          jekyll build --source /tmp/footer-pulse-base --destination /tmp/footer-pulse-base-site
+          jekyll build --source . --destination /tmp/footer-pulse-head-site
+
+      - name: Verify generated contract and browser behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p footer-title-pulse-qa/screenshots
+          python -m http.server 4173 --directory /tmp/footer-pulse-head-site >/tmp/footer-pulse-head.log 2>&1 &
+          HEAD_SERVER=$!
+          python -m http.server 4174 --directory /tmp/footer-pulse-base-site >/tmp/footer-pulse-base.log 2>&1 &
+          BASE_SERVER=$!
+          trap 'kill $HEAD_SERVER $BASE_SERVER 2>/dev/null || true' EXIT
+          sleep 2
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+          from playwright.sync_api import sync_playwright
+
+          root = Path('/tmp/footer-pulse-head-site')
+          pages = []
+          for path in root.rglob('*.html'):
+              text = path.read_text(encoding='utf-8')
+              if 'data-footer-family=' not in text:
+                  continue
+              rel = path.relative_to(root).as_posix()
+              assert text.count('data-footer-family=') == 1, rel
+              assert text.count('footer-title-pulse-v1.css?v=20260804.1') == 1, rel
+              pages.append(rel)
+          pages.sort()
+          assert len(pages) == 44, len(pages)
 
           pulse = Path('assets/css/footer-title-pulse-v1.css').read_text(encoding='utf-8')
-          assert 'siteFooterTitlePulseV5' in pulse
+          assert pulse.count('@keyframes siteFooterTitlePulseV5') == 1
           assert 'prefers-reduced-motion: reduce' in pulse
           assert 'site-footer__watermark' not in pulse
           assert 'site-footer__logo' not in pulse
-          print('Pulse ownership and canonical documentation updated.')
+          assert 'siteFooterTitlePulseV4' not in Path('assets/css/footer-commercial-v1-polish.css').read_text(encoding='utf-8')
+
+          forbidden = re.compile(r'(?i)(?<![A-Za-z0-9])vk(?![A-Za-z0-9])|vk\.com|vkontakte|вконтакте')
+          for path in [Path('docs/FOOTER_SYSTEM_HANDOFF.md'), Path('docs/FOOTER_SYSTEM_SPEC.md')]:
+              assert not forbidden.search(path.read_text(encoding='utf-8')), path
+
+          def route_for(rel):
+              if rel == 'index.html': return '/'
+              if rel.endswith('/index.html'): return '/' + rel[:-10]
+              return '/' + rel
+
+          routes = [route_for(rel) for rel in pages]
+          viewports = {
+              'laptop': {'width': 1440, 'height': 900},
+              'portrait': {'width': 390, 'height': 844},
+              'landscape': {'width': 844, 'height': 390},
+          }
+          shot_routes = {'/', '/ru/', '/about/', '/ru/about/', '/case-studies/financial-stream/', '/ru/case-studies/financial-stream/', '/insights/', '/ru/insights/'}
+          out = Path('footer-title-pulse-qa')
+          results, failures = [], []
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch()
+              for route in routes:
+                  for viewport_name, viewport in viewports.items():
+                      normal = browser.new_context(viewport=viewport, reduced_motion='no-preference')
+                      reduced = browser.new_context(viewport=viewport, reduced_motion='reduce')
+                      normal_page = normal.new_page()
+                      reduced_page = reduced.new_page()
+                      base_page = normal.new_page()
+                      page_errors = []
+                      normal_page.on('pageerror', lambda exc: page_errors.append(str(exc)))
+                      rec = {'route': route, 'viewport': viewport_name}
+                      try:
+                          normal_page.goto('http://127.0.0.1:4173' + route, wait_until='domcontentloaded')
+                          reduced_page.goto('http://127.0.0.1:4173' + route, wait_until='domcontentloaded')
+                          base_page.goto('http://127.0.0.1:4174' + route, wait_until='domcontentloaded')
+                          normal_page.wait_for_timeout(180)
+                          reduced_page.wait_for_timeout(80)
+                          base_page.wait_for_timeout(80)
+                          normal_metrics = normal_page.evaluate('''() => {
+                            const f=document.querySelector('[data-footer-family]');
+                            const t=f.querySelector('.site-footer__cta h2');
+                            const w=f.querySelector('.site-footer__watermark');
+                            const l=f.querySelector('.site-footer__logo');
+                            const h=document.querySelector('[data-global-header], .global-header, header');
+                            const rect=n=>{const r=n.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}};
+                            const ts=getComputedStyle(t), hs=getComputedStyle(h);
+                            return {
+                              footerCount:document.querySelectorAll('[data-footer-family]').length,
+                              documentOverflow:document.documentElement.scrollWidth-window.innerWidth,
+                              footerOverflow:f.scrollWidth-f.clientWidth,
+                              animationName:ts.animationName,
+                              animationDuration:ts.animationDuration,
+                              animationIterationCount:ts.animationIterationCount,
+                              watermarkAnimation:getComputedStyle(w).animationName,
+                              logoAnimation:getComputedStyle(l).animationName,
+                              header:rect(h),
+                              headerStyle:{position:hs.position,height:hs.height,paddingLeft:hs.paddingLeft,paddingRight:hs.paddingRight,backgroundColor:hs.backgroundColor,borderBottomWidth:hs.borderBottomWidth}
+                            };
+                          }''')
+                          reduced_metrics = reduced_page.evaluate('''() => {
+                            const s=getComputedStyle(document.querySelector('[data-footer-family] .site-footer__cta h2'));
+                            return {animationName:s.animationName,filter:s.filter,textShadow:s.textShadow,willChange:s.willChange};
+                          }''')
+                          base_metrics = base_page.evaluate('''() => {
+                            const h=document.querySelector('[data-global-header], .global-header, header');
+                            const r=h.getBoundingClientRect(), s=getComputedStyle(h);
+                            return {
+                              documentOverflow:document.documentElement.scrollWidth-window.innerWidth,
+                              header:{x:r.x,y:r.y,width:r.width,height:r.height},
+                              headerStyle:{position:s.position,height:s.height,paddingLeft:s.paddingLeft,paddingRight:s.paddingRight,backgroundColor:s.backgroundColor,borderBottomWidth:s.borderBottomWidth}
+                            };
+                          }''')
+                          assert normal_metrics['footerCount'] == 1, normal_metrics
+                          assert normal_metrics['footerOverflow'] <= 1, normal_metrics
+                          assert normal_metrics['documentOverflow'] <= max(1, base_metrics['documentOverflow'] + 1), (normal_metrics, base_metrics)
+                          assert normal_metrics['animationName'] == 'siteFooterTitlePulseV5', normal_metrics
+                          assert normal_metrics['animationDuration'] == '4.6s', normal_metrics
+                          assert normal_metrics['animationIterationCount'] == 'infinite', normal_metrics
+                          assert normal_metrics['watermarkAnimation'] == 'none', normal_metrics
+                          assert normal_metrics['logoAnimation'] == 'none', normal_metrics
+                          assert reduced_metrics['animationName'] == 'none', reduced_metrics
+                          assert reduced_metrics['filter'] == 'none', reduced_metrics
+                          assert reduced_metrics['textShadow'] == 'none', reduced_metrics
+                          assert not page_errors, page_errors
+                          for key in ('x','y','width','height'):
+                              assert abs(normal_metrics['header'][key]-base_metrics['header'][key]) <= 1, (route, viewport_name, key)
+                          assert normal_metrics['headerStyle'] == base_metrics['headerStyle'], (route, viewport_name)
+                          if route in shot_routes:
+                              slug = route.strip('/').replace('/','-') or 'home'
+                              normal_page.locator('[data-footer-family]').screenshot(path=str(out/'screenshots'/f'{slug}-{viewport_name}.png'))
+                          rec.update({'status':'passed','normal':normal_metrics,'reduced':reduced_metrics,'baselineDocumentOverflow':base_metrics['documentOverflow']})
+                      except Exception as exc:
+                          rec.update({'status':'failed','error':repr(exc)})
+                          failures.append(rec)
+                      finally:
+                          results.append(rec)
+                          normal.close(); reduced.close()
+              browser.close()
+
+          (out/'results.json').write_text(json.dumps(results,indent=2,ensure_ascii=False),encoding='utf-8')
+          (out/'summary.json').write_text(json.dumps({'count':len(results),'failures':failures},indent=2,ensure_ascii=False),encoding='utf-8')
+          assert len(results) == 132, len(results)
+          if failures:
+              print(json.dumps(failures[:12],indent=2,ensure_ascii=False))
+              raise SystemExit(f'Browser QA failed: {len(failures)}')
+          print('Footer title pulse QA passed:', len(results), 'route/viewport combinations.')
           PY
 
-      - name: Commit migration
+      - name: Upload QA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: footer-title-pulse-qa
+          path: footer-title-pulse-qa
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Commit canonical cleanup
+        if: success()
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add assets/css/footer-commercial-v1-polish.css docs/FOOTER_SYSTEM_HANDOFF.md docs/FOOTER_SYSTEM_SPEC.md
-          git diff --cached --check
-          git commit -m "Centralize Footer title pulse policy"
-          git push origin HEAD:agent/footer-title-pulse-lock
-
-# Triggered after workflow registration.
+          if git diff --cached --quiet; then
+            echo 'Canonical files already clean.'
+          else
+            git diff --cached --check
+            git commit -m "Centralize Footer title pulse policy"
+            git push origin HEAD:agent/footer-title-pulse-lock
+          fi

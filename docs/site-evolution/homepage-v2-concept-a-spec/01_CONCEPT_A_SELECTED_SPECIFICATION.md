@@ -1,12 +1,14 @@
 # ProAI Expert Homepage V2 — Concept A Selected Specification
 
-**Status:** selected-concept specification candidate for independent review  
-**Version:** V1  
+**Status:** corrected selected-concept specification candidate for focused review  
+**Version:** V1.1  
 **Date:** 2026-08-05  
 **Repository:** `proaiexpert/proaiexpert.github.io`  
 **Branch:** `agent/homepage-v2-concept-a-spec`  
 **Selected direction:** Concept A — Precision Grid  
 **Owner selection:** confirmed  
+**Original independent-review verdict:** `TARGETED CORRECTION`  
+**Original review commit:** `78abab43e2667d9ad4aa063f66cb5c19dc5cd462`  
 **Production authorization:** none
 
 ---
@@ -28,6 +30,16 @@ The governing rule is:
 > **Signal, not spectacle.**
 
 Technical identity must come from precision, hierarchy, evidence, and connected-system logic. It must not depend on constant animation, oversized glow, 3D objects, glassmorphism, or decorative AI imagery.
+
+## 1.1 V1.1 targeted correction scope
+
+V1.1 resolves only the three deterministic defects identified by the independent selected-specification review:
+
+1. section-surface ownership is assigned for all ten Homepage blocks;
+2. subtle structural rules are separated from interactive-control and focus boundaries;
+3. essential proof statuses use a mandatory `12px` mobile minimum.
+
+These corrections do not redesign Concept A, change accepted copy, alter the ten-block order, modify proof taxonomy, change either Concept A SVG, or authorize implementation planning or production work.
 
 ---
 
@@ -155,15 +167,17 @@ The token values below are selected-direction values. Later implementation may a
 ## 4.1 Color tokens
 
 ```text
-page background              #06080B
-primary section surface      #0E1319
-raised/card surface          #131B23
-strong inner field           #06080B
-border/rule                   #24313D
-primary text                  #F5F8FB
-muted text                    #91A2B3
-primary cyan signal           #66E3FF
-deep blue support             #0A8DFF
+page background                    #06080B
+primary section surface            #0E1319
+raised/card surface                #131B23
+strong inner field                 #06080B
+structural border/rule             #24313D
+interactive control boundary       #66788C
+primary focus signal               #66E3FF
+primary text                        #F5F8FB
+muted text                          #91A2B3
+primary cyan signal                 #66E3FF
+deep blue support                   #0A8DFF
 ```
 
 ### Usage rules
@@ -175,6 +189,9 @@ deep blue support             #0A8DFF
 - Muted text must remain readable against every assigned surface.
 - Project evidence classes must not depend on color alone.
 - Success, warning, or error colors are not Homepage brand decoration and must be introduced only for actual semantic states.
+- `#24313D` is a subtle structural token for section rules, decorative dividers, non-essential card outlines, and atmospheric geometry. It must not be the sole visible boundary of an interactive control or the sole focus indicator.
+- `#66788C` is the default interactive control-boundary token on the three specified dark surfaces. Its contrast must remain at least `3:1` against the actual adjacent surface after implementation.
+- `#66E3FF` is the primary focus signal on dark surfaces. A focus treatment must remain distinguishable from both the component and its adjacent background.
 
 ## 4.2 Surface hierarchy
 
@@ -186,13 +203,66 @@ Use no more than three normal dark-surface levels on one viewport:
 
 A fourth visual depth level requires a real semantic reason, such as an embedded screenshot frame, not decoration.
 
-## 4.3 Borders and rules
+### 4.2.1 Locked section-surface ownership
 
-- Default border: `1px` using the border/rule token.
-- Strong active or conclusion border: maximum `1.5px` in the cyan signal.
+The full-page surface rhythm is semantic and mandatory. Responsive recomposition may change layout, but it must not change the base surface assigned to a block.
+
+| Block | Required base surface | Permitted internal depth |
+|---|---|---|
+| 1. Hero | `page background #06080B` plus restrained Hero atmosphere | supplementary tableau may use `primary section surface` or `raised/card surface` |
+| 2. Connected Business Journey | `primary section surface #0E1319` | friction fields may use `raised/card surface`; steps may return to `page background` |
+| 3. Two Core Directions | `page background #06080B` | direction fields may use `primary section surface` |
+| 4. Financial Stream | `primary section surface #0E1319` | flagship proof and evidence fields may use `raised/card surface`; screenshot inner field may use `strong inner field` |
+| 5. Ways to Start | `page background #06080B` | situation rows may use `primary section surface` |
+| 6. Controlled Delivery | `primary section surface #0E1319` | stage fields may use `raised/card surface` |
+| 7. Founder accountability | `page background #06080B` | portrait and accountability fields may use `primary section surface` or one restrained raised field |
+| 8. Selected Work | `primary section surface #0E1319` | project fields may use `raised/card surface`; image inner fields may use `strong inner field` |
+| 9. Insights | `page background #06080B` | article fields may use `primary section surface` |
+| 10. Final Private Review | `primary section surface #0E1319` | CTA and bounded expectation copy may use normal control tokens; no additional full-width surface band |
+| Locked Footer | owned by the existing global Footer system | this specification does not restyle it |
+
+Rules:
+
+- The alternating block rhythm must remain visible as a complete-page system on desktop and mobile.
+- A Builder must not place all ten blocks on one uninterrupted background.
+- A Builder must not invent a different alternation order.
+- `raised/card surface #131B23` is an internal semantic depth, not a replacement base background for an entire ordinary block.
+- Financial Stream remains the strongest proof through scale, composition, evidence density, and screenshot prominence; surface ownership alone must not flatten it into an ordinary card section.
+- Grid and Hero glow may fade across surfaces, but they do not change surface ownership.
+- Forced-colors mode may replace the palette while preserving grouping, boundaries, and reading order.
+
+## 4.3 Borders, control boundaries, and focus roles
+
+### Structural rule role
+
+- Default decorative or structural rule: `1px` using `#24313D`.
+- This role covers section dividers, atmospheric grid geometry, and non-essential card outlines.
+- Low contrast is intentional only when the rule is decorative or when the component remains fully identifiable without it.
+- Structural rules must never carry essential status, selection, control, or focus meaning by themselves.
+
+### Interactive control-boundary role
+
+- A secondary button, input-like control, toggle, or other interactive element that depends on an outline for identification must use `#66788C` or another separately verified token with at least `3:1` contrast against its actual adjacent surface.
+- The boundary must remain distinguishable in default, hover, active, and disabled states where those states exist.
+- Cyan may identify an active or selected state, but status or selection must not depend on color alone.
+- A filled primary cyan button may use its fill silhouette as the control boundary when the fill has sufficient non-text contrast against the adjacent surface.
+- `#24313D` must not be substituted for the interactive control boundary merely to make controls visually quieter.
+
+### Focus-visible role
+
+- Focus is not a decorative border state.
+- On dark surfaces, use a minimum `2px` visible outline in `#66E3FF` with sufficient separation or offset from the component boundary.
+- On cyan-filled controls, use a light `#F5F8FB` outer outline with a dark separation gap, or an equivalently verified treatment that remains visible against both the cyan control and surrounding surface.
+- Focus must not be represented only by changing the border from `#24313D` to another low-contrast color.
+- Focus treatment must meet non-text contrast requirements against the adjacent colors and remain visible at `200%` zoom.
+- In forced-colors mode, native system focus colors and outlines take precedence; do not suppress them.
+
+### General border discipline
+
+- Strong active or conclusion border: maximum `1.5px` in the cyan signal unless the focus contract requires `2px`.
 - Dividers should be thin and structural.
 - Avoid multiple nested borders around every component.
-- Border contrast must remain visible on common laptop and phone displays.
+- Decorative border subtlety must not reduce control discoverability.
 
 ## 4.4 Corner radii
 
@@ -307,15 +377,27 @@ line height         1.5–1.65
 maximum text width  approximately 62–72 characters where practical
 ```
 
-### Labels and section numbers
+### Section numbers and non-essential compact metadata
 
 ```text
 minimum desktop     11px
 minimum mobile      11px
-preferred mobile    12px for long Cyrillic status labels
 line height         1.35–1.5
 letter spacing      maximum approximately 0.10em for long Cyrillic text
 ```
+
+The `11px` mobile minimum is permitted only for short section numbers and non-essential compact metadata labels. It is not permitted for proof classification, project status, disclosure text, control labels, or essential action text.
+
+### Proof statuses and essential evidence classifications
+
+```text
+minimum desktop     11px
+minimum mobile      12px mandatory
+line height         1.4–1.55
+letter spacing      maximum approximately 0.08em for long Cyrillic status text
+```
+
+The exact Financial Stream, Alina Horb, and Local Repair Pro statuses are essential proof classifications. They must never fall below `12px` on mobile, including `390px`, `360px`, `320px`, and short-landscape compact modes. Long Cyrillic status text may use title case, reduced tracking, and additional natural lines, but must not use smaller type, break inside words, clip, or hide behind interaction.
 
 ### Disclosures and evidence boundaries
 
@@ -333,7 +415,7 @@ Uppercase is permitted for:
 
 - section numbers;
 - short metadata labels;
-- concise evidence status;
+- concise evidence status when the required minimum size and readable tracking are preserved;
 - compact actions.
 
 Uppercase is not permitted for:
@@ -351,6 +433,7 @@ Uppercase is not permitted for:
 - No fixed-height text container may clip localized copy.
 - CTA width must accommodate localized labels.
 - Status and disclosure containers must expand in normal flow.
+- Essential mobile proof statuses must retain the mandatory `12px` minimum while expanding to additional lines where required.
 
 ---
 
@@ -456,7 +539,7 @@ Primary button:
 Secondary button:
 
 - transparent or surface fill;
-- visible border;
+- visible `interactive control boundary`, not the subtle structural-rule token;
 - primary text;
 - equal minimum touch target.
 
@@ -474,8 +557,11 @@ Text links may use cyan and an arrow, but must remain identifiable without color
 
 - All interactive elements require a visible keyboard focus indicator.
 - Focus must not be only a color shift.
+- Focus must not reuse the subtle `#24313D` structural rule as its sole boundary.
 - The focus indicator must remain visible on dark and cyan surfaces.
-- Focus styling may use a light outline plus cyan offset, subject to contrast testing.
+- On dark surfaces, the default direction is a minimum `2px` cyan outline with separation from the control boundary.
+- On cyan-filled controls, use a light outer outline with dark separation or an equivalently verified treatment.
+- Forced-colors focus must use system colors and must not be suppressed.
 
 ---
 
@@ -632,7 +718,7 @@ Order:
 
 1. section identity;
 2. large screenshot/proof field;
-3. exact live-client status;
+3. exact live-client status at minimum `12px`;
 4. heading and evidence copy;
 5. evidence/claim-boundary field;
 6. case and live-site actions.
@@ -807,7 +893,7 @@ The adjacent disclosure must state that it is not a paid client or operating rep
 
 - labels, wording, borders, and disclosure placement must distinguish evidence classes;
 - color alone is insufficient;
-- status must be readable on mobile;
+- both exact project statuses must remain at least `12px` on mobile;
 - no tooltip, hover, accordion, or modal may hide the disclosure;
 - no equal “client logo wall” treatment.
 
@@ -883,14 +969,17 @@ Every proof item requires:
 
 ## 9.3 Status token
 
-Status styling may use:
+Status styling must use:
 
-- cyan text;
-- concise uppercase when readable;
+- minimum `12px` on mobile for every essential proof status or evidence classification;
+- minimum `11px` on desktop;
+- cyan text when compatible with the evidence system;
+- concise uppercase only when readable at the required size;
 - restrained letter spacing;
-- short rule or boundary field.
+- short rule or boundary field where useful;
+- normal-flow expansion for localized text.
 
-Mobile long-form RU statuses may use title case or reduced letter spacing when necessary. Text fidelity is more important than preserving uppercase styling.
+Mobile long-form RU statuses may use title case, reduced letter spacing, and additional natural lines when necessary. Text fidelity and the mandatory `12px` minimum are more important than preserving uppercase styling or a one-line layout.
 
 ## 9.4 Disclosure token
 
@@ -917,7 +1006,8 @@ Must demonstrate:
 - editorial Ways-to-Start rows;
 - readable five-stage process;
 - two-project Selected Work layout;
-- final CTA before locked Footer.
+- final CTA before locked Footer;
+- exact section-surface ownership across the full page.
 
 ## 10.2 Mobile 390
 
@@ -928,10 +1018,11 @@ Must demonstrate:
 - full expectation copy;
 - normal-flow Connected Journey;
 - strong Financial Stream screenshot and status;
+- proof statuses at minimum `12px`;
 - non-pricing Ways-to-Start stacking;
 - exact project statuses and visible disclosures;
 - no horizontal overflow;
-- Concept A identity without desktop-only grid dependence.
+- Concept A identity and assigned surface rhythm without desktop-only grid dependence.
 
 ## 10.3 Narrow mobile 320
 
@@ -939,11 +1030,13 @@ Must demonstrate:
 
 - natural H1 wrapping;
 - no word break inside project statuses;
+- all proof statuses at minimum `12px`;
 - no clipped CTA label;
 - minimum content gutter;
 - readable disclosure type;
 - no fixed-height content clipping;
-- no forced micro-text to preserve desktop composition.
+- no forced micro-text to preserve desktop composition;
+- preservation of the assigned section-surface rhythm.
 
 ## 10.4 Short landscape approximately 844 × 390
 
@@ -955,7 +1048,8 @@ Must demonstrate:
 - no section overlap;
 - normal vertical scrolling;
 - no horizontal poster layout;
-- mobile/compact header behavior remains owned by the Header system.
+- mobile/compact header behavior remains owned by the Header system;
+- proof status minimums and interactive boundaries remain valid in compact mode.
 
 ---
 
@@ -968,6 +1062,8 @@ The later implementation must satisfy:
 - visible focus indication;
 - minimum touch targets;
 - sufficient text and UI contrast;
+- interactive boundaries with at least `3:1` non-text contrast where the boundary is required to identify the control;
+- structural decorative rules kept separate from interactive and focus roles;
 - no essential information encoded only through color;
 - no essential text embedded in screenshots;
 - descriptive image alternatives where images carry content;
@@ -979,7 +1075,7 @@ The later implementation must satisfy:
 - skip-link and Header behavior preserved;
 - no interaction that depends on hover or precise pointer movement.
 
-The selected dark theme does not exempt the implementation from contrast verification. Muted text, borders, status labels, and disabled-like fields require explicit checks.
+The selected dark theme does not exempt the implementation from contrast verification. Muted text, structural rules, control boundaries, focus indicators, status labels, and disabled-like fields require explicit checks against their actual adjacent surfaces.
 
 ---
 
@@ -1071,7 +1167,7 @@ No future Builder may copy an obsolete Homepage branch over current `main`.
 
 # 15. Future implementation contract
 
-After this specification receives independent `ACCEPT`, the next authorized task is **implementation planning**, not automatic production coding.
+After this corrected specification receives focused independent `ACCEPT`, the next authorized task is **implementation planning**, not automatic production coding.
 
 That task must produce:
 
@@ -1090,9 +1186,12 @@ That task must produce:
 ## 15.1 Future implementation non-negotiables
 
 - preserve accepted content and ten-block order;
+- preserve the locked section-surface ownership map;
 - preserve exact proof taxonomy;
 - preserve all deterministic action/origin identifiers and Contact allowlists;
 - preserve EN/RU localized routes and metadata;
+- preserve mandatory mobile proof-status and disclosure minimums;
+- separate structural, interactive-boundary, and focus roles;
 - no invented metrics or testimonials;
 - no unnecessary framework or dependency;
 - no WebGL/canvas requirement;
@@ -1124,6 +1223,7 @@ A later implementation cannot be accepted unless all criteria below pass.
 
 - recognisably Concept A;
 - dark graphite, white typography, restrained cyan signal;
+- exact full-page section-surface ownership retained;
 - no generic SaaS dashboard appearance;
 - no crypto/startup gradient excess;
 - no consulting-template loss of technical identity;
@@ -1141,6 +1241,7 @@ A later implementation cannot be accepted unless all criteria below pass.
 ## Proof
 
 - exact statuses;
+- proof statuses at least `12px` on mobile;
 - visible disclosures;
 - no hidden caveats;
 - no unsupported performance implication;
@@ -1157,7 +1258,9 @@ A later implementation cannot be accepted unless all criteria below pass.
 ## Accessibility
 
 - keyboard and focus pass;
-- contrast pass;
+- text contrast pass;
+- non-text control-boundary contrast pass;
+- structural rules not used as sole interactive boundaries;
 - touch-target pass;
 - reduced-motion pass;
 - forced-colors reasonable;
@@ -1190,7 +1293,10 @@ Reject an implementation or correction that introduces any of the following with
 - warm-light Concept B replacement of the selected dark system;
 - fully pill-shaped cards/buttons throughout;
 - hidden proof disclosures;
-- text smaller than specified mobile minimums;
+- mobile proof statuses below `12px`;
+- disclosures below the specified minimums;
+- `#24313D` used as the sole visible boundary for secondary buttons, controls, or focus;
+- arbitrary or fully uniform section-surface assignment;
 - fixed-height localized text regions;
 - horizontal mobile carousels for essential content;
 - new Header/Footer variants;
@@ -1201,17 +1307,15 @@ Reject an implementation or correction that introduces any of the following with
 
 # 18. Decision gate
 
-This specification is ready for independent review.
+This corrected specification is ready for focused independent correction review.
 
-The Reviewer must determine:
+The Reviewer must determine only:
 
-1. whether it faithfully converts Concept A rather than redesigning it;
-2. whether it preserves accepted Strategy, Content Architecture, low-fidelity maps, and proof hierarchy;
-3. whether tokens are deterministic enough for implementation planning;
-4. whether EN/RU and four responsive modes are adequately protected;
-5. whether status/disclosure minimums are sufficient;
-6. whether the system avoids generic SaaS, consulting-template, crypto, and spectacle risks;
-7. whether the implementation contract prevents premature or unsafe production work.
+1. whether the ten-block section-surface ownership map is complete, deterministic, and faithful to Concept A;
+2. whether structural rules, interactive control boundaries, and focus-visible roles are separated with adequate non-text contrast requirements;
+3. whether essential proof statuses have a mandatory `12px` mobile minimum while `11px` remains restricted to short section numbers and non-essential metadata;
+4. whether these corrections avoid concept drift, content change, or premature implementation authorization;
+5. whether the next stage may be implementation planning.
 
 Allowed verdicts:
 
@@ -1219,4 +1323,4 @@ Allowed verdicts:
 - `TARGETED CORRECTION`;
 - `REJECT`.
 
-Until `ACCEPT`, do not begin Homepage production implementation.
+Until focused `ACCEPT`, do not begin implementation planning or Homepage production implementation.

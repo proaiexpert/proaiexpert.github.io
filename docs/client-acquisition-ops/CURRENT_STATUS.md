@@ -17,20 +17,21 @@ The website redesign and commercial-content implementation are owned by a separa
 - Positioning, ICP, offer architecture, initial pricing, pipeline, KPI, capacity, and governance rules defined.
 - Website redesign and content-improvement work assigned to a separate chat/workstream.
 - Dedicated GitHub operations workspace initiated.
+- CRM specification approved for initial use.
+- Lead qualification checklist approved for initial use.
 
 ## In progress
 
-- Build the reusable Sales Kit.
-- Prepare the first live CRM structure.
+- Build the remaining reusable Sales Kit.
+- Implement the first live CRM from the approved specification.
 - Prepare the first seven-day sales and social-selling campaign.
 
 ## Not yet completed
 
 - CRM populated with live prospects.
-- Approved qualification checklist.
+- Approved outreach and follow-up scripts.
 - Approved discovery call guide.
 - Approved personalized audit template.
-- Approved outreach and follow-up scripts.
 - Approved proposal template.
 - Approved onboarding, review, case-permission, and referral materials.
 - First unrelated Washington client.
@@ -39,10 +40,10 @@ The website redesign and commercial-content implementation are owned by a separa
 
 ## Immediate priority order
 
-1. Create CRM specification and qualification checklist.
-2. Create outreach and follow-up scripts by channel and relationship type.
-3. Create personalized audit and discovery call guides.
-4. Create proposal, deposit, and onboarding materials.
+1. Create outreach and follow-up scripts by channel and relationship type.
+2. Create personalized audit and discovery call guides.
+3. Create proposal, deposit, and onboarding materials.
+4. Implement and populate the CRM.
 5. Launch the first seven-day campaign.
 6. Record all prospects, messages, replies, calls, proposals, and outcomes.
 7. Run the first weekly operating review.
@@ -51,9 +52,9 @@ The website redesign and commercial-content implementation are owned by a separa
 
 The next working package is:
 
-> CRM Specification + Lead Qualification Checklist
+> Outreach and Follow-up Scripts
 
-It must be usable immediately, linked to the canonical plan, and stored under `sales-kit/`.
+It must cover warm introductions, warm prospects, Facebook, LinkedIn, cold email, phone/in-person contact, audit delivery, proposal follow-up, close-the-loop messages, and referrals.
 
 ## Boundaries
 

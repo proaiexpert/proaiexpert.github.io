@@ -44,6 +44,7 @@ jobs:
           from pathlib import Path
 
           commercial = [
+              'index.html', 'ru/index.html',
               'about/index.html', 'ru/about/index.html',
               'contact/index.html', 'ru/contact/index.html',
               'ai-systems/index.html', 'ru/ai-systems/index.html',
@@ -83,23 +84,43 @@ jobs:
               'ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html',
           ]
 
-          for family, routes in {
+          families = {
               'commercial': commercial,
               'portfolio': portfolio,
               'editorial': editorial,
-          }.items():
+          }
+          pulse_href = '/assets/css/footer-title-pulse-v1.css?v=20260804.1'
+          count = 0
+
+          for family, routes in families.items():
               for route in routes:
                   text = (Path('_site') / route).read_text(encoding='utf-8')
                   assert text.count(f'data-footer-family="{family}"') == 1, route
                   assert text.count('site-footer__brand-zone') == 1, route
                   assert text.count('site-footer__watermark') == 1, route
+                  assert text.count(pulse_href) == 1, route
                   assert '{% include footer-system/' not in text, route
                   assert '{{ footer_' not in text, route
                   assert 'mailto:hello@proai-expert.com' in text, route
                   assert 'https://t.me/proAiexpert' in text, route
                   assert 'https://github.com/proaiexpert' in text, route
                   assert text.index('site-footer-contact-') < text.index('site-footer__services'), route
-          print(f'Unified Footer System verified for {len(commercial) + len(portfolio) + len(editorial)} routes.')
+                  count += 1
+
+          pulse = Path('_site/assets/css/footer-title-pulse-v1.css').read_text(encoding='utf-8')
+          assert pulse.count('@keyframes siteFooterTitlePulseV5') == 1
+          assert '.site-footer[data-footer-family] .site-footer__cta h2' in pulse
+          assert '4.6s ease-in-out infinite' in pulse
+          assert 'prefers-reduced-motion: reduce' in pulse
+          assert 'forced-colors: active' in pulse
+          assert 'site-footer__watermark' not in pulse
+          assert 'site-footer__logo' not in pulse
+
+          polish = Path('_site/assets/css/footer-commercial-v1-polish.css').read_text(encoding='utf-8')
+          assert 'siteFooterTitlePulseV4' not in polish
+
+          assert count == 44, count
+          print(f'Unified Footer System and shared title pulse verified for {count} routes.')
           PY
 
       - name: Upload generated site artifact

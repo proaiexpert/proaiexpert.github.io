@@ -1,265 +1,349 @@
-# PROAI EXPERT HOMEPAGE V2 - LOW-FIDELITY FULL-PAGE MAP
+# PROAI EXPERT HOMEPAGE V2 — LOW-FIDELITY FULL-PAGE MAP
 
-**Status:** Candidate for independent low-fidelity review  
-**Version:** V1  
+**Status:** Corrected candidate for focused low-fidelity review  
+**Version:** V1.1  
 **Date:** 2026-08-05  
 **Branch:** `agent/homepage-v2-low-fidelity-map`  
 **Source Content Architecture blob:** `cdfe0188cdf5d886066f6effdceaf9e8bddd704b`  
+**Original low-fidelity review verdict:** `TARGETED CORRECTION`  
 **Production code authorization:** none  
-**Visual-design authorization:** none
+**Visual-concept authorization:** none
 
 ---
 
-# 1. MAP PURPOSE
+# 1. PURPOSE AND CORRECTION SCOPE
 
 The maps test the accepted ten-block Homepage V2 content system as one complete commercial journey before visual styling or implementation.
 
-They are intended to prove:
+This V1.1 correction resolves only the blocking findings in:
 
-1. the Hero creates orientation and exposes the first action early;
-2. the Connected Journey is understandable without animation;
-3. the two directions remain distinct;
-4. Financial Stream appears early and receives the strongest proof field;
-5. Ways to Start reads as three situations rather than pricing tiers;
-6. Process and Founder reduce risk without dominating the page;
-7. Alina Horb and Local Repair Pro statuses and disclosures remain visible;
-8. Insights stay subordinate to proof and conversion;
-9. the final Private Review remains bounded;
-10. Header and Footer remain locked integration boundaries.
+`docs/site-evolution/homepage-v2-low-fidelity/03_LOW_FIDELITY_REVIEW_REPORT.md`
 
-The maps do not approve final typography, color, imagery, spacing, motion, surface treatment, or production components.
+Corrected areas:
 
----
+1. full accepted RU Hero content is represented at `390`, `320`, and `844 × 390`;
+2. mandatory Hero expectation copy and accountability line are represented at `1440`;
+3. short-landscape Hero and Connected Journey geometry are contained within their owning sections;
+4. Connected Journey conclusion is present on every responsive map;
+5. Ways to Start reserves separate space for review CTA and required service links;
+6. Selected Work reserves distinct status, disclosure/boundary, and action zones.
 
-# 2. MAP SET
+The correction does not alter:
 
-## Desktop - 1440 px
-
-![Homepage V2 low-fidelity map at 1440 px](maps/homepage-v2-low-fi-1440.svg)
-
-Primary decisions:
-
-- Hero uses a two-field composition: commercial hierarchy left, supplementary system tableau right.
-- Connected Journey is one signature section, not separate problem and diagram blocks.
-- Directions are two materially distinct pathways.
-- Financial Stream uses one large proof field rather than a dashboard or equal screenshot cards.
-- Ways to Start uses editorial rows, not pricing cards.
-- Five process phases appear in one controlled sequence.
-- Founder remains compact.
-- Selected Work uses two proof cards with always-visible status/disclosure.
-- Insights use three secondary decision-guide objects.
-- Final conversion is visually decisive but introduces no new offer.
-
-## Mobile - 390 px
-
-![Homepage V2 low-fidelity map at 390 px](maps/homepage-v2-low-fi-390.svg)
-
-Primary decisions:
-
-- RU Hero copy is rendered in the opening sequence.
-- Primary CTA follows supporting copy directly.
-- Expectation copy and secondary CTA remain adjacent.
-- The system tableau becomes a compact four-state strip.
-- Connected Journey is four stacked steps.
-- Financial Stream retains a readable screenshot before detailed evidence.
-- Ways to Start becomes three ordered editorial situations.
-- Status and disclosure remain in normal reading flow.
-- Dashed lines mark approximate 844 px viewport folds.
-
-## Narrow mobile - 320 px
-
-![Homepage V2 low-fidelity map at 320 px](maps/homepage-v2-low-fi-320.svg)
-
-Primary decisions:
-
-- No horizontal chips, poster diagrams, fixed-width cards, or forced one-line headings.
-- CTA controls occupy the available width.
-- RU copy wraps naturally.
-- Connected Journey, Process, proof objects, and Insights remain stacked.
-- Disclosure and boundary copy do not depend on hover or expandable UI.
-- Dashed lines mark approximate 640 px viewport folds for density review.
-
-## Short landscape - approximately 844 x 390
-
-![Homepage V2 low-fidelity map at 844 x 390](maps/homepage-v2-low-fi-844x390.svg)
-
-Primary decisions:
-
-- The Hero avoids viewport-filling minimum height.
-- RU H1, supporting copy, and primary CTA fit in the first short-landscape viewport.
-- The composition remains static and vertically progressive; no sticky narrative rail is required.
-- Subsequent blocks use compact single-column logic rather than shrinking wide desktop diagrams.
-- Dashed lines mark 390 px viewport folds.
+- the accepted ten-block order;
+- Content Architecture copy;
+- service hierarchy;
+- proof taxonomy;
+- Header or Footer;
+- Homepage, Contact, YAML, HTML, CSS, or JavaScript;
+- any production route or asset.
 
 ---
 
-# 3. TEN-BLOCK SCALE CONTRACT
+# 2. CORRECTED MAP SET
 
-| Block | Relative role | Map scale decision |
-|---|---|---|
-| 01 Hero | Orientation and first action | Large, but not a full-screen spectacle |
-| 02 Connected Journey | Differentiating thesis | Large signature section |
-| 03 Two Directions | Service-direction choice | Medium-large |
-| 04 Financial Stream | Strongest real proof | Largest proof section |
-| 05 Ways to Start | Self-identification and contextual conversion | Large editorial section |
-| 06 Controlled Delivery | Delivery confidence | Medium |
-| 07 Founder | Accountability | Compact |
-| 08 Selected Work | Range with exact status | Medium |
-| 09 Insights | Buyer education | Medium-small |
-| 10 Private Review | Final bounded conversion | Compact but decisive |
+## Desktop — 1440 px
 
-No later section may visually outweigh Financial Stream or cause the page to read as a content archive.
+![Corrected Homepage V2 low-fidelity map at 1440 px](maps/homepage-v2-low-fi-1440.svg)
+
+Declared document size:
+
+```text
+1440 × 5740
+```
+
+Correction proof:
+
+- exact EN Hero hierarchy remains visible;
+- the primary CTA has a dedicated adjacent expectation-copy field;
+- the accountability line has an explicit slot;
+- each Ways-to-Start situation shows a contextual review CTA plus its service-link collection;
+- the combined situation shows two service links;
+- each Selected Work item has separate status, disclosure/boundary, and action fields.
+
+## Mobile — 390 px
+
+![Corrected Homepage V2 low-fidelity map at 390 px](maps/homepage-v2-low-fi-390.svg)
+
+Declared document size:
+
+```text
+390 × 6608
+```
+
+Correction proof:
+
+- exact accepted RU eyebrow is shown;
+- exact accepted RU H1 is shown;
+- exact accepted full supporting copy is shown;
+- primary CTA, exact expectation copy, secondary CTA, accountability line, and system strip follow in the accepted order;
+- Connected Journey includes all four steps and its exact conclusion;
+- each Ways-to-Start item includes review CTA and service links;
+- Selected Work reserves normal-flow multi-line status and disclosure/boundary space.
+
+## Narrow mobile — 320 px
+
+![Corrected Homepage V2 low-fidelity map at 320 px](maps/homepage-v2-low-fi-320.svg)
+
+Declared document size:
+
+```text
+320 × 6978
+```
+
+Correction proof:
+
+- no shortened RU Hero substitute is used;
+- the primary action remains visible in the natural opening sequence;
+- no horizontal chip, fixed-width poster, or hover-dependent proof field is required;
+- Alina Horb and Local Repair Pro status/disclosure areas are intentionally multi-line;
+- the combined Ways-to-Start situation visibly owns two service links.
+
+## Short landscape — 844 × 390 viewport
+
+![Corrected Homepage V2 low-fidelity map for 844 × 390 short landscape](maps/homepage-v2-low-fi-844x390.svg)
+
+Declared document size:
+
+```text
+844 × 5282
+```
+
+Correction proof:
+
+- the first `390 px` viewport marker is retained;
+- exact accepted RU eyebrow, H1, full supporting copy, and primary CTA are represented before that fold;
+- expectation copy, secondary CTA, accountability line, and system strip remain in the Hero without overflow;
+- the system strip is contained inside the Hero;
+- all four Connected Journey steps and the conclusion are contained inside the Connected Journey section;
+- Two Core Directions begins only after the Connected Journey ends;
+- no sticky behavior, horizontal scrolling, or viewport-filling section is implied.
 
 ---
 
-# 4. HERO VALIDATION
+# 3. TEN-BLOCK ARCHITECTURE LOCK
 
-## 1440 px
+The DOM and reading order remain fixed in every map:
 
-- One H1.
-- Primary and secondary CTAs are visible in the Hero hierarchy.
-- The system visual is supplementary.
-- No fake dashboard, rotating model, or technology-logo wall.
+1. `hero`;
+2. `connected-journey`;
+3. `directions`;
+4. `client-work`;
+5. `ways-to-start`;
+6. `process`;
+7. `founder`;
+8. `selected-work`;
+9. `insights`;
+10. `private-review`.
 
-## 390 px and 320 px
-
-The current RU Hero remains provisional. These maps test the accepted copy without shortening it.
-
-Required review questions:
-
-- Does the eyebrow dominate the first screen?
-- Does the H1 wrap into an unreasonable number of lines?
-- Is the primary CTA reached before the opening feels excessively long?
-- Does expectation copy remain connected to the CTA?
-- Does the compact system strip add meaning without delaying action?
-
-A reviewer may recommend a targeted RU Hero shortening only when the map demonstrates one of those failures. The map itself does not authorize rewriting.
-
-## 844 x 390
-
-The first viewport must contain:
-
-- Header;
-- Hero eyebrow;
-- RU H1;
-- supporting copy;
-- primary CTA.
-
-Expectation copy and the secondary action may continue immediately below, but the Hero must not require a fixed `100vh` or sticky interaction.
+Header precedes the page body. Footer follows Block 10. Both remain locked integration boundaries.
 
 ---
 
-# 5. CONNECTED JOURNEY VALIDATION
+# 4. HERO FIDELITY CONTRACT
 
-The section contains:
+## Desktop EN
+
+The map must reserve visible space for:
+
+1. eyebrow;
+2. H1;
+3. full supporting copy;
+4. primary CTA;
+5. exact expectation copy adjacent to the primary CTA;
+6. secondary CTA;
+7. accountability line;
+8. supplementary system tableau.
+
+The system tableau does not own unique essential content.
+
+## Responsive RU
+
+The `390`, `320`, and `844 × 390` maps use the accepted RU content without shortening:
+
+**Eyebrow**
+
+```text
+AI-СИСТЕМЫ, АВТОМАТИЗАЦИЯ И ПРЕМИАЛЬНЫЕ САЙТЫ ДЛЯ СЕРВИСНОГО БИЗНЕСА
+```
+
+**H1**
+
+```text
+Выстраиваем доверие. Наводим порядок в обращениях. Сокращаем ручную работу.
+```
+
+**Supporting copy**
+
+```text
+ProAI Expert объединяет премиальный сайт, практическую автоматизацию и AI с проверкой человеком, чтобы клиент быстрее понимал ценность бизнеса, оставлял полезный контекст, а каждое обращение переходило к понятному следующему шагу.
+```
+
+**Primary CTA**
+
+```text
+Запросить первичный разбор
+```
+
+**Expectation copy**
+
+```text
+Коротко опишите бизнес и основную проблему. Мы оценим соответствие, определим приоритет и предложим следующий полезный шаг.
+```
+
+**Secondary CTA**
+
+```text
+Смотреть клиентские проекты
+```
+
+**Accountability line**
+
+```text
+Штат Вашингтон · Работаем по всей территории США · EN / RU / UA
+```
+
+No RU copy shortening is authorized by this map correction. A Reviewer may evaluate the exact mapped hierarchy but must not rewrite the content during this gate.
+
+---
+
+# 5. CONNECTED JOURNEY CONTRACT
+
+Every map represents:
 
 1. three friction signals;
 2. exactly four connected steps;
-3. one conclusion joining website and automation.
+3. one visible conclusion after the four steps.
 
-Desktop may use a horizontal sequence. Mobile and short landscape must use stacked semantic steps.
+The responsive conclusion represents the accepted meaning:
 
-The meaning must remain complete without:
+```text
+Сайт формирует решение до обращения. Автоматизация защищает процесс после обращения. Лучше всего они работают как единая система.
+```
 
-- animation;
-- horizontal scrolling;
-- tiny connector labels;
-- JavaScript;
-- an iframe;
-- hover-only explanations.
+Containment requirements:
 
----
-
-# 6. PROOF VALIDATION
-
-## Financial Stream
-
-- receives one large primary screenshot field;
-- appears before Ways to Start;
-- status remains visible;
-- evidence bullets and claim boundary remain readable;
-- no metrics dashboard is shown;
-- no lead, revenue, conversion, response-speed, or ROI claim is introduced.
-
-## Alina Horb
-
-The map reserves normal-flow space for:
-
-- `Live related-party project / Действующий проект, связанный с основателем`;
-- adjacent disclosure;
-- one representative project image.
-
-## Local Repair Pro
-
-The map reserves normal-flow space for:
-
-- `Website concept / Концепция сайта`;
-- `Live demo / Рабочее демо`;
-- `In development / В разработке`;
-- explicit non-client/non-operating-business boundary.
+- no journey step may cross the section boundary;
+- the conclusion remains inside the section;
+- the next block begins after the section ends;
+- no meaning depends on animation, hover, JavaScript, iframe, or horizontal scrolling.
 
 ---
 
-# 7. WAYS-TO-START VALIDATION
+# 6. WAYS-TO-START ACTION CONTRACT
 
-The three objects are ordered situations:
+The section remains three visitor situations, not packages or pricing tiers.
 
-1. Website and trust;
-2. Inquiry handling and repetitive process;
-3. Connected website and operations.
-
-They are not pricing tiers.
-
-Each object must preserve:
+Every situation owns distinct normal-flow fields for:
 
 - `Best when`;
 - first objective;
 - `Not implied`;
-- one contextual review CTA;
-- one or two service links as defined by `service_links`.
+- contextual review CTA;
+- `service_links` collection.
 
-The visual concept must not add package names, price hierarchy, a popular badge, or a feature matrix.
+Required service-link counts:
 
----
+```text
+Situation 1 — Website and trust: 1 Website service link
+Situation 2 — Inquiry handling: 1 AI Systems service link
+Situation 3 — Connected system: 2 service links
+  1. AI Systems
+  2. Websites & Branding
+```
 
-# 8. RESPONSIVE CONTENT ORDER
-
-The mobile maps preserve this order:
-
-1. Hero copy and primary action;
-2. Connected Journey;
-3. Two Directions;
-4. Financial Stream;
-5. Ways to Start;
-6. Controlled Delivery;
-7. Founder;
-8. Selected Work;
-9. Insights;
-10. Final Private Review;
-11. locked Footer.
-
-No responsive map reorders proof below Process or Founder.
+The review CTA and service links are visually separate. They are not merged into one generic action pill.
 
 ---
 
-# 9. LOW-FIDELITY ACCEPTANCE CRITERIA
+# 7. SELECTED-WORK PROOF CONTRACT
 
-The map is ready for visual concept comparison only when an independent reviewer confirms:
+Each Selected Work item reserves three separate fields in addition to its image:
 
-1. all ten blocks are present and ordered correctly;
-2. relative section scale supports the commercial narrative;
-3. Hero action appears early enough at all four target sizes;
-4. RU Hero expansion is viable or a specific targeted shortening is justified;
-5. Connected Journey works without wide-layout dependency;
-6. Financial Stream remains the dominant proof section;
-7. Ways to Start does not resemble pricing;
-8. Process does not duplicate the Connected Journey;
-9. founder content remains compact;
-10. project status/disclosure remains visible at 320 px;
-11. no section requires horizontal scrolling;
-12. short landscape does not require sticky or viewport-filling behavior;
-13. Header and Footer remain locked boundaries;
-14. no production or final visual decision is embedded in the maps.
+1. public project status;
+2. adjacent disclosure or evidence boundary;
+3. project action/link.
+
+## Alina Horb
+
+Status meaning:
+
+```text
+Действующий проект, связанный с основателем · UA/RU
+```
+
+Disclosure meaning:
+
+```text
+Проект связан с основателем и показан как доказательство качества стратегии, реализации и локализации, а не как независимое клиентское подтверждение.
+```
+
+## Local Repair Pro
+
+Status meaning:
+
+```text
+Концепция сайта · Рабочее демо · В разработке
+```
+
+Boundary meaning:
+
+```text
+Это концепция и рабочее демо в разработке. Проект не представлен как оплаченный клиент, работающая ремонтная компания или доказательство реальных клиентских результатов.
+```
+
+At `320 px`, both status and disclosure/boundary fields are represented as realistic multi-line normal-flow areas. No tooltip, overlay, hover, or collapsed disclosure is assumed.
+
+---
+
+# 8. RESPONSIVE CONTAINMENT CHECKS
+
+Focused correction review must verify:
+
+- the `844 × 390` Hero strip remains inside the Hero;
+- the fourth Connected Journey step remains inside its section;
+- the Connected Journey conclusion remains inside its section;
+- Two Core Directions does not overlap the previous block;
+- the `390 px` fold marker does not conceal or replace content;
+- `390` and `320` maps have no horizontal overflow dependency;
+- all CTA, status, disclosure, and service-link areas remain in normal flow.
+
+---
+
+# 9. LOW-FIDELITY DISCIPLINE
+
+The maps remain intentionally grayscale and schematic.
+
+They do not approve:
+
+- final visual concept;
+- colors;
+- typography;
+- exact spacing;
+- image selection or crops;
+- motion;
+- component styling;
+- final responsive CSS;
+- production behavior.
+
+The maps may be accepted only as structural inputs for the later full-page visual-concept comparison.
+
+---
+
+# 10. FOCUSED CORRECTION ACCEPTANCE GATE
+
+The corrected maps may advance only when an independent Reviewer confirms:
+
+1. full accepted RU Hero content is represented at all three required responsive sizes;
+2. desktop expectation copy and accountability slots are visible;
+3. the first short-landscape viewport is based on full accepted RU content;
+4. no short-landscape section collision remains;
+5. Connected Journey conclusion exists on all four maps;
+6. every Ways-to-Start item shows review CTA and required service-link count;
+7. Selected Work separates status, disclosure/boundary, and action;
+8. multi-line proof boundaries are viable at `320 px`;
+9. ten-block order and relative commercial hierarchy remain unchanged;
+10. no visual concept or production decision has been introduced.
 
 Allowed verdicts:
 
@@ -267,24 +351,29 @@ Allowed verdicts:
 - `TARGETED CORRECTION`;
 - `REJECT`.
 
+Visual concepts remain blocked until this focused review returns `ACCEPT`.
+
 ---
 
-# 10. CURRENT STATUS
+# 11. CURRENT STATUS
 
 Completed:
 
-- Content Architecture accepted;
-- four complete grayscale SVG maps created;
-- desktop, mobile, narrow-mobile, and short-landscape hierarchy represented;
-- review task and report template prepared.
+- accepted Content Architecture preserved;
+- all five targeted low-fidelity correction groups applied;
+- four corrected SVG maps prepared;
+- full responsive RU Hero mapped without rewriting;
+- short-landscape collisions removed;
+- complete Ways-to-Start action model represented;
+- Selected Work proof boundaries represented;
+- focused correction-review task and report template prepared separately.
 
 Not started:
 
-- final visual concept;
-- exact imagery/crops;
-- production YAML;
-- Homepage HTML/CSS/JavaScript;
-- browser QA;
-- production branch or PR.
+- visual concepts;
+- final imagery or crops;
+- Homepage YAML;
+- Homepage HTML, CSS, or JavaScript;
+- production branch or production PR.
 
-**Current gate:** independent low-fidelity full-page map review.
+**Current gate:** focused independent low-fidelity correction review.

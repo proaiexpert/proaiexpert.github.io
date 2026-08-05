@@ -4,369 +4,19 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
 concurrency:
-  group: pages-${{ github.event_name }}-${{ github.ref }}
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  footer-pulse-qa:
-    if: github.event_name == 'pull_request' && github.head_ref == 'agent/footer-title-pulse-lock' && github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v6
-        with:
-          ref: agent/footer-title-pulse-lock
-          fetch-depth: 0
-
-      - name: Consolidate pulse ownership and canonical documentation
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          polish = Path('assets/css/footer-commercial-v1-polish.css')
-          text = polish.read_text(encoding='utf-8')
-          old = '''.site-footer.site-footer--homepage .site-footer__cta h2 {
-  margin-top: 0;
-  transform: none;
-  animation: siteFooterTitlePulseV4 4.6s ease-in-out infinite;
-  will-change: text-shadow,filter;
-}
-'''
-          new = '''.site-footer.site-footer--homepage .site-footer__cta h2 {
-  margin-top: 0;
-  transform: none;
-}
-'''
-          if old in text:
-              text = text.replace(old, new, 1)
-              text, count = re.subn(r'\n@keyframes siteFooterTitlePulseV4 \{.*?\n\}\n', '\n', text, count=1, flags=re.S)
-              assert count == 1
-              reduced = '''
-@media (prefers-reduced-motion:reduce) {
-  .site-footer.site-footer--homepage .site-footer__cta h2 {
-    animation: none;
-    filter: none;
-    text-shadow: none;
-    will-change: auto;
-  }
-}
-'''
-              assert reduced in text
-              text = text.replace(reduced, '\n', 1)
-              polish.write_text(text.rstrip() + '\n', encoding='utf-8')
-          assert 'siteFooterTitlePulseV4' not in polish.read_text(encoding='utf-8')
-
-          handoff = Path('docs/FOOTER_SYSTEM_HANDOFF.md')
-          text = handoff.read_text(encoding='utf-8')
-          replacements = {
-              '- homepage CTA title uses a restrained periodic light pulse;': '- full Commercial, Portfolio and Editorial footer titles use one restrained periodic light pulse;',
-              '- homepage may retain the approved title pulse;': '- full Commercial, Portfolio and Editorial footers use the approved restrained title pulse;',
-              'The homepage title pulse is not a watermark animation and must not be generalized to all footer families without approval.': 'The title pulse is shared across full Commercial, Portfolio and Editorial footers. It remains decorative, does not move layout, and is disabled under reduced motion.',
-              '- VK must be enabled through the same data source after the canonical profile/community URL is verified; a guessed or dead VK link is prohibited.\n': '',
-          }
-          for old, new in replacements.items():
-              if old in text:
-                  text = text.replace(old, new, 1)
-          handoff.write_text(text.rstrip() + '\n', encoding='utf-8')
-
-          spec = Path('docs/FOOTER_SYSTEM_SPEC.md')
-          text = spec.read_text(encoding='utf-8')
-          replacements = {
-              '| Telegram | No | Yes |': '| Telegram | Yes | Yes |',
-              '- EN footers must not show the RU Telegram channel;\n- RU footers may show Telegram;': '- EN and RU footers show the canonical Telegram channel;',
-              '- social destinations except Telegram visibility;': '- social destinations;',
-              '- Telegram visibility;\n': '',
-              '- EN contains no Telegram footer link;\n- RU uses only `https://t.me/proAiexpert`;': '- EN and RU use only `https://t.me/proAiexpert`;',
-              '- Telegram on EN pages;\n': '',
-              '- VK must be enabled through the same data source after the canonical profile/community URL is verified; a guessed or dead VK link is prohibited.\n': '',
-          }
-          for old, new in replacements.items():
-              if old in text:
-                  text = text.replace(old, new, 1)
-          motion_anchor = 'All animation must be disabled under `prefers-reduced-motion: reduce`.'
-          motion_rule = motion_anchor + '\n\nCanonical implementation: one restrained title glow/pulse is shared by full Commercial, Portfolio and Editorial footers. It must not animate the watermark, logo, links, or layout geometry.'
-          if motion_rule not in text:
-              assert motion_anchor in text
-              text = text.replace(motion_anchor, motion_rule, 1)
-          spec.write_text(text.rstrip() + '\n', encoding='utf-8')
-
-          forbidden = re.compile(r'(?i)(?<![A-Za-z0-9])vk(?![A-Za-z0-9])|vk\.com|vkontakte|вконтакте')
-          for path in (handoff, spec):
-              assert not forbidden.search(path.read_text(encoding='utf-8')), path
-          PY
-
-      - name: Install build and browser runtimes
-        shell: bash
-        run: |
-          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
-          export PATH="$GEM_HOME/bin:$PATH"
-          gem install --user-install jekyll -v 4.3.4 --no-document
-          gem install --user-install webrick --no-document
-          python -m pip install --disable-pip-version-check playwright
-          python -m playwright install --with-deps chromium
-
-      - name: Build baseline and PR output
-        shell: bash
-        run: |
-          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
-          export PATH="$GEM_HOME/bin:$PATH"
-          git fetch origin main
-          git worktree add /tmp/footer-pulse-base origin/main
-          jekyll build --source /tmp/footer-pulse-base --destination /tmp/footer-pulse-base-site
-          jekyll build --source . --destination /tmp/footer-pulse-head-site
-
-      - name: Verify generated pulse contract
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          routes = [
-              'index.html', 'ru/index.html',
-              'about/index.html', 'ru/about/index.html',
-              'contact/index.html', 'ru/contact/index.html',
-              'ai-systems/index.html', 'ru/ai-systems/index.html',
-              'websites-branding/index.html', 'ru/websites-branding/index.html',
-              'case-studies/index.html', 'ru/case-studies/index.html',
-              'case-studies/financial-stream/index.html', 'ru/case-studies/financial-stream/index.html',
-              'case-studies/alina-horb/index.html', 'ru/case-studies/alina-horb/index.html',
-              'case-studies/local-repair-pro/index.html', 'ru/case-studies/local-repair-pro/index.html',
-              'insights/index.html', 'ru/insights/index.html',
-              'insights/what-happens-after-a-lead-arrives/index.html',
-              'ru/insights/chto-proiskhodit-posle-zayavki/index.html',
-              'insights/ai-agent-or-automation-what-your-business-actually-needs/index.html',
-              'insights/ai-ready-website-for-business/index.html',
-              'insights/ai-search-optimization-for-service-businesses/index.html',
-              'insights/does-your-service-business-need-a-multilingual-website/index.html',
-              'insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/index.html',
-              'insights/how-to-evaluate-a-website-proposal/index.html',
-              'insights/process-clarity-comes-before-scalable-automation/index.html',
-              'insights/website-builder-or-custom-website-what-a-service-business-should-choose/index.html',
-              'insights/what-a-premium-website-really-means-for-a-service-business/index.html',
-              'insights/where-automation-delivers-its-first-real-roi/index.html',
-              'insights/why-service-business-websites-fail-to-convert-high-intent-visitors/index.html',
-              'ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/index.html',
-              'ru/insights/ai-ready-sayt-dlya-biznesa/index.html',
-              'ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html',
-              'ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/index.html',
-              'ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/index.html',
-              'ru/insights/chto-znachit-premialnyy-sayt-dlya-servisnogo-biznesa/index.html',
-              'ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/index.html',
-              'ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/index.html',
-              'ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/index.html',
-              'ru/insights/konstruktor-sayta-ili-sayt-na-zakaz-chto-vybrat-servisnomu-biznesu/index.html',
-              'ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html',
-          ]
-          root = Path('/tmp/footer-pulse-head-site')
-          for route in routes:
-              text = (root / route).read_text(encoding='utf-8')
-              assert text.count('data-footer-family=') == 1, route
-              assert 'footer-title-pulse-v1.css?v=20260804.1' in text, route
-              assert text.count('site-footer__cta') >= 1, route
-          pulse = Path('assets/css/footer-title-pulse-v1.css').read_text(encoding='utf-8')
-          assert pulse.count('@keyframes siteFooterTitlePulseV5') == 1
-          assert 'prefers-reduced-motion: reduce' in pulse
-          assert 'site-footer__watermark' not in pulse
-          assert 'site-footer__logo' not in pulse
-          assert 'siteFooterTitlePulseV4' not in Path('assets/css/footer-commercial-v1-polish.css').read_text(encoding='utf-8')
-          forbidden = re.compile(r'(?i)(?<![A-Za-z0-9])vk(?![A-Za-z0-9])|vk\.com|vkontakte|вконтакте')
-          for path in [Path('docs/FOOTER_SYSTEM_HANDOFF.md'), Path('docs/FOOTER_SYSTEM_SPEC.md')]:
-              assert not forbidden.search(path.read_text(encoding='utf-8')), path
-          print('Generated pulse contract passed for', len(routes), 'routes.')
-          PY
-
-      - name: Run 132-combination browser QA
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p footer-title-pulse-qa/screenshots
-          python -m http.server 4173 --directory /tmp/footer-pulse-head-site >/tmp/footer-pulse-head.log 2>&1 &
-          HEAD_SERVER=$!
-          python -m http.server 4174 --directory /tmp/footer-pulse-base-site >/tmp/footer-pulse-base.log 2>&1 &
-          BASE_SERVER=$!
-          trap 'kill $HEAD_SERVER $BASE_SERVER 2>/dev/null || true' EXIT
-          sleep 2
-          python - <<'PY'
-          from pathlib import Path
-          import json
-          from playwright.sync_api import sync_playwright
-
-          routes = [
-              '/', '/ru/', '/about/', '/ru/about/', '/contact/', '/ru/contact/',
-              '/ai-systems/', '/ru/ai-systems/', '/websites-branding/', '/ru/websites-branding/',
-              '/case-studies/', '/ru/case-studies/',
-              '/case-studies/financial-stream/', '/ru/case-studies/financial-stream/',
-              '/case-studies/alina-horb/', '/ru/case-studies/alina-horb/',
-              '/case-studies/local-repair-pro/', '/ru/case-studies/local-repair-pro/',
-              '/insights/', '/ru/insights/',
-              '/insights/what-happens-after-a-lead-arrives/', '/ru/insights/chto-proiskhodit-posle-zayavki/',
-              '/insights/ai-agent-or-automation-what-your-business-actually-needs/',
-              '/insights/ai-ready-website-for-business/',
-              '/insights/ai-search-optimization-for-service-businesses/',
-              '/insights/does-your-service-business-need-a-multilingual-website/',
-              '/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/',
-              '/insights/how-to-evaluate-a-website-proposal/',
-              '/insights/process-clarity-comes-before-scalable-automation/',
-              '/insights/website-builder-or-custom-website-what-a-service-business-should-choose/',
-              '/insights/what-a-premium-website-really-means-for-a-service-business/',
-              '/insights/where-automation-delivers-its-first-real-roi/',
-              '/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/',
-              '/ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/',
-              '/ru/insights/ai-ready-sayt-dlya-biznesa/',
-              '/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/',
-              '/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/',
-              '/ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/',
-              '/ru/insights/chto-znachit-premialnyy-sayt-dlya-servisnogo-biznesa/',
-              '/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/',
-              '/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/',
-              '/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/',
-              '/ru/insights/konstruktor-sayta-ili-sayt-na-zakaz-chto-vybrat-servisnomu-biznesu/',
-              '/ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/',
-          ]
-          viewports = {
-              'laptop': {'width': 1440, 'height': 900},
-              'portrait': {'width': 390, 'height': 844},
-              'landscape': {'width': 844, 'height': 390},
-          }
-          shots = {'/', '/ru/', '/about/', '/ru/about/', '/case-studies/financial-stream/', '/ru/case-studies/financial-stream/', '/insights/', '/ru/insights/', '/insights/ai-ready-website-for-business/', '/ru/insights/ai-ready-sayt-dlya-biznesa/'}
-          out = Path('footer-title-pulse-qa')
-          results, failures = [], []
-
-          with sync_playwright() as p:
-              browser = p.chromium.launch()
-              for route in routes:
-                  for name, viewport in viewports.items():
-                      normal = browser.new_context(viewport=viewport, reduced_motion='no-preference')
-                      reduced = browser.new_context(viewport=viewport, reduced_motion='reduce')
-                      normal_page = normal.new_page()
-                      reduced_page = reduced.new_page()
-                      base_page = normal.new_page()
-                      errors = []
-                      normal_page.on('pageerror', lambda exc: errors.append(str(exc)))
-                      rec = {'route': route, 'viewport': name}
-                      try:
-                          normal_page.goto('http://127.0.0.1:4173' + route, wait_until='domcontentloaded')
-                          reduced_page.goto('http://127.0.0.1:4173' + route, wait_until='domcontentloaded')
-                          base_page.goto('http://127.0.0.1:4174' + route, wait_until='domcontentloaded')
-                          normal_page.wait_for_timeout(180)
-                          reduced_page.wait_for_timeout(80)
-                          base_page.wait_for_timeout(80)
-
-                          normal_metrics = normal_page.evaluate('''() => {
-                            const f=document.querySelector('[data-footer-family]');
-                            const t=f.querySelector('.site-footer__cta h2');
-                            const w=f.querySelector('.site-footer__watermark');
-                            const l=f.querySelector('.site-footer__logo');
-                            const h=document.querySelector('[data-global-header], .global-header, header');
-                            const rect=n=>{const r=n.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}};
-                            const s=getComputedStyle(t);
-                            return {
-                              footerCount:document.querySelectorAll('[data-footer-family]').length,
-                              documentOverflow:document.documentElement.scrollWidth-window.innerWidth,
-                              footerOverflow:f.scrollWidth-f.clientWidth,
-                              animationName:s.animationName,
-                              animationDuration:s.animationDuration,
-                              animationIterationCount:s.animationIterationCount,
-                              watermarkAnimation:getComputedStyle(w).animationName,
-                              logoAnimation:getComputedStyle(l).animationName,
-                              header:rect(h),
-                              headerStyle:{position:getComputedStyle(h).position,height:getComputedStyle(h).height,paddingLeft:getComputedStyle(h).paddingLeft,paddingRight:getComputedStyle(h).paddingRight,backgroundColor:getComputedStyle(h).backgroundColor,borderBottomWidth:getComputedStyle(h).borderBottomWidth}
-                            };
-                          }''')
-                          reduced_metrics = reduced_page.evaluate('''() => {
-                            const t=document.querySelector('[data-footer-family] .site-footer__cta h2');
-                            const s=getComputedStyle(t);
-                            return {animationName:s.animationName,filter:s.filter,textShadow:s.textShadow,willChange:s.willChange};
-                          }''')
-                          base_metrics = base_page.evaluate('''() => {
-                            const h=document.querySelector('[data-global-header], .global-header, header');
-                            const rect=n=>{const r=n.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height}};
-                            return {
-                              documentOverflow:document.documentElement.scrollWidth-window.innerWidth,
-                              header:rect(h),
-                              headerStyle:{position:getComputedStyle(h).position,height:getComputedStyle(h).height,paddingLeft:getComputedStyle(h).paddingLeft,paddingRight:getComputedStyle(h).paddingRight,backgroundColor:getComputedStyle(h).backgroundColor,borderBottomWidth:getComputedStyle(h).borderBottomWidth}
-                            };
-                          }''')
-
-                          assert normal_metrics['footerCount'] == 1, normal_metrics
-                          assert normal_metrics['footerOverflow'] <= 1, normal_metrics
-                          assert normal_metrics['documentOverflow'] <= max(1, base_metrics['documentOverflow'] + 1), (normal_metrics, base_metrics)
-                          assert normal_metrics['animationName'] == 'siteFooterTitlePulseV5', normal_metrics
-                          assert normal_metrics['animationDuration'] == '4.6s', normal_metrics
-                          assert normal_metrics['animationIterationCount'] == 'infinite', normal_metrics
-                          assert normal_metrics['watermarkAnimation'] == 'none', normal_metrics
-                          assert normal_metrics['logoAnimation'] == 'none', normal_metrics
-                          assert reduced_metrics['animationName'] == 'none', reduced_metrics
-                          assert reduced_metrics['filter'] == 'none', reduced_metrics
-                          assert reduced_metrics['textShadow'] == 'none', reduced_metrics
-                          assert not errors, errors
-                          for key in ('x', 'y', 'width', 'height'):
-                              assert abs(normal_metrics['header'][key] - base_metrics['header'][key]) <= 1, (route, name, key, normal_metrics, base_metrics)
-                          assert normal_metrics['headerStyle'] == base_metrics['headerStyle'], (route, name, normal_metrics, base_metrics)
-
-                          if route in shots:
-                              slug = route.strip('/').replace('/', '-') or 'home'
-                              normal_page.locator('[data-footer-family]').screenshot(path=str(out/'screenshots'/f'{slug}-{name}.png'))
-                          rec.update({'status': 'passed', 'normal': normal_metrics, 'reduced': reduced_metrics, 'baselineDocumentOverflow': base_metrics['documentOverflow']})
-                      except Exception as exc:
-                          rec.update({'status': 'failed', 'error': repr(exc)})
-                          failures.append(rec)
-                      finally:
-                          results.append(rec)
-                          normal.close(); reduced.close()
-              browser.close()
-
-          (out/'results.json').write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding='utf-8')
-          (out/'summary.json').write_text(json.dumps({'count': len(results), 'failures': failures}, indent=2, ensure_ascii=False), encoding='utf-8')
-          if failures:
-              print(json.dumps(failures[:12], indent=2, ensure_ascii=False))
-              raise SystemExit(f'Browser QA failed: {len(failures)} combinations')
-          print('Footer title pulse browser QA passed:', len(results), 'combinations')
-          PY
-
-      - name: Upload QA artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: footer-title-pulse-qa
-          path: footer-title-pulse-qa
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Commit canonical source cleanup
-        if: success()
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/css/footer-commercial-v1-polish.css docs/FOOTER_SYSTEM_HANDOFF.md docs/FOOTER_SYSTEM_SPEC.md
-          if git diff --cached --quiet; then
-            echo 'Canonical files already clean.'
-          else
-            git diff --cached --check
-            git commit -m "Centralize Footer title pulse policy"
-            git push origin HEAD:agent/footer-title-pulse-lock
-          fi
-
   deploy:
-    if: github.event_name != 'pull_request'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -394,6 +44,7 @@ jobs:
           from pathlib import Path
 
           commercial = [
+              'index.html', 'ru/index.html',
               'about/index.html', 'ru/about/index.html',
               'contact/index.html', 'ru/contact/index.html',
               'ai-systems/index.html', 'ru/ai-systems/index.html',
@@ -433,23 +84,43 @@ jobs:
               'ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html',
           ]
 
-          for family, routes in {
+          families = {
               'commercial': commercial,
               'portfolio': portfolio,
               'editorial': editorial,
-          }.items():
+          }
+          pulse_href = '/assets/css/footer-title-pulse-v1.css?v=20260804.1'
+          count = 0
+
+          for family, routes in families.items():
               for route in routes:
                   text = (Path('_site') / route).read_text(encoding='utf-8')
                   assert text.count(f'data-footer-family="{family}"') == 1, route
                   assert text.count('site-footer__brand-zone') == 1, route
                   assert text.count('site-footer__watermark') == 1, route
+                  assert text.count(pulse_href) == 1, route
                   assert '{% include footer-system/' not in text, route
                   assert '{{ footer_' not in text, route
                   assert 'mailto:hello@proai-expert.com' in text, route
                   assert 'https://t.me/proAiexpert' in text, route
                   assert 'https://github.com/proaiexpert' in text, route
                   assert text.index('site-footer-contact-') < text.index('site-footer__services'), route
-          print(f'Unified Footer System verified for {len(commercial) + len(portfolio) + len(editorial)} routes.')
+                  count += 1
+
+          pulse = Path('_site/assets/css/footer-title-pulse-v1.css').read_text(encoding='utf-8')
+          assert pulse.count('@keyframes siteFooterTitlePulseV5') == 1
+          assert '.site-footer[data-footer-family] .site-footer__cta h2' in pulse
+          assert '4.6s ease-in-out infinite' in pulse
+          assert 'prefers-reduced-motion: reduce' in pulse
+          assert 'forced-colors: active' in pulse
+          assert 'site-footer__watermark' not in pulse
+          assert 'site-footer__logo' not in pulse
+
+          polish = Path('_site/assets/css/footer-commercial-v1-polish.css').read_text(encoding='utf-8')
+          assert 'siteFooterTitlePulseV4' not in polish
+
+          assert count == 44, count
+          print(f'Unified Footer System and shared title pulse verified for {count} routes.')
           PY
 
       - name: Upload generated site artifact

@@ -1,0 +1,107 @@
+name: One-time Contact browser QA
+
+on:
+  push:
+    branches:
+      - agent/contact-private-review-prerequisite
+
+permissions:
+  contents: write
+
+jobs:
+  browser-qa:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/contact-private-review-prerequisite
+          fetch-depth: 0
+
+      - name: Build and run browser checks
+        shell: bash
+        run: |
+          set +e
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/tmp/install.log 2>&1
+          gem install --user-install webrick --no-document >>/tmp/install.log 2>&1
+          jekyll build --source . --destination _site >/tmp/build.log 2>&1
+          BUILD=$?
+          python -m pip install --quiet selenium >/tmp/selenium.log 2>&1
+          INSTALL=$?
+          python -m http.server 8000 --directory _site >/tmp/server.log 2>&1 &
+          PID=$!
+          sleep 2
+          python - <<'PY' >/tmp/browser.log 2>&1
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.common.by import By
+          from selenium.webdriver.support.ui import WebDriverWait
+          from selenium.webdriver.support import expected_conditions as EC
+
+          options=Options()
+          for arg in ['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--window-size=390,844']:
+              options.add_argument(arg)
+          driver=webdriver.Chrome(options=options)
+          wait=WebDriverWait(driver,10)
+          def val(name): return driver.find_element(By.ID,name).get_attribute('value')
+          try:
+              for route,lang in [('/contact/','en'),('/ru/contact/','ru')]:
+                  driver.get('http://127.0.0.1:8000'+route)
+                  wait.until(EC.presence_of_element_located((By.ID,'contactForm')))
+                  assert (val('intent'),val('source_page'),val('source_cta'),val('selected_direction'),val('language')) == ('project_inquiry','contact','direct_contact','not_sure',lang)
+                  panel=driver.find_element(By.ID,'privateReviewContext')
+                  assert panel.get_attribute('aria-hidden') == 'true'
+                  option=driver.find_element(By.CSS_SELECTOR,'[data-value="websites_branding"]')
+                  driver.execute_script('arguments[0].click()', option)
+                  assert val('selected_direction') == 'websites_branding'
+                  assert option.get_attribute('aria-pressed') == 'true'
+
+                  for source_cta in ['homepage_hero','homepage_ways_to_start','homepage_final']:
+                      selected='ai_systems_automation' if source_cta=='homepage_ways_to_start' else 'both'
+                      url=('http://127.0.0.1:8000'+route
+                           +'?intent=private_review&source_page=homepage&source_cta='+source_cta
+                           +'&selected_direction='+selected+'&source_context=financial_stream'
+                           +'&referring_url=https%3A%2F%2Fproai-expert.com%2F#project-intake')
+                      driver.get(url)
+                      wait.until(EC.presence_of_element_located((By.ID,'contactForm')))
+                      assert val('intent') == 'private_review'
+                      assert val('source_page') == 'homepage'
+                      assert val('source_cta') == source_cta
+                      assert val('selected_direction') == selected
+                      assert val('source_context') == 'financial_stream'
+                      assert val('referring_url').startswith('https://proai-expert.com/')
+                      panel=driver.find_element(By.ID,'privateReviewContext')
+                      assert panel.get_attribute('aria-hidden') == 'false'
+                      assert 'is-visible' in panel.get_attribute('class')
+
+                  driver.get('http://127.0.0.1:8000'+route+'?intent=x&source_page=x&source_cta=x&selected_direction=x&source_context=%3Cscript%3E&referring_url=javascript%3Aalert(1)')
+                  wait.until(EC.presence_of_element_located((By.ID,'contactForm')))
+                  assert (val('intent'),val('source_page'),val('source_cta'),val('selected_direction'),val('source_context'),val('referring_url')) == ('project_inquiry','contact','direct_contact','not_sure','','')
+              print('PASS')
+          finally:
+              driver.quit()
+          PY
+          BROWSER=$?
+          kill "$PID" >/dev/null 2>&1
+          word(){ [ "$1" -eq 0 ] && echo PASS || echo FAIL; }
+          {
+            echo '# Contact browser QA'
+            echo
+            echo "- Jekyll build: $(word "$BUILD")"
+            echo "- Selenium install: $(word "$INSTALL")"
+            echo "- Direct EN/RU defaults: $(word "$BROWSER")"
+            echo "- Direction interaction: $(word "$BROWSER")"
+            echo "- Hero/Ways/Final Private Review URLs: $(word "$BROWSER")"
+            echo "- Invalid query fallback: $(word "$BROWSER")"
+            echo '- Live Formspree submission: NOT RUN'
+            echo
+            echo '```text'; tail -n 60 /tmp/browser.log; echo '```'
+          } > tmp-contact-browser-qa.md
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tmp-contact-browser-qa.md
+          git commit -m "Record Contact browser QA"
+          git push origin HEAD:agent/contact-private-review-prerequisite
+          [ "$BUILD" -eq 0 ] && [ "$INSTALL" -eq 0 ] && [ "$BROWSER" -eq 0 ]

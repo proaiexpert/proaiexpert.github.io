@@ -49,7 +49,7 @@ The correction does not alter:
 Declared document size:
 
 ```text
-1440 × 5740
+1440 × 5405
 ```
 
 Correction proof:
@@ -68,7 +68,7 @@ Correction proof:
 Declared document size:
 
 ```text
-390 × 6608
+390 × 6168
 ```
 
 Correction proof:
@@ -88,7 +88,7 @@ Correction proof:
 Declared document size:
 
 ```text
-320 × 6978
+320 × 6428
 ```
 
 Correction proof:
@@ -106,7 +106,7 @@ Correction proof:
 Declared document size:
 
 ```text
-844 × 5282
+844 × 4564
 ```
 
 Correction proof:

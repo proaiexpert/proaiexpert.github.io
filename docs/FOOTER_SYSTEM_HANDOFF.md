@@ -120,7 +120,7 @@ Rules:
 - Contact should use a compact closing and must not repeat excessive contact CTAs;
 - service pages may link to relevant capabilities and case studies;
 - dedicated watermark brand zone;
-- no Telegram on EN.
+- Telegram is available on EN and RU;
 
 ### B. Editorial Footer
 
@@ -205,7 +205,7 @@ Privacy, Terms and Thank-you routes do not currently exist. Do not create dead l
 - LinkedIn: yes;
 - GitHub: yes;
 - X: yes;
-- Telegram: no;
+- Telegram: yes;
 - Facebook: no.
 
 ### RU
@@ -309,7 +309,7 @@ Forbidden patterns:
 - pseudo-elements duplicating real watermark content;
 - new `!important` override layers except a documented temporary migration boundary;
 - dead legal links;
-- Telegram on EN;
+- unverified or dead social URLs;
 - unsupported GitHub proof claims.
 
 ## 9. Migration sequence
@@ -452,3 +452,11 @@ Footer System is closed only when:
 - obsolete legacy footer rules are removed;
 - final site-wide QA passes;
 - the Header System remains unchanged.
+
+## User-approved cross-family consistency override (2026-08-04)
+
+- Contact details are the first detail group; related paths/capabilities are the second group in every full footer family.
+- Email and Telegram are rendered in both EN and RU.
+- Social/profile destinations are owned only by `_data/social-links.yml`.
+- VK must be enabled through the same data source after the canonical profile/community URL is verified; a guessed or dead VK link is prohibited.
+- Editorial hubs, article source include chains, and current canonical article outputs use the Editorial Footer family with the same structural brand zone and bottom wordmark treatment.

@@ -37,66 +37,69 @@ jobs:
           gem install --user-install webrick --no-document
           jekyll build --source . --destination _site
 
-      - name: Verify Footer System generated output
+      - name: Verify unified Footer System generated output
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          routes = [
-              'about/index.html',
-              'ru/about/index.html',
-              'contact/index.html',
-              'ru/contact/index.html',
-              'ai-systems/index.html',
-              'ru/ai-systems/index.html',
-              'websites-branding/index.html',
-              'ru/websites-branding/index.html',
+          commercial = [
+              'about/index.html', 'ru/about/index.html',
+              'contact/index.html', 'ru/contact/index.html',
+              'ai-systems/index.html', 'ru/ai-systems/index.html',
+              'websites-branding/index.html', 'ru/websites-branding/index.html',
+          ]
+          portfolio = [
+              'case-studies/index.html', 'ru/case-studies/index.html',
+              'case-studies/financial-stream/index.html', 'ru/case-studies/financial-stream/index.html',
+              'case-studies/alina-horb/index.html', 'ru/case-studies/alina-horb/index.html',
+              'case-studies/local-repair-pro/index.html', 'ru/case-studies/local-repair-pro/index.html',
+          ]
+          editorial = [
+              'insights/index.html', 'ru/insights/index.html',
+              'insights/what-happens-after-a-lead-arrives/index.html',
+              'ru/insights/chto-proiskhodit-posle-zayavki/index.html',
+              'insights/ai-agent-or-automation-what-your-business-actually-needs/index.html',
+              'insights/ai-ready-website-for-business/index.html',
+              'insights/ai-search-optimization-for-service-businesses/index.html',
+              'insights/does-your-service-business-need-a-multilingual-website/index.html',
+              'insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/index.html',
+              'insights/how-to-evaluate-a-website-proposal/index.html',
+              'insights/process-clarity-comes-before-scalable-automation/index.html',
+              'insights/website-builder-or-custom-website-what-a-service-business-should-choose/index.html',
+              'insights/what-a-premium-website-really-means-for-a-service-business/index.html',
+              'insights/where-automation-delivers-its-first-real-roi/index.html',
+              'insights/why-service-business-websites-fail-to-convert-high-intent-visitors/index.html',
+              'ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/index.html',
+              'ru/insights/ai-ready-sayt-dlya-biznesa/index.html',
+              'ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html',
+              'ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/index.html',
+              'ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/index.html',
+              'ru/insights/chto-znachit-premialnyy-sayt-dlya-servisnogo-biznesa/index.html',
+              'ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/index.html',
+              'ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/index.html',
+              'ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/index.html',
+              'ru/insights/konstruktor-sayta-ili-sayt-na-zakaz-chto-vybrat-servisnomu-biznesu/index.html',
+              'ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html',
           ]
 
-          for route in routes:
-              output = Path('_site') / route
-              text = output.read_text(encoding='utf-8')
-              assert text.count('data-footer-family="commercial"') == 1, route
-              assert '{% include footer-system/' not in text, route
-              assert '{{ footer_' not in text, route
-              assert text.count('site-footer__brand-zone') == 1, route
-          print('Footer System generated output verified for 8 routes.')
-          PY
-
-      - name: Verify Portfolio Footer generated output
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          routes = {
-              'case-studies/index.html': ('en', '/ru/case-studies/'),
-              'ru/case-studies/index.html': ('ru', '/case-studies/'),
-              'case-studies/financial-stream/index.html': ('en', '/ru/case-studies/financial-stream/'),
-              'ru/case-studies/financial-stream/index.html': ('ru', '/case-studies/financial-stream/'),
-              'case-studies/alina-horb/index.html': ('en', '/ru/case-studies/alina-horb/'),
-              'ru/case-studies/alina-horb/index.html': ('ru', '/case-studies/alina-horb/'),
-              'case-studies/local-repair-pro/index.html': ('en', '/ru/case-studies/local-repair-pro/'),
-              'ru/case-studies/local-repair-pro/index.html': ('ru', '/case-studies/local-repair-pro/'),
-          }
-
-          for route, (lang, locale_href) in routes.items():
-              output = Path('_site') / route
-              text = output.read_text(encoding='utf-8')
-              assert text.count('data-footer-family="portfolio"') == 1, route
-              assert text.count('site-footer__brand-zone') == 1, route
-              assert text.count('site-footer__watermark') == 1, route
-              assert '{% include footer-system/' not in text, route
-              assert '{{ footer_' not in text, route
-              assert 'portfolio-footer-compact-v1.css' not in text, route
-              assert 'https://github.com/proaiexpert' in text, route
-              assert f'href="{locale_href}"' in text, route
-              if lang == 'en':
-                  assert 'https://t.me/proAiexpert' not in text, route
-              else:
+          for family, routes in {
+              'commercial': commercial,
+              'portfolio': portfolio,
+              'editorial': editorial,
+          }.items():
+              for route in routes:
+                  text = (Path('_site') / route).read_text(encoding='utf-8')
+                  assert text.count(f'data-footer-family="{family}"') == 1, route
+                  assert text.count('site-footer__brand-zone') == 1, route
+                  assert text.count('site-footer__watermark') == 1, route
+                  assert '{% include footer-system/' not in text, route
+                  assert '{{ footer_' not in text, route
+                  assert 'mailto:hello@proai-expert.com' in text, route
                   assert 'https://t.me/proAiexpert' in text, route
-          print('Portfolio Footer generated output verified for 8 routes.')
+                  assert 'https://github.com/proaiexpert' in text, route
+                  assert text.index('site-footer-contact-') < text.index('site-footer__services'), route
+          print(f'Unified Footer System verified for {len(commercial) + len(portfolio) + len(editorial)} routes.')
           PY
 
       - name: Upload generated site artifact

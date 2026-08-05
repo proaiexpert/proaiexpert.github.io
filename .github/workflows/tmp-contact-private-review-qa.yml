@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - agent/contact-private-review-prerequisite
-  pull_request:
-    branches:
-      - main
 
 permissions:
   contents: write
@@ -21,17 +18,21 @@ jobs:
           ref: agent/contact-private-review-prerequisite
           fetch-depth: 0
 
-      - name: Build site with Jekyll
+      - name: Run QA and always record diagnostics
+        shell: bash
         run: |
+          set +e
           export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
           export PATH="$GEM_HOME/bin:$PATH"
-          gem install --user-install jekyll -v 4.3.4 --no-document
-          gem install --user-install webrick --no-document
-          jekyll build --source . --destination _site
 
-      - name: Static generated-output checks
-        run: |
-          python - <<'PY'
+          gem install --user-install jekyll -v 4.3.4 --no-document >/tmp/gem-jekyll.log 2>&1
+          JEKYLL_INSTALL=$?
+          gem install --user-install webrick --no-document >/tmp/gem-webrick.log 2>&1
+          WEBRICK_INSTALL=$?
+          jekyll build --source . --destination _site >/tmp/jekyll-build.log 2>&1
+          BUILD_STATUS=$?
+
+          python - <<'PY' >/tmp/static-checks.log 2>&1
           from pathlib import Path
           expected = {
               '_site/contact/index.html': ('en', 'Request a Private Review'),
@@ -54,15 +55,14 @@ jobs:
               assert text.count('footer-system/footer.html') == 0, 'Liquid leaked into output'
           print('static checks passed')
           PY
+          STATIC_STATUS=$?
 
-      - name: Browser behavior checks
-        run: |
-          python -m pip install --quiet selenium
+          python -m pip install --quiet selenium >/tmp/selenium-install.log 2>&1
+          SELENIUM_INSTALL=$?
           python -m http.server 8000 --directory _site >/tmp/contact-http.log 2>&1 &
           SERVER_PID=$!
-          trap 'kill $SERVER_PID' EXIT
           sleep 2
-          python - <<'PY'
+          python - <<'PY' >/tmp/browser-checks.log 2>&1
           from selenium import webdriver
           from selenium.webdriver.chrome.options import Options
           from selenium.webdriver.common.by import By
@@ -132,28 +132,43 @@ jobs:
           finally:
               driver.quit()
           PY
+          BROWSER_STATUS=$?
+          kill "$SERVER_PID" >/dev/null 2>&1
 
-      - name: Write QA report
-        run: |
-          cat > tmp-contact-private-review-qa.md <<'EOF'
-          # Temporary Contact private review QA
+          status_word() { if [ "$1" -eq 0 ]; then printf PASS; else printf FAIL; fi; }
+          {
+            echo '# Temporary Contact private review QA'
+            echo
+            echo "- Jekyll install: $(status_word "$JEKYLL_INSTALL")"
+            echo "- Webrick install: $(status_word "$WEBRICK_INSTALL")"
+            echo "- Jekyll 4.3.4 build: $(status_word "$BUILD_STATUS")"
+            echo "- Generated-output checks: $(status_word "$STATIC_STATUS")"
+            echo "- Selenium install: $(status_word "$SELENIUM_INSTALL")"
+            echo "- Headless Chrome behavior checks: $(status_word "$BROWSER_STATUS")"
+            echo '- No live Formspree submission was performed.'
+            echo
+            echo '## Jekyll build tail'
+            echo '```text'
+            tail -n 30 /tmp/jekyll-build.log
+            echo '```'
+            echo
+            echo '## Static checks'
+            echo '```text'
+            tail -n 30 /tmp/static-checks.log
+            echo '```'
+            echo
+            echo '## Browser checks'
+            echo '```text'
+            tail -n 50 /tmp/browser-checks.log
+            echo '```'
+          } > tmp-contact-private-review-qa.md
 
-          - Jekyll 4.3.4 build: PASS
-          - Generated EN Contact checks: PASS
-          - Generated RU Contact checks: PASS
-          - Formspree endpoint preservation: PASS
-          - Canonical hidden-field schema: PASS
-          - Direct-visit defaults in Chrome: PASS
-          - Private Review query context in Chrome: PASS
-          - Invalid query fallback in Chrome: PASS
-          - EN/RU direction pill interaction: PASS
-          - No live Formspree submission was performed.
-          EOF
-
-      - name: Commit QA report
-        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add tmp-contact-private-review-qa.md
-          git commit -m "Record temporary Contact private review QA"
+          git commit -m "Record temporary Contact private review QA diagnostics"
           git push origin HEAD:agent/contact-private-review-prerequisite
+
+          if [ "$JEKYLL_INSTALL" -ne 0 ] || [ "$WEBRICK_INSTALL" -ne 0 ] || [ "$BUILD_STATUS" -ne 0 ] || [ "$STATIC_STATUS" -ne 0 ] || [ "$SELENIUM_INSTALL" -ne 0 ] || [ "$BROWSER_STATUS" -ne 0 ]; then
+            exit 1
+          fi

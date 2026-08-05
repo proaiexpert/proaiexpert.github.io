@@ -568,3 +568,11 @@ Changes to footer families, social policy, shared component contracts, or migrat
 4. regression review against affected page families.
 
 Historical reports may provide context but must not override current code or this canonical specification.
+
+## User-approved cross-family consistency override (2026-08-04)
+
+- Contact details are the first detail group; related paths/capabilities are the second group in every full footer family.
+- Email and Telegram are rendered in both EN and RU.
+- Social/profile destinations are owned only by `_data/social-links.yml`.
+- VK must be enabled through the same data source after the canonical profile/community URL is verified; a guessed or dead VK link is prohibited.
+- Editorial hubs, article source include chains, and current canonical article outputs use the Editorial Footer family with the same structural brand zone and bottom wordmark treatment.

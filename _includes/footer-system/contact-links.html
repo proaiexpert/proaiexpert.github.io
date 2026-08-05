@@ -1,0 +1,10 @@
+{% assign footer_lang = include.lang | default: 'en' %}
+{% assign social_data = site.data['social-links'] %}
+<a href="mailto:hello@proai-expert.com">hello@proai-expert.com</a>
+{% assign contact_keys = social_data.contact_by_language[footer_lang] %}
+{% for social_key in contact_keys %}
+  {% assign social = social_data.profiles[social_key] %}
+  {% if social and social.href %}
+  <a href="{{ social.href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ social.labels[footer_lang] }}">{{ social.name }} <span aria-hidden="true">↗</span></a>
+  {% endif %}
+{% endfor %}

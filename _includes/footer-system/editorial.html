@@ -1,0 +1,30 @@
+{% assign footer_lang = include.lang | default: 'en' %}
+{% assign footer_variant = include.variant | default: 'article' %}
+{% assign footer_copy = site.data.footer[footer_lang] %}
+{% assign editorial_copy = footer_copy.editorial[footer_variant] %}
+
+<footer class="site-footer site-footer--editorial site-footer--editorial-{{ footer_variant }}" data-footer-family="editorial" data-footer-variant="{{ footer_variant }}">
+  <div class="site-footer__shell">
+    <div class="site-footer__main">
+      <div class="site-footer__cta site-footer__editorial-closing" role="group" aria-labelledby="site-footer-title-{{ footer_lang }}-editorial-{{ footer_variant }}">
+        <p class="site-footer__eyebrow">{{ editorial_copy.eyebrow }}</p>
+        <h2 id="site-footer-title-{{ footer_lang }}-editorial-{{ footer_variant }}">{{ editorial_copy.title }}</h2>
+        <p class="site-footer__summary">{{ editorial_copy.summary }}</p>
+        <a class="site-footer__primary-action" href="{{ editorial_copy.action_href }}">{{ editorial_copy.action_label }} <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="site-footer__details">
+        <div class="site-footer__detail-group" role="group" aria-labelledby="site-footer-contact-{{ footer_lang }}-editorial-{{ footer_variant }}">
+          <h3 id="site-footer-contact-{{ footer_lang }}-editorial-{{ footer_variant }}">{{ footer_copy.contact_title }}</h3>
+          {% include footer-system/contact-links.html lang=footer_lang %}
+        </div>
+        <nav class="site-footer__detail-group site-footer__services" aria-label="{{ editorial_copy.navigation_title }}">
+          <h3>{{ editorial_copy.navigation_title }}</h3>
+          {% if editorial_copy.show_back %}<a href="{{ editorial_copy.back_href }}">{{ editorial_copy.back_label }}</a>{% endif %}
+          {% for service in footer_copy.services limit: 2 %}<a href="{{ service.href }}">{{ service.label }}</a>{% endfor %}
+        </nav>
+      </div>
+    </div>
+    {% include footer-system/brand-zone.html %}
+    {% include footer-system/bottom.html lang=footer_lang locale_href=include.locale_href %}
+  </div>
+</footer>

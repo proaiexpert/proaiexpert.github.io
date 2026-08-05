@@ -47,10 +47,7 @@
       <div class="site-footer__details">
         <div class="site-footer__detail-group" role="group" aria-labelledby="site-footer-contact-title-{{ footer_lang }}">
           <h3 id="site-footer-contact-title-{{ footer_lang }}">{{ footer_contact_title }}</h3>
-          <a href="mailto:hello@proai-expert.com">hello@proai-expert.com</a>
-          {% if footer_lang == 'ru' %}
-          <a href="https://t.me/proAiexpert" target="_blank" rel="noopener noreferrer">Telegram <span aria-hidden="true">↗</span></a>
-          {% endif %}
+          {% include footer-system/contact-links.html lang=footer_lang %}
         </div>
 
         <nav class="site-footer__detail-group site-footer__services" aria-label="{{ footer_services_title }}">
@@ -77,13 +74,13 @@
         <span>PROAI</span><strong>EXPERT</strong>
       </a>
 
+      {% assign social_data = site.data['social-links'] %}
+      {% assign social_keys = social_data.by_language[footer_lang] %}
       <nav class="site-footer__socials" aria-label="{{ footer_social_label }}">
-        <a href="https://www.linkedin.com/in/ihorhorb/" target="_blank" rel="noopener noreferrer" aria-label="Ihor Horb on LinkedIn">LinkedIn</a>
-        <a href="https://github.com/proaiexpert" target="_blank" rel="noopener noreferrer" aria-label="ProAI Expert on GitHub">GitHub</a>
-        <a href="https://x.com/proaiexpert" target="_blank" rel="noopener noreferrer" aria-label="ProAI Expert on X">X</a>
-        {% if footer_lang == 'ru' %}
-        <a href="https://t.me/proAiexpert" target="_blank" rel="noopener noreferrer" aria-label="ProAI Expert в Telegram">Telegram</a>
-        {% endif %}
+        {% for social_key in social_keys %}
+          {% assign social = social_data.profiles[social_key] %}
+          <a href="{{ social.href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ social.labels[footer_lang] }}">{{ social.name }}</a>
+        {% endfor %}
       </nav>
 
       <nav class="site-footer__locale" aria-label="{{ footer_locale_label }}">

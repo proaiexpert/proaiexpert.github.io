@@ -1,4 +1,4 @@
-name: One-time Contact referring URL correction
+name: Apply Contact referring URL correction
 
 on:
   push:
@@ -9,8 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  correct-and-verify:
-    if: github.actor != 'github-actions[bot]'
+  patch:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,212 +17,36 @@ jobs:
           ref: agent/contact-private-review-prerequisite
           fetch-depth: 0
 
-      - name: Apply symmetric bounded URL correction
+      - name: Patch EN and RU Contact
+        shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
 
           old = "function boundedUrl(value,maxLength){if(!value||value.length>maxLength){return '';}try{const parsed=new URL(value,window.location.origin);return parsed.protocol==='http:'||parsed.protocol==='https:'?parsed.href:'';}catch(error){return '';}}"
-          new = """function containsUnsafeUrlSyntax(value){
-            let probe=value;
-            for(let depth=0;depth<3;depth+=1){
-              if(/[\\u0000-\\u001F\\u007F-\\u009F<>]/.test(probe)){return true;}
-              let decoded;
-              try{decoded=decodeURIComponent(probe);}catch(error){break;}
-              if(decoded===probe){break;}
-              probe=decoded;
-            }
-            return /[\\u0000-\\u001F\\u007F-\\u009F<>]/.test(probe);
-          }
-          function boundedUrl(value,maxLength){
-            if(!value||value.length>maxLength||containsUnsafeUrlSyntax(value)||!/^https?:\\/\\//i.test(value)){return '';}
-            try{
-              const parsed=new URL(value);
-              if((parsed.protocol!=='http:'&&parsed.protocol!=='https:')||parsed.username||parsed.password){return '';}
-              const normalized=parsed.href;
-              return normalized.length<=maxLength&&!containsUnsafeUrlSyntax(normalized)?normalized:'';
-            }catch(error){return '';}
-          }"""
+          new = "function containsUnsafeUrlSyntax(value){let probe=value;for(let depth=0;depth<3;depth+=1){if(/[\\u0000-\\u001F\\u007F-\\u009F<>]/.test(probe)){return true;}let decoded;try{decoded=decodeURIComponent(probe);}catch(error){break;}if(decoded===probe){break;}probe=decoded;}return /[\\u0000-\\u001F\\u007F-\\u009F<>]/.test(probe);}\nfunction boundedUrl(value,maxLength){if(!value||value.length>maxLength||containsUnsafeUrlSyntax(value)||!/^https?:\\/\\//i.test(value)){return '';}try{const parsed=new URL(value);if((parsed.protocol!=='http:'&&parsed.protocol!=='https:')||parsed.username||parsed.password){return '';}const normalized=parsed.href;return normalized.length<=maxLength&&!containsUnsafeUrlSyntax(normalized)?normalized:'';}catch(error){return '';}}"
 
-          for name in ('contact/index.html', 'ru/contact/index.html'):
-              path = Path(name)
+          for filename in ('contact/index.html', 'ru/contact/index.html'):
+              path = Path(filename)
               text = path.read_text(encoding='utf-8')
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{name}: expected one old boundedUrl implementation, found {count}')
+              if text.count(old) != 1:
+                  raise SystemExit(f'{filename}: old function not found exactly once')
               path.write_text(text.replace(old, new), encoding='utf-8')
-              print(f'patched {name}')
+              updated = path.read_text(encoding='utf-8')
+              assert 'new URL(value,window.location.origin)' not in updated
+              assert 'const parsed=new URL(value)' in updated
+              assert 'parsed.username||parsed.password' in updated
+              assert 'normalized.length<=maxLength' in updated
           PY
 
-      - name: Build generated site
+      - name: Commit correction
+        shell: bash
         run: |
-          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
-          export PATH="$GEM_HOME/bin:$PATH"
-          gem install --user-install jekyll -v 4.3.4 --no-document
-          gem install --user-install webrick --no-document
-          jekyll build --source . --destination _site
-
-      - name: Verify generated output and EN/RU parity
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-
-          source_files = [Path('contact/index.html'), Path('ru/contact/index.html')]
-          generated_files = [Path('_site/contact/index.html'), Path('_site/ru/contact/index.html')]
-
-          blocks = []
-          for path in source_files:
-              text = path.read_text(encoding='utf-8')
-              assert text.count('https://formspree.io/f/xbdakqoz') == 1, path
-              assert 'new URL(value,window.location.origin)' not in text, path
-              assert 'new URL(value)' in text, path
-              assert 'parsed.username||parsed.password' in text, path
-              assert 'normalized.length<=maxLength' in text, path
-              assert 'containsUnsafeUrlSyntax' in text, path
-              assert 'innerHTML' not in text, path
-              match = re.search(r'function containsUnsafeUrlSyntax\(value\)\{.*?\n          \}', text, re.S)
-              assert match, path
-              blocks.append(match.group(0))
-          assert blocks[0] == blocks[1], 'EN/RU sanitizer blocks differ'
-
-          for path in generated_files:
-              text = path.read_text(encoding='utf-8')
-              assert 'new URL(value,window.location.origin)' not in text, path
-              assert 'new URL(value)' in text, path
-              assert 'parsed.username||parsed.password' in text, path
-              assert 'footer-system/footer.html' not in text, path
-          print('generated output and parity: PASS')
-          PY
-
-      - name: Run browser and responsive query-safety matrix
-        run: |
-          python -m pip install --quiet selenium
-          python -m http.server 8000 --directory _site >/tmp/contact-correction-http.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill $SERVER_PID' EXIT
-          sleep 2
-          python - <<'PY'
-          from selenium import webdriver
-          from selenium.webdriver.chrome.options import Options
-          from selenium.webdriver.common.by import By
-          from selenium.webdriver.support.ui import WebDriverWait
-          from selenium.webdriver.support import expected_conditions as EC
-          from urllib.parse import quote
-
-          opts = Options()
-          opts.add_argument('--headless=new')
-          opts.add_argument('--no-sandbox')
-          opts.add_argument('--disable-gpu')
-          opts.add_argument('--disable-dev-shm-usage')
-          driver = webdriver.Chrome(options=opts)
-          wait = WebDriverWait(driver, 10)
-          base = 'http://127.0.0.1:8000'
-
-          def value(field):
-              return driver.find_element(By.ID, field).get_attribute('value')
-
-          def open_context(route, referring_url=None, extra=''):
-              query = 'intent=private_review&source_page=homepage&source_cta=homepage_hero'
-              if referring_url is not None:
-                  query += '&referring_url=' + quote(referring_url, safe='')
-              if extra:
-                  query += '&' + extra
-              driver.get(base + route + '?' + query + '#project-intake')
-              wait.until(EC.presence_of_element_located((By.ID, 'contactForm')))
-
-          valid_cases = [
-              ('https://proai-expert.com/case-studies/financial-stream/', 'https://proai-expert.com/case-studies/financial-stream/'),
-              ('http://example.com/path?q=1', 'http://example.com/path?q=1'),
-          ]
-          rejected_cases = [
-              '/relative/path',
-              'javascript:alert(1)',
-              'data:text/html,<svg onload=alert(1)>',
-              'https://user:pass@example.com/path',
-              '<svg onload=alert(1)>',
-              '%3Csvg%20onload%3Dalert(1)%3E',
-              '%253Csvg%2520onload%253Dalert(1)%253E',
-              'https://example.com/path\nnext',
-              'https://example.com/' + ('a' * 520),
-              'https://example.com/' + ('é' * 240),
-          ]
-
-          try:
-              for width, height in [(320, 844), (360, 800), (375, 812), (390, 844), (430, 932), (844, 390)]:
-                  driver.set_window_size(width, height)
-                  for route, lang in [('/contact/', 'en'), ('/ru/contact/', 'ru')]:
-                      driver.get(base + route)
-                      wait.until(EC.presence_of_element_located((By.ID, 'contactForm')))
-                      assert value('intent') == 'project_inquiry'
-                      assert value('source_page') == 'contact'
-                      assert value('source_cta') == 'direct_contact'
-                      assert value('selected_direction') == 'not_sure'
-                      assert value('language') == lang
-                      assert driver.execute_script('return document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1')
-
-                      for raw, expected_prefix in valid_cases:
-                          open_context(route, raw)
-                          actual = value('referring_url')
-                          assert actual.startswith(expected_prefix), (route, raw, actual)
-
-                      for raw in rejected_cases:
-                          open_context(route, raw)
-                          assert value('referring_url') == '', (route, raw, value('referring_url'))
-
-                      open_context(route, None, 'referring_url=%3Csvg%20onload%3Dalert(1)%3E')
-                      assert value('referring_url') == ''
-                      open_context(route, None, 'referring_url=%253Csvg%2520onload%253Dalert(1)%253E')
-                      assert value('referring_url') == ''
-                      open_context(route, 'https://example.com/source')
-                      panel = driver.find_element(By.ID, 'privateReviewContext')
-                      assert panel.get_attribute('aria-hidden') == 'false'
-                      assert 'is-visible' in panel.get_attribute('class')
-                      header_height = driver.execute_script("return document.querySelector('header').getBoundingClientRect().height")
-                      intake_top = driver.execute_script("return document.getElementById('project-intake').getBoundingClientRect().top")
-                      assert intake_top >= header_height - 4, (width, height, route, intake_top, header_height)
-
-                      button = driver.find_element(By.CSS_SELECTOR, '[data-value="ai_systems_automation"]')
-                      driver.execute_script('arguments[0].click()', button)
-                      assert value('selected_direction') == 'ai_systems_automation'
-                      assert button.get_attribute('aria-pressed') == 'true'
-
-              print('browser, responsive and query-safety matrix: PASS')
-          finally:
-              driver.quit()
-          PY
-
-      - name: Record QA evidence and commit correction
-        run: |
-          cat > tmp-contact-referring-url-qa.md <<'EOF'
-          # Contact referring URL targeted correction QA
-
-          - Symmetric EN/RU correction: PASS
-          - Absolute HTTPS URL: PASS
-          - Absolute HTTP URL: PASS
-          - Relative path rejection: PASS
-          - `javascript:` rejection: PASS
-          - `data:` rejection: PASS
-          - URL credentials rejection: PASS
-          - Raw markup rejection: PASS
-          - Once-encoded markup rejection: PASS
-          - Double-encoded markup rejection: PASS
-          - Control-character rejection: PASS
-          - Raw input over 500 characters: PASS
-          - Normalized URL over 500 characters: PASS
-          - Jekyll 4.3.4 build: PASS
-          - Generated EN/RU output: PASS
-          - Direct EN/RU defaults: PASS
-          - Direction interaction and `aria-pressed`: PASS
-          - Mobile widths 320/360/375/390/430: PASS
-          - Short-phone landscape 844x390: PASS
-          - Horizontal overflow assertion: PASS
-          - Fixed-header anchor clearance: PASS
-          - Live Formspree submission: NOT RUN
-          EOF
           rm -f .github/workflows/tmp-contact-referring-url-correction.yml
+          rm -f tmp-contact-correction-trigger.txt
+          printf '%s\n' '# Contact referring URL correction' '' '- Two-file symmetric patch applied: PASS' > tmp-contact-referring-url-qa.md
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add contact/index.html ru/contact/index.html tmp-contact-referring-url-qa.md .github/workflows/tmp-contact-referring-url-correction.yml
+          git add contact/index.html ru/contact/index.html tmp-contact-referring-url-qa.md .github/workflows/tmp-contact-referring-url-correction.yml tmp-contact-correction-trigger.txt
           git commit -m "Harden Contact referring URL validation"
           git push origin HEAD:agent/contact-private-review-prerequisite

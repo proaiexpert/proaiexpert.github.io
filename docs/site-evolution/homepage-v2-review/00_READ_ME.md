@@ -1,79 +1,114 @@
 # ProAI Expert Homepage V2 — Review Workspace
 
-**Status:** Strategy V2 Final prepared after independent review  
+**Status:** Corrected production scope prepared after independent technical review  
 **Branch:** `agent/homepage-v2-strategy-review`  
-**Baseline:** `af9b7288a9a5fc36de57afd816302e80e17e0d8a`  
+**Original baseline:** `af9b7288a9a5fc36de57afd816302e80e17e0d8a`  
+**Latest main inspected by technical Reviewer:** `0b2fca54fba614e8a3098d00991cec6103b604e8`  
 **Owner:** Ihor Horb  
 **Primary Control:** main Homepage V2 strategy chat
 
 ## Purpose
 
-This folder is the shared source of truth for the strategic design and independent review of the ProAI Expert EN/RU homepage redesign.
+This folder preserves the full strategy, independent-review and production-specification decision history for the ProAI Expert EN/RU Homepage V2 program.
 
-No production implementation is authorized from this workspace.
+Canonical and implementation documents now live directly under:
+
+```text
+docs/site-evolution/
+```
+
+No production implementation is authorized from this documentation branch without explicit owner approval.
 
 ## Current read order
 
 1. Repository root `AI_START_HERE.md`.
 2. Repository root `AGENTS.md`.
 3. Current root `AI_CURRENT_HANDOFF.md`.
-4. `01_HOMEPAGE_V2_STRATEGY_V1.md` — original consolidated strategy.
-5. `02_INDEPENDENT_REVIEW_TASK.md` — independent-review contract.
-6. `03_INDEPENDENT_REVIEW_REPORT.md` — completed `TARGETED CORRECTION` review.
-7. `04_HOMEPAGE_V2_STRATEGY_FINAL.md` — final strategy candidate with accepted corrections.
+4. `../PROAI_EXPERT_HOMEPAGE_V2_STRATEGY.md` — owner-approved canonical strategy.
+5. `../PROAI_EXPERT_HOMEPAGE_V2_PRODUCTION_SPEC.md` — broad Production Specification V1.
+6. `07_PRODUCTION_SPEC_REVIEW_REPORT.md` — independent technical `TARGETED CORRECTION` report.
+7. `../PROAI_EXPERT_HOMEPAGE_V2_IMPLEMENTATION_CONTRACT.md` — authoritative repository-level correction contract.
+8. `../PROAI_EXPERT_CONTACT_PRIVATE_REVIEW_PREREQUISITE_SPEC.md` — first narrow production-stage specification.
 
-## Roles
+Historical strategy/review files remain in this workspace:
 
-### Primary Control
+- `01_HOMEPAGE_V2_STRATEGY_V1.md`;
+- `02_INDEPENDENT_REVIEW_TASK.md`;
+- `03_INDEPENDENT_REVIEW_REPORT.md`;
+- `04_HOMEPAGE_V2_STRATEGY_FINAL.md`;
+- `05_OWNER_APPROVAL.md`;
+- `06_PRODUCTION_SPEC_REVIEW_TASK.md`;
+- `07_PRODUCTION_SPEC_REVIEW_REPORT.md`.
 
-The main Homepage V2 strategy chat owns:
+## Current decisions
 
-- commercial positioning;
-- homepage narrative;
-- block architecture;
-- CTA architecture;
-- proof architecture;
-- visual direction;
-- final consolidation.
+### Strategy
 
-### Independent Reviewer
+Owner-approved.
 
-The neighboring chat completed an independent strategy review and saved the report in `03_INDEPENDENT_REVIEW_REPORT.md`.
+### Independent strategy review
 
-The Reviewer did not create a competing strategy or modify production files.
+Verdict: `TARGETED CORRECTION`.
 
-## Current decision state
+Corrections accepted and consolidated into the canonical strategy.
 
-The independent verdict was:
+### Independent production-spec review
 
-`TARGETED CORRECTION`
+Verdict: `TARGETED CORRECTION`.
 
-The final strategy candidate resolves the required corrections, including:
+The architecture was accepted. Exact repository contracts were required for:
 
-- bounded no-cost `Private Review` definition;
-- Contact-context requirements;
-- reduced Hero responsibility;
-- merged connected-journey section;
-- ten-block final narrative;
-- exact proof-status labels and disclosures;
-- four-step mobile signature system;
-- five-phase process;
-- independently composed EN/RU directions;
-- clean V2 source-architecture requirement without further broad `replace_first` accumulation.
+- canonical Header include and assets;
+- exact Homepage Footer include;
+- Contact field migration;
+- CTA source-context schema;
+- metadata origin without `_config.yml`;
+- generated-output deployment validation;
+- V1/V2 runtime asset ownership;
+- Chatbase preservation;
+- raw asset Liquid prohibition;
+- fresh-main production branches;
+- rollback rehearsal.
+
+All accepted corrections are now locked in:
+
+```text
+docs/site-evolution/PROAI_EXPERT_HOMEPAGE_V2_IMPLEMENTATION_CONTRACT.md
+```
+
+## Required production sequence after owner approval
+
+1. Create Contact prerequisite branch from freshly fetched current `main`.
+2. Implement only EN/RU Contact context and field-contract changes.
+3. Independently review and verify Contact.
+4. Merge Contact only with explicit owner authorization.
+5. Finalize EN/RU copy, proof-source pack and full-page prototype.
+6. Create Homepage production branch from then-current `main`.
+7. Implement the complete ten-block EN/RU Homepage V2 system.
+8. Run generated-output, browser, accessibility, performance and rollback checks.
+9. Obtain independent production review.
+10. Merge/publish only with explicit owner authorization.
 
 ## Locked boundaries
 
-- Do not modify Header System.
-- Do not modify Footer System.
-- Do not change production HTML, CSS, JavaScript, routes, forms, analytics, metadata, sitemap, assets, or deployment.
-- Do not create a production PR.
-- Do not implement individual homepage blocks.
-- Do not invent clients, outcomes, testimonials, rankings, leads, conversion, revenue, or ROI.
-- Preserve truthful status for Financial Stream, Alina Horb, and Local Repair Pro.
-- Preserve EN/RU natural localization and route parity.
+- Header System remains locked.
+- Homepage Footer remains locked and continues through `footer-commercial-v1.html`.
+- No production branch may be based on this strategy-review branch.
+- No production file may be edited in this workspace.
+- No partial Homepage V2 publication.
+- No EN-only publication.
+- No new third-party script.
+- Existing Chatbase is preserved unless separately authorized.
+- No invented outcomes, clients, testimonials, rankings, leads, conversion, revenue or ROI.
+- Financial Stream, Alina Horb and Local Repair Pro status boundaries remain truthful.
+- EN/RU natural localization and machine-value parity are required.
 
 ## Current stage
 
-`Strategy V2 Final → Owner Approval → Canonical Strategy → Production Specification`
+```text
+Corrected Production Scope → Owner Approval → Contact Prerequisite → Content/Proof → Prototype → Homepage Build
+```
 
-Implementation begins only after owner approval and a separate production specification.
+Current owner decision required:
+
+> Approve the corrected Production Scope and authorize the narrow Contact prerequisite implementation branch.

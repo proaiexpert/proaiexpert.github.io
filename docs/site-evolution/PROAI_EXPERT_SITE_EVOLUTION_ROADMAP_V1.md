@@ -1,168 +1,391 @@
 # ProAI Expert Site Evolution Roadmap V1
 
-**Status:** Future planning document  
-**Prepared:** 2026-07-24  
-**Current active program:** `PORTFOLIO MASTER POLISH V1`  
-**Future program:** `PROAI EXPERT SITE EXPERIENCE V2`
+**Статус:** current program-level roadmap  
+**Первоначально подготовлен:** 2026-07-24  
+**Обновлено:** 2026-08-04  
+**Завершённая программа:** `PORTFOLIO MASTER POLISH V1`  
+**Следующая программа:** `PROAI EXPERT SITE EXPERIENCE V2`
 
 ---
 
-## 1. Purpose and status
+## 1. Назначение и authority
 
-This roadmap preserves strong future ideas for the wider ProAI Expert website without mixing them into the current portfolio implementation.
+Этот roadmap определяет порядок крупных website workstreams, dependencies, acceptance gates и stop rules.
 
-It is not authorization to redesign or publish the entire site.
+Он не является:
 
-The active program is Portfolio Master Polish V1. Wider site reconstruction begins only after:
+- commercial master plan;
+- page-level implementation specification;
+- разрешением менять production;
+- заменой Header/Footer specs;
+- заменой portfolio evidence records.
 
-- portfolio phases are complete;
-- the portfolio is reviewed on live-like rendered pages;
-- truth and performance are verified;
-- the owner approves a separate phase-specific specification.
+Authority order для Site V2:
 
-Do not begin Site Experience V2 merely because this roadmap exists.
+1. current `main`, live verification и active PR scope;
+2. `AI_CURRENT_HANDOFF.md` — operational state;
+3. `docs/CLIENT_ACQUISITION_SOCIAL_AND_SALES_PLAN.md` — commercial intent, ICP, offers и pricing;
+4. будущий `PROAI_EXPERT_SITE_V2_COMMERCIAL_ALIGNMENT_SPEC.md` — page-level implementation authority;
+5. этот roadmap — sequence, dependencies и gates;
+6. component/evidence/quality authorities в своих scopes.
 
----
-
-## 2. Current active program — Portfolio Master Polish V1
-
-The active sequence is:
-
-1. Documentation.
-2. Truth and navigation correction.
-3. Archive flagship reconstruction.
-4. Financial Stream polish.
-5. Alina Horb editorial refinement.
-6. Local Repair Pro request-journey refinement.
-7. Cross-site integration and final QA.
-
-The active program includes:
-
-- truthful Local Repair framing;
-- Alina-specific social imagery;
-- Financial Stream Payroll verification;
-- complete cross-case navigation;
-- Trust Systems Atlas archive;
-- targeted case refinement;
-- contextual links from the wider site;
-- EN/RU parity;
-- accessibility, performance, reduced-motion, and no-JS QA.
-
-It does not include a full redesign of the homepage, service pages, Insights, Contact, or global shell.
+При конфликте этот roadmap не может переопределять commercial plan, current production facts или approved evidence boundaries.
 
 ---
 
-## 3. Future program — ProAI Expert Site Experience V2
+## 2. Завершённая программа — Portfolio Master Polish V1
 
-Potential workstreams:
+Portfolio Master Polish V1 завершён.
 
-- Homepage v2.
-- AI Systems v2.
-- Websites & Branding v2.
-- Insights architecture.
-- Contact and structured project intake.
-- Global Studio Shell v2.
-- Proof network.
-- Article-to-case integration.
-- Service-to-case integration.
-- Bilingual system consistency.
-- Motion system.
-- Responsive system.
-- Accessibility.
-- Performance.
-- Future Studio Case.
+В production опубликованы:
 
-Each workstream requires its own audit, specification, branch, visual review, and acceptance gate.
+- EN/RU Case Studies archive;
+- Financial Stream case pair;
+- Alina Horb case pair;
+- Local Repair Pro case pair;
+- cross-case navigation;
+- service/contact transitions;
+- distinct case art directions;
+- truthful live/related-party/concept evidence boundaries;
+- centralized Header/Footer integration;
+- responsive, reduced-motion, accessibility и no-JS safeguards в реализованном scope.
 
----
+Завершённые pre-implementation master plans, synthesis и blueprints сохраняются как historical records и не управляют новой программой.
 
-## 4. Homepage v2
-
-Future objectives:
-
-- make proof the primary credibility layer;
-- connect positioning to real systems and cases;
-- use the archive as the canonical portfolio entry;
-- preserve concise service orientation;
-- avoid repeating full case stories;
-- connect each service direction to relevant evidence;
-- improve hierarchy without adding visual noise;
-- preserve or improve performance.
-
-Potential structure:
-
-1. Clear studio position.
-2. Core business problems.
-3. Selected proof connected to the archive.
-4. AI Systems and Websites & Branding pathways.
-5. Production discipline.
-6. Relevant Insights.
-7. Structured next step.
-
-Do not turn the homepage into a duplicate Case Studies archive.
+Не открывать Portfolio Master Polish заново без конкретного production defect, нового evidence package или owner-approved case-specific task.
 
 ---
 
-## 5. AI Systems v2
+## 3. Текущая переходная фаза — Documentation Reconciliation
 
-Future objectives:
+Перед созданием Site V2 implementation authority необходимо:
 
-- show real operational proof only;
-- make human-reviewed boundaries visible;
-- distinguish live, implemented, tested, partial, and planned capabilities;
-- use Financial Stream only where evidence is accurate and sanitized;
-- explain system architecture in business language;
-- avoid generic AI spectacle;
-- avoid fake agents, dashboards, autonomy claims, and invented ROI.
+1. оставить `AI_CURRENT_HANDOFF.md` единственным current operational handoff;
+2. удалить current-authority статус у завершённых Phase A и portfolio planning docs;
+3. исправить branch-only и отсутствующие references;
+4. обновить portfolio route/evidence ownership;
+5. связать Site V2 с canonical commercial plan;
+6. не затрагивать production HTML/CSS/JS;
+7. не конфликтовать с активными Header/Footer PR.
 
-Potential evidence types:
+Gate:
 
-- workflow map;
-- bounded capability register;
-- human-review point;
-- sanitized operational screenshot;
-- implementation status;
-- limitation.
-
-No proof should be published until privacy, claim, and owner approval gates pass.
+- один current operational handoff;
+- нет current ссылок на отсутствующие branch-only документы;
+- historical documents имеют явный tombstone status;
+- current authority chain понятна свежему AI-чату без чтения старых разговоров.
 
 ---
 
-## 6. Websites & Branding v2
+## 4. Следующий обязательный документ — Site V2 Commercial Alignment Spec
 
-Future objectives:
+До wireframes, design или implementation должен быть отдельно создан и одобрен:
 
-- explain methodology without becoming a second archive;
-- connect trust problems to website architecture;
-- show selected proof;
-- offer project-type pathways;
-- reference the Website Production Factory standard;
-- clarify strategy, content, design, responsive production, and deployment;
-- distinguish custom direction from reusable production discipline.
+`docs/site-evolution/PROAI_EXPERT_SITE_V2_COMMERCIAL_ALIGNMENT_SPEC.md`
 
-Potential content:
+Он должен стать единственным Site V2 implementation authority для:
 
-- Strategy before surface.
-- Trust architecture.
-- Signature system.
-- Responsive recomposition.
-- Proof and claim discipline.
-- Bilingual architecture.
-- Selected case evidence.
-- Project intake.
+- information architecture и routes;
+- homepage commercial sequence;
+- Hero acceptance criteria;
+- Websites, Branding & Offer Clarity, AI & Automation;
+- entry-offer pages/surfaces;
+- navigation click depth;
+- CTA taxonomy;
+- contact routing и source attribution;
+- portfolio/service/offer integration;
+- commercial copy acceptance;
+- conversion measurement;
+- route-level EN/RU, responsive, accessibility, performance, SEO и no-JS requirements;
+- prototype, review и controlled-launch gates.
+
+Spec не должен создавать новый commercial strategy или переименовывать approved offers без отдельного revision canonical commercial plan.
 
 ---
 
-## 7. Insights evolution
+## 5. Site V2 commercial model
 
-Future objectives:
+### 5.1 One umbrella thesis
 
-- organize content into meaningful methodology clusters;
-- connect relevant articles to services and cases;
-- maintain EN/RU editorial parity;
+ProAI Expert улучшает trust, clarity, inquiry flow и lead response для service businesses.
+
+Technology, AI, automation и design являются methods of implementation, а не самостоятельным opening promise.
+
+### 5.2 Three capability pillars
+
+Site V2 должен объяснить три связанных, но различимых направления:
+
+1. **Websites** — trust, information architecture, bilingual content, responsive production и conversion paths.
+2. **Branding & Offer Clarity** — audience, differentiation, message hierarchy, identity и sales-use clarity.
+3. **AI & Automation** — acknowledgement, structured intake, routing, logging, reminders и human-reviewed assistance.
+
+Связь:
+
+`Branding clarifies the message → Website turns it into trust and action → Automation improves what happens after inquiry.`
+
+Это не обязательная линейная покупка. Каждый capability и entry offer может быть самостоятельным controlled project.
+
+### 5.3 Locked entry offers
+
+- Website Trust & Conversion Sprint;
+- Lead Response Automation Sprint;
+- Brand & Offer Clarity Sprint.
+
+`Lead Fix Sprint` остаётся deprecated.
+
+---
+
+## 6. Program sequence
+
+### Phase 1 — Documentation reconciliation
+
+Docs-only authority cleanup. No production changes.
+
+### Phase 2 — Commercial Alignment Spec
+
+Создание final page-level requirements и acceptance matrix. No production changes.
+
+### Phase 3 — Information architecture
+
+Утвердить:
+
+- EN/RU route map;
+- preserved routes;
+- proposed offer routes;
+- Websites/Branding hub decision;
+- click-depth matrix;
+- canonical/hreflang/x-default/sitemap ownership;
+- ProAI Expert Studio Case route decision.
+
+### Phase 4 — Homepage wireframe and content architecture
+
+Обязательная sequence:
+
+1. Hero;
+2. recognizable business problems;
+3. connected capability architecture;
+4. entry offers;
+5. selected proof;
+6. process;
+7. trust and boundaries;
+8. relevant Insights;
+9. final CTA.
+
+Insights не должны прерывать путь между problem, offer, proof и main action.
+
+### Phase 5 — Service and entry-offer architecture
+
+Для каждого capability/offer определить:
+
+- audience;
+- problem;
+- outcome;
+- scope;
+- exclusions;
+- timeline;
+- pricing/qualification guidance;
+- client responsibilities;
+- relevant proof;
+- CTA;
+- next offer-ladder step.
+
+### Phase 6 — Contact and CTA architecture
+
+Утвердить:
+
+- Request Website Review;
+- Request Automation Review;
+- Request Brand & Offer Review;
+- Discuss a Project;
+- General Contact fallback;
+- calendar rules;
+- context collection;
+- source page, language, selected service и selected offer attribution;
+- success/failure states;
+- friction limits.
+
+`Context before calendar` остаётся обязательным принципом.
+
+### Phase 7 — Visual direction
+
+Определить coherent premium ProAI system без стилистической унификации всех page worlds.
+
+Design должен усиливать:
+
+- clarity;
+- hierarchy;
+- trust;
+- proof;
+- perceived expertise;
+- mobile usability;
+- conversion.
+
+Не использовать visual effects ради эффекта.
+
+### Phase 8 — Prototype
+
+Минимальный controlled prototype:
+
+- homepage;
+- one capability page;
+- one entry-offer page;
+- contact/CTA flow;
+- EN/RU content behavior where material;
+- desktop, tablet, portrait, landscape, reduced-motion и no-JS states.
+
+### Phase 9 — Independent review
+
+Свежий Reviewer проверяет actual rendered prototype и diff.
+
+Verdict:
+
+- `ACCEPT`;
+- `TARGETED CORRECTION`;
+- `REJECT`.
+
+### Phase 10 — EN/RU production
+
+Только после prototype approval.
+
+- natural localization;
+- exact intent parity;
+- isolated branch/file scope;
+- no unrelated refactor;
+- protected Header/Footer/component ownership.
+
+### Phase 11 — Accessibility, performance, SEO and reliability QA
+
+Проверить:
+
+- keyboard and visible focus;
+- headings/landmarks;
+- contrast, zoom и touch targets;
+- reduced motion, forced colors и no-JS;
+- narrow portrait и low-height landscape;
+- no overflow;
+- LCP, CLS и interaction performance;
+- responsive images, fonts, CSS/JS и third-party budgets;
+- form normal/failure states;
+- canonical, hreflang, x-default, metadata, sitemap и structured data;
+- analytics event validation;
+- live-source/cache verification.
+
+### Phase 12 — Controlled launch
+
+- final approved PR;
+- recorded base/head SHAs;
+- production deployment verification;
+- route/form/event smoke tests;
+- rollback point;
+- post-launch review without immediate feature expansion.
+
+---
+
+## 7. Homepage and Hero requirements
+
+### Homepage objectives
+
+- lead with a recognizable business problem and concrete improvement;
+- present one coherent studio thesis;
+- make the three capability pillars understandable without catalogue overload;
+- make entry offers buyable and linkable;
+- move truthful proof earlier;
+- connect proof to relevant service/offer;
+- preserve concise production/process explanation;
+- end with one structured next step.
+
+Do not turn the homepage into:
+
+- a duplicate Case Studies archive;
+- a technology-logo showcase;
+- a catalogue of unrelated services;
+- an internal methodology manual;
+- a long AI-first narrative.
+
+### Hero acceptance baseline
+
+Hero must communicate within one first-screen experience:
+
+1. service-business audience;
+2. one recognizable commercial friction;
+3. one dominant outcome;
+4. one truthful proof or trust signal near the fold;
+5. one primary CTA;
+6. technology as method, not value proposition;
+7. natural EN/RU intent parity;
+8. mobile order: message → proof/trust → CTA.
+
+Final copy and layout remain subject to the future spec and prototype review.
+
+---
+
+## 8. Proof network
+
+Required relationships:
+
+- homepage positioning → selected proof/archive;
+- capability → relevant case chapter;
+- entry offer → relevant proof;
+- case → relevant capability/offer/contact;
+- article thesis → relevant case or offer only when genuinely related;
+- live implementation fact → dated source/evidence;
+- AI capability → human-review and failure boundary.
+
+Rules:
+
+- no duplicated full narratives;
+- canonical ownership for each proof item;
+- concise contextual teasers outside the case;
+- clear live/implemented/tested/partial/planned/concept labels;
+- related-party context where commercially material;
+- no unsupported outcome language;
+- no raw sensitive operational data.
+
+---
+
+## 9. Contact and measurement
+
+### Contact
+
+- context before calendar;
+- concise required fields;
+- optional depth only when operationally useful;
+- accessible single-page or progressive flow;
+- preserved service/offer/source/language context;
+- privacy and response-time expectations;
+- direct fallback contact;
+- no hidden required fields;
+- no animation that blocks submission;
+- no Typeform-like pattern without accessible fallback.
+
+### Measurement
+
+Future spec must define events and dimensions for:
+
+- primary CTA;
+- offer CTA;
+- case-to-service/contact;
+- form start/success/error;
+- selected service/offer;
+- source page/campaign;
+- language;
+- calendar click/confirmed booking where verifiable;
+- CRM-qualified inquiry and downstream commercial states.
+
+Do not publish conversion claims merely because events are implemented.
+
+---
+
+## 10. Insights evolution
+
+Objectives:
+
+- organize methodology clusters;
+- connect articles to services, offers and cases contextually;
+- preserve EN/RU editorial quality;
 - avoid mechanical translation;
-- improve archive and article discovery;
-- scale taxonomy without creating empty categories.
+- improve discovery without empty taxonomies;
+- keep commercial path primary on homepage and service pages.
 
 Potential clusters:
 
@@ -174,241 +397,114 @@ Potential clusters:
 - operational design;
 - responsible AI implementation.
 
-Case links should appear only where the case genuinely illustrates the article thesis.
-
 ---
 
-## 8. Contact and structured intake
+## 11. Global Studio Shell
 
-Future direction:
+Current Header and Footer systems remain separately governed.
 
-**Context before calendar.**
+Site V2 may specify route and CTA behavior but must not casually replace:
 
-Potential experience:
-
-- progressive project brief;
-- accessible multi-step flow or structured single-page alternative;
-- clear saved/confirmation state;
-- project-context preselection from archive, services, or articles;
-- concise required fields;
-- optional depth;
-- privacy and response expectations;
-- calendar only after sufficient context where appropriate.
-
-Do not introduce:
-
-- unnecessary friction;
-- a sticky sales form across the site;
-- hidden required fields;
-- animation that blocks form use;
-- a Typeform-like pattern without accessible fallback;
-- collection of information that has no operational use.
-
----
-
-## 9. Global Studio Shell v2
-
-Potential scope:
-
-- consistent primary navigation;
-- predictable mobile menu;
+- primary navigation contracts;
+- mobile-menu behavior;
 - context-preserving language switch;
 - shared focus states;
-- global reduced-motion behavior;
-- no-JS baseline;
-- consistent footer transitions;
-- case and article orientation;
-- contextual contact entry;
-- shared performance rules.
+- Footer family ownership;
+- shared reduced-motion/no-JS behavior.
 
-The shell should provide discipline without erasing page-specific art direction.
-
-Do not redesign the shell during an isolated case-polish phase unless the change is required and explicitly approved.
+Any component architecture change requires its own scoped task and conflict check against active PR.
 
 ---
 
-## 10. Proof network
+## 12. Bilingual system consistency
 
-Future objective: build a deliberate relationship between claims and evidence across the site.
+Every Site V2 route requires:
 
-Possible connections:
-
-- homepage positioning → archive;
-- service capability → relevant case chapter;
-- article thesis → relevant case evidence;
-- case method → relevant service;
-- archive context → structured intake;
-- live implementation fact → source or dated evidence;
-- AI capability → human-review boundary.
-
-Rules:
-
-- no duplicate full narratives;
-- canonical ownership for each proof item;
-- short contextual teasers outside the canonical page;
-- no unsupported outcome language;
-- no raw sensitive operational data.
-
----
-
-## 11. Bilingual system consistency
-
-Future review should cover:
-
-- exact EN/RU route mapping;
-- UA/RU truth for underlying third-party/client websites;
-- localized navigation;
-- metadata;
-- canonical;
-- hreflang;
-- x-default;
-- sitemap;
-- forms;
-- validation;
-- success states;
-- screenshots;
+- exact intent mapping;
+- natural EN/RU localization;
+- truthful UA/RU statements for client projects;
+- localized navigation and CTA;
+- canonical, reciprocal hreflang и x-default;
+- sitemap inclusion where indexable;
+- form/validation/success parity;
+- screenshot and proof-language accuracy;
 - mobile parity;
-- article relationships;
-- case relationships.
-
-Do not silently redirect missing translations to an unrelated homepage.
+- no redirect from missing translation to unrelated homepage.
 
 ---
 
-## 12. Motion and responsive system
+## 13. Motion, responsive, accessibility and performance
 
-Future objective: define a shared quality framework, not one global animation style.
+Reusable quality authority:
 
-Shared rules:
+`docs/website-production-factory/PREMIUM_SITE_EXPERIENCE_STANDARD.md`
 
-- motion reveals hierarchy and state;
-- page-specific signatures remain unique;
-- reduced motion is complete;
-- no-JS content remains visible;
-- mobile receives deliberate recomposition;
-- sticky UI remains bounded;
-- no scroll-jacking, particles, cursor trails, or continuous parallax;
-- performance budget governs effects.
+Site V2-specific requirements:
 
-The Local Repair Reflow Matrix may inform internal responsive documentation. It should not be copied visually into every page.
-
----
-
-## 13. Accessibility and performance
-
-Every Site Experience V2 workstream requires:
-
-- rendered keyboard QA;
-- visible focus;
-- semantic review;
-- contrast review;
-- reduced-motion review;
-- narrow-mobile review;
-- LCP, CLS, and TBT measurement;
-- responsive image audit;
-- third-party script review;
+- one meaningful signature system per page family where justified;
+- deliberate responsive recomposition;
+- bounded sticky behavior;
+- no scroll-jacking, particle fields, cursor trails or continuous parallax;
+- complete reduced-motion and no-JS states;
+- defined route-level LCP element and asset budget;
 - no horizontal overflow;
-- live-source and cache verification.
-
-No phase is complete because source validation alone passes.
+- real rendered QA, not source-only validation.
 
 ---
 
-## 14. Future Studio Case
+## 14. Future ProAI Expert Studio Case
 
-A future ProAI Expert Studio Case may document:
+Historical ProAI Expert Studio Case routes are not part of the currently confirmed three-case production architecture.
 
-- studio positioning;
-- the site as an evolving system;
-- portfolio architecture;
-- bilingual content system;
-- production standards;
-- responsible AI boundaries;
-- selected implementation decisions.
+Before any restoration, replacement, redirect or publication decision, determine:
 
-It must not compete with external/client-oriented proof until it has a distinct purpose, truthful scope, and approved narrative.
+- distinct commercial purpose;
+- truthful scope;
+- whether it adds proof beyond the public website itself;
+- route and EN/RU policy;
+- relationship to external/client proof;
+- whether the effort is higher priority than obtaining independent client evidence.
 
-The historical ProAI Expert case route must be reviewed before any replacement, restoration, redirect, or publication decision.
-
----
-
-## 15. Deferred ideas
-
-Preserve for later evaluation:
-
-- dedicated methodology page;
-- component library;
-- design-token governance;
-- motion-token governance;
-- proof library;
-- expanded case-study schema;
-- future ProAI Expert Studio Case;
-- archive scaling at 6–10 cases;
-- archive scaling beyond 10 cases;
-- optional category filters only when volume justifies them;
-- article topic clusters;
-- richer project-intake routing;
-- structured operational evidence modules.
-
-Deferred does not mean approved.
+Do not restore old routes solely because historical documents listed them.
 
 ---
 
-## 16. Archive scaling
+## 15. Dependencies before production
 
-### 6–10 cases
+1. documentation reconciliation merged;
+2. current main/open PR verification;
+3. Commercial Alignment Spec approved;
+4. route/IA decisions approved;
+5. content and claims verified;
+6. assets and permissions approved;
+7. prototype approved;
+8. responsive/accessibility/performance plans defined;
+9. measurement and privacy contracts defined;
+10. branch/file scope isolated;
+11. independent review complete.
 
-- keep a small number of featured editorial territories;
-- add a structured project index below;
-- introduce metadata only when it improves discovery;
-- category filters remain optional.
-
-### More than 10 cases
-
-- retain featured work;
-- add searchable or filterable discovery only when categories are meaningful;
-- preserve stable individual case routes;
-- use progressive loading or pagination when justified;
-- do not rebuild the archive architecture for every new project.
-
-Project-count marketing remains unnecessary.
+Do not combine all phases into one giant implementation task.
 
 ---
 
-## 17. Dependencies
+## 16. Stop rules
 
-Before Site Experience V2:
-
-1. Complete Portfolio Master Polish V1.
-2. Review the resulting live portfolio.
-3. Verify truth, assets, permissions, and operational evidence.
-4. Audit current performance and accessibility.
-5. Approve the future information architecture.
-6. Select one workstream.
-7. Create a phase-specific production specification.
-8. Isolate the branch and file scope.
-9. Define visual-review and QA gates.
-
-Do not combine all site work into one giant Codex task.
-
----
-
-## 18. Stop rules
-
-Do not start or merge a Site Experience V2 workstream without:
+Do not start or merge Site V2 production work without:
 
 - explicit owner approval;
 - current baseline verification;
-- a phase-specific specification;
-- branch isolation;
-- defined file scope;
+- approved Commercial Alignment Spec;
+- approved phase-specific scope;
+- exact EN/RU routes;
 - verified content and claims;
 - asset approval;
+- CTA/contact matrix;
+- measurement contract;
 - responsive plan;
 - accessibility plan;
 - performance budget;
-- visual review;
+- rendered visual review;
 - final QA;
-- confirmation that unrelated refactors are absent.
+- confirmation that unrelated refactors and active-PR conflicts are absent.
 
-This roadmap stores direction. It does not authorize implementation.
+Этот roadmap хранит порядок программы. Он не разрешает implementation сам по себе.

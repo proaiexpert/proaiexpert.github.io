@@ -540,56 +540,76 @@ The Contact pages sanitize bounded identifiers and safe absolute HTTP/HTTPS refe
 EN:
 
 ```text
-/contact/?intent=private_review&selected_direction=not_sure&source_page=homepage&source_cta=homepage_hero&source_context=hero
+/contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake
 ```
 
 RU:
 
 ```text
-/ru/contact/?intent=private_review&selected_direction=not_sure&source_page=homepage&source_cta=homepage_hero&source_context=hero
+/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake
 ```
+
+Hero must not send `selected_direction` or `source_context`.
 
 ### Ways to Start — Website & trust
 
+EN:
+
 ```text
-intent=private_review
-selected_direction=websites_branding
-source_page=homepage
-source_cta=homepage_ways_to_start
-source_context=website_trust
+/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake
+```
+
+RU:
+
+```text
+/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake
 ```
 
 ### Ways to Start — Inquiry handling
 
+EN:
+
 ```text
-intent=private_review
-selected_direction=ai_systems_automation
-source_page=homepage
-source_cta=homepage_ways_to_start
-source_context=inquiry_handling
+/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake
+```
+
+RU:
+
+```text
+/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake
 ```
 
 ### Ways to Start — Connected system
 
+EN:
+
 ```text
-intent=private_review
-selected_direction=both
-source_page=homepage
-source_cta=homepage_ways_to_start
-source_context=connected_system
+/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake
+```
+
+RU:
+
+```text
+/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake
 ```
 
 ### Final Private Review
 
+EN:
+
 ```text
-intent=private_review
-selected_direction=not_sure
-source_page=homepage
-source_cta=homepage_final
-source_context=final_private_review
+/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake
 ```
 
-EN uses `/contact/`; RU uses `/ru/contact/`.
+RU:
+
+```text
+/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake
+```
+
+Final Private Review must not send `selected_direction` or `source_context`.
+
+Every Homepage-to-Contact URL must end with `#project-intake`. Approved `selected_direction` values are used only for the three Ways-to-Start situations. Homepage V2 must not send any `source_context` parameter.
 
 Do not add unaccepted values. Do not send arbitrary free text in query parameters.
 

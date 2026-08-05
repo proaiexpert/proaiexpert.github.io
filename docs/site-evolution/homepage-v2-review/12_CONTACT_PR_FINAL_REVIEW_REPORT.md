@@ -7,7 +7,7 @@
 **PR-ветка:** `agent/contact-private-review-prerequisite`  
 **Документационная ветка:** `agent/homepage-v2-strategy-review`  
 **Base:** `main` at `0b2fca54fba614e8a3098d00991cec6103b604e8`  
-**Предыдущий reviewed head:** `4b8ad355039b056ab9daa27c596d150e74bb25dd`  
+**Предыдущий reviewed head:** `4b8ad355039b056ab9daa2277cd8ed52ef9ca824`  
 **Проверенный corrected head:** `732208b6825a5c8208aa2cd553722da4ad7b418f`  
 **Режим:** независимая read-only проверка PR; изменён только этот документационный отчёт
 

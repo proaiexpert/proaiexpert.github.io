@@ -16,15 +16,14 @@ jobs:
       - name: Checkout exact QA branch
         uses: actions/checkout@v6
 
-      - name: Configure GitHub Pages build environment
-        id: pages
-        uses: actions/configure-pages@v5
-
       - name: Production-equivalent Jekyll build
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./
-          destination: ./_site
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
 
       - name: Validate generated EN/RU HTML and contracts
         shell: bash
@@ -90,14 +89,14 @@ jobs:
               if not path.exists():
                   continue
               text = path.read_text(encoding='utf-8')
-              lower = text.lower()
 
               check('{%' not in text and '{{' not in text, f'{locale}: unresolved Liquid markers')
               check(len(re.findall(r'<!doctype\s+html', text, flags=re.I)) == 1, f'{locale}: doctype count != 1')
               for tag in ('html', 'head', 'body', 'main'):
                   check(len(re.findall(rf'<{tag}\b', text, flags=re.I)) == 1, f'{locale}: <{tag}> count != 1')
 
-              html_tag = attrs(text, 'html')[0] if attrs(text, 'html') else ''
+              html_tags = attrs(text, 'html')
+              html_tag = html_tags[0] if html_tags else ''
               check(attr(html_tag, 'lang') == meta['lang'], f'{locale}: html lang mismatch')
 
               link_tags = attrs(text, 'link')
@@ -195,17 +194,16 @@ jobs:
           mkdir -p qa-output
           cat > homepage-v2-qa.spec.js <<'JS'
           const { test, expect } = require('@playwright/test');
-          const fs = require('fs');
 
           const matrix = [
-            { name: 'EN-1440', path: '/', width: 1440, height: 900, locale: 'en' },
-            { name: 'RU-1440', path: '/ru/', width: 1440, height: 900, locale: 'ru' },
-            { name: 'EN-390', path: '/', width: 390, height: 844, locale: 'en' },
-            { name: 'RU-390', path: '/ru/', width: 390, height: 844, locale: 'ru' },
-            { name: 'EN-320', path: '/', width: 320, height: 568, locale: 'en' },
-            { name: 'RU-320', path: '/ru/', width: 320, height: 568, locale: 'ru' },
-            { name: 'EN-844x390', path: '/', width: 844, height: 390, locale: 'en' },
-            { name: 'RU-844x390', path: '/ru/', width: 844, height: 390, locale: 'ru' },
+            { name: 'EN-1440', path: '/', width: 1440, height: 900 },
+            { name: 'RU-1440', path: '/ru/', width: 1440, height: 900 },
+            { name: 'EN-390', path: '/', width: 390, height: 844 },
+            { name: 'RU-390', path: '/ru/', width: 390, height: 844 },
+            { name: 'EN-320', path: '/', width: 320, height: 568 },
+            { name: 'RU-320', path: '/ru/', width: 320, height: 568 },
+            { name: 'EN-844x390', path: '/', width: 844, height: 390 },
+            { name: 'RU-844x390', path: '/ru/', width: 844, height: 390 },
           ];
 
           const expectedSections = [
@@ -230,6 +228,16 @@ jobs:
 
               const sections = await page.locator('main.hpv2 > section.hpv2-section').evaluateAll(nodes => nodes.map(n => n.id));
               expect(sections).toEqual(expectedSections);
+
+              await page.evaluate(async () => {
+                const step = Math.max(320, Math.floor(innerHeight * 0.75));
+                for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+                  scrollTo(0, y);
+                  await new Promise(resolve => setTimeout(resolve, 35));
+                }
+                scrollTo(0, 0);
+              });
+              await page.waitForLoadState('networkidle');
 
               const metrics = await page.evaluate(() => {
                 const root = document.documentElement;
@@ -301,7 +309,7 @@ jobs:
               }
 
               await page.evaluate(() => window.scrollTo(0, 0));
-              await page.locator('body').press('Tab');
+              await page.keyboard.press('Tab');
               await expect(page.locator('.skip-link')).toBeFocused();
               const skipBox = await page.locator('.skip-link').boundingBox();
               expect(skipBox && skipBox.y >= 0, 'Skip link is not visible when focused').toBeTruthy();

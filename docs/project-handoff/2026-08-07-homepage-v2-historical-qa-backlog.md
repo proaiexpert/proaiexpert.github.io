@@ -1,0 +1,882 @@
+ProAI Expert Homepage V2 — Temporary Google Drive Handoff
+
+
+Статус и назначение
+
+
+Drive-этап завершён. Этот документ сохраняет контрольную точку ProAI Expert Homepage V2, весь Temporary Production Review Pack, correction/QA protocol и новый showcase backlog до полной синхронизации с ProAI GitHub. Источником истины для production-кода остаётся GitHub-ветка, указанная ниже; Google Drive используется как резервный handoff и decision log. Код, commits, PR и deployment через Drive не выполняются.
+
+
+1. Текущая production-точка
+
+
+Репозиторий: proaiexpert/proaiexpert.github.io
+Актуальный main, от которого создана сборка: 7bcc09ae28388f8e4a5e6e5a715aa5ba7b3fbf50
+Production Builder branch: agent/homepage-v2-concept-a-build
+Текущий head production-ветки: 58b68a060de341b9b34727ae17325ba5abaa07b4
+Последний commit: Replace Russian Homepage wrapper with V2 source
+Production PR: не создан
+Merge / deployment: не выполнялись
+
+
+2. Принятая цепочка решений
+
+
+Content Architecture — ACCEPT:
+24d4f92bd202769fbf719bd29b984b2a79689fc2
+
+
+Low-fidelity gate — ACCEPT:
+5702a4a0e0bd790000a5536ba48f6584f20d0f07
+
+
+Выбранное визуальное направление:
+Concept A — Precision Grid
+Принцип: Signal, not spectacle
+
+
+Concept A selected specification — ACCEPT:
+3041db8ea7e8e6f225e72e0e945685099e411e79
+
+
+Homepage V2 implementation plan и исправленные Contact mappings — ACCEPT:
+66a26f353a4612080a41498e3662bd7e8d97f33a
+
+
+3. Реализованный пятифайловый scope
+
+
+Изменены только следующие файлы:
+
+
+index.html
+Blob: 9486caa3e34784ab084c8bc2d9822cd453050d70
+
+
+ru/index.html
+Blob: cb995d2aa225d10109bdfe332acf9afea7a33dc2
+
+
+_includes/homepage-v2-en.html
+Blob: 5dc8d46fa7fd5ac3c90a420f54ca24e77fba7ea1
+
+
+_includes/homepage-v2-ru.html
+Blob: 1c9b8dcbef8d9dc41d5d62b67deab8f0eae0e81e
+
+
+assets/css/homepage-v2.css
+Blob: 470d37b4c188241e4331707f16c05685d98dd868
+
+
+Не изменялись Contact, Header, Footer, JavaScript, изображения, case studies, service pages, Insights, workflows и deployment-файлы.
+
+
+4. Что уже реализовано
+
+
+— Прямая EN/RU Jekyll-архитектура без старой capture / replace / split snapshot-схемы.
+— Десять Homepage-блоков в принятом порядке.
+— Полный RU Hero без сокращения.
+— Concept A — Precision Grid с точным чередованием поверхностей.
+— Financial Stream как главное реальное доказательство.
+— Точные статусы и disclosures для Alina Horb и Local Repair Pro.
+— Shared Header и shared Footer без локального дублирования.
+— Никакого Homepage-specific JavaScript.
+— Desktop, mobile и short-landscape CSS.
+— Focus-visible, touch targets, reduced motion и forced colors.
+— Ровно пять Homepage-to-Contact URL на язык.
+— source_context отсутствует.
+— Hero и Final не передают selected_direction.
+— Ways-to-Start используют только websites_branding, ai_systems_automation и both.
+— Все Contact URL заканчиваются #project-intake.
+— Старые snapshot includes сохранены нетронутыми для rollback.
+
+
+5. Что ещё не проверено
+
+
+— Реальный Jekyll / GitHub Pages build.
+— Полный браузерный рендер EN и RU.
+— Скриншоты 1440, 390, 320 и 844×390.
+— Фактический horizontal overflow.
+— Console errors.
+— Keyboard-проход в браузере.
+— Реальная forced-colors и reduced-motion проверка.
+— Проверка всех ссылок и изображений из generated output.
+— Независимый Production Reviewer verdict.
+— Owner visual review.
+— PR, merge и deployment.
+
+
+6. Жёсткие ограничения
+
+
+— Не создавать PR и не выполнять merge без отдельного разрешения владельца.
+— Не менять Contact, Header, Footer или shared systems в первом correction-pass.
+— Не расширять scope за пять файлов без подтверждённой технической необходимости.
+— Не переписывать принятую стратегию, десятиблочный порядок или proof taxonomy.
+— Не добавлять unsupported claims, metrics, testimonials или outcome language.
+— Не использовать старую snapshot-архитектуру как основу новой страницы.
+— Не передавать Codex задачу на редизайн; Codex нужен для финального широкого QA готовой ветки.
+
+
+7. Следующий порядок работы после возврата GitHub к ProAI Expert
+
+
+1. Проверить, что ветка agent/homepage-v2-concept-a-build и head 58b68a060de341b9b34727ae17325ba5abaa07b4 доступны без drift.
+2. Выполнить независимый production review фактического пятифайлового diff.
+3. Запустить Jekyll build и проверить generated /index.html и /ru/index.html.
+4. Выполнить browser QA на 1440, 390, 320 и 844×390.
+5. Исправить только реальные дефекты в той же production-ветке.
+6. Получить ACCEPT.
+7. Провести owner visual review.
+8. После обновления лимитов Codex — широкий audit всего сайта: маршруты, EN/RU, responsive, accessibility, console, ссылки, assets и микрорегрессии.
+9. Только после отдельного разрешения создать PR, merge и deployment.
+
+
+8. Команда для возобновления работы
+
+
+Продолжить ProAI Expert Homepage V2 из временного Google Drive handoff.
+
+
+Репозиторий: proaiexpert/proaiexpert.github.io
+Production branch: agent/homepage-v2-concept-a-build
+Base main: 7bcc09ae28388f8e4a5e6e5a715aa5ba7b3fbf50
+Expected head: 58b68a060de341b9b34727ae17325ba5abaa07b4
+
+
+Сначала проверить branch head и пятифайловый diff. Затем продолжить с Jekyll build и независимого production review. Не создавать PR, не выполнять merge или deployment без отдельного разрешения владельца.
+
+
+9. Temporary Production Review Pack
+
+
+Статус этого раздела: PREPARED — NOT EXECUTED.
+Назначение: обеспечить немедленный переход к независимому production review, Jekyll build и browser QA после возврата GitHub ProAI Expert.
+Запрещено трактовать наличие checklist как доказательство того, что соответствующие проверки уже выполнены.
+
+
+9.1 Контрольная точка и правила статусов
+
+
+Repository: proaiexpert/proaiexpert.github.io
+Production branch: agent/homepage-v2-concept-a-build
+Base: 7bcc09ae28388f8e4a5e6e5a715aa5ba7b3fbf50
+Expected head: 58b68a060de341b9b34727ae17325ba5abaa07b4
+
+
+Разрешённый production scope — ровно пять файлов:
+index.html
+ru/index.html
+_includes/homepage-v2-en.html
+_includes/homepage-v2-ru.html
+assets/css/homepage-v2.css
+
+
+Статусы проверки:
+NOT RUN — проверка подготовлена, но фактически не запускалась.
+PASS — критерий проверен на фактическом коде, generated output или в браузере и выполнен.
+FAIL — найден воспроизводимый реальный дефект.
+BLOCKED — проверку невозможно честно выполнить без GitHub, Jekyll build, браузера, сети или реального устройства.
+N/A — критерий неприменим; требуется короткое обоснование.
+
+
+Правило фиксации: в correction log заносятся только воспроизводимые дефекты. Предположения, вкусовые пожелания и новые идеи редизайна дефектами не считаются.
+
+
+10. Full Production Review Checklist
+
+
+10.1 Gate, provenance и scope
+
+
+☐ Проверить, что branch ref agent/homepage-v2-concept-a-build существует.
+☐ Проверить точное совпадение branch head с 58b68a060de341b9b34727ae17325ba5abaa07b4 либо документировать drift до начала review.
+☐ Проверить, что merge base соответствует production base 7bcc09ae28388f8e4a5e6e5a715aa5ba7b3fbf50.
+☐ Получить фактический diff base...head.
+☐ Подтвердить, что diff содержит ровно пять разрешённых файлов.
+☐ Подтвердить отсутствие изменений Contact, Header, Footer, shared systems, JavaScript, изображений, assets, case studies, service pages, Insights, sitemap, workflows и deployment.
+☐ Подтвердить отсутствие production PR, merge и deployment.
+☐ Зафиксировать blobs всех пяти файлов на момент review.
+
+
+10.2 Jekyll / GitHub Pages architecture и build
+
+
+☐ Запустить production-equivalent Jekyll build с актуальными зависимостями репозитория.
+☐ Build завершается с exit code 0.
+☐ Нет Liquid syntax errors, missing include errors, invalid front matter или unresolved variables.
+☐ Generated output содержит /index.html и /ru/index.html.
+☐ EN wrapper использует прямой V2 source без capture / replace / replace_first / split snapshot-схемы.
+☐ RU wrapper использует прямой V2 source без capture / replace / replace_first / split snapshot-схемы.
+☐ Оба wrapper подключают соответствующий localized Homepage V2 include.
+☐ Оба wrapper подключают assets/css/homepage-v2.css с одинаковой cache-busting версией.
+☐ Старые snapshot includes не изменены и остаются доступным rollback source.
+☐ Homepage-specific JavaScript не добавлен и legacy Homepage JavaScript не загружается новой страницей.
+☐ Generated HTML не содержит Liquid-тегов, незаменённых include-маркеров или дублированных document shells.
+☐ В generated HTML ровно один doctype, один html, один head, один body и один main на страницу.
+
+
+10.3 Routes, metadata и document shell
+
+
+☐ EN route остаётся /.
+☐ RU route остаётся /ru/.
+☐ EN html lang равен en.
+☐ RU html lang равен ru.
+☐ EN canonical равен https://proai-expert.com/.
+☐ RU canonical равен https://proai-expert.com/ru/.
+☐ На обеих страницах присутствуют reciprocal hreflang en и ru.
+☐ На обеих страницах x-default указывает на https://proai-expert.com/.
+☐ Canonical, hreflang и x-default не дублируются и не конфликтуют.
+☐ OG URL, locale, title, description и image соответствуют локали.
+☐ Twitter metadata присутствует и локализована.
+☐ Favicon и apple-touch-icon ссылки сохранены.
+☐ Не создано новых маршрутов и не требуется изменение sitemap.
+☐ Skip link ведёт на #main-content.
+☐ main имеет id=main-content и корректный focus target.
+
+
+10.4 Shared Header и Footer
+
+
+☐ Используется существующий shared Header include, а не локальная копия.
+☐ EN Header получает lang=en, current_page=home и locale_url=/ru/.
+☐ RU Header получает lang=ru, current_page=home и locale_url=/.
+☐ Header navigation routes сохранены.
+☐ Language switch ведёт между / и /ru/.
+☐ Header CTA не изменён вне принятого shared contract.
+☐ Mobile menu открывается и закрывается существующим header-system-v1.js.
+☐ Escape закрывает menu и возвращает focus.
+☐ Outside click и переход по nav link закрывают menu.
+☐ Header не перекрывает Hero, skip link или первый focusable element.
+☐ Используется существующий shared commercial Footer include.
+☐ Footer находится после десятого Homepage-блока и вне hpv2 surface ownership.
+☐ Footer routes, locale switch, email, Telegram и social links не изменены.
+☐ Homepage CSS не переопределяет shared Header/Footer selectors.
+
+
+10.5 Десять блоков, порядок и Concept A surface ownership
+
+
+Обязательный DOM и reading order:
+1. Hero.
+2. Connected Business Journey.
+3. Two Core Directions.
+4. Financial Stream flagship proof.
+5. Ways to Start.
+6. Controlled Delivery.
+7. Founder accountability.
+8. Selected Work.
+9. Insights.
+10. Final Private Review.
+
+
+☐ Все десять блоков присутствуют ровно по одному разу.
+☐ Порядок одинаков для EN и RU.
+☐ Нет нового одиннадцатого top-level блока.
+☐ Canonical section IDs присутствуют и уникальны.
+☐ Legacy alias anchors не создают duplicate IDs, layout gaps или keyboard traps.
+☐ Surface ownership соответствует Concept A:
+Hero — #06080B.
+Connected Business Journey — #0E1319.
+Two Core Directions — #06080B.
+Financial Stream — #0E1319.
+Ways to Start — #06080B.
+Controlled Delivery — #0E1319.
+Founder accountability — #06080B.
+Selected Work — #0E1319.
+Insights — #06080B.
+Final Private Review — #0E1319.
+☐ Alternating rhythm видим на desktop и mobile.
+☐ Financial Stream визуально остаётся самым сильным proof-блоком.
+☐ Grid, cyan signal и Hero atmosphere поддерживают hierarchy, а не создают spectacle.
+☐ Нет generic SaaS pricing-card языка, consulting-template обезличенности, crypto/startup gradients или чрезмерного sci-fi.
+☐ Нет обязательного контента, скрытого до выполнения JavaScript.
+
+
+10.6 EN/RU content и RU Hero
+
+
+☐ EN и RU являются локализованными counterparts, а не механическим line-by-line переводом.
+☐ Полный RU Hero сохранён без сокращения ради layout.
+☐ RU H1 не обрезается, не выходит за контейнер и не имеет word-break внутри слов.
+☐ RU eyebrow, supporting copy, CTA labels и accountability line полностью видимы.
+☐ Кириллица корректно отображается выбранным font stack.
+☐ EN и RU имеют одинаковые content roles, proof classes, CTA destinations и block order.
+☐ Разница длины текста не ломает grid, cards, buttons или alignment.
+☐ Нет случайного EN текста в RU и RU текста в EN, кроме собственных имён, брендов и технических терминов.
+
+
+10.7 Financial Stream proof
+
+
+☐ Financial Stream обозначен как реальный live client project.
+☐ Proof hierarchy сильнее, чем у Alina Horb и Local Repair Pro.
+☐ Все заявленные screenshots и proof images загружаются.
+☐ Изображения не растянуты, не обрезают критическую информацию и имеют осмысленный alt.
+☐ Датированные evidence labels и ограничения читаемы.
+☐ Нет утверждений о гарантированных rankings, leads, conversions, revenue или ROI.
+☐ Case study link локализован.
+☐ Live-site link ведёт на https://financialstreamllc.com/.
+☐ External link имеет безопасный rel при target=_blank.
+☐ Proof statuses на mobile не меньше обязательных 12px.
+☐ Disclosure text на mobile не меньше 14px.
+
+
+10.8 Alina Horb и Local Repair Pro
+
+
+☐ Alina Horb имеет точный принятый project status.
+☐ Alina Horb не представлена как Financial Stream-equivalent proof, если evidence class отличается.
+☐ Local Repair Pro явно обозначен как concept / client-facing demonstration, а не live client result.
+☐ Disclosures видимы без hover, tooltip или JavaScript.
+☐ Status не передаётся только цветом.
+☐ Status на mobile не меньше 12px.
+☐ Disclosure text на mobile не меньше 14px.
+☐ Case links ведут на правильные локализованные routes.
+☐ Demo link Local Repair Pro ведёт на утверждённый demo route.
+☐ Нет придуманных metrics, testimonials или outcomes.
+
+
+10.9 Contact URL mappings
+
+
+Для каждой локали должно быть ровно пять Homepage-to-Contact URL.
+
+
+Hero:
+EN /contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake
+RU /ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake
+
+
+Ways to Start — Website & trust:
+EN /contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake
+RU /ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake
+
+
+Ways to Start — Inquiry handling:
+EN /contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake
+RU /ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake
+
+
+Ways to Start — Connected system:
+EN /contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake
+RU /ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake
+
+
+Final Private Review:
+EN /contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake
+RU /ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake
+
+
+☐ source_context не передаётся нигде.
+☐ Hero и Final не передают selected_direction.
+☐ Три Ways-to-Start CTA используют только websites_branding, ai_systems_automation и both.
+☐ intent всегда private_review.
+☐ source_page всегда homepage.
+☐ source_cta соответствует месту действия.
+☐ EN всегда использует /contact/.
+☐ RU всегда использует /ru/contact/.
+☐ Каждый URL заканчивается #project-intake.
+☐ После перехода Contact form получает ожидаемые значения и scroll target существует.
+☐ URL не содержит неподдерживаемых параметров или произвольного текста.
+
+
+10.10 Assets, links и runtime integrity
+
+
+☐ Все img src и srcset разрешаются из generated output.
+☐ Нет missing images, 404, mixed-content или blocked resource.
+☐ У каждого meaningful image есть корректный alt; decorative images имеют пустой alt или aria-hidden.
+☐ Width/height или aspect-ratio предотвращают заметный layout shift.
+☐ Все внутренние ссылки существуют и ведут на ожидаемые EN/RU routes.
+☐ Все external links имеют правильный protocol и безопасный rel при новом окне.
+☐ Нет ссылок на localhost, preview-only domains, старые branches или временные assets.
+☐ Browser console не содержит uncaught errors, failed module/script errors или повторяющихся warnings, вызванных Homepage V2.
+☐ Network panel не показывает неожиданные 404/500.
+☐ Нет duplicate IDs.
+☐ Нет invalid nested interactive controls.
+☐ Нет пустых href, javascript: URL или dead buttons.
+
+
+10.11 Responsive и horizontal overflow
+
+
+☐ На каждом обязательном viewport documentElement.scrollWidth не превышает clientWidth.
+☐ Нет обрезанных headings, buttons, status labels, disclosures, screenshots или Footer content.
+☐ Grid children имеют min-width: 0 там, где длинный контент может расширить container.
+☐ Long URL, label и Cyrillic text корректно wrap.
+☐ Нет фиксированной ширины, ломающей 390 или 320.
+☐ Media не выходит за container.
+☐ 844×390 не создаёт vertical trap, перекрытие Header или недоступное mobile menu.
+☐ Section spacing остаётся различимым, но не создаёт чрезмерно длинные пустые области.
+☐ Tap targets не перекрываются.
+☐ Orientation change не оставляет menu или layout в некорректном состоянии.
+
+
+10.12 Accessibility
+
+
+☐ Keyboard order соответствует DOM и visual order.
+☐ Каждый интерактивный элемент достижим клавиатурой.
+☐ Focus-visible всегда заметен.
+☐ Focus не обрезается overflow-контейнерами.
+☐ Focus outline соответствует принятой роли и не подменён structural #24313D.
+☐ Interactive boundary имеет минимум 3:1 non-text contrast относительно соседней поверхности.
+☐ Touch targets имеют минимум 44×44 CSS px либо эквивалентный доступный hit area.
+☐ Heading hierarchy логична: один H1, далее последовательные H2/H3 без использования heading только ради размера.
+☐ Landmarks main, header, nav и footer не дублируются некорректно.
+☐ Links имеют понятный accessible name.
+☐ Status и disclosure не зависят только от цвета.
+☐ При prefers-reduced-motion: reduce нет обязательной анимации, auto-scroll или transition, мешающей работе.
+☐ В forced-colors элементы, границы, focus, links и statuses остаются различимыми.
+☐ При 200% zoom контент остаётся доступным без потери функций.
+☐ Skip link видим при focus и переводит focus к main.
+
+
+10.13 EN/RU parity
+
+
+☐ В обеих локалях одинаковое количество top-level блоков.
+☐ В обеих локалях одинаковое количество Homepage-to-Contact CTA.
+☐ В обеих локалях одинаковые proof projects и evidence classes.
+☐ Все case, service, Insights и About routes локализованы.
+☐ Canonical и hreflang reciprocal.
+☐ Header и Footer locale switch reciprocal.
+☐ Изображения, statuses, disclosures и action roles совпадают по назначению.
+☐ Ни одна локаль не имеет скрытого или отсутствующего обязательного блока.
+☐ Различия в copy являются осознанной локализацией, а не потерей смысла.
+
+
+10.14 Rollback и release gate
+
+
+☐ До исправлений зафиксированы base, head и blobs пяти файлов.
+☐ Каждая correction ограничена реальным defect entry.
+☐ Correction-pass не расширяет scope без отдельной технической остановки и разрешения.
+☐ После каждой correction повторяются затронутые проверки и smoke test обеих локалей.
+☐ Старые snapshot includes не удаляются в первом production cycle.
+☐ Независимый Reviewer выдаёт ACCEPT, TARGETED CORRECTION или REJECT по фактическому diff и QA evidence.
+☐ Owner visual review выполнен после технического ACCEPT.
+☐ PR не создаётся до отдельного разрешения.
+☐ Merge и deployment не выполняются до отдельного разрешения.
+☐ После deployment требуется production smoke test /, /ru/, Header, Footer, Contact CTA, images и console.
+
+
+11. Browser QA Matrix
+
+
+Общий протокол для каждой строки:
+— открыть страницу с clean reload;
+— зафиксировать browser, OS/device, viewport и commit/head;
+— проверить first paint, Header, все десять блоков, Footer;
+— проверить horizontal overflow;
+— пройти все interactive элементы клавиатурой;
+— открыть каждый Homepage-to-Contact CTA;
+— проверить console и failed network requests;
+— зафиксировать только реальные дефекты в correction log;
+— сохранить screenshot full page и screenshots дефектов после появления доступа к браузеру.
+
+
+QA-01 — EN / — 1440 px desktop
+Размер: 1440×не менее 900.
+Основной фокус: full-page hierarchy, max-width, surface rhythm, Financial Stream dominance, proof image quality, Header/Footer integration.
+Дополнительно: hover/focus states, long-line measure, canonical metadata в generated DOM.
+Статус: NOT RUN.
+
+
+QA-02 — RU /ru/ — 1440 px desktop
+Размер: 1440×не менее 900.
+Основной фокус: полный RU Hero, Cyrillic wrapping, длинные statuses/disclosures, EN/RU visual parity.
+Дополнительно: localized routes, RU Contact mappings, language switch.
+Статус: NOT RUN.
+
+
+QA-03 — EN / — 390 px mobile portrait
+Размер: 390×844.
+Основной фокус: mobile recomposition, 12px proof statuses, 14px disclosures, 44px touch targets, screenshots, CTA stacking.
+Дополнительно: menu, skip link, focus visibility, no horizontal overflow.
+Статус: NOT RUN.
+
+
+QA-04 — RU /ru/ — 390 px mobile portrait
+Размер: 390×844.
+Основной фокус: полный RU Hero без сокращения и clipping, long Cyrillic wrapping, mobile statuses/disclosures.
+Дополнительно: RU menu, locale switch, RU Contact mappings, EN/RU role parity.
+Статус: NOT RUN.
+
+
+QA-05 — EN / — 320 px mobile portrait
+Размер: 320×568 или выше.
+Основной фокус: minimum-width resilience, H1 wrapping, buttons, status labels, disclosure readability, no overflow.
+Дополнительно: images and grids shrink correctly; no text smaller than accepted minima.
+Статус: NOT RUN.
+
+
+QA-06 — RU /ru/ — 320 px mobile portrait
+Размер: 320×568 или выше.
+Основной фокус: наиболее длинный Cyrillic content, RU Hero, project statuses, Contact CTA labels.
+Дополнительно: no word clipping, no forced tiny text, no inaccessible horizontal scroll.
+Статус: NOT RUN.
+
+
+QA-07 — EN / — 844×390 short landscape
+Размер: 844×390.
+Основной фокус: Header/menu in low height, viewport-safe spacing, no clipped navigation, no vertical interaction trap.
+Дополнительно: focus traversal, CTA visibility, content remains readable without height-based hiding.
+Статус: NOT RUN.
+
+
+QA-08 — RU /ru/ — 844×390 short landscape
+Размер: 844×390.
+Основной фокус: RU mobile menu and labels at low height, Cyrillic navigation wrapping, Hero start position.
+Дополнительно: no overlap, no inaccessible menu items, RU Contact links remain correct.
+Статус: NOT RUN.
+
+
+Browser coverage при наличии доступа:
+— Chromium desktop для базового technical review.
+— Safari iOS или реальный iPhone для owner-device verification.
+— При наличии времени второй desktop engine для smoke comparison.
+Отсутствие конкретного browser run должно быть отмечено как NOT RUN или BLOCKED, а не PASS.
+
+
+12. Dedicated Verification List
+
+
+12.1 Jekyll/GitHub Pages build
+☐ Dependency install или bundle state зафиксирован.
+☐ Build command и exit code сохранены.
+☐ Warnings отделены от errors.
+☐ Generated EN/RU HTML просмотрен.
+☐ Build output не изменяет routes.
+☐ GitHub Pages-compatible features only.
+
+
+12.2 Canonical, hreflang и x-default
+☐ Один canonical на страницу.
+☐ EN canonical /.
+☐ RU canonical /ru/.
+☐ Reciprocal en/ru alternates.
+☐ x-default /.
+☐ Абсолютные production URLs.
+☐ Нет staging или branch URLs.
+
+
+12.3 Header и Footer
+☐ Shared includes.
+☐ No local duplication.
+☐ Correct locale switch.
+☐ Correct active Home state.
+☐ Menu keyboard behavior.
+☐ Footer after block 10.
+☐ Homepage CSS isolation.
+
+
+12.4 Десять блоков и порядок
+☐ Count = 10.
+☐ Exact order.
+☐ Exact IDs.
+☐ Exact surfaces.
+☐ No inserted/merged/deleted block.
+
+
+12.5 RU Hero
+☐ Full accepted copy.
+☐ No clipping.
+☐ Natural wrapping at 1440, 390, 320, 844×390.
+☐ CTA and accountability visible.
+☐ No font fallback defects.
+
+
+12.6 Financial Stream proof
+☐ Real-client status.
+☐ Primary proof hierarchy.
+☐ Images load.
+☐ Claims remain bounded.
+☐ Links correct.
+☐ Status/disclosure sizes pass.
+
+
+12.7 Alina Horb и Local Repair Pro disclosures
+☐ Exact statuses.
+☐ Visible disclosures.
+☐ No color-only meaning.
+☐ Mobile size minima.
+☐ Correct case/demo links.
+☐ No invented outcomes.
+
+
+12.8 Contact URL mappings
+☐ Five per locale.
+☐ No source_context.
+☐ No selected_direction in Hero/Final.
+☐ Exact three Ways values.
+☐ Correct locale routes.
+☐ #project-intake on all.
+☐ Form receives expected values.
+
+
+12.9 Horizontal overflow
+☐ scrollWidth <= clientWidth for all eight matrix rows.
+☐ No off-screen focus target.
+☐ No clipped media/text/control.
+
+
+12.10 Keyboard navigation
+☐ Skip link.
+☐ Header menu.
+☐ Logical focus order.
+☐ Visible focus.
+☐ No traps.
+☐ Escape behavior.
+☐ Contact CTA destinations.
+
+
+12.11 Touch targets
+☐ Minimum 44×44.
+☐ No overlapping hit areas.
+☐ Adequate spacing at 320/390.
+☐ Menu and locale controls usable.
+
+
+12.12 Reduced motion
+☐ Static content complete.
+☐ No required reveal animation.
+☐ No auto movement.
+☐ CSS honors reduce preference.
+
+
+12.13 Forced colors
+☐ Text visible.
+☐ Links distinguishable.
+☐ Controls retain boundary.
+☐ Focus visible.
+☐ Status/disclosure grouping preserved.
+
+
+12.14 Console errors
+☐ No uncaught errors.
+☐ No legacy Homepage script errors.
+☐ No missing selector loops.
+☐ No failed resources attributable to V2.
+
+
+12.15 Broken links
+☐ Internal routes 200/generated.
+☐ Localized routes correct.
+☐ External targets resolve.
+☐ Anchor targets exist.
+
+
+12.16 Missing images
+☐ Every src resolves.
+☐ Correct dimensions/aspect.
+☐ Alt semantics.
+☐ No case-sensitive path failure.
+
+
+12.17 EN/RU parity
+☐ Same roles and block count.
+☐ Same proof taxonomy.
+☐ Same CTA contract.
+☐ Reciprocal metadata/routes.
+☐ No localized omission.
+
+
+13. Correction Log Template
+
+
+Использовать один entry на один воспроизводимый дефект.
+
+
+Defect ID: HPV2-___
+Page: EN / или RU /ru/
+Viewport: 1440 desktop / 390 portrait / 320 portrait / 844×390 landscape / build / generated output
+Browser / environment:
+Reviewed commit/head:
+Block:
+Selector or element:
+Defect description:
+Reproduction steps:
+Expected behavior:
+Actual behavior:
+Severity:
+Exact acceptance criterion:
+Evidence: screenshot / console message / generated HTML excerpt / build log
+Allowed file among five:
+Status:
+Fix commit:
+Recheck result:
+Reviewer:
+
+
+Severity:
+P0 — build failure, broken primary route, page unusable, severe data/contract failure.
+P1 — primary CTA, navigation, proof truthfulness, major accessibility или major layout failure.
+P2 — локальный responsive, visual, link, image или accessibility defect с рабочим обходным путём.
+P3 — minor polish defect без потери содержания, функции или доступности.
+
+
+Status:
+OPEN.
+FIXED — NEEDS RECHECK.
+VERIFIED.
+BLOCKED.
+DEFERRED — только с явным owner decision.
+NOT A DEFECT.
+
+
+Требования к acceptance criterion:
+— описывает наблюдаемый результат, а не способ реализации;
+— содержит точный viewport/locale;
+— не расширяет принятый Concept A или пятифайловый scope;
+— позволяет независимому Reviewer однозначно поставить PASS или FAIL.
+
+
+14. Что невозможно честно завершить на временном Drive-этапе
+
+
+BLOCKED без GitHub ProAI Expert:
+— подтверждение существования production branch;
+— подтверждение фактического branch head и отсутствия drift;
+— получение и проверка реального base...head diff;
+— проверка, что изменены ровно пять файлов;
+— подтверждение текущих blobs и commit history;
+— независимый code review фактического production source;
+— создание correction commits.
+
+
+BLOCKED без Jekyll/GitHub Pages build environment:
+— exit code и build logs;
+— Liquid/include/front-matter validation;
+— проверка generated /index.html и /ru/index.html;
+— подтверждение итоговых canonical/hreflang tags в generated output;
+— проверка generated internal routes и assets;
+— подтверждение отсутствия unresolved Liquid.
+
+
+BLOCKED без browser access:
+— реальный render всех восьми matrix rows;
+— screenshots;
+— horizontal overflow measurement;
+— computed styles, actual font fallback и line wrapping;
+— keyboard traversal и focus clipping;
+— Header mobile menu runtime;
+— touch-target measurement;
+— reduced-motion behavior;
+— forced-colors behavior;
+— console и network errors;
+— фактические broken links и missing images;
+— visual dominance Financial Stream;
+— owner visual review.
+
+
+BLOCKED без network/deployed or local served output:
+— HTTP status внутренних и внешних ссылок;
+— загрузка изображений и внешних ресурсов;
+— Contact form runtime prefill/scroll behavior;
+— production smoke test после deployment.
+
+
+На Drive-этапе честно завершены только:
+— фиксация переданной production-точки;
+— подготовка review checklist;
+— подготовка browser QA matrix;
+— подготовка dedicated verification list;
+— подготовка correction log template;
+— фиксация блокеров и запрещённых утверждений.
+
+
+15. Immediate Resume Protocol
+
+
+После возврата GitHub ProAI Expert:
+
+
+1. Fetch current main и production branch.
+2. Сравнить branch ref с expected head 58b68a060de341b9b34727ae17325ba5abaa07b4.
+3. При drift остановиться и документировать отличие до продолжения.
+4. Проверить base...head diff и пятифайловый scope.
+5. Запустить Jekyll build.
+6. Проверить generated EN/RU output и metadata.
+7. Выполнить независимый production review.
+8. Запустить восемь browser QA matrix rows.
+9. Заполнять correction log только реальными дефектами.
+10. Исправлять только разрешённые пять файлов.
+11. Повторно проверить затронутые criteria и обе локали.
+12. Получить независимый verdict.
+13. Провести owner visual review.
+14. Не создавать PR, merge или deployment без отдельного разрешения владельца.
+
+
+16. Financial Stream Showcase Upgrade Backlog
+Статус: RECORDED — DEFERRED UNTIL HOMEPAGE V2 TECHNICAL ACCEPT.
+
+
+Цель: после стабилизации Homepage V2 усилить ProAI Expert case/showcase Financial Stream так, чтобы он демонстрировал не только визуальный сайт, а полноценную бизнес-систему: trust architecture, SEO/AI-ready foundation, content authority и ongoing improvement.
+
+
+16.1 About / authority proof
+— Зафиксировать обновлённую сильную About-страницу Financial Stream как новый proof asset.
+— Рассмотреть отдельный screenshot или компактный editorial proof-блок из About вместо очередной обычной карточки.
+— Показывать не просто дизайн страницы, а усиление доверия: личная ответственность владельца, профессиональная подача, experience proof, ясные границы и structured client path.
+— Не добавлять claims, которых нельзя подтвердить фактическим live content или source evidence.
+
+
+16.2 SEO / AI-ready proof block
+— Текущий SEO-related блок на ProAI Financial Stream case нужно сделать заметнее: больше визуальный вес, крупнее copy, яснее объяснение выполненной работы.
+— Добавить релевантное proof image / screenshot рядом с SEO evidence, если доступен подтверждённый визуальный источник.
+— Формулировка должна объяснять, что было сделано: crawlable structure, metadata, internal linking, sitemap/indexability, content architecture, Search/AI-readiness и другие реально выполненные элементы.
+— Не заявлять рост rankings, traffic, leads или ROI без подтверждённых данных Search Console / analytics.
+
+
+16.3 Expert content / knowledge hub proof
+— Financial Stream теперь следует показывать как развивающийся knowledge hub, а не статический корпоративный сайт.
+— Добавить визуальный proof материалов: screenshot blog/materials index + 1–2 representative long-form article previews.
+— Зафиксировать как сильную capability ProAI: тематические кластеры, practical guides/checklists, internal linking, localized EN/RU content и регулярное обновление материалов.
+— User update: опубликованы ещё две новые экспертные long-form статьи примерно по 23–24 минуты чтения; exact titles/URLs нужно подтвердить при следующем source pull, прежде чем вставлять в production copy.
+— User update: материалы планируется регулярно обновлять каждый месяц. В ProAI case это можно позиционировать как ongoing content system, который поддерживает topical depth, freshness и search/AI discoverability, но без неподтверждённых обещаний конкретного SEO результата.
+
+
+16.4 Financial Stream showcase hierarchy
+Рекомендуемый порядок proof внутри будущего case refresh:
+1. Live bilingual client website / core system.
+2. Strong About / authority layer.
+3. SEO + AI-ready implementation evidence.
+4. Knowledge hub + expert content engine.
+5. Structured inquiry / contact flow.
+6. Ongoing evolution / maintenance evidence.
+
+
+16.5 Homepage boundary
+Не расширять текущие десять Homepage V2 blocks и пятифайловый production scope ради этого backlog до технического ACCEPT Homepage V2. На Homepage Financial Stream остаётся flagship proof; глубокие новые доказательства преимущественно идут в dedicated Financial Stream case page. После owner visual review можно решить, какой один новый proof fragment достоин компактного появления на Homepage.
+
+
+17. Current Priority and Resume Plan
+P0 — закончить Homepage V2.
+1. Проверить актуальный GitHub main, production branch и отсутствие drift.
+2. Подтвердить пятифайловый diff.
+3. Выполнить Jekyll/GitHub Pages build и generated EN/RU validation.
+4. Выполнить production review и browser QA matrix.
+5. Исправить только реальные дефекты в разрешённых пяти файлах.
+6. Получить technical ACCEPT.
+7. Провести owner visual review и довести visual polish.
+8. После Homepage V2 — выполнить Financial Stream showcase refresh из Section 16 отдельной задачей/веткой.
+9. Затем широкий whole-site audit, PR/merge/deploy только после отдельного owner approval.
+
+
+GitHub sync note: этот Section 16–17 добавлен в Google Drive handoff как source-of-truth fallback. При восстановлении GitHub write-доступа перенести Temporary Production Review Pack (Sections 9–15) и Showcase Upgrade Backlog/Resume Plan (Sections 16–17) в отдельный docs-only GitHub artifact/branch, не добавляя документационные файлы в пятифайловый Homepage production diff.
+
+
+
+
+18. New Chat Transfer
+Статус: READY FOR HANDOFF.
+Новый execution chat должен начинать работу с короткого Master Handoff и при необходимости обращаться к этому документу за полной историей, QA matrix и backlog.
+Master Handoff:
+https://docs.google.com/document/d/1eGjOEdD1-t65c_GK4PP-6RawsPMRXafXINr6z2d9BOk/edit
+Правило: Master Handoff задаёт текущую operational точку; этот полный документ остаётся deep source of truth для истории решений, accepted gates, QA criteria, correction log и Financial Stream showcase backlog.

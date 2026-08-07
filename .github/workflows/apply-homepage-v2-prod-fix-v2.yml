@@ -1,0 +1,64 @@
+name: Apply Homepage V2 Production Correction V2
+
+on:
+  push:
+    branches:
+      - qa/homepage-v2-technical-2026-08-07
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'RUN PROD CSS FIX HPV2-001'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/homepage-v2-concept-a-build
+          fetch-depth: 0
+      - shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '58b68a060de341b9b34727ae17325ba5abaa07b4'
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('assets/css/homepage-v2.css')
+          s=p.read_text(encoding='utf-8')
+          a='''.hpv2-proof-copy h2 {
+  font-size: clamp(40px, 4.5vw, 66px);
+}'''
+          b='''.hpv2-proof-copy {
+  min-width: 0;
+}
+
+.hpv2-proof-copy h2 {
+  font-size: clamp(40px, 4.5vw, 66px);
+}'''
+          assert s.count(a)==1
+          s=s.replace(a,b,1)
+          a='''  .lang-ru .hpv2-hero h1 {
+    max-width: none;
+    font-size: clamp(38px, 11.6vw, 55px);
+    line-height: 1;
+  }'''
+          b='''  .lang-ru .hpv2-hero h1 {
+    max-width: none;
+    font-size: clamp(38px, 11.6vw, 55px);
+    line-height: 1;
+  }
+
+  .lang-ru .hpv2-proof-copy h2 {
+    font-size: clamp(32px, 9.75vw, 38px);
+  }'''
+          assert s.count(a)==1
+          s=s.replace(a,b,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          git diff --check
+          test "$(git diff --name-only)" = 'assets/css/homepage-v2.css'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/css/homepage-v2.css
+          git commit -m 'Fix Russian Homepage V2 proof clipping on mobile'
+          git push origin HEAD:agent/homepage-v2-concept-a-build

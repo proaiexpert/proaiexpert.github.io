@@ -1,0 +1,237 @@
+name: Homepage V2 R2 Simple QA
+
+on:
+  push:
+    branches:
+      - qa/homepage-v2-technical-2026-08-07
+    paths:
+      - qa-r2-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Apply candidate correction in runner only
+        id: patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('assets/css/homepage-v2.css')
+          s=p.read_text(encoding='utf-8')
+          a='''.hpv2-proof-copy h2 {
+  font-size: clamp(40px, 4.5vw, 66px);
+}'''
+          b='''.hpv2-proof-copy {
+  min-width: 0;
+}
+
+.hpv2-proof-copy h2 {
+  font-size: clamp(40px, 4.5vw, 66px);
+}'''
+          assert s.count(a)==1
+          s=s.replace(a,b,1)
+          a='''  .lang-ru .hpv2-hero h1 {
+    max-width: none;
+    font-size: clamp(38px, 11.6vw, 55px);
+    line-height: 1;
+  }'''
+          b='''  .lang-ru .hpv2-hero h1 {
+    max-width: none;
+    font-size: clamp(38px, 11.6vw, 55px);
+    line-height: 1;
+  }
+
+  .lang-ru .hpv2-proof-copy h2 {
+    font-size: clamp(32px, 9.75vw, 38px);
+  }'''
+          assert s.count(a)==1
+          s=s.replace(a,b,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          git diff --check
+          git diff -- assets/css/homepage-v2.css | tee /tmp/candidate.diff
+
+      - name: Build exactly like production
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p qa-output-r2
+          set -o pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          { gem install --user-install jekyll -v 4.3.4 --no-document; gem install --user-install webrick --no-document; jekyll build --source . --destination _site; } 2>&1 | tee qa-output-r2/jekyll.log
+
+      - name: Generated HTML validation
+        id: generated
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          python3 - <<'PY' 2>&1 | tee qa-output-r2/generated.log
+          from pathlib import Path
+          from collections import Counter
+          import html,re,sys
+          errors=[]
+          expected=['hero','connected-journey','directions','financial-stream','ways-to-start','delivery','founder','selected-work','insights','private-review']
+          configs={
+            'en':(Path('_site/index.html'),'en','https://proai-expert.com/','en_US','/contact/'),
+            'ru':(Path('_site/ru/index.html'),'ru','https://proai-expert.com/ru/','ru_RU','/ru/contact/')}
+          def check(v,m):
+            if not v: errors.append(m)
+          def tags(t,n): return re.findall(rf'<{n}\b[^>]*>',t,re.I)
+          def attr(t,n):
+            m=re.search(rf'\b{n}=["\']([^"\']*)["\']',t,re.I); return html.unescape(m.group(1)) if m else None
+          for loc,(path,lang,canonical,og,contact_prefix) in configs.items():
+            check(path.exists(),f'{loc}: output missing')
+            if not path.exists(): continue
+            text=path.read_text(encoding='utf-8')
+            check('{%' not in text and '{{' not in text,f'{loc}: unresolved Liquid')
+            check(len(re.findall(r'<!doctype\s+html',text,re.I))==1,f'{loc}: doctype')
+            for n in ['html','head','body','main']: check(len(re.findall(rf'<{n}\b',text,re.I))==1,f'{loc}: {n} count')
+            ht=tags(text,'html'); check(ht and attr(ht[0],'lang')==lang,f'{loc}: lang')
+            links=tags(text,'link')
+            check([attr(x,'href') for x in links if attr(x,'rel')=='canonical']==[canonical],f'{loc}: canonical')
+            alt={(attr(x,'hreflang'),attr(x,'href')) for x in links if attr(x,'rel')=='alternate'}
+            check(alt=={('en','https://proai-expert.com/'),('ru','https://proai-expert.com/ru/'),('x-default','https://proai-expert.com/')},f'{loc}: hreflang')
+            metas=tags(text,'meta'); check([attr(x,'content') for x in metas if attr(x,'property')=='og:locale']==[og],f'{loc}: og locale')
+            ids=re.findall(r'\bid=["\']([^"\']+)["\']',text,re.I); check(not [x for x,c in Counter(ids).items() if c>1],f'{loc}: duplicate ids')
+            sec=[]
+            for x in tags(text,'section'):
+              if 'hpv2-section' in (attr(x,'class') or '').split(): sec.append(attr(x,'id'))
+            check(sec==expected,f'{loc}: section order {sec}')
+            hrefs=[attr(x,'href') for x in tags(text,'a') if attr(x,'href')]
+            contacts=[x for x in hrefs if x.startswith(contact_prefix+'?')]
+            check(len(contacts)==5,f'{loc}: contact count {len(contacts)}')
+            check(all(x.endswith('#project-intake') for x in contacts),f'{loc}: contact anchors')
+            check('source_context=' not in text,f'{loc}: source_context')
+            check(re.findall(r'selected_direction=([^&#"\']+)',html.unescape(text))==['websites_branding','ai_systems_automation','both'],f'{loc}: directions')
+            assets=set()
+            for tn,an in [('img','src'),('source','srcset'),('script','src'),('link','href')]:
+              for x in tags(text,tn):
+                v=attr(x,an)
+                if not v: continue
+                for c in v.split(','):
+                  u=c.strip().split()[0]
+                  if u.startswith('/') and re.search(r'\.(?:css|js|png|jpe?g|webp|svg|ico|woff2?)(?:\?|$)',u,re.I): assets.add(u.split('?',1)[0])
+            missing=[u for u in assets if not Path('_site'+u).is_file()]
+            check(not missing,f'{loc}: assets {sorted(missing)}')
+          if errors:
+            print('FAIL'); [print(' -',x) for x in errors]; sys.exit(1)
+          print('PASS: generated EN/RU contracts and local assets')
+          PY
+
+      - name: Install browser
+        id: install
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.62.0
+          npx playwright install --with-deps chromium
+
+      - name: Start local output
+        id: server
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          nohup python3 -m http.server 4173 --directory _site > qa-output-r2/server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+
+      - name: Browser QA matrix
+        id: browser
+        if: steps.server.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          cat > /tmp/qa.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'fs';
+          const matrix=[['EN-1440','/',1440,900],['RU-1440','/ru/',1440,900],['EN-390','/',390,844],['RU-390','/ru/',390,844],['EN-320','/',320,568],['RU-320','/ru/',320,568],['EN-844x390','/',844,390],['RU-844x390','/ru/',844,390]];
+          const expected=['hero','connected-journey','directions','financial-stream','ways-to-start','delivery','founder','selected-work','insights','private-review'];
+          const browser=await chromium.launch();
+          const all=[]; let fatal=false;
+          for(const [name,path,width,height] of matrix){
+            const context=await browser.newContext({viewport:{width,height}}); const page=await context.newPage();
+            const consoleErrors=[],pageErrors=[],failed=[];
+            page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())}); page.on('pageerror',e=>pageErrors.push(String(e))); page.on('requestfailed',r=>failed.push(`${r.method()} ${r.url()} :: ${r.failure()?.errorText||'failed'}`));
+            const resp=await page.goto(`http://127.0.0.1:4173${path}`,{waitUntil:'networkidle'});
+            await page.locator('img').evaluateAll(imgs=>imgs.forEach(i=>i.loading='eager'));
+            await page.evaluate(async()=>{for(let y=0;y<document.documentElement.scrollHeight;y+=Math.max(260,innerHeight*.65)){scrollTo(0,y);await new Promise(r=>setTimeout(r,55));} await Promise.all([...document.images].map(i=>i.decode().catch(()=>{}))); scrollTo(0,0)});
+            await page.waitForTimeout(300);
+            const state=await page.evaluate(()=>{const vis=e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0}; const over=[...document.querySelectorAll('body *')].filter(vis).map(e=>{const r=e.getBoundingClientRect();return {e,l:r.left,r:r.right,w:r.width}}).filter(x=>x.l<-1||x.r>innerWidth+1).map(x=>({tag:x.e.tagName,id:x.e.id||'',cls:typeof x.e.className==='string'?x.e.className.slice(0,100):'',left:+x.l.toFixed(1),right:+x.r.toFixed(1),width:+x.w.toFixed(1)})); const broken=[...document.images].filter(i=>!i.complete||!i.naturalWidth).map(i=>i.getAttribute('src')); const sections=[...document.querySelectorAll('main.hpv2 > section.hpv2-section')].map(x=>x.id); return {sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,over,broken,sections}});
+            let touch=[]; let menu='n/a'; let skip='unknown';
+            if(width<=844){
+              touch=await page.evaluate(()=>{const vis=e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0};return [...document.querySelectorAll('a[href],button')].filter(vis).filter(e=>!e.classList.contains('skip-link')).map(e=>{const r=e.getBoundingClientRect();return {text:(e.innerText||e.getAttribute('aria-label')||'').trim().slice(0,60),w:+r.width.toFixed(1),h:+r.height.toFixed(1),cls:e.className||''}}).filter(x=>x.w<44||x.h<44)});
+              try{const t=page.locator('.site-header__menu-toggle');await t.click();const a=await t.getAttribute('aria-expanded');await page.keyboard.press('Escape');const b=await t.getAttribute('aria-expanded');const f=await t.evaluate(e=>document.activeElement===e);await t.click();await page.locator('main').click({position:{x:4,y:4}});const c=await t.getAttribute('aria-expanded');menu=(a==='true'&&b==='false'&&f&&c==='false')?'pass':'fail';}catch(e){menu='fail:'+e.message}
+            }
+            try{await page.evaluate(()=>scrollTo(0,0));await page.locator('body').press('Tab');const s=page.locator('.skip-link');const focused=await s.evaluate(e=>document.activeElement===e);const box=await s.boundingBox();if(focused)await page.keyboard.press('Enter');const mainFocused=await page.locator('#main-content').evaluate(e=>document.activeElement===e);skip=(focused&&box&&box.y>=0&&mainFocused)?'pass':'fail';}catch(e){skip='fail:'+e.message}
+            await page.screenshot({path:`qa-output-r2/${name}.png`,fullPage:true});
+            const issues=[]; if(!resp?.ok())issues.push('http'); if(JSON.stringify(state.sections)!==JSON.stringify(expected))issues.push('sections'); if(state.sw>state.cw)issues.push(`scrollWidth ${state.sw}>${state.cw}`); if(state.over.length)issues.push(`overflow ${JSON.stringify(state.over)}`); if(state.broken.length)issues.push(`broken ${JSON.stringify(state.broken)}`); if(touch.length)issues.push(`touch ${JSON.stringify(touch)}`); if(menu==='fail'||menu.startsWith('fail:'))issues.push(`menu ${menu}`); if(skip!=='pass')issues.push(`skip ${skip}`); if(consoleErrors.length)issues.push(`console ${JSON.stringify(consoleErrors)}`); if(pageErrors.length)issues.push(`pageErrors ${JSON.stringify(pageErrors)}`); if(failed.length)issues.push(`failedRequests ${JSON.stringify(failed)}`);
+            if(issues.length)fatal=true; all.push({name,issues,state:{scrollWidth:state.sw,clientWidth:state.cw,overflow:state.over,broken:state.broken},touch,menu,skip}); await context.close();
+          }
+          for(const mode of [{name:'reduced-motion',opts:{viewport:{width:390,height:844},reducedMotion:'reduce'}},{name:'forced-colors',opts:{viewport:{width:390,height:844},forcedColors:'active'}}]){const c=await browser.newContext(mode.opts);const p=await c.newPage();await p.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});if(mode.name==='reduced-motion'){const v=await p.evaluate(()=>({scroll:getComputedStyle(document.documentElement).scrollBehavior,transition:getComputedStyle(document.querySelector('.hpv2-button')).transitionDuration,cube:getComputedStyle(document.querySelector('.site-header__cube')).animationName}));const ok=v.scroll==='auto'&&v.transition.split(',').every(x=>parseFloat(x)===0)&&v.cube==='none';all.push({name:mode.name,issues:ok?[]:[JSON.stringify(v)]});fatal ||= !ok;}else{const v=await p.evaluate(()=>{const b=getComputedStyle(document.querySelector('.hpv2-button--primary')),s=getComputedStyle(document.querySelector('.hpv2-status'));return {bb:parseFloat(b.borderWidth),bs:b.borderStyle,sb:parseFloat(s.borderLeftWidth),ss:s.borderLeftStyle}});const ok=v.bb>0&&v.bs!=='none'&&v.sb>0&&v.ss!=='none';all.push({name:mode.name,issues:ok?[]:[JSON.stringify(v)]});fatal ||= !ok;}await c.close();}
+          await browser.close(); fs.writeFileSync('qa-output-r2/browser-results.json',JSON.stringify(all,null,2)); console.log(JSON.stringify(all,null,2)); process.exit(fatal?1:0);
+          JS
+          set -o pipefail
+          node /tmp/qa.mjs 2>&1 | tee qa-output-r2/browser.log
+
+      - name: Upload evidence
+        id: artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: homepage-v2-r2-simple-${{ github.sha }}
+          path: qa-output-r2/
+          retention-days: 14
+
+      - name: Record result
+        if: always()
+        shell: bash
+        env:
+          PATCH: ${{ steps.patch.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          GENERATED: ${{ steps.generated.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          SERVER: ${{ steps.server.outcome }}
+          BROWSER: ${{ steps.browser.outcome }}
+          ARTIFACT: ${{ steps.artifact.outputs.artifact-id }}
+        run: |
+          mkdir -p qa-results/homepage-v2
+          {
+            echo '# Homepage V2 focused R2 result'; echo
+            echo "Trigger commit: $GITHUB_SHA"
+            echo 'Production parent under test: 58b68a060de341b9b34727ae17325ba5abaa07b4'
+            echo 'Candidate patch: proof-copy min-width:0; RU proof H2 clamp(32px, 9.75vw, 38px) at <=640px'
+            echo "Patch: $PATCH"; echo "Build: $BUILD"; echo "Generated: ${GENERATED:-skipped}"; echo "Install: ${INSTALL:-skipped}"; echo "Server: ${SERVER:-skipped}"; echo "Browser: ${BROWSER:-skipped}"; echo "Artifact ID: ${ARTIFACT:-none}"; echo
+            echo '## Generated'; echo '```'; cat qa-output-r2/generated.log 2>/dev/null || true; echo '```'; echo
+            echo '## Browser'; echo '```json'; cat qa-output-r2/browser-results.json 2>/dev/null || true; echo '```'
+          } > qa-results/homepage-v2/r2-simple.md
+          git restore assets/css/homepage-v2.css
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add qa-results/homepage-v2/r2-simple.md
+          git commit -m 'Record focused Homepage V2 R2 QA' || exit 0
+          git push origin HEAD:qa/homepage-v2-technical-2026-08-07
+
+      - name: Gate
+        if: always()
+        shell: bash
+        env:
+          PATCH: ${{ steps.patch.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          GENERATED: ${{ steps.generated.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          SERVER: ${{ steps.server.outcome }}
+          BROWSER: ${{ steps.browser.outcome }}
+        run: |
+          for v in "$PATCH" "$BUILD" "$GENERATED" "$INSTALL" "$SERVER" "$BROWSER"; do [ "$v" = success ] || exit 1; done

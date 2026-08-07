@@ -1,0 +1,274 @@
+name: Homepage V2 exact 58b read-only QA
+
+on:
+  push:
+    branches:
+      - qa/homepage-v2-exact-58b-readonly-2026-08-07
+    paths-ignore:
+      - qa-results/homepage-v2-exact-58b/**
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout QA control branch
+        uses: actions/checkout@v6
+        with:
+          path: control
+
+      - name: Checkout exact production candidate
+        uses: actions/checkout@v6
+        with:
+          ref: 58b68a060de341b9b34727ae17325ba5abaa07b4
+          path: site
+
+      - name: Verify exact source provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd site
+          test "$(git rev-parse HEAD)" = '58b68a060de341b9b34727ae17325ba5abaa07b4'
+          git diff --exit-code
+          mkdir -p ../control/qa-output
+
+      - name: Production-equivalent Jekyll build
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          cd site
+          {
+            gem install --user-install jekyll -v 4.3.4 --no-document
+            gem install --user-install webrick --no-document
+            jekyll build --source . --destination _site
+          } 2>&1 | tee ../control/qa-output/jekyll.log
+
+      - name: Validate generated EN/RU output
+        id: generated
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          cd site
+          python3 - <<'PY' 2>&1 | tee ../control/qa-output/generated.log
+          from pathlib import Path
+          from collections import Counter
+          import html,re,sys
+          errors=[]
+          def check(v,m):
+              if not v: errors.append(m)
+          def tags(t,n): return re.findall(rf'<{n}\b[^>]*>',t,re.I)
+          def attr(t,n):
+              m=re.search(rf'\b{n}=["\']([^"\']*)["\']',t,re.I)
+              return html.unescape(m.group(1)) if m else None
+          sections=['hero','connected-journey','directions','financial-stream','ways-to-start','delivery','founder','selected-work','insights','private-review']
+          contacts={
+            'en':[
+              '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake',
+              '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake',
+              '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake',
+              '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake',
+              '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake'],
+            'ru':[
+              '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake',
+              '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake',
+              '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake',
+              '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake',
+              '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake']}
+          cfg={
+            'en':(Path('_site/index.html'),'en','https://proai-expert.com/','en_US'),
+            'ru':(Path('_site/ru/index.html'),'ru','https://proai-expert.com/ru/','ru_RU')}
+          remote_routes={'/handyman-vancouver-portland-demo/'}
+          for loc,(path,lang,canonical,ogloc) in cfg.items():
+              check(path.is_file(),f'{loc}: generated page missing')
+              if not path.is_file(): continue
+              t=path.read_text(encoding='utf-8')
+              check('{%' not in t and '{{' not in t,f'{loc}: unresolved Liquid')
+              check(len(re.findall(r'<!doctype\s+html',t,re.I))==1,f'{loc}: doctype count')
+              for n in ('html','head','body','main'): check(len(re.findall(rf'<{n}\b',t,re.I))==1,f'{loc}: {n} count')
+              hs=tags(t,'html'); check(hs and attr(hs[0],'lang')==lang,f'{loc}: html lang')
+              ls=tags(t,'link')
+              check([attr(x,'href') for x in ls if attr(x,'rel')=='canonical']==[canonical],f'{loc}: canonical')
+              check({(attr(x,'hreflang'),attr(x,'href')) for x in ls if attr(x,'rel')=='alternate'}=={('en','https://proai-expert.com/'),('ru','https://proai-expert.com/ru/'),('x-default','https://proai-expert.com/')},f'{loc}: hreflang')
+              ms=tags(t,'meta'); check([attr(x,'content') for x in ms if attr(x,'property')=='og:locale']==[ogloc],f'{loc}: og locale')
+              check(t.count('/assets/css/homepage-v2.css?v=20260805.1')==1,f'{loc}: homepage css')
+              check('/assets/js/header-system-v1.js?v=20260804.1' in t,f'{loc}: header js')
+              ids=re.findall(r'\bid=["\']([^"\']+)["\']',t,re.I)
+              check(not [i for i,c in Counter(ids).items() if c>1],f'{loc}: duplicate ids')
+              actual=[]
+              for x in tags(t,'section'):
+                  if 'hpv2-section' in (attr(x,'class') or '').split(): actual.append(attr(x,'id'))
+              check(actual==sections,f'{loc}: section order {actual}')
+              hrefs=[attr(x,'href') for x in tags(t,'a') if attr(x,'href')]
+              hp=[h for h in hrefs if h.startswith('/contact/?') or h.startswith('/ru/contact/?')]
+              check(hp==contacts[loc],f'{loc}: contact mappings {hp}')
+              check('source_context=' not in t,f'{loc}: source_context present')
+              check(re.findall(r'selected_direction=([^&#"\']+)',html.unescape(t))==['websites_branding','ai_systems_automation','both'],f'{loc}: selected_direction')
+              assets=set()
+              for tn,an in [('img','src'),('script','src'),('link','href')]:
+                  for x in tags(t,tn):
+                      u=attr(x,an)
+                      if u and u.startswith('/') and re.search(r'\.(?:css|js|png|jpe?g|webp|svg|ico|woff2?)(?:\?|$)',u,re.I): assets.add(u.split('?',1)[0])
+              check(not [u for u in sorted(assets) if not Path('_site'+u).is_file()],f'{loc}: missing local assets')
+              routes=set()
+              for h in hrefs:
+                  if not h.startswith('/') or h.startswith('//'): continue
+                  r=h.split('#',1)[0].split('?',1)[0]
+                  if not r or r in remote_routes or re.search(r'\.[a-z0-9]{2,5}$',r,re.I): continue
+                  routes.add(r)
+              missing=[]
+              for r in sorted(routes):
+                  cs=[Path('_site/index.html')] if r=='/' else ([Path('_site'+r+'index.html')] if r.endswith('/') else [Path('_site'+r),Path('_site'+r+'/index.html')])
+                  if not any(c.exists() for c in cs): missing.append(r)
+              check(not missing,f'{loc}: missing internal routes {missing}')
+          if errors:
+              print('GENERATED: FAIL')
+              for e in errors: print(' -',e)
+              sys.exit(1)
+          print('GENERATED: PASS')
+          PY
+
+      - name: Install Playwright Chromium
+        id: install
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          cd control
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.62.0
+          npx playwright install --with-deps chromium
+
+      - name: Start local generated site
+        id: server
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          nohup python3 -m http.server 4173 --directory site/_site > control/qa-output/server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+
+      - name: Run exact browser QA matrix
+        id: browser
+        if: steps.server.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          cat > control/exact-qa.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'fs';
+          const matrix=[['EN-1440','/',1440,900],['RU-1440','/ru/',1440,900],['EN-390','/',390,844],['RU-390','/ru/',390,844],['EN-320','/',320,568],['RU-320','/ru/',320,568],['EN-844x390','/',844,390],['RU-844x390','/ru/',844,390]];
+          const expected=['hero','connected-journey','directions','financial-stream','ways-to-start','delivery','founder','selected-work','insights','private-review'];
+          const browser=await chromium.launch();
+          const report=[]; let fatal=false;
+          for(const [name,path,width,height] of matrix){
+            const context=await browser.newContext({viewport:{width,height}}); const page=await context.newPage();
+            const consoleErrors=[],pageErrors=[],badResponses=[],requestFailures=[];
+            page.on('console',m=>{if(m.type()==='error') consoleErrors.push(m.text())});
+            page.on('pageerror',e=>pageErrors.push(String(e)));
+            page.on('requestfailed',r=>requestFailures.push(`${r.method()} ${r.url()} :: ${r.failure()?.errorText||'failed'}`));
+            page.on('response',r=>{if(r.status()>=400) badResponses.push(`${r.status()} ${r.url()}`)});
+            const resp=await page.goto(`http://127.0.0.1:4173${path}`,{waitUntil:'networkidle'});
+            const images=await page.locator('img').evaluateAll(imgs=>imgs.map(i=>i.getAttribute('src')).filter(Boolean));
+            const imageFetch=[];
+            for(const src of images){
+              const r=await page.request.get(`http://127.0.0.1:4173${src}`); imageFetch.push({src,status:r.status(),ok:r.ok(),ct:r.headers()['content-type']||''});
+            }
+            await page.evaluate(async()=>{
+              const imgs=[...document.images];
+              await Promise.all(imgs.map((img,i)=>new Promise(resolve=>{
+                const src=img.getAttribute('src'); if(!src){resolve();return;}
+                img.loading='eager'; img.addEventListener('load',resolve,{once:true}); img.addEventListener('error',resolve,{once:true});
+                const sep=src.includes('?')?'&':'?'; img.src=src+sep+'qa_force='+Date.now()+'_'+i; setTimeout(resolve,5000);
+              })));
+              for(let y=0;y<document.documentElement.scrollHeight;y+=Math.max(220,Math.floor(innerHeight*.55))){scrollTo(0,y); await new Promise(r=>setTimeout(r,80));}
+              scrollTo(0,0);
+            });
+            await page.waitForTimeout(300);
+            const state=await page.evaluate(()=>{
+              const vis=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0};
+              const overflow=[...document.querySelectorAll('body *')].filter(vis).map(el=>{const r=el.getBoundingClientRect();return {el,left:r.left,right:r.right,width:r.width}}).filter(x=>x.left<-1||x.right>innerWidth+1).map(x=>({tag:x.el.tagName,id:x.el.id||'',cls:typeof x.el.className==='string'?x.el.className.slice(0,100):'',left:+x.left.toFixed(1),right:+x.right.toFixed(1),width:+x.width.toFixed(1)}));
+              const broken=[...document.images].filter(i=>!i.complete||i.naturalWidth===0).map(i=>i.getAttribute('src'));
+              const sections=[...document.querySelectorAll('main.hpv2 > section.hpv2-section')].map(x=>x.id);
+              const proofH2=document.querySelector('.hpv2-proof-copy h2'); const pr=proofH2?.getBoundingClientRect();
+              return {scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,overflow,broken,sections,proofH2:pr?{left:pr.left,right:pr.right,width:pr.width,text:proofH2.innerText}:null};
+            });
+            let touch=[]; let menu='n/a'; let skip='fail';
+            if(width<=844){
+              touch=await page.evaluate(()=>{
+                const vis=el=>{const s=getComputedStyle(el),r=el.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0};
+                return [...document.querySelectorAll('a[href],button')].filter(vis).filter(el=>!el.classList.contains('skip-link')).map(el=>{const r=el.getBoundingClientRect();return {text:(el.innerText||el.getAttribute('aria-label')||'').trim().slice(0,60),w:+r.width.toFixed(1),h:+r.height.toFixed(1),cls:typeof el.className==='string'?el.className.slice(0,90):''}}).filter(x=>x.w<44||x.h<44);
+              });
+              try{const t=page.locator('.site-header__menu-toggle');await t.click();const a=await t.getAttribute('aria-expanded');await page.keyboard.press('Escape');const b=await t.getAttribute('aria-expanded');const f=await t.evaluate(e=>document.activeElement===e);await t.click();await page.locator('main').click({position:{x:5,y:5}});const c=await t.getAttribute('aria-expanded');menu=(a==='true'&&b==='false'&&f&&c==='false')?'pass':'fail';}catch(e){menu='fail:'+e.message}
+            }
+            try{await page.evaluate(()=>scrollTo(0,0));await page.locator('body').press('Tab');const s=page.locator('.skip-link');const sf=await s.evaluate(e=>document.activeElement===e);const box=await s.boundingBox();if(sf) await page.keyboard.press('Enter');const mf=await page.locator('#main-content').evaluate(e=>document.activeElement===e);skip=(sf&&box&&box.y>=0&&mf)?'pass':'fail';}catch(e){skip='fail:'+e.message}
+            const ok=!!resp?.ok() && JSON.stringify(state.sections)===JSON.stringify(expected) && state.scrollWidth<=state.clientWidth && state.overflow.length===0 && state.broken.length===0 && imageFetch.every(x=>x.ok) && touch.length===0 && (width>844||menu==='pass') && skip==='pass' && consoleErrors.length===0 && pageErrors.length===0 && requestFailures.length===0 && badResponses.length===0;
+            if(!ok) fatal=true;
+            report.push({name,path,width,height,ok,state,imageFetch,touch,menu,skip,consoleErrors,pageErrors,badResponses,requestFailures});
+            await page.screenshot({path:`control/qa-output/${name}.png`,fullPage:true});
+            await context.close();
+          }
+          // Reduced motion and forced-colors smoke
+          const rm=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'}); const rp=await rm.newPage(); await rp.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'}); const motion=await rp.evaluate(()=>({scroll:getComputedStyle(document.documentElement).scrollBehavior,button:getComputedStyle(document.querySelector('.hpv2-button')).transitionDuration})); report.push({reducedMotion:motion}); await rm.close();
+          const fc=await browser.newContext({viewport:{width:390,height:844},forcedColors:'active'}); const fp=await fc.newPage(); await fp.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'}); const forced=await fp.evaluate(()=>({active:matchMedia('(forced-colors: active)').matches,focus:getComputedStyle(document.querySelector('.hpv2-button')).outlineStyle})); report.push({forcedColors:forced}); await fc.close();
+          await browser.close();
+          fs.writeFileSync('control/qa-output/browser.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify(report,null,2));
+          if(fatal) process.exit(1);
+          JS
+          cd control
+          node exact-qa.mjs 2>&1 | tee qa-output/browser.log
+
+      - name: Validate external live targets
+        id: external
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          : > control/qa-output/external.log
+          bad=0
+          for url in 'https://financialstreamllc.com/' 'https://alinahorb.com/' 'https://proai-expert.com/handyman-vancouver-portland-demo/'; do
+            code="$(curl -L --max-time 20 -sS -o /dev/null -w '%{http_code}' "$url" || true)"
+            echo "$code $url" | tee -a control/qa-output/external.log
+            case "$code" in 2*|3*) ;; *) bad=1;; esac
+          done
+          exit "$bad"
+
+      - name: Write QA result to control branch
+        if: always()
+        shell: bash
+        env:
+          BUILD: ${{ steps.build.outcome }}
+          GENERATED: ${{ steps.generated.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          SERVER: ${{ steps.server.outcome }}
+          BROWSER: ${{ steps.browser.outcome }}
+          EXTERNAL: ${{ steps.external.outcome }}
+        run: |
+          cd control
+          mkdir -p qa-results/homepage-v2-exact-58b
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,os
+          out=Path('qa-results/homepage-v2-exact-58b/latest.md')
+          def read(p):
+              q=Path(p); return q.read_text(encoding='utf-8',errors='replace') if q.exists() else '(not produced)'
+          browser=read('qa-output/browser.json')
+          text=f'''# Homepage V2 exact 58b read-only QA\n\nExact tested source: `58b68a060de341b9b34727ae17325ba5abaa07b4`\n\n- Jekyll build: **{os.environ.get('BUILD')}**\n- Generated EN/RU validation: **{os.environ.get('GENERATED')}**\n- Chromium install: **{os.environ.get('INSTALL')}**\n- Local generated server: **{os.environ.get('SERVER')}**\n- Browser matrix: **{os.environ.get('BROWSER')}**\n- External targets: **{os.environ.get('EXTERNAL')}**\n\n## Generated validation\n```\n{read('qa-output/generated.log')[-8000:]}\n```\n\n## Browser JSON\n```json\n{browser[-30000:]}\n```\n\n## External targets\n```\n{read('qa-output/external.log')}\n```\n\n## Jekyll tail\n```\n{read('qa-output/jekyll.log')[-6000:]}\n```\n'''
+          out.write_text(text,encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add qa-results/homepage-v2-exact-58b/latest.md
+          git diff --cached --quiet || git commit -m 'Record exact Homepage V2 58b QA result'
+          git push origin HEAD:qa/homepage-v2-exact-58b-readonly-2026-08-07

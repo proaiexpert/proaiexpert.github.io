@@ -1,0 +1,382 @@
+name: Homepage V2 Technical QA
+
+on:
+  push:
+    branches:
+      - qa/homepage-v2-technical-2026-08-07
+
+permissions:
+  contents: read
+
+jobs:
+  technical-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact QA branch
+        uses: actions/checkout@v6
+
+      - name: Configure GitHub Pages build environment
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Production-equivalent Jekyll build
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+
+      - name: Validate generated EN/RU HTML and contracts
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from collections import Counter
+          import html
+          import re
+          import sys
+
+          EXPECTED_SECTIONS = [
+              'hero', 'connected-journey', 'directions', 'financial-stream',
+              'ways-to-start', 'delivery', 'founder', 'selected-work',
+              'insights', 'private-review'
+          ]
+          EXPECTED_CONTACT = {
+              'en': [
+                  '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake',
+                  '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake',
+                  '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake',
+                  '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake',
+                  '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake',
+              ],
+              'ru': [
+                  '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake',
+                  '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake',
+                  '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake',
+                  '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake',
+                  '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake',
+              ],
+          }
+          EXPECTED_META = {
+              'en': {
+                  'file': Path('_site/index.html'),
+                  'lang': 'en',
+                  'canonical': 'https://proai-expert.com/',
+                  'og_locale': 'en_US',
+              },
+              'ru': {
+                  'file': Path('_site/ru/index.html'),
+                  'lang': 'ru',
+                  'canonical': 'https://proai-expert.com/ru/',
+                  'og_locale': 'ru_RU',
+              },
+          }
+
+          errors = []
+          def check(condition, message):
+              if not condition:
+                  errors.append(message)
+
+          def attrs(text, tag):
+              return re.findall(rf'<{tag}\b[^>]*>', text, flags=re.I)
+
+          def attr(tag_text, name):
+              m = re.search(rf'\b{name}=["\']([^"\']*)["\']', tag_text, flags=re.I)
+              return html.unescape(m.group(1)) if m else None
+
+          for locale, meta in EXPECTED_META.items():
+              path = meta['file']
+              check(path.exists(), f'{locale}: generated file missing: {path}')
+              if not path.exists():
+                  continue
+              text = path.read_text(encoding='utf-8')
+              lower = text.lower()
+
+              check('{%' not in text and '{{' not in text, f'{locale}: unresolved Liquid markers')
+              check(len(re.findall(r'<!doctype\s+html', text, flags=re.I)) == 1, f'{locale}: doctype count != 1')
+              for tag in ('html', 'head', 'body', 'main'):
+                  check(len(re.findall(rf'<{tag}\b', text, flags=re.I)) == 1, f'{locale}: <{tag}> count != 1')
+
+              html_tag = attrs(text, 'html')[0] if attrs(text, 'html') else ''
+              check(attr(html_tag, 'lang') == meta['lang'], f'{locale}: html lang mismatch')
+
+              link_tags = attrs(text, 'link')
+              canonical = [attr(t, 'href') for t in link_tags if attr(t, 'rel') == 'canonical']
+              check(canonical == [meta['canonical']], f'{locale}: canonical mismatch/duplicate: {canonical}')
+              alternates = {(attr(t, 'hreflang'), attr(t, 'href')) for t in link_tags if attr(t, 'rel') == 'alternate'}
+              expected_alt = {
+                  ('en', 'https://proai-expert.com/'),
+                  ('ru', 'https://proai-expert.com/ru/'),
+                  ('x-default', 'https://proai-expert.com/'),
+              }
+              check(alternates == expected_alt, f'{locale}: hreflang set mismatch: {alternates}')
+              check(text.count('/assets/css/homepage-v2.css?v=20260805.1') == 1, f'{locale}: Homepage V2 CSS include/version mismatch')
+              check('/assets/js/header-system-v1.js?v=20260804.1' in text, f'{locale}: shared header JS missing')
+
+              meta_tags = attrs(text, 'meta')
+              og_locale = [attr(t, 'content') for t in meta_tags if attr(t, 'property') == 'og:locale']
+              check(og_locale == [meta['og_locale']], f'{locale}: og:locale mismatch: {og_locale}')
+
+              ids = re.findall(r'\bid=["\']([^"\']+)["\']', text, flags=re.I)
+              dup_ids = sorted(k for k, v in Counter(ids).items() if v > 1)
+              check(not dup_ids, f'{locale}: duplicate ids: {dup_ids}')
+              check('main-content' in ids, f'{locale}: #main-content missing')
+
+              sections = []
+              for tag in attrs(text, 'section'):
+                  classes = (attr(tag, 'class') or '').split()
+                  if 'hpv2-section' in classes:
+                      sections.append(attr(tag, 'id'))
+              check(sections == EXPECTED_SECTIONS, f'{locale}: section order mismatch: {sections}')
+
+              hrefs = [attr(t, 'href') for t in attrs(text, 'a')]
+              hrefs = [h for h in hrefs if h]
+              contact = [h for h in hrefs if h.startswith('/contact/?') or h.startswith('/ru/contact/?')]
+              check(contact == EXPECTED_CONTACT[locale], f'{locale}: Contact mappings mismatch: {contact}')
+              check('source_context=' not in text, f'{locale}: forbidden source_context present')
+              selected = re.findall(r'selected_direction=([^&#"\']+)', html.unescape(text))
+              check(selected == ['websites_branding', 'ai_systems_automation', 'both'], f'{locale}: selected_direction values/order mismatch: {selected}')
+
+              local_asset_urls = set()
+              for tagname, attrname in [('img','src'), ('source','srcset'), ('script','src'), ('link','href')]:
+                  for tag in attrs(text, tagname):
+                      value = attr(tag, attrname)
+                      if not value:
+                          continue
+                      for candidate in value.split(','):
+                          url = candidate.strip().split()[0]
+                          if url.startswith('/') and re.search(r'\.(?:css|js|png|jpe?g|webp|svg|ico|woff2?)(?:\?|$)', url, re.I):
+                              local_asset_urls.add(url.split('?', 1)[0])
+              missing_assets = [u for u in sorted(local_asset_urls) if not Path('_site' + u).is_file()]
+              check(not missing_assets, f'{locale}: missing local assets: {missing_assets}')
+
+              internal_routes = set()
+              for href in hrefs:
+                  if not href.startswith('/') or href.startswith('//'):
+                      continue
+                  route = href.split('#', 1)[0].split('?', 1)[0]
+                  if not route or re.search(r'\.[a-z0-9]{2,5}$', route, re.I):
+                      continue
+                  internal_routes.add(route)
+              missing_routes = []
+              for route in sorted(internal_routes):
+                  if route == '/':
+                      candidate = Path('_site/index.html')
+                  elif route.endswith('/'):
+                      candidate = Path('_site' + route + 'index.html')
+                  else:
+                      candidate = Path('_site' + route)
+                      if not candidate.exists():
+                          candidate = Path('_site' + route + '/index.html')
+                  if not candidate.exists():
+                      missing_routes.append(route)
+              check(not missing_routes, f'{locale}: missing internal routes: {missing_routes}')
+
+          if errors:
+              print('GENERATED VALIDATION: FAIL')
+              for error in errors:
+                  print(' -', error)
+              sys.exit(1)
+
+          print('GENERATED VALIDATION: PASS')
+          print('Validated: generated EN/RU shells, metadata, 10-block order, exact Contact mappings, duplicate IDs, local assets, and internal routes.')
+          PY
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save @playwright/test@1.62.0
+          npx playwright install --with-deps chromium
+
+      - name: Create browser QA suite
+        shell: bash
+        run: |
+          mkdir -p qa-output
+          cat > homepage-v2-qa.spec.js <<'JS'
+          const { test, expect } = require('@playwright/test');
+          const fs = require('fs');
+
+          const matrix = [
+            { name: 'EN-1440', path: '/', width: 1440, height: 900, locale: 'en' },
+            { name: 'RU-1440', path: '/ru/', width: 1440, height: 900, locale: 'ru' },
+            { name: 'EN-390', path: '/', width: 390, height: 844, locale: 'en' },
+            { name: 'RU-390', path: '/ru/', width: 390, height: 844, locale: 'ru' },
+            { name: 'EN-320', path: '/', width: 320, height: 568, locale: 'en' },
+            { name: 'RU-320', path: '/ru/', width: 320, height: 568, locale: 'ru' },
+            { name: 'EN-844x390', path: '/', width: 844, height: 390, locale: 'en' },
+            { name: 'RU-844x390', path: '/ru/', width: 844, height: 390, locale: 'ru' },
+          ];
+
+          const expectedSections = [
+            'hero', 'connected-journey', 'directions', 'financial-stream',
+            'ways-to-start', 'delivery', 'founder', 'selected-work',
+            'insights', 'private-review'
+          ];
+
+          for (const item of matrix) {
+            test(item.name, async ({ browser }) => {
+              const context = await browser.newContext({ viewport: { width: item.width, height: item.height } });
+              const page = await context.newPage();
+              const consoleErrors = [];
+              const pageErrors = [];
+              const failedRequests = [];
+              page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+              page.on('pageerror', error => pageErrors.push(String(error)));
+              page.on('requestfailed', req => failedRequests.push(`${req.method()} ${req.url()} :: ${req.failure()?.errorText || 'failed'}`));
+
+              const response = await page.goto(`http://127.0.0.1:4173${item.path}`, { waitUntil: 'networkidle' });
+              expect(response && response.ok(), `HTTP failed for ${item.path}`).toBeTruthy();
+
+              const sections = await page.locator('main.hpv2 > section.hpv2-section').evaluateAll(nodes => nodes.map(n => n.id));
+              expect(sections).toEqual(expectedSections);
+
+              const metrics = await page.evaluate(() => {
+                const root = document.documentElement;
+                const visible = el => {
+                  const s = getComputedStyle(el);
+                  const r = el.getBoundingClientRect();
+                  return s.display !== 'none' && s.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+                };
+                const overflowers = [...document.querySelectorAll('body *')]
+                  .filter(visible)
+                  .map(el => {
+                    const r = el.getBoundingClientRect();
+                    return { el, left: r.left, right: r.right, width: r.width };
+                  })
+                  .filter(x => x.left < -1 || x.right > innerWidth + 1)
+                  .map(x => ({
+                    tag: x.el.tagName,
+                    id: x.el.id || '',
+                    cls: typeof x.el.className === 'string' ? x.el.className.slice(0, 120) : '',
+                    left: Math.round(x.left * 10) / 10,
+                    right: Math.round(x.right * 10) / 10,
+                    width: Math.round(x.width * 10) / 10,
+                  }));
+                const brokenImages = [...document.images]
+                  .filter(img => !img.complete || img.naturalWidth === 0)
+                  .map(img => img.getAttribute('src'));
+                return {
+                  scrollWidth: root.scrollWidth,
+                  clientWidth: root.clientWidth,
+                  overflowers,
+                  brokenImages,
+                };
+              });
+              expect(metrics.scrollWidth, JSON.stringify(metrics.overflowers, null, 2)).toBeLessThanOrEqual(metrics.clientWidth);
+              expect(metrics.overflowers, 'Visible elements crossing viewport').toEqual([]);
+              expect(metrics.brokenImages, 'Images with naturalWidth=0').toEqual([]);
+
+              if (item.width <= 844) {
+                const smallTargets = await page.evaluate(() => {
+                  const visible = el => {
+                    const s = getComputedStyle(el);
+                    const r = el.getBoundingClientRect();
+                    return s.display !== 'none' && s.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+                  };
+                  return [...document.querySelectorAll('a[href], button')]
+                    .filter(visible)
+                    .filter(el => !el.classList.contains('skip-link'))
+                    .map(el => {
+                      const r = el.getBoundingClientRect();
+                      return { text: (el.innerText || el.getAttribute('aria-label') || '').trim().slice(0, 80), width: r.width, height: r.height, cls: el.className || '' };
+                    })
+                    .filter(x => x.width < 44 || x.height < 44);
+                });
+                expect(smallTargets, 'Visible touch targets below 44x44 CSS px').toEqual([]);
+
+                const toggle = page.locator('.site-header__menu-toggle');
+                await expect(toggle).toBeVisible();
+                await toggle.click();
+                await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+                await expect(page.locator('.site-header__nav')).toHaveClass(/is-open/);
+                await expect(page.locator('body')).toHaveClass(/menu-open/);
+                await page.keyboard.press('Escape');
+                await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+                await expect(toggle).toBeFocused();
+
+                await toggle.click();
+                await page.evaluate(() => document.querySelector('main').click());
+                await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+              }
+
+              await page.evaluate(() => window.scrollTo(0, 0));
+              await page.locator('body').press('Tab');
+              await expect(page.locator('.skip-link')).toBeFocused();
+              const skipBox = await page.locator('.skip-link').boundingBox();
+              expect(skipBox && skipBox.y >= 0, 'Skip link is not visible when focused').toBeTruthy();
+              await page.keyboard.press('Enter');
+              await expect(page.locator('#main-content')).toBeFocused();
+
+              await page.screenshot({ path: `qa-output/${item.name}.png`, fullPage: true });
+              expect(consoleErrors, 'Console errors').toEqual([]);
+              expect(pageErrors, 'Uncaught page errors').toEqual([]);
+              expect(failedRequests, 'Failed network requests').toEqual([]);
+              await context.close();
+            });
+          }
+
+          test('EN reduced-motion contract', async ({ browser }) => {
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+            const page = await context.newPage();
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+            const values = await page.evaluate(() => ({
+              scrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
+              buttonTransition: getComputedStyle(document.querySelector('.hpv2-button')).transitionDuration,
+              cubeAnimation: getComputedStyle(document.querySelector('.site-header__cube')).animationName,
+            }));
+            expect(values.scrollBehavior).toBe('auto');
+            expect(values.buttonTransition.split(',').every(v => parseFloat(v) === 0)).toBeTruthy();
+            expect(values.cubeAnimation).toBe('none');
+            await context.close();
+          });
+
+          test('EN forced-colors smoke', async ({ browser }) => {
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 }, forcedColors: 'active' });
+            const page = await context.newPage();
+            await page.goto('http://127.0.0.1:4173/', { waitUntil: 'networkidle' });
+            const values = await page.evaluate(() => {
+              const button = getComputedStyle(document.querySelector('.hpv2-button--primary'));
+              const status = getComputedStyle(document.querySelector('.hpv2-status'));
+              return {
+                buttonBorderStyle: button.borderStyle,
+                buttonBorderWidth: button.borderWidth,
+                statusBorderStyle: status.borderLeftStyle,
+                statusBorderWidth: status.borderLeftWidth,
+              };
+            });
+            expect(values.buttonBorderStyle).not.toBe('none');
+            expect(parseFloat(values.buttonBorderWidth)).toBeGreaterThan(0);
+            expect(values.statusBorderStyle).not.toBe('none');
+            expect(parseFloat(values.statusBorderWidth)).toBeGreaterThan(0);
+            await context.close();
+          });
+          JS
+
+      - name: Start generated site
+        shell: bash
+        run: |
+          nohup python3 -m http.server 4173 --directory _site > qa-output/http-server.log 2>&1 &
+          echo $! > qa-output/http-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          echo 'Local generated site did not start' >&2
+          exit 1
+
+      - name: Run browser QA matrix
+        shell: bash
+        run: |
+          npx playwright test homepage-v2-qa.spec.js --browser=chromium --reporter=line
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: homepage-v2-technical-qa
+          path: |
+            qa-output/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14

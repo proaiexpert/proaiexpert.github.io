@@ -1,6 +1,6 @@
 # Homepage V2 Technical QA Result
 
-Tested commit: 0b39c0b4ce056c442b83ba9b77bab7312a97c090
+Tested commit: d7590b4324fdf75232c912c75529c9e572bf00aa
 Production parent: 58b68a060de341b9b34727ae17325ba5abaa07b4
 Build command: production-equivalent Jekyll 4.3.4 + webrick
 Build outcome: success
@@ -8,8 +8,8 @@ Generated validation outcome: failure
 Playwright install outcome: success
 Local server outcome: success
 Browser QA outcome: failure
-Artifact ID: 9007862460
-Artifact URL: https://github.com/proaiexpert/proaiexpert.github.io/actions/runs/31214118507/artifacts/9007862460
+Artifact ID: 9007937883
+Artifact URL: https://github.com/proaiexpert/proaiexpert.github.io/actions/runs/31214352729/artifacts/9007937883
 
 ## Jekyll build log tail
 ```
@@ -46,7 +46,7 @@ Successfully installed webrick-1.9.2
        Destination: /home/runner/work/proaiexpert.github.io/proaiexpert.github.io/_site
  Incremental build: disabled. Enable with --incremental
       Generating... 
-                    done in 0.16 seconds.
+                    done in 0.165 seconds.
  Auto-regeneration: disabled. Use --watch to enable.
 ```
 
@@ -238,5 +238,5 @@ GENERATED VALIDATION: FAIL
     [chromium] › homepage-v2-qa.spec.js:21:3 › RU-320 ──────────────────────────────────────────────
     [chromium] › homepage-v2-qa.spec.js:21:3 › EN-844x390 ──────────────────────────────────────────
     [chromium] › homepage-v2-qa.spec.js:21:3 › RU-844x390 ──────────────────────────────────────────
-  2 passed (34.6s)
+  2 passed (33.8s)
 ```

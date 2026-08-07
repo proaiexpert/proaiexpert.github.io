@@ -7,6 +7,13 @@ on:
     paths:
       - '.github/workflows/capture-fs-social-proof.yml'
       - 'scripts/capture-fs-social-proof.mjs'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/capture-fs-social-proof.yml'
+      - 'scripts/capture-fs-social-proof.mjs'
+      - 'docs/social-media/financial-stream-2026-08-07/**'
   workflow_dispatch:
 
 permissions:
@@ -35,6 +42,7 @@ jobs:
         run: node scripts/capture-fs-social-proof.mjs
 
       - name: Commit screenshots
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -45,3 +53,9 @@ jobs:
             git commit -m "Capture Financial Stream social proof screenshots"
             git push origin HEAD:agent/prepare-fs-social-proof-post
           fi
+
+      - name: Upload screenshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: financial-stream-social-proof-screenshots
+          path: docs/social-media/financial-stream-2026-08-07/screenshots/*.jpg

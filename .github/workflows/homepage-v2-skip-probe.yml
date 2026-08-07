@@ -1,0 +1,88 @@
+name: Homepage V2 Skip Probe
+
+on:
+  push:
+    branches:
+      - qa/homepage-v2-technical-2026-08-07
+    paths-ignore:
+      - qa-results/homepage-v2-skip-probe/**
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: control
+      - uses: actions/checkout@v6
+        with:
+          ref: 2eef87720d17ee30abc6cd4ac215c158940b2de0
+          path: site
+      - name: Build
+        shell: bash
+        run: |
+          mkdir -p control/qa-output-skip
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          cd site && jekyll build --source . --destination _site
+      - name: Browser
+        shell: bash
+        run: |
+          cd control
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.62.0
+          npx playwright install --with-deps chromium
+          nohup python3 -m http.server 4173 --directory ../site/_site > qa-output-skip/server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          cat > skip-probe.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'fs';
+          const browser=await chromium.launch();
+          const report=[];
+          for(const [name,path,width,height] of [['EN-1440','/',1440,900],['EN-390','/',390,844],['RU-390','/ru/',390,844]]){
+            const c=await browser.newContext({viewport:{width,height}}),p=await c.newPage();
+            await p.goto(`http://127.0.0.1:4173${path}`,{waitUntil:'networkidle'});
+            await p.waitForTimeout(300);
+            const before=await p.evaluate(()=>{const e=document.querySelector('.skip-link'),r=e.getBoundingClientRect(),s=getComputedStyle(e);return{active:document.activeElement===e,activeTag:document.activeElement?.tagName,top:r.top,bottom:r.bottom,left:r.left,right:r.right,width:r.width,height:r.height,transform:s.transform,transition:s.transitionDuration,visibleInViewport:r.bottom>0&&r.top<innerHeight&&r.right>0&&r.left<innerWidth}});
+            const t=p.locator('.site-header__menu-toggle');
+            if(await t.isVisible()){await t.click();await p.keyboard.press('Escape');await p.waitForTimeout(300);}
+            const afterMenu=await p.evaluate(()=>{const e=document.querySelector('.skip-link'),r=e.getBoundingClientRect(),s=getComputedStyle(e);return{active:document.activeElement===e,activeTag:document.activeElement?.tagName,activeClass:typeof document.activeElement?.className==='string'?document.activeElement.className:'',top:r.top,bottom:r.bottom,transform:s.transform,visibleInViewport:r.bottom>0&&r.top<innerHeight}});
+            await p.screenshot({path:`qa-output-skip/${name}-viewport.png`});
+            await p.screenshot({path:`qa-output-skip/${name}-full.png`,fullPage:true});
+            report.push({name,before,afterMenu});
+            await c.close();
+          }
+          await browser.close();
+          fs.writeFileSync('qa-output-skip/result.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify(report,null,2));
+          if(report.some(x=>x.before.visibleInViewport||x.afterMenu.visibleInViewport)) process.exit(1);
+          JS
+          set -o pipefail
+          node skip-probe.mjs 2>&1 | tee qa-output-skip/browser.log
+      - name: Upload
+        id: artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: homepage-v2-skip-probe-${{ github.sha }}
+          path: control/qa-output-skip/
+          retention-days: 14
+      - name: Persist
+        if: always()
+        shell: bash
+        env:
+          ARTIFACT_ID: ${{ steps.artifact.outputs.artifact-id }}
+        run: |
+          cd control
+          mkdir -p qa-results/homepage-v2-skip-probe
+          { echo '# Homepage V2 Skip Probe'; echo; echo 'Production head: 2eef87720d17ee30abc6cd4ac215c158940b2de0'; echo "Artifact ID: ${ARTIFACT_ID:-none}"; echo; echo '```json'; cat qa-output-skip/result.json 2>/dev/null || true; echo '```'; } > qa-results/homepage-v2-skip-probe/latest.md
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add qa-results/homepage-v2-skip-probe/latest.md
+          git commit -m 'Record Homepage V2 skip probe' || exit 0
+          git push origin HEAD:qa/homepage-v2-technical-2026-08-07

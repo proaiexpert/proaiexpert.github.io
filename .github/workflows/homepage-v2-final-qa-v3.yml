@@ -1,0 +1,294 @@
+name: Homepage V2 Final QA v3
+
+on:
+  push:
+    branches:
+      - qa/homepage-v2-technical-2026-08-07
+    paths-ignore:
+      - qa-results/homepage-v2-v3/**
+
+permissions:
+  contents: write
+
+jobs:
+  qa-v3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout control branch
+        uses: actions/checkout@v6
+        with:
+          path: control
+
+      - name: Checkout exact production head
+        uses: actions/checkout@v6
+        with:
+          ref: 8b1de793b82832a0595a17bee85f901911633979
+          path: site
+
+      - name: Verify provenance
+        id: provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd site
+          test "$(git rev-parse HEAD)" = '8b1de793b82832a0595a17bee85f901911633979'
+          git diff --exit-code
+
+      - name: Production-equivalent Jekyll build
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p control/qa-output-v3
+          set -o pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          cd site
+          {
+            gem install --user-install jekyll -v 4.3.4 --no-document
+            gem install --user-install webrick --no-document
+            jekyll build --source . --destination _site
+          } 2>&1 | tee ../control/qa-output-v3/jekyll.log
+
+      - name: Generated contract validation
+        id: generated
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          cd site
+          python3 - <<'PY' 2>&1 | tee ../control/qa-output-v3/generated.log
+          from pathlib import Path
+          from collections import Counter
+          import html, re, sys
+
+          expected_sections=['hero','connected-journey','directions','financial-stream','ways-to-start','delivery','founder','selected-work','insights','private-review']
+          expected_contacts={
+            'en':[
+              '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake',
+              '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake',
+              '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake',
+              '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake',
+              '/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake'],
+            'ru':[
+              '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake',
+              '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake',
+              '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake',
+              '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake',
+              '/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake']}
+          cfg={
+            'en':(Path('_site/index.html'),'en','https://proai-expert.com/','en_US'),
+            'ru':(Path('_site/ru/index.html'),'ru','https://proai-expert.com/ru/','ru_RU')}
+          errors=[]
+          def check(v,m):
+            if not v: errors.append(m)
+          def tags(t,n): return re.findall(rf'<{n}\b[^>]*>',t,re.I)
+          def attr(t,n):
+            m=re.search(rf'\b{n}=["\']([^"\']*)["\']',t,re.I)
+            return html.unescape(m.group(1)) if m else None
+
+          for loc,(path,lang,canonical,ogloc) in cfg.items():
+            check(path.is_file(),f'{loc}: output missing')
+            if not path.is_file(): continue
+            text=path.read_text(encoding='utf-8')
+            check('{%' not in text and '{{' not in text,f'{loc}: unresolved Liquid')
+            check(len(re.findall(r'<!doctype\s+html',text,re.I))==1,f'{loc}: doctype')
+            for n in ('html','head','body','main'): check(len(re.findall(rf'<{n}\b',text,re.I))==1,f'{loc}: {n} count')
+            ht=tags(text,'html'); check(ht and attr(ht[0],'lang')==lang,f'{loc}: lang')
+            links=tags(text,'link')
+            check([attr(x,'href') for x in links if attr(x,'rel')=='canonical']==[canonical],f'{loc}: canonical')
+            check({(attr(x,'hreflang'),attr(x,'href')) for x in links if attr(x,'rel')=='alternate'}=={('en','https://proai-expert.com/'),('ru','https://proai-expert.com/ru/'),('x-default','https://proai-expert.com/')},f'{loc}: hreflang')
+            metas=tags(text,'meta'); check([attr(x,'content') for x in metas if attr(x,'property')=='og:locale']==[ogloc],f'{loc}: og locale')
+            check(text.count('/assets/css/header-system-v1.css?v=20260804.1')==1,f'{loc}: header CSS')
+            check(text.count('/assets/css/homepage-v2.css?v=20260805.1')==1,f'{loc}: homepage CSS')
+            check(text.count('/assets/css/footer-system-v1.css?v=20260804.1')==1,f'{loc}: footer CSS')
+            check('/assets/js/header-system-v1.js?v=20260804.1' in text,f'{loc}: header JS')
+            ids=re.findall(r'\bid=["\']([^"\']+)["\']',text,re.I)
+            check(not [i for i,c in Counter(ids).items() if c>1],f'{loc}: duplicate ids')
+            actual=[]
+            for x in tags(text,'section'):
+              if 'hpv2-section' in (attr(x,'class') or '').split(): actual.append(attr(x,'id'))
+            check(actual==expected_sections,f'{loc}: sections {actual}')
+            hrefs=[attr(x,'href') for x in tags(text,'a') if attr(x,'href')]
+            hp=[h for h in hrefs if h.startswith('/contact/?') or h.startswith('/ru/contact/?')]
+            check(hp==expected_contacts[loc],f'{loc}: contacts {hp}')
+            check('source_context=' not in text,f'{loc}: source_context')
+            check(re.findall(r'selected_direction=([^&#"\']+)',html.unescape(text))==['websites_branding','ai_systems_automation','both'],f'{loc}: directions')
+            assets=set()
+            for tn,an in [('img','src'),('source','srcset'),('script','src'),('link','href')]:
+              for x in tags(text,tn):
+                v=attr(x,an)
+                if not v: continue
+                for c in v.split(','):
+                  u=c.strip().split()[0]
+                  if u.startswith('/') and re.search(r'\.(?:css|js|png|jpe?g|webp|svg|ico|woff2?)(?:\?|$)',u,re.I): assets.add(u.split('?',1)[0])
+            missing=sorted(u for u in assets if not Path('_site'+u).is_file())
+            check(not missing,f'{loc}: missing assets {missing}')
+          if errors:
+            print('GENERATED: FAIL'); [print(' -',e) for e in errors]; sys.exit(1)
+          print('GENERATED: PASS')
+          PY
+
+      - name: Validate live external targets
+        id: external
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > control/qa-output-v3/external.log
+          for url in 'https://financialstreamllc.com/' 'https://alinahorb.com/' 'https://proai-expert.com/handyman-vancouver-portland-demo/'; do
+            code="$(curl -L --max-time 20 -sS -o /dev/null -w '%{http_code}' "$url")"
+            echo "$code $url" | tee -a control/qa-output-v3/external.log
+            case "$code" in 2*|3*) ;; *) exit 1;; esac
+          done
+
+      - name: Install browser runtime
+        id: install
+        if: steps.build.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          cd control
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.62.0
+          npx playwright install --with-deps chromium
+
+      - name: Serve generated output
+        id: server
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          nohup python3 -m http.server 4173 --directory site/_site > control/qa-output-v3/server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+
+      - name: Browser QA
+        id: browser
+        if: steps.server.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          cat > control/qa-v3.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'fs';
+          const matrix=[['EN-1440','/',1440,900],['RU-1440','/ru/',1440,900],['EN-390','/',390,844],['RU-390','/ru/',390,844],['EN-320','/',320,568],['RU-320','/ru/',320,568],['EN-844x390','/',844,390],['RU-844x390','/ru/',844,390]];
+          const sections=['hero','connected-journey','directions','financial-stream','ways-to-start','delivery','founder','selected-work','insights','private-review'];
+          const browser=await chromium.launch(); const report=[]; let fatal=false;
+
+          async function settle(page){
+            await page.evaluate(async()=>{
+              [...document.images].forEach(i=>i.loading='eager');
+              for(let y=0;y<document.documentElement.scrollHeight;y+=Math.max(260,Math.floor(innerHeight*.6))){scrollTo(0,y);await new Promise(r=>setTimeout(r,70));}
+              await Promise.all([...document.images].map(i=>new Promise(resolve=>{if(i.complete)return resolve();const done=()=>resolve();i.addEventListener('load',done,{once:true});i.addEventListener('error',done,{once:true});setTimeout(done,5000)})));
+              await Promise.all([...document.images].map(i=>i.decode().catch(()=>{}))); scrollTo(0,0);
+            });
+            await page.waitForTimeout(300);
+          }
+
+          async function menuCheck(page){
+            const t=page.locator('.site-header__menu-toggle'); if(!(await t.isVisible())) return [];
+            const issues=[];
+            await t.click(); await page.waitForTimeout(230);
+            if(await t.getAttribute('aria-expanded')!=='true')issues.push('open');
+            if(!(await page.locator('.site-header__nav').evaluate(e=>e.classList.contains('is-open'))))issues.push('nav class');
+            if(!(await page.locator('body').evaluate(e=>e.classList.contains('menu-open'))))issues.push('body class');
+            await page.keyboard.press('Escape'); await page.waitForTimeout(30);
+            if(await t.getAttribute('aria-expanded')!=='false')issues.push('Escape close');
+            if(!(await t.evaluate(e=>document.activeElement===e)))issues.push('Escape focus');
+            await t.click();
+            await page.evaluate(()=>document.body.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true})));
+            await page.waitForTimeout(30);
+            if(await t.getAttribute('aria-expanded')!=='false')issues.push('outside close');
+            await t.click();
+            await page.evaluate(()=>{const a=document.querySelector('.site-header__nav a');a.addEventListener('click',e=>e.preventDefault(),{once:true,capture:true});a.dispatchEvent(new MouseEvent('click',{bubbles:true,cancelable:true}));});
+            await page.waitForTimeout(30);
+            if(await t.getAttribute('aria-expanded')!=='false')issues.push('nav-link close');
+            return issues;
+          }
+
+          async function skipCheck(page){
+            await page.evaluate(()=>{scrollTo(0,0);document.body.tabIndex=-1;document.body.focus()});
+            await page.keyboard.press('Tab'); await page.waitForTimeout(220);
+            const s=page.locator('.skip-link'); const focused=await s.evaluate(e=>document.activeElement===e); const box=await s.boundingBox(); const visible=!!box&&box.y>=0&&box.height>0;
+            if(focused)await page.keyboard.press('Enter'); await page.waitForTimeout(30);
+            const main=await page.locator('#main-content').evaluate(e=>document.activeElement===e);
+            await page.evaluate(()=>document.body.removeAttribute('tabindex'));
+            return [...(!focused?['not focused']:[]),...(!visible?['not visible']:[]),...(!main?['main not focused']:[])];
+          }
+
+          for(const [name,path,width,height] of matrix){
+            const context=await browser.newContext({viewport:{width,height}}); const page=await context.newPage();
+            const consoleErrors=[],pageErrors=[],requestFailures=[];
+            page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});page.on('pageerror',e=>pageErrors.push(String(e)));page.on('requestfailed',r=>requestFailures.push(`${r.method()} ${r.url()} :: ${r.failure()?.errorText||'failed'}`));
+            const response=await page.goto(`http://127.0.0.1:4173${path}`,{waitUntil:'networkidle'}); await settle(page);
+            const state=await page.evaluate(()=>{const vis=e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0};const over=[...document.querySelectorAll('body *')].filter(vis).map(e=>{const r=e.getBoundingClientRect();return{e,l:r.left,r:r.right,w:r.width}}).filter(x=>x.l<-1||x.r>innerWidth+1).map(x=>({tag:x.e.tagName,id:x.e.id||'',cls:typeof x.e.className==='string'?x.e.className.slice(0,80):'',left:+x.l.toFixed(1),right:+x.r.toFixed(1),width:+x.w.toFixed(1)}));return{sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,over,broken:[...document.images].filter(i=>!i.complete||!i.naturalWidth).map(i=>i.currentSrc||i.src),sections:[...document.querySelectorAll('main.hpv2 > section.hpv2-section')].map(e=>e.id)}});
+            const touch=await page.evaluate(()=>{const vis=e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0};return[...document.querySelectorAll('a[href],button')].filter(vis).filter(e=>!e.classList.contains('skip-link')).map(e=>{const r=e.getBoundingClientRect();return{text:(e.innerText||e.getAttribute('aria-label')||'').trim().slice(0,60),w:+r.width.toFixed(1),h:+r.height.toFixed(1),cls:typeof e.className==='string'?e.className.slice(0,80):''}}).filter(x=>x.w<44||x.h<44)});
+            const menu=await menuCheck(page); const skip=await skipCheck(page); const issues=[];
+            if(!response?.ok())issues.push('http'); if(JSON.stringify(state.sections)!==JSON.stringify(sections))issues.push('sections'); if(state.sw>state.cw)issues.push(`scroll ${state.sw}>${state.cw}`); if(state.over.length)issues.push(`overflow ${JSON.stringify(state.over)}`); if(state.broken.length)issues.push(`broken ${JSON.stringify(state.broken)}`); if(touch.length)issues.push(`touch ${JSON.stringify(touch)}`); if(menu.length)issues.push(`menu ${JSON.stringify(menu)}`); if(skip.length)issues.push(`skip ${JSON.stringify(skip)}`); if(consoleErrors.length)issues.push(`console ${JSON.stringify(consoleErrors)}`); if(pageErrors.length)issues.push(`pageErrors ${JSON.stringify(pageErrors)}`); if(requestFailures.length)issues.push(`requestFailures ${JSON.stringify(requestFailures)}`);
+            if(issues.length)fatal=true; await page.evaluate(()=>scrollTo(0,0)); await page.screenshot({path:`control/qa-output-v3/${name}.png`,fullPage:true}); report.push({name,issues,state,touch,menu,skip}); await context.close();
+          }
+
+          const contacts=[['EN-Hero','/contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake','homepage_hero','not_sure'],['EN-Web','/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake','homepage_ways_to_start','websites_branding'],['EN-AI','/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake','homepage_ways_to_start','ai_systems_automation'],['EN-Both','/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake','homepage_ways_to_start','both'],['EN-Final','/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake','homepage_final','not_sure'],['RU-Hero','/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_hero#project-intake','homepage_hero','not_sure'],['RU-Web','/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=websites_branding#project-intake','homepage_ways_to_start','websites_branding'],['RU-AI','/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=ai_systems_automation#project-intake','homepage_ways_to_start','ai_systems_automation'],['RU-Both','/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_ways_to_start&selected_direction=both#project-intake','homepage_ways_to_start','both'],['RU-Final','/ru/contact/?intent=private_review&source_page=homepage&source_cta=homepage_final#project-intake','homepage_final','not_sure']];
+          for(const [name,path,sourceCta,direction] of contacts){const c=await browser.newContext({viewport:{width:390,height:844}}),p=await c.newPage();await p.goto(`http://127.0.0.1:4173${path}`,{waitUntil:'networkidle'});await p.waitForTimeout(100);const v=await p.evaluate(()=>({intent:document.querySelector('#intent')?.value,page:document.querySelector('#source_page')?.value,cta:document.querySelector('#source_cta')?.value,direction:document.querySelector('#selected_direction')?.value,hidden:document.querySelector('#privateReviewContext')?.getAttribute('aria-hidden'),hash:location.hash}));const issues=[];if(v.intent!=='private_review')issues.push('intent');if(v.page!=='homepage')issues.push('page');if(v.cta!==sourceCta)issues.push('cta');if(v.direction!==direction)issues.push('direction');if(v.hidden!=='false')issues.push('context');if(v.hash!=='#project-intake')issues.push('hash');if(issues.length)fatal=true;report.push({name,issues,values:v});await c.close();}
+          for(const [name,opts] of [['reduced-motion',{viewport:{width:390,height:844},reducedMotion:'reduce'}],['forced-colors',{viewport:{width:390,height:844},forcedColors:'active'}]]){const c=await browser.newContext(opts),p=await c.newPage();await p.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});const issues=[];if(name==='reduced-motion'){const v=await p.evaluate(()=>({scroll:getComputedStyle(document.documentElement).scrollBehavior,transition:getComputedStyle(document.querySelector('.hpv2-button')).transitionDuration,cube:getComputedStyle(document.querySelector('.site-header__cube')).animationName}));if(!(v.scroll==='auto'&&v.transition.split(',').every(x=>parseFloat(x)===0)&&v.cube==='none'))issues.push(JSON.stringify(v));}else{const v=await p.evaluate(()=>{const b=getComputedStyle(document.querySelector('.hpv2-button--primary')),s=getComputedStyle(document.querySelector('.hpv2-status'));return{bb:parseFloat(b.borderWidth),bs:b.borderStyle,sb:parseFloat(s.borderLeftWidth),ss:s.borderLeftStyle}});if(!(v.bb>0&&v.bs!=='none'&&v.sb>0&&v.ss!=='none'))issues.push(JSON.stringify(v));}if(issues.length)fatal=true;report.push({name,issues});await c.close();}
+          await browser.close();fs.writeFileSync('control/qa-output-v3/browser-results.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));process.exit(fatal?1:0);
+          JS
+          set -o pipefail
+          node control/qa-v3.mjs 2>&1 | tee control/qa-output-v3/browser.log
+
+      - name: Upload evidence
+        id: artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: homepage-v2-final-v3-${{ github.sha }}
+          path: control/qa-output-v3/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Persist result
+        if: always()
+        shell: bash
+        env:
+          PROVENANCE: ${{ steps.provenance.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          GENERATED: ${{ steps.generated.outcome }}
+          EXTERNAL: ${{ steps.external.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          SERVER: ${{ steps.server.outcome }}
+          BROWSER: ${{ steps.browser.outcome }}
+          ARTIFACT_ID: ${{ steps.artifact.outputs.artifact-id }}
+          ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
+        run: |
+          cd control
+          mkdir -p qa-results/homepage-v2-v3
+          {
+            echo '# Homepage V2 Final QA v3'; echo
+            echo 'Production head tested: 8b1de793b82832a0595a17bee85f901911633979'
+            echo "Provenance: $PROVENANCE"; echo "Build: $BUILD"; echo "Generated: ${GENERATED:-skipped}"; echo "External: ${EXTERNAL:-skipped}"; echo "Install: ${INSTALL:-skipped}"; echo "Server: ${SERVER:-skipped}"; echo "Browser: ${BROWSER:-skipped}"; echo "Artifact ID: ${ARTIFACT_ID:-none}"; echo "Artifact URL: ${ARTIFACT_URL:-none}"; echo
+            echo '## Generated'; echo '```'; cat qa-output-v3/generated.log 2>/dev/null || true; echo '```'; echo
+            echo '## External'; echo '```'; cat qa-output-v3/external.log 2>/dev/null || true; echo '```'; echo
+            echo '## Browser'; echo '```json'; cat qa-output-v3/browser-results.json 2>/dev/null || true; echo '```'
+          } > qa-results/homepage-v2-v3/latest.md
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add qa-results/homepage-v2-v3/latest.md
+          git commit -m 'Record Homepage V2 final QA v3' || exit 0
+          git push origin HEAD:qa/homepage-v2-technical-2026-08-07
+
+      - name: Enforce gate
+        if: always()
+        shell: bash
+        env:
+          PROVENANCE: ${{ steps.provenance.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          GENERATED: ${{ steps.generated.outcome }}
+          EXTERNAL: ${{ steps.external.outcome }}
+          INSTALL: ${{ steps.install.outcome }}
+          SERVER: ${{ steps.server.outcome }}
+          BROWSER: ${{ steps.browser.outcome }}
+        run: |
+          for v in "$PROVENANCE" "$BUILD" "$GENERATED" "$EXTERNAL" "$INSTALL" "$SERVER" "$BROWSER"; do [ "$v" = success ] || exit 1; done

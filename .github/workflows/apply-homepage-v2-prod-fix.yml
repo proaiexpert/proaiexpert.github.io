@@ -1,0 +1,76 @@
+name: Apply Homepage V2 Production Correction
+
+on:
+  push:
+    branches:
+      - qa/homepage-v2-technical-2026-08-07
+    paths:
+      - apply-prod-fix-trigger
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact production branch
+        uses: actions/checkout@v6
+        with:
+          ref: agent/homepage-v2-concept-a-build
+          fetch-depth: 0
+
+      - name: Guard, patch and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='58b68a060de341b9b34727ae17325ba5abaa07b4'
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$expected" || { echo "Production drift: expected $expected, got $actual" >&2; exit 1; }
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('assets/css/homepage-v2.css')
+          s=p.read_text(encoding='utf-8')
+          old='''.hpv2-proof-copy h2 {
+  font-size: clamp(40px, 4.5vw, 66px);
+}'''
+          new='''.hpv2-proof-copy {
+  min-width: 0;
+}
+
+.hpv2-proof-copy h2 {
+  font-size: clamp(40px, 4.5vw, 66px);
+}'''
+          assert s.count(old)==1, f'proof-copy anchor count={s.count(old)}'
+          s=s.replace(old,new,1)
+
+          old='''  .lang-ru .hpv2-hero h1 {
+    max-width: none;
+    font-size: clamp(38px, 11.6vw, 55px);
+    line-height: 1;
+  }'''
+          new='''  .lang-ru .hpv2-hero h1 {
+    max-width: none;
+    font-size: clamp(38px, 11.6vw, 55px);
+    line-height: 1;
+  }
+
+  .lang-ru .hpv2-proof-copy h2 {
+    font-size: clamp(32px, 9.75vw, 38px);
+  }'''
+          assert s.count(old)==1, f'RU mobile anchor count={s.count(old)}'
+          s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+
+          git diff --check
+          changed="$(git diff --name-only)"
+          test "$changed" = 'assets/css/homepage-v2.css' || { echo "Unexpected files: $changed" >&2; exit 1; }
+          git diff -- assets/css/homepage-v2.css
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/css/homepage-v2.css
+          git commit -m 'Fix Russian Homepage V2 proof clipping on mobile'
+          git push origin HEAD:agent/homepage-v2-concept-a-build

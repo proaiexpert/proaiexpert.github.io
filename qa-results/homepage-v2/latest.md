@@ -1,6 +1,6 @@
 # Homepage V2 Technical QA Result
 
-Tested commit: db5d1e79ad37a30c6f815cf03b52abdd747931ab
+Tested commit: 4798ef8855e9187a29c5ffff569e656582691351
 Production parent: 58b68a060de341b9b34727ae17325ba5abaa07b4
 Build command: production-equivalent Jekyll 4.3.4 + webrick
 Build outcome: success
@@ -8,8 +8,8 @@ Generated validation outcome: failure
 Playwright install outcome: success
 Local server outcome: success
 Browser QA outcome: failure
-Artifact ID: 9007677571
-Artifact URL: https://github.com/proaiexpert/proaiexpert.github.io/actions/runs/31213636819/artifacts/9007677571
+Artifact ID: 9007777626
+Artifact URL: https://github.com/proaiexpert/proaiexpert.github.io/actions/runs/31213906090/artifacts/9007777626
 
 ## Jekyll build log tail
 ```
@@ -46,7 +46,7 @@ Successfully installed webrick-1.9.2
        Destination: /home/runner/work/proaiexpert.github.io/proaiexpert.github.io/_site
  Incremental build: disabled. Enable with --incremental
       Generating... 
-                    done in 0.165 seconds.
+                    done in 0.178 seconds.
  Auto-regeneration: disabled. Use --watch to enable.
 ```
 
@@ -59,108 +59,108 @@ GENERATED VALIDATION: FAIL
 
 ## Browser QA log tail
 ```
-    +     "right": 344.6,
-    +     "tag": "H2",
-    +     "width": 326.6,
-    +   },
-    +   Object {
-    +     "cls": "",
-    +     "id": "",
-    +     "left": 18,
-    +     "right": 344.6,
-    +     "tag": "P",
-    +     "width": 326.6,
-    +   },
-    +   Object {
-    +     "cls": "hpv2-evidence-list",
-    +     "id": "",
-    +     "left": 18,
-    +     "right": 344.6,
-    +     "tag": "UL",
-    +     "width": 326.6,
-    +   },
-    +   Object {
-    +     "cls": "",
-    +     "id": "",
-    +     "left": 18,
-    +     "right": 344.6,
-    +     "tag": "LI",
-    +     "width": 326.6,
-    +   },
-    +   Object {
-    +     "cls": "",
-    +     "id": "",
-    +     "left": 18,
-    +     "right": 344.6,
-    +     "tag": "LI",
-    +     "width": 326.6,
-    +   },
-    +   Object {
-    +     "cls": "",
-    +     "id": "",
-    +     "left": 18,
-    +     "right": 344.6,
-    +     "tag": "LI",
-    +     "width": 326.6,
-    +   },
-    +   Object {
-    +     "cls": "",
-    +     "id": "",
-    +     "left": 18,
-    +     "right": 344.6,
-    +     "tag": "LI",
-    +     "width": 326.6,
-    +   },
-    +   Object {
-    +     "cls": "",
-    +     "id": "",
-    +     "left": 18,
-    +     "right": 344.6,
-    +     "tag": "LI",
-    +     "width": 326.6,
-    +   },
-    +   Object {
-    +     "cls": "hpv2-disclosure",
-    +     "id": "",
-    +     "left": 18,
-    +     "right": 344.6,
-    +     "tag": "P",
-    +     "width": 326.6,
-    +   },
-    +   Object {
-    +     "cls": "hpv2-actions",
-    +     "id": "",
-    +     "left": 18,
-    +     "right": 344.6,
-    +     "tag": "DIV",
-    +     "width": 326.6,
-    +   },
-    +   Object {
-    +     "cls": "hpv2-button hpv2-button--primary",
-    +     "id": "",
-    +     "left": 18,
-    +     "right": 344.6,
-    +     "tag": "A",
-    +     "width": 326.6,
-    +   },
-    +   Object {
-    +     "cls": "hpv2-button hpv2-button--secondary",
-    +     "id": "",
-    +     "left": 18,
-    +     "right": 344.6,
-    +     "tag": "A",
-    +     "width": 326.6,
-    +   },
-    + ]
 
-      79 |     });
       80 |     expect(metrics.scrollWidth, JSON.stringify(metrics.overflowers, null, 2)).toBeLessThanOrEqual(metrics.clientWidth);
-    > 81 |     expect(metrics.overflowers, 'Visible elements crossing viewport').toEqual([]);
-         |                                                                       ^
-      82 |     expect(metrics.brokenImages, 'Images with naturalWidth=0').toEqual([]);
+      81 |     expect(metrics.overflowers, 'Visible elements crossing viewport').toEqual([]);
+    > 82 |     expect(metrics.brokenImages, 'Images with naturalWidth=0').toEqual([]);
+         |                                                                ^
       83 |
       84 |     if (item.width <= 844) {
-        at /home/runner/work/proaiexpert.github.io/proaiexpert.github.io/homepage-v2-qa.spec.js:81:71
+      85 |       const smallTargets = await page.evaluate(() => {
+        at /home/runner/work/proaiexpert.github.io/proaiexpert.github.io/homepage-v2-qa.spec.js:82:64
+
+    Error Context: test-results/homepage-v2-qa-EN-390-chromium/error-context.md
+
+
+[4/10] [chromium] › homepage-v2-qa.spec.js:21:3 › RU-390
+  4) [chromium] › homepage-v2-qa.spec.js:21:3 › RU-390 ─────────────────────────────────────────────
+
+    Error: Images with naturalWidth=0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 7
+
+    - Array []
+    + Array [
+    +   "/assets/img/cases/financial-stream/fs-home-desktop-ru-1600w.webp",
+    +   "/assets/img/cases/financial-stream/fs-home-mobile-ru-640w.webp",
+    +   "/ru/about/ProAI_Founder_Portrait_2x3.webp",
+    +   "/assets/img/cases/alina-horb/final-assets-v1/delivery/alina-horb-home-ua-desktop.webp",
+    +   "/assets/img/cases/local-repair-pro/production-v1/lrp-01-homepage-hero-1920.webp",
+    + ]
+
+      80 |     expect(metrics.scrollWidth, JSON.stringify(metrics.overflowers, null, 2)).toBeLessThanOrEqual(metrics.clientWidth);
+      81 |     expect(metrics.overflowers, 'Visible elements crossing viewport').toEqual([]);
+    > 82 |     expect(metrics.brokenImages, 'Images with naturalWidth=0').toEqual([]);
+         |                                                                ^
+      83 |
+      84 |     if (item.width <= 844) {
+      85 |       const smallTargets = await page.evaluate(() => {
+        at /home/runner/work/proaiexpert.github.io/proaiexpert.github.io/homepage-v2-qa.spec.js:82:64
+
+    Error Context: test-results/homepage-v2-qa-RU-390-chromium/error-context.md
+
+
+[5/10] [chromium] › homepage-v2-qa.spec.js:21:3 › EN-320
+  5) [chromium] › homepage-v2-qa.spec.js:21:3 › EN-320 ─────────────────────────────────────────────
+
+    Error: Images with naturalWidth=0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 7
+
+    - Array []
+    + Array [
+    +   "/assets/img/cases/financial-stream/fs-home-desktop-en-1600w.webp",
+    +   "/assets/img/cases/financial-stream/fs-home-mobile-en-640w.webp",
+    +   "/ru/about/ProAI_Founder_Portrait_2x3.webp",
+    +   "/assets/img/cases/alina-horb/final-assets-v1/delivery/alina-horb-home-ua-desktop.webp",
+    +   "/assets/img/cases/local-repair-pro/production-v1/lrp-01-homepage-hero-1920.webp",
+    + ]
+
+      80 |     expect(metrics.scrollWidth, JSON.stringify(metrics.overflowers, null, 2)).toBeLessThanOrEqual(metrics.clientWidth);
+      81 |     expect(metrics.overflowers, 'Visible elements crossing viewport').toEqual([]);
+    > 82 |     expect(metrics.brokenImages, 'Images with naturalWidth=0').toEqual([]);
+         |                                                                ^
+      83 |
+      84 |     if (item.width <= 844) {
+      85 |       const smallTargets = await page.evaluate(() => {
+        at /home/runner/work/proaiexpert.github.io/proaiexpert.github.io/homepage-v2-qa.spec.js:82:64
+
+    Error Context: test-results/homepage-v2-qa-EN-320-chromium/error-context.md
+
+
+[6/10] [chromium] › homepage-v2-qa.spec.js:21:3 › RU-320
+  6) [chromium] › homepage-v2-qa.spec.js:21:3 › RU-320 ─────────────────────────────────────────────
+
+    Error: Images with naturalWidth=0
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 7
+
+    - Array []
+    + Array [
+    +   "/assets/img/cases/financial-stream/fs-home-desktop-ru-1600w.webp",
+    +   "/assets/img/cases/financial-stream/fs-home-mobile-ru-640w.webp",
+    +   "/ru/about/ProAI_Founder_Portrait_2x3.webp",
+    +   "/assets/img/cases/alina-horb/final-assets-v1/delivery/alina-horb-home-ua-desktop.webp",
+    +   "/assets/img/cases/local-repair-pro/production-v1/lrp-01-homepage-hero-1920.webp",
+    + ]
+
+      80 |     expect(metrics.scrollWidth, JSON.stringify(metrics.overflowers, null, 2)).toBeLessThanOrEqual(metrics.clientWidth);
+      81 |     expect(metrics.overflowers, 'Visible elements crossing viewport').toEqual([]);
+    > 82 |     expect(metrics.brokenImages, 'Images with naturalWidth=0').toEqual([]);
+         |                                                                ^
+      83 |
+      84 |     if (item.width <= 844) {
+      85 |       const smallTargets = await page.evaluate(() => {
+        at /home/runner/work/proaiexpert.github.io/proaiexpert.github.io/homepage-v2-qa.spec.js:82:64
 
     Error Context: test-results/homepage-v2-qa-RU-320-chromium/error-context.md
 
@@ -238,5 +238,5 @@ GENERATED VALIDATION: FAIL
     [chromium] › homepage-v2-qa.spec.js:21:3 › RU-320 ──────────────────────────────────────────────
     [chromium] › homepage-v2-qa.spec.js:21:3 › EN-844x390 ──────────────────────────────────────────
     [chromium] › homepage-v2-qa.spec.js:21:3 › RU-844x390 ──────────────────────────────────────────
-  2 passed (33.9s)
+  2 passed (34.1s)
 ```

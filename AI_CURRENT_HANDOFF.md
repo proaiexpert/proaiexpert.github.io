@@ -16,14 +16,18 @@ This is a permanent working rule for ProAI Expert tasks.
    - perform the next safe action directly; or
    - provide the exact next executable task.
 2. **If the agent can perform the next step itself, do it.** Do not send the owner to another chat merely to repeat work, copy context, save a file, or relay instructions.
-3. **The owner is not a transport layer between chats.** Agents are responsible for:
+3. **Execution routing rule:**
+   - small / fast / safe actions that the current agent can perform should be executed immediately in the same flow;
+   - complex specialist work may be delegated to a fresh dedicated chat/agent when that materially improves execution quality or keeps the working context clean;
+   - even in that case, the owner must receive ONE complete copyable task block and must not be used as a manual context/file/link transport layer.
+4. **The owner is not a transport layer between chats.** Agents are responsible for:
    - locating canonical source files;
    - reading prior handoffs;
    - saving outputs;
    - recording paths/links/IDs;
    - updating the current handoff;
    - preserving continuity.
-4. **Every technical assignment intended for another chat/agent must be delivered as ONE complete copyable block.** The block must already contain everything required to execute the task:
+5. **Every technical assignment intended for another chat/agent must be delivered as ONE complete copyable block.** The block must already contain everything required to execute the task:
    - repository/service name;
    - exact source branch/ref when relevant;
    - exact canonical source documents/links/IDs;
@@ -35,10 +39,10 @@ This is a permanent working rule for ProAI Expert tasks.
    - naming convention;
    - QA/acceptance gate;
    - what to return when complete.
-5. **No follow-up patch instructions such as “also add this”, “paste this above”, or “send this second link” unless a genuinely new requirement appears after execution begins.** If a task has not yet been sent, consolidate everything into the single block first.
-6. **Artifacts must be saved automatically whenever a connected tool can do it.** Prefer canonical project storage over leaving outputs only inside a chat.
-7. **At each completed gate, update this current handoff or the explicitly named canonical handoff before moving on.**
-8. **Work continuously through the next gate.** Analysis → decision → save → next action. Do not end on a passive status statement when a safe next step is available.
+6. **No follow-up patch instructions such as “also add this”, “paste this above”, or “send this second link” unless a genuinely new requirement appears after execution begins.** If a task has not yet been sent, consolidate everything into the single block first.
+7. **Artifacts must be saved automatically whenever a connected tool can do it.** Prefer canonical project storage over leaving outputs only inside a chat.
+8. **At each completed gate, update this current handoff or the explicitly named canonical handoff before moving on.**
+9. **Work continuously through the next gate.** Analysis → decision → save → next action. Do not end on a passive status statement when a safe next step is available.
 
 ---
 
@@ -143,6 +147,12 @@ R1 Art Director review:
 - branch: `docs/homepage-v2-handoff-2026-08-07`
 - path: `docs/site-evolution/hero-a-plus-review/HERO_A_PLUS_STATIC_REVIEW_R1.md`
 
+R2 full execution task:
+
+- branch: `docs/homepage-v2-handoff-2026-08-07`
+- path: `docs/site-evolution/hero-a-plus-review/HERO_A_PLUS_STATIC_R2_EXECUTION_TASK.md`
+- commit that added the task: `ad82f1b8533e164ecadddee8aa6726512f2aab49`
+
 Project workflow rule mirror:
 
 - branch: `docs/homepage-v2-handoff-2026-08-07`
@@ -219,6 +229,11 @@ No new research.
 No second concept.
 No Homepage redesign.
 No Financial Stream work in this gate.
+
+Use the complete execution task at:
+`docs/site-evolution/hero-a-plus-review/HERO_A_PLUS_STATIC_R2_EXECUTION_TASK.md`
+on branch:
+`docs/homepage-v2-handoff-2026-08-07`
 
 R2 must improve only:
 

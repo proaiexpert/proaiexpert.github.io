@@ -21,13 +21,26 @@ Always fetch current refs before acting. Never assume old SHAs remain current.
 
 # ACTIVE WORKSTREAM — HOMEPAGE HERO ONLY
 
-Do not broaden scope to the rest of Homepage until the Hero decision gate closes.
+Do not broaden scope to the rest of Homepage until the Hero production-integration gate closes.
 
-There are exactly two valid Hero directions:
+## SELECTED DIRECTION — C-SHAPE FLOW HERO A+
 
-## PRIMARY — C-SHAPE FLOW HERO A+
+The C-shape browser prototype has passed its acceptance gate.
 
-This is the active direction.
+Canonical verdict:
+
+`C-SHAPE HERO PROTOTYPE — ACCEPT`
+
+Acceptance record:
+
+- `docs/site-evolution/PROAI_EXPERT_HERO_C_SHAPE_PROTOTYPE_ACCEPT_2026-08-08.md`
+
+Accepted prototype branch:
+
+- `agent/hero-c-shape-a-plus-browser-prototype`
+- accepted HEAD: `7b2e7de26b5fc43fe5db68cd3ea51b4429edaeb5`
+
+At acceptance verification the branch was `14` commits ahead / `0` behind main and contained only eight isolated prototype files. Production `/` and `/ru/` were not modified.
 
 Business journey:
 
@@ -35,14 +48,17 @@ Business journey:
 
 The C-shape concept is locked. Do not reinterpret or replace the geometry family.
 
-## FALLBACK — CURRENT PRODUCTION HERO A+ REFRESH
+## HISTORICAL FALLBACK — CURRENT PRODUCTION HERO A+ REFRESH
 
-Current production remains untouched as the fallback. If the C-shape browser prototype does not clearly beat production, stop and activate the documented refresh path. Do not invent a third concept.
+The production-Hero refresh path remains documented only as historical fallback. It is not the active direction after prototype acceptance unless the owner explicitly reopens it.
+
+There is no third concept.
 
 Canonical decision docs:
 
 - `docs/site-evolution/PROAI_EXPERT_HERO_TWO_DIRECTION_LOCK_2026-08-07.md`
 - `docs/site-evolution/PROAI_EXPERT_HERO_C_SHAPE_CANONICAL_REFERENCE_2026-08-07.md`
+- `docs/site-evolution/PROAI_EXPERT_HERO_C_SHAPE_PROTOTYPE_ACCEPT_2026-08-08.md`
 
 All server-rack, portal/tunnel, stacked-machine, dashboard/tableau, wireframe, orbit/cosmic, crypto/gaming and unrelated Core variants are `REJECTED / HISTORICAL / DO NOT REUSE`.
 
@@ -63,14 +79,27 @@ Use this to prevent geometry/concept drift.
 ## Current static master / browser composition target
 
 - filename: `FA5872D6-EA1E-4865-A94B-74CE5CFDB7F8.jpeg`
-- conversation/File Library ID: `file_00000000fc1081fb890127d2826fa1f8`
 - dimensions: `1536 × 1024`
 - file size: `334,949 bytes`
 - SHA-256: `c2cecdc255eb3c0d68de142dcbddba6e8cedf1f3f036b9f9ec62c562ef66d9e4`
 
-This is the current STATIC MASTER for scale, composition, materials and atmosphere. In a fresh chat, search File Library by the exact filename and verify dimensions/hash before use. Do not substitute another generated image.
+Canonical Drive folder:
 
-Static image generation is now closed unless the owner explicitly reopens it. Exact logo/header/text fidelity will be solved in browser code using real repository sources, not by forcing image generation to draw UI text perfectly.
+- `ProAI Expert - Hero A+ Review - 2026-08-07`
+- folder ID: `1wqHjUAfk2vOJcY013V0EX2LtK0aszPZS`
+
+Browser derivatives integrated in the accepted prototype:
+
+- `assets/img/hero-c-shape/core-static-master-isolated.webp`
+  - `900 × 760`
+  - `64,940 bytes`
+  - SHA-256 `cd97f2e0107ddb577ae1cdded84cfbcc91c66b4f42374d1f2f510b3c807ad2f2`
+- `assets/img/hero-c-shape/core-static-master-isolated.avif`
+  - `900 × 760`
+  - `48,100 bytes`
+  - SHA-256 `c6cc0ba89b7145bdbd796b7fd778e6c788133d3e278265947b7ce90793e458d8`
+
+Static image generation is closed unless the owner explicitly reopens it. Do not AI-redraw the Core.
 
 ---
 
@@ -154,30 +183,52 @@ Header CTA `Discuss Project` and Hero CTA `Request a Private Review` are intenti
 
 ---
 
-# NEXT EXECUTION GATE — BROWSER PROTOTYPE
+# ACCEPTED PROTOTYPE QA — LOCKED
 
-Canonical full task:
+The accepted prototype passed the reported final browser QA with:
 
-`docs/site-evolution/PROAI_EXPERT_HERO_C_SHAPE_BROWSER_PROTOTYPE_TASK_2026-08-08.md`
+- exact STATIC MASTER verification;
+- exact AVIF/WebP derivative verification;
+- real shared Header System;
+- EN/RU production-like typography and content;
+- EN 1440 / 390 / 320 / 844×390;
+- RU 1440 / 390;
+- reduced-motion desktop/mobile;
+- no-JS desktop/mobile;
+- pointer-limit raster edge check;
+- horizontal overflow pass;
+- measured CLS `0` in required Chromium states;
+- first-scroll stability;
+- CTA visibility in critical viewports;
+- no black halo, rectangular raster patch, clipped material or visible raster edge;
+- targeted QA correction layer only, with no Core raster redesign.
 
-Commit that created the task:
+Prototype acceptance means the C-shape direction is selected for production integration. It does not authorize an unrelated Homepage redesign.
 
-`1c1811bff96a15bb51873bc986a36817332d94d4`
+---
 
-Next specialist agent must:
+# NEXT EXECUTION GATE — HERO-ONLY PRODUCTION INTEGRATION
 
-1. re-fetch current `main`;
-2. create `agent/hero-c-shape-a-plus-browser-prototype` from current `main`;
-3. read this handoff and the canonical task/reference docs;
-4. resolve both exact File Library images by filename/hash;
-5. build an isolated Hero preview only, suggested route `/hero-a-plus-c-shape-preview/`;
-6. use the real Header System from repo;
-7. use real HTML text/CTA/labels and deterministic visual derivation from the approved master; do not AI-redraw the Core;
-8. add the locked motion choreography;
-9. validate EN/RU at 1440, 390, 320 and 844×390 plus reduced motion/no overflow/no first-scroll jumps;
-10. compare directly against current production Hero;
-11. return `ACCEPT`, `TARGETED CORRECTION` or `REJECT` with branch/head SHA, file list and QA screenshots/results;
-12. do not merge or deploy.
+Goal:
+
+Port the accepted C-shape Hero deliberately into the real EN `/` and RU `/ru/` homepage while preserving all downstream homepage sections and current site invariants.
+
+The next specialist agent must:
+
+1. fetch the latest current `main` first;
+2. read this handoff plus the canonical Hero decision, reference, browser-prototype task and prototype-acceptance docs;
+3. inspect current production homepage composition, especially `index.html`, `ru/index.html`, `_includes/homepage-current-en.html`, `_includes/homepage-current-ru.html`, current Hero-specific CSS/JS and shared Header System;
+4. create a dedicated Hero production-integration branch from the latest current `main`;
+5. deliberately port the accepted prototype implementation/assets into the real homepage Hero context rather than merging the prototype branch blindly;
+6. keep real Header System, locked EN/RU Hero content, accepted C-shape Core assets, accepted motion and QA corrections;
+7. preserve every downstream Homepage section unless a narrowly scoped Hero-only dependency must be removed or isolated;
+8. remove/disable old production Hero-only orbit/core/node behavior in the production Hero so it cannot run behind or conflict with the C-shape Hero;
+9. preserve canonical, hreflang, x-default, meta/SEO, footer, internal links and non-Hero behavior;
+10. validate the Hero-to-second-section transition and ensure old scroll-state behavior does not fade/transform the new Hero incorrectly;
+11. run production-context QA at minimum: EN 1440/390/320/844×390, RU 1440/390, reduced motion, no-JS, overflow, CLS, first-scroll stability, CTA routes, Header behavior and transition into section 2;
+12. compare the integrated production-context Hero against the accepted preview/master;
+13. return a clear gate verdict with branch/head SHA, exact changed files and QA evidence;
+14. do not merge, deploy or create a PR without explicit owner authorization.
 
 No full Homepage redesign in this gate. No Financial Stream work.
 

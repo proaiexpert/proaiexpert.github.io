@@ -16,143 +16,207 @@ Always fetch current refs before acting. Never assume old SHAs remain current.
 4. Agents own source discovery, handoff reading, artifact saving, path/ID recording, QA state and continuity.
 5. Every delegated technical task must contain repo/ref, canonical sources, objective, scope, locked decisions, do-not-touch rules, outputs, save location, QA gate and completion return.
 6. At each gate: analysis → decision → execute/save → next action.
+7. **Technical/agent ACCEPT ≠ owner visual approval.** No production merge/deploy until the owner has seen the real browser result and explicitly authorizes it.
 
 ---
 
-# ACTIVE WORKSTREAM — HOMEPAGE HERO ONLY
+# ACTIVE WORKSTREAM — HOMEPAGE HERO R3 OWNER-CANDIDATE IMPLEMENTATION
 
-## OWNER VISUAL APPROVAL — PENDING
+The C-shape direction remains selected.
 
-**STOP:** Do not start production integration, merge, deploy, PR, or live replacement until the owner explicitly approves the browser Hero visually.
+The major grounding/cutout defect was corrected in R2. The Hero copy architecture was then reworked through a separate **45-site premium benchmark synthesis** and final EN/RU validation.
 
-The C-shape concept remains the selected direction, but the current browser prototype is **not owner-approved**.
+Canonical current strategy / next-phase document:
 
-Current owner verdict after seeing the real desktop/mobile browser review:
+- `docs/site-evolution/PROAI_EXPERT_HERO_OWNER_CANDIDATE_AND_HOMEPAGE_NEXT_PHASE_2026-08-08.md`
 
-`TARGETED CORRECTION — GROUNDING / CUTOUT EFFECT`
-
-The owner correctly identified that the isolated Core currently reads as a cut-out image floating in space. The deterministic alpha-isolation removed too much of the STATIC MASTER environment, especially the floor/contact shadow/reflection that physically grounded the object.
-
-This is **not a concept rejection** and does not authorize a third concept. It is an asset-compositing/art-direction correction only.
-
-Accepted technical prototype branch before owner review:
-
-- branch: `agent/hero-c-shape-a-plus-browser-prototype`
-- HEAD reviewed: `7b2e7de26b5fc43fe5db68cd3ea51b4429edaeb5`
-
-Do not treat the earlier technical verdict `C-SHAPE HERO PROTOTYPE — ACCEPT` as owner authorization to publish. It only means the implementation passed its prior technical QA.
+Read it before any Hero or Homepage work.
 
 ---
 
-# SELECTED DIRECTION — C-SHAPE FLOW HERO A+
+# HERO BENCHMARK — COMPLETED, DO NOT RESTART
 
-Business journey:
+A dedicated Hero benchmark covered **45 current sites**:
 
-`TRUST / PRESENCE → INQUIRY → INTERNAL INTELLIGENCE / AUTOMATION → RESPONSE → FOLLOW-UP`
+- 17 global premium digital/product/brand studios;
+- 15 product/technology companies;
+- 13 Russian-language digital/technology/B2B brands.
 
-The C-shape concept, copy, semantic route, dark graphite/cyan direction, and real Header System remain locked.
+Key references included Work & Co, Clay, Code and Theory, Instrument, BASIC/DEPT, Linear, Scale AI, K2 Cloud, Nimax, ONY and AGIMA.
 
-Historical fallback remains the current production Hero A+ refresh only if the owner later rejects the C-shape direction. There is no third concept.
+Main conclusion:
 
-Canonical decision/reference docs:
+`SHORT CATEGORY EYEBROW → ONE POSITIONING H1 → CONCRETE SUPPORT → C-SHAPE JOURNEY`
 
-- `docs/site-evolution/PROAI_EXPERT_HERO_TWO_DIRECTION_LOCK_2026-08-07.md`
-- `docs/site-evolution/PROAI_EXPERT_HERO_C_SHAPE_CANONICAL_REFERENCE_2026-08-07.md`
-- `docs/site-evolution/PROAI_EXPERT_HERO_C_SHAPE_PROTOTYPE_ACCEPT_2026-08-08.md` — technical acceptance history only; superseded for publication by current owner-review gate.
+The former three-line H1 architecture is rejected as the base model:
 
-All server-rack, portal/tunnel, stacked-machine, dashboard/tableau, wireframe, orbit/cosmic, crypto/gaming and unrelated Core variants are rejected/historical/do not reuse.
+`Build trust. / Handle inquiries. / Reduce manual work.`
 
----
-
-# STATIC VISUAL REFERENCES — PINNED
-
-## Immutable geometry/concept reference
-
-- filename: `C83206F2-E0BA-4F5D-B25E-560272E03FCD.jpeg`
-- dimensions: `1536 × 864`
-- file size: `290,734 bytes`
-- SHA-256: `8d2576338c54f49660bd6e15f9b1864013016367e4f0c438c4ae7e8389a5423a`
-
-## STATIC MASTER — authoritative art-direction source
-
-- filename: `FA5872D6-EA1E-4865-A94B-74CE5CFDB7F8.jpeg`
-- dimensions: `1536 × 1024`
-- file size: `334,949 bytes`
-- SHA-256: `c2cecdc255eb3c0d68de142dcbddba6e8cedf1f3f036b9f9ec62c562ef66d9e4`
-
-Canonical Drive folder:
-
-- `ProAI Expert - Hero A+ Review - 2026-08-07`
-- folder ID: `1wqHjUAfk2vOJcY013V0EX2LtK0aszPZS`
-
-Current isolated browser derivatives in the prototype:
-
-- `core-static-master-isolated.webp` — 900×760 — SHA-256 `cd97f2e0107ddb577ae1cdded84cfbcc91c66b4f42374d1f2f510b3c807ad2f2`
-- `core-static-master-isolated.avif` — 900×760 — SHA-256 `c6cc0ba89b7145bdbd796b7fd778e6c788133d3e278265947b7ce90793e458d8`
-
-These derivatives are technically clean but are **not final art-direction assets** because the owner-review exposed the loss of physical grounding.
+Do not reopen it without concrete evidence of a real failure.
 
 ---
 
-# CURRENT P0 CORRECTION — RESTORE PHYSICAL GROUNDING
+# CURRENT TEMP OWNER CANDIDATE — APPROVED FOR BROWSER IMPLEMENTATION
 
-The correction must preserve the approved Core pixels/geometry and restore the physical environment cues from the STATIC MASTER.
+This is **not yet production COPY LOCK**.
 
-Preferred solution order:
-
-1. **Do not redraw or AI-regenerate the Core.**
-2. Keep the existing transparent Core only if useful as the foreground/object layer.
-3. Derive a second deterministic **grounding/environment layer** from the exact STATIC MASTER containing the original contact shadow, floor reflection, subtle pedestal light spill and nearby atmosphere.
-4. Use a broad soft mask/feather on the grounding layer so it dissolves naturally into the page background; do not use a tight silhouette mask around the floor.
-5. Exclude baked header/copy/CTA/semantic rail from this environmental layer.
-6. If a two-layer solution still looks pasted, derive a wider scene plate from the STATIC MASTER and blend its outer edges into the browser background with deterministic CSS/image masking. Preserve original scene pixels; no generative filling.
-7. The final result must visually sit on a surface rather than float.
-8. The object must not show a visible polygon crop, black halo, hard alpha edge, rectangular raster boundary or obvious Photoshop-cutout contour.
-
-Desktop target: retain the STATIC MASTER's grounded architectural weight and floor presence.
-
-Mobile target: recompose intentionally; do not simply crop the desktop object so labels collide with the Core or the object reads as an accidental half-image.
-
----
-
-# HERO CONTENT — LOCKED
+## RU
 
 Eyebrow:
-`AI SYSTEMS, AUTOMATION & PREMIUM WEBSITES FOR SERVICE BUSINESSES`
+`AI-СИСТЕМЫ · АВТОМАТИЗАЦИЯ · ПРЕМИАЛЬНЫЕ САЙТЫ`
 
 H1:
-`Build trust.`  
-`Handle inquiries.`  
-`Reduce manual work.`
+`От первого впечатления до результата —`
+`одна система.`
 
-Supporting copy:
-`ProAI Expert connects premium websites, practical automation, and human-reviewed AI so service businesses can explain their value clearly, capture useful context, and move each inquiry toward a controlled next step.`
+Support:
+`Создаём премиальные сайты для компаний в сфере услуг и соединяем их с AI-системами и автоматизацией. Клиенту проще понять ваши услуги и обратиться, а вам — получать нужную информацию, быстрее отвечать и тратить меньше времени на повторяющиеся задачи. Важные решения остаются за человеком.`
+
+Primary CTA:
+`Запросить разбор`
+
+Microcopy:
+`Коротко опишите задачу. Мы предложим, с чего разумнее начать.`
+
+Secondary CTA:
+`Смотреть проекты`
+
+Accountability:
+`Штат Вашингтон · Работаем по всей США · EN / RU / UA`
+
+Rail:
+1. `ДОВЕРИЕ`
+2. `ОБРАЩЕНИЕ`
+3. `ОТВЕТ`
+4. `РЕЗУЛЬТАТ`
+
+## EN
+
+Eyebrow:
+`AI SYSTEMS · AUTOMATION · PREMIUM WEBSITES`
+
+H1 — current native-English owner candidate:
+`From first impression to follow-through —`
+`one connected system.`
+
+Support:
+`We build premium websites for service businesses and connect them with AI systems and automation. Customers can understand your services and reach out with the right information; you can respond faster and spend less time on repetitive work. You stay in control where judgment matters.`
 
 Primary CTA:
 `Request a Private Review`
 
-Expectation microcopy:
-`A private, bounded review. No pressure.`
+Microcopy:
+`Briefly describe the challenge. We’ll recommend where to start.`
 
 Secondary CTA:
-`View Client Work`
+`View Work`
 
 Accountability:
 `Washington-based · Working across the U.S. · EN / RU / UA`
 
-External rail anchors:
-1. `TRUST / PRESENCE`
+Rail:
+1. `TRUST`
 2. `INQUIRY`
 3. `RESPONSE`
-4. `FOLLOW-UP`
+4. `OUTCOME`
 
-AI + automation remain internal to the Core.
+EN/RU share the same brand strategy but are not literal translations.
+
+---
+
+# COPY / TYPOGRAPHY INTENT
+
+The shortened cyan eyebrow must be **more readable**, not smaller.
+
+- Treat it as a real category marker, not decorative micro-text.
+- Desktop working range: roughly 12–14px equivalent at actual browser scale, medium/semibold, restrained tracking.
+- Mobile may wrap; do not shrink it into illegibility.
+- H1 target: roughly two visual lines desktop; around 3–4 lines maximum mobile.
+- Support should use controlled measure; do not widen it merely to reduce line count.
+- `Без давления` / `No pressure` is removed.
+- Keep `EN / RU / UA` in accountability unless browser fitting proves it creates material clutter.
+
+---
+
+# C-SHAPE SEMANTIC MODEL
+
+The C-shape is a **complete customer/business journey**, not only an operational CRM workflow.
+
+RU:
+`ДОВЕРИЕ → ОБРАЩЕНИЕ → ОТВЕТ → РЕЗУЛЬТАТ`
+
+EN:
+`TRUST → INQUIRY → RESPONSE → OUTCOME`
+
+The final word is a conceptual destination, not a guarantee of revenue or conversion.
+
+`FOLLOW-UP / СОПРОВОЖДЕНИЕ` are historical alternatives and are no longer preferred for the Hero rail.
+
+---
+
+# VISUAL SOURCE / R2 CHECKPOINT
+
+Authoritative STATIC MASTER:
+
+- `FA5872D6-EA1E-4865-A94B-74CE5CFDB7F8.jpeg`
+- 1536×1024
+- SHA-256 `c2cecdc255eb3c0d68de142dcbddba6e8cedf1f3f036b9f9ec62c562ef66d9e4`
+
+Canonical Drive folder:
+
+- `ProAI Expert - Hero A+ Review - 2026-08-07`
+- folder ID `1wqHjUAfk2vOJcY013V0EX2LtK0aszPZS`
+
+Current browser base:
+
+- branch `agent/hero-c-shape-grounding-polish-r2`
+- HEAD `edbfb860b577a74bdfd0515c3474ad3e66c060eb`
+
+R2 restored environment/grounding, removed the rectangular/cutout feel, kept sharp Core pixels and removed independent Core motion that could detach the object from the environment.
+
+Do not redesign or regenerate the Core.
+
+---
+
+# NEXT EXECUTION GATE — R3 PREVIEW ONLY
+
+Create a narrow R3 implementation branch from the verified R2 checkpoint.
+
+Required changes:
+
+1. implement the current EN/RU owner-candidate copy;
+2. implement the shorter, more readable cyan eyebrow;
+3. update rail anchors to current EN/RU semantic model;
+4. preserve R2 Core geometry/environment registration/no-detachment motion rules;
+5. apply only small micro-polish where browser fitting requires it: text/Core spacing, rail hierarchy, floor/contact richness, support measure;
+6. preserve the real shared Header System;
+7. keep production root `/` and `/ru/` untouched during this preview pass.
+
+Required owner-review artifacts:
+
+- EN desktop 1440 real browser screenshot;
+- RU desktop 1440 real browser screenshot;
+- EN mobile 390 real browser screenshot;
+- RU mobile 390 real browser screenshot;
+- side-by-side against STATIC MASTER if useful;
+- explicit QA on readability, copy density, grounding, hard edges, rail hierarchy and mobile composition.
+
+Gate:
+
+`OWNER HERO APPROVE`
+
+or
+
+`TARGETED CORRECTION`
+
+Only owner approval unlocks Hero-only production integration.
 
 ---
 
 # REAL HEADER SYSTEM — SOURCE OF TRUTH
 
 Reuse:
+
 - `_includes/header-system/header.html`
 - `_data/header.yml`
 - `_data/navigation.yml`
@@ -163,39 +227,88 @@ Do not redraw the logo/header from screenshots.
 
 ---
 
-# MOTION — LOCKED DIRECTION
+# AFTER HERO — HOMEPAGE-WIDE PREMIUM BENCHMARK IS MANDATORY
 
-1. Entrance assembly: ~900–1200ms controlled alignment; no bounce/spin spectacle.
-2. One coherent signal route: Trust/Presence → Inquiry → Intelligence → Response → Follow-up.
-3. Idle: very quiet ±1–1.5° / 14–18s.
-4. Pointer desktop: max ~±2–3°.
-5. Reduced motion/no-JS: static assembled state remains complete.
+Once the Hero is owner-approved in browser, do **not** blindly polish the current Homepage structure.
 
-Motion must not reveal raster/mask edges or make the grounding layer detach from the object.
+Run a dedicated **Homepage-wide premium benchmark synthesis** first.
+
+Reuse the 45-site benchmark as the seed corpus, then inspect roughly 35–50 strong sites at full-page architecture level. Expand only when a missing pattern needs evidence.
+
+Audit:
+
+- section order and narrative progression;
+- number of sections/page length;
+- information density/whitespace;
+- capabilities/service architecture;
+- proof/case placement;
+- motion/3D/interactions;
+- section-to-section art direction;
+- CTA cadence;
+- founder/personality proof;
+- insights/editorial value;
+- mobile sequencing;
+- performance/accessibility;
+- SEO/entity coverage without visible keyword stuffing;
+- EN/RU parity without mechanical translation.
+
+Every current Homepage block must receive:
+
+`KEEP / REFINE / MERGE / MOVE / REPLACE / REMOVE`
+
+Historical working sequence is **provisional**, not locked:
+
+1. Hero
+2. Connected Business Journey
+3. Two Core Directions
+4. Financial Stream proof
+5. Ways to Start
+6. Controlled Delivery
+7. Founder accountability
+8. Selected Work
+9. Insights
+10. Final Private Review
+
+The full-page audit may remove/reorder/merge these blocks.
+
+## Founder section — explicit open question
+
+Current production includes a dedicated `homepage-founder-proof` section with founder portrait and copy.
+
+Initial hypothesis: a large founder-centered/quote-style section may not earn its space because ProAI should read as an institutional premium studio rather than a personality brand. Founder accountability may be stronger as a compact proof element or primarily on About.
+
+This is **not yet a removal lock**. Benchmark it and decide on evidence.
+
+## SEO-visible-content principle
+
+Do not keep a visually weak/repetitive Homepage section solely because it was intended to carry SEO keywords.
+
+Search relevance should come from the total semantic system: title/meta, H1/H2 hierarchy, concise section copy, dedicated service pages, internal links, schema/entities, proof/case studies and useful editorial content.
 
 ---
 
-# NEXT EXECUTION GATE — OWNER-REVIEW CORRECTION ONLY
+# RECOMMENDED CHAT OPERATING MODEL
 
-Work on the existing prototype branch or a narrowly scoped correction branch. Do **not** move to real `/` or `/ru/` production integration yet.
+Use a **fresh Control/Reviewer chat as the brain** and a separate **Builder chat as the implementation executor**.
 
-Required output for owner review:
+Fresh Control/Reviewer owns:
 
-- EN desktop 1440 real browser screenshot;
-- EN mobile 390 real browser screenshot;
-- preferably one short screen recording/GIF showing entrance + signal + idle if available;
-- side-by-side with STATIC MASTER at desktop;
-- explicit check for contact shadow/floor/reflection, hard cut edges, halos, raster boundaries, floating-object effect, and mobile composition.
+- strategy/decision quality;
+- screenshot review;
+- benchmark synthesis;
+- Homepage architecture after Hero;
+- scope control;
+- handoff quality.
 
-Gate verdict after correction is the owner's decision:
+Builder owns:
 
-`OWNER VISUAL APPROVE`
+- branch implementation;
+- HTML/CSS/JS/assets;
+- EN/RU parity;
+- browser QA/screenshots;
+- commits to the dedicated implementation branch.
 
-or
-
-`TARGETED CORRECTION`
-
-Only `OWNER VISUAL APPROVE` unlocks Hero-only production integration.
+Builder must not independently reopen strategy or publish production.
 
 ---
 
@@ -204,5 +317,5 @@ Only `OWNER VISUAL APPROVE` unlocks Hero-only production integration.
 - English root; Russian `/ru/`.
 - Preserve canonical/hreflang/x-default/sitemap/internal links/mobile behavior.
 - No invented business outcomes/metrics.
-- No merge, deploy, publication, rollback, force-push or destructive operations without explicit owner authorization.
+- No production merge, deploy, publication, rollback, force-push or destructive operation without explicit owner authorization.
 - Always re-check current refs before acting.

@@ -1,0 +1,73 @@
+name: Compact Package R3 Owner Review
+
+on:
+  push:
+    branches:
+      - agent/hero-r3-owner-review-artifact
+    paths-ignore:
+      - PROAI_HERO_R3_OWNER_REVIEW.html
+      - PROAI_HERO_R3_OWNER_REVIEW.html.gz.b64chunks
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep preferred AVIF layer once per picture and package transfer chunks
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, gzip, base64, textwrap
+
+          html_path = Path('PROAI_HERO_R3_OWNER_REVIEW.html')
+          html = html_path.read_text(encoding='utf-8')
+
+          def compact_picture(match):
+              tag_open = match.group(1)
+              inner = match.group(2)
+              tag_close = match.group(3)
+              avif = re.search(r'<source\s+srcset="(data:image/avif;base64,[^"]+)"[^>]*>', inner, re.S)
+              img = re.search(r'<img\s+([^>]+)>', inner, re.S)
+              if not avif or not img:
+                  raise RuntimeError('Expected AVIF source and img in R2 picture')
+              attrs = img.group(1)
+              attrs = re.sub(r'\s+src="[^"]+"', '', attrs)
+              attrs = re.sub(r'\s+', ' ', attrs).strip()
+              return f'{tag_open}<img {attrs} src="{avif.group(1)}">{tag_close}'
+
+          pattern = re.compile(r'(<picture class="hero-cshape__layer hero-cshape__layer--(?:environment|core)">)(.*?)(</picture>)', re.S)
+          html, count = pattern.subn(compact_picture, html)
+          if count != 4:
+              raise RuntimeError(f'Expected four locale picture blocks, compacted {count}')
+
+          if 'data:image/webp;base64,' in html:
+              raise RuntimeError('WebP fallback remained after compaction')
+          if html.count('data:image/avif;base64,') != 4:
+              raise RuntimeError('Expected one AVIF environment and one AVIF core per locale')
+          if 'data:font/woff2;base64,' not in html:
+              raise RuntimeError('Embedded Inter font missing')
+          if '/assets/' in html or '{% include' in html:
+              raise RuntimeError('Standalone dependency remained')
+
+          html_path.write_text(html, encoding='utf-8')
+          raw = html.encode('utf-8')
+          packed = gzip.compress(raw, compresslevel=9, mtime=0)
+          enc = base64.b64encode(packed).decode('ascii')
+          chunks = textwrap.wrap(enc, 3000)
+          Path('PROAI_HERO_R3_OWNER_REVIEW.html.gz.b64chunks').write_text('\n'.join(chunks) + '\n', encoding='ascii')
+          print('html', len(raw), 'gzip', len(packed), 'b64', len(enc), 'chunks', len(chunks))
+          PY
+      - name: Commit compact standalone and transport chunks
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add PROAI_HERO_R3_OWNER_REVIEW.html PROAI_HERO_R3_OWNER_REVIEW.html.gz.b64chunks
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Compact standalone R3 owner review artifact'
+          git push

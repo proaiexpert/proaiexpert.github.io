@@ -10,293 +10,221 @@ Repository: `proaiexpert/proaiexpert.github.io`
 
 ## OWNER WORKFLOW CONTRACT — LOCKED
 
-This is a permanent working rule for ProAI Expert tasks.
-
-1. **Never stop at analysis.** Every substantive project response must either:
-   - perform the next safe action directly; or
-   - provide the exact next executable task.
+1. **Never stop at analysis.** Every substantive project response must either perform the next safe action directly or provide the exact next executable task.
 2. **If the agent can perform the next step itself, do it.** Do not send the owner to another chat merely to repeat work, copy context, save a file, or relay instructions.
 3. **Execution routing rule:**
-   - small / fast / safe actions that the current agent can perform should be executed immediately in the same flow;
-   - complex specialist work may be delegated to a fresh dedicated chat/agent when that materially improves execution quality or keeps the working context clean;
-   - even in that case, the owner must receive ONE complete copyable task block and must not be used as a manual context/file/link transport layer.
-4. **The owner is not a transport layer between chats.** Agents are responsible for:
-   - locating canonical source files;
-   - reading prior handoffs;
-   - saving outputs;
-   - recording paths/links/IDs;
-   - updating the current handoff;
-   - preserving continuity.
-5. **Every technical assignment intended for another chat/agent must be delivered as ONE complete copyable block.** The block must already contain everything required to execute the task:
-   - repository/service name;
-   - exact source branch/ref when relevant;
-   - exact canonical source documents/links/IDs;
-   - objective and scope;
-   - locked decisions;
-   - do-not-touch constraints;
-   - required outputs;
-   - exact save location;
-   - naming convention;
-   - QA/acceptance gate;
-   - what to return when complete.
-6. **No follow-up patch instructions such as “also add this”, “paste this above”, or “send this second link” unless a genuinely new requirement appears after execution begins.** If a task has not yet been sent, consolidate everything into the single block first.
-7. **Artifacts must be saved automatically whenever a connected tool can do it.** Prefer canonical project storage over leaving outputs only inside a chat.
-8. **At each completed gate, update this current handoff or the explicitly named canonical handoff before moving on.**
-9. **Work continuously through the next gate.** Analysis → decision → save → next action. Do not end on a passive status statement when a safe next step is available.
+   - small / fast / safe actions should be executed immediately in the same flow;
+   - complex specialist work may be delegated to a fresh dedicated chat/agent when that materially improves execution quality or keeps context clean;
+   - when delegated, the owner receives ONE complete copyable task block and is not used as a manual context/file/link transport layer.
+4. **The owner is not a transport layer between chats.** Agents are responsible for locating canonical sources, reading prior handoffs, saving outputs, recording paths/IDs, updating handoffs, and preserving continuity.
+5. **Every technical assignment intended for another chat/agent must be ONE complete copyable block** containing repository/service, exact refs, canonical sources, objective, scope, locked decisions, do-not-touch constraints, outputs, save location, naming, QA gate, and completion return.
+6. No follow-up patch instructions such as “also add this” unless a genuinely new requirement appears after execution begins.
+7. Artifacts must be saved automatically whenever connected tools allow it.
+8. At each completed gate, update this handoff or the explicitly named canonical handoff before moving on.
+9. Work continuously: **analysis → decision → execute/save → next action**.
 
 ---
 
-# ACTIVE WORKSTREAM — HOMEPAGE HERO A+
+# ACTIVE WORKSTREAM — HOMEPAGE HERO ONLY
 
-Current focus is **Homepage Hero only**.
+Do not broaden scope to the rest of Homepage until the Hero decision gate is closed.
 
-Do not broaden scope to the rest of Homepage until the Hero static art direction is accepted.
+## Current strategic state
 
-### Verified repository state at the Hero review checkpoint
+There are now **exactly two valid Hero directions**.
 
-- `main`: `7bcc09ae28388f8e4a5e6e5a715aa5ba7b3fbf50`
-- V2 branch: `agent/homepage-v2-concept-a-build`
-- V2 head: `2eef87720d17ee30abc6cd4ac215c158940b2de0`
-- V2 technical status: **ACCEPT**
-- EN/RU browser QA previously passed at 1440, 390, 320 and 844×390
-- no Hero A+ production merge/deploy has occurred
+### PRIMARY
 
-Re-check refs before implementation.
+**C-SHAPE FLOW HERO A+**
 
-## Locked Strategic Verdict
+A specific owner-selected open C-shaped architectural Integration Core with visible information flow through the object.
 
-Neither current production Hero nor V2 Hero is the final target.
+This concept is locked. Future work may refine execution quality but may **not reinterpret or replace the geometry family**.
 
-Final formula:
+Business journey:
 
-> **V2 brain + Current ProAI soul**
+`TRUST / PRESENCE → INQUIRY → INTERNAL INTELLIGENCE / AUTOMATION → RESPONSE → FOLLOW-UP`
 
-Hero-specific direction:
+### FALLBACK
 
-> **Concept A+ — Precision Grid + Cinematic Depth**
+**CURRENT PRODUCTION HERO A+ REFRESH**
 
-Signature visual:
+Current live Hero remains untouched for now and serves as the controlled fallback.
 
-> **Integration Core — Controlled Assembly**
+If the C-shape browser prototype does not clearly beat production, refresh the current Hero rather than forcing a redesign.
 
-The new Hero must preserve V2 commercial clarity and conversion logic while restoring/evolving the current production Hero’s depth, motion equity, bespoke character and technological identity.
+## Canonical decision document
 
-## Locked Hero Content
+Read first:
 
-Keep the approved V2 commercial hierarchy unless a later owner-approved revision explicitly changes it.
+`docs/site-evolution/PROAI_EXPERT_HERO_TWO_DIRECTION_LOCK_2026-08-07.md`
 
-- Eyebrow: `AI SYSTEMS, AUTOMATION & PREMIUM WEBSITES FOR SERVICE BUSINESSES`
-- H1: `Build trust. Handle inquiries. Reduce manual work.`
-- Supporting copy: approved V2 supporting copy
-- Primary CTA: `Request a Private Review`
-- Secondary CTA: `View Client Work`
-- Accountability: `Washington-based · Working across the U.S. · EN / RU / UA`
-- RU uses the approved natural localized equivalent.
+Commit that created the lock:
 
-## Locked Visual Direction
+`5fc10eafc80bb2b1f736312338e77e482a6d28a1`
 
-The Hero must use one dominant signature object rather than a dashboard/tableau.
-
-Integration Core logic:
-
-- **Presence Shell** — website / positioning / proof / trust
-- **Intelligence Core** — AI / logic / decision support / orchestration
-- **Operations Spine** — routing / response / automation / follow-up
-
-System metaphor:
-
-`Presence / Trust → Inquiry → Integration Core → Response → Follow-up`
-
-The object represents integration and control, not “AI” by itself.
-
-Preserve:
-- graphite / near-black ProAI shell;
-- restrained cyan as signal/intelligence;
-- cinematic depth;
-- strong spatial focal object;
-- meaningful motion later;
-- premium asymmetry;
-- bespoke identity.
-
-Do not restore literally:
-- old word cube;
-- continuous 360° rotation;
-- orbit rings;
-- floating glass cards;
-- random particles;
-- heavy cosmic glow;
-- dashboard ACTIVE semantics;
-- generic SaaS tableau;
-- crypto/gaming/Tron styling.
-
-Implementation direction remains:
-
-> **No WebGL / No Three.js.** Prefer polished 2.5D DOM/CSS + inline SVG + minimal vanilla JS when code stage begins.
+This document supersedes all previous Hero concept explorations for decision-making.
 
 ---
 
-# HERO A+ CANONICAL DOCUMENTS
+# HERO CONTENT — LOCKED
 
-Canonical Hero final-direction document:
+Eyebrow:
 
-- branch: `docs/homepage-v2-handoff-2026-08-07`
-- path: `docs/site-evolution/PROAI_EXPERT_HERO_A_PLUS_FINAL_DIRECTION.md`
+`AI SYSTEMS, AUTOMATION & PREMIUM WEBSITES FOR SERVICE BUSINESSES`
 
-R1 Art Director review:
+H1:
 
-- branch: `docs/homepage-v2-handoff-2026-08-07`
-- path: `docs/site-evolution/hero-a-plus-review/HERO_A_PLUS_STATIC_REVIEW_R1.md`
+`Build trust. Handle inquiries. Reduce manual work.`
 
-R2 full execution task:
+Primary CTA:
 
-- branch: `docs/homepage-v2-handoff-2026-08-07`
-- path: `docs/site-evolution/hero-a-plus-review/HERO_A_PLUS_STATIC_R2_EXECUTION_TASK.md`
-- commit that added the task: `ad82f1b8533e164ecadddee8aa6726512f2aab49`
+`Request a Private Review`
 
-Project workflow rule mirror:
+Secondary CTA:
 
-- branch: `docs/homepage-v2-handoff-2026-08-07`
-- review/workflow documentation under `docs/site-evolution/hero-a-plus-review/`
+`View Client Work`
 
----
+Accountability:
 
-# HERO A+ ARTIFACT STORAGE
+`Washington-based · Working across the U.S. · EN / RU / UA`
 
-Google Drive canonical folder:
-
-`ProAI Expert - Hero A+ Review - 2026-08-07`
-
-Folder ID:
-
-`1wqHjUAfk2vOJcY013V0EX2LtK0aszPZS`
-
-R1 source PNG:
-
-`hero-a-plus-mockup-1440.png`
-
-Drive file ID:
-
-`1iZyyfSiU6Aa-UVHpNwv5GLcHOHfhTw9_`
-
-R1 file size:
-
-`706,492 bytes`
-
-R1 SHA-256:
-
-`42dd8f48c3f27683c87947ad230b2a5bda885b57e1d423dbe3946c6ace81dbe6`
-
-README:
-
-- file: `README.md`
-- Drive file ID: `1rzmAnyOYXVKbG-6v1ti7f5EMkS_e1J_K`
-
-Do not overwrite R1. New review iterations use new filenames.
+Supporting copy and Private Review expectation microcopy must use the approved V2 source of truth. Do not invent new copy during Hero implementation.
 
 ---
 
-# CURRENT HERO GATE — R1 REVIEW
+# PRIMARY C-SHAPE — LOCKED EXECUTION PRINCIPLES
 
-R1 direction is **correct but not ready for code**.
+The exact owner-selected C-shape reference image will be pinned after owner upload. **Do not implement from another generated image before the exact reference is pinned.**
 
-What already works:
-- V2 copy-first hierarchy remains clear;
-- one dominant right-side object replaces the V2 dashboard/tableau;
-- graphite/cyan language is disciplined;
-- Trust / Inquiry / Response / Follow-up semantics are present without four UI cards;
-- composition is cleaner and less sci-fi than current production;
-- Integration Core concept is viable.
+Visual character:
 
-What blocks final static acceptance:
+- open C-shaped / architectural silhouette;
+- central negative space;
+- visible internal layered intelligence zone;
+- asymmetric graphite geometry;
+- blackened graphite / anodized dark metal / near-black ceramic;
+- minimal smoked transparent insert where intelligence is visible;
+- restrained cyan = information signal;
+- premium cinematic depth;
+- generous negative space;
+- no server/datacenter reading;
+- no giant pedestal;
+- no dashboard/tableau;
+- no orbits/particles;
+- no crypto/gaming/Tron language.
 
-1. **Silhouette:** too close to premium server cabinet / stacked engineered panels. Needs more sculptural, proprietary ProAI identity.
-2. **Object authority:** signature object should have slightly stronger presence relative to H1.
-3. **Materiality:** graphite / anodized metal / ceramic differentiation needs a more premium specular/reflection pass.
-4. **Semantic rail:** current 01/02/03/04 path is too mechanical/engineering-annotation-like. Simplify into a more elegant calibration path.
-5. **Atmosphere:** needs slightly deeper cinematic separation without adding more spectacle/glow.
-6. **Generated UI artefact:** CTA rendering must be clean in approval frame.
+External anchors:
 
-Do not change strategy, copy or object concept to solve these issues.
+1. `TRUST / PRESENCE`
+2. `INQUIRY`
+3. `RESPONSE`
+4. `FOLLOW-UP`
+
+AI + automation live inside the Core.
+
+Do not use Hero labels:
+
+- Strategy & Discovery
+- Custom Build
+- Production Systems
+- Scale & Evolve
+
+Those belong lower in the page as studio/process content.
+
+## Motion direction
+
+- one-time controlled assembly: 2–3 outer planes align from ~8–12 px equivalent offsets over ~900–1200 ms;
+- one coherent cyan signal travels Trust/Presence → Inquiry → through internal Intelligence Layer → Response → Follow-up;
+- after entrance, quiet idle only;
+- very slow yaw ~±1–1.5°, ~14–18 s cycle;
+- subtle internal cyan luminance breathing;
+- optional 1–3 px layer depth response;
+- desktop pointer response max ~±2–3°;
+- no continuous 360° rotation;
+- no constant random pulses;
+- reduced-motion and no-JS static state must remain complete and premium.
+
+## CTA direction
+
+Primary CTA should be premium and restrained:
+
+- graphite / near-black body;
+- precise cyan perimeter or internal signal accent;
+- white label;
+- no flat bright cyan plastic fill;
+- no aggressive neon glow.
+
+## Header rule
+
+Do not redesign the shared Header System during Hero exploration. Use the real/approved ProAI Header System as contextual chrome unless a separate owner-approved Header task says otherwise.
 
 ---
 
-# NEXT ACTION — STATIC R2 ONLY
+# FALLBACK — CURRENT PRODUCTION HERO A+ REFRESH
 
-The next safe action is **one refined 1440px static Hero mockup**.
+Do not modify it now.
 
-No code yet.
-No new research.
-No second concept.
-No Homepage redesign.
+If fallback is activated later:
+
+- keep the existing spatial/3D identity;
+- replace H1 with approved H1;
+- use approved supporting copy;
+- use `Request a Private Review` + expectation microcopy;
+- keep `View Client Work`;
+- map the four existing system/floating elements to Trust/Presence, Inquiry, Response, Follow-up;
+- calm/discipline continuous motion;
+- refine cyan/materials/lighting;
+- eliminate any clipping/glitch reading;
+- preserve responsive/reduced-motion/no-overflow quality.
+
+---
+
+# ALL OTHER HERO CONCEPTS — CLOSED
+
+All other generated concepts are now **REJECTED / HISTORICAL / DO NOT REUSE** unless the owner explicitly re-opens one.
+
+This includes:
+
+- server rack / data-center towers;
+- stacked machine panels;
+- square portal / tunnel;
+- industrial cabinet;
+- hardware pedestal;
+- generic glowing AI machine;
+- dashboard/tableau;
+- four-card diagram;
+- orbit/cosmic variants;
+- crypto/gaming/Tron variants;
+- arbitrary new Integration Core geometries generated after the selected C-shape reference.
+
+Do not use them as inspiration in the next chat.
+
+---
+
+# NEXT EXECUTION ORDER
+
+1. Owner uploads the exact selected C-shape reference image.
+2. Current agent pins that exact image in canonical storage and records path/ID/hash in the canonical lock document and this handoff.
+3. Open a fresh dedicated implementation chat/agent.
+4. Read `AI_START_HERE.md`, this file, and `docs/site-evolution/PROAI_EXPERT_HERO_TWO_DIRECTION_LOCK_2026-08-07.md`.
+5. Build **Hero only** as a controlled browser prototype from the pinned C-shape geometry.
+6. Add the locked motion choreography.
+7. Validate EN/RU at desktop 1440, mobile 390/320, and short landscape 844×390; reduced motion; no overflow; no layout jumps; static no-JS quality.
+8. Compare directly against current production Hero.
+9. If C-shape clearly wins → proceed toward integration/approval.
+10. If it does not clearly win → stop and activate the Current Production Hero A+ Refresh fallback.
+
+No full Homepage redesign before this gate closes.
 No Financial Stream work in this gate.
 
-Use the complete execution task at:
-`docs/site-evolution/hero-a-plus-review/HERO_A_PLUS_STATIC_R2_EXECUTION_TASK.md`
-on branch:
-`docs/homepage-v2-handoff-2026-08-07`
-
-R2 must improve only:
-
-1. Integration Core silhouette — more sculptural, ownable and premium; less server-rack/block-stack.
-2. Object authority — slightly stronger scale/presence while preserving negative space and copy hierarchy.
-3. Material finish — stronger graphite/anodized-metal/ceramic differentiation, controlled white-key reflections, deeper seams; cyan remains internal and restrained.
-4. Semantic path — simpler, more elegant rail/calibration treatment; maximum 3–4 concise anchors.
-5. Cinematic separation — subtle localized ambient field/depth falloff only; no nebula or giant cyan blur.
-6. UI cleanliness — no image-generation artefacts in CTA, icons or typography.
-
-Reject R2 if it becomes:
-- more sci-fi;
-- more complex for complexity’s sake;
-- a generic glowing object;
-- a dashboard;
-- a server rack;
-- crypto/gaming-like;
-- visually noisier than R1.
-
-## Exact R2 save contract
-
-Save to the same Google Drive folder:
-
-`ProAI Expert - Hero A+ Review - 2026-08-07`
-
-Filename:
-
-`hero-a-plus-mockup-1440-r2.png`
-
-Do not overwrite R1.
-
-Update the folder `README.md` with:
-- R2 filename;
-- creation date;
-- status `STATIC R2 CANDIDATE`;
-- source direction = Hero A+ Final Direction + R1 Art Director Review;
-- file size;
-- SHA-256;
-- confirmation that production code, `main`, V2 branch, PR and deploy were not changed by the visual-generation step.
-
-## R2 approval gate
-
-Compare R1 vs R2 on:
-- silhouette memorability;
-- bespoke/premium perception;
-- object-to-copy balance;
-- material quality;
-- semantic clarity;
-- restraint.
-
-If R2 clearly wins and the static frame feels finished without motion, mark:
-
-`HERO A+ STATIC ART DIRECTION — ACCEPT`
-
-Only after that proceed to code + motion prototype.
-
 ---
 
-# NEXT STAGE AFTER HERO
+# PENDING REFERENCE PIN
 
-Financial Stream remains the next major Homepage proof stage **after Hero is locked**, not part of the current Hero gate.
+Exact C-shape reference image: `PENDING OWNER UPLOAD`
 
-The Financial Stream work already has separate preserved planning/assets and should not be re-researched from scratch.
+Do not start implementation until the exact reference is recorded here and in the canonical two-direction lock document.
 
 ---
 
@@ -307,7 +235,7 @@ The Financial Stream work already has separate preserved planning/assets and sho
 - Preserve canonical, reciprocal hreflang, x-default, sitemap, internal links and mobile behavior unless explicitly changing them.
 - Financial Stream remains a real client benchmark.
 - Do not invent rankings, leads, conversion rates, revenue, testimonials, project counts or unsupported outcome metrics.
-- `main`, merge, publication, rollback, force-push, deletion and destructive operations require explicit owner authorization **except documentation-only handoff maintenance explicitly requested by the owner**.
+- `main`, merge, publication, rollback, force-push, deletion and destructive operations require explicit owner authorization except documentation-only handoff maintenance explicitly requested by the owner.
 - Re-check current refs/branches/SHAs before implementation work.
 
 ## Mechanical State Rule

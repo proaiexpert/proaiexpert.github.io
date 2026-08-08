@@ -118,7 +118,6 @@ Total WebP visual stack is `103,956 bytes`.
 
 These Core files were previously verified deterministic approved-pixel derivatives. R2 changes their role: they are no longer a standalone pasted visual; they are the sharp registered foreground over the grounded environment layer.
 
-
 ## Repository packaging for the grounded environment
 
 For this isolated OWNER REVIEW branch, the encoded Layer A environment bytes are stored as Base64 text chunks under:
@@ -136,7 +135,10 @@ The include structure is:
 
 - `_includes/hero-c-shape-r2/environment-r2.html`
 - `_includes/hero-c-shape-r2/env-avif-01.b64` … `env-avif-03.b64`
-- `_includes/hero-c-shape-r2/env-webp-01.b64` … `env-webp-07.b64`
+- `_includes/hero-c-shape-r2/env-webp-01.b64` … `env-webp-05.b64`
+- `_includes/hero-c-shape-r2/env-webp-06a.b64`
+- `_includes/hero-c-shape-r2/env-webp-06b.b64`
+- `_includes/hero-c-shape-r2/env-webp-07.b64`
 
 AVIF remains the preferred browser source and WebP is the fallback. The high-fidelity Core remains normal repository image assets at the existing canonical paths.
 

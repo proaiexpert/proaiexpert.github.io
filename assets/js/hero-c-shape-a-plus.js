@@ -5,22 +5,26 @@
   if (!stages.length) return;
 
   stages.forEach((stage) => {
-    const image = stage.querySelector('[data-core-image]');
+    const images = Array.from(stage.querySelectorAll('[data-ground-layer-image]'));
     const blocker = stage.querySelector('[data-core-asset-blocker]');
 
-    const setAssetState = (ready) => {
+    const setAssetState = () => {
+      const ready = images.length >= 2 && images.every((image) => image.complete && image.naturalWidth > 0);
       stage.classList.toggle('is-core-asset-missing', !ready);
       if (blocker) blocker.hidden = ready;
     };
 
-    if (!image) {
-      setAssetState(false);
+    if (!images.length) {
+      stage.classList.add('is-core-asset-missing');
+      if (blocker) blocker.hidden = false;
       return;
     }
 
-    image.addEventListener('load', () => setAssetState(image.naturalWidth > 0), { once: true });
-    image.addEventListener('error', () => setAssetState(false), { once: true });
+    images.forEach((image) => {
+      image.addEventListener('load', setAssetState);
+      image.addEventListener('error', setAssetState);
+    });
 
-    if (image.complete) setAssetState(image.naturalWidth > 0);
+    setAssetState();
   });
 })();

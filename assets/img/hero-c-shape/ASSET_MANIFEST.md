@@ -27,22 +27,22 @@ The source bytes were re-fetched from the canonical Drive folder and re-verified
 
 ### `scene-grounded-static-master.avif`
 
-- source crop: `x=640..1536`, `y=120..960` (`896 × 840`)
+- source crop: `x=640..1536`, `y=100..940` (`896 × 840`)
 - browser output dimensions: `720 × 675`
 - processing:
   1. deterministic crop from the exact STATIC MASTER;
   2. alpha-only environmental falloff; RGB content is not repainted;
-  3. deterministic Lanczos resize from `896 × 840` to `720 × 675` for the actual browser display envelope.
+  3. deterministic Lanczos resize from `896 × 840` to `720 × 675`.
 - alpha mask before resize:
-  - left edge smoothstep feather: `32 px`
-  - top edge smoothstep feather: `16 px`
-  - floor/bottom falloff: full through crop `y=690`, smooth fade to transparent at crop `y=840`
-  - right edge: `4 px` safety soften only
-- encoder: Pillow AVIF `quality=43`, `speed=6`
-- file size: `13,584 bytes`
-- SHA-256: `f9c82dca51fc1592f55994846365b94f639bd08cb4037eedb0c5b04b1086ada4`
+  - left edge smoothstep feather: `80 px`
+  - top edge smoothstep feather: `50 px`
+  - right edge smoothstep feather: `35 px`
+  - floor/bottom falloff: full through crop `y=700`, smooth fade to transparent at crop `y=840`
+- encoder: Pillow AVIF `quality=40`, `speed=6`
+- file size: `13,042 bytes`
+- SHA-256: `389e89f04751402f2d155dbfb4965c6b53b9a79596fc2d65784a3427e7a620f9`
 
-Desktop intentionally keeps the STATIC MASTER's original object + floor + contact shadow + reflection + cyan spill + semantic rail in one coherent source scene. This avoids re-creating the cutout defect caused by the previous tight alpha-isolation pipeline.
+The wider soft feather replaces the first grounding-pass edge treatment after visual QA found a faint black-level plate boundary. Desktop intentionally keeps the STATIC MASTER's original object + floor + contact shadow + reflection + cyan spill + semantic rail in one coherent source scene.
 
 ## Grounded mobile / short-landscape scene
 
@@ -50,20 +50,20 @@ The mobile crop excludes the baked desktop rail labels so readable HTML rail lab
 
 ### `scene-grounded-static-master-mobile.avif`
 
-- source crop: `x=640..1365`, `y=120..960` (`725 × 840`)
-- browser output dimensions: `420 × 487`
+- source crop: `x=640..1365`, `y=100..960` (`725 × 860`)
+- browser output dimensions: `420 × 498`
 - processing:
   1. deterministic crop from the exact STATIC MASTER;
   2. alpha-only environmental falloff; RGB content is not repainted;
-  3. deterministic Lanczos resize from `725 × 840` to `420 × 487`.
+  3. deterministic Lanczos resize from `725 × 860` to `420 × 498`.
 - alpha mask before resize:
-  - left edge smoothstep feather: `32 px`
-  - top edge smoothstep feather: `16 px`
-  - floor/bottom falloff: full through crop `y=690`, smooth fade to transparent at crop `y=840`
-  - right edge safety feather: `5 px`
-- encoder: Pillow AVIF `quality=45`, `speed=6`
-- file size: `7,726 bytes`
-- SHA-256: `7c50a841c958f5d7cf4620a10cfb868d35e9d5b05a8ebcdfd5772880093067c0`
+  - left edge smoothstep feather: `80 px`
+  - top edge smoothstep feather: `50 px`
+  - right edge safety feather: `8 px`
+  - floor/bottom falloff: full through crop `y=720`, smooth fade to transparent at crop `y=860`
+- encoder: Pillow AVIF `quality=38`, `speed=6`
+- file size: `5,824 bytes`
+- SHA-256: `4770ce77777bbd4113673fd30fe2ab70bce74bb92d128ccaa0ef104b19307e0c`
 
 ## Previous isolated Core — retained for audit/history, no longer the primary visual solution
 

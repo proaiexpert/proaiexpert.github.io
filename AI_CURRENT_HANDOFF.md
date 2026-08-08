@@ -209,6 +209,10 @@ Prototype acceptance means the C-shape direction is selected for production inte
 
 # NEXT EXECUTION GATE — HERO-ONLY PRODUCTION INTEGRATION
 
+Canonical full task:
+
+`docs/site-evolution/PROAI_EXPERT_HERO_C_SHAPE_PRODUCTION_INTEGRATION_TASK_2026-08-08.md`
+
 Goal:
 
 Port the accepted C-shape Hero deliberately into the real EN `/` and RU `/ru/` homepage while preserving all downstream homepage sections and current site invariants.
@@ -216,7 +220,7 @@ Port the accepted C-shape Hero deliberately into the real EN `/` and RU `/ru/` h
 The next specialist agent must:
 
 1. fetch the latest current `main` first;
-2. read this handoff plus the canonical Hero decision, reference, browser-prototype task and prototype-acceptance docs;
+2. read this handoff plus the canonical Hero decision, reference, browser-prototype task, prototype-acceptance and production-integration task docs;
 3. inspect current production homepage composition, especially `index.html`, `ru/index.html`, `_includes/homepage-current-en.html`, `_includes/homepage-current-ru.html`, current Hero-specific CSS/JS and shared Header System;
 4. create a dedicated Hero production-integration branch from the latest current `main`;
 5. deliberately port the accepted prototype implementation/assets into the real homepage Hero context rather than merging the prototype branch blindly;

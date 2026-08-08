@@ -115,6 +115,25 @@ Do not reopen strategy.
 5. Atmosphere — slightly deeper cinematic separation without more spectacle.
 6. CTA/UI typography — remove all generation artefacts.
 
+### Required output storage
+Save the refined R2 artifact in the **same Google Drive folder**:
+
+`ProAI Expert - Hero A+ Review - 2026-08-07`
+
+Required file name:
+
+`hero-a-plus-mockup-1440-r2.png`
+
+Also update the existing `README.md` in that folder with:
+- R2 filename;
+- date;
+- source R1 filename;
+- status `STATIC R2 — PENDING OWNER / ART DIRECTOR REVIEW`;
+- confirmation that no production code, main, V2 branch, PR or deploy was changed;
+- SHA-256 of the R2 PNG.
+
+Do not overwrite or delete R1.
+
 ### R2 rejection conditions
 Reject R2 if it becomes:
 - more sci-fi;

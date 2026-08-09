@@ -70,8 +70,10 @@ jobs:
           node tools/hero_r4_5_preview.mjs
           mkdir -p r4-6-owner-review
           cp r4-5-owner-review/R45_DESKTOP_STATIC.png r4-6-owner-review/R46_DESKTOP_STATIC.png
-          cp r4-5-owner-review/R45_DESKTOP_MOTION.mp4 r4-6-owner-review/R46_DESKTOP_MOTION.mp4
           cp r4-5-owner-review/R45_MOBILE_STATIC.png r4-6-owner-review/R46_MOBILE_STATIC.png
+          ffmpeg -loglevel error -ss 1.10 -i r4-5-owner-review/R45_DESKTOP_MOTION.mp4 \
+            -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -movflags +faststart \
+            r4-6-owner-review/R46_DESKTOP_MOTION.mp4
 
       - name: Validate dimensions and motion duration
         shell: bash

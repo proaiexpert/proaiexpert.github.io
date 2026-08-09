@@ -1,0 +1,309 @@
+<script>
+(() => {
+  'use strict';
+
+  const root = document.documentElement;
+  const params = new URLSearchParams(location.search);
+  const requestedStatic = params.get('motion') === '0' || params.get('mode') === 'static';
+  const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const mobileGate = !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+  const stage = document.querySelector('[data-core-stage]');
+  const scene = document.querySelector('.hero-cshape__scene');
+  if (!stage || !scene) return;
+
+  const back = document.querySelector('[data-r45-back]');
+  const base = document.querySelector('[data-r45-base]');
+  const glass = document.querySelector('[data-r45-glass]');
+  const energy = document.querySelector('[data-r45-energy]');
+  const front = document.querySelector('[data-r45-front]');
+  const floor = document.querySelector('[data-r45-floor]');
+  const reflection = document.querySelector('[data-r45-reflection]');
+  const volumetric = document.querySelector('[data-r45-volumetric]');
+  const entryVolume = document.querySelector('[data-r45-entry-volume]');
+  const ingress = document.querySelector('[data-r45-ingress]');
+  const depthPacket = document.querySelector('[data-r45-depth-packet]');
+  const collector = document.querySelector('[data-r45-collector]');
+  const outputField = document.querySelector('[data-r45-output-field]');
+  const inputs = [0,1,2].map(i => document.querySelector(`[data-r45-input="${i}"]`));
+  const chambers = [0,1,2,3].map(i => document.querySelector(`[data-r45-chamber="${i}"]`));
+  const micros = [0,1,2].map(i => document.querySelector(`[data-r45-micro="${i}"]`));
+  const outputs = [0,1,2,3].map(i => document.querySelector(`[data-r45-output="${i}"]`));
+  const edges = [0,1,2].map(i => document.querySelector(`[data-r45-edge="${i}"]`));
+  const rail = Array.from(document.querySelectorAll('.hero-cshape__rail-item'));
+
+  if ([back,base,glass,energy,front,floor,reflection,volumetric,entryVolume,ingress,depthPacket,collector,outputField].some(x => !x)) return;
+  if (inputs.some(x => !x) || chambers.some(x => !x) || micros.some(x => !x) || outputs.some(x => !x)) return;
+
+  const clamp = (n,a=0,b=1) => Math.max(a,Math.min(b,n));
+  const smooth = t => { t=clamp(t); return t*t*(3-2*t); };
+  const smoother = t => { t=clamp(t); return t*t*t*(t*(t*6-15)+10); };
+  const bell = (x,c,w) => Math.exp(-Math.pow((x-c)/w,2));
+  const lerp = (a,b,t) => a + (b-a)*t;
+  const fadeWindow = (x,a,b,fade=180) => clamp((x-a)/fade) * clamp((b-x)/fade);
+
+  function setSceneVars(react=.03,floorV=.05,reflect=.04,warm=.018,haze=.07,glassV=.055,entry=.05,field=.04,collectorV=.10){
+    scene.style.setProperty('--r43-react',String(react));
+    scene.style.setProperty('--r43-floor',String(floorV));
+    scene.style.setProperty('--r43-reflect',String(reflect));
+    scene.style.setProperty('--r43-warm',String(warm));
+    scene.style.setProperty('--r43-haze',String(haze));
+    scene.style.setProperty('--r45-glass',String(glassV));
+    scene.style.setProperty('--r45-entry',String(entry));
+    scene.style.setProperty('--r45-field',String(field));
+    scene.style.setProperty('--r45-collector',String(collectorV));
+  }
+
+  function point(el,x,y,opacity=1,scale=1,blur=0,stretch=1){
+    if(!el) return;
+    el.style.left=`${(x/11.6).toFixed(3)}%`;
+    el.style.top=`${(y/9).toFixed(3)}%`;
+    el.style.opacity=String(clamp(opacity));
+    el.style.transform=`translate(-50%,-50%) scale(${scale.toFixed(3)}) scaleX(${stretch.toFixed(3)})`;
+    el.style.filter=`blur(${Math.max(0,blur).toFixed(2)}px)`;
+  }
+
+  function polyPoint(points,p){
+    p=clamp(p);
+    const scaled=p*(points.length-1);
+    const i=Math.min(points.length-2,Math.floor(scaled));
+    const t=scaled-i;
+    return [lerp(points[i][0],points[i+1][0],t),lerp(points[i][1],points[i+1][1],t)];
+  }
+
+  function quietFrame(){
+    inputs.forEach(x=>{x.style.opacity='0'});
+    depthPacket.style.opacity='0';
+    micros.forEach(x=>{x.style.opacity='0'});
+    chambers.forEach(x=>{x.style.opacity='0';x.style.transform='scale(.96)'});
+    ingress.style.opacity='0';
+    edges.forEach(x=>{if(x)x.style.opacity='0'});
+    outputs.forEach((x,i)=>{
+      x.classList.remove('is-active','is-resolved');
+      const pulse=x.querySelector('i');
+      if(pulse) pulse.style.transform='translateX(0) scaleX(.62)';
+      if(rail[i]) rail[i].classList.remove('is-active','is-resolved');
+    });
+  }
+
+  const parallaxMode = params.get('parallax') || 'medium';
+  const limits = {
+    safe:{yaw:.80,translate:1.8},
+    medium:{yaw:1.45,translate:3.1},
+    aggressive:{yaw:2.50,translate:5.0}
+  };
+  const limit = limits[parallaxMode] || limits.medium;
+  let pointerX=0,pointerY=0;
+
+  function applyParallax(T,enabled){
+    if(!enabled){
+      [back,base,glass,energy,front,floor,reflection].forEach(el=>{if(el)el.style.transform='none'});
+      scene.style.setProperty('--r43-x','0px');
+      scene.style.setProperty('--r43-y','0px');
+      return;
+    }
+
+    const autoX=.34*Math.sin(T/3180)+.13*Math.sin(T/6870+.7);
+    const autoY=.23*Math.sin(T/4970+1.15)+.08*Math.sin(T/8120+.3);
+    const nx=clamp(autoX+pointerX*.56,-1,1);
+    const ny=clamp(autoY+pointerY*.44,-1,1);
+    const tx=limit.translate;
+    const yaw=limit.yaw;
+
+    /* Base barely moves; separated registered layers carry most of the camera-life. */
+    base.style.transform=`translate3d(${(nx*tx*.08).toFixed(2)}px,${(ny*tx*.05).toFixed(2)}px,0)`;
+    back.style.transform=`perspective(1450px) translate3d(${(-nx*tx*.22).toFixed(2)}px,${(-ny*tx*.10).toFixed(2)}px,0) rotateY(${(-nx*yaw*.13).toFixed(3)}deg)`;
+    glass.style.transform=`perspective(1350px) translate3d(${(nx*tx*.42).toFixed(2)}px,${(ny*tx*.22).toFixed(2)}px,0) rotateY(${(nx*yaw*.24).toFixed(3)}deg)`;
+    energy.style.transform=`translate3d(${(nx*tx*.56).toFixed(2)}px,${(ny*tx*.30).toFixed(2)}px,0)`;
+    front.style.transform=`perspective(1250px) translate3d(${(nx*tx*.78).toFixed(2)}px,${(ny*tx*.36).toFixed(2)}px,0) rotateY(${(nx*yaw*.36).toFixed(3)}deg)`;
+    floor.style.transform=`translate3d(${(nx*tx*.13).toFixed(2)}px,0,0) scaleX(calc(1 + var(--r43-floor) * .055))`;
+    reflection.style.transform=`translate3d(${(nx*tx*.10).toFixed(2)}px,0,0) skewX(-11deg) scaleX(calc(.92 + var(--r43-reflect) * .10))`;
+    scene.style.setProperty('--r43-x',`${(nx*tx*.10).toFixed(2)}px`);
+    scene.style.setProperty('--r43-y',`${(ny*tx*.06).toFixed(2)}px`);
+  }
+
+  const CYCLE=13200;
+  const depthPath=[[515,462],[565,420],[620,405],[666,442],[700,487],[752,506],[816,466]];
+  const entryStarts=[[235,477],[205,508],[250,536]];
+
+  function setFrame(ms){
+    const T=((ms%CYCLE)+CYCLE)%CYCLE;
+    quietFrame();
+
+    const breathA=.5+.5*Math.sin(T/1870+.4);
+    const breathB=.5+.5*Math.sin(T/2630+1.1);
+    const breathC=.5+.5*Math.sin(T/3710+.2);
+    setSceneVars(.025+.014*breathA,.046+.012*breathB,.034+.010*breathC,.018+.005*breathB,.060+.020*breathC,.055+.018*breathA,.045+.018*breathB,.036+.012*breathC,.095+.020*breathA);
+
+    const motionEnabled = !(requestedStatic || reduced || mobileGate);
+    applyParallax(T,motionEnabled);
+    if(!motionEnabled) return;
+
+    /* 0.0–2.0s: deliberate calm. 2.0–3.0s: short independent information fragments. */
+    inputs.forEach((el,i)=>{
+      const start=2000+i*115;
+      const end=2880+i*55;
+      if(T>=start && T<=end){
+        const p=smoother((T-start)/(end-start));
+        const life=fadeWindow(T,start,end,145);
+        const x=lerp(entryStarts[i][0],515,p);
+        const y=lerp(entryStarts[i][1],462,p);
+        const depth=.92-.15*p;
+        point(el,x,y,.92*life,depth,.18+.42*p,1.10+.30*p);
+      }
+    });
+    const entryPulse=bell(T,2500,520);
+    const ingressPulse=bell(T,2910,310);
+    entryVolume.style.opacity=String(.035+.22*entryPulse);
+    ingress.style.opacity=String(.50*ingressPulse);
+
+    /* 2.65–4.55s: depth ingress. The packet softens/scales in deep zones and is physically occluded by front metal. */
+    if(T>=2650 && T<=4550){
+      const p=smoother((T-2650)/1900);
+      const [x,y]=polyPoint(depthPath,p);
+      const deep=bell(p,.55,.25);
+      const life=fadeWindow(T,2650,4550,170);
+      point(depthPacket,x,y,.88*life,.88-.30*deep,.38+1.55*deep,1.0+.18*(1-deep));
+    }
+
+    /* 4.05–5.55s: architecture performs processing through local chamber activation and micro-stream splitting. */
+    let chamberSum=0;
+    chambers.forEach((el,i)=>{
+      const center=4210+i*285;
+      const v=bell(T,center,390);
+      chamberSum+=v;
+      el.style.opacity=String(.08+.62*v);
+      el.style.transform=`scale(${(.95+.07*v).toFixed(3)})`;
+      el.style.filter=`blur(${(i===2?14:9)+(1-v)*2.2}px)`;
+    });
+
+    micros.forEach((el,i)=>{
+      const start=4380+i*105;
+      const end=5210+i*70;
+      if(T>=start && T<=end){
+        const p=smoother((T-start)/(end-start));
+        const life=fadeWindow(T,start,end,130);
+        const starts=[[605,433],[617,463],[610,493]];
+        const ends=[[767,449],[780,466],[760,489]];
+        point(el,lerp(starts[i][0],ends[i][0],p),lerp(starts[i][1],ends[i][1],p),.76*life,.82-.12*i,.45+.30*i,1.05+.22*p);
+      }
+    });
+
+    /* Material response follows chamber energy by ~80–110ms; floor/reflection lag further. */
+    const top=bell(T,4300,520);
+    const mid=bell(T,4590,560);
+    const deep=bell(T,4870,590);
+    const lower=bell(T,5160,560);
+    const material=clamp(.06+.29*top+.25*mid+.30*deep+.27*lower,0,1);
+    const floorV=clamp(.05+.15*bell(T,4760,620)+.31*bell(T,5290,660),0,1);
+    const reflectV=clamp(.04+.11*bell(T,4840,650)+.26*bell(T,5400,700),0,1);
+    const haze=clamp(.07+.16*mid+.20*deep+.12*lower,0,1);
+    const glassV=clamp(.06+.24*top+.32*mid+.38*deep+.25*lower,0,1);
+    const warm=.018+.022*bell(T,4860,1320);
+    setSceneVars(material,floorV,reflectV,warm,haze,glassV,.045+.18*entryPulse,.04,.10);
+
+    if(edges[0]) edges[0].style.opacity=String(.08+.40*bell(T,4380,460));
+    if(edges[1]) edges[1].style.opacity=String(.05+.38*bell(T,4900,500));
+    if(edges[2]) edges[2].style.opacity=String(.05+.35*bell(T,5270,480));
+
+    /* 5.2–5.95s: compression into a controlled local collector. */
+    const compress=bell(T,5580,430);
+    scene.style.setProperty('--r45-collector',String(.10+.56*compress));
+    scene.style.setProperty('--r45-field',String(.035+.10*compress));
+
+    /* 5.55–6.85s: compact local output pulses. Stages overlap by ~170ms; no long fan of connectors. */
+    outputs.forEach((el,i)=>{
+      const start=5550+i*170;
+      const draw=470;
+      const p=smooth((T-start)/draw);
+      const active=T>=start && T<start+760;
+      const resolved=T>=start+620 && T<10100;
+      const pulse=el.querySelector('i');
+      if(pulse) pulse.style.transform=`translateX(${(p*9).toFixed(2)}px) scaleX(${(.62+.42*p).toFixed(3)})`;
+      if(active){
+        el.classList.add('is-active');
+        if(rail[i]) rail[i].classList.add('is-active');
+      } else if(resolved){
+        el.classList.add('is-resolved');
+        if(rail[i]) rail[i].classList.add('is-resolved');
+      }
+    });
+
+    const outputCascade=bell(T,6250,900);
+    if(T>=5350 && T<=7600){
+      setSceneVars(
+        clamp(material+.18*outputCascade,0,1),
+        clamp(floorV+.14*bell(T,6420,980),0,1),
+        clamp(reflectV+.13*bell(T,6530,1050),0,1),
+        warm,
+        clamp(haze+.12*outputCascade,0,1),
+        clamp(glassV+.12*outputCascade,0,1),
+        .04,
+        .04+.12*outputCascade,
+        .10+.48*compress+.16*outputCascade
+      );
+    }
+
+    /* 6.9s onward: resolved calm. Independent low-amplitude systems continue; no obvious tech-demo loop. */
+    if(T>=6900){
+      const settle=smooth((T-6900)/1900);
+      const quietReact=.038+.010*breathA;
+      const quietFloor=.052+.009*breathB;
+      const quietReflect=.038+.008*breathC;
+      const quietGlass=.074+.012*breathA;
+      setSceneVars(
+        lerp(.12,quietReact,settle),
+        lerp(.11,quietFloor,settle),
+        lerp(.09,quietReflect,settle),
+        .019+.004*breathB,
+        lerp(.12,.065+.014*breathC,settle),
+        lerp(.16,quietGlass,settle),
+        .035+.008*breathB,
+        .045+.010*breathC,
+        lerp(.20,.105+.014*breathA,settle)
+      );
+    }
+  }
+
+  if(!requestedStatic && !reduced && !mobileGate && window.matchMedia?.('(pointer:fine)').matches){
+    stage.addEventListener('pointermove',e=>{
+      const r=stage.getBoundingClientRect();
+      pointerX=clamp(((e.clientX-r.left)/r.width)*2-1,-1,1);
+      pointerY=clamp(((e.clientY-r.top)/r.height)*2-1,-1,1);
+    },{passive:true});
+    stage.addEventListener('pointerleave',()=>{pointerX=0;pointerY=0},{passive:true});
+  }
+
+  window.__r45SetFrame=setFrame;
+  window.__r45ParallaxMode=parallaxMode;
+  window.__r45ParallaxLimit=limit;
+
+  if(requestedStatic || mobileGate){
+    root.classList.add('hero-r43-static','hero-r45-static');
+    setFrame(0);
+    return;
+  }
+  if(reduced){
+    root.classList.add('hero-r43-reduced','hero-r45-reduced');
+    setFrame(0);
+    return;
+  }
+
+  root.classList.add('hero-r43-motion','hero-r45-motion','hero-r43-intro');
+  setTimeout(()=>root.classList.remove('hero-r43-intro'),1200);
+
+  const explicit=params.get('previewT');
+  if(explicit!==null){
+    setFrame(Number(explicit)||0);
+    return;
+  }
+
+  const start=performance.now();
+  let raf=0;
+  const loop=now=>{
+    setFrame(now-start);
+    raf=requestAnimationFrame(loop);
+  };
+  raf=requestAnimationFrame(loop);
+  addEventListener('pagehide',()=>cancelAnimationFrame(raf),{once:true});
+})();
+</script>

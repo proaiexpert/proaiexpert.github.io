@@ -1,0 +1,1 @@
+if(reduceQuery && typeof reduceQuery.addEventListener==='function'){reduceQuery.addEventListener('change',(event)=>{if(event.matches)stopAllMotion();});}window.addEventListener('pagehide',stopAllMotion,{once:true});})();

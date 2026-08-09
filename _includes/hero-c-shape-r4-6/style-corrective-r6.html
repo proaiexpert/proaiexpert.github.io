@@ -1,0 +1,42 @@
+<style>
+/* R4.6 corrective refinement 6 — matte without a visible matte shape. */
+
+/* The silhouette owns geometry only. Dark transport pixels should blend away into the hero field. */
+.hero-r45__scene-plane--back,
+.hero-r45__scene-plane--front,
+.hero-r45__scene-plane--base .hero-r45__scene-picture{
+  mix-blend-mode:lighten!important;
+}
+.hero-r45__scene-plane--back{opacity:.68;filter:brightness(.90) saturate(.88)}
+.hero-r45__scene-plane--front{opacity:1;filter:contrast(1.03) saturate(.95)}
+
+/* The old black cleanup patches are visually worse than the short source-local signal fragments.
+   They are therefore removed entirely. No dark bar / no dark output panel. */
+.hero-r45__route-neutralizer,
+.hero-r45__output-cleaner{
+  display:none!important;
+}
+
+/* Keep source content away from the cropped legacy text at the extreme right while preserving metal. */
+.hero-r45__scene-plane--back,
+.hero-r45__scene-plane--base,
+.hero-r45__scene-plane--glass,
+.hero-r45__scene-plane--front{
+  clip-path:polygon(
+    10.61% 26.28%, 12.79% 24.36%, 65.03% 3.59%, 68.03% 5.64%,
+    72.79% 8.46%, 77.28% 10.00%, 92.65% 18.33%, 93.06% 21.67%,
+    96.60% 25.77%, 97.14% 34.62%, 97.20% 38.2%, 97.20% 79.2%,
+    97.10% 83.3%, 97.01% 88.85%, 75.78% 90.13%, 69.93% 91.03%,
+    64.08% 90.00%, 12.79% 67.44%, 8.44% 66.03%, 8.44% 36.28%,
+    12.93% 32.82%
+  )!important;
+  -webkit-clip-path:polygon(
+    10.61% 26.28%, 12.79% 24.36%, 65.03% 3.59%, 68.03% 5.64%,
+    72.79% 8.46%, 77.28% 10.00%, 92.65% 18.33%, 93.06% 21.67%,
+    96.60% 25.77%, 97.14% 34.62%, 97.20% 38.2%, 97.20% 79.2%,
+    97.10% 83.3%, 97.01% 88.85%, 75.78% 90.13%, 69.93% 91.03%,
+    64.08% 90.00%, 12.79% 67.44%, 8.44% 66.03%, 8.44% 36.28%,
+    12.93% 32.82%
+  )!important;
+}
+</style>

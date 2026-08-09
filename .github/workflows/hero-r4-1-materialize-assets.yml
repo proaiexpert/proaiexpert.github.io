@@ -1,0 +1,49 @@
+name: Materialize Hero R4.1 scene assets
+
+on:
+  pull_request:
+    branches:
+      - agent/hero-r4-1-materialize-base
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact R4.1 target branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/hero-r4-1-premium-owner-polish
+          fetch-depth: 0
+
+      - name: Install ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+
+      - name: Decode canonical R4 integrated scene payloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/img/hero-c-shape
+          cat _includes/hero-c-shape-r4/scene-desktop-avif-*.b64 | tr -d '\r\n ' | base64 -d > assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif
+          cat _includes/hero-c-shape-r4/scene-mobile-avif-*.b64 | tr -d '\r\n ' | base64 -d > assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif
+          ffmpeg -loglevel error -y -i assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif -c:v libwebp -quality 90 assets/img/hero-c-shape/scene-r4-1-integrated-desktop.webp
+          ffmpeg -loglevel error -y -i assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif -c:v libwebp -quality 90 assets/img/hero-c-shape/scene-r4-1-integrated-mobile.webp
+          file assets/img/hero-c-shape/scene-r4-1-integrated-*.*
+          sha256sum assets/img/hero-c-shape/scene-r4-1-integrated-*.*
+
+      - name: Commit materialized binary assets to R4.1 branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'proai-r4-1-asset-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif assets/img/hero-c-shape/scene-r4-1-integrated-desktop.webp assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif assets/img/hero-c-shape/scene-r4-1-integrated-mobile.webp
+          if git diff --cached --quiet; then
+            echo 'Binary assets already materialized.'
+            exit 0
+          fi
+          git commit -m 'Materialize R4.1 integrated scene assets'
+          git push origin HEAD:agent/hero-r4-1-premium-owner-polish

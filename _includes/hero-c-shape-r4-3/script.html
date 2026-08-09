@@ -1,0 +1,265 @@
+<script>
+(() => {
+  'use strict';
+
+  const root = document.documentElement;
+  const params = new URLSearchParams(location.search);
+  const requestedStatic = params.get('motion') === '0' || params.get('mode') === 'static';
+  const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const stage = document.querySelector('[data-core-stage]');
+  const scene = document.querySelector('.hero-cshape__scene');
+  if (!stage || !scene) return;
+
+  const entries = [0,1,2].map(i => ({
+    guide: document.querySelector(`[data-r43-entry="${i}"]`),
+    glow: document.querySelector(`[data-r43-entry-glow="${i}"]`),
+    core: document.querySelector(`[data-r43-entry-core="${i}"]`),
+    packet: document.querySelector(`[data-r43-inpacket="${i}"]`)
+  }));
+  const channels = [0,1,2,3].map(i => ({
+    glow: document.querySelector(`[data-r43-channel="${i}"]`),
+    core: document.querySelector(`[data-r43-channel-core="${i}"]`)
+  }));
+  const compress = [0,1,2].map(i => document.querySelector(`[data-r43-compress="${i}"]`));
+  const collectorCore = document.querySelector('[data-r43-collector-core]');
+  const collectorHalo = document.querySelector('[data-r43-collector-halo]');
+  const branches = [0,1,2,3].map(i => ({
+    glow: document.querySelector(`[data-r43-branch-glow="${i}"]`),
+    core: document.querySelector(`[data-r43-branch="${i}"]`),
+    node: document.querySelector(`[data-r43-node="${i}"]`),
+    packet: document.querySelector(`[data-r43-outpacket="${i}"]`)
+  }));
+  const rail = Array.from(document.querySelectorAll('.hero-cshape__rail-item'));
+
+  if (entries.some(x => !x.guide || !x.glow || !x.core || !x.packet) || channels.some(x => !x.glow || !x.core)) return;
+
+  const clamp = (n,a=0,b=1) => Math.max(a,Math.min(b,n));
+  const smooth = t => { t=clamp(t); return t*t*(3-2*t); };
+  const smoother = t => { t=clamp(t); return t*t*t*(t*(t*6-15)+10); };
+  const bell = (x,c,w) => Math.exp(-Math.pow((x-c)/w,2));
+  const fadeWindow = (x,a,b,fade=300) => clamp((x-a)/fade) * clamp((b-x)/fade);
+
+  const entryLengths = entries.map(x => x.guide.getTotalLength());
+  const channelLengths = channels.map(x => x.core.getTotalLength());
+  const compressLengths = compress.map(x => x ? x.getTotalLength() : 0);
+  const branchLengths = branches.map(x => x.core ? x.core.getTotalLength() : 0);
+
+  function dash(path,len,p0,p1,opacity){
+    if(!path || !len) return;
+    const a=clamp(p0)*len;
+    const b=clamp(p1)*len;
+    const l=Math.max(0,b-a);
+    path.style.strokeDasharray=`${l.toFixed(2)} ${(len+5).toFixed(2)}`;
+    path.style.strokeDashoffset=`${(-a).toFixed(2)}`;
+    path.style.opacity=String(clamp(opacity,0,1));
+  }
+
+  function place(group,path,progress,opacity=1){
+    if(!group || !path) return;
+    const len=path.getTotalLength();
+    const p=path.getPointAtLength(len*clamp(progress));
+    group.setAttribute('transform',`translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})`);
+    group.style.opacity=String(clamp(opacity,0,1));
+  }
+
+  function setSceneVars(react=.035,floor=.055,reflect=.045,warm=.018,haze=.08){
+    scene.style.setProperty('--r43-react',String(react));
+    scene.style.setProperty('--r43-floor',String(floor));
+    scene.style.setProperty('--r43-reflect',String(reflect));
+    scene.style.setProperty('--r43-warm',String(warm));
+    scene.style.setProperty('--r43-haze',String(haze));
+  }
+
+  function resetFrame(){
+    entries.forEach((x,i)=>{
+      x.packet.style.opacity='0';
+      dash(x.glow,entryLengths[i],0,0,0);
+      dash(x.core,entryLengths[i],0,0,0);
+    });
+    channels.forEach((x,i)=>{
+      dash(x.glow,channelLengths[i],0,0,0);
+      dash(x.core,channelLengths[i],0,0,0);
+    });
+    compress.forEach((x,i)=>dash(x,compressLengths[i],0,0,0));
+    if(collectorCore) collectorCore.style.opacity='.2';
+    if(collectorHalo) collectorHalo.style.opacity='0';
+    branches.forEach((x,i)=>{
+      dash(x.core,branchLengths[i],0,1,.13);
+      dash(x.glow,branchLengths[i],0,0,0);
+      if(x.packet) x.packet.style.opacity='0';
+      if(x.node){x.node.style.opacity='.28';x.node.style.filter='none';}
+    });
+    rail.forEach(x=>x.classList.remove('is-active','is-resolved'));
+  }
+
+  function drawTravel(pathGlow,pathCore,len,progress,life,tailGlow=.24,tailCore=.09){
+    const g0=Math.max(0,progress-tailGlow);
+    const c0=Math.max(0,progress-tailCore);
+    dash(pathGlow,len,g0,progress,.25*life);
+    dash(pathCore,len,c0,progress,.92*life);
+  }
+
+  /* 12.8s narrative: 2.0 entry, 4.6 processing, 2.8 distribution, 3.4 calm. */
+  const CYCLE=12800;
+
+  function setFrame(ms){
+    const T=((ms%CYCLE)+CYCLE)%CYCLE;
+    resetFrame();
+
+    const idleWave=.5+.5*Math.sin(T/1580);
+    setSceneVars(.025+.018*idleWave,.045+.015*idleWave,.035+.012*idleWave,.014+.006*(.5+.5*Math.sin(T/2200)),.06+.025*idleWave);
+
+    if(requestedStatic || reduced) return;
+
+    /* A — independent inputs. No permanent wire. */
+    entries.forEach((x,i)=>{
+      const start=520+i*170;
+      const end=1900+i*40;
+      if(T>start && T<end){
+        const p=smoother((T-start)/(end-start));
+        const life=fadeWindow(T,start,end,260);
+        place(x.packet,x.guide,p,.92*life);
+        drawTravel(x.glow,x.core,entryLengths[i],p,life,.20,.072);
+      }
+    });
+
+    /* Small causal spill reaches the copy-side as inputs approach the Core. */
+    if(T>900 && T<2400){
+      const ingress=bell(T,1830,650);
+      setSceneVars(.04+.18*ingress,.055+.08*ingress,.04+.05*ingress,.015+.006*ingress,.07+.12*ingress);
+    }
+
+    /* B/C — source-aligned architectural channels wake in sequence. */
+    if(T>1700 && T<5600){
+      channels.forEach((x,i)=>{
+        const start=1850+i*320;
+        const end=start+2050;
+        const p=smoother((T-start)/1250);
+        const life=fadeWindow(T,start,end,330);
+        const tail=i===2?.31:.27;
+        drawTravel(x.glow,x.core,channelLengths[i],p,life,tail,.10);
+      });
+
+      /* Physical response follows the signal, not a generic global glow. */
+      const top=bell(T,2550,620);
+      const mid=bell(T,3250,700);
+      const deep=bell(T,3800,720);
+      const lower=bell(T,4450,700);
+      const react=clamp(.06+.42*top+.26*mid+.34*deep+.31*lower,0,1);
+      const floor=clamp(.06+.16*mid+.42*lower,0,1);
+      const reflect=clamp(.045+.12*mid+.34*bell(T,4580,760),0,1);
+      const haze=clamp(.08+.20*mid+.22*deep,0,1);
+      const warm=.014+.026*bell(T,3600,1500);
+      setSceneVars(react,floor,reflect,warm,haze);
+    }
+
+    /* D — controlled compression/recombination. */
+    if(T>4550 && T<6250){
+      compress.forEach((path,i)=>{
+        const p=smooth((T-(4720+i*110))/680);
+        const life=fadeWindow(T,4580+i*80,6240,240);
+        dash(path,compressLengths[i],0,p,.62*life);
+      });
+      const c=bell(T,5650,520);
+      if(collectorCore) collectorCore.style.opacity=String(.28+.72*c);
+      if(collectorHalo) collectorHalo.style.opacity=String(.48*c);
+      setSceneVars(.16+.62*c,.13+.34*c,.10+.30*bell(T,5760,610),.02+.023*c,.13+.32*c);
+    }
+
+    /* E/F — four controlled outputs. Previous stages settle as resolved. */
+    branches.forEach((x,i)=>{
+      const start=5900+i*500;
+      const draw=700;
+      const p=smooth((T-start)/draw);
+      const active=T>=start && T<start+1180;
+      const resolved=T>=start+900 && T<9250;
+      const life=clamp(1-(T-(start+1320))/650);
+
+      dash(x.core,branchLengths[i],0,p,.14+.61*p*life);
+      dash(x.glow,branchLengths[i],Math.max(0,p-.22),p,.24*life);
+
+      if(T>=start && T<start+980){
+        place(x.packet,x.core,p,.9*life);
+      }
+      if(x.node){
+        x.node.style.opacity=active?'1':resolved?'.62':'.28';
+        x.node.style.filter=active?'drop-shadow(0 0 6px rgba(107,231,255,.68))':resolved?'drop-shadow(0 0 3px rgba(107,231,255,.18))':'none';
+      }
+      if(rail[i]){
+        if(active) rail[i].classList.add('is-active');
+        else if(resolved) rail[i].classList.add('is-resolved');
+      }
+    });
+
+    if(T>6000 && T<9300){
+      const cascade=bell(T,7440,1550);
+      setSceneVars(.10+.28*cascade,.08+.20*cascade,.06+.18*bell(T,7580,1700),.018+.014*cascade,.09+.18*cascade);
+    }
+
+    /* G — settle into quiet, living idle. */
+    if(T>=9300){
+      const settle=smooth((T-9300)/2100);
+      const breathe=.5+.5*Math.sin(T/1450);
+      setSceneVars(.09*(1-settle)+.027+.013*breathe,.10*(1-settle)+.045+.012*breathe,.08*(1-settle)+.035+.01*breathe,.016+.005*breathe,.10*(1-settle)+.06+.02*breathe);
+    }
+  }
+
+  /* Controlled parallax ladder. Default is the safe baseline from the lock. */
+  const parallaxMode=params.get('parallax')||'safe';
+  const limits={
+    safe:{yaw:.72,pitch:.34,translate:1.6},
+    medium:{yaw:1.35,pitch:.68,translate:3.0},
+    aggressive:{yaw:2.55,pitch:1.25,translate:5.0}
+  };
+  const limit=limits[parallaxMode]||limits.safe;
+
+  function setPointerVars(nx=0,ny=0){
+    scene.style.setProperty('--r43-yaw',`${(nx*limit.yaw).toFixed(3)}deg`);
+    scene.style.setProperty('--r43-pitch',`${(-ny*limit.pitch).toFixed(3)}deg`);
+    scene.style.setProperty('--r43-x',`${(nx*limit.translate).toFixed(2)}px`);
+    scene.style.setProperty('--r43-y',`${(ny*limit.translate*.62).toFixed(2)}px`);
+  }
+
+  if(!requestedStatic && !reduced && window.matchMedia?.('(pointer:fine)').matches){
+    stage.addEventListener('pointermove',e=>{
+      const r=stage.getBoundingClientRect();
+      const nx=clamp(((e.clientX-r.left)/r.width)*2-1,-1,1);
+      const ny=clamp(((e.clientY-r.top)/r.height)*2-1,-1,1);
+      setPointerVars(nx,ny);
+    },{passive:true});
+    stage.addEventListener('pointerleave',()=>setPointerVars(0,0),{passive:true});
+  }
+
+  window.__r43SetFrame=setFrame;
+  window.__r43ParallaxMode=parallaxMode;
+
+  if(requestedStatic){
+    root.classList.add('hero-r43-static');
+    setFrame(0);
+    return;
+  }
+  if(reduced){
+    root.classList.add('hero-r43-reduced');
+    setFrame(0);
+    return;
+  }
+
+  root.classList.add('hero-r43-motion','hero-r43-intro');
+  setTimeout(()=>root.classList.remove('hero-r43-intro'),1200);
+
+  const explicit=params.get('previewT');
+  if(explicit!==null){
+    setFrame(Number(explicit)||0);
+    return;
+  }
+
+  const start=performance.now();
+  let raf=0;
+  const loop=now=>{
+    setFrame(now-start);
+    raf=requestAnimationFrame(loop);
+  };
+  raf=requestAnimationFrame(loop);
+  addEventListener('pagehide',()=>cancelAnimationFrame(raf),{once:true});
+})();
+</script>

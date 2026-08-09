@@ -1,0 +1,150 @@
+<style>
+/* R4.6 — clean-plate corrective pass.
+   Goals: remove cleanup artifacts/seams, reduce Core scale, align rail with the aperture,
+   suppress obvious overlay motion, and bias the scene toward material consequence. */
+
+/* One atmospheric field across copy + visual. Avoid a visible image-column boundary. */
+.hero-cshape__shell{
+  isolation:isolate;
+}
+.hero-cshape__shell::after{
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:24%;
+  right:-8%;
+  top:17%;
+  bottom:7%;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse 58% 46% at 62% 51%,rgba(79,184,200,.075),rgba(38,94,104,.028) 43%,transparent 76%),
+    radial-gradient(ellipse 45% 35% at 73% 73%,rgba(177,126,76,.018),transparent 72%),
+    linear-gradient(90deg,transparent 0%,rgba(48,107,118,.014) 35%,rgba(84,183,198,.032) 72%,transparent 100%);
+  filter:blur(30px);
+  opacity:.92;
+}
+.hero-cshape__copy,
+.hero-cshape__visual{position:relative;z-index:1}
+
+/* The compositor is hidden until its source master has decoded. No mask-only first frame. */
+.hero-r45__desktop-stack{
+  left:10.2%;
+  top:3.2%;
+  width:76.6%;
+  opacity:0;
+  transition:none!important;
+  -webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,.93) 5.5%,#000 11% 94%,rgba(0,0,0,.94) 98%,rgba(0,0,0,.72) 100%);
+  mask-image:linear-gradient(90deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,.93) 5.5%,#000 11% 94%,rgba(0,0,0,.94) 98%,rgba(0,0,0,.72) 100%);
+}
+.hero-r45__desktop-stack.is-r46-ready{opacity:1}
+
+/* Replace the R4.5 black radial patches with broad spatial blends.
+   These still suppress baked legacy routing but no longer read as standalone ovals. */
+.hero-r45__route-neutralizer{
+  z-index:4;
+  left:-4%;
+  top:0;
+  width:52%;
+  height:100%;
+  border-radius:0;
+  background:linear-gradient(90deg,
+    rgba(4,5,6,1) 0%,
+    rgba(4,5,6,.998) 26%,
+    rgba(4,5,6,.986) 42%,
+    rgba(4,5,6,.90) 56%,
+    rgba(4,5,6,.58) 69%,
+    rgba(4,5,6,.16) 82%,
+    transparent 100%);
+  filter:blur(4px);
+  opacity:1;
+}
+.hero-r45__output-cleaner{
+  z-index:4;
+  left:74%;
+  top:0;
+  width:26%;
+  height:100%;
+  border-radius:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(4,6,7,.34) 18%,rgba(4,6,7,.83) 43%,rgba(4,6,7,.985) 74%,rgba(4,6,7,1) 100%);
+  filter:blur(4px);
+  opacity:.96;
+}
+
+/* Let the source disappear into the page rather than expose a rectangular raster edge. */
+.hero-r45__scene-plane > img,
+.hero-r45__scene-picture > img,
+.hero-r45__material-plane > img{
+  clip-path:inset(.4% 2.4% .6% .4% round 18px);
+}
+
+/* A slightly smaller Core creates floor/air below and prevents bottom clipping. */
+.hero-r43__floor{
+  left:14%;
+  right:-4%;
+  bottom:-.2%;
+  height:27%;
+  filter:blur(22px);
+}
+.hero-r43__reflection{
+  left:21%;
+  right:0;
+  bottom:.4%;
+  height:17%;
+  filter:blur(11px);
+}
+.hero-r43__volumetric{
+  left:31%;
+  top:25%;
+  width:61%;
+  height:50%;
+  opacity:calc(.022 + var(--r43-haze) * .29);
+}
+
+/* Reduce visible energy. Increase subtle material consequence instead. */
+.hero-r45__energy{opacity:.64}
+.hero-r45__scene-plane--glass{
+  opacity:calc(.052 + var(--r45-glass) * .56)!important;
+  filter:saturate(1.08) brightness(1.08) contrast(1.015);
+}
+.hero-r43__material-response--cyan{
+  opacity:calc(.018 + var(--r43-react) * .27)!important;
+}
+.hero-r43__material-response--warm{
+  opacity:calc(.016 + var(--r43-warm) * .68)!important;
+}
+.hero-r45__specular-response{opacity:.88}
+.hero-r45__edge-light{
+  background:radial-gradient(ellipse,rgba(190,241,245,.145),rgba(91,190,204,.033) 47%,transparent 75%);
+}
+
+/* Output rail is lowered to the real C aperture and tightened toward the physical output zone. */
+.hero-cshape__rail,
+.hero-cshape-page--ru .hero-cshape__rail{
+  top:32.8%;
+  right:-1.0%;
+  gap:13px;
+}
+.hero-r45__output--0{top:38.0%;transform:rotate(-5deg)}
+.hero-r45__output--1{top:50.5%;transform:rotate(-1deg)}
+.hero-r45__output--2{top:63.0%;transform:rotate(1deg)}
+.hero-r45__output--3{top:75.0%;transform:rotate(5deg)}
+.hero-r45__output{width:34px}
+.hero-r45__output i{width:24px;opacity:.055}
+.hero-r45__output.is-active i{opacity:.68}
+.hero-r45__output.is-active b{box-shadow:0 0 7px rgba(107,231,255,.34)}
+.hero-cshape__rail-item.is-active{text-shadow:0 0 9px rgba(107,231,255,.065)}
+
+/* Never resurrect obsolete R4.3 path choreography in this corrective pass. */
+.hero-r43__motion-svg{display:none!important}
+
+@media (max-width:900px){
+  .hero-cshape__shell::after{left:3%;right:-14%;top:39%;bottom:0;filter:blur(24px);opacity:.70}
+  .hero-r45__desktop-stack{display:none!important}
+  .hero-cshape__rail,
+  .hero-cshape-page--ru .hero-cshape__rail{top:auto}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .hero-r45__desktop-stack{opacity:1}
+}
+</style>

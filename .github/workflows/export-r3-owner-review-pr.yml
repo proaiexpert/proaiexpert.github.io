@@ -1,0 +1,25 @@
+name: Export R3 Owner Review PR
+
+on:
+  pull_request:
+    branches:
+      - agent/hero-r3-owner-review-transfer-base
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify standalone file
+        run: |
+          test -s PROAI_HERO_R3_OWNER_REVIEW.html
+          ! grep -q '/assets/' PROAI_HERO_R3_OWNER_REVIEW.html
+          grep -q 'data:image/avif;base64,' PROAI_HERO_R3_OWNER_REVIEW.html
+          grep -q 'data:font/woff2;base64,' PROAI_HERO_R3_OWNER_REVIEW.html
+          grep -q 'data-review-locale="ru"' PROAI_HERO_R3_OWNER_REVIEW.html
+          grep -q 'data-review-locale="en"' PROAI_HERO_R3_OWNER_REVIEW.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PROAI_HERO_R3_OWNER_REVIEW
+          path: PROAI_HERO_R3_OWNER_REVIEW.html
+          if-no-files-found: error

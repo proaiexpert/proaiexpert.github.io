@@ -1,0 +1,71 @@
+<style>
+/* R4.6 corrective refinement 5 — source-aware silhouette matte.
+   The approved raster remains pixel-identical inside the physical scene, but its rectangular
+   transport field is no longer allowed to exist in browser composition. */
+
+/* Do not mask the whole compositor: energy/output/material consequences must remain free in space. */
+.hero-r45__desktop-stack{
+  -webkit-mask-image:none!important;
+  mask-image:none!important;
+}
+
+/* Matte follows the actual outer physical envelope of the approved 735×780 crop.
+   It deliberately excludes the unused top/left/bottom rectangular source field. */
+.hero-r45__scene-plane--back,
+.hero-r45__scene-plane--base,
+.hero-r45__scene-plane--glass,
+.hero-r45__scene-plane--front{
+  -webkit-clip-path:polygon(
+    10.61% 26.28%, 12.79% 24.36%, 65.03% 3.59%, 68.03% 5.64%,
+    72.79% 8.46%, 77.28% 10.00%, 92.65% 18.33%, 93.06% 21.67%,
+    96.60% 25.77%, 97.14% 34.62%, 99.32% 37.69%, 99.05% 80.13%,
+    97.41% 83.33%, 97.01% 88.85%, 75.78% 90.13%, 69.93% 91.03%,
+    64.08% 90.00%, 12.79% 67.44%, 8.44% 66.03%, 8.44% 36.28%,
+    12.93% 32.82%
+  );
+  clip-path:polygon(
+    10.61% 26.28%, 12.79% 24.36%, 65.03% 3.59%, 68.03% 5.64%,
+    72.79% 8.46%, 77.28% 10.00%, 92.65% 18.33%, 93.06% 21.67%,
+    96.60% 25.77%, 97.14% 34.62%, 99.32% 37.69%, 99.05% 80.13%,
+    97.41% 83.33%, 97.01% 88.85%, 75.78% 90.13%, 69.93% 91.03%,
+    64.08% 90.00%, 12.79% 67.44%, 8.44% 66.03%, 8.44% 36.28%,
+    12.93% 32.82%
+  );
+}
+
+/* With the rectangular field removed, use normal material compositing again so graphite retains
+   real depth and shadow values instead of looking washed out by a global lighten key. */
+.hero-r45__scene-plane--back,
+.hero-r45__scene-plane--front,
+.hero-r45__scene-plane--base .hero-r45__scene-picture{
+  mix-blend-mode:normal!important;
+}
+.hero-r45__scene-plane--back{opacity:.66;filter:brightness(.86) saturate(.86)}
+.hero-r45__scene-plane--front{opacity:.995;filter:none}
+
+/* Remove transport-corner clipping from the actual image: the silhouette matte is now authoritative. */
+.hero-r45__scene-plane > img,
+.hero-r45__scene-picture > img,
+.hero-r45__material-plane > img{
+  clip-path:none!important;
+  -webkit-clip-path:none!important;
+}
+
+/* Local legacy-route cleanup remains only where the historical line enters/exits the object. */
+.hero-r45__route-neutralizer{
+  left:-1%;
+  top:53.1%;
+  width:42%;
+  height:4.1%;
+  background:linear-gradient(90deg,#050607 0 55%,rgba(5,6,7,.92) 73%,rgba(5,6,7,.38) 91%,transparent);
+  filter:blur(3px);
+}
+.hero-r45__output-cleaner{
+  left:81.5%;
+  top:28%;
+  width:18.5%;
+  height:45%;
+  background:linear-gradient(90deg,transparent,rgba(5,6,7,.44) 34%,rgba(5,6,7,.90) 70%,#050607);
+  filter:blur(5px);
+}
+</style>

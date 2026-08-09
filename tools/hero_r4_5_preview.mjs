@@ -77,7 +77,7 @@ async function ready(page, url) {
   await context.close();
 }
 
-// 3) Desktop motion — selected medium layered-parallax proof (~1.45° front-layer ceiling).
+// 3) Desktop motion — A/B-selected medium layered-parallax preset (1.45° control envelope).
 const videoDir = path.join(out, '.video-tmp');
 fs.mkdirSync(videoDir, { recursive: true });
 let webmPath;

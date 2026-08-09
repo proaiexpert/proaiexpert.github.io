@@ -1,9 +1,9 @@
-name: Hero R4.2 lean owner review
+name: Hero R4.4 lean owner review
 
 on:
   push:
     branches:
-      - agent/hero-r4-2-cinematic-motion-rebuild
+      - agent/hero-r4-4-premium-static-ui-material-polish
   workflow_dispatch:
 
 permissions:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout R4.2 branch
+      - name: Checkout R4.4 branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -46,7 +46,7 @@ jobs:
 
       - name: Serve preview
         run: |
-          python3 -m http.server 4173 --directory _site > /tmp/r42-http.log 2>&1 &
+          python3 -m http.server 4173 --directory _site > /tmp/r44-http.log 2>&1 &
           sleep 2
           curl --fail http://127.0.0.1:4173/hero-a-plus-c-shape-preview/ > /dev/null
 
@@ -56,14 +56,14 @@ jobs:
       - name: Upload lean owner-review package
         uses: actions/upload-artifact@v4
         with:
-          name: PROAI_HERO_R4_2_LEAN_OWNER_REVIEW
+          name: PROAI_HERO_R4_4_LEAN_OWNER_REVIEW
           path: |
-            r4-2-owner-review/R42_DESKTOP_STATIC.png
-            r4-2-owner-review/R42_MOBILE_STATIC.png
-            r4-2-owner-review/R42_CINEMATIC_MOTION_PREVIEW.mp4
+            r4-4-owner-review/R44_DESKTOP_STATIC.png
+            r4-4-owner-review/R44_MOBILE_STATIC.png
+            r4-4-owner-review/R44_DESKTOP_MOTION.mp4
           if-no-files-found: error
           retention-days: 7
 
       - name: Print server log on failure
         if: failure()
-        run: cat /tmp/r42-http.log || true
+        run: cat /tmp/r44-http.log || true

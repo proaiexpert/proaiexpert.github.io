@@ -1,21 +1,394 @@
 <style>
-/* Final R4.3 cleanup: the source raster contains a legacy external lead-in line.
-   Suppress only the free-space portion so the active choreography reads as discrete inputs,
-   while preserving the illuminated tunnel inside the locked Core asset. */
-.hero-r43__physical-scene::after{
+/* R4.4 — Premium Static + UI + Material Polish.
+   Preview-only refinement layered on top of the locked R4.3 implementation.
+   Goal: make the Hero visibly more expensive even with motion disabled. */
+
+:root{
+  --r44-cyan:#72e5f7;
+  --r44-steel:#9ab7bd;
+  --r44-warm:#d6a368;
+}
+
+/* ------------------------------------------------------------
+   1. Composition / spatial integration
+   ------------------------------------------------------------ */
+.hero-cshape__visual,
+.hero-cshape-page--ru .hero-cshape__visual{
+  transform:translateX(clamp(74px,6.45vw,101px));
+}
+
+.hero-cshape__shell::before{
+  content:"";
+  position:absolute;
+  z-index:0;
+  left:37.5%;
+  top:29%;
+  width:34%;
+  height:46%;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 58% 52%,rgba(96,203,220,.072),rgba(71,143,155,.026) 42%,transparent 73%),
+    linear-gradient(90deg,transparent 0%,rgba(92,185,200,.016) 28%,rgba(103,218,234,.047) 100%);
+  filter:blur(31px);
+  opacity:.95;
+}
+
+.hero-cshape__copy::after{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  right:-185px;
+  top:36%;
+  width:290px;
+  height:190px;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 100% 50%,rgba(92,210,228,.083),rgba(67,139,151,.026) 43%,transparent 73%);
+  filter:blur(28px);
+  opacity:.78;
+}
+
+.hero-r43__bridge{
+  left:-48%;
+  top:23%;
+  width:91%;
+  height:56%;
+  opacity:.84;
+  filter:blur(32px);
+  background:
+    radial-gradient(ellipse at 79% 53%,rgba(79,192,210,.09),rgba(48,112,123,.034) 41%,transparent 72%),
+    linear-gradient(90deg,transparent 3%,rgba(71,146,159,.018) 39%,rgba(102,214,230,.058) 100%);
+}
+.hero-r43__ambient{
+  opacity:.54;
+  background:
+    radial-gradient(ellipse at 57% 49%,rgba(82,202,220,.132),rgba(31,87,99,.043) 39%,transparent 71%),
+    radial-gradient(ellipse at 68% 23%,rgba(211,158,99,.028),transparent 38%),
+    radial-gradient(ellipse at 65% 77%,rgba(187,132,78,.018),transparent 45%);
+}
+
+/* ------------------------------------------------------------
+   2. Material grading / imperfect realism
+   ------------------------------------------------------------ */
+.hero-r43__base-picture img,
+.hero-r43__occluder .hero-cshape__scene-picture img{
+  filter:saturate(.93) contrast(1.045) brightness(.975);
+}
+
+.hero-r43__material-response--cyan{
+  opacity:calc(.026 + var(--r43-react) * .21);
+  filter:saturate(1.25) brightness(1.16) contrast(1.045);
+}
+.hero-r43__material-response--warm{
+  opacity:calc(.026 + var(--r43-warm) * .62);
+  filter:sepia(.52) saturate(1.18) hue-rotate(348deg) brightness(1.12) contrast(1.035);
+}
+
+/* Slow, non-uniform specular note across the graphite mass. */
+.hero-r43__physical-scene::before{
   content:"";
   position:absolute;
   z-index:3;
+  inset:8% 8% 12% 21%;
+  pointer-events:none;
+  background:
+    linear-gradient(111deg,transparent 18%,rgba(241,249,250,.020) 34%,rgba(184,230,237,.072) 46%,rgba(112,220,235,.026) 53%,transparent 68%),
+    radial-gradient(ellipse at 74% 22%,rgba(222,168,107,.040),transparent 24%);
+  -webkit-mask-image:radial-gradient(ellipse 66% 66% at 59% 48%,#000 0 44%,rgba(0,0,0,.82) 64%,transparent 92%);
+  mask-image:radial-gradient(ellipse 66% 66% at 59% 48%,#000 0 44%,rgba(0,0,0,.82) 64%,transparent 92%);
+  mix-blend-mode:screen;
+  filter:blur(.35px);
+  opacity:.78;
+  transform:translateX(-1.4%);
+}
+html.hero-r43-motion .hero-r43__physical-scene::before{
+  animation:r44SpecularLife 12.5s cubic-bezier(.42,0,.58,1) infinite alternate;
+}
+@keyframes r44SpecularLife{
+  0%{opacity:.55;transform:translateX(-2.1%) translateY(.2%)}
+  100%{opacity:.86;transform:translateX(1.2%) translateY(-.45%)}
+}
+
+/* Preserve R4.3 cleanup: suppress only the obsolete free-space lead-in baked into the raster. */
+.hero-r43__physical-scene::after{
+  content:"";
+  position:absolute;
+  z-index:4;
   left:-1%;
   top:51.2%;
   width:43%;
   height:10.5%;
   pointer-events:none;
-  background:linear-gradient(90deg,rgba(5,6,7,.985) 0%,rgba(5,6,7,.93) 62%,rgba(5,6,7,.55) 83%,transparent 100%);
+  background:linear-gradient(90deg,rgba(5,6,7,.986) 0%,rgba(5,6,7,.935) 62%,rgba(5,6,7,.56) 83%,transparent 100%);
   filter:blur(9px);
-  opacity:.88;
+  opacity:.89;
 }
-@media (max-width:900px){
-  .hero-r43__physical-scene::after{left:-3%;top:50.5%;width:39%;height:10%;opacity:.78;filter:blur(7px)}
+
+.hero-r43__grain{
+  opacity:.018;
+  mix-blend-mode:soft-light;
+}
+
+.hero-r43__floor{
+  left:20.5%;
+  right:8%;
+  height:22%;
+  background:
+    radial-gradient(ellipse at 56% 42%,rgba(100,217,233,.205),rgba(51,111,122,.062) 43%,transparent 74%),
+    radial-gradient(ellipse at 71% 52%,rgba(198,145,87,.025),transparent 37%);
+  opacity:calc(.064 + var(--r43-floor) * .24);
+}
+.hero-r43__reflection{
+  left:29%;
+  right:13%;
+  height:15%;
+  background:linear-gradient(90deg,transparent,rgba(100,218,233,.20) 31%,rgba(151,232,241,.105) 51%,rgba(205,159,104,.027) 69%,transparent);
+  opacity:calc(.034 + var(--r43-reflect) * .21);
+}
+.hero-r43__volumetric{
+  opacity:calc(.027 + var(--r43-haze) * .32);
+}
+
+/* ------------------------------------------------------------
+   3. Static output architecture must remain physically connected.
+   R4.3 hid the whole SVG in static mode; R4.4 keeps only the structural output layer.
+   ------------------------------------------------------------ */
+html.hero-r43-static .hero-r43__motion-svg,
+html.hero-r43-reduced .hero-r43__motion-svg{
+  display:block!important;
+}
+html.hero-r43-static .hero-r43__entry-guide,
+html.hero-r43-static .hero-r43__signal,
+html.hero-r43-static .hero-r43__channel,
+html.hero-r43-static .hero-r43__compress,
+html.hero-r43-static .hero-r43__packet,
+html.hero-r43-static .hero-r43__outpacket,
+html.hero-r43-static .hero-r43__collector-halo,
+html.hero-r43-reduced .hero-r43__entry-guide,
+html.hero-r43-reduced .hero-r43__signal,
+html.hero-r43-reduced .hero-r43__channel,
+html.hero-r43-reduced .hero-r43__compress,
+html.hero-r43-reduced .hero-r43__packet,
+html.hero-r43-reduced .hero-r43__outpacket,
+html.hero-r43-reduced .hero-r43__collector-halo{
+  opacity:0!important;
+}
+html.hero-r43-static .hero-r43__branch--glow,
+html.hero-r43-reduced .hero-r43__branch--glow{opacity:0!important}
+html.hero-r43-static .hero-r43__branch--core,
+html.hero-r43-reduced .hero-r43__branch--core{
+  opacity:.22!important;
+  stroke:rgba(108,219,233,.24)!important;
+}
+html.hero-r43-static .hero-r43__node,
+html.hero-r43-reduced .hero-r43__node{
+  opacity:.50!important;
+  fill:rgba(120,228,240,.32)!important;
+  stroke:rgba(119,223,236,.22)!important;
+}
+html.hero-r43-static .hero-r43__collector-core,
+html.hero-r43-reduced .hero-r43__collector-core{
+  opacity:.38!important;
+}
+
+/* ------------------------------------------------------------
+   4. Rail — calmer typography, clearer physical output relation
+   ------------------------------------------------------------ */
+.hero-cshape__rail,
+.hero-cshape-page--ru .hero-cshape__rail{
+  top:25.6%;
+  right:-1.9%;
+  width:216px;
+  gap:14px;
+}
+.hero-cshape-page--ru .hero-cshape__rail{width:232px}
+.hero-cshape__rail-item,
+.hero-cshape-page--ru .hero-cshape__rail-item{
+  min-height:58px;
+  grid-template-columns:35px 1fr;
+  gap:12px;
+  padding:8px 8px 8px 17px;
+  color:rgba(232,240,243,.60);
+  letter-spacing:.055em;
+}
+.hero-cshape__rail-item span{
+  color:rgba(119,222,236,.69);
+  font-size:14.5px;
+  font-weight:590;
+  letter-spacing:.015em;
+}
+.hero-cshape__rail-item strong{
+  font-weight:610;
+  letter-spacing:.06em;
+}
+.hero-cshape__rail-item::before{
+  left:-8px;
+  width:5px;
+  height:5px;
+  background:rgba(120,226,239,.34);
+}
+.hero-cshape__rail-item::after{
+  left:-3px;
+  width:20px;
+  opacity:.82;
+  background:linear-gradient(90deg,rgba(113,222,236,.23),transparent);
+}
+.hero-cshape__rail-item.is-active{
+  color:rgba(249,252,253,.98);
+}
+.hero-cshape__rail-item.is-resolved{
+  color:rgba(238,245,247,.80);
+}
+
+/* ------------------------------------------------------------
+   5. Typography — more editorial, less default SaaS
+   ------------------------------------------------------------ */
+.hero-cshape__eyebrow,
+.hero-cshape-page--ru .hero-cshape__eyebrow{
+  color:rgba(122,222,238,.82);
+  letter-spacing:.060em;
+  font-weight:610;
+}
+.hero-cshape__title,
+.hero-cshape-page--ru .hero-cshape__title{
+  max-width:605px;
+  font-size:clamp(46px,3.5vw,52px);
+  line-height:1.012;
+  font-variation-settings:"wght" 500;
+  letter-spacing:-.051em;
+}
+.hero-cshape__title span:first-child{letter-spacing:-.052em}
+.hero-cshape__title span:last-child{letter-spacing:-.046em}
+.hero-cshape-page--ru .hero-cshape__title{
+  font-size:clamp(44px,3.3vw,50px);
+  letter-spacing:-.043em;
+}
+.hero-cshape__lead,
+.hero-cshape-page--ru .hero-cshape__lead{
+  max-width:545px;
+  color:rgba(222,231,234,.665);
+  font-size:15.1px;
+  line-height:1.70;
+  font-weight:400;
+  letter-spacing:-.004em;
+  text-wrap:pretty;
+}
+.hero-cshape-page--ru .hero-cshape__lead{max-width:552px}
+
+/* ------------------------------------------------------------
+   6. CTA — material surface instead of generic outline button
+   ------------------------------------------------------------ */
+.hero-cshape__button--primary{
+  min-height:54px;
+  border-color:rgba(113,222,237,.47);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.030),rgba(255,255,255,.006) 58%,rgba(0,0,0,.055)),
+    linear-gradient(108deg,rgba(101,218,233,.035),transparent 41%,rgba(202,158,105,.014) 100%),
+    rgba(8,11,13,.84);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.040),
+    inset 0 -1px 0 rgba(92,215,230,.030),
+    0 16px 38px rgba(0,0,0,.28);
+  transition:border-color .3s ease,background .3s ease,box-shadow .3s ease,transform .3s cubic-bezier(.2,.7,.2,1);
+}
+.hero-cshape__button--primary::after{
+  opacity:.50;
+  border-color:rgba(121,226,240,.08);
+  box-shadow:inset 0 0 18px rgba(91,216,232,.022),0 0 18px rgba(91,216,232,.035);
+}
+.hero-cshape__button--primary:hover,
+.hero-cshape__button--primary:focus-visible{
+  transform:translateY(-1px);
+  border-color:rgba(129,232,245,.76);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.042),rgba(255,255,255,.008) 58%,rgba(0,0,0,.04)),
+    linear-gradient(108deg,rgba(101,218,233,.055),transparent 44%,rgba(202,158,105,.019) 100%),
+    rgba(8,11,13,.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.055),
+    inset 0 -1px 0 rgba(91,215,230,.042),
+    0 18px 42px rgba(0,0,0,.31),
+    0 0 22px rgba(93,220,236,.055);
+}
+.hero-cshape__button-arrow{
+  border-color:rgba(116,225,239,.24);
+  color:rgba(130,232,244,.92);
+  background:rgba(112,222,237,.018);
+}
+.hero-cshape__expectation{
+  color:rgba(221,231,234,.67);
+  font-size:12.3px;
+  line-height:1.50;
+}
+.hero-cshape__button--secondary{
+  color:rgba(237,243,245,.69);
+}
+.hero-cshape__accountability{
+  color:rgba(216,227,230,.55);
+  letter-spacing:.012em;
+}
+
+/* ------------------------------------------------------------
+   7. Header — quieter at rest, slightly richer material
+   ------------------------------------------------------------ */
+.hero-cshape-page .site-header{
+  background:linear-gradient(180deg,rgba(5,6,7,.91),rgba(5,6,7,.82));
+  border-bottom-color:rgba(255,255,255,.060);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+}
+.hero-cshape-page .site-header__locale{
+  color:rgba(232,239,241,.61);
+}
+.hero-cshape-page .site-header__cta{
+  border-color:rgba(111,218,232,.30);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,.004)),
+    rgba(8,11,13,.68);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+.hero-cshape-page .site-header__cta:hover,
+.hero-cshape-page .site-header__cta:focus-visible{
+  border-color:rgba(120,224,238,.56);
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.036),rgba(255,255,255,.006)),
+    rgba(8,11,13,.76);
+}
+
+/* ------------------------------------------------------------
+   8. Mobile — bring the signature Core into view earlier
+   ------------------------------------------------------------ */
+@media (max-width:900px) and (min-height:541px){
+  .hero-cshape__shell{gap:13px}
+  .hero-cshape__visual,.hero-cshape-page--ru .hero-cshape__visual{
+    transform:none;
+    margin-top:-12px;
+  }
+  .hero-cshape__scene{margin-top:-17px}
+  .hero-r43__bridge{left:-16%;top:-13%;width:112%;height:52%;opacity:.56}
+  .hero-cshape__rail,.hero-cshape-page--ru .hero-cshape__rail{top:auto;right:auto}
+}
+
+@media (max-width:430px) and (min-height:541px){
+  .hero-cshape{padding-top:101px}
+  .hero-cshape__eyebrow,.hero-cshape-page--ru .hero-cshape__eyebrow{margin-bottom:14px}
+  .hero-cshape__title,.hero-cshape-page--ru .hero-cshape__title{line-height:1.025}
+  .hero-cshape__lead,.hero-cshape-page--ru .hero-cshape__lead{
+    margin-top:16px;
+    font-size:14.45px;
+    line-height:1.50;
+  }
+  .hero-cshape__actions{margin-top:18px}
+  .hero-cshape__expectation{margin-top:8px;font-size:11.7px;line-height:1.42}
+  .hero-cshape__accountability{margin-top:14px;font-size:11.45px}
+  .hero-cshape__visual,.hero-cshape-page--ru .hero-cshape__visual{margin-top:-19px}
+  .hero-cshape__scene{margin-top:-20px}
+  .hero-r43__grain{opacity:.014}
+  .hero-r43__physical-scene::after{left:-3%;top:50.5%;width:39%;height:10%;opacity:.79;filter:blur(7px)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  html.hero-r43-reduced .hero-r43__motion-svg{display:block!important}
+  html.hero-r43-reduced .hero-r43__physical-scene::before{animation:none!important}
 }
 </style>

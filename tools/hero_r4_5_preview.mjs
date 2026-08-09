@@ -16,11 +16,17 @@ async function ready(page, url) {
   page.on('pageerror', error => pageErrors.push(String(error)));
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.evaluate(async () => { if (document.fonts?.ready) await document.fonts.ready; });
-  await page.waitForFunction(() => [...document.images].every(img => img.complete && img.naturalWidth > 0));
-  await page.waitForTimeout(250);
+  await page.waitForTimeout(300);
 
   const diagnostic = await page.evaluate(() => {
     const exists = selector => !!document.querySelector(selector);
+    const heroImages = [...document.querySelectorAll('.hero-cshape__scene img')].map((img, i) => ({
+      i,
+      complete: img.complete,
+      naturalWidth: img.naturalWidth,
+      naturalHeight: img.naturalHeight,
+      currentSrcPrefix: (img.currentSrc || img.src || '').slice(0, 36)
+    }));
     return {
       exported: typeof window.__r45SetFrame,
       stage: exists('[data-core-stage]'),
@@ -41,12 +47,16 @@ async function ready(page, url) {
       inputs: [0,1,2].map(i => exists(`[data-r45-input="${i}"]`)),
       chambers: [0,1,2,3].map(i => exists(`[data-r45-chamber="${i}"]`)),
       micros: [0,1,2].map(i => exists(`[data-r45-micro="${i}"]`)),
-      outputs: [0,1,2,3].map(i => exists(`[data-r45-output="${i}"]`))
+      outputs: [0,1,2,3].map(i => exists(`[data-r45-output="${i}"]`)),
+      heroImages
     };
   });
 
   if (pageErrors.length) throw new Error(`Browser script error(s): ${pageErrors.join(' | ')}`);
   if (diagnostic.exported !== 'function') throw new Error(`R4.5 compositor boot incomplete: ${JSON.stringify(diagnostic)}`);
+  if (diagnostic.heroImages.length < 5 || diagnostic.heroImages.some(img => !img.complete || img.naturalWidth < 1)) {
+    throw new Error(`R4.5 compositor raster incomplete: ${JSON.stringify(diagnostic.heroImages)}`);
+  }
 }
 
 // 1) Desktop static owner gate — R4.4 static/UI/material base preserved.

@@ -15,7 +15,67 @@
   filter:blur(9px);
   opacity:.88;
 }
+
+/* R4.3 finishing pass: make processing light local rather than a single global bloom.
+   The five soft zones correspond to entry/front, first inner layer, deep corridor,
+   rear processing and output. They are driven causally from script.html. */
+.hero-r43__volumetric{
+  left:34%;
+  top:27%;
+  width:56%;
+  height:48%;
+  opacity:1;
+  filter:blur(18px);
+  background:
+    radial-gradient(ellipse 18% 18% at 31% 48%,rgb(107 231 255 / calc(.010 + var(--r43-z0,0) * .125)) 0%,transparent 74%),
+    radial-gradient(ellipse 19% 17% at 43% 39%,rgb(107 231 255 / calc(.008 + var(--r43-z1,0) * .112)) 0%,transparent 75%),
+    radial-gradient(ellipse 23% 16% at 55% 51%,rgb(92 211 233 / calc(.007 + var(--r43-z2,0) * .102)) 0%,transparent 77%),
+    radial-gradient(ellipse 20% 18% at 68% 58%,rgb(98 220 239 / calc(.007 + var(--r43-z3,0) * .096)) 0%,transparent 76%),
+    radial-gradient(ellipse 17% 16% at 79% 50%,rgb(123 238 249 / calc(.008 + var(--r43-z4,0) * .118)) 0%,transparent 75%),
+    radial-gradient(ellipse 18% 13% at 84% var(--r43-hover-y,50%),rgb(125 239 251 / calc(var(--r43-hover-level,0) * .11)) 0%,transparent 76%);
+  mix-blend-mode:screen;
+}
+
+/* Selected-plane specular life. This is deliberately faint and never becomes a second UI color. */
+.hero-r43__physical-scene::before{
+  content:"";
+  position:absolute;
+  z-index:2;
+  inset:7% 8% 9% 12%;
+  pointer-events:none;
+  background:
+    linear-gradient(118deg,transparent 29%,rgb(185 230 237 / calc(.005 + var(--r43-spec,0) * .020)) 44%,transparent 56%),
+    radial-gradient(ellipse 17% 10% at 69% 24%,rgb(224 174 112 / calc(.003 + var(--r43-warm,0) * .12)) 0%,transparent 76%),
+    radial-gradient(ellipse 14% 8% at 47% 28%,rgb(213 162 106 / calc(.002 + var(--r43-warm,0) * .08)) 0%,transparent 77%);
+  -webkit-mask-image:radial-gradient(ellipse 72% 70% at 58% 49%,#000 0 58%,rgba(0,0,0,.52) 76%,transparent 100%);
+  mask-image:radial-gradient(ellipse 72% 70% at 58% 49%,#000 0 58%,rgba(0,0,0,.52) 76%,transparent 100%);
+  mix-blend-mode:screen;
+}
+.hero-r43__material-response--cyan{
+  filter:saturate(1.29) brightness(1.17) contrast(1.035) drop-shadow(.45px 0 rgba(99,196,255,.026)) drop-shadow(-.35px 0 rgba(231,171,116,.012));
+}
+
+/* Output system is almost absent at rest; hover/focus only wakes the local result path. */
+.hero-cshape__rail-item.is-hover{
+  color:rgba(246,250,251,.90);
+  text-shadow:0 0 12px rgba(107,231,255,.08);
+}
+.hero-cshape__rail-item.is-hover span{color:rgba(126,238,250,.92)}
+.hero-cshape__rail-item.is-hover::before{
+  background:rgba(129,240,251,.78);
+  box-shadow:0 0 8px rgba(107,231,255,.28);
+}
+
+/* Slightly stronger optical ownership of CTA microcopy without introducing more chrome. */
+.hero-cshape__expectation{color:rgba(214,225,228,.60)}
+
 @media (max-width:900px){
   .hero-r43__physical-scene::after{left:-3%;top:50.5%;width:39%;height:10%;opacity:.78;filter:blur(7px)}
+  .hero-r43__physical-scene::before{opacity:.48}
+  .hero-r43__volumetric{left:29%;top:29%;width:61%;height:46%;filter:blur(16px)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .hero-r43__physical-scene::before{opacity:.35}
 }
 </style>

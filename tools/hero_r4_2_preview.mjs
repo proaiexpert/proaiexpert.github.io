@@ -17,7 +17,7 @@ async function ready(page, url) {
   await page.waitForFunction(() => [...document.images].every(img => img.complete && img.naturalWidth > 0));
 }
 
-// 1) Desktop static owner check.
+// 1) Desktop static owner check — exactly 1440×900.
 {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
@@ -26,7 +26,7 @@ async function ready(page, url) {
   await context.close();
 }
 
-// 2) Mobile static owner check.
+// 2) Mobile static owner check — exactly 390×844.
 {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   const page = await context.newPage();
@@ -35,7 +35,7 @@ async function ready(page, url) {
   await context.close();
 }
 
-// 3) One browser-native motion preview. No screenshot matrix, no QA package spam.
+// 3) One browser-native R4.3 motion preview. Keep the owner gate lean: no screenshot matrix.
 const videoDir = path.join(out, '.video-tmp');
 fs.mkdirSync(videoDir, { recursive: true });
 let webmPath;
@@ -48,7 +48,8 @@ let webmPath;
   const page = await context.newPage();
   await ready(page, `${base}${route}`);
   const video = page.video();
-  await page.waitForTimeout(10800);
+  // 14.2s captures the complete active narrative plus a meaningful calm residual state.
+  await page.waitForTimeout(14200);
   await page.close();
   webmPath = await video.path();
   await context.close();
@@ -69,4 +70,4 @@ for (const file of ['R42_DESKTOP_STATIC.png','R42_MOBILE_STATIC.png','R42_CINEMA
   const p = path.join(out, file);
   if (!fs.existsSync(p) || fs.statSync(p).size < 1000) throw new Error(`Missing/empty output: ${p}`);
 }
-console.log('R4.2 lean owner-review package complete:', fs.readdirSync(out));
+console.log('R4.3 lean owner-review package complete:', fs.readdirSync(out));

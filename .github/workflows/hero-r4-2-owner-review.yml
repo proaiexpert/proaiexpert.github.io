@@ -1,20 +1,26 @@
-name: Hero R4.2 lean owner review
+name: Hero R4.3 lean owner review
 
 on:
   push:
     branches:
       - agent/hero-r4-2-cinematic-motion-rebuild
+    paths-ignore:
+      - 'r4-3-owner-review/**'
   workflow_dispatch:
 
+concurrency:
+  group: hero-r43-owner-review-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   owner-preview:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout R4.2 branch
+      - name: Checkout R4.3 branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -46,7 +52,7 @@ jobs:
 
       - name: Serve preview
         run: |
-          python3 -m http.server 4173 --directory _site > /tmp/r42-http.log 2>&1 &
+          python3 -m http.server 4173 --directory _site > /tmp/r43-http.log 2>&1 &
           sleep 2
           curl --fail http://127.0.0.1:4173/hero-a-plus-c-shape-preview/ > /dev/null
 
@@ -56,7 +62,7 @@ jobs:
       - name: Upload lean owner-review package
         uses: actions/upload-artifact@v4
         with:
-          name: PROAI_HERO_R4_2_LEAN_OWNER_REVIEW
+          name: PROAI_HERO_R4_3_LEAN_OWNER_REVIEW
           path: |
             r4-2-owner-review/R42_DESKTOP_STATIC.png
             r4-2-owner-review/R42_MOBILE_STATIC.png
@@ -64,6 +70,21 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Persist exactly three owner-review files on branch
+        shell: bash
+        run: |
+          mkdir -p r4-3-owner-review
+          cp r4-2-owner-review/R42_DESKTOP_STATIC.png r4-3-owner-review/DESKTOP_STATIC.png
+          cp r4-2-owner-review/R42_CINEMATIC_MOTION_PREVIEW.mp4 r4-3-owner-review/DESKTOP_MOTION.mp4
+          cp r4-2-owner-review/R42_MOBILE_STATIC.png r4-3-owner-review/MOBILE_STATIC.png
+          printf '%s\n' "$GITHUB_RUN_ID" > /tmp/r43-run-id.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add r4-3-owner-review/DESKTOP_STATIC.png r4-3-owner-review/DESKTOP_MOTION.mp4 r4-3-owner-review/MOBILE_STATIC.png
+          git commit -m 'chore(hero): save R4.3 owner review artifacts'
+          git push origin HEAD:${GITHUB_REF_NAME}
+          cat /tmp/r43-run-id.txt
+
       - name: Print server log on failure
         if: failure()
-        run: cat /tmp/r42-http.log || true
+        run: cat /tmp/r43-http.log || true

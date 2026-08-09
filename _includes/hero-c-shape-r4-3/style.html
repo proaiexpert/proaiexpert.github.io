@@ -1,0 +1,339 @@
+{% include hero-c-shape-r4-1/style.html %}
+<style>
+/* ProAI Expert Hero R4.3 — premium integration + motion lock implementation.
+   Preview-only. Core master, copy, canonical Header source, and production routes remain unchanged. */
+
+:root{
+  --r43-cyan:#6be7ff;
+  --r43-react:.035;
+  --r43-floor:.055;
+  --r43-reflect:.045;
+  --r43-warm:.018;
+  --r43-haze:.08;
+  --r43-yaw:0deg;
+  --r43-pitch:0deg;
+  --r43-x:0px;
+  --r43-y:0px;
+}
+
+/* ------------------------------------------------------------
+   Composition: preserve scale, restore more breathing room.
+   R4.2 was already shifted; R4.3 adds only a small optical correction.
+   ------------------------------------------------------------ */
+.hero-cshape__visual,
+.hero-cshape-page--ru .hero-cshape__visual{
+  transform:translateX(clamp(64px,5.7vw,92px));
+  transform-origin:center;
+}
+
+/* One atmospheric mass rather than two isolated columns. */
+.hero-r43__bridge{
+  position:absolute;
+  z-index:0;
+  left:-42%;
+  top:27%;
+  width:78%;
+  height:48%;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 76% 55%,rgba(73,184,203,.07),rgba(43,105,117,.03) 39%,transparent 72%),
+    linear-gradient(90deg,transparent 1%,rgba(67,150,165,.014) 37%,rgba(89,209,229,.042) 100%);
+  filter:blur(30px);
+  opacity:.64;
+  transform:translateX(-1%);
+}
+.hero-r43__ambient{
+  position:absolute;
+  z-index:0;
+  inset:8% 3% 0 5%;
+  pointer-events:none;
+  border-radius:50%;
+  background:
+    radial-gradient(ellipse at 57% 49%,rgba(81,202,222,.115),rgba(32,90,102,.037) 38%,transparent 71%),
+    radial-gradient(ellipse at 65% 75%,rgba(195,140,82,.017),transparent 45%);
+  filter:blur(32px);
+  opacity:.46;
+}
+
+/* ------------------------------------------------------------
+   Grounded 2.5D physical scene.
+   Pointer motion is intentionally sub-degree by default.
+   ------------------------------------------------------------ */
+.hero-r43__physical-scene{
+  position:absolute;
+  z-index:1;
+  inset:0;
+  pointer-events:none;
+  transform-origin:55% 72%;
+  transform:perspective(1250px) rotateY(var(--r43-yaw)) rotateX(var(--r43-pitch)) translate3d(var(--r43-x),var(--r43-y),0) scale(1.0005);
+  transition:transform .85s cubic-bezier(.22,.72,.19,1);
+  will-change:transform;
+}
+.hero-r43__base-picture{z-index:1}
+.hero-r43__base-picture img{
+  filter:saturate(.955) contrast(1.025) brightness(.982);
+}
+
+/* Duplicate source raster becomes causal material response, not a new generated asset. */
+.hero-r43__material-response{
+  position:absolute;
+  z-index:2;
+  inset:0;
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  object-position:center;
+  pointer-events:none;
+  user-select:none;
+  -webkit-user-drag:none;
+  mix-blend-mode:screen;
+}
+.hero-r43__material-response--cyan{
+  opacity:calc(.014 + var(--r43-react) * .19);
+  filter:saturate(1.32) brightness(1.19) contrast(1.03);
+  -webkit-mask-image:
+    radial-gradient(ellipse 35% 27% at 59% 48%,#000 0 30%,rgba(0,0,0,.82) 59%,transparent 100%),
+    linear-gradient(103deg,transparent 22%,rgba(0,0,0,.92) 43%,rgba(0,0,0,.52) 70%,transparent 90%);
+  mask-image:
+    radial-gradient(ellipse 35% 27% at 59% 48%,#000 0 30%,rgba(0,0,0,.82) 59%,transparent 100%),
+    linear-gradient(103deg,transparent 22%,rgba(0,0,0,.92) 43%,rgba(0,0,0,.52) 70%,transparent 90%);
+}
+.hero-r43__material-response--warm{
+  opacity:var(--r43-warm);
+  filter:sepia(.46) saturate(1.32) hue-rotate(342deg) brightness(1.13) contrast(1.02);
+  -webkit-mask-image:
+    radial-gradient(ellipse 16% 11% at 68% 23%,rgba(0,0,0,.84),transparent 76%),
+    radial-gradient(ellipse 14% 9% at 48% 25%,rgba(0,0,0,.58),transparent 77%);
+  mask-image:
+    radial-gradient(ellipse 16% 11% at 68% 23%,rgba(0,0,0,.84),transparent 76%),
+    radial-gradient(ellipse 14% 9% at 48% 25%,rgba(0,0,0,.58),transparent 77%);
+}
+
+.hero-r43__floor{
+  position:absolute;
+  z-index:3;
+  left:22%;right:10%;bottom:-.5%;height:21%;
+  pointer-events:none;
+  background:radial-gradient(ellipse at 56% 42%,rgba(89,215,235,.19),rgba(43,105,118,.053) 42%,transparent 74%);
+  filter:blur(23px);
+  opacity:calc(.045 + var(--r43-floor) * .22);
+  transform:translateX(calc(var(--r43-x) * .25)) scaleX(calc(1 + var(--r43-floor) * .055));
+  transform-origin:center;
+}
+.hero-r43__reflection{
+  position:absolute;
+  z-index:3;
+  left:31%;right:16%;bottom:1.5%;height:14%;
+  pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(94,221,239,.18) 33%,rgba(123,235,248,.10) 52%,rgba(62,151,166,.055) 73%,transparent);
+  filter:blur(10px);
+  opacity:calc(.025 + var(--r43-reflect) * .19);
+  transform:skewX(-11deg) scaleX(calc(.92 + var(--r43-reflect) * .10));
+}
+.hero-r43__volumetric{
+  position:absolute;
+  z-index:4;
+  left:37%;top:31%;width:47%;height:39%;
+  pointer-events:none;
+  border-radius:50%;
+  background:radial-gradient(ellipse at 51% 50%,rgba(103,232,249,.135),rgba(49,133,148,.038) 42%,transparent 72%);
+  filter:blur(20px);
+  opacity:calc(.018 + var(--r43-haze) * .30);
+  mix-blend-mode:screen;
+}
+
+/* ------------------------------------------------------------
+   Motion architecture: fragments -> depth channels -> compression -> outputs.
+   No HUD/radar rings.
+   ------------------------------------------------------------ */
+.hero-r43__motion-svg{
+  position:absolute;
+  z-index:5;
+  inset:0;
+  width:100%;height:100%;
+  overflow:visible;
+  pointer-events:none;
+  transform:translate3d(calc(var(--r43-x) * .45),calc(var(--r43-y) * .45),0);
+  transition:transform .7s cubic-bezier(.22,.72,.19,1);
+}
+.hero-r43__entry-guide,
+.hero-r43__signal,
+.hero-r43__channel,
+.hero-r43__compress,
+.hero-r43__branch{
+  fill:none;
+  vector-effect:non-scaling-stroke;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.hero-r43__entry-guide{stroke:rgba(107,231,255,.055);stroke-width:.8;opacity:0}
+.hero-r43__signal--glow{stroke:rgba(85,221,242,.22);stroke-width:6.5;filter:blur(2.5px);opacity:0}
+.hero-r43__signal--core{stroke:rgba(145,247,255,.94);stroke-width:1.25;filter:drop-shadow(0 0 4px rgba(107,231,255,.66));opacity:0}
+.hero-r43__channel--glow{stroke:rgba(82,220,242,.23);stroke-width:5.4;filter:blur(2.4px);opacity:0}
+.hero-r43__channel--core{stroke:rgba(137,244,255,.88);stroke-width:1.04;filter:drop-shadow(0 0 3px rgba(107,231,255,.52));opacity:0}
+.hero-r43__channel--deep{filter:blur(.45px);}
+.hero-r43__compress{stroke:rgba(123,239,250,.53);stroke-width:1;filter:drop-shadow(0 0 3px rgba(107,231,255,.32));opacity:0}
+.hero-r43__packet,.hero-r43__outpacket{opacity:0}
+.hero-r43__packet-halo{fill:rgba(107,231,255,.17);filter:blur(5px)}
+.hero-r43__packet-core{fill:rgba(162,249,255,.98);filter:drop-shadow(0 0 5px rgba(107,231,255,.82))}
+.hero-r43__collector-halo{fill:rgba(107,231,255,.17);filter:blur(6px);opacity:0}
+.hero-r43__collector-core{fill:rgba(155,248,255,.96);filter:drop-shadow(0 0 6px rgba(107,231,255,.67));opacity:.2}
+.hero-r43__branch--glow{stroke:rgba(95,227,246,.20);stroke-width:5;filter:blur(2.2px);opacity:0}
+.hero-r43__branch--core{stroke:rgba(107,231,255,.18);stroke-width:1;opacity:.14}
+.hero-r43__node{fill:rgba(113,236,250,.22);stroke:rgba(107,231,255,.18);stroke-width:1;vector-effect:non-scaling-stroke;transition:filter .36s ease,opacity .36s ease}
+
+/* Source-aligned occlusion: same scene raster masks real foreground masses. */
+.hero-r43__occluder{
+  position:absolute;
+  z-index:6;
+  inset:0;
+  pointer-events:none;
+  transform:translate3d(calc(var(--r43-x) * .82),calc(var(--r43-y) * .82),0);
+  transition:transform .7s cubic-bezier(.22,.72,.19,1);
+  -webkit-mask-image:
+    radial-gradient(ellipse 25% 15% at 56% 37%,#000 0 50%,rgba(0,0,0,.88) 58%,transparent 72%),
+    radial-gradient(ellipse 27% 16% at 58% 60%,#000 0 47%,rgba(0,0,0,.86) 57%,transparent 73%),
+    linear-gradient(104deg,transparent 35%,rgba(0,0,0,.96) 45% 52%,transparent 59%);
+  mask-image:
+    radial-gradient(ellipse 25% 15% at 56% 37%,#000 0 50%,rgba(0,0,0,.88) 58%,transparent 72%),
+    radial-gradient(ellipse 27% 16% at 58% 60%,#000 0 47%,rgba(0,0,0,.86) 57%,transparent 73%),
+    linear-gradient(104deg,transparent 35%,rgba(0,0,0,.96) 45% 52%,transparent 59%);
+}
+.hero-r43__occluder .hero-cshape__scene-picture{-webkit-mask-image:none!important;mask-image:none!important}
+.hero-r43__occluder .hero-cshape__scene-picture,
+.hero-r43__occluder .hero-cshape__scene-picture img{position:absolute;inset:0;width:100%;height:100%}
+.hero-r43__occluder .hero-cshape__scene-picture img{object-fit:contain;object-position:center;filter:saturate(.955) contrast(1.025) brightness(.982)}
+
+/* Subtle production texture: only enough to break sterile CGI cleanliness. */
+.hero-r43__grain{
+  position:absolute;
+  z-index:8;
+  inset:8% 3% 2% 7%;
+  pointer-events:none;
+  opacity:.025;
+  mix-blend-mode:soft-light;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.58'/%3E%3C/svg%3E");
+  background-size:180px 180px;
+}
+
+/* ------------------------------------------------------------
+   Rail: output architecture, not a floating legend.
+   R4.3 shifts it down toward the natural output axis.
+   ------------------------------------------------------------ */
+.hero-cshape__rail,
+.hero-cshape-page--ru .hero-cshape__rail{
+  right:-1.6%;
+  top:24.6%;
+  width:214px;
+  gap:13px;
+}
+.hero-cshape-page--ru .hero-cshape__rail{width:230px}
+.hero-cshape__rail-item,
+.hero-cshape-page--ru .hero-cshape__rail-item{
+  min-height:57px;
+  padding-left:16px;
+  transition:color .38s ease,text-shadow .38s ease,opacity .38s ease;
+}
+.hero-cshape__rail-item::before{left:-7px;width:5px;height:5px;transition:background .38s ease,box-shadow .38s ease,transform .38s ease}
+.hero-cshape__rail-item::after{left:-2px;width:18px;background:linear-gradient(90deg,rgba(107,231,255,.22),transparent)}
+.hero-cshape__rail-item.is-active{color:rgba(249,252,253,.98);text-shadow:0 0 14px rgba(107,231,255,.10)}
+.hero-cshape__rail-item.is-active::before{background:rgba(145,247,255,.98);box-shadow:0 0 10px rgba(107,231,255,.52);transform:translateY(-50%) scale(1.14)}
+.hero-cshape__rail-item.is-resolved{color:rgba(238,246,248,.78)}
+.hero-cshape__rail-item.is-resolved span{color:rgba(111,231,246,.82)}
+.hero-cshape__rail-item.is-resolved::before{background:rgba(107,231,255,.54);box-shadow:0 0 7px rgba(107,231,255,.18)}
+
+/* ------------------------------------------------------------
+   Typography / UI polish.
+   ------------------------------------------------------------ */
+.hero-cshape__title,
+.hero-cshape-page--ru .hero-cshape__title{
+  letter-spacing:-.045em;
+  font-variation-settings:"wght" 515;
+}
+.hero-cshape-page--ru .hero-cshape__title{letter-spacing:-.039em}
+.hero-cshape__lead,
+.hero-cshape-page--ru .hero-cshape__lead{line-height:1.66;color:rgba(226,234,237,.69)}
+
+html.hero-r43-motion.hero-r43-intro .hero-cshape__title span{
+  opacity:0;
+  filter:blur(9px);
+  transform:translateY(7px);
+  animation:r43FocusAcquire .72s cubic-bezier(.19,.72,.23,1) forwards;
+}
+html.hero-r43-motion.hero-r43-intro .hero-cshape__title span:nth-child(2){animation-delay:.085s}
+@keyframes r43FocusAcquire{to{opacity:1;filter:blur(0);transform:translateY(0)}}
+
+.hero-cshape__button--primary{overflow:hidden}
+.hero-cshape__button--primary::before{
+  content:""!important;
+  display:block!important;
+  position:absolute;
+  z-index:0;
+  width:95px;height:95px;
+  left:-35px;top:50%;
+  margin-top:-47px;
+  border-radius:50%;
+  pointer-events:none;
+  opacity:0;
+  background:radial-gradient(circle,rgba(107,231,255,.12),rgba(107,231,255,.035) 40%,transparent 72%);
+  transform:translateX(-15px);
+  transition:opacity .35s ease,transform .55s cubic-bezier(.2,.7,.2,1);
+}
+.hero-cshape__button--primary:hover::before,
+.hero-cshape__button--primary:focus-visible::before{opacity:.72;transform:translateX(270px)}
+.hero-cshape__button--primary>span{position:relative;z-index:1}
+.hero-cshape__button--primary:hover .hero-cshape__button-arrow,
+.hero-cshape__button--primary:focus-visible .hero-cshape__button-arrow{transform:translate(1.5px,-1.5px) rotate(4deg)}
+
+/* Reduced cyan at rest in the header; interaction may reveal it. */
+.hero-cshape-page .site-header__locale{color:rgba(238,243,245,.66)}
+.hero-cshape-page .site-header__cta{border-color:rgba(107,231,255,.38);background:rgba(8,11,13,.64)}
+
+/* Static/no-JS/reduced remains complete and calm. */
+html.hero-r43-static .hero-r43__motion-svg,
+html.hero-r43-reduced .hero-r43__motion-svg{display:none!important}
+html.hero-r43-static .hero-r43__physical-scene,
+html.hero-r43-reduced .hero-r43__physical-scene{transform:none!important;transition:none!important}
+html.hero-r43-static .hero-r43__material-response--cyan,
+html.hero-r43-reduced .hero-r43__material-response--cyan{opacity:.025}
+html.hero-r43-static .hero-r43__material-response--warm,
+html.hero-r43-reduced .hero-r43__material-response--warm{opacity:.018}
+
+@media (prefers-reduced-motion:reduce){
+  .hero-r43__motion-svg{display:none!important}
+  .hero-r43__physical-scene{transform:none!important;transition:none!important}
+  .hero-cshape__button--primary::before{display:none!important}
+}
+
+/* Tablet: keep the correction smaller. */
+@media (max-width:1200px) and (min-width:901px){
+  .hero-cshape__visual,.hero-cshape-page--ru .hero-cshape__visual{transform:translateX(clamp(18px,2.4vw,31px))}
+  .hero-cshape__rail,.hero-cshape-page--ru .hero-cshape__rail{top:24%;right:-1.2%}
+}
+
+/* Mobile is art-directed: Core starts earlier and the transition is tighter than a naive stack. */
+@media (max-width:900px) and (min-height:541px){
+  .hero-cshape__shell{gap:20px}
+  .hero-cshape__visual,.hero-cshape-page--ru .hero-cshape__visual{
+    transform:none;
+    margin-top:-2px;
+  }
+  .hero-cshape__scene{margin-top:-10px}
+  .hero-cshape__rail,.hero-cshape-page--ru .hero-cshape__rail{
+    top:auto;right:auto;
+  }
+  .hero-r43__bridge{
+    left:-12%;top:-10%;width:105%;height:48%;opacity:.45;filter:blur(25px);
+  }
+  .hero-r43__grain{opacity:.018}
+}
+
+@media (max-width:430px) and (min-height:541px){
+  .hero-cshape{padding-top:104px}
+  .hero-cshape__lead,.hero-cshape-page--ru .hero-cshape__lead{margin-top:18px;line-height:1.56}
+  .hero-cshape__actions{margin-top:21px}
+  .hero-cshape__accountability{margin-top:18px}
+  .hero-cshape__visual,.hero-cshape-page--ru .hero-cshape__visual{margin-top:-7px}
+}
+</style>

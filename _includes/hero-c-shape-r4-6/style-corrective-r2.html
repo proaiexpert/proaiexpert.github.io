@@ -1,0 +1,79 @@
+<style>
+/* R4.6 corrective refinement 2 — visual QA after first owner capture. */
+
+/* The full-height R4.6 neutralizer created a visible vertical band. Replace it with a
+   narrow route-local cleanup strip that sits only on the historical lead-in. */
+.hero-r45__route-neutralizer{
+  display:block!important;
+  z-index:4;
+  left:-2.5%;
+  top:52.2%;
+  width:45%;
+  height:6.2%;
+  border-radius:999px;
+  background:linear-gradient(90deg,
+    rgba(5,6,7,1) 0%,
+    rgba(5,6,7,.995) 61%,
+    rgba(5,6,7,.86) 76%,
+    rgba(5,6,7,.36) 91%,
+    transparent 100%);
+  filter:blur(4px);
+  opacity:.98;
+}
+
+/* Keep output cleanup local to the legacy free-space fan; do not create a full-height raster panel. */
+.hero-r45__output-cleaner{
+  left:76.5%;
+  top:26.5%;
+  width:23.5%;
+  height:49%;
+  border-radius:34% 0 0 34%;
+  background:linear-gradient(90deg,rgba(5,6,7,.10),rgba(5,6,7,.76) 32%,rgba(5,6,7,.97) 68%,rgba(5,6,7,.995));
+  filter:blur(6px);
+  opacity:.94;
+}
+
+/* The source edge itself now dissolves with a narrow feather rather than a broad dark plate. */
+.hero-r45__desktop-stack{
+  -webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,.30) 0%,rgba(0,0,0,.82) 2.8%,#000 7% 96%,rgba(0,0,0,.92) 99%,rgba(0,0,0,.70) 100%);
+  mask-image:linear-gradient(90deg,rgba(0,0,0,.30) 0%,rgba(0,0,0,.82) 2.8%,#000 7% 96%,rgba(0,0,0,.92) 99%,rgba(0,0,0,.70) 100%);
+}
+
+/* Remove the most obvious 'graphics moving over a picture'. Processing is now read through
+   glass/chamber/material/floor response rather than packets travelling over the raster. */
+html.hero-r46-motion .hero-r45__impulse,
+html.hero-r46-motion .hero-r45__depth-packet,
+html.hero-r46-motion .hero-r45__microstream,
+html.hero-r46-motion .hero-r45__entry-volume,
+html.hero-r46-motion .hero-r45__ingress{
+  opacity:0!important;
+}
+.hero-r45__energy{opacity:.78}
+.hero-r45__chamber{filter:blur(12px)}
+
+/* Rail stays lower, but output pulse coordinates are compressed to the same vertical rhythm.
+   This fixes the prior error where rail and pulses were shifted down together and never converged. */
+.hero-cshape__rail,
+.hero-cshape-page--ru .hero-cshape__rail{
+  top:32.8%;
+  right:.8%;
+}
+.hero-r45__output{left:86.2%;width:42px}
+.hero-r45__output--0{top:31.0%;transform:rotate(-4deg)}
+.hero-r45__output--1{top:40.3%;transform:rotate(-1deg)}
+.hero-r45__output--2{top:49.6%;transform:rotate(1deg)}
+.hero-r45__output--3{top:58.9%;transform:rotate(4deg)}
+.hero-r45__output i{width:31px;height:5px;margin-top:-2.5px}
+.hero-r45__output.is-active i{opacity:.76}
+.hero-r45__output.is-active b{box-shadow:0 0 8px rgba(107,231,255,.38)}
+
+/* Quiet material causality: a little more physical response, no additional graphics. */
+.hero-r45__scene-plane--glass{opacity:calc(.050 + var(--r45-glass) * .60)!important}
+.hero-r43__material-response--cyan{opacity:calc(.016 + var(--r43-react) * .29)!important}
+.hero-r43__reflection{opacity:calc(.030 + var(--r43-reflect) * .23)}
+
+@media (max-width:900px){
+  .hero-r45__route-neutralizer,
+  .hero-r45__output-cleaner{display:none!important}
+}
+</style>

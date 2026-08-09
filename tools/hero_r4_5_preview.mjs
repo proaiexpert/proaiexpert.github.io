@@ -17,8 +17,36 @@ async function ready(page, url) {
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.evaluate(async () => { if (document.fonts?.ready) await document.fonts.ready; });
   await page.waitForFunction(() => [...document.images].every(img => img.complete && img.naturalWidth > 0));
-  await page.waitForFunction(() => typeof window.__r45SetFrame === 'function');
-  if (pageErrors.length) throw new Error(`Browser script error: ${pageErrors.join(' | ')}`);
+  await page.waitForTimeout(250);
+
+  const diagnostic = await page.evaluate(() => {
+    const exists = selector => !!document.querySelector(selector);
+    return {
+      exported: typeof window.__r45SetFrame,
+      stage: exists('[data-core-stage]'),
+      scene: exists('.hero-cshape__scene'),
+      back: exists('[data-r45-back]'),
+      base: exists('[data-r45-base]'),
+      glass: exists('[data-r45-glass]'),
+      energy: exists('[data-r45-energy]'),
+      front: exists('[data-r45-front]'),
+      floor: exists('[data-r45-floor]'),
+      reflection: exists('[data-r45-reflection]'),
+      volumetric: exists('[data-r45-volumetric]'),
+      entryVolume: exists('[data-r45-entry-volume]'),
+      ingress: exists('[data-r45-ingress]'),
+      depthPacket: exists('[data-r45-depth-packet]'),
+      collector: exists('[data-r45-collector]'),
+      outputField: exists('[data-r45-output-field]'),
+      inputs: [0,1,2].map(i => exists(`[data-r45-input="${i}"]`)),
+      chambers: [0,1,2,3].map(i => exists(`[data-r45-chamber="${i}"]`)),
+      micros: [0,1,2].map(i => exists(`[data-r45-micro="${i}"]`)),
+      outputs: [0,1,2,3].map(i => exists(`[data-r45-output="${i}"]`))
+    };
+  });
+
+  if (pageErrors.length) throw new Error(`Browser script error(s): ${pageErrors.join(' | ')}`);
+  if (diagnostic.exported !== 'function') throw new Error(`R4.5 compositor boot incomplete: ${JSON.stringify(diagnostic)}`);
 }
 
 // 1) Desktop static owner gate — R4.4 static/UI/material base preserved.
@@ -40,7 +68,6 @@ async function ready(page, url) {
 }
 
 // 3) Desktop motion — selected medium layered-parallax proof (~1.45° front-layer ceiling).
-// The recording is intentionally long enough to show calm -> input -> processing -> output -> resolved calm.
 const videoDir = path.join(out, '.video-tmp');
 fs.mkdirSync(videoDir, { recursive: true });
 let webmPath;

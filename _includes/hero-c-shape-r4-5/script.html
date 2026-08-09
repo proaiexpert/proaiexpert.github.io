@@ -53,10 +53,11 @@
     scene.style.setProperty('--r45-collector',String(collectorV));
   }
 
+  /* R4.5 motion points use normalized percentages in the exact grounded 735x780 scene. */
   function point(el,x,y,opacity=1,scale=1,blur=0,stretch=1){
     if(!el) return;
-    el.style.left=`${(x/11.6).toFixed(3)}%`;
-    el.style.top=`${(y/9).toFixed(3)}%`;
+    el.style.left=`${x.toFixed(3)}%`;
+    el.style.top=`${y.toFixed(3)}%`;
     el.style.opacity=String(clamp(opacity));
     el.style.transform=`translate(-50%,-50%) scale(${scale.toFixed(3)}) scaleX(${stretch.toFixed(3)})`;
     el.style.filter=`blur(${Math.max(0,blur).toFixed(2)}px)`;
@@ -109,21 +110,20 @@
     const tx=limit.translate;
     const yaw=limit.yaw;
 
-    /* Base barely moves; separated registered layers carry most of the camera-life. */
-    base.style.transform=`translate3d(${(nx*tx*.08).toFixed(2)}px,${(ny*tx*.05).toFixed(2)}px,0)`;
-    back.style.transform=`perspective(1450px) translate3d(${(-nx*tx*.22).toFixed(2)}px,${(-ny*tx*.10).toFixed(2)}px,0) rotateY(${(-nx*yaw*.13).toFixed(3)}deg)`;
-    glass.style.transform=`perspective(1350px) translate3d(${(nx*tx*.42).toFixed(2)}px,${(ny*tx*.22).toFixed(2)}px,0) rotateY(${(nx*yaw*.24).toFixed(3)}deg)`;
-    energy.style.transform=`translate3d(${(nx*tx*.56).toFixed(2)}px,${(ny*tx*.30).toFixed(2)}px,0)`;
-    front.style.transform=`perspective(1250px) translate3d(${(nx*tx*.78).toFixed(2)}px,${(ny*tx*.36).toFixed(2)}px,0) rotateY(${(nx*yaw*.36).toFixed(3)}deg)`;
-    floor.style.transform=`translate3d(${(nx*tx*.13).toFixed(2)}px,0,0) scaleX(calc(1 + var(--r43-floor) * .055))`;
-    reflection.style.transform=`translate3d(${(nx*tx*.10).toFixed(2)}px,0,0) skewX(-11deg) scaleX(calc(.92 + var(--r43-reflect) * .10))`;
-    scene.style.setProperty('--r43-x',`${(nx*tx*.10).toFixed(2)}px`);
-    scene.style.setProperty('--r43-y',`${(ny*tx*.06).toFixed(2)}px`);
+    base.style.transform=`translate3d(${(nx*tx*.06).toFixed(2)}px,${(ny*tx*.04).toFixed(2)}px,0)`;
+    back.style.transform=`perspective(1450px) translate3d(${(-nx*tx*.20).toFixed(2)}px,${(-ny*tx*.09).toFixed(2)}px,0) rotateY(${(-nx*yaw*.12).toFixed(3)}deg)`;
+    glass.style.transform=`perspective(1350px) translate3d(${(nx*tx*.40).toFixed(2)}px,${(ny*tx*.20).toFixed(2)}px,0) rotateY(${(nx*yaw*.22).toFixed(3)}deg)`;
+    energy.style.transform=`translate3d(${(nx*tx*.52).toFixed(2)}px,${(ny*tx*.28).toFixed(2)}px,0)`;
+    front.style.transform=`perspective(1250px) translate3d(${(nx*tx*.72).toFixed(2)}px,${(ny*tx*.33).toFixed(2)}px,0) rotateY(${(nx*yaw*.34).toFixed(3)}deg)`;
+    floor.style.transform=`translate3d(${(nx*tx*.11).toFixed(2)}px,0,0) scaleX(calc(1 + var(--r43-floor) * .055))`;
+    reflection.style.transform=`translate3d(${(nx*tx*.08).toFixed(2)}px,0,0) skewX(-11deg) scaleX(calc(.92 + var(--r43-reflect) * .10))`;
+    scene.style.setProperty('--r43-x',`${(nx*tx*.08).toFixed(2)}px`);
+    scene.style.setProperty('--r43-y',`${(ny*tx*.05).toFixed(2)}px`);
   }
 
   const CYCLE=13200;
-  const depthPath=[[515,462],[565,420],[620,405],[666,442],[700,487],[752,506],[816,466]];
-  const entryStarts=[[235,477],[205,508],[250,536]];
+  const depthPath=[[44,57],[50,52],[57,48],[64,50],[70,55],[76,58],[82,54]];
+  const entryStarts=[[18,57],[13,61],[21,65]];
 
   function setFrame(ms){
     const T=((ms%CYCLE)+CYCLE)%CYCLE;
@@ -138,15 +138,14 @@
     applyParallax(T,motionEnabled);
     if(!motionEnabled) return;
 
-    /* 0.0–2.0s: deliberate calm. 2.0–3.0s: short independent information fragments. */
     inputs.forEach((el,i)=>{
       const start=2000+i*115;
       const end=2880+i*55;
       if(T>=start && T<=end){
         const p=smoother((T-start)/(end-start));
         const life=fadeWindow(T,start,end,145);
-        const x=lerp(entryStarts[i][0],515,p);
-        const y=lerp(entryStarts[i][1],462,p);
+        const x=lerp(entryStarts[i][0],44,p);
+        const y=lerp(entryStarts[i][1],57,p);
         const depth=.92-.15*p;
         point(el,x,y,.92*life,depth,.18+.42*p,1.10+.30*p);
       }
@@ -156,7 +155,6 @@
     entryVolume.style.opacity=String(.035+.22*entryPulse);
     ingress.style.opacity=String(.50*ingressPulse);
 
-    /* 2.65–4.55s: depth ingress. The packet softens/scales in deep zones and is physically occluded by front metal. */
     if(T>=2650 && T<=4550){
       const p=smoother((T-2650)/1900);
       const [x,y]=polyPoint(depthPath,p);
@@ -165,12 +163,9 @@
       point(depthPacket,x,y,.88*life,.88-.30*deep,.38+1.55*deep,1.0+.18*(1-deep));
     }
 
-    /* 4.05–5.55s: architecture performs processing through local chamber activation and micro-stream splitting. */
-    let chamberSum=0;
     chambers.forEach((el,i)=>{
       const center=4210+i*285;
       const v=bell(T,center,390);
-      chamberSum+=v;
       el.style.opacity=String(.08+.62*v);
       el.style.transform=`scale(${(.95+.07*v).toFixed(3)})`;
       el.style.filter=`blur(${(i===2?14:9)+(1-v)*2.2}px)`;
@@ -182,13 +177,12 @@
       if(T>=start && T<=end){
         const p=smoother((T-start)/(end-start));
         const life=fadeWindow(T,start,end,130);
-        const starts=[[605,433],[617,463],[610,493]];
-        const ends=[[767,449],[780,466],[760,489]];
+        const starts=[[52,49],[55,55],[52,61]];
+        const ends=[[76,51],[80,56],[77,61]];
         point(el,lerp(starts[i][0],ends[i][0],p),lerp(starts[i][1],ends[i][1],p),.76*life,.82-.12*i,.45+.30*i,1.05+.22*p);
       }
     });
 
-    /* Material response follows chamber energy by ~80–110ms; floor/reflection lag further. */
     const top=bell(T,4300,520);
     const mid=bell(T,4590,560);
     const deep=bell(T,4870,590);
@@ -205,12 +199,10 @@
     if(edges[1]) edges[1].style.opacity=String(.05+.38*bell(T,4900,500));
     if(edges[2]) edges[2].style.opacity=String(.05+.35*bell(T,5270,480));
 
-    /* 5.2–5.95s: compression into a controlled local collector. */
     const compress=bell(T,5580,430);
     scene.style.setProperty('--r45-collector',String(.10+.56*compress));
     scene.style.setProperty('--r45-field',String(.035+.10*compress));
 
-    /* 5.55–6.85s: compact local output pulses. Stages overlap by ~170ms; no long fan of connectors. */
     outputs.forEach((el,i)=>{
       const start=5550+i*170;
       const draw=470;
@@ -243,7 +235,6 @@
       );
     }
 
-    /* 6.9s onward: resolved calm. Independent low-amplitude systems continue; no obvious tech-demo loop. */
     if(T>=6900){
       const settle=smooth((T-6900)/1900);
       const quietReact=.038+.010*breathA;

@@ -12,9 +12,13 @@ const route = '/hero-a-plus-c-shape-preview/';
 const browser = await chromium.launch({ headless: true });
 
 async function ready(page, url) {
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(String(error)));
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.evaluate(async () => { if (document.fonts?.ready) await document.fonts.ready; });
   await page.waitForFunction(() => [...document.images].every(img => img.complete && img.naturalWidth > 0));
+  await page.waitForFunction(() => typeof window.__r45SetFrame === 'function');
+  if (pageErrors.length) throw new Error(`Browser script error: ${pageErrors.join(' | ')}`);
 }
 
 // 1) Desktop static owner gate — R4.4 static/UI/material base preserved.

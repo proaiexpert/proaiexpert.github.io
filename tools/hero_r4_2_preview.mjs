@@ -3,8 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const base = process.env.R42_BASE_URL || 'http://127.0.0.1:4173';
-const out = process.env.R42_OUT || 'r4-2-owner-review';
+const base = process.env.R44_BASE_URL || 'http://127.0.0.1:4173';
+const out = process.env.R44_OUT || 'r4-4-owner-review';
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 
@@ -22,7 +22,7 @@ async function ready(page, url) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   await ready(page, `${base}${route}?mode=static`);
-  await page.screenshot({ path: path.join(out, 'R42_DESKTOP_STATIC.png'), fullPage: false });
+  await page.screenshot({ path: path.join(out, 'R44_DESKTOP_STATIC.png'), fullPage: false });
   await context.close();
 }
 
@@ -31,11 +31,11 @@ async function ready(page, url) {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   const page = await context.newPage();
   await ready(page, `${base}${route}?mode=static`);
-  await page.screenshot({ path: path.join(out, 'R42_MOBILE_STATIC.png'), fullPage: false });
+  await page.screenshot({ path: path.join(out, 'R44_MOBILE_STATIC.png'), fullPage: false });
   await context.close();
 }
 
-// 3) One browser-native motion preview. No screenshot matrix, no QA package spam.
+// 3) One browser-native motion preview. Preserve the lean owner-review contract.
 const videoDir = path.join(out, '.video-tmp');
 fs.mkdirSync(videoDir, { recursive: true });
 let webmPath;
@@ -55,7 +55,7 @@ let webmPath;
 }
 await browser.close();
 
-const mp4 = path.join(out, 'R42_CINEMATIC_MOTION_PREVIEW.mp4');
+const mp4 = path.join(out, 'R44_DESKTOP_MOTION.mp4');
 const ff = spawnSync('ffmpeg', [
   '-y', '-i', webmPath,
   '-c:v', 'libx264', '-preset', 'medium', '-crf', '20',
@@ -65,8 +65,8 @@ const ff = spawnSync('ffmpeg', [
 if (ff.status !== 0) process.exit(ff.status ?? 1);
 fs.rmSync(videoDir, { recursive: true, force: true });
 
-for (const file of ['R42_DESKTOP_STATIC.png','R42_MOBILE_STATIC.png','R42_CINEMATIC_MOTION_PREVIEW.mp4']) {
+for (const file of ['R44_DESKTOP_STATIC.png','R44_MOBILE_STATIC.png','R44_DESKTOP_MOTION.mp4']) {
   const p = path.join(out, file);
   if (!fs.existsSync(p) || fs.statSync(p).size < 1000) throw new Error(`Missing/empty output: ${p}`);
 }
-console.log('R4.2 lean owner-review package complete:', fs.readdirSync(out));
+console.log('R4.4 lean owner-review package complete:', fs.readdirSync(out));

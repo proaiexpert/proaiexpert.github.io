@@ -1,0 +1,100 @@
+{% include hero-c-shape-r4-1/style.html %}
+<style>
+/* ProAI Expert Hero R4.2 — cinematic motion rebuild.
+   Lean owner-review pass: preserve approved R4.1 static composition and source asset,
+   correct horizontal placement, replace rejected single-path choreography. */
+:root{--r42-react:0;--r42-floor:0;--r42-cyan:#6be7ff}
+
+/* Owner correction: visual cluster moves right; scale is preserved. */
+.hero-cshape__visual,
+.hero-cshape-page--ru .hero-cshape__visual{
+  transform:translateX(clamp(48px,4.5vw,70px));
+  transform-origin:center;
+}
+
+/* Physical scene remains one body: Core + floor/contact relationship move together. */
+.hero-r42__physical-scene{
+  position:absolute;z-index:1;inset:0;
+  transform-origin:54% 70%;
+  will-change:transform;
+  pointer-events:none;
+}
+.hero-r42__physical-scene .hero-cshape__scene-picture{z-index:1}
+.hero-r42__scene-lightcopy{
+  position:absolute;z-index:2;inset:0;
+  display:block;width:100%;height:100%;object-fit:contain;object-position:center;
+  pointer-events:none;user-select:none;-webkit-user-drag:none;
+  opacity:calc(.018 + var(--r42-react) * .24);
+  mix-blend-mode:screen;
+  filter:saturate(1.24) brightness(1.2);
+  -webkit-mask-image:radial-gradient(ellipse 29% 30% at 57% 51%,#000 0 40%,rgba(0,0,0,.72) 66%,transparent 100%);
+  mask-image:radial-gradient(ellipse 29% 30% at 57% 51%,#000 0 40%,rgba(0,0,0,.72) 66%,transparent 100%);
+}
+.hero-r42__ambient{
+  position:absolute;z-index:0;inset:11% 8% 4% 8%;pointer-events:none;border-radius:50%;
+  background:radial-gradient(ellipse at 56% 53%,rgba(79,200,219,.09),rgba(31,86,98,.035) 43%,transparent 73%);
+  filter:blur(30px);opacity:.5;
+}
+.hero-r42__floor{
+  position:absolute;z-index:3;left:25%;right:13%;bottom:1%;height:19%;pointer-events:none;
+  background:radial-gradient(ellipse at center,rgba(94,220,239,.18),rgba(45,111,124,.055) 41%,transparent 73%);
+  filter:blur(22px);
+  opacity:calc(.07 + var(--r42-floor) * .18);
+  transform:scaleX(calc(1 + var(--r42-floor) * .05));
+  transform-origin:center;
+}
+
+/* New motion compositor: information fragments -> depth routes -> processing -> 4 outputs. */
+.hero-r42__motion-svg{position:absolute;z-index:5;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.hero-r42__wire,.hero-r42__pulse,.hero-r42__arc,.hero-r42__branch{fill:none;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-linejoin:round}
+.hero-r42__wire{stroke:rgba(107,231,255,.07);stroke-width:.9;opacity:0}
+.hero-r42__pulse--halo{stroke:rgba(80,218,242,.25);stroke-width:7;filter:blur(2.7px);opacity:0}
+.hero-r42__pulse--core{stroke:rgba(134,245,255,.94);stroke-width:1.35;filter:drop-shadow(0 0 4px rgba(107,231,255,.62));opacity:0}
+.hero-r42__arc--glow{stroke:rgba(92,228,249,.28);stroke-width:5;filter:blur(2.2px);opacity:0}
+.hero-r42__arc--line{stroke:rgba(136,246,255,.88);stroke-width:1.05;filter:drop-shadow(0 0 3px rgba(107,231,255,.58));opacity:0}
+.hero-r42__packet,.hero-r42__outpacket{opacity:0}
+.hero-r42__packet-halo{fill:rgba(107,231,255,.18);filter:blur(5px)}
+.hero-r42__packet-mid{fill:rgba(107,231,255,.38);filter:blur(2px)}
+.hero-r42__packet-core{fill:rgba(157,249,255,.99);filter:drop-shadow(0 0 5px rgba(107,231,255,.82))}
+.hero-r42__ring{fill:none;stroke-linecap:round;vector-effect:non-scaling-stroke;transform-origin:680px 462px;opacity:0}
+.hero-r42__ring--wide{stroke:rgba(72,210,232,.28);stroke-width:5;stroke-dasharray:36 220;filter:blur(2px)}
+.hero-r42__ring--core{stroke:rgba(111,239,255,.8);stroke-width:1.25;stroke-dasharray:44 180;filter:drop-shadow(0 0 4px rgba(107,231,255,.48))}
+.hero-r42__data line{stroke:rgba(108,237,255,.6);stroke-width:1;vector-effect:non-scaling-stroke;opacity:0}
+.hero-r42__branch{stroke:rgba(107,231,255,.18);stroke-width:1}
+.hero-r42__branch-glow{stroke:rgba(107,231,255,.22);stroke-width:5;filter:blur(2px);opacity:0}
+.hero-r42__node{fill:rgba(115,239,255,.25);stroke:rgba(107,231,255,.2);stroke-width:1;vector-effect:non-scaling-stroke}
+
+/* Rail is the visible destination, with more air after shifting the scene right. */
+.hero-cshape__rail,
+.hero-cshape-page--ru .hero-cshape__rail{right:-1.2%;top:21.5%}
+
+/* Premium ambient life: readable enough to feel 3D, restrained enough not to float. */
+html.hero-r42-motion .hero-r42__physical-scene{animation:r42SceneDrift 12s cubic-bezier(.45,0,.55,1) infinite alternate}
+html.hero-r42-motion .hero-r42__ambient{animation:r42AmbientBreath 9s ease-in-out infinite alternate}
+@keyframes r42SceneDrift{
+  0%{transform:perspective(1150px) rotateY(-.5deg) rotateX(.2deg) translate3d(-1px,1px,0) scale(.997)}
+  100%{transform:perspective(1150px) rotateY(.62deg) rotateX(-.25deg) translate3d(2px,-1px,0) scale(1.003)}
+}
+@keyframes r42AmbientBreath{0%{opacity:.42;transform:scale(.985)}100%{opacity:.62;transform:scale(1.02)}}
+
+@media (max-width:1200px) and (min-width:901px){
+  .hero-cshape__visual,.hero-cshape-page--ru .hero-cshape__visual{transform:translateX(clamp(14px,2vw,26px))}
+}
+@media (max-width:900px) and (min-height:541px){
+  .hero-cshape__visual,.hero-cshape-page--ru .hero-cshape__visual{transform:none}
+  .hero-cshape__rail,.hero-cshape-page--ru .hero-cshape__rail{right:auto}
+}
+
+/* Static/reduced/no-JS remains a complete premium still. */
+html.hero-r42-static .hero-r42__motion-svg,
+html.hero-r42-reduced .hero-r42__motion-svg{display:none!important}
+html.hero-r42-static .hero-r42__physical-scene,
+html.hero-r42-static .hero-r42__ambient,
+html.hero-r42-reduced .hero-r42__physical-scene,
+html.hero-r42-reduced .hero-r42__ambient{animation:none!important}
+@media (prefers-reduced-motion:reduce){
+  html.hero-r42-motion .hero-r42__physical-scene,
+  html.hero-r42-motion .hero-r42__ambient{animation:none!important}
+  .hero-r42__motion-svg{display:none!important}
+}
+</style>

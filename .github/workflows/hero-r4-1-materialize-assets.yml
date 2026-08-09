@@ -19,31 +19,40 @@ jobs:
           ref: agent/hero-r4-1-premium-owner-polish
           fetch-depth: 0
 
-      - name: Install ffmpeg
-        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
-
       - name: Decode canonical R4 integrated scene payloads
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p assets/img/hero-c-shape
-          cat _includes/hero-c-shape-r4/scene-desktop-avif-*.b64 | tr -d '\r\n ' | base64 -d > assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif
-          cat _includes/hero-c-shape-r4/scene-mobile-avif-*.b64 | tr -d '\r\n ' | base64 -d > assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif
-          ffmpeg -loglevel error -y -i assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif -c:v libwebp -quality 90 assets/img/hero-c-shape/scene-r4-1-integrated-desktop.webp
-          ffmpeg -loglevel error -y -i assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif -c:v libwebp -quality 90 assets/img/hero-c-shape/scene-r4-1-integrated-mobile.webp
-          file assets/img/hero-c-shape/scene-r4-1-integrated-*.*
-          sha256sum assets/img/hero-c-shape/scene-r4-1-integrated-*.*
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, re
+          pairs = [
+              ('desktop', sorted(Path('_includes/hero-c-shape-r4').glob('scene-desktop-avif-*.b64'))),
+              ('mobile', sorted(Path('_includes/hero-c-shape-r4').glob('scene-mobile-avif-*.b64'))),
+          ]
+          for label, files in pairs:
+              print(label, [p.name for p in files])
+              raw = ''.join(p.read_text(encoding='utf-8') for p in files)
+              raw = re.sub(r'\s+', '', raw)
+              print(label, 'base64_chars', len(raw), 'tail', raw[-16:])
+              data = base64.b64decode(raw, validate=True)
+              out = Path(f'assets/img/hero-c-shape/scene-r4-1-integrated-{label}.avif')
+              out.write_bytes(data)
+              print(label, 'bytes', len(data), 'sha256', hashlib.sha256(data).hexdigest(), 'head', data[:16].hex())
+          PY
+          file assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif
 
-      - name: Commit materialized binary assets to R4.1 branch
+      - name: Commit materialized AVIF assets to R4.1 branch
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'proai-r4-1-asset-bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif assets/img/hero-c-shape/scene-r4-1-integrated-desktop.webp assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif assets/img/hero-c-shape/scene-r4-1-integrated-mobile.webp
+          git add assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif
           if git diff --cached --quiet; then
             echo 'Binary assets already materialized.'
             exit 0
           fi
-          git commit -m 'Materialize R4.1 integrated scene assets'
+          git commit -m 'Materialize R4.1 integrated scene AVIF assets'
           git push origin HEAD:agent/hero-r4-1-premium-owner-polish

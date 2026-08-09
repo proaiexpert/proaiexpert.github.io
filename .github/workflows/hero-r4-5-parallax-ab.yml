@@ -9,9 +9,10 @@ on:
       - tools/hero_r4_5_parallax_ab.mjs
       - _includes/hero-c-shape-r4-5/**
       - hero-a-plus-c-shape-preview/index.html
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   parallax-ab:
@@ -19,6 +20,20 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/hero-r4-5-layered-2-5d-compositor
+      - name: Record A-B run id
+        shell: bash
+        run: |
+          printf '%s\n' "${GITHUB_RUN_ID}" > .github/r45-parallax-ab-last-run.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/r45-parallax-ab-last-run.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Hero R4.5 parallax A-B run"
+            git push origin HEAD:agent/hero-r4-5-layered-2-5d-compositor
+          fi
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'

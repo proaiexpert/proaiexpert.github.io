@@ -37,6 +37,7 @@
   height:100%;
   object-fit:fill;
   object-position:left top;
+  clip-path:inset(0 2.1% 0 0);
   user-select:none;
   -webkit-user-drag:none;
 }
@@ -72,16 +73,13 @@
 }
 .hero-r45__material-plane > img{z-index:0}
 
-/* Suppress the obsolete baked free-space lead-in and old output wires while preserving internal cyan.
-   Front metal is reintroduced above this neutralizer by the registered foreground plane. */
+/* Suppress only the obsolete baked lead-in. Internal cyan remains embedded inside the Core. */
 .hero-r45__route-neutralizer{
   position:absolute;
   z-index:4;
   inset:0;
   pointer-events:none;
-  background:
-    linear-gradient(90deg,rgba(5,6,7,.996) 0%,rgba(5,6,7,.985) 58%,rgba(5,6,7,.72) 80%,transparent 100%) 0 53.2%/43.5% 12.5% no-repeat,
-    linear-gradient(90deg,transparent 0%,rgba(4,6,7,.73) 20%,rgba(4,6,7,.955) 56%,rgba(4,6,7,.998) 100%) 75.5% 28%/24.5% 49% no-repeat;
+  background:linear-gradient(90deg,rgba(5,6,7,.996) 0%,rgba(5,6,7,.985) 58%,rgba(5,6,7,.72) 80%,transparent 100%) 0 53.2%/43.5% 12.5% no-repeat;
   filter:blur(6px);
   opacity:.96;
 }
@@ -99,19 +97,38 @@
     radial-gradient(ellipse 34% 28% at 61% 50%,#000 0 31%,rgba(0,0,0,.88) 57%,transparent 84%),
     linear-gradient(96deg,transparent 30%,rgba(0,0,0,.72) 43%,#000 55% 76%,rgba(0,0,0,.44) 82%,transparent 92%);
 }
+
+/* Legacy free-space output is darkened after glass/material layers but before new R4.5 energy.
+   Foreground metal is restored above it by tightly localized source-aware masks. */
+.hero-r45__output-cleaner{
+  position:absolute;
+  z-index:4;
+  left:72.8%;
+  top:27.5%;
+  width:27.2%;
+  height:47%;
+  pointer-events:none;
+  border-radius:38% 0 0 38%;
+  background:linear-gradient(90deg,rgba(4,6,7,.08),rgba(4,6,7,.82) 24%,rgba(4,6,7,.975) 55%,rgba(4,6,7,.998));
+  filter:blur(7px);
+  opacity:.97;
+}
+
 .hero-r45__scene-plane--front{
   z-index:7;
   opacity:.995;
   -webkit-mask-image:
-    radial-gradient(ellipse 34% 16% at 52% 23%,#000 0 50%,rgba(0,0,0,.96) 64%,transparent 82%),
-    radial-gradient(ellipse 35% 17% at 57% 64%,#000 0 48%,rgba(0,0,0,.95) 64%,transparent 83%),
-    linear-gradient(104deg,transparent 25%,rgba(0,0,0,.98) 38% 55%,rgba(0,0,0,.72) 61%,transparent 69%),
-    radial-gradient(ellipse 17% 32% at 79% 50%,rgba(0,0,0,.97),transparent 80%);
+    radial-gradient(ellipse 34% 15% at 52% 22%,#000 0 52%,rgba(0,0,0,.96) 66%,transparent 83%),
+    radial-gradient(ellipse 18% 15% at 86% 24%,#000 0 52%,rgba(0,0,0,.95) 67%,transparent 84%),
+    radial-gradient(ellipse 26% 10% at 58% 39%,#000 0 52%,rgba(0,0,0,.95) 68%,transparent 85%),
+    radial-gradient(ellipse 37% 14% at 57% 72%,#000 0 50%,rgba(0,0,0,.95) 66%,transparent 84%),
+    radial-gradient(ellipse 19% 15% at 86% 73%,#000 0 50%,rgba(0,0,0,.95) 66%,transparent 84%);
   mask-image:
-    radial-gradient(ellipse 34% 16% at 52% 23%,#000 0 50%,rgba(0,0,0,.96) 64%,transparent 82%),
-    radial-gradient(ellipse 35% 17% at 57% 64%,#000 0 48%,rgba(0,0,0,.95) 64%,transparent 83%),
-    linear-gradient(104deg,transparent 25%,rgba(0,0,0,.98) 38% 55%,rgba(0,0,0,.72) 61%,transparent 69%),
-    radial-gradient(ellipse 17% 32% at 79% 50%,rgba(0,0,0,.97),transparent 80%);
+    radial-gradient(ellipse 34% 15% at 52% 22%,#000 0 52%,rgba(0,0,0,.96) 66%,transparent 83%),
+    radial-gradient(ellipse 18% 15% at 86% 24%,#000 0 52%,rgba(0,0,0,.95) 67%,transparent 84%),
+    radial-gradient(ellipse 26% 10% at 58% 39%,#000 0 52%,rgba(0,0,0,.95) 68%,transparent 85%),
+    radial-gradient(ellipse 37% 14% at 57% 72%,#000 0 50%,rgba(0,0,0,.95) 66%,transparent 84%),
+    radial-gradient(ellipse 19% 15% at 86% 73%,#000 0 50%,rgba(0,0,0,.95) 66%,transparent 84%);
 }
 
 /* Energy and material response share the same grounded source coordinates. */

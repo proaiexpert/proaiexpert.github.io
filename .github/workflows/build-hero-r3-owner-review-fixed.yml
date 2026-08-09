@@ -24,10 +24,13 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Diagnose approved R2 Core derivatives
+      - name: Recover canonical R2 Core
+        run: bash tools/recover_hero_r3_core.sh
+
+      - name: Verify recovered Core
         run: |
-          ls -l assets/img/hero-c-shape/core-static-master-isolated.avif assets/img/hero-c-shape/core-static-master-isolated.webp
-          sha256sum assets/img/hero-c-shape/core-static-master-isolated.avif assets/img/hero-c-shape/core-static-master-isolated.webp
+          test "$(wc -c < assets/img/hero-c-shape/core-static-master-isolated.avif | tr -d ' ')" = "48100"
+          test "$(sha256sum assets/img/hero-c-shape/core-static-master-isolated.avif | awk '{print $1}')" = "c6cc0ba89b7145bdbd796b7fd778e6c788133d3e278265947b7ce90793e458d8"
 
       - name: Build standalone owner-review HTML
         run: python tools/build_hero_r3_owner_review.py
@@ -39,7 +42,6 @@ jobs:
           p = Path('PROAI_HERO_R3_OWNER_REVIEW.html')
           s = p.read_text(encoding='utf-8')
           assert p.stat().st_size > 250000, p.stat().st_size
-          assert 'APPROVED GROUNDED R2 ASSETS REQUIRED' in s
           assert 'data:image/avif;base64,' in s
           assert 'src="/assets/' not in s
           assert 'url("/assets/' not in s

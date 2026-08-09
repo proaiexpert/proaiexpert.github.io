@@ -1,0 +1,178 @@
+<script>
+(() => {
+  'use strict';
+  const root = document.documentElement;
+  const params = new URLSearchParams(location.search);
+  const requestedStatic = params.get('motion') === '0' || params.get('mode') === 'static';
+  const reduced = !!(matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const scene = document.querySelector('.hero-cshape__scene');
+  const entry = document.querySelector('[data-r42-entry]');
+  const entryHalo = document.querySelector('[data-r42-entry-halo]');
+  const entryCore = document.querySelector('[data-r42-entry-core]');
+  const packets = Array.from(document.querySelectorAll('[data-r42-packet]'));
+  const arcGroups = [0,1,2].map(i => Array.from(document.querySelectorAll(`[data-r42-arc="${i}"]`)));
+  const wideRing = document.querySelector('[data-r42-ring="wide"]');
+  const coreRing = document.querySelector('[data-r42-ring="core"]');
+  const dataLines = Array.from(document.querySelectorAll('[data-r42-data] line'));
+  const branches = [0,1,2,3].map(i => ({
+    line: document.querySelector(`[data-r42-branch="${i}"]`),
+    glow: document.querySelector(`[data-r42-branch-glow="${i}"]`),
+    node: document.querySelector(`[data-r42-node="${i}"]`),
+    packet: document.querySelector(`[data-r42-outpacket="${i}"]`)
+  }));
+  const railItems = Array.from(document.querySelectorAll('.hero-cshape__rail-item'));
+  if (!scene || !entry || !entryHalo || !entryCore) return;
+
+  const clamp = (n, a=0, b=1) => Math.max(a, Math.min(b, n));
+  const smooth = t => { t = clamp(t); return t*t*(3-2*t); };
+  const bell = (x,c,w) => Math.exp(-Math.pow((x-c)/w, 2));
+  const lengths = {
+    entry: entry.getTotalLength(),
+    arcs: arcGroups.map(g => g[0].getTotalLength()),
+    branches: branches.map(b => b.line.getTotalLength())
+  };
+
+  function dash(path, len, p0, p1, opacity) {
+    if (!path) return;
+    const a = clamp(p0)*len;
+    const b = clamp(p1)*len;
+    const l = Math.max(0, b-a);
+    path.style.strokeDasharray = `${l.toFixed(2)} ${(len+4).toFixed(2)}`;
+    path.style.strokeDashoffset = `${(-a).toFixed(2)}`;
+    path.style.opacity = String(opacity);
+  }
+  function place(group, path, progress, opacity=1) {
+    if (!group || !path) return;
+    const p = path.getPointAtLength(path.getTotalLength()*clamp(progress));
+    group.setAttribute('transform', `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})`);
+    group.style.opacity = String(opacity);
+  }
+
+  function resetVisualState() {
+    railItems.forEach(x => x.classList.remove('is-active'));
+    packets.forEach(p => p.style.opacity = '0');
+    [entryHalo, entryCore].forEach(p => { p.style.opacity='0'; p.style.strokeDasharray='0 9999'; });
+    arcGroups.flat().forEach(p => { p.style.opacity='0'; p.style.strokeDasharray='0 9999'; });
+    [wideRing, coreRing].forEach(r => { if(r) r.style.opacity='0'; });
+    dataLines.forEach(l => l.style.opacity='0');
+    branches.forEach((b,i) => {
+      dash(b.line, lengths.branches[i], 0, 1, .16);
+      b.glow.style.opacity='0';
+      b.packet.style.opacity='0';
+      b.node.style.opacity='.3';
+      b.node.style.filter='none';
+    });
+    scene.style.setProperty('--r42-react','0');
+    scene.style.setProperty('--r42-floor','0');
+  }
+
+  function setFrame(ms) {
+    const T = ((ms % 10500) + 10500) % 10500;
+    resetVisualState();
+    scene.style.setProperty('--r42-react', String(.025 + .015*(.5+.5*Math.sin(T/1350))));
+    scene.style.setProperty('--r42-floor', String(.06 + .025*(.5+.5*Math.sin(T/1700))));
+    if (requestedStatic || reduced) return;
+
+    /* 0.55–1.95s: three incoming fragments gather into one readable packet. */
+    if (T > 500 && T < 1950) {
+      packets.forEach((packet, i) => {
+        const p = clamp((T - 600 - i*105) / 1000) * (.92 - .035*i);
+        place(packet, entry, p, .92 - .16*i);
+      });
+      const end = clamp((T-600)/1100);
+      dash(entryHalo, lengths.entry, Math.max(0,end-.24), end, .28);
+      dash(entryCore, lengths.entry, Math.max(0,end-.10), end, .94);
+    }
+
+    /* 1.35–4.30s: the signal enters three separate physical depths of the C tunnel. */
+    if (T > 1350 && T < 4300) {
+      const travel = smooth((T-1500)/2300);
+      place(packets[0], entry, .88 + .12*travel, clamp(1-(T-3550)/700));
+      const reaction = bell(T, 2850, 1050);
+      scene.style.setProperty('--r42-react', String(.06 + .92*reaction));
+      scene.style.setProperty('--r42-floor', String(.10 + .72*reaction));
+      arcGroups.forEach((pair,i) => {
+        const start = 1850 + i*260;
+        const progress = smooth((T-start)/1150);
+        const tail = Math.max(0, progress-.38);
+        const life = clamp((T-start)/250) * clamp((start+1850-T)/500);
+        pair.forEach((path,j) => dash(path, lengths.arcs[i], tail, progress, (j ? .84 : .28)*life));
+      });
+      if (wideRing && coreRing) {
+        wideRing.style.opacity = String(.18 + .26*reaction);
+        coreRing.style.opacity = String(.28 + .58*reaction);
+        wideRing.setAttribute('transform', `rotate(${(T*.048)%360} 680 462)`);
+        coreRing.setAttribute('transform', `rotate(${(-T*.068)%360} 680 462)`);
+      }
+      dataLines.forEach((line,i) => {
+        const pulse = bell(T,3000+i*55,520);
+        line.style.opacity = String(.10+.57*pulse);
+      });
+    }
+
+    /* 4.0–5.35s: compression / processing moment. */
+    if (T > 4000 && T < 5350 && wideRing && coreRing) {
+      const p = smooth((T-4000)/900);
+      const fade = clamp(1-(T-5050)/300);
+      coreRing.style.opacity = String(.88*fade);
+      wideRing.style.opacity = String(.44*fade);
+      coreRing.setAttribute('transform', `rotate(${(T*.09)%360} 680 462) scale(${(1-.05*p).toFixed(3)})`);
+      scene.style.setProperty('--r42-react', String(.18+.82*bell(T,4650,430)));
+      scene.style.setProperty('--r42-floor', String(.20+.72*bell(T,4750,500)));
+    }
+
+    /* 5.0–7.2s: one processed state distributes into four ordered outcomes. */
+    branches.forEach((b,i) => {
+      const start = 5000 + i*420;
+      const progress = smooth((T-start)/680);
+      const hold = clamp(1-(T-(start+1150))/650);
+      dash(b.line, lengths.branches[i], 0, progress, .18+.58*progress*hold);
+      dash(b.glow, lengths.branches[i], Math.max(0,progress-.24), progress, .25*hold);
+      if (T > start && T < start+1050) {
+        place(b.packet, b.line, progress, .92*hold);
+        railItems[i]?.classList.add('is-active');
+        b.node.style.opacity='1';
+        b.node.style.filter='drop-shadow(0 0 6px rgba(107,231,255,.65))';
+      } else if (T >= start+1050 && T < start+1750) {
+        railItems[i]?.classList.add('is-active');
+        b.node.style.opacity='.72';
+      }
+    });
+
+    /* 7.3–10.5s: settle back to a breathing idle, never a dead JPEG. */
+    if (T > 7300) {
+      const settle = clamp((T-7300)/1600);
+      scene.style.setProperty('--r42-react', String(.11*(1-settle)+.035));
+      scene.style.setProperty('--r42-floor', String(.14*(1-settle)+.06));
+    }
+  }
+
+  window.__r42SetFrame = setFrame;
+  if (requestedStatic) {
+    root.classList.add('hero-r42-static');
+    setFrame(0);
+    return;
+  }
+  if (reduced) {
+    root.classList.add('hero-r42-reduced');
+    setFrame(0);
+    return;
+  }
+
+  root.classList.add('hero-r42-motion');
+  const explicit = params.get('previewT');
+  if (explicit !== null) {
+    setFrame(Number(explicit) || 0);
+    return;
+  }
+
+  const start = performance.now();
+  let raf = 0;
+  const loop = now => {
+    setFrame(now-start);
+    raf = requestAnimationFrame(loop);
+  };
+  raf = requestAnimationFrame(loop);
+  addEventListener('pagehide', () => cancelAnimationFrame(raf), {once:true});
+})();
+</script>

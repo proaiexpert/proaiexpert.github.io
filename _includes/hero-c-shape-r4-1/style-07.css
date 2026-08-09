@@ -76,3 +76,57 @@ html.hero-r41-static .hero-r41__deep-life span,
 html.hero-r41-static .hero-cshape__scene-haze,
 html.hero-r41-static .hero-cshape__inner-breath { animation:none !important; }
 .hero-cshape__button:focus-visible { outline:2px solid rgba(101,231,255,.86); outline-offset:4px; }
+
+/* Final narrow-portrait containment correction: fixed-size scene must not expand
+   the single-column grid track and silently clip copy while overflow-x reports 0. */
+@media (max-width:430px) and (min-height:541px) {
+  .hero-cshape__shell { grid-template-columns:minmax(0,1fr); }
+  .hero-cshape__copy,
+  .hero-cshape-page--ru .hero-cshape__copy {
+    width:100%;
+    max-width:100%;
+  }
+  .hero-cshape__title,
+  .hero-cshape-page--ru .hero-cshape__title,
+  .hero-cshape__lead,
+  .hero-cshape-page--ru .hero-cshape__lead,
+  .hero-cshape__actions,
+  .hero-cshape__accountability {
+    width:100%;
+    max-width:100%;
+  }
+  .hero-cshape__rail,
+  .hero-cshape-page--ru .hero-cshape__rail {
+    width:min(calc(100vw - 40px),390px);
+    margin-left:auto;
+    margin-right:auto;
+    transform:translateX(3vw);
+  }
+}
+
+@media (max-width:350px) and (min-height:541px) {
+  .hero-cshape { padding-top:100px; }
+  .hero-cshape__eyebrow,
+  .hero-cshape-page--ru .hero-cshape__eyebrow {
+    font-size:9.6px;
+    letter-spacing:.022em;
+    white-space:nowrap;
+  }
+  .hero-cshape__eyebrow::before { width:14px; margin-right:6px; }
+  .hero-cshape__title { font-size:30px; line-height:1.035; }
+  .hero-cshape-page--ru .hero-cshape__title { font-size:28px; }
+  .hero-cshape__lead,
+  .hero-cshape-page--ru .hero-cshape__lead {
+    margin-top:16px;
+    font-size:12.45px;
+    line-height:1.47;
+  }
+  .hero-cshape__actions { margin-top:18px; }
+  .hero-cshape__button { min-height:48px; font-size:12px; }
+  .hero-cshape__expectation { font-size:10.8px; line-height:1.4; }
+  .hero-cshape__accountability { margin-top:16px; font-size:9.8px; }
+  .hero-cshape__rail,
+  .hero-cshape-page--ru .hero-cshape__rail { width:calc(100vw - 34px); }
+  .hero-cshape__rail-item,
+  .hero-cshape-page--ru .hero-cshape__rail-item { font-size:11.4px; }
+}

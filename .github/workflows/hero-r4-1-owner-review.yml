@@ -1,9 +1,9 @@
 name: Hero R4.1 owner review QA
 
 on:
-  push:
+  pull_request:
     branches:
-      - agent/hero-r4-1-premium-owner-polish
+      - agent/hero-r4-1-qa-final2-base
   workflow_dispatch:
 
 permissions:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - name: Checkout R4.1 branch
+      - name: Checkout exact QA merge
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -43,10 +43,12 @@ jobs:
       - name: Build real Jekyll preview
         run: jekyll build --source . --destination _site --trace
 
-      - name: Verify generated Header and preview payload
+      - name: Verify generated Header and binary scene payload
         run: |
           test -f _site/hero-a-plus-c-shape-preview/index.html
           test -f _site/ru/hero-a-plus-c-shape-preview/index.html
+          test -s _site/assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif
+          test -s _site/assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif
           grep -q 'site-header__cube-face--front' _site/hero-a-plus-c-shape-preview/index.html
           grep -q 'PROAI <strong>EXPERT</strong>' _site/hero-a-plus-c-shape-preview/index.html
           grep -q 'hero-r41__signal-svg' _site/hero-a-plus-c-shape-preview/index.html
@@ -61,7 +63,7 @@ jobs:
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
-          sudo apt-get update
+          sudo apt-get update -qq
           sudo apt-get install -y ffmpeg
 
       - name: Serve Jekyll output
@@ -78,7 +80,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: PROAI_HERO_R4_1_OWNER_REVIEW
+          name: PROAI_HERO_R4_1_OWNER_REVIEW_FINAL2
           path: r4-1-owner-review/
           if-no-files-found: warn
           retention-days: 7

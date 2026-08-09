@@ -1,0 +1,64 @@
+name: Hero R4.1 owner review QA
+
+on:
+  push:
+    branches:
+      - agent/hero-r4-1-premium-owner-polish
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout R4.1 branch
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - name: Install Jekyll
+        run: gem install jekyll -v 4.3.4 --no-document
+
+      - name: Build real Jekyll preview
+        run: jekyll build --source . --destination _site --trace
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install browser QA dependencies
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Serve Jekyll output
+        run: |
+          python3 -m http.server 4173 --directory _site > /tmp/r41-http.log 2>&1 &
+          echo $! > /tmp/r41-http.pid
+          sleep 2
+          curl --fail http://127.0.0.1:4173/hero-a-plus-c-shape-preview/ > /dev/null
+
+      - name: Run responsive Chromium QA and capture owner package
+        run: node tools/hero_r4_1_qa.mjs
+
+      - name: Upload owner-review package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROAI_HERO_R4_1_OWNER_REVIEW
+          path: r4-1-owner-review/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Print local server log on failure
+        if: failure()
+        run: cat /tmp/r41-http.log || true

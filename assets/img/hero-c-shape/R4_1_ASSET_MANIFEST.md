@@ -16,37 +16,39 @@ R4.1 preserves the locked C-shape source lineage. No Core regeneration, redraw, 
 
 ## R4.1 raster policy
 
-R4.1 deterministically materializes the existing verified R4 integrated-scene AVIF payload already stored under `_includes/hero-c-shape-r4/` into normal binary browser assets. This corrects data-URI/Liquid transport without changing the scene pixels or regenerating the Core.
+R4.1 keeps the approved Core geometry and scene pixels deterministic. The desktop presentation uses the wider premium-integrated derivative prepared from the authoritative STATIC MASTER during this correction pass; portrait keeps the verified R4 mobile integrated scene because its full-C framing, floor, reflection, and black-level falloff already satisfy the portrait art direction.
 
-### Desktop AVIF
-- path: `assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif`
+### Desktop WebP — premium integrated scene
+- repository transport: `_includes/hero-c-shape-r4-1/scene-r4-1-premium-desktop-webp.b64`
+- browser format: WebP data URI assembled by Jekyll
 - dimensions: `1160 × 900`
-- file size: `53,284 bytes`
-- SHA-256: `29bdf0b1d62dca66b291104a689c31c4bd21627097c302968a947b9868ed7229`
-- provenance: deterministic base64 decode of `_includes/hero-c-shape-r4/scene-desktop-avif-01.b64` through `scene-desktop-avif-07.b64`
+- decoded file size: `110,358 bytes`
+- decoded SHA-256: `71e5b81b7d38c1b6779d1411e1ce32f5363428998d136da7f7a7cdeac210e506`
+- provenance: deterministic STATIC MASTER crop / black-level / atmospheric integration; no Core regeneration or generative content
 
-### Mobile AVIF
+### Mobile AVIF — verified integrated portrait scene
 - path: `assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif`
 - dimensions: `820 × 860`
 - file size: `55,263 bytes`
 - SHA-256: `5635602861a654cdf1208d219dae4fc7ed7ab0de6a841e83e7fadb286d4b5462`
 - provenance: deterministic base64 decode of `_includes/hero-c-shape-r4/scene-mobile-avif-01.b64` through `scene-mobile-avif-07.b64`
 
-The browser payload remains the same high-fidelity integrated scene; R4.1 changes optical integration, hierarchy, responsive placement, and the layered information-motion system.
+The desktop transport is embedded only inside the isolated owner-review preview. It is not a production asset decision.
 
 ## R4.1 scene-integration correction
 
 R4.1 applies preview-scoped, source-aware scene treatment:
 
-- predominantly neutral near-black Hero field;
-- restrained local cyan/teal atmosphere only around the Core;
-- broad scene feathering so responsive crops dissolve into the page rather than form a blue/green rectangular plate;
+- predominantly neutral near-black / graphite Hero field;
+- restrained cyan/teal atmosphere local to the Core;
+- widened desktop scene with stronger black-level falloff into the surrounding page;
+- broad scene feathering so the visual does not read as a rectangular plate;
 - dedicated mobile crop/feather behavior for portrait ratios;
 - physical Core/floor registration remains fixed;
-- reflection/contact/floor remain part of the same raster scene;
+- reflection/contact/floor remain physically tied to the scene;
 - `?debug=scene-edges` temporarily exposes the raster boundary for QA only.
 
-No black rectangle is added behind the image and no object-shaped sticker mask is used.
+No black rectangle is added behind the image and no object-shaped sticker contour is used.
 
 ## R4.1 signal / depth architecture
 
@@ -59,7 +61,7 @@ R4.1 uses layered browser overlays:
 3. soft halo trail;
 4. sharper core filament;
 5. concentrated moving head;
-6. source-registered foreground occlusion using the same scene raster, so the signal can read through/behind physical C-shape structures;
+6. source-registered foreground occlusion using the same scene raster so signal depth reads through/behind physical C-shape structures;
 7. local inner-tunnel and floor-response lighting;
 8. output collector/spine;
 9. four sequential distribution branches/nodes tied to the semantic rail.
@@ -68,7 +70,7 @@ The Core itself never rotates, bobs, tilts, scales, or moves relative to the flo
 
 ## Header / production isolation
 
-R4.1 continues to render the canonical shared Header DOM from:
+R4.1 renders the canonical shared Header DOM from:
 
 - `_includes/header-system/header.html`
 - `_data/header.yml`
@@ -76,6 +78,6 @@ R4.1 continues to render the canonical shared Header DOM from:
 - `assets/css/header-system-v1.css`
 - `assets/js/header-system-v1.js`
 
-Header visual corrections are preview-scoped in the R4.1 Hero style include. Shared production Header source files are not modified.
+Header visual corrections are preview-scoped in the R4.1 style include. Shared production Header source files are not modified.
 
 Production `/` and `/ru/` remain outside the R4.1 edit scope.

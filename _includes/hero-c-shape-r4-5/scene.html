@@ -1,79 +1,97 @@
-{% capture r45_desktop_webp %}{% include hero-c-shape-r4-1/scene-r4-1-premium-desktop-webp.b64 %}{% include hero-c-shape-r4-1/scene-r4-1-premium-desktop-webp-02.b64 %}{% endcapture %}
 <div class="hero-r43__bridge"></div>
 <div class="hero-r43__ambient"></div>
 
-<!-- R4.5 depth layer 1: source-registered rear architecture. -->
-<div class="hero-r45__source-layer hero-r45__source-layer--back" data-r45-back aria-hidden="true">
-  <picture class="hero-cshape__scene-picture">
-    <source media="(max-width: 900px)" srcset="/assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif" type="image/avif" width="820" height="860">
-    <img src="data:image/webp;base64,{{ r45_desktop_webp | strip_newlines | strip }}" width="1160" height="900" alt="" decoding="async">
-  </picture>
+<!-- R4.5 desktop compositor is rebuilt on the canonical R2 source-coordinate registration:
+     grounded environment (735x780) + high-fidelity Core (900x760). No Core regeneration. -->
+<div class="hero-r45__desktop-stack" aria-hidden="true">
+  <div class="hero-r45__registration">
+    <div class="hero-r45__environment" data-r45-environment>
+      {% include hero-c-shape-r2/environment-r2.html %}
+    </div>
+
+    <!-- Rear architecture uses the exact registered Core asset, masked to rear physical masses. -->
+    <div class="hero-r45__core-plane hero-r45__core-plane--back" data-r45-back>
+      <picture>
+        <source srcset="/assets/img/hero-c-shape/core-static-master-isolated.avif" type="image/avif" width="900" height="760">
+        <source srcset="/assets/img/hero-c-shape/core-static-master-isolated.webp" type="image/webp" width="900" height="760">
+        <img src="/assets/img/hero-c-shape/core-static-master-isolated.webp" width="900" height="760" alt="" decoding="async">
+      </picture>
+    </div>
+
+    <!-- R4.4 material treatment remains the base visual authority over the R2 grounded scene. -->
+    <div class="hero-r43__physical-scene hero-r45__core-plane hero-r45__core-plane--base" data-r45-base>
+      <picture class="hero-r43__base-picture">
+        <source srcset="/assets/img/hero-c-shape/core-static-master-isolated.avif" type="image/avif" width="900" height="760">
+        <source srcset="/assets/img/hero-c-shape/core-static-master-isolated.webp" type="image/webp" width="900" height="760">
+        <img src="/assets/img/hero-c-shape/core-static-master-isolated.webp" width="900" height="760" alt="" decoding="async" fetchpriority="high">
+      </picture>
+
+      <img class="hero-r43__material-response hero-r43__material-response--cyan" data-r45-cyan-response src="/assets/img/hero-c-shape/core-static-master-isolated.webp" width="900" height="760" alt="" decoding="async">
+      <img class="hero-r43__material-response hero-r43__material-response--warm" data-r45-warm-response src="/assets/img/hero-c-shape/core-static-master-isolated.webp" width="900" height="760" alt="" decoding="async">
+    </div>
+
+    <!-- Internal glass/depth response is another exact registered Core plane with an interior-only mask. -->
+    <div class="hero-r45__core-plane hero-r45__core-plane--glass" data-r45-glass>
+      <picture>
+        <source srcset="/assets/img/hero-c-shape/core-static-master-isolated.avif" type="image/avif" width="900" height="760">
+        <source srcset="/assets/img/hero-c-shape/core-static-master-isolated.webp" type="image/webp" width="900" height="760">
+        <img src="/assets/img/hero-c-shape/core-static-master-isolated.webp" width="900" height="760" alt="" decoding="async">
+      </picture>
+    </div>
+
+    <!-- Information is perceived as local volume/illumination, not as a drawn route. -->
+    <div class="hero-r45__energy" data-r45-energy>
+      <div class="hero-r45__entry-volume" data-r45-entry-volume></div>
+      <i class="hero-r45__impulse hero-r45__impulse--0" data-r45-input="0"></i>
+      <i class="hero-r45__impulse hero-r45__impulse--1" data-r45-input="1"></i>
+      <i class="hero-r45__impulse hero-r45__impulse--2" data-r45-input="2"></i>
+
+      <div class="hero-r45__ingress" data-r45-ingress></div>
+      <i class="hero-r45__depth-packet" data-r45-depth-packet></i>
+
+      <div class="hero-r45__chamber hero-r45__chamber--top" data-r45-chamber="0"></div>
+      <div class="hero-r45__chamber hero-r45__chamber--mid" data-r45-chamber="1"></div>
+      <div class="hero-r45__chamber hero-r45__chamber--deep" data-r45-chamber="2"></div>
+      <div class="hero-r45__chamber hero-r45__chamber--lower" data-r45-chamber="3"></div>
+
+      <i class="hero-r45__microstream hero-r45__microstream--0" data-r45-micro="0"></i>
+      <i class="hero-r45__microstream hero-r45__microstream--1" data-r45-micro="1"></i>
+      <i class="hero-r45__microstream hero-r45__microstream--2" data-r45-micro="2"></i>
+
+      <div class="hero-r45__collector" data-r45-collector></div>
+      <div class="hero-r45__output-field" data-r45-output-field></div>
+
+      <div class="hero-r45__output hero-r45__output--0" data-r45-output="0"><i></i><b></b></div>
+      <div class="hero-r45__output hero-r45__output--1" data-r45-output="1"><i></i><b></b></div>
+      <div class="hero-r45__output hero-r45__output--2" data-r45-output="2"><i></i><b></b></div>
+      <div class="hero-r45__output hero-r45__output--3" data-r45-output="3"><i></i><b></b></div>
+    </div>
+
+    <div class="hero-r43__floor" data-r45-floor></div>
+    <div class="hero-r43__reflection" data-r45-reflection></div>
+    <div class="hero-r43__volumetric" data-r45-volumetric></div>
+
+    <!-- Foreground metal is the same exact Core asset and physically occludes internal energy. -->
+    <div class="hero-r45__core-plane hero-r45__core-plane--front" data-r45-front>
+      <picture>
+        <source srcset="/assets/img/hero-c-shape/core-static-master-isolated.avif" type="image/avif" width="900" height="760">
+        <source srcset="/assets/img/hero-c-shape/core-static-master-isolated.webp" type="image/webp" width="900" height="760">
+        <img src="/assets/img/hero-c-shape/core-static-master-isolated.webp" width="900" height="760" alt="" decoding="async">
+      </picture>
+    </div>
+
+    <div class="hero-r45__specular-response" data-r45-specular>
+      <i class="hero-r45__edge-light hero-r45__edge-light--a" data-r45-edge="0"></i>
+      <i class="hero-r45__edge-light hero-r45__edge-light--b" data-r45-edge="1"></i>
+      <i class="hero-r45__edge-light hero-r45__edge-light--c" data-r45-edge="2"></i>
+    </div>
+  </div>
 </div>
 
-<!-- R4.4 base/material treatment remains the static visual authority. -->
-<div class="hero-r43__physical-scene" data-r45-base>
-  <picture class="hero-cshape__scene-picture hero-r43__base-picture">
-    <source media="(max-width: 900px)" srcset="/assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif" type="image/avif" width="820" height="860">
-    <img src="data:image/webp;base64,{{ r45_desktop_webp | strip_newlines | strip }}" width="1160" height="900" alt="" decoding="async" fetchpriority="high">
-  </picture>
-
-  <img class="hero-r43__material-response hero-r43__material-response--cyan" data-r45-cyan-response src="data:image/webp;base64,{{ r45_desktop_webp | strip_newlines | strip }}" width="1160" height="900" alt="" decoding="async">
-  <img class="hero-r43__material-response hero-r43__material-response--warm" data-r45-warm-response src="data:image/webp;base64,{{ r45_desktop_webp | strip_newlines | strip }}" width="1160" height="900" alt="" decoding="async">
-</div>
-
-<!-- R4.5 depth layer 3: internal glass / tunnel response, registered to the same source raster. -->
-<div class="hero-r45__source-layer hero-r45__source-layer--glass" data-r45-glass aria-hidden="true">
-  <picture class="hero-cshape__scene-picture">
-    <source media="(max-width: 900px)" srcset="/assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif" type="image/avif" width="820" height="860">
-    <img src="data:image/webp;base64,{{ r45_desktop_webp | strip_newlines | strip }}" width="1160" height="900" alt="" decoding="async">
-  </picture>
-</div>
-
-<!-- R4.5 depth layer 4: information is perceived as local volume/illumination, not a drawn route. -->
-<div class="hero-r45__energy" data-r45-energy aria-hidden="true">
-  <div class="hero-r45__entry-volume" data-r45-entry-volume></div>
-  <i class="hero-r45__impulse hero-r45__impulse--0" data-r45-input="0"></i>
-  <i class="hero-r45__impulse hero-r45__impulse--1" data-r45-input="1"></i>
-  <i class="hero-r45__impulse hero-r45__impulse--2" data-r45-input="2"></i>
-
-  <div class="hero-r45__ingress" data-r45-ingress></div>
-  <i class="hero-r45__depth-packet" data-r45-depth-packet></i>
-
-  <div class="hero-r45__chamber hero-r45__chamber--top" data-r45-chamber="0"></div>
-  <div class="hero-r45__chamber hero-r45__chamber--mid" data-r45-chamber="1"></div>
-  <div class="hero-r45__chamber hero-r45__chamber--deep" data-r45-chamber="2"></div>
-  <div class="hero-r45__chamber hero-r45__chamber--lower" data-r45-chamber="3"></div>
-
-  <i class="hero-r45__microstream hero-r45__microstream--0" data-r45-micro="0"></i>
-  <i class="hero-r45__microstream hero-r45__microstream--1" data-r45-micro="1"></i>
-  <i class="hero-r45__microstream hero-r45__microstream--2" data-r45-micro="2"></i>
-
-  <div class="hero-r45__collector" data-r45-collector></div>
-  <div class="hero-r45__output-field" data-r45-output-field></div>
-
-  <div class="hero-r45__output hero-r45__output--0" data-r45-output="0"><i></i><b></b></div>
-  <div class="hero-r45__output hero-r45__output--1" data-r45-output="1"><i></i><b></b></div>
-  <div class="hero-r45__output hero-r45__output--2" data-r45-output="2"><i></i><b></b></div>
-  <div class="hero-r45__output hero-r45__output--3" data-r45-output="3"><i></i><b></b></div>
-</div>
-
-<div class="hero-r43__floor" data-r45-floor></div>
-<div class="hero-r43__reflection" data-r45-reflection></div>
-<div class="hero-r43__volumetric" data-r45-volumetric></div>
-
-<!-- R4.5 depth layer 5: foreground metal occludes internal energy with source-aware masks. -->
-<div class="hero-r45__source-layer hero-r45__source-layer--front" data-r45-front aria-hidden="true">
-  <picture class="hero-cshape__scene-picture">
-    <source media="(max-width: 900px)" srcset="/assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif" type="image/avif" width="820" height="860">
-    <img src="data:image/webp;base64,{{ r45_desktop_webp | strip_newlines | strip }}" width="1160" height="900" alt="" decoding="async">
-  </picture>
-</div>
-
-<!-- Local edge/specular consequences sit above the occluding metal; they never describe a path. -->
-<div class="hero-r45__specular-response" data-r45-specular aria-hidden="true">
-  <i class="hero-r45__edge-light hero-r45__edge-light--a" data-r45-edge="0"></i>
-  <i class="hero-r45__edge-light hero-r45__edge-light--b" data-r45-edge="1"></i>
-  <i class="hero-r45__edge-light hero-r45__edge-light--c" data-r45-edge="2"></i>
-</div>
+<!-- Mobile remains a static-only owner gate and keeps the existing dedicated mobile master. -->
+<picture class="hero-r45__mobile-master" aria-hidden="true">
+  <source srcset="/assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif" type="image/avif" width="820" height="860">
+  <img src="/assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif" width="820" height="860" alt="" decoding="async">
+</picture>
 
 <div class="hero-r43__grain" aria-hidden="true"></div>

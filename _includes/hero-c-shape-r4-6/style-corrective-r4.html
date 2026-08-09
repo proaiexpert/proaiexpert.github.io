@@ -1,0 +1,41 @@
+<style>
+/* R4.6 corrective refinement 4 — final dark-key pass.
+   Every source-derived depth plane must preserve material but must never reintroduce the source's
+   near-black rectangular background into the page environment. */
+.hero-r45__scene-plane--back,
+.hero-r45__scene-plane--front{
+  mix-blend-mode:lighten;
+}
+
+/* Restore depth by tonal grading rather than by laying source-black over the page. */
+.hero-r45__scene-plane--back{
+  opacity:.70;
+  filter:brightness(.78) saturate(.82) contrast(1.08);
+}
+.hero-r45__scene-plane--front{
+  opacity:1;
+  filter:contrast(1.035) saturate(.94);
+}
+
+/* The environmental bridge is continuous under the object and copy. */
+.hero-r43__bridge{
+  left:-58%;
+  width:111%;
+  opacity:.72;
+  filter:blur(35px);
+}
+.hero-r43__ambient{
+  inset:5% -2% 0 -9%;
+  opacity:.48;
+}
+
+/* Avoid any last hard corner from the registered stack itself. */
+.hero-r45__desktop-stack{
+  -webkit-mask-image:
+    radial-gradient(ellipse 82% 83% at 55% 52%,#000 0 73%,rgba(0,0,0,.92) 83%,rgba(0,0,0,.45) 94%,transparent 100%),
+    linear-gradient(90deg,transparent 0%,rgba(0,0,0,.46) 5%,#000 14% 96%,rgba(0,0,0,.60) 99%,transparent 100%);
+  mask-image:
+    radial-gradient(ellipse 82% 83% at 55% 52%,#000 0 73%,rgba(0,0,0,.92) 83%,rgba(0,0,0,.45) 94%,transparent 100%),
+    linear-gradient(90deg,transparent 0%,rgba(0,0,0,.46) 5%,#000 14% 96%,rgba(0,0,0,.60) 99%,transparent 100%);
+}
+</style>

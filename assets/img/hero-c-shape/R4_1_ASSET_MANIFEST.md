@@ -16,21 +16,23 @@ R4.1 preserves the locked C-shape source lineage. No Core regeneration, redraw, 
 
 ## R4.1 raster policy
 
-R4.1 intentionally reuses the exact verified R4 integrated-scene AVIF payload already stored under `_includes/hero-c-shape-r4/` rather than introducing another compressed derivative during a targeted visual-polish pass.
-
-Verified R4 decoded scene assets reused by R4.1:
+R4.1 deterministically materializes the existing verified R4 integrated-scene AVIF payload already stored under `_includes/hero-c-shape-r4/` into normal binary browser assets. This corrects data-URI/Liquid transport without changing the scene pixels or regenerating the Core.
 
 ### Desktop AVIF
+- path: `assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif`
 - dimensions: `1160 × 900`
-- file size: `54,784 bytes`
-- SHA-256: `6f26515df1eccdc47f4f5c545deac77a3bccb7c5e4528214befd2c65e717e75d`
+- file size: `53,284 bytes`
+- SHA-256: `29bdf0b1d62dca66b291104a689c31c4bd21627097c302968a947b9868ed7229`
+- provenance: deterministic base64 decode of `_includes/hero-c-shape-r4/scene-desktop-avif-01.b64` through `scene-desktop-avif-07.b64`
 
 ### Mobile AVIF
+- path: `assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif`
 - dimensions: `820 × 860`
 - file size: `55,263 bytes`
 - SHA-256: `5635602861a654cdf1208d219dae4fc7ed7ab0de6a841e83e7fadb286d4b5462`
+- provenance: deterministic base64 decode of `_includes/hero-c-shape-r4/scene-mobile-avif-01.b64` through `scene-mobile-avif-07.b64`
 
-The browser payload remains the same high-fidelity integrated scene; R4.1 changes how it is optically integrated and how information motion is layered over/through it.
+The browser payload remains the same high-fidelity integrated scene; R4.1 changes optical integration, hierarchy, responsive placement, and the layered information-motion system.
 
 ## R4.1 scene-integration correction
 
@@ -38,11 +40,11 @@ R4.1 applies preview-scoped, source-aware scene treatment:
 
 - predominantly neutral near-black Hero field;
 - restrained local cyan/teal atmosphere only around the Core;
-- broad alpha feather on the scene raster so responsive crops dissolve into the page rather than form a blue/green rectangular plate;
-- separate mobile feather geometry for portrait ratios;
+- broad scene feathering so responsive crops dissolve into the page rather than form a blue/green rectangular plate;
+- dedicated mobile crop/feather behavior for portrait ratios;
 - physical Core/floor registration remains fixed;
 - reflection/contact/floor remain part of the same raster scene;
-- `?debug=scene-edges` temporarily removes the feather and outlines the raw raster field for QA only.
+- `?debug=scene-edges` temporarily exposes the raster boundary for QA only.
 
 No black rectangle is added behind the image and no object-shaped sticker mask is used.
 
@@ -50,14 +52,14 @@ No black rectangle is added behind the image and no object-shaped sticker mask i
 
 The rejected R4 `single path + moving dash` treatment is superseded.
 
-R4.1 uses browser overlays only:
+R4.1 uses layered browser overlays:
 
 1. concentrated entry seed + short filament from the left;
 2. low-opacity guide route;
 3. soft halo trail;
 4. sharper core filament;
 5. concentrated moving head;
-6. source-registered foreground occlusion using the same scene raster, so the signal briefly disappears behind physical C-shape structures;
+6. source-registered foreground occlusion using the same scene raster, so the signal can read through/behind physical C-shape structures;
 7. local inner-tunnel and floor-response lighting;
 8. output collector/spine;
 9. four sequential distribution branches/nodes tied to the semantic rail.

@@ -84,11 +84,11 @@ Decoded browser asset: `scene-r4-integrated-mobile.webp`
 
 ## Repository packaging
 
-For this isolated owner-review branch, the exact encoded AVIF/WebP bytes are stored as Base64 text includes under:
+For this isolated owner-review branch, the exact primary AVIF bytes are stored as Base64 text includes under:
 
 `_includes/hero-c-shape-r4/`
 
-Jekyll assembles them into `data:` URLs through `_includes/hero-c-shape-r4/scene-r4-picture.html`. The browser therefore decodes the exact AVIF/WebP assets listed above; the Base64 files are transport packaging, not separate visual tiles and do not introduce seams.
+Jekyll assembles them into `data:` URLs through `_includes/hero-c-shape-r4/scene-r4-picture.html`. The browser therefore decodes the exact desktop/mobile AVIF assets listed above; the Base64 files are transport packaging, not separate visual tiles and do not introduce seams. The WebP derivatives above were generated and verified during QA as high-quality fallbacks, but are not embedded in this narrow owner-review transport because all required review browsers support AVIF.
 
 This mirrors the proven R2 review-branch packaging pattern while avoiding production-route changes.
 

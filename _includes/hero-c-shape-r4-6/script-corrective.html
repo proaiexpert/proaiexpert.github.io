@@ -1,0 +1,88 @@
+<script>
+(() => {
+  'use strict';
+
+  const root = document.documentElement;
+  const params = new URLSearchParams(location.search);
+  const requestedStatic = params.get('motion') === '0' || params.get('mode') === 'static';
+  const reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const mobile = !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches);
+
+  const stack = document.querySelector('.hero-r45__desktop-stack');
+  const stage = document.querySelector('[data-core-stage]');
+  const back = document.querySelector('[data-r45-back]');
+  const base = document.querySelector('[data-r45-base]');
+  const glass = document.querySelector('[data-r45-glass]');
+  const energy = document.querySelector('[data-r45-energy]');
+  const front = document.querySelector('[data-r45-front]');
+  const floor = document.querySelector('[data-r45-floor]');
+  const reflection = document.querySelector('[data-r45-reflection]');
+
+  if (!stack || !stage || !back || !base || !glass || !energy || !front || !floor || !reflection) return;
+
+  root.classList.add(requestedStatic ? 'hero-r46-static' : 'hero-r46-motion');
+  if (reduced) root.classList.add('hero-r46-reduced');
+
+  /* Prevent the historical cleanup masks from appearing before the source raster.
+     The scene becomes visible atomically after the approved master is decoded. */
+  const imgs = Array.from(stack.querySelectorAll('img'));
+  const ready = imgs.map(img => {
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+    if (typeof img.decode === 'function') return img.decode().catch(() => {});
+    return new Promise(resolve => {
+      img.addEventListener('load', resolve, {once:true});
+      img.addEventListener('error', resolve, {once:true});
+    });
+  });
+  Promise.all(ready).then(() => {
+    stack.classList.add('is-r46-ready');
+    root.classList.add('hero-r46-source-ready');
+  });
+
+  if (requestedStatic || reduced || mobile) {
+    [back,base,glass,energy,front,floor,reflection].forEach(el => el.style.setProperty('transform','none','important'));
+    if (reduced) stack.classList.add('is-r46-ready');
+    return;
+  }
+
+  let px = 0;
+  let py = 0;
+  let tx = 0;
+  let ty = 0;
+
+  if (window.matchMedia?.('(pointer:fine)').matches) {
+    stage.addEventListener('pointermove', e => {
+      const r = stage.getBoundingClientRect();
+      tx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width - .5) * 2));
+      ty = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height - .5) * 2));
+    }, {passive:true});
+    stage.addEventListener('pointerleave', () => { tx = 0; ty = 0; }, {passive:true});
+  }
+
+  const start = performance.now();
+
+  function frame(now) {
+    const t = now - start;
+    const autoX = .20 * Math.sin(t / 4600) + .07 * Math.sin(t / 7900 + .7);
+    const autoY = .13 * Math.sin(t / 6200 + 1.1) + .05 * Math.sin(t / 9100 + .2);
+    const targetX = Math.max(-1, Math.min(1, autoX + tx * .28));
+    const targetY = Math.max(-1, Math.min(1, autoY + ty * .22));
+    px += (targetX - px) * .035;
+    py += (targetY - py) * .035;
+
+    /* R4.6: almost-static physical mass. No card-like rotation.
+       Depth comes from sub-2px differential translation and internal/material response. */
+    base.style.setProperty('transform', `translate3d(${(px*.10).toFixed(2)}px,${(py*.06).toFixed(2)}px,0)`, 'important');
+    back.style.setProperty('transform', `translate3d(${(-px*.38).toFixed(2)}px,${(-py*.18).toFixed(2)}px,0)`, 'important');
+    glass.style.setProperty('transform', `translate3d(${(px*.62).toFixed(2)}px,${(py*.30).toFixed(2)}px,0)`, 'important');
+    energy.style.setProperty('transform', `translate3d(${(px*.78).toFixed(2)}px,${(py*.38).toFixed(2)}px,0)`, 'important');
+    front.style.setProperty('transform', `translate3d(${(px*.96).toFixed(2)}px,${(py*.44).toFixed(2)}px,0)`, 'important');
+    floor.style.setProperty('transform', `translate3d(${(px*.16).toFixed(2)}px,0,0) scaleX(calc(1 + var(--r43-floor) * .045))`, 'important');
+    reflection.style.setProperty('transform', `translate3d(${(px*.12).toFixed(2)}px,0,0) skewX(-10deg) scaleX(calc(.93 + var(--r43-reflect) * .085))`, 'important');
+
+    requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
+})();
+</script>

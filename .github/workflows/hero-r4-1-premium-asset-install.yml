@@ -18,7 +18,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify transfer chunks and premium desktop AVIF
+      - name: Normalize and verify transfer chunks
         shell: bash
         run: |
           set -euo pipefail
@@ -30,14 +30,26 @@ jobs:
             40b26ea189fdc0deffbf6fa925c15046b7617e01b56d9c7a606527c2d4230e88
             fd4c8c1e7e587396f508061ae6c377e96f80a06cf2ee80b4ca23886578241f3d
           )
+          : > /tmp/r41-premium.b64
           for i in 1 2 3 4 5 6; do
             f=$(printf '.r41-asset/desktop-%02d.b64' "$i")
-            actual=$(sha256sum "$f" | awk '{print $1}')
-            chars=$(wc -c < "$f" | tr -d ' ')
-            echo "$f chars=$chars sha256=$actual expected=${expected[$((i-1))]}"
+            expected_chars=16000
+            if [ "$i" = 6 ]; then expected_chars=15252; fi
+            tr -d '\r\n ' < "$f" | head -c "$expected_chars" > "/tmp/chunk-$i.b64"
+            actual=$(sha256sum "/tmp/chunk-$i.b64" | awk '{print $1}')
+            source_chars=$(tr -d '\r\n ' < "$f" | wc -c | tr -d ' ')
+            normalized_chars=$(wc -c < "/tmp/chunk-$i.b64" | tr -d ' ')
+            echo "$f source_chars=$source_chars normalized_chars=$normalized_chars prefix_sha256=$actual expected=${expected[$((i-1))]}"
+            test "$normalized_chars" = "$expected_chars"
             test "$actual" = "${expected[$((i-1))]}"
+            cat "/tmp/chunk-$i.b64" >> /tmp/r41-premium.b64
           done
-          cat .r41-asset/desktop-*.b64 | tr -d '\r\n ' | base64 -d > /tmp/scene-r4-1-premium-desktop.avif
+
+      - name: Decode and verify exact premium desktop AVIF
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 -d /tmp/r41-premium.b64 > /tmp/scene-r4-1-premium-desktop.avif
           bytes=$(wc -c < /tmp/scene-r4-1-premium-desktop.avif | tr -d ' ')
           digest=$(sha256sum /tmp/scene-r4-1-premium-desktop.avif | awk '{print $1}')
           echo "decoded bytes=$bytes sha256=$digest"

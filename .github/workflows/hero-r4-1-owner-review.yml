@@ -32,6 +32,28 @@ jobs:
             exit 1
           fi
 
+      - name: Verify exact R4.1 scene asset payloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, re
+          src = Path('_includes/hero-c-shape-r4-1/scene-r4-1-premium-desktop-webp.b64').read_text(encoding='utf-8')
+          raw = re.sub(r'\s+', '', src)
+          data = base64.b64decode(raw, validate=True)
+          assert len(data) == 110358, len(data)
+          digest = hashlib.sha256(data).hexdigest()
+          assert digest == '71e5b81b7d38c1b6779d1411e1ce32f5363428998d136da7f7a7cdeac210e506', digest
+          print('desktop WebP:', len(data), digest)
+          p = Path('assets/img/hero-c-shape/scene-r4-1-integrated-mobile.avif')
+          mobile = p.read_bytes()
+          md = hashlib.sha256(mobile).hexdigest()
+          assert len(mobile) == 55263, len(mobile)
+          assert md == '5635602861a654cdf1208d219dae4fc7ed7ab0de6a841e83e7fadb286d4b5462', md
+          print('mobile AVIF:', len(mobile), md)
+          PY
+
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:

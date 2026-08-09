@@ -1,0 +1,41 @@
+name: Install verified Hero R4.1 premium desktop scene
+
+on:
+  pull_request:
+    branches:
+      - agent/hero-r4-1-premium-asset-base
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout temporary asset payload branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Decode and verify premium desktop AVIF
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .r41-asset/desktop-*.b64 | tr -d '\r\n ' | base64 -d > /tmp/scene-r4-1-premium-desktop.avif
+          test "$(wc -c < /tmp/scene-r4-1-premium-desktop.avif | tr -d ' ')" = "71437"
+          test "$(sha256sum /tmp/scene-r4-1-premium-desktop.avif | awk '{print $1}')" = "8fec9e0116d133ca0d13bc1e3211b2a5ea761cda6dfd47d35469fbb9a3449765"
+          file /tmp/scene-r4-1-premium-desktop.avif
+
+      - name: Install exact binary on R4.1 target branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin agent/hero-r4-1-premium-owner-polish
+          git checkout -B agent/hero-r4-1-premium-owner-polish origin/agent/hero-r4-1-premium-owner-polish
+          cp /tmp/scene-r4-1-premium-desktop.avif assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif
+          git config user.name 'proai-r4-1-asset-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add assets/img/hero-c-shape/scene-r4-1-integrated-desktop.avif
+          git commit -m 'Install verified R4.1 premium desktop scene asset'
+          git push origin HEAD:agent/hero-r4-1-premium-owner-polish

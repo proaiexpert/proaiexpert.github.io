@@ -62,12 +62,14 @@
     group.style.opacity=String(clamp(opacity,0,1));
   }
 
-  function setSceneVars(react=.035,floor=.055,reflect=.045,warm=.018,haze=.08){
+  function setSceneVars(react=.03,floor=.045,reflect=.035,warm=.014,haze=.06,zones=[.03,.03,.03,.03,.03],spec=.2){
     scene.style.setProperty('--r43-react',String(react));
     scene.style.setProperty('--r43-floor',String(floor));
     scene.style.setProperty('--r43-reflect',String(reflect));
     scene.style.setProperty('--r43-warm',String(warm));
     scene.style.setProperty('--r43-haze',String(haze));
+    scene.style.setProperty('--r43-spec',String(spec));
+    for(let i=0;i<5;i++) scene.style.setProperty(`--r43-z${i}`,String(zones[i] ?? 0));
   }
 
   function resetFrame(){
@@ -81,109 +83,151 @@
       dash(x.core,channelLengths[i],0,0,0);
     });
     compress.forEach((x,i)=>dash(x,compressLengths[i],0,0,0));
-    if(collectorCore) collectorCore.style.opacity='.2';
+    if(collectorCore) collectorCore.style.opacity='.12';
     if(collectorHalo) collectorHalo.style.opacity='0';
     branches.forEach((x,i)=>{
-      dash(x.core,branchLengths[i],0,1,.13);
+      dash(x.core,branchLengths[i],0,1,.035);
       dash(x.glow,branchLengths[i],0,0,0);
       if(x.packet) x.packet.style.opacity='0';
-      if(x.node){x.node.style.opacity='.28';x.node.style.filter='none';}
+      if(x.node){x.node.style.opacity='.20';x.node.style.filter='none';}
     });
     rail.forEach(x=>x.classList.remove('is-active','is-resolved'));
   }
 
-  function drawTravel(pathGlow,pathCore,len,progress,life,tailGlow=.24,tailCore=.09){
+  function drawTravel(pathGlow,pathCore,len,progress,life,tailGlow=.20,tailCore=.07,coreGain=.88){
     const g0=Math.max(0,progress-tailGlow);
     const c0=Math.max(0,progress-tailCore);
-    dash(pathGlow,len,g0,progress,.25*life);
-    dash(pathCore,len,c0,progress,.92*life);
+    dash(pathGlow,len,g0,progress,.20*life);
+    dash(pathCore,len,c0,progress,coreGain*life);
   }
 
-  /* 12.8s narrative: 2.0 entry, 4.6 processing, 2.8 distribution, 3.4 calm. */
-  const CYCLE=12800;
+  /* 15.8s cycle: calm first, then inputs -> depth -> processing -> output -> long residual calm. */
+  const CYCLE=15800;
 
   function setFrame(ms){
     const T=((ms%CYCLE)+CYCLE)%CYCLE;
     resetFrame();
 
-    const idleWave=.5+.5*Math.sin(T/1580);
-    setSceneVars(.025+.018*idleWave,.045+.015*idleWave,.035+.012*idleWave,.014+.006*(.5+.5*Math.sin(T/2200)),.06+.025*idleWave);
+    // Three independent ambient systems use absolute time so the loop boundary never brightness-pumps.
+    const breatheA=.5+.5*Math.sin(ms/1257);      // ~7.9s
+    const breatheB=.5+.5*Math.sin((ms+1700)/1878); // ~11.8s
+    const breatheC=.5+.5*Math.sin((ms+4900)/2652); // ~16.7s
+    setSceneVars(
+      .022+.015*breatheA,
+      .038+.015*breatheC,
+      .030+.011*breatheC,
+      .010+.007*breatheB,
+      .048+.018*breatheB,
+      [
+        .030+.030*breatheA,
+        .028+.032*breatheB,
+        .025+.033*breatheC,
+        .026+.025*breatheA,
+        .028+.028*breatheB
+      ],
+      .14+.18*breatheB
+    );
 
     if(requestedStatic || reduced) return;
 
-    /* A — independent inputs. No permanent wire. */
+    /* A — multiple restrained information inputs after ~2s of calm. No persistent route. */
     entries.forEach((x,i)=>{
-      const start=520+i*170;
-      const end=1900+i*40;
+      const start=1940+i*165;
+      const end=3290+i*45;
       if(T>start && T<end){
         const p=smoother((T-start)/(end-start));
-        const life=fadeWindow(T,start,end,260);
-        place(x.packet,x.guide,p,.92*life);
-        drawTravel(x.glow,x.core,entryLengths[i],p,life,.20,.072);
+        const life=fadeWindow(T,start,end,250);
+        place(x.packet,x.guide,p,.88*life);
+        drawTravel(x.glow,x.core,entryLengths[i],p,life,.16,.055,.86);
       }
     });
 
-    /* Small causal spill reaches the copy-side as inputs approach the Core. */
-    if(T>900 && T<2400){
-      const ingress=bell(T,1830,650);
-      setSceneVars(.04+.18*ingress,.055+.08*ingress,.04+.05*ingress,.015+.006*ingress,.07+.12*ingress);
+    /* Atmospheric bridge wakes only as the inputs approach the Core. */
+    if(T>1750 && T<3550){
+      const ingress=bell(T,2830,590);
+      setSceneVars(
+        .035+.15*ingress,
+        .045+.055*bell(T,2960,650),
+        .032+.038*bell(T,3030,690),
+        .011+.005*ingress,
+        .055+.095*bell(T,2910,660),
+        [
+          .05+.40*ingress,
+          .035+.12*bell(T,3070,620),
+          .03+.05*breatheC,
+          .028+.03*breatheA,
+          .03+.03*breatheB
+        ],
+        .16+.12*ingress
+      );
     }
 
-    /* B/C — source-aligned architectural channels wake in sequence. */
-    if(T>1700 && T<5600){
+    /* B/C — architectural layers answer in sequence. Only short travelling segments are visible. */
+    if(T>3000 && T<5900){
       channels.forEach((x,i)=>{
-        const start=1850+i*320;
-        const end=start+2050;
-        const p=smoother((T-start)/1250);
-        const life=fadeWindow(T,start,end,330);
-        const tail=i===2?.31:.27;
-        drawTravel(x.glow,x.core,channelLengths[i],p,life,tail,.10);
+        const start=3090+i*285;
+        const travel=1230+i*45;
+        const end=start+1760;
+        const p=smoother((T-start)/travel);
+        const life=fadeWindow(T,start,end,300);
+        const tailGlow=i===2?.21:.18;
+        const tailCore=i===2?.065:.055;
+        const gain=i===2?.70:.82;
+        drawTravel(x.glow,x.core,channelLengths[i],p,life,tailGlow,tailCore,gain);
       });
 
-      /* Physical response follows the signal, not a generic global glow. */
-      const top=bell(T,2550,620);
-      const mid=bell(T,3250,700);
-      const deep=bell(T,3800,720);
-      const lower=bell(T,4450,700);
-      const react=clamp(.06+.42*top+.26*mid+.34*deep+.31*lower,0,1);
-      const floor=clamp(.06+.16*mid+.42*lower,0,1);
-      const reflect=clamp(.045+.12*mid+.34*bell(T,4580,760),0,1);
-      const haze=clamp(.08+.20*mid+.22*deep,0,1);
-      const warm=.014+.026*bell(T,3600,1500);
-      setSceneVars(react,floor,reflect,warm,haze);
+      // Local scene consequence follows the energy by ~70–220ms instead of firing simultaneously.
+      const z0=bell(T,3550,500);
+      const z1=bell(T,4050,520);
+      const z2=bell(T,4580,590);
+      const z3=bell(T,5180,570);
+      const z4=bell(T,5650,500);
+      const react=clamp(.045+.34*bell(T,3630,540)+.25*bell(T,4130,560)+.29*bell(T,4660,620)+.27*bell(T,5260,610),0,1);
+      const floor=clamp(.045+.11*bell(T,4270,680)+.28*bell(T,5400,700),0,1);
+      const reflect=clamp(.032+.09*bell(T,4390,720)+.24*bell(T,5520,760),0,1);
+      const haze=clamp(.055+.14*bell(T,3710,600)+.18*bell(T,4700,720),0,1);
+      const warm=.011+.020*bell(T,4760,1450);
+      setSceneVars(react,floor,reflect,warm,haze,[z0*.55,z1*.58,z2*.62,z3*.55,z4*.48],.18+.26*bell(T,4550,1700));
     }
 
-    /* D — controlled compression/recombination. */
-    if(T>4550 && T<6250){
+    /* D — quiet compression / reconvergence at the natural output area. */
+    if(T>5200 && T<6900){
       compress.forEach((path,i)=>{
-        const p=smooth((T-(4720+i*110))/680);
-        const life=fadeWindow(T,4580+i*80,6240,240);
-        dash(path,compressLengths[i],0,p,.62*life);
+        const p=smooth((T-(5400+i*105))/650);
+        const life=fadeWindow(T,5230+i*70,6820,240);
+        dash(path,compressLengths[i],0,p,.48*life);
       });
-      const c=bell(T,5650,520);
-      if(collectorCore) collectorCore.style.opacity=String(.28+.72*c);
-      if(collectorHalo) collectorHalo.style.opacity=String(.48*c);
-      setSceneVars(.16+.62*c,.13+.34*c,.10+.30*bell(T,5760,610),.02+.023*c,.13+.32*c);
+      const c=bell(T,6240,500);
+      if(collectorCore) collectorCore.style.opacity=String(.18+.68*c);
+      if(collectorHalo) collectorHalo.style.opacity=String(.34*c);
+      setSceneVars(
+        .12+.48*c,
+        .075+.20*bell(T,6380,620),
+        .055+.17*bell(T,6460,680),
+        .015+.017*c,
+        .085+.22*bell(T,6320,620),
+        [.07,.10,.16,.27+.25*c,.32+.42*c],
+        .24+.30*c
+      );
     }
 
-    /* E/F — four controlled outputs. Previous stages settle as resolved. */
+    /* E/F — one organized output resolves into four semantic readouts. */
     branches.forEach((x,i)=>{
-      const start=5900+i*500;
-      const draw=700;
+      const start=6460+i*445;
+      const draw=620;
       const p=smooth((T-start)/draw);
-      const active=T>=start && T<start+1180;
-      const resolved=T>=start+900 && T<9250;
-      const life=clamp(1-(T-(start+1320))/650);
+      const active=T>=start && T<start+1030;
+      const resolved=T>=start+850 && T<10100;
+      const life=clamp(1-(T-(start+1160))/620);
 
-      dash(x.core,branchLengths[i],0,p,.14+.61*p*life);
-      dash(x.glow,branchLengths[i],Math.max(0,p-.22),p,.24*life);
+      // Long geometry remains visually absent at rest; only a short moving head becomes readable.
+      dash(x.core,branchLengths[i],Math.max(0,p-.30),p,.08+.56*p*life);
+      dash(x.glow,branchLengths[i],Math.max(0,p-.16),p,.18*life);
 
-      if(T>=start && T<start+980){
-        place(x.packet,x.core,p,.9*life);
-      }
+      if(T>=start && T<start+900) place(x.packet,x.core,p,.82*life);
       if(x.node){
-        x.node.style.opacity=active?'1':resolved?'.62':'.28';
-        x.node.style.filter=active?'drop-shadow(0 0 6px rgba(107,231,255,.68))':resolved?'drop-shadow(0 0 3px rgba(107,231,255,.18))':'none';
+        x.node.style.opacity=active?'1':resolved?'.52':'.20';
+        x.node.style.filter=active?'drop-shadow(0 0 5px rgba(107,231,255,.54))':resolved?'drop-shadow(0 0 2px rgba(107,231,255,.13))':'none';
       }
       if(rail[i]){
         if(active) rail[i].classList.add('is-active');
@@ -191,44 +235,94 @@
       }
     });
 
-    if(T>6000 && T<9300){
-      const cascade=bell(T,7440,1550);
-      setSceneVars(.10+.28*cascade,.08+.20*cascade,.06+.18*bell(T,7580,1700),.018+.014*cascade,.09+.18*cascade);
+    if(T>6400 && T<9700){
+      const cascade=bell(T,7860,1320);
+      const outputWake=bell(T,7600,1450);
+      setSceneVars(
+        .075+.22*cascade,
+        .055+.14*bell(T,8000,1500),
+        .042+.13*bell(T,8150,1600),
+        .013+.010*cascade,
+        .065+.12*cascade,
+        [.035,.045,.055,.09+.10*cascade,.16+.26*outputWake],
+        .18+.20*cascade
+      );
     }
 
-    /* G — settle into quiet, living idle. */
-    if(T>=9300){
-      const settle=smooth((T-9300)/2100);
-      const breathe=.5+.5*Math.sin(T/1450);
-      setSceneVars(.09*(1-settle)+.027+.013*breathe,.10*(1-settle)+.045+.012*breathe,.08*(1-settle)+.035+.01*breathe,.016+.005*breathe,.10*(1-settle)+.06+.02*breathe);
+    /* G — long calm residual state; no obvious hard restart. */
+    if(T>=9700){
+      const settle=smooth((T-9700)/2500);
+      setSceneVars(
+        .060*(1-settle)+.021+.014*breatheA,
+        .075*(1-settle)+.037+.014*breatheC,
+        .060*(1-settle)+.030+.010*breatheC,
+        .014+.006*breatheB,
+        .075*(1-settle)+.047+.017*breatheB,
+        [
+          .035+.026*breatheA,
+          .030+.028*breatheB,
+          .028+.030*breatheC,
+          .035+.028*breatheA,
+          .045*(1-settle)+.032+.032*breatheB
+        ],
+        .18+.17*breatheB
+      );
     }
   }
 
-  /* Controlled parallax ladder. Default is the safe baseline from the lock. */
+  /* Heavy, grounded 2.5D: sub-degree, damped, with a tiny independent 18–20s camera drift. */
   const parallaxMode=params.get('parallax')||'safe';
   const limits={
-    safe:{yaw:.72,pitch:.34,translate:1.6},
-    medium:{yaw:1.35,pitch:.68,translate:3.0},
-    aggressive:{yaw:2.55,pitch:1.25,translate:5.0}
+    safe:{yaw:.52,pitch:.26,translate:1.35},
+    medium:{yaw:1.05,pitch:.50,translate:2.35},
+    aggressive:{yaw:2.20,pitch:1.05,translate:4.25}
   };
   const limit=limits[parallaxMode]||limits.safe;
+  const pointerTarget={x:0,y:0};
+  const pointerCurrent={x:0,y:0};
 
   function setPointerVars(nx=0,ny=0){
     scene.style.setProperty('--r43-yaw',`${(nx*limit.yaw).toFixed(3)}deg`);
     scene.style.setProperty('--r43-pitch',`${(-ny*limit.pitch).toFixed(3)}deg`);
     scene.style.setProperty('--r43-x',`${(nx*limit.translate).toFixed(2)}px`);
-    scene.style.setProperty('--r43-y',`${(ny*limit.translate*.62).toFixed(2)}px`);
+    scene.style.setProperty('--r43-y',`${(ny*limit.translate*.58).toFixed(2)}px`);
+  }
+
+  function applyPose(ms){
+    if(requestedStatic || reduced){ setPointerVars(0,0); return; }
+    pointerCurrent.x += (pointerTarget.x-pointerCurrent.x)*.055;
+    pointerCurrent.y += (pointerTarget.y-pointerCurrent.y)*.055;
+    const autoX=Math.sin(ms/3020)*.16; // ~19s full cycle, intentionally tiny
+    const autoY=Math.sin((ms+3900)/3460)*.10;
+    setPointerVars(clamp(pointerCurrent.x+autoX,-1,1),clamp(pointerCurrent.y+autoY,-1,1));
   }
 
   if(!requestedStatic && !reduced && window.matchMedia?.('(pointer:fine)').matches){
     stage.addEventListener('pointermove',e=>{
       const r=stage.getBoundingClientRect();
-      const nx=clamp(((e.clientX-r.left)/r.width)*2-1,-1,1);
-      const ny=clamp(((e.clientY-r.top)/r.height)*2-1,-1,1);
-      setPointerVars(nx,ny);
+      pointerTarget.x=clamp(((e.clientX-r.left)/r.width)*2-1,-1,1);
+      pointerTarget.y=clamp(((e.clientY-r.top)/r.height)*2-1,-1,1);
     },{passive:true});
-    stage.addEventListener('pointerleave',()=>setPointerVars(0,0),{passive:true});
+    stage.addEventListener('pointerleave',()=>{pointerTarget.x=0;pointerTarget.y=0;},{passive:true});
   }
+
+  /* Meaningful rail hover: wake only the nearby output material field. */
+  const hoverY=['34%','43%','52%','61%'];
+  rail.forEach((item,i)=>{
+    const enter=()=>{
+      item.classList.add('is-hover');
+      scene.style.setProperty('--r43-hover-y',hoverY[i]||'50%');
+      scene.style.setProperty('--r43-hover-level','.62');
+    };
+    const leave=()=>{
+      item.classList.remove('is-hover');
+      scene.style.setProperty('--r43-hover-level','0');
+    };
+    item.addEventListener('pointerenter',enter,{passive:true});
+    item.addEventListener('pointerleave',leave,{passive:true});
+    item.addEventListener('focusin',enter);
+    item.addEventListener('focusout',leave);
+  });
 
   window.__r43SetFrame=setFrame;
   window.__r43ParallaxMode=parallaxMode;
@@ -236,11 +330,13 @@
   if(requestedStatic){
     root.classList.add('hero-r43-static');
     setFrame(0);
+    applyPose(0);
     return;
   }
   if(reduced){
     root.classList.add('hero-r43-reduced');
     setFrame(0);
+    applyPose(0);
     return;
   }
 
@@ -249,14 +345,18 @@
 
   const explicit=params.get('previewT');
   if(explicit!==null){
-    setFrame(Number(explicit)||0);
+    const t=Number(explicit)||0;
+    setFrame(t);
+    applyPose(t);
     return;
   }
 
   const start=performance.now();
   let raf=0;
   const loop=now=>{
-    setFrame(now-start);
+    const elapsed=now-start;
+    setFrame(elapsed);
+    applyPose(elapsed);
     raf=requestAnimationFrame(loop);
   };
   raf=requestAnimationFrame(loop);

@@ -1,64 +1,38 @@
 <style>
-/* R4.5 source-coordinate correction: the compositor is registered to the proven R2
-   environment/Core split rather than the broken R4.1 embedded desktop transport. */
+/* R4.5 source-aware registration. All depth planes use the same verified 735x780 grounded
+   scene payload; masks correspond to physical rear metal, internal tunnel/glass and front metal. */
 .hero-r45__desktop-stack{
   position:absolute;
   z-index:1;
-  left:10.5%;
-  top:2.5%;
-  width:76%;
+  left:7.5%;
+  top:3.2%;
+  width:80%;
   aspect-ratio:735/780;
   pointer-events:none;
-  transform-origin:58% 69%;
+  transform-origin:57% 70%;
 }
 .hero-r45__registration{
   position:absolute;
-  top:0;
-  left:-5.4421768707%;
-  width:122.4489795918%;
+  inset:0;
+  width:100%;
   height:100%;
   pointer-events:none;
 }
-.hero-r45__environment{
-  position:absolute;
-  z-index:0;
-  top:0;
-  left:4.4444444444%;
-  width:81.6666666667%;
-  height:100%;
-  transform-origin:58% 74%;
-  will-change:transform,opacity;
-}
-.hero-r45__environment picture.hero-cshape__layer--environment,
-.hero-r45__environment picture.hero-cshape__layer--environment img{
+.hero-r45__scene-plane{
   position:absolute;
   inset:0;
-  display:block;
   width:100%;
   height:100%;
-  object-fit:fill;
-  object-position:left top;
-}
-.hero-r45__environment picture.hero-cshape__layer--environment{z-index:0}
-.hero-r45__environment picture.hero-cshape__layer--environment img{
-  filter:saturate(.94) contrast(1.035) brightness(.975);
-  user-select:none;
-  -webkit-user-drag:none;
-}
-
-.hero-r45__core-plane{
-  position:absolute;
-  left:0;
-  top:0;
-  width:100%;
-  height:97.4358974359%;
   pointer-events:none;
   transform-origin:57% 70%;
   will-change:transform,opacity;
 }
-.hero-r45__core-plane picture,
-.hero-r45__core-plane picture img,
-.hero-r45__core-plane > img{
+.hero-r45__scene-plane picture.hero-cshape__layer--environment,
+.hero-r45__scene-plane picture.hero-cshape__layer--environment img,
+.hero-r45__material-plane picture.hero-cshape__layer--environment,
+.hero-r45__material-plane picture.hero-cshape__layer--environment img,
+.hero-r45__scene-picture picture.hero-cshape__layer--environment,
+.hero-r45__scene-picture picture.hero-cshape__layer--environment img{
   position:absolute;
   inset:0;
   display:block;
@@ -69,86 +43,106 @@
   user-select:none;
   -webkit-user-drag:none;
 }
-.hero-r45__core-plane--back{
+.hero-r45__scene-plane--back{
   z-index:1;
-  opacity:.70;
-  filter:brightness(.83) saturate(.88);
+  opacity:.72;
+  filter:brightness(.84) saturate(.88);
   -webkit-mask-image:
-    radial-gradient(ellipse 31% 20% at 55% 36%,#000 0 53%,rgba(0,0,0,.80) 67%,transparent 84%),
-    radial-gradient(ellipse 31% 21% at 58% 65%,#000 0 49%,rgba(0,0,0,.77) 66%,transparent 85%);
+    linear-gradient(112deg,transparent 2%,#000 16% 54%,rgba(0,0,0,.78) 66%,transparent 78%),
+    radial-gradient(ellipse 38% 23% at 60% 70%,#000 0 51%,rgba(0,0,0,.80) 67%,transparent 87%),
+    radial-gradient(ellipse 26% 22% at 79% 28%,#000 0 51%,rgba(0,0,0,.82) 68%,transparent 88%);
   mask-image:
-    radial-gradient(ellipse 31% 20% at 55% 36%,#000 0 53%,rgba(0,0,0,.80) 67%,transparent 84%),
-    radial-gradient(ellipse 31% 21% at 58% 65%,#000 0 49%,rgba(0,0,0,.77) 66%,transparent 85%);
+    linear-gradient(112deg,transparent 2%,#000 16% 54%,rgba(0,0,0,.78) 66%,transparent 78%),
+    radial-gradient(ellipse 38% 23% at 60% 70%,#000 0 51%,rgba(0,0,0,.80) 67%,transparent 87%),
+    radial-gradient(ellipse 26% 22% at 79% 28%,#000 0 51%,rgba(0,0,0,.82) 68%,transparent 88%);
 }
-.hero-r45__core-plane--base{
+.hero-r45__scene-plane--base{
   z-index:2;
-  inset:auto;
+  inset:0;
   transform:none;
   transition:none;
 }
-.hero-r45__core-plane--base .hero-r43__base-picture img{
+.hero-r45__scene-picture{position:absolute;inset:0;z-index:1}
+.hero-r45__scene-picture picture.hero-cshape__layer--environment img{
   filter:saturate(.93) contrast(1.045) brightness(.975);
 }
-.hero-r45__core-plane--glass{
-  z-index:4;
-  opacity:calc(.048 + var(--r45-glass) * .46);
-  mix-blend-mode:screen;
-  filter:saturate(1.16) brightness(1.10) contrast(1.02);
-  -webkit-mask-image:
-    radial-gradient(ellipse 29% 20% at 60% 49%,#000 0 33%,rgba(0,0,0,.86) 55%,transparent 82%),
-    linear-gradient(94deg,transparent 35%,rgba(0,0,0,.69) 45%,#000 54% 72%,rgba(0,0,0,.48) 78%,transparent 87%);
-  mask-image:
-    radial-gradient(ellipse 29% 20% at 60% 49%,#000 0 33%,rgba(0,0,0,.86) 55%,transparent 82%),
-    linear-gradient(94deg,transparent 35%,rgba(0,0,0,.69) 45%,#000 54% 72%,rgba(0,0,0,.48) 78%,transparent 87%);
+.hero-r45__material-plane{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  overflow:hidden;
 }
-.hero-r45__core-plane--front{
+.hero-r45__material-plane picture.hero-cshape__layer--environment,
+.hero-r45__material-plane picture.hero-cshape__layer--environment img{z-index:0}
+
+/* Suppress only obsolete free-space routes and clipped historical rail fragments.
+   Internal cyan inside the physical tunnel remains because it reads as embedded intelligence. */
+.hero-r45__route-neutralizer{
+  position:absolute;
+  z-index:4;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg,rgba(5,6,7,.99) 0%,rgba(5,6,7,.965) 61%,rgba(5,6,7,.58) 82%,transparent 100%) 0 53.2%/37% 11.5% no-repeat,
+    linear-gradient(90deg,transparent 0%,rgba(4,6,7,.72) 42%,rgba(4,6,7,.97) 77%,rgba(4,6,7,1) 100%) 84% 32%/16% 48% no-repeat;
+  filter:blur(6px);
+  opacity:.92;
+}
+
+.hero-r45__scene-plane--glass{
+  z-index:4;
+  opacity:calc(.045 + var(--r45-glass) * .46);
+  mix-blend-mode:screen;
+  filter:saturate(1.16) brightness(1.11) contrast(1.025);
+  -webkit-mask-image:
+    radial-gradient(ellipse 34% 28% at 61% 50%,#000 0 31%,rgba(0,0,0,.88) 57%,transparent 84%),
+    linear-gradient(96deg,transparent 30%,rgba(0,0,0,.72) 43%,#000 55% 76%,rgba(0,0,0,.44) 82%,transparent 92%);
+  mask-image:
+    radial-gradient(ellipse 34% 28% at 61% 50%,#000 0 31%,rgba(0,0,0,.88) 57%,transparent 84%),
+    linear-gradient(96deg,transparent 30%,rgba(0,0,0,.72) 43%,#000 55% 76%,rgba(0,0,0,.44) 82%,transparent 92%);
+}
+.hero-r45__scene-plane--front{
   z-index:7;
   opacity:.995;
   -webkit-mask-image:
-    radial-gradient(ellipse 24% 15% at 51% 31%,#000 0 54%,rgba(0,0,0,.94) 67%,transparent 82%),
-    radial-gradient(ellipse 25% 17% at 56% 69%,#000 0 50%,rgba(0,0,0,.94) 65%,transparent 82%),
-    linear-gradient(105deg,transparent 29%,rgba(0,0,0,.98) 40% 53%,rgba(0,0,0,.74) 58%,transparent 65%),
-    radial-gradient(ellipse 14% 21% at 73% 50%,rgba(0,0,0,.96),transparent 78%);
+    radial-gradient(ellipse 34% 16% at 52% 23%,#000 0 50%,rgba(0,0,0,.96) 64%,transparent 82%),
+    radial-gradient(ellipse 35% 17% at 57% 64%,#000 0 48%,rgba(0,0,0,.95) 64%,transparent 83%),
+    linear-gradient(104deg,transparent 25%,rgba(0,0,0,.98) 38% 55%,rgba(0,0,0,.72) 61%,transparent 69%),
+    radial-gradient(ellipse 17% 32% at 79% 50%,rgba(0,0,0,.97),transparent 80%);
   mask-image:
-    radial-gradient(ellipse 24% 15% at 51% 31%,#000 0 54%,rgba(0,0,0,.94) 67%,transparent 82%),
-    radial-gradient(ellipse 25% 17% at 56% 69%,#000 0 50%,rgba(0,0,0,.94) 65%,transparent 82%),
-    linear-gradient(105deg,transparent 29%,rgba(0,0,0,.98) 40% 53%,rgba(0,0,0,.74) 58%,transparent 65%),
-    radial-gradient(ellipse 14% 21% at 73% 50%,rgba(0,0,0,.96),transparent 78%);
+    radial-gradient(ellipse 34% 16% at 52% 23%,#000 0 50%,rgba(0,0,0,.96) 64%,transparent 82%),
+    radial-gradient(ellipse 35% 17% at 57% 64%,#000 0 48%,rgba(0,0,0,.95) 64%,transparent 83%),
+    linear-gradient(104deg,transparent 25%,rgba(0,0,0,.98) 38% 55%,rgba(0,0,0,.72) 61%,transparent 69%),
+    radial-gradient(ellipse 17% 32% at 79% 50%,rgba(0,0,0,.97),transparent 80%);
 }
 
-/* Energy, floor and specular response share the same registered coordinate system. */
-.hero-r45__energy,
-.hero-r45__specular-response{
-  inset:0;
-  width:100%;
-  height:100%;
-}
-.hero-r45__entry-volume{left:18%;top:43%;width:29%;height:18%}
-.hero-r45__ingress{left:34%;top:41%;width:15%;height:18%}
-.hero-r45__chamber--top{left:43%;top:31%;width:20%;height:16%}
-.hero-r45__chamber--mid{left:49%;top:41%;width:24%;height:16%}
-.hero-r45__chamber--deep{left:53%;top:47%;width:23%;height:17%}
-.hero-r45__chamber--lower{left:47%;top:56%;width:24%;height:17%}
-.hero-r45__collector{left:76%;top:47%;width:6%;height:7%}
-.hero-r45__output-field{left:74%;top:20%;width:17%;height:61%}
-.hero-r45__output{left:82%;width:42px}
-.hero-r45__output--0{top:28.5%;transform:rotate(-7deg)}
-.hero-r45__output--1{top:41.5%;transform:rotate(-2deg)}
-.hero-r45__output--2{top:55.0%;transform:rotate(2deg)}
-.hero-r45__output--3{top:68.0%;transform:rotate(7deg)}
-.hero-r45__edge-light--a{left:38%;top:26%;width:22%;height:12%}
-.hero-r45__edge-light--b{left:58%;top:43%;width:21%;height:11%}
-.hero-r45__edge-light--c{left:46%;top:61%;width:24%;height:11%}
+/* Energy and material response share the same grounded scene coordinate system. */
+.hero-r45__energy,.hero-r45__specular-response{inset:0;width:100%;height:100%}
+.hero-r45__entry-volume{left:16%;top:48%;width:31%;height:18%}
+.hero-r45__ingress{left:35%;top:46%;width:17%;height:18%}
+.hero-r45__chamber--top{left:43%;top:31%;width:22%;height:17%}
+.hero-r45__chamber--mid{left:50%;top:41%;width:24%;height:17%}
+.hero-r45__chamber--deep{left:54%;top:47%;width:23%;height:18%}
+.hero-r45__chamber--lower{left:47%;top:56%;width:25%;height:18%}
+.hero-r45__collector{left:77%;top:50%;width:6%;height:7%}
+.hero-r45__output-field{left:74%;top:20%;width:19%;height:62%}
+.hero-r45__output{left:83%;width:38px}
+.hero-r45__output--0{top:31%;transform:rotate(-7deg)}
+.hero-r45__output--1{top:43.5%;transform:rotate(-2deg)}
+.hero-r45__output--2{top:56%;transform:rotate(2deg)}
+.hero-r45__output--3{top:68.5%;transform:rotate(7deg)}
+.hero-r45__edge-light--a{left:35%;top:22%;width:27%;height:13%}
+.hero-r45__edge-light--b{left:57%;top:43%;width:23%;height:12%}
+.hero-r45__edge-light--c{left:43%;top:61%;width:29%;height:12%}
 
-.hero-r43__floor{left:20%;right:5%;bottom:-2%;height:23%}
-.hero-r43__reflection{left:29%;right:10%;bottom:0;height:15%}
-.hero-r43__volumetric{left:35%;top:27%;width:53%;height:45%}
+.hero-r43__floor{left:18%;right:4%;bottom:-1%;height:23%}
+.hero-r43__reflection{left:26%;right:7%;bottom:0;height:15%}
+.hero-r43__volumetric{left:35%;top:27%;width:56%;height:46%}
 
 .hero-r45__mobile-master{display:none}
-
-/* Static desktop keeps the same physical R2 registration, while motion-only packets are absent. */
-html.hero-r45-static .hero-r45__core-plane--glass,
-html.hero-r45-reduced .hero-r45__core-plane--glass{opacity:.072}
+html.hero-r45-static .hero-r45__scene-plane--glass,
+html.hero-r45-reduced .hero-r45__scene-plane--glass{opacity:.07}
 
 @media (max-width:900px){
   .hero-r45__desktop-stack{display:none!important}

@@ -1,0 +1,47 @@
+name: Build Hero R3 standalone owner review
+
+on:
+  push:
+    branches:
+      - agent/hero-r3-owner-review-fixed
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build standalone owner-review HTML
+        run: python tools/build_hero_r3_owner_review.py
+
+      - name: Verify standalone payload
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('PROAI_HERO_R3_OWNER_REVIEW.html')
+          s = p.read_text(encoding='utf-8')
+          assert p.stat().st_size > 250000, p.stat().st_size
+          assert 'APPROVED GROUNDED R2 ASSETS REQUIRED' in s
+          assert 'data:image/avif;base64,' in s
+          assert 'src="/assets/' not in s
+          assert 'url("/assets/' not in s
+          print('Standalone verification passed:', p.stat().st_size, 'bytes')
+          PY
+
+      - name: Upload standalone HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROAI_HERO_R3_OWNER_REVIEW_FIXED
+          path: PROAI_HERO_R3_OWNER_REVIEW.html
+          if-no-files-found: error
+          retention-days: 7

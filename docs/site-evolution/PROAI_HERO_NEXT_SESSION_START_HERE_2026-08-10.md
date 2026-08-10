@@ -18,7 +18,7 @@ Google Drive file:
 
 `FA5872D6-EA1E-4865-A94B-74CE5CFDB7F8.jpeg`
 
-Drive file ID:
+Google Drive file ID:
 
 `1OVJeRZI23IuMN5Toggcq5rOpqdh1ypsO`
 
@@ -48,132 +48,73 @@ URL:
 
 `https://drive.google.com/drive/folders/1wqHjUAfk2vOJcY013V0EX2LtK0aszPZS`
 
-When the final static owner candidate is ready, save it there as:
+## Owner Gate 1 attempt — REJECTED 2026-08-10
 
-`PROAI_HERO_GOLDEN_STATIC_FINAL.png`
+The first Golden Static attempt created in this session is **REJECTED / DO NOT USE / DO NOT CONTINUE FROM IT**.
 
-Save the motion architecture as:
+Rejected artifact retained only for audit history:
 
-`PROAI_HERO_3D_MOTION_ARCHITECTURE.md`
+- file: `PROAI_HERO_GOLDEN_STATIC_FINAL.png`
+- Drive file ID: `1pM179OwdL7h-bOaPcdjSc6MtolICjmX4`
+- SHA-256: `3fc75401fb12664468052c5d20a5bed9e89f8935afe3be7bda5f1ac2763fa664`
 
-Also record the final Drive file IDs/URLs and current working commit SHA in the repository handoff so a later chat can continue without owner file shuffling.
+The previous `LOCK` recommendation and `8.7 / 10` score are **VOID**.
 
-## Owner Gate 1 — COMPLETED 2026-08-10
+### Why the pass failed
 
-Execution source branch HEAD before deliverable persistence:
+Owner review found that the result broke the approved Hero instead of performing a controlled premium refinement.
 
-`a1147e4605b7afde695ae5add102e311485d2bb6`
+Observed failure mode:
 
-Current `main` observed before execution:
+- the left Hero presentation was re-rendered/recomposed instead of being treated as locked;
+- H1/text presentation and typography no longer matched the intended approved state;
+- header/UI/CTA/spacing changed visually;
+- rail/output presentation was redesigned too aggressively;
+- the overall frame lost the exact visual balance of the source master;
+- the C-shape image itself did not improve enough to justify the collateral changes;
+- technical geometry-similarity metrics did not protect against visible design drift and must not be used as an approval proxy.
 
-`c945084e1952c05c686494091f7dbca0f7acdf08`
+### Correction lock for the next pass
 
-### Golden Static
+The next attempt must return to the exact Drive source master:
 
-File:
+`FA5872D6-EA1E-4865-A94B-74CE5CFDB7F8.jpeg`
 
-`PROAI_HERO_GOLDEN_STATIC_FINAL.png`
+Do **not** use the rejected Golden Static as an image source.
 
-Drive file ID:
+For the correction pass:
 
-`1pM179OwdL7h-bOaPcdjSc6MtolICjmX4`
+1. Pixel-lock the existing Hero composition, text hierarchy, header, CTA system, typography, and placement unless the owner explicitly calls out a specific element to change.
+2. Do not regenerate or redraw the whole Hero frame.
+3. Do not re-typeset the H1 or supporting copy inside a generated image as a substitute for the approved presentation.
+4. Preserve the C-shape silhouette, size, camera/perspective, and relationship to the left column.
+5. Limit visual work to targeted premium integration of the existing C-shape/object and its immediate environment: material richness, internal depth, physically believable contact/light/reflection, restrained cyan energy, and precise output logic.
+6. Any changed area must have an explicit reason tied to the task. Unrelated areas remain untouched.
+7. Before saving a new owner candidate, compare the full frame visually against the source master, not only with SSIM/edge metrics.
+8. One candidate only. No new concept exploration.
 
-Drive URL:
+### Motion architecture status
 
-`https://drive.google.com/file/d/1pM179OwdL7h-bOaPcdjSc6MtolICjmX4/view?usp=drivesdk`
+`PROAI_HERO_3D_MOTION_ARCHITECTURE.md` is **NOT approved for implementation yet** because it was produced against a rejected static candidate.
 
-Dimensions:
+Its general multipass/occlusion idea may be reconsidered later, but no motion implementation should begin until a corrected Golden Static is explicitly approved by the owner.
 
-`1536 × 1024`
+## Current state
 
-SHA-256:
-
-`3fc75401fb12664468052c5d20a5bed9e89f8935afe3be7bda5f1ac2763fa664`
-
-Geometry-preservation verification against the exact source master, object crop:
-
-- SSIM ≈ `0.966`
-- edge IoU ≈ `0.914`
-
-The C-shape geometry family and silhouette remain structurally preserved; this is a controlled refinement of the saved master, not a new Core.
-
-### Static independent evaluation
-
-Improvements:
-
-- richer graphite / steel separation and restrained silver response;
-- subtle physically plausible warm reflection instead of a second brand color;
-- stronger internal chamber depth and cyan volume behavior;
-- restrained packet-style input rather than one long beam;
-- improved floor/contact/spill integration;
-- output rail rebuilt to `01 TRUST / 02 INQUIRY / 03 RESPONSE / 04 OUTCOME`;
-- short output traces are aligned exactly to the four semantic row levels;
-- current owner-candidate eyebrow/H1/support/CTA architecture is restored; rejected three-line H1 is not used.
-
-Remaining limitation:
-
-- the Golden Static is still one raster final frame; true between-layer occlusion, parallax, refraction and material-response motion must come from the approved multipass compositor after owner approval.
-
-Score versus the premium `$100k+` digital-studio target:
-
-`8.7 / 10`
-
-Recommendation:
-
-`LOCK`
-
-Reason: the static now passes the structural owner gate without changing the approved object; further quality gain should come from real depth-layer separation and restrained motion rather than another static concept/re-generation cycle.
-
-### Motion architecture
-
-File:
-
-`PROAI_HERO_3D_MOTION_ARCHITECTURE.md`
-
-Drive file ID:
-
-`1ib0pZDXrULrFQRPrUqzH9K2IZwpLiWpq`
-
-Drive URL:
-
-`https://drive.google.com/file/d/1ib0pZDXrULrFQRPrUqzH9K2IZwpLiWpq/view?usp=drivesdk`
-
-SHA-256:
-
-`2a11a88f02e5c9358536f6072cf1115f88917dd48459e845d9cf677091f91e94`
-
-Recommended implementation:
-
-`HYBRID 2.5D DOM/RASTER COMPOSITOR + SELECTIVE WEBGL/CANVAS INTERNAL EFFECT PASS`
-
-Core rule:
-
-- keep the approved raster geometry as the visual source of truth;
-- separate environment, rear metal, deep chamber, glass/intelligence volume, foreground metal, reflection and rail into registered passes;
-- place signal motion between passes so foreground metal creates real occlusion;
-- use WebGL/Canvas only for internal packets, local light propagation, subtle glass/refraction and collector/output impulses;
-- keep copy/CTA/rail as semantic DOM;
-- full motion implementation remains blocked until owner approval of the Golden Static.
-
-Exact normalized output levels from the static:
-
-- `01`: `356 / 1024 = 0.34765625`
-- `02`: `465 / 1024 = 0.4541015625`
-- `03`: `581 / 1024 = 0.5673828125`
-- `04`: `700 / 1024 = 0.68359375`
-
-Use these normalized positions so output/rail alignment remains exact after resize.
+- Owner Gate 1: **FAILED / REJECTED**.
+- No Golden Static is currently approved.
+- Full motion implementation remains blocked.
+- Production Homepage remains untouched.
 
 ## Next action
 
-Owner reviews only `PROAI_HERO_GOLDEN_STATIC_FINAL.png`.
+Stop. Do not generate another Hero automatically from the rejected result.
 
-If approved, the next implementation pass may build the layered motion architecture described above.
-
-Do not build the full motion system before that approval.
+The next visual pass must restart only from the exact source master and obey the correction lock above.
 
 ## Safety
 
 Do not modify production `/index.html` or `/ru/index.html`.
 Do not merge or deploy.
+Do not open a production PR.
 Do not touch Financial Stream.

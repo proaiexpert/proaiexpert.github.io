@@ -4,40 +4,67 @@ Date: 2026-08-10
 Repository: `proaiexpert/proaiexpert.github.io`
 Working branch: `agent/hero-static-premium-integration-r1`
 
-## 0. EXECUTION CONTRACT
+## 0. EXECUTION CONTRACT — GITHUB-FIRST
 
-This file is self-contained. The next chat must not ask the owner to upload, download, attach, copy, move, or re-send any source file manually.
+This file is self-contained.
 
-The chat must use the connected GitHub + Google Drive tools to retrieve all required sources itself.
+The owner is NEVER a context/file transport layer.
+
+The next chat must NOT ask the owner to upload, download, attach, copy, move, resend, or relay any source file, screenshot, link, or artifact manually.
+
+Read first:
+
+`docs/site-evolution/PROAI_HERO_OWNER_WORKFLOW_LOCK_2026-08-10.md`
+
+All execution authority for this pass must come from GitHub.
 
 This is NOT a new Hero concept, NOT a new page design, NOT a new C-shape exploration, and NOT a motion pass.
 
 Do not touch production `/index.html` or `/ru/index.html`. Do not merge. Do not deploy. Do not open a production PR. Do not touch Financial Stream.
 
-## 1. EXACT VISUAL SOURCE — USE THIS FILE, NOT MEMORY
+## 1. CANONICAL VISUAL SOURCE — GITHUB, NOT CHAT MEMORY
 
-The current structural baseline for this corrective pass is the recovered R4.6 desktop owner-review screenshot:
+The cross-chat source of truth is the recovered GitHub Hero state, not a local `/mnt/data` screenshot.
 
-- filename: `RECOVERED_R46_DESKTOP_STATIC.png`
-- dimensions: `1440 × 900`
-- SHA-256: `d04e727bf7d6a9761a75e51e98b24bad728ec66799b6763e031eab1a7cee5292`
-- Google Drive file ID: `1j7RPNJk9C7igG_F5vAP4fQafAAdDHSWI`
-- Google Drive URL: `https://drive.google.com/file/d/1j7RPNJk9C7igG_F5vAP4fQafAAdDHSWI/view`
-- parent Hero review folder ID: `1wqHjUAfk2vOJcY013V0EX2LtK0aszPZS`
+Frozen recovered composition branch:
 
-Fetch this exact file yourself from Google Drive.
+`agent/hero-recovery-approved-composition-owner-look`
 
-Do NOT ask the owner to attach it.
-Do NOT substitute `FA5872D6-EA1E-4865-A94B-74CE5CFDB7F8.jpeg` as the full-page UI source for this pass.
+Recovery handoff commit:
+
+`3067fa02631de98d98d9b6bc8a1d0ea880ad5a41`
+
+Underlying exact recovered visual checkpoint:
+
+`8bab1bbddbaadf70d88fd72c77e08d2d0ac77429`
+
+Active preview routes in that recovered state:
+
+- EN: `/hero-a-plus-c-shape-preview/`
+- RU: `/ru/hero-a-plus-c-shape-preview/`
+
+Recovery lock:
+
+`docs/site-evolution/PROAI_EXPERT_HERO_RECOVERY_LOCK_2026-08-09.md`
+
+Canonical current handoff:
+
+`AI_CURRENT_HANDOFF.md`
+
+The builder must reconstruct/render the current Hero from this GitHub state itself.
+
+Do NOT ask the owner for `RECOVERED_R46_DESKTOP_STATIC.png`.
+Do NOT depend on `/mnt/data/RECOVERED_R46_DESKTOP_STATIC.png`.
 Do NOT use the rejected `PROAI_HERO_GOLDEN_STATIC_FINAL.png` as a source.
+Do NOT substitute an old full-page generated master as the current UI source.
 
-The older `FA5872...jpeg` may be consulted only as historical C-object/material reference if useful, never as authoritative UI/copy/header source.
+The recovered screenshot is review evidence only. The repository-backed recovery state is the authoritative cross-chat source.
 
 ## 2. PURPOSE OF THIS PASS
 
-Perform one narrow corrective pass on the exact recovered screenshot while preserving its concept and overall page architecture.
+Perform one narrow corrective static pass on the recovered R4.6 composition while preserving the concept and overall page architecture.
 
-The owner explicitly wants improvements to the current frame, not a reconstruction of the Hero.
+The owner wants improvements to the current frame, not a reconstruction of the Hero.
 
 Primary objective:
 
@@ -45,11 +72,11 @@ Primary objective:
 
 ## 3. LOCKED — DO NOT REDESIGN
 
-Preserve the current frame unless a correction is explicitly listed below:
+Preserve the current recovered frame unless a correction is explicitly listed below:
 
 - same two-column Hero architecture;
 - same general left-block placement;
-- same H1 presentation/visual hierarchy;
+- same H1 presentation/visual hierarchy currently present in the recovered GitHub source;
 - same header structure;
 - same CTA system and approximate placement;
 - same overall C-shape concept and silhouette family;
@@ -59,7 +86,27 @@ Preserve the current frame unless a correction is explicitly listed below:
 
 Do not create a different logo, header, H1, typography system, CTA concept, layout, or giant sci-fi machine.
 
-Do not freely rewrite copy in this pass. The only explicit rail wording correction authorized here is `OUTCOME` → `RESULT`.
+Do not freely rewrite copy in this pass.
+
+IMPORTANT: older Hero copy documents may contain temporary owner candidates. Do not reopen copy strategy here. This pass is visual/static only.
+
+The only explicit rail wording correction authorized here is:
+
+`OUTCOME` → `RESULT`
+
+Final EN rail for this pass:
+
+- `01 TRUST`
+- `02 INQUIRY`
+- `03 RESPONSE`
+- `04 RESULT`
+
+RU semantic equivalent remains:
+
+- `01 ДОВЕРИЕ`
+- `02 ОБРАЩЕНИЕ`
+- `03 ОТВЕТ`
+- `04 РЕЗУЛЬТАТ`
 
 ## 4. REQUIRED CORRECTIONS — P0
 
@@ -73,16 +120,9 @@ Correct it so that:
 - all labels follow one clean label column;
 - vertical spacing feels optically even;
 - number-to-label spacing is consistent;
-- dots/nodes/connector endpoints are not random;
+- dots/nodes/connector endpoints are deliberate, not random;
 - every physical output trace terminates exactly opposite the corresponding row;
 - the rail reads as premium precision, not an approximate infographic.
-
-Final rail wording for this pass:
-
-- `01 TRUST`
-- `02 INQUIRY`
-- `03 RESPONSE`
-- `04 RESULT`
 
 ### B. Reduce C-object scale slightly
 
@@ -152,30 +192,37 @@ The pass fails if any of the following happen:
 - several unrelated concept variants are produced;
 - motion is built before static approval;
 - rejected Golden Static becomes the source;
-- owner is asked to manually upload/attach/move source files.
+- owner is asked to manually upload/attach/move source files;
+- a local `/mnt/data` path is used as cross-chat authority.
 
-## 7. OUTPUT — ONE CANDIDATE ONLY
+## 7. OUTPUT — ONE CANDIDATE ONLY, SAVE TO GITHUB
 
 Produce exactly one corrected desktop static candidate at `1440 × 900`.
 
-Suggested name:
+Required filename:
 
 `PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png`
 
-Save the resulting image back into the existing Google Drive Hero review folder:
+Save/commit the resulting binary artifact on the isolated working branch under:
 
-- folder: `ProAI Expert - Hero A+ Review - 2026-08-07`
-- folder ID: `1wqHjUAfk2vOJcY013V0EX2LtK0aszPZS`
+`docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png`
 
-After saving, update a GitHub handoff/status document on this same working branch with:
+Also create/update a GitHub status document on the same branch:
 
-- exact result filename;
-- Drive file ID;
-- SHA-256 if available;
+`docs/site-evolution/PROAI_HERO_R46_CORRECTIVE_STATIC_V1_STATUS.md`
+
+The status document must contain:
+
+- exact result path;
+- result commit SHA;
+- image dimensions;
+- SHA-256 of the PNG if available;
 - short change summary;
-- explicit owner-review status: `PENDING OWNER REVIEW`.
+- explicit status: `PENDING OWNER REVIEW`.
 
 Do not call it LOCKED before owner approval.
+
+The owner must be able to start a fresh chat later and recover the exact candidate from GitHub alone.
 
 ## 8. OWNER REVIEW CRITERIA
 
@@ -186,15 +233,16 @@ Before presenting the candidate, independently verify:
 3. Rail numbers and labels are clean and aligned.
 4. `04 RESULT` is used.
 5. Output endpoints align exactly with 01–04.
-6. Material/depth feels richer than the baseline.
+6. Material/depth feels richer than the recovered baseline.
 7. Cyan energy feels more internal and spatial, less like a line overlay.
 8. H1/header/CTA/layout remain materially unchanged.
 9. The overall page feels calmer and more premium, not busier.
 10. Static is a better foundation for later pseudo-3D motion.
+11. Exact output artifact and status are recoverable from GitHub without owner assistance.
 
 ## 9. STOP GATE
 
-After producing and saving the one corrected static candidate, STOP.
+After producing, committing, and documenting the one corrected static candidate, STOP.
 
 Do not implement motion yet.
 Do not merge/deploy.

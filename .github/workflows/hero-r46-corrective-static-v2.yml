@@ -1,0 +1,144 @@
+name: Hero R4.6 corrective static V2 QA
+
+on:
+  push:
+    branches:
+      - agent/hero-static-premium-integration-r1
+    paths:
+      - .github/workflows/hero-r46-corrective-static-v2.yml
+      - tools/hero_r46_corrective_static_v2_preview.mjs
+      - tools/hero_r46_corrective_static_v2.py
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  render-v2-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout isolated working branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/hero-static-premium-integration-r1
+
+      - name: Guard production homepage routes
+        shell: bash
+        run: |
+          git fetch origin main --quiet
+          if git diff --name-only origin/main...HEAD | grep -Eq '^(index\.html|ru/index\.html)$'; then
+            echo 'Production homepage route changed — forbidden in owner-review branch.' >&2
+            exit 1
+          fi
+
+      - name: Record V2 QA run id
+        shell: bash
+        run: |
+          printf '%s\n' "${GITHUB_RUN_ID}" > .github/hero-r46-v2-qa-last-run.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/hero-r46-v2-qa-last-run.txt
+          if ! git diff --cached --quiet; then
+            git commit -m "Record Hero R4.6 V2 QA run"
+            git push origin HEAD:agent/hero-static-premium-integration-r1
+          fi
+
+      - name: Validate exact V1 comparison source
+        shell: bash
+        run: |
+          test -s docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png
+          echo '3a1dfcd9514c9e7e99c461bab4b2f2a3489041217bae4619d898ae54e6691637  docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png' | sha256sum -c -
+
+      - name: Download exact recovered R4.6 owner-review artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PROAI_HERO_RECOVERY_OWNER_REVIEW
+          path: recovery-artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: proaiexpert/proaiexpert.github.io
+          run-id: 31351101048
+
+      - name: Setup Ruby and build frozen recovered preview
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - run: gem install jekyll -v 4.3.4 --no-document
+      - run: jekyll build --source . --destination _site --trace
+
+      - name: Setup Node and Chromium
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Setup deterministic raster dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-inter fontconfig
+          python3 -m pip install --disable-pip-version-check --quiet pillow==12.3.0 numpy opencv-python-headless==4.13.0.92
+
+      - name: Serve frozen preview
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory _site > /tmp/hero-r46-v2-http.log 2>&1 &
+          sleep 2
+          curl --fail http://127.0.0.1:4173/hero-a-plus-c-shape-preview/ > /dev/null
+
+      - name: Render V2 with intact registered material planes
+        shell: bash
+        run: |
+          mkdir -p /tmp/proai-r46-v2
+          node tools/hero_r46_corrective_static_v2_preview.mjs /tmp/proai-r46-v2/browser-raw.png
+          python3 tools/hero_r46_corrective_static_v2.py \
+            /tmp/proai-r46-v2/browser-raw.png \
+            recovery-artifact/R46_DESKTOP_STATIC.png \
+            docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png \
+            /tmp/proai-r46-v2/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_DRAFT.png \
+            --qa-json /tmp/proai-r46-v2/qa.json \
+            --qa-compare /tmp/proai-r46-v2/compare.jpg \
+            --qa-mask /tmp/proai-r46-v2/cleanup-mask.png
+          cat /tmp/proai-r46-v2/qa.json
+
+      - name: Validate static-only deterministic gates
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, struct
+          from pathlib import Path
+          p=Path('/tmp/proai-r46-v2/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_DRAFT.png')
+          b=p.read_bytes()[:24]
+          if b[:8] != b'\x89PNG\r\n\x1a\n': raise SystemExit('V2 draft is not PNG')
+          if struct.unpack('>II', b[16:24]) != (1440,900): raise SystemExit('V2 draft is not 1440x900')
+          qa=json.loads(Path('/tmp/proai-r46-v2/qa.json').read_text())
+          assert qa['core_linear_scale_reduction_percent'] == 4.5
+          assert qa['rail_pitch_px'] == 70
+          assert qa['rail_labels'] == ['01 TRUST','02 INQUIRY','03 RESPONSE','04 RESULT']
+          assert qa['header_pixel_lock'] is True
+          assert qa['left_copy_cta_pixel_lock'] is True
+          assert qa['motion_started'] is False
+          assert 'no luminance/content alpha' in qa['material_method']
+          print('V2 deterministic QA gates: PASS')
+          PY
+
+      - name: Upload agent-only visual QA package
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROAI_HERO_R46_V2_QA_DRAFT
+          path: |
+            /tmp/proai-r46-v2/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_DRAFT.png
+            /tmp/proai-r46-v2/browser-raw.png
+            /tmp/proai-r46-v2/compare.jpg
+            /tmp/proai-r46-v2/cleanup-mask.png
+            /tmp/proai-r46-v2/qa.json
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Print server log on failure
+        if: failure()
+        run: cat /tmp/hero-r46-v2-http.log || true

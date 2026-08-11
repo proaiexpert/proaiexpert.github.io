@@ -79,12 +79,16 @@ ud.line((400,634,470,634),fill=(86,181,195,100),width=1)
 ud.line([(1185,39),(1189,43),(1193,39)],fill=(177,187,190,118),width=1)
 final=Image.alpha_composite(final.convert('RGBA'),ui).convert('RGB'); arr=np.array(final)
 
+# Preserve exact R1 rail/output pixels after material/chamber response, keeping current output-to-row logic unchanged.
+keep=np.maximum(outputs,rail)>0.03
+arr[keep]=r1_arr[keep]
+final=Image.fromarray(arr,'RGB')
+
 # Locked architecture and output/rail QA. Background integration is allowed in right-edge negative space.
 header_before=r1_arr[:87]; header_after=arr[:87]; check=header_after.copy(); check[36:46,1182:1196]=header_before[36:46,1182:1196]
 if not np.array_equal(check,header_before): raise SystemExit('Unexpected header drift')
 for y0,y1,x0,x1 in [(230,575,55,570),(590,648,55,380)]:
     if not np.array_equal(arr[y0:y1,x0:x1],r1_arr[y0:y1,x0:x1]): raise SystemExit('Locked content drift')
-keep=np.maximum(outputs,rail)>0.03
 if not np.array_equal(arr[keep],r1_arr[keep]): raise SystemExit('Rail/output geometry drift')
 OUT.parent.mkdir(parents=True,exist_ok=True); final.save(OUT,optimize=True)
 print('R2_SHA256='+sha(OUT)); print('R2_DIMENSIONS=1440x900')

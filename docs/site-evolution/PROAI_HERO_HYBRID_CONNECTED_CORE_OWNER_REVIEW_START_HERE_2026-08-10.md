@@ -22,7 +22,9 @@ Completed:
 - production homepage routes were not modified;
 - no merge, deploy or production PR was performed;
 - desktop, mobile, reduced-motion and short-landscape browser captures were run through GitHub Actions;
-- a mobile horizontal-overflow defect found during visual QC was corrected in the isolated route;
+- a short-landscape composition defect found during visual QC was corrected in the isolated route;
+- a mobile horizontal-overflow defect found during full-page visual QC was corrected in the isolated route;
+- full-page mobile capture now prewarms the offscreen WebGL scene through the same IntersectionObserver visibility path a real user scroll would trigger;
 - the final browser QC run is green.
 
 ## 2. Latest owner authority — read before judging details
@@ -39,11 +41,11 @@ It explicitly says:
 - preserve the external synthesis and approved communication direction as authority;
 - keep naming, microcopy, exact Core geometry, plate arrangement, signal treatment, warm/pearlescent response and choreography open until owner review.
 
-Therefore the earlier file:
+Therefore:
 
 `docs/site-evolution/PROAI_HERO_HYBRID_CONNECTED_CORE_FINAL_BUILD_SPEC_2026-08-10.md`
 
-must now be interpreted as the **R1 implementation/candidate build specification used to produce this prototype**, not as proof that every open creative variable is owner-approved.
+must be interpreted as the **R1 implementation/candidate build specification used to produce this prototype**, not as proof that every open creative variable is owner-approved.
 
 ## 3. Prototype route
 
@@ -80,23 +82,21 @@ These are **candidate decisions for owner review**, not final owner locks.
 
 Final successful GitHub Actions owner-review run:
 
-- Run ID: `31464989505`
-- Artifact ID: `9091235159`
+- Run ID: `31465442110`
+- Artifact ID: `9091396167`
 - Artifact: `PROAI_HYBRID_CONNECTED_CORE_R1_OWNER_REVIEW`
-- Artifact digest: `sha256:eb25c934b2ab1ed0fd0c6c8bf7027aed8d0d11e9f996770de0adfae0932af8c5`
-- Prototype/code SHA captured by the run: `5e7218554a51e5fbfdaec423811f9a96d6638f47`
-
-The later commit carrying the newest owner-context document does not change prototype code.
+- Artifact digest: `sha256:d697305877a3accfb8af959551bbb61e26869e9daad3eaab40b8e54c127068d4`
+- Prototype/capture SHA: `5a8aac0d3901483a9b93c58fef6ba7800948b99b`
 
 Validated outputs:
 
 1. `HYBRID_CORE_R1_DESKTOP_STATIC.png` — 1440×900
 2. `HYBRID_CORE_R1_DESKTOP_MOTION.mp4` — 1440×900, deterministic trimmed narrative capture
 3. `HYBRID_CORE_R1_MOBILE_390_STATIC.png` — 390×844
-4. `HYBRID_CORE_R1_MOBILE_390_FULL.png` — full-page mobile composition, exact 390 px width after overflow correction
+4. `HYBRID_CORE_R1_MOBILE_390_FULL.png` — full-page mobile composition, exact 390 px width
 5. `HYBRID_CORE_R1_MOBILE_320_STATIC.png` — 320×780
-6. `HYBRID_CORE_R1_MOBILE_320_FULL.png` — full-page mobile composition, exact 320 px width
-7. `HYBRID_CORE_R1_SHORT_LANDSCAPE_STATIC.png` — 844×390; Core is visible after the landscape-grid correction
+6. `HYBRID_CORE_R1_MOBILE_320_FULL.png` — full-page mobile composition, exact 320 px width, Core explicitly prewarmed/rendered before full-page capture
+7. `HYBRID_CORE_R1_SHORT_LANDSCAPE_STATIC.png` — 844×390; Core visible in compact split composition
 
 The final run passed:
 

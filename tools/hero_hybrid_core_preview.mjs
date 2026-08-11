@@ -10,11 +10,21 @@ const videoDir = path.join(outDir, 'video-raw');
 await fs.rm(outDir, { recursive: true, force: true });
 await fs.mkdir(videoDir, { recursive: true });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({
+  headless: true,
+  args: ['--enable-webgl', '--ignore-gpu-blocklist'],
+});
 
 async function waitForCore(page, settleMs = 1000) {
   await page.goto(route, { waitUntil: 'networkidle', timeout: 60000 });
   await page.waitForSelector('#hybrid-system-scene', { state: 'visible' });
+  await page.waitForFunction(
+    () => document.documentElement.classList.contains('is-webgl'),
+    null,
+    { timeout: 30000 },
+  );
+  const canvasReady = await page.locator('#hybrid-core-canvas').evaluate((el) => el.width > 0 && el.height > 0);
+  if (!canvasReady) throw new Error('Hybrid Core WebGL canvas did not initialize');
   await page.waitForTimeout(settleMs);
 }
 

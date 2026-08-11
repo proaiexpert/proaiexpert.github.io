@@ -12,30 +12,37 @@ Deterministic generator: `tools/hero_r46_corrective_static_v1.py`
 - Result commit SHA: `4e5dff089b1cf2c12b5bf84dc47105fb21135ca2`
 - Image dimensions: `1440 × 900`
 - PNG SHA-256: `3a1dfcd9514c9e7e99c461bab4b2f2a3489041217bae4619d898ae54e6691637`
-- Status: **PENDING OWNER REVIEW**
+- Owner-review status: **TARGETED CORRECTION REQUIRED — SUPERSEDED BY V2 TASK**
 
-## Corrective pass summary
+## What V1 got right and should carry forward
 
 - Preserved the recovered R4.6 two-column Hero, H1 hierarchy, canonical Header, CTA system and approved C-shape concept.
 - Kept Header plus the complete left copy/H1/CTA column pixel-identical to the recovered GitHub Actions frame.
 - Reduced the recovered right-side visual plate to `95.5%` linear scale (`4.5%` reduction), within the owner-requested 3–6% range.
-- Removed the old rail glyphs/nodes and legacy free-space output curls locally, without broad cleanup plates.
-- Rebuilt one precise 01–04 rail on a fixed 70 px vertical pitch: `01 TRUST / 02 INQUIRY / 03 RESPONSE / 04 RESULT`.
-- Registered each new short output trace directly to its corresponding rail node/row.
-- Increased graphite/steel tonal separation, source-derived internal cyan volume, restrained cold-steel edge response, extremely subtle champagne reflection and stronger contact/floor response.
-- No Hero concept change, no motion pass, no page redesign and no production route changes.
+- Rebuilt a calmer precise 01–04 rail on a fixed 70 px vertical pitch: `01 TRUST / 02 INQUIRY / 03 RESPONSE / 04 RESULT`.
+- Registered each output endpoint to its corresponding rail row.
+- Production `/index.html` and `/ru/index.html` were not modified.
+- Merge / deploy / production PR were not performed.
+- Motion was not started.
 
-## Independent QA
+## Owner-review / independent visual findings
 
-- One candidate only: PASS.
-- Candidate dimensions `1440 × 900`: PASS.
-- Linear scale reduction `4.5%`: PASS.
-- Rail row pitch `70 px`, fixed number/label columns and `04 RESULT`: PASS.
-- Output endpoints terminate at the rebuilt row nodes: PASS.
-- Header pixel-lock against recovery frame: PASS.
-- Left H1/copy/CTA pixel-lock against recovery frame: PASS.
-- Production `/index.html` and `/ru/index.html`: NOT MODIFIED.
-- Merge / deploy / production PR: NOT PERFORMED.
-- Motion implementation: NOT STARTED; intentionally blocked pending owner verdict.
+V1 is not approved as final because the visual quality gate is not yet met.
 
-**PENDING OWNER REVIEW**
+Required corrections:
+
+1. Some output traces still read as cyan graphics drawn over solid exterior metal rather than signal physically emitted from inside the Core.
+2. The luminance/content-alpha scaling/compositing method locally erodes dark graphite material, producing worn/rubbed/eaten-away looking planes and weakened edge integrity.
+3. Foreground occlusion and the internal chamber → collector → output hierarchy are not spatially convincing enough.
+4. Internal cyan has more bloom but still needs deeper embedded volume rather than simply more glow.
+5. Optical effects must be softer, cleaner and more premium, with restrained contact/floor response and no harsh neon feel.
+
+## Current successor task
+
+Execute only:
+
+`docs/site-evolution/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_TASK_2026-08-10.md`
+
+V1 remains historical comparison evidence and a source of the accepted 4.5% scale / rail improvements. It is NOT the canonical visual source and must not be called LOCKED, FINAL or approved.
+
+**TARGETED CORRECTION REQUIRED — SUPERSEDED BY V2 TASK**

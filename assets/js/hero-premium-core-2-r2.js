@@ -515,6 +515,7 @@
   let pointer = { x: 0, y: 0 };
   let pointerTarget = { x: 0, y: 0 };
   let visible = true;
+  let captureFreeze = false;
   let renderScale = 1;
   let quality = 1;
   let firstFrame = true;
@@ -556,6 +557,10 @@
   const visibilityObserver = new IntersectionObserver((entries) => { visible = entries.some((entry) => entry.isIntersecting); }, { threshold: 0.02 });
   visibilityObserver.observe(visual);
 
+  window.addEventListener('hero-core2:capture-freeze', (event) => {
+    captureFreeze = Boolean(event.detail);
+  });
+
   const adaptPerformance = (delta) => {
     if (firstFrame || motionReduced) return;
     frameSamples.push(delta);
@@ -573,6 +578,7 @@
   const render = (now) => {
     requestAnimationFrame(render);
     if (!visible || document.hidden) return;
+    if (captureFreeze && !firstFrame) return;
     const delta = now - lastFrame;
     lastFrame = now;
     adaptPerformance(delta);

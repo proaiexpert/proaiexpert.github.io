@@ -1,275 +1,269 @@
-name: Hero Layered 2.5D Static R2 corrective pass
+name: Hero Layered 2.5D Static R1 owner review
 
 on:
   push:
     branches:
       - agent/hero-layered-25d-static-r1
     paths:
-      - .github/hero-layered-25d-r2-run.txt
+      - .github/hero-layered-25d-r1-run.txt
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
-  render-r2:
+  render-layered-static-r1:
     runs-on: ubuntu-latest
     timeout-minutes: 18
     steps:
-      - name: Checkout exact working branch
+      - name: Checkout isolated working branch
         uses: actions/checkout@v4
         with:
-          ref: agent/hero-layered-25d-static-r1
           fetch-depth: 0
+          ref: agent/hero-layered-25d-static-r1
 
-      - name: Guard production and validate exact R1 source
+      - name: Guard production homepage routes
         shell: bash
         run: |
           set -euo pipefail
-          test -s docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R1.png
-          ACTUAL="$(sha256sum docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R1.png | awk '{print $1}')"
-          test "$ACTUAL" = "28d1885ff2350562434e5a4bf50cbc787a7ffee5e29635780cf2ce96560ff622"
-          test "$(git hash-object index.html)" = "3d44bd2f6f0f09bf9c45ba661ccffd2ac6183aa4"
-          test "$(git hash-object ru/index.html)" = "4d703c149b626dab3a3db13b3566c9d0cb28d374"
+          git fetch origin main --quiet
+          if git diff --name-only origin/main...HEAD | grep -Eq '^(index\.html|ru/index\.html)$'; then
+            echo 'Production homepage route changed — forbidden in owner-review branch.' >&2
+            exit 1
+          fi
 
-      - name: Install deterministic image dependencies
+      - name: Download exact recovered R4.6 owner-review artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PROAI_HERO_RECOVERY_OWNER_REVIEW
+          path: recovery-artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: proaiexpert/proaiexpert.github.io
+          run-id: 31351101048
+
+      - name: Validate immutable recovery input
         shell: bash
         run: |
-          python3 -m pip install --disable-pip-version-check --quiet pillow==12.3.0 numpy opencv-python-headless==4.13.0.92
-
-      - name: Build one R2 candidate from R1 registered layers
-        shell: bash
-        run: |
+          set -euo pipefail
+          test -s recovery-artifact/R46_DESKTOP_STATIC.png
           python3 - <<'PY'
+          import hashlib, struct
           from pathlib import Path
+          p=Path('recovery-artifact/R46_DESKTOP_STATIC.png')
+          b=p.read_bytes()
+          if b[:8] != b'\x89PNG\r\n\x1a\n': raise SystemExit('Recovery input is not PNG')
+          if struct.unpack('>II', b[16:24]) != (1440,900): raise SystemExit('Recovery input is not 1440x900')
+          digest=hashlib.sha256(b).hexdigest()
+          expected='98529b39fb4e951638379431f1a746b1a3d89e6b6d69e10ff2f1b53e8e80f315'
+          if digest != expected: raise SystemExit(f'Recovery SHA mismatch: {digest}')
+          print('Recovery input validated:', digest)
+          PY
+
+      - name: Setup deterministic raster dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-inter fontconfig
+          python3 -m pip install --disable-pip-version-check --quiet \
+            pillow==12.3.0 numpy opencv-python-headless==4.13.0.92
+
+      - name: Generate registered layered R1 scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/proai-hero-layered-r1
+          python3 tools/hero_layered_25d_static_r1.py \
+            recovery-artifact/R46_DESKTOP_STATIC.png \
+            /tmp/proai-hero-layered-r1
+          rm -rf assets/hero-layered-25d-r1
+          mkdir -p assets/hero-layered-25d-r1 docs/site-evolution/review-artifacts
+          cp -a /tmp/proai-hero-layered-r1/assets/hero-layered-25d-r1/. assets/hero-layered-25d-r1/
+          cp /tmp/proai-hero-layered-r1/qa.json assets/hero-layered-25d-r1/qa.json
+          cp /tmp/proai-hero-layered-r1/PROAI_HERO_LAYERED_25D_STATIC_R1.png \
+            docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R1.png
+
+      - name: Record deterministic scene manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
           import hashlib, json
-          import numpy as np
-          import cv2
-          from PIL import Image, ImageDraw, ImageFilter
-
-          W,H=1440,900
-          ROOT=Path('.')
-          R1=ROOT/'docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R1.png'
-          OUT=ROOT/'docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R2.png'
-          AS=ROOT/'assets/hero-layered-25d-r1'
-          r1=Image.open(R1).convert('RGB')
-          if r1.size!=(W,H): raise SystemExit('R1 dimensions drift')
-          src=np.array(r1).astype(np.float32)
-          r1_arr=np.array(r1)
-          yy,xx=np.mgrid[0:H,0:W]
-
-          def alpha(path):
-              return np.array(Image.open(path).convert('RGBA'))[:,:,3].astype(np.float32)/255.0
-          rear=alpha(AS/'rear_body_graphite.png')
-          chamber=alpha(AS/'internal_chamber_depth.png')
-          front=alpha(AS/'front_metal_shell.png')
-          collector=alpha(AS/'collector_emitter_zone.png')
-          outputs=alpha(AS/'external_output_impulses.png')
-          rail=alpha(AS/'rail_ui.png')
-          object_mask=np.maximum.reduce([rear,chamber,front,collector])
-          protected=np.maximum.reduce([object_mask,outputs,rail])
-
-          left_base=np.array([3.7,4.7,5.35],np.float32)
-          field=np.zeros((H,W,3),np.float32)+left_base
-          def radial(cx,cy,sx,sy,color,amp):
-              g=np.exp(-(((xx-cx)/sx)**2+((yy-cy)/sy)**2)*2.0)[...,None]
-              return g*np.array(color,np.float32)*amp
-          field += radial(1015,500,520,390,[7.0,21.0,25.0],0.41)
-          field += radial(1140,735,540,225,[5.0,14.0,17.0],0.27)
-          field += radial(1160,255,410,225,[4.0,11.0,14.0],0.20)
-          field += radial(1090,305,320,245,[6.0,4.0,2.0],0.045)
-          t=np.clip((xx-565.0)/350.0,0,1)
-          t=t*t*(3-2*t)
-          target=left_base[None,None,:]*(1-t[...,None])+field*t[...,None]
-          amount=(np.clip((xx-575.0)/245.0,0,1)**1.18)*(1-protected)*0.96
-          amount[yy<87]=0
-          src=src*(1-amount[...,None])+target*amount[...,None]
-
-          seam=np.exp(-((xx-695.0)/15.0)**2)*(1-protected)
-          seam[yy<87]=0
-          src=src*(1-seam[...,None])+target*seam[...,None]
-
-          artifact=Image.new('L',(W,H),0)
-          ad=ImageDraw.Draw(artifact)
-          ad.polygon([(701,334),(731,345),(748,385),(741,410),(711,431),(698,404)],fill=255)
-          artifact=artifact.filter(ImageFilter.GaussianBlur(1.25))
-          am=np.array(artifact).astype(np.float32)/255.0
-          src=src*(1-am[...,None])+target*am[...,None]
-
-          steel=np.clip(np.maximum(rear,front)-chamber*0.72,0,1)
-          lum=src.mean(axis=2)
-          graded=(src-19.0)*1.043+19.0
-          hi=np.clip((lum-34.0)/122.0,0,1)
-          graded[:,:,2]+=2.4*hi
-          graded[:,:,1]+=1.15*hi
-          warm=np.exp(-(((xx-1140)/275.0)**2+((yy-300)/235.0)**2)*2.0)*steel
-          graded[:,:,0]+=1.35*warm
-          graded[:,:,1]+=0.45*warm
-          mix=steel*0.54
-          src=src*(1-mix[...,None])+graded*mix[...,None]
-
-          cb=(chamber>0.46).astype(np.uint8)
-          dist=cv2.distanceTransform(cb,cv2.DIST_L2,5)
-          edge=(1-np.clip(dist/54.0,0,1))*chamber
-          src*=1-(edge*0.072)[...,None]
-          for cx,cy,sx,sy,amp in [(945,488,175,115,0.045),(1045,520,165,145,0.058),(1130,528,92,145,0.050)]:
-              g=np.exp(-(((xx-cx)/sx)**2+((yy-cy)/sy)**2)*2.0)*chamber*amp
-              src[:,:,0]+=23*g; src[:,:,1]+=88*g; src[:,:,2]+=105*g
-
-          rr=Image.new('RGBA',(W,H),(0,0,0,0)); rd=ImageDraw.Draw(rr,'RGBA')
-          rd.line([(890,466),(1110,444),(1170,466)],fill=(116,221,234,20),width=1)
-          rd.line([(875,536),(1090,520),(1172,540)],fill=(91,203,218,18),width=1)
-          rd.line([(900,596),(1082,584),(1162,602)],fill=(85,188,202,13),width=1)
-          rr=rr.filter(ImageFilter.GaussianBlur(0.7))
-          ra=np.array(rr).astype(np.float32); ra[:,:,3]*=chamber
-          refl=Image.fromarray(np.clip(ra,0,255).astype(np.uint8),'RGBA')
-          base=Image.fromarray(np.clip(src,0,255).astype(np.uint8),'RGB').convert('RGBA')
-          src=np.array(Image.alpha_composite(base,refl).convert('RGB')).astype(np.float32)
-
-          for x0,y0,x1,y1 in [(58,650,405,694),(58,713,455,740)]:
-              roi=src[y0:y1,x0:x1]
-              l=roi.mean(axis=2)
-              text=(l>27)&(l<160)
-              roi[text]=np.minimum(roi[text]*1.27+4.0,190)
-              src[y0:y1,x0:x1]=roi
-
-          final=Image.fromarray(np.clip(src,0,255).astype(np.uint8),'RGB')
-          ui=Image.new('RGBA',(W,H),(0,0,0,0)); ud=ImageDraw.Draw(ui,'RGBA')
-          ud.line((400,634,470,634),fill=(86,181,195,100),width=1)
-          ud.line([(1185,39),(1189,43),(1193,39)],fill=(177,187,190,118),width=1)
-          final=Image.alpha_composite(final.convert('RGBA'),ui).convert('RGB')
-          arr=np.array(final)
-
-          header_before=r1_arr[:87]
-          header_after=arr[:87]
-          check=header_after.copy(); check[36:46,1182:1196]=header_before[36:46,1182:1196]
-          if not np.array_equal(check,header_before): raise SystemExit('Unexpected header drift')
-          for y0,y1,x0,x1 in [(230,575,55,610),(590,648,55,380)]:
-              if not np.array_equal(arr[y0:y1,x0:x1],r1_arr[y0:y1,x0:x1]):
-                  raise SystemExit(f'Locked content drift {(x0,y0,x1,y1)}')
-          keep=(np.maximum(outputs,rail)>0.03)
-          if not np.array_equal(arr[keep],r1_arr[keep]): raise SystemExit('Rail/output geometry drift')
-
-          OUT.parent.mkdir(parents=True,exist_ok=True)
-          final.save(OUT,optimize=True)
-          digest=hashlib.sha256(OUT.read_bytes()).hexdigest()
-          qa={
-            'r1_source':'docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R1.png',
-            'r1_commit':'e3dd5f36b61a5f9fb90a0842a9a7c0f15efa3c4e',
-            'r1_sha256':'28d1885ff2350562434e5a4bf50cbc787a7ffee5e29635780cf2ce96560ff622',
-            'dimensions':[1440,900],
-            'r2_sha256':digest,
-            'core_scale_preserved':'95.5% / -4.5% from recovered registration',
-            'seam_method':'analytic low-frequency atmospheric field across both columns + depth-mask protection + explicit x≈695 seam neutralization; no blur patch',
-            'artifact_method':'explicit feathered geometric exclusion mask replacing stray floating wedge with registered atmosphere',
-            'chamber_method':'existing R1 chamber alpha/depth layer; edge-recess darkening + three depth cyan volumes + restrained internal reflected planes',
-            'material_method':'existing R1 rear/front alpha layers; restrained graphite contrast, blue-steel highlight nuance, microscopic warm counter-reflection',
-            'rail_output_preserved':True,
-            'motion_started':False,
-            'production_modified':False,
+          from pathlib import Path
+          root=Path('assets/hero-layered-25d-r1')
+          files={}
+          for p in sorted(root.glob('*')):
+              if p.is_file() and p.name != 'manifest.json':
+                  b=p.read_bytes()
+                  files[p.name]={'bytes':len(b),'sha256':hashlib.sha256(b).hexdigest()}
+          manifest={
+              'status':'PENDING OWNER REVIEW',
+              'source_branch':'agent/hero-recovery-approved-composition-owner-look',
+              'recovery_handoff_commit':'3067fa02631de98d98d9b6bc8a1d0ea880ad5a41',
+              'recovered_visual_checkpoint':'8bab1bbddbaadf70d88fd72c77e08d2d0ac77429',
+              'recovery_artifact':{
+                  'run_id':31351101048,
+                  'name':'PROAI_HERO_RECOVERY_OWNER_REVIEW',
+                  'file':'R46_DESKTOP_STATIC.png',
+                  'sha256':'98529b39fb4e951638379431f1a746b1a3d89e6b6d69e10ff2f1b53e8e80f315'
+              },
+              'registration':{'canvas':[1440,900],'right_field_x':695,'header_height':87,'core_scale':0.955},
+              'segmentation':'explicit registered polygon masks; no luminance/content-alpha material reconstruction',
+              'occlusion':'external_output_impulses are composited below front_metal_shell; foreground_occlusion_mask retained',
+              'depth_map':'depth_map.png',
+              'neutral_renderer':'/assets/js/hero-layered-25d-r1.js',
+              'preview_route':'/hero-layered-25d-static-preview/',
+              'motion_implemented':False,
+              'files':files,
           }
-          Path('/tmp/r2-qa.json').write_text(json.dumps(qa,indent=2)+'\n')
-          print(json.dumps(qa,indent=2))
+          (root/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
           PY
 
-      - name: Commit exact R2 candidate
+      - name: Automated R1 QA gates
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import struct
+          import json, struct
           from pathlib import Path
-          p=Path('docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R2.png')
+          p=Path('docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R1.png')
           b=p.read_bytes()[:24]
-          assert b[:8]==b'\x89PNG\r\n\x1a\n'
-          assert struct.unpack('>II',b[16:24])==(1440,900)
+          if b[:8] != b'\x89PNG\r\n\x1a\n': raise SystemExit('Candidate is not PNG')
+          if struct.unpack('>II', b[16:24]) != (1440,900): raise SystemExit('Candidate is not 1440x900')
+          qa=json.loads(Path('assets/hero-layered-25d-r1/qa.json').read_text())
+          assert qa['linear_scale_reduction_percent'] == 4.5
+          assert qa['rail_pitch_px'] == 70
+          assert qa['rail_rows_y'] == [400,470,540,610]
+          assert qa['rail_labels'] == ['01 TRUST','02 INQUIRY','03 RESPONSE','04 RESULT']
+          assert qa['header_pixel_lock'] is True
+          assert qa['left_copy_cta_pixel_lock'] is True
+          assert qa['production_files_touched'] is False
+          assert qa['motion_implemented'] is False
+          assert 'no luminance/content-alpha material key' in qa['segmentation_method']
+          assert 'below explicit front_metal_shell' in qa['occlusion_method']
+          expected={
+            'rear_atmosphere.png','rear_body_graphite.png','internal_chamber_depth.png',
+            'internal_cyan_volume.png','collector_emitter_zone.png','front_metal_shell.png',
+            'foreground_occlusion_mask.png','contact_shadow_floor_response.png',
+            'external_output_impulses.png','rail_ui.png','depth_map.png'
+          }
+          assert expected.issubset({x.name for x in Path('assets/hero-layered-25d-r1').glob('*.png')})
+          print('Layered R1 deterministic QA: PASS')
           PY
+          if grep -Eq 'requestAnimationFrame|pointermove|mousemove|touchmove' assets/js/hero-layered-25d-r1.js; then
+            echo 'Motion/pointer implementation detected — forbidden in static R1.' >&2
+            exit 1
+          fi
+          COUNT="$(find docs/site-evolution/review-artifacts -maxdepth 1 -type f -name 'PROAI_HERO_LAYERED_25D_STATIC_R1*.png' | wc -l | tr -d ' ')"
+          test "$COUNT" = "1"
+          git fetch origin main --quiet
+          if git diff --name-only origin/main...HEAD | grep -Eq '^(index\.html|ru/index\.html)$'; then
+            echo 'Production homepage route changed — forbidden.' >&2
+            exit 1
+          fi
+
+      - name: Commit exact R1 candidate and registered scene assets
+        shell: bash
+        run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R2.png
-          git commit -m "Save Hero Layered 2.5D Static R2 candidate"
-          CANDIDATE_COMMIT="$(git rev-parse HEAD)"
-          printf '%s\n' "$CANDIDATE_COMMIT" >/tmp/r2-candidate-commit.txt
-          git push origin HEAD:agent/hero-layered-25d-static-r1
+          git add \
+            assets/hero-layered-25d-r1 \
+            docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R1.png
+          if git diff --cached --quiet; then
+            CANDIDATE_COMMIT="$(git rev-parse HEAD)"
+          else
+            git commit -m "Save Hero Layered 2.5D Static R1 candidate"
+            CANDIDATE_COMMIT="$(git rev-parse HEAD)"
+            git push origin HEAD:agent/hero-layered-25d-static-r1
+          fi
+          printf '%s\n' "$CANDIDATE_COMMIT" > /tmp/proai-hero-r1-candidate-commit.txt
 
-      - name: Write R2 status
+      - name: Record PENDING OWNER REVIEW status
         shell: bash
         run: |
           set -euo pipefail
-          CANDIDATE_COMMIT="$(cat /tmp/r2-candidate-commit.txt)"
-          R2_SHA="$(sha256sum docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R2.png | awk '{print $1}')"
-          cat > docs/site-evolution/PROAI_HERO_LAYERED_25D_STATIC_R2_STATUS.md <<EOF
-          # ProAI Expert Hero — Layered 2.5D Static R2 — Status
+          CANDIDATE_COMMIT="$(cat /tmp/proai-hero-r1-candidate-commit.txt)"
+          PNG_PATH='docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R1.png'
+          PNG_SHA256="$(sha256sum "$PNG_PATH" | awk '{print $1}')"
+          INDEX_BLOB="$(git hash-object index.html)"
+          RU_INDEX_BLOB="$(git hash-object ru/index.html)"
+          cat > docs/site-evolution/PROAI_HERO_LAYERED_25D_STATIC_R1_STATUS.md <<EOF
+          # ProAI Expert Hero — Layered 2.5D Static R1 — Status
 
           Date: 2026-08-10  
           Working branch: \`agent/hero-layered-25d-static-r1\`  
           Status: **PENDING OWNER REVIEW**
 
-          ## Exact R1 source used
+          ## Canonical recovery source
 
-          - R1 candidate: \`docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R1.png\`
-          - R1 candidate commit: \`e3dd5f36b61a5f9fb90a0842a9a7c0f15efa3c4e\`
-          - R1 SHA-256: \`28d1885ff2350562434e5a4bf50cbc787a7ffee5e29635780cf2ce96560ff622\`
-          - R1 registered depth/mask assets: \`assets/hero-layered-25d-r1/\`
-          - Recovery baseline retained through R1: run \`31351101048\`, \`PROAI_HERO_RECOVERY_OWNER_REVIEW / R46_DESKTOP_STATIC.png\`
+          - Frozen recovered composition branch: \`agent/hero-recovery-approved-composition-owner-look\`
+          - Recovery handoff commit: \`3067fa02631de98d98d9b6bc8a1d0ea880ad5a41\`
+          - Underlying recovered visual checkpoint: \`8bab1bbddbaadf70d88fd72c77e08d2d0ac77429\`
+          - Recovery workflow run: \`31351101048\`
+          - Recovery artifact: \`PROAI_HERO_RECOVERY_OWNER_REVIEW / R46_DESKTOP_STATIC.png\`
+          - Recovery PNG SHA-256: \`98529b39fb4e951638379431f1a746b1a3d89e6b6d69e10ff2f1b53e8e80f315\`
 
-          ## R2 result
+          ## R1 owner-review result
 
-          - Candidate: \`docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R2.png\`
-          - Candidate commit: \`${CANDIDATE_COMMIT}\`
+          - Candidate: \`${PNG_PATH}\`
+          - Candidate commit SHA: \`${CANDIDATE_COMMIT}\`
+          - Candidate PNG SHA-256: \`${PNG_SHA256}\`
           - Dimensions: \`1440 × 900\`
-          - SHA-256: \`${R2_SHA}\`
-          - Core scale: retained from R1 at approximately \`95.5%\` of recovered registration (\`-4.5%\`).
+          - Core scale: \`95.5%\` of recovered registration (\`4.5%\` linear reduction)
+          - Preview route: \`/hero-layered-25d-static-preview/\`
+          - Deterministic generator: \`tools/hero_layered_25d_static_r1.py\`
+          - Neutral WebGL2 compositor: \`assets/js/hero-layered-25d-r1.js\`
+          - Isolated preview CSS: \`assets/css/hero-layered-25d-r1.css\`
 
-          ## Corrective method
+          ## Registered scene assets
 
-          R2 uses the existing R1 registered layered 2.5D masks/depth assets. It does not return to luminance-key/content-alpha extraction and does not regenerate or redraw the approved C-shape.
+          - \`assets/hero-layered-25d-r1/rear_atmosphere.png\`
+          - \`assets/hero-layered-25d-r1/rear_body_graphite.png\`
+          - \`assets/hero-layered-25d-r1/internal_chamber_depth.png\`
+          - \`assets/hero-layered-25d-r1/internal_cyan_volume.png\`
+          - \`assets/hero-layered-25d-r1/collector_emitter_zone.png\`
+          - \`assets/hero-layered-25d-r1/front_metal_shell.png\`
+          - \`assets/hero-layered-25d-r1/foreground_occlusion_mask.png\`
+          - \`assets/hero-layered-25d-r1/contact_shadow_floor_response.png\`
+          - \`assets/hero-layered-25d-r1/external_output_impulses.png\`
+          - \`assets/hero-layered-25d-r1/rail_ui.png\`
+          - \`assets/hero-layered-25d-r1/depth_map.png\`
+          - QA: \`assets/hero-layered-25d-r1/qa.json\`
+          - Manifest/hashes: \`assets/hero-layered-25d-r1/manifest.json\`
 
-          - Background integration is depth-aware: the Core, chamber, collector, output impulses and rail are protected by the existing R1 alpha layers while a single analytic low-frequency atmospheric field is blended across the old left/right boundary.
-          - The former hard \`x≈695\` scene cutoff is explicitly neutralized on background pixels. The transition starts progressively inside the left negative-space field and resolves into the right atmosphere without a rectangular panel edge or blur-smear patch.
-          - The floating dark wedge/triangle left of the Core is removed with one explicit feathered geometric exclusion mask and replaced by the same registered atmospheric field; approved Core geometry is otherwise unchanged.
-          - Chamber depth is strengthened using the existing R1 chamber mask: darker recess-edge response, three restrained cyan depth volumes at different spatial scales and low-opacity internal reflected planes. Brightness/glow is not used as the primary depth mechanism.
-          - Material treatment keeps the existing rear/front R1 geometry masks and adds restrained graphite contrast, subtle blue-steel highlight nuance, deeper black separation and a microscopic warm counter-reflection.
-          - Micro-UI polish only: RU receives a subtle chevron to read as a language control; the two important microcopy lines receive a controlled contrast lift; \`View Work →\` gets one continuous intentional underline treatment.
+          ## Method / QA summary
 
-          ## Preserved from R1
-
-          - same approved Hero concept and C-shape;
-          - same layered 2.5D foundation;
-          - same two-column architecture;
-          - same Header/H1/main copy/CTA architecture;
-          - same approximately \`-4.5%\` Core scale;
-          - same calm rail and exact \`01 TRUST / 02 INQUIRY / 03 RESPONSE / 04 RESULT\` semantics;
-          - same output-to-row geometry and rail pixels;
-          - no extra explanatory UI and no alternate candidate.
-
-          ## Safety / QA
-
+          - The approved C-shape geometry/perspective/silhouette and two-column Hero concept were not redesigned.
+          - Header and complete left H1/copy/CTA field are pixel-locked to the recovered \`1440 × 900\` source frame.
+          - Material separation uses explicit registered spatial masks; no luminance/content-alpha material reconstruction is used.
+          - External impulses are rendered below the explicit \`front_metal_shell\`; the retained foreground occlusion mask prevents traces from reading as lines painted across solid metal.
+          - Internal chamber, cyan volume, collector/emitter and front shell are separate registered depth layers; depth support is retained in \`depth_map.png\`.
+          - Rail is one calm four-row system at fixed \`70 px\` pitch: \`01 TRUST / 02 INQUIRY / 03 RESPONSE / 04 RESULT\`.
+          - One owner-review R1 PNG only: PASS.
           - Candidate dimensions \`1440 × 900\`: PASS.
-          - Exact R1 source SHA validation: PASS.
-          - H1/main copy/primary CTA locked regions: PASS.
-          - Rail/output geometry preserved from R1: PASS.
-          - Hard scene seam/right-panel split corrective treatment: APPLIED.
-          - Floating fragment exclusion: APPLIED.
-          - Production \`/index.html\` modified: **NO**.
-          - Production \`/ru/index.html\` modified: **NO**.
-          - Merge performed: **NO**.
-          - Deploy performed: **NO**.
-          - Production PR opened: **NO**.
-          - Motion started: **NO**.
+          - Header pixel-lock: PASS.
+          - Left H1/copy/CTA pixel-lock: PASS.
+          - Output-to-row registration: PASS.
+          - Static-only implementation: PASS; no animation loop, pointer/touch motion, parallax, tilt, particles or motion timeline.
+          - Deterministic full-frame and enlarged-crop visual preflight was performed before repository execution; automated GitHub QA passed. Final visual approval remains exclusively with the owner.
+
+          ## Production safety
+
+          - \`/index.html\` blob at R1 execution: \`${INDEX_BLOB}\`
+          - \`/ru/index.html\` blob at R1 execution: \`${RU_INDEX_BLOB}\`
+          - Production Homepage routes were not modified by this R1 pass.
+          - No merge performed.
+          - No deploy performed.
+          - No production PR opened.
+          - Motion not started.
 
           **PENDING OWNER REVIEW**
           EOF
-          git add docs/site-evolution/PROAI_HERO_LAYERED_25D_STATIC_R2_STATUS.md
-          git commit -m "Document Hero Layered 2.5D Static R2 status"
-          git push origin HEAD:agent/hero-layered-25d-static-r1
-
-      - name: Restore original R1 workflow and remove R2 trigger marker
-        shell: bash
-        run: |
-          set -euo pipefail
-          git checkout f043d32df87c4e981b070a7540f097aefc3d881f -- .github/workflows/hero-layered-25d-static-r1.yml
-          git rm -f .github/hero-layered-25d-r2-run.txt
-          git add .github/workflows/hero-layered-25d-static-r1.yml
-          git commit -m "Restore Hero R1 workflow after R2 corrective pass"
-          git push origin HEAD:agent/hero-layered-25d-static-r1
+          git add docs/site-evolution/PROAI_HERO_LAYERED_25D_STATIC_R1_STATUS.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Document Hero Layered 2.5D Static R1 status"
+            git push origin HEAD:agent/hero-layered-25d-static-r1
+          fi

@@ -109,6 +109,11 @@
     mat2 rot(float a){ float c=cos(a),s=sin(a); return mat2(c,-s,s,c); }
     float hash21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
     float sdRoundBox(vec3 p,vec3 b,float r){ vec3 q=abs(p)-b+r; return min(max(q.x,max(q.y,q.z)),0.0)+length(max(q,0.0))-r; }
+    float sdFacetedSlab(vec3 p,vec3 b,float r,float cut){
+      float d=sdRoundBox(p,b,r);
+      d=max(d,(abs(p.x)+abs(p.y)-b.x-b.y)*0.7071-cut);
+      return d;
+    }
     float sdCapsule(vec3 p,vec3 a,vec3 b,float r){ vec3 pa=p-a,ba=b-a; float h=clamp(dot(pa,ba)/dot(ba,ba),0.0,1.0); return length(pa-ba*h)-r; }
     float sdPlane(vec3 p,vec3 n,float h){ return dot(p,n)+h; }
     float sdSeg2(vec2 p,vec2 a,vec2 b){ vec2 pa=p-a,ba=b-a; float h=clamp(dot(pa,ba)/max(dot(ba,ba),.00001),0.0,1.0); return length(pa-ba*h); }
@@ -141,23 +146,40 @@
       vec3 a=q-vec3(0.07,0.00,0.105);
       a.xy=rot(0.16+uMotion*0.030*sin(uTime*0.23))*a.xy;
       a.xz=rot(-0.18-uMotion*0.018*sin(uTime*0.17+0.6))*a.xz;
-      float outer=abs(sdRoundBox(a,vec3(0.315,0.410,0.220),0.135))-0.027;
-      outer=max(outer,-sdRoundBox(a-vec3(0.23,0.02,0.16),vec3(0.20,0.20,0.13),0.08));
+      float outer=abs(sdFacetedSlab(a,vec3(0.335,0.400,0.105),0.050,0.040))-0.020;
+      outer=max(outer,-sdRoundBox(a-vec3(0.20,0.02,0.075),vec3(0.18,0.23,0.075),0.050));
       if(outer<res.x)res=vec2(outer,4.0);
 
       vec3 b=q-vec3(0.035,-0.015,0.085);
       b.xy=rot(-0.10-uMotion*detail*0.020*sin(uTime*0.29+1.1))*b.xy;
       b.yz=rot(0.20+uMotion*detail*0.015*sin(uTime*0.13))*b.yz;
-      float mid=abs(sdRoundBox(b,vec3(0.235,0.315,0.165),0.105))-0.022;
-      mid=max(mid,-sdRoundBox(b-vec3(-0.16,-0.02,0.12),vec3(0.13,0.18,0.11),0.07));
+      float mid=abs(sdFacetedSlab(b,vec3(0.255,0.305,0.082),0.042,0.032))-0.018;
+      mid=max(mid,-sdRoundBox(b-vec3(-0.13,-0.02,0.060),vec3(0.12,0.18,0.065),0.043));
       if(mid<res.x)res=vec2(mid,4.24);
 
       vec3 c=q-vec3(0.060,-0.02,0.105);
       c.xz=rot(0.21+uMotion*detail*0.024*sin(uTime*0.31+2.2))*c.xz;
       c.xy=rot(0.05-uMotion*0.018*sin(uTime*0.19))*c.xy;
-      float kernel=sdRoundBox(c,vec3(0.125,0.215,0.105),0.072);
-      kernel=max(kernel,-sdRoundBox(c-vec3(0.00,0.015,0.08),vec3(0.052,0.130,0.055),0.035));
+      float kernel=sdFacetedSlab(c,vec3(0.135,0.210,0.064),0.036,0.024);
+      kernel=max(kernel,-sdRoundBox(c-vec3(0.00,0.015,0.045),vec3(0.055,0.125,0.042),0.028));
       if(kernel<res.x)res=vec2(kernel,4.52);
+
+      vec3 l1=q-vec3(0.02,0.00,0.300);
+      l1.xy=rot(-0.20+uMotion*detail*0.020*sin(uTime*0.26))*l1.xy;
+      float lamella1=sdFacetedSlab(l1,vec3(0.245,0.305,0.014),0.026,0.028);
+      lamella1=max(lamella1,-sdRoundBox(l1-vec3(0.095,0.015,0.012),vec3(0.105,0.165,0.020),0.030));
+      if(lamella1<res.x)res=vec2(lamella1,4.62);
+
+      vec3 l2=q-vec3(0.00,-0.015,0.245);
+      l2.xy=rot(0.11-uMotion*detail*0.018*sin(uTime*0.21+1.2))*l2.xy;
+      float lamella2=sdFacetedSlab(l2,vec3(0.205,0.265,0.012),0.024,0.025);
+      lamella2=max(lamella2,-sdRoundBox(l2-vec3(-0.075,-0.02,0.010),vec3(0.085,0.145,0.018),0.027));
+      if(lamella2<res.x)res=vec2(lamella2,4.66);
+
+      vec3 l3=q-vec3(0.035,0.005,0.195);
+      l3.xy=rot(-0.04+uMotion*detail*0.015*sin(uTime*0.18+2.0))*l3.xy;
+      float lamella3=sdFacetedSlab(l3,vec3(0.165,0.225,0.010),0.021,0.022);
+      if(lamella3<res.x)res=vec2(lamella3,4.70);
 
       vec3 r=q-vec3(0.04,-0.01,0.015);
       r.xy=rot(uMotion*detail*0.022*sin(uTime*0.21))*r.xy;
@@ -183,48 +205,51 @@
 
       vec3 s=q-vec3(-0.55+0.010*shellMotion*sin(uTime*.19),0.01,-0.11);
       s.xy=rot(-0.23+0.018*shellMotion*sin(uTime*.13))*s.xy; s.yz=rot(0.10)*s.yz;
-      float spine=sdRoundBox(s,vec3(0.19,0.81,0.30),0.118);
-      spine=max(spine,-sdRoundBox(s-vec3(0.13,0.05,0.25),vec3(0.12,0.39,0.14),0.06));
+      float spine=sdFacetedSlab(s,vec3(0.285,0.715,0.145),0.055,0.035);
+      spine=max(spine,-sdRoundBox(s-vec3(0.13,0.04,0.105),vec3(0.175,0.405,0.095),0.045));
+      spine=max(spine,dot(s.xy,normalize(vec2(0.82,-0.57)))-0.54);
       if(spine<res.x)res=vec2(spine,1.0);
 
       vec3 crown=q-vec3(0.00,0.72+0.018*shellMotion*sin(uTime*.21+1.0),0.06);
       crown.xy=rot(-0.24+0.014*shellMotion*sin(uTime*.17))*crown.xy; crown.xz=rot(0.18)*crown.xz;
-      float crownD=sdRoundBox(crown,vec3(0.62,0.165,0.29),0.105);
-      crownD=max(crownD,-sdRoundBox(crown-vec3(0.31,-0.015,0.24),vec3(0.21,0.11,0.12),0.048));
+      float crownD=sdFacetedSlab(crown,vec3(0.585,0.205,0.145),0.052,0.038);
+      crownD=max(crownD,-sdRoundBox(crown-vec3(0.27,-0.02,0.105),vec3(0.22,0.12,0.095),0.040));
+      crownD=max(crownD,dot(crown.xy,normalize(vec2(-0.72,0.69)))-0.56);
       if(crownD<res.x)res=vec2(crownD,2.0);
 
       vec3 keel=q-vec3(0.16,-0.68-0.010*shellMotion*sin(uTime*.16),0.01);
       keel.xy=rot(0.17+0.012*shellMotion*sin(uTime*.11+2.0))*keel.xy; keel.xz=rot(-0.22)*keel.xz;
-      float keelD=sdRoundBox(keel,vec3(0.57,0.185,0.33),0.112);
-      keelD=max(keelD,-sdRoundBox(keel-vec3(-0.32,0.0,0.28),vec3(0.18,0.12,0.12),0.045));
+      float keelD=sdFacetedSlab(keel,vec3(0.555,0.205,0.150),0.052,0.038);
+      keelD=max(keelD,-sdRoundBox(keel-vec3(-0.28,0.0,0.110),vec3(0.19,0.125,0.095),0.040));
+      keelD=max(keelD,dot(keel.xy,normalize(vec2(0.74,0.67)))-0.54);
       if(keelD<res.x)res=vec2(keelD,1.0);
 
       vec3 fin=q-vec3(0.68+0.075*prog,0.10+0.015*shellMotion*sin(uTime*.27),-0.14+0.025*prog);
       fin.xy=rot(0.15+0.07*prog+0.018*shellMotion*sin(uTime*.20))*fin.xy;
       fin.yz=rot(0.34+0.035*prog)*fin.yz; fin.xz=rot(0.22)*fin.xz;
-      float finD=sdRoundBox(fin,vec3(0.145,0.48,0.22),0.092);
+      float finD=sdFacetedSlab(fin,vec3(0.185,0.475,0.125),0.048,0.032);
       if(finD<res.x)res=vec2(finD,2.0);
 
       vec3 upper=q-vec3(-0.05,0.38,0.44+0.028*shellMotion*sin(uTime*.24+0.3));
       upper.xy=rot(-0.34+0.025*shellMotion*sin(uTime*.14))*upper.xy; upper.xz=rot(0.10)*upper.xz;
-      float upperD=sdRoundBox(upper,vec3(0.39,0.105,0.060),0.058);
+      float upperD=sdFacetedSlab(upper,vec3(0.405,0.125,0.045),0.034,0.025);
       if(upperD<res.x)res=vec2(upperD,7.0);
 
       vec3 lower=q-vec3(0.27,-0.31,0.405-0.022*shellMotion*sin(uTime*.18+1.7));
       lower.xy=rot(0.13-0.018*shellMotion*sin(uTime*.15))*lower.xy; lower.xz=rot(-0.13)*lower.xz;
-      float lowerD=sdRoundBox(lower,vec3(0.42,0.11,0.066),0.060);
+      float lowerD=sdFacetedSlab(lower,vec3(0.430,0.130,0.050),0.034,0.026);
       if(lowerD<res.x)res=vec2(lowerD,1.0);
 
       vec3 bridge=q-vec3(-0.21,-0.10,0.29);
       bridge.xy=rot(-0.08+0.015*shellMotion*sin(uTime*.10+1.2))*bridge.xy; bridge.yz=rot(0.20)*bridge.yz;
-      float bridgeD=sdRoundBox(bridge,vec3(0.105,0.42,0.10),0.070);
+      float bridgeD=sdFacetedSlab(bridge,vec3(0.125,0.365,0.070),0.040,0.025);
       bridgeD=max(bridgeD,-sdRoundBox(bridge-vec3(0.075,0.02,0.08),vec3(0.065,0.22,0.055),0.035));
       if(bridgeD<res.x)res=vec2(bridgeD,2.0);
 
       vec3 sail=q-vec3(-0.18,0.16,-0.34+0.018*shellMotion*sin(uTime*.12+0.7));
       sail.xy=rot(-0.19+0.012*shellMotion*sin(uTime*.10))*sail.xy;
       sail.xz=rot(-0.17)*sail.xz;
-      float sailD=sdRoundBox(sail,vec3(0.34,0.48,0.055),0.075);
+      float sailD=sdFacetedSlab(sail,vec3(0.385,0.500,0.040),0.040,0.034);
       sailD=max(sailD,dot(sail.xy,normalize(vec2(0.78,0.62)))-0.30);
       sailD=max(sailD,-sdRoundBox(sail-vec3(0.17,-0.08,0.035),vec3(0.22,0.25,0.045),0.055));
       if(sailD<res.x)res=vec2(sailD,1.0);
@@ -232,13 +257,13 @@
       vec3 brand=q-vec3(0.11,0.50,0.405);
       brand.xy=rot(-0.27)*brand.xy;
       brand.xz=rot(0.11)*brand.xz;
-      float brandD=sdRoundBox(brand,vec3(0.235,0.062,0.030),0.032);
+      float brandD=sdFacetedSlab(brand,vec3(0.250,0.068,0.026),0.022,0.016);
       if(brandD<res.x)res=vec2(brandD,7.0);
 
       if(uQuality>0.74){
         vec3 rear=q-vec3(0.08,0.02,-0.50-0.025*shellMotion*sin(uTime*.12));
         rear.xy=rot(0.09+0.012*shellMotion*sin(uTime*.09))*rear.xy; rear.xz=rot(-0.10)*rear.xz;
-        float rearD=sdRoundBox(rear,vec3(0.46,0.46,0.055),0.070);
+        float rearD=sdFacetedSlab(rear,vec3(0.480,0.470,0.036),0.036,0.034);
         rearD=max(rearD,-sdRoundBox(rear-vec3(0.15,0.00,0.03),vec3(0.31,0.30,0.05),0.055));
         if(rearD<res.x)res=vec2(rearD,1.0);
       }
@@ -246,14 +271,14 @@
       if(uQuality>0.84){
         vec3 jaw=q-vec3(0.50,0.43,0.12+0.030*shellMotion*sin(uTime*.22+2.5));
         jaw.xy=rot(0.38+0.018*shellMotion*sin(uTime*.13))*jaw.xy; jaw.xz=rot(0.24)*jaw.xz;
-        float jawD=sdRoundBox(jaw,vec3(0.22,0.095,0.17),0.060);
+        float jawD=sdFacetedSlab(jaw,vec3(0.235,0.110,0.105),0.038,0.026);
         if(jawD<res.x)res=vec2(jawD,2.0);
       }
 
       vec3 glassQ=q-vec3(0.23,0.08,0.355);
       glassQ.xy=rot(-0.16)*glassQ.xy;
       glassQ.xz=rot(0.08)*glassQ.xz;
-      float glass=sdRoundBox(glassQ,vec3(0.205,0.255,0.024),0.055);
+      float glass=sdFacetedSlab(glassQ,vec3(0.190,0.285,0.018),0.030,0.025);
       glass=max(glass,-sdRoundBox(glassQ-vec3(-0.055,0.015,0.018),vec3(0.105,0.145,0.030),0.040));
       if(glass<res.x)res=vec2(glass,3.0);
 
@@ -261,11 +286,11 @@
       if(inner.x<res.x)res=inner;
 
       vec3 platformP=p-vec3(0.08,-1.145,-0.08);
-      float platform=sdRoundBox(platformP,vec3(0.78,0.060,0.52),0.060);
+      float platform=sdFacetedSlab(platformP,vec3(0.80,0.055,0.50),0.040,0.035);
       platform=max(platform,-sdRoundBox(platformP-vec3(0.36,0.035,0.36),vec3(0.30,0.055,0.20),0.045));
       if(platform<res.x)res=vec2(platform,6.0);
       vec3 platformTop=p-vec3(0.01,-1.075,-0.02);
-      float platformTopD=sdRoundBox(platformTop,vec3(0.57,0.018,0.36),0.035);
+      float platformTopD=sdFacetedSlab(platformTop,vec3(0.60,0.018,0.35),0.025,0.025);
       if(platformTopD<res.x)res=vec2(platformTopD,6.18);
 
       float floorD=sdPlane(p,vec3(0.0,1.0,0.0),1.215);
@@ -346,7 +371,7 @@
       }
       if(id<4.75){
         float wave=0.5+0.5*sin(p.x*13.0+p.y*10.0-p.z*8.0+uTime*.48*uMotion),filament=pow(wave,10.0),rim=pow(1.0-facing,2.8);
-        return vec3(0.016,0.098,0.120)*(0.82+0.10*ndl)+cyan*(0.075+rim*0.28+filament*0.105+glow*0.042);
+        return vec3(0.018,0.112,0.136)*(0.84+0.10*ndl)+cyan*(0.090+rim*0.31+filament*0.115+glow*0.050);
       }
       if(id<5.5){
         float spec=pow(max(dot(n,h),0.0),88.0);
@@ -428,7 +453,7 @@
       vec3 ro=vec3(0.02+uPointer.x*0.045*uMotion,0.06+uPointer.y*0.028*uMotion,4.02);
       vec3 ta=vec3(0.055,-0.02,0.0);
       vec3 ww=normalize(ta-ro),uu=normalize(cross(ww,vec3(0.0,1.0,0.0))),vv=cross(uu,ww);
-      float focal=mix(2.82,2.42,detailMix());
+      float focal=mix(3.18,2.56,detailMix());
       vec3 rd=normalize(uu*p.x+vv*p.y+ww*focal);
       float t=0.0,id=0.0,glow=0.0; bool hit=false;
       int maxSteps=int(mix(46.0,74.0,uQuality));

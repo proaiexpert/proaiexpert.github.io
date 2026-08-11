@@ -112,12 +112,12 @@ const diagnostics = {
   await page.waitForTimeout(8500);
   const active = await page.evaluate(() => [...document.querySelectorAll('[data-hero-core2-stage]')].findIndex(el => el.classList.contains('is-active')));
   if (active !== 3) throw new Error(`Autonomous narrative did not resolve to RESULT: active stage ${active}`);
+  diagnostics.autonomousNarrativeFinalStage = active;
   await context.close();
 }
 
-// Browser-native desktop motion capture. Playwright starts video before navigation, so the MP4
-// trims browser pre-roll. Stage activation is controlled here only to make the review artifact
-// deterministic; the autonomous narrative is verified independently above.
+// Browser-native desktop motion capture. Stage activation is controlled only for a deterministic
+// owner-review artifact; the autonomous sequence is independently verified above.
 const videoDir = path.join(out, '.video-tmp');
 fs.mkdirSync(videoDir, { recursive: true });
 let webmPath;
@@ -146,10 +146,31 @@ let webmPath;
 
 await browser.close();
 
+// Detect the first dark Hero frame instead of assuming a fixed browser-navigation pre-roll.
+const statsPath = path.join(videoDir, 'signalstats.txt');
+const scan = spawnSync('ffmpeg', [
+  '-y', '-i', webmPath,
+  '-vf', `signalstats,metadata=print:file=${statsPath}`,
+  '-an', '-f', 'null', '-'
+], { stdio: ['ignore', 'ignore', 'inherit'] });
+if (scan.status !== 0) process.exit(scan.status ?? 1);
+
+let currentPts = 0;
+let trimStart = 0;
+for (const line of fs.readFileSync(statsPath, 'utf8').split(/\r?\n/)) {
+  const tm = line.match(/pts_time:([0-9.]+)/);
+  if (tm) currentPts = Number(tm[1]);
+  const ym = line.match(/lavfi\.signalstats\.YAVG=([0-9.]+)/);
+  if (ym && Number(ym[1]) < 120) {
+    trimStart = Math.max(0, currentPts - 0.08);
+    break;
+  }
+}
+diagnostics.motionTrimStartSeconds = Number(trimStart.toFixed(3));
+
 const mp4 = path.join(out, 'CORE2_EN_DESKTOP_MOTION.mp4');
 const ff = spawnSync('ffmpeg', [
-  '-y', '-ss', '2.8', '-i', webmPath,
-  '-t', '9.0',
+  '-y', '-ss', String(trimStart), '-i', webmPath,
   '-c:v', 'libx264', '-preset', 'medium', '-crf', '20',
   '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
   mp4

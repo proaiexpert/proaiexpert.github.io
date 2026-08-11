@@ -42,6 +42,10 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Keep the generated untracked PNG while synchronizing to the newest branch tip.
+          git fetch origin agent/hero-layered-25d-static-r1
+          git reset --hard origin/agent/hero-layered-25d-static-r1
+          test -s docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R2.png
           git add docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R2.png
           git commit -m "Save Hero Layered 2.5D Static R2 candidate"
           CANDIDATE_COMMIT="$(git rev-parse HEAD)"

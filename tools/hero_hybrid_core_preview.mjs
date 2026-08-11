@@ -60,7 +60,19 @@ const motionContext = await browser.newContext({
   },
 });
 const motionPage = await motionContext.newPage();
-await waitForCore(motionPage, 9000);
+await waitForCore(motionPage, 500);
+
+// Replay the four narrative states only after the WebGL scene is fully ready.
+// The workflow trims the final capture envelope so network/CDN load time is not part of owner review.
+await motionPage.locator('[data-stage="0"]').focus();
+await motionPage.waitForTimeout(1350);
+await motionPage.locator('[data-stage="1"]').focus();
+await motionPage.waitForTimeout(1400);
+await motionPage.locator('[data-stage="2"]').focus();
+await motionPage.waitForTimeout(1400);
+await motionPage.locator('[data-stage="3"]').focus();
+await motionPage.waitForTimeout(2200);
+
 const video = motionPage.video();
 await motionContext.close();
 const rawVideoPath = await video.path();

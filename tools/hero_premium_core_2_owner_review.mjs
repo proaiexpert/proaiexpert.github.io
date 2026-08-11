@@ -116,8 +116,25 @@ const diagnostics = {
   await context.close();
 }
 
-// Browser-native desktop motion capture. Stage activation is controlled only for a deterministic
-// owner-review artifact; the autonomous sequence is independently verified above.
+// Deterministic owner-review captures for all four stage-driven states.
+{
+  const names = ['TRUST', 'INQUIRY', 'RESPONSE', 'RESULT'];
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+  await ready(page, routes.en);
+  const stages = page.locator('[data-hero-core2-stage-button]');
+  for (let i = 0; i < names.length; i += 1) {
+    await stages.nth(i).click();
+    await page.waitForTimeout(550);
+    const active = await page.evaluate(() => [...document.querySelectorAll('[data-hero-core2-stage]')].findIndex(el => el.classList.contains('is-active')));
+    if (active !== i) throw new Error(`Stage review capture mismatch for ${names[i]}: active ${active}`);
+    await page.screenshot({ path: path.join(out, `CORE2_EN_STAGE_0${i + 1}_${names[i]}.png`), fullPage: false });
+  }
+  await context.close();
+}
+
+// Browser-native motion sample. Stage-state stills above are the deterministic visual authority;
+// the autonomous sequence is independently verified above.
 const videoDir = path.join(out, '.video-tmp');
 fs.mkdirSync(videoDir, { recursive: true });
 let webmPath;
@@ -131,8 +148,6 @@ let webmPath;
   await ready(page, routes.en);
   const video = page.video();
 
-  // Full-frame marker is inserted only into the raw capture after the Hero is ready. The final
-  // encoding trims through the end of this marker, so it never appears in the review MP4.
   await page.evaluate(() => {
     const marker = document.createElement('div');
     marker.id = 'hero-core2-capture-marker';
@@ -161,8 +176,6 @@ let webmPath;
 
 await browser.close();
 
-// Find the last full-white marker frame. Initial browser pre-roll may also be white, so the last
-// high-luminance frame is the stable boundary immediately before the deterministic Hero sequence.
 const statsPath = path.join(videoDir, 'signalstats.txt');
 const scan = spawnSync('ffmpeg', [
   '-y', '-i', webmPath,
@@ -202,6 +215,10 @@ for (const file of [
   'CORE2_EN_MOBILE_320x780.png',
   'CORE2_EN_LANDSCAPE_844x390.png',
   'CORE2_EN_REDUCED_MOTION_390x844.png',
+  'CORE2_EN_STAGE_01_TRUST.png',
+  'CORE2_EN_STAGE_02_INQUIRY.png',
+  'CORE2_EN_STAGE_03_RESPONSE.png',
+  'CORE2_EN_STAGE_04_RESULT.png',
   'CORE2_EN_DESKTOP_MOTION.mp4',
   'diagnostics.json'
 ]) {

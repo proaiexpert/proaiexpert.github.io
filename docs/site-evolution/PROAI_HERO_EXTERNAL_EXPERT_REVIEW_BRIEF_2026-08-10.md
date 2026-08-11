@@ -13,76 +13,69 @@ We are **not asking for a third concept**.
 
 The C-shape experiment is archived/frozen and is no longer an active candidate.
 
-The chosen direction for the next Hero is:
+The selected direction for the next Hero is:
 
 # **HYBRID CONNECTED SYSTEM CORE**
 
-Your job is to evaluate **this exact idea**, identify what is strong or weak **inside this idea**, and tell us how to improve, simplify, reject, replace or strengthen individual elements so the final execution can reach a credible bespoke `$100k+` premium digital-studio level.
+Your job is to evaluate **this exact concept**, identify what is strong or weak inside it, and tell us how to improve, simplify, reject, replace or strengthen individual elements so the final Hero can reach a credible bespoke `$100k+` premium digital-studio level.
 
-Think of the current concept as roughly the first 75–80% of the strategic solution. We want you to help find the missing 20–25% that creates a materially stronger final result.
+Do not validate the concept politely. Critique it as a senior Creative/Technical Director.
 
-Do not restart concept selection.
-Do not compare three routes.
-Do not propose a completely unrelated Hero architecture.
+If an individual element is weak, say so and replace that element with a better solution **within the same overall Hybrid Connected System Core architecture**.
 
-If one element of the chosen concept is weak, say so and propose a better version **within the same overall Hybrid Connected System Core architecture**.
+Do not reopen the archived C-shape direction. Do not restart concept selection.
 
 ---
 
-## 1. PRIMARY REFERENCE — INSPECT THE EXISTING HERO IN THE BROWSER
+## 1. PRIMARY REFERENCE — INSPECT THE LIVE HERO
 
-Live site:
+Current production Hero:
 
 `https://proai-expert.com/`
 
-The current production Hero contains the engineering foundation we plan to reuse and radically upgrade:
+Please inspect the live Hero carefully on desktop and, if possible, mobile.
 
-- left copy area;
+The current production visual styling is **not** the target. It is the engineering/compositional foundation we want to rebuild.
+
+Useful existing architecture includes:
+
+- left communication column;
 - central rotating cube/core;
 - four spatial DOM cards around the core;
 - real DOM typography/cards;
-- spatial transforms;
-- orbit / ambient layers;
+- perspective/spatial transforms;
 - responsive implementation foundation.
 
-The **current visual styling is NOT the target**.
-
-Do not judge the future concept by the current cyan wireframe/glass treatment.
-
-We want to reuse the reliable structural idea — central Core + four spatial cards — while replacing its art direction, narrative, material system and motion choreography.
+We want to preserve the useful structural idea — **central Core + four spatial stages** — while replacing the current art direction, narrative, material system and motion choreography.
 
 ---
 
-## 2. HISTORICAL R&D REFERENCE — LESSONS ONLY, NOT A CANDIDATE
+## 2. HISTORICAL R&D REFERENCE — LESSONS ONLY
 
-Archived C-shape R3:
+Archived C-shape R3 visual:
 
 `https://github.com/proaiexpert/proaiexpert.github.io/blob/f2e734c357cb155396ae8f74266dbfee1ba964fb/docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R3.png`
 
 This direction is **FROZEN / ARCHIVED**.
 
-Do not recommend returning to it.
-Do not compare it as an alternative direction.
+Do not recommend returning to it and do not compare it as an alternative direction.
 
-Use it only to understand visual/narrative lessons we want to carry forward:
+Use it only to understand lessons worth carrying forward:
 
-- stronger premium graphite / steel language;
-- cyan as an internal intelligence signal rather than decorative neon;
+- premium graphite / cold-steel language;
+- cyan as internal intelligence/signal rather than decorative neon;
 - one connected-system story;
 - the four-stage journey `TRUST → INQUIRY → RESPONSE → RESULT`;
 - restrained cinematic atmosphere;
-- improved copy hierarchy;
-- stronger premium microcopy/CTA treatment;
-- the need for physical input → processing → output logic;
-- the importance of a strong static frame even before motion.
-
-The C-shape itself is no longer part of the decision.
+- stronger copy hierarchy;
+- physical input → processing → output logic;
+- premium static quality before motion.
 
 ---
 
-# 3. OUR CHOSEN IDEA — THIS IS WHAT YOU MUST REVIEW AND STRENGTHEN
+# 3. OUR SELECTED IDEA — THIS IS WHAT YOU MUST REVIEW AND STRENGTHEN
 
-## A. LEFT SIDE — CURRENT COMMUNICATION ARCHITECTURE
+## A. LEFT SIDE — COMMUNICATION ARCHITECTURE
 
 Eyebrow:
 
@@ -117,9 +110,9 @@ Trust/accountability:
 
 The left side should feel calm, editorial, precise and expensive — not like generic SaaS marketing.
 
-The typography and negative space must remain visually dominant enough that the 3D scene supports the message rather than overpowering it.
+The 3D scene must support the message, not overwhelm it.
 
-You may recommend refinements to hierarchy, line length, spacing, emphasis or microcopy, but do not replace the positioning strategy without a concrete reason.
+You may recommend refinements to hierarchy, spacing, line length, emphasis or microcopy, but do not replace the positioning strategy without a concrete reason.
 
 ---
 
@@ -135,23 +128,23 @@ It should visually explain:
 
 `first impression → inquiry → system processing / automation → response → result`
 
-The Core is not decoration. It is the visual center of the story.
+The Core is not decorative sci-fi geometry. It is the visual center of the story.
 
 ### Geometry direction
 
-We do **not** want the old simplistic transparent neon cube as-is.
+We do **not** want the old transparent neon cube as-is.
 
 We are considering a refined geometric Core derived from the cube idea:
 
 - recognizable central volume;
-- high-quality bevels / edge treatment;
+- authored bevels / edge treatment;
 - possibly inset planes, smoked-glass zones or internal chamber detail;
-- enough complexity to feel authored, but not arbitrary sci-fi machinery;
-- no confusing geometry cuts;
+- enough complexity to feel bespoke, but not arbitrary sci-fi machinery;
+- no confusing cuts/slices;
 - no giant reactor/server-machine aesthetic;
 - no geometry that needs explanation before it makes sense.
 
-We want your recommendation for how far the cube should evolve while staying visually clear and technically robust.
+Tell us how far the cube should evolve while staying visually clear, distinctive and technically robust.
 
 ### Material direction
 
@@ -166,8 +159,8 @@ Primary:
 Signal / intelligence:
 
 - restrained cyan;
-- light should appear embedded or internal, not painted on top;
-- internal light can react to the four process stages.
+- light should appear embedded/internal, not painted on top;
+- internal light can react to the four business stages.
 
 Secondary reflections:
 
@@ -181,31 +174,29 @@ Avoid:
 
 - chrome toy;
 - gold jewelry object;
-- gaming PC RGB;
-- crypto/Tron;
+- gaming-PC RGB;
+- crypto / Tron;
 - neon cube cliché;
 - plastic/glassy SaaS mascot.
 
-We specifically want your advice on the highest-ROI material/shader details that would make this Core look genuinely premium.
+We specifically want your advice on which material/shader decisions create the most visible premium value.
 
 ---
 
 ## C. FOUR CARDS — FROM OLD SERVICE BLOCKS TO ONE BUSINESS JOURNEY
 
-The current four production cards are parallel service blocks.
+The current production Hero has four parallel service cards.
 
-We want to transform them into a sequential narrative:
+We want to transform them into one sequential business narrative:
 
 1. `01 TRUST`
 2. `02 INQUIRY`
 3. `03 RESPONSE`
 4. `04 RESULT`
 
-These are not four unrelated features.
+These should read as **one connected journey around/through the central System Core**, not four unrelated features.
 
-They should read as one business journey around/through the central System Core.
-
-### Current microcopy hypothesis
+### Current microcopy hypothesis — NOT LOCKED
 
 `01 TRUST`  
 `Make the first impression clear.`
@@ -219,7 +210,7 @@ They should read as one business journey around/through the central System Core.
 `04 RESULT`  
 `Follow through with less manual work.`
 
-We want you to critically improve these lines if necessary.
+Critically improve these lines if necessary.
 
 Requirements:
 
@@ -228,7 +219,7 @@ Requirements:
 - not vague consultant language;
 - not generic SaaS copy;
 - visually compact enough for premium spatial cards;
-- together they must reinforce the H1: `From first impression to follow-through — one connected system.`
+- together they must reinforce the H1.
 
 ### Card visual direction
 
@@ -240,19 +231,19 @@ But visually they should feel like premium spatial plates rather than standard w
 - precise typography;
 - strong number marker;
 - controlled depth;
-- very subtle internal/reflected cyan;
+- subtle internal/reflected cyan;
 - possibly tiny warm edge response;
 - active/inactive material states;
 - no excessive glassmorphism;
-- no generic dashboard panels.
+- no generic dashboard-panel aesthetic.
 
-We want your recommendation on shape, proportions, spatial arrangement, depth, hierarchy and active-state treatment.
+Tell us the strongest shape, proportions, spatial arrangement, depth hierarchy and active-state treatment.
 
 ---
 
-# 4. OUR INTENDED TECHNICAL ARCHITECTURE
+# 4. INTENDED TECHNICAL ARCHITECTURE
 
-Current preferred architecture:
+Preferred architecture:
 
 ## DOM + Three.js/WebGL hybrid
 
@@ -279,9 +270,9 @@ Reasons:
 ### Use Three.js/WebGL for
 
 - central 3D System Core;
-- geometry/material response;
+- real geometry/material response;
 - internal intelligence light;
-- reflections / Fresnel / roughness response where useful;
+- reflections / Fresnel / roughness response where visually justified;
 - controlled signal behavior;
 - subtle internal particles/data fragments only if they materially improve depth;
 - camera/light response;
@@ -289,71 +280,71 @@ Reasons:
 
 ### Motion orchestration
 
-Use one controlled JS motion timeline to coordinate DOM cards and WebGL Core.
+Use one controlled JS motion timeline to coordinate DOM cards and the WebGL Core.
 
-We want you to tell us what should be kept, removed or improved in this architecture.
+Tell us what should be kept, removed or improved in this architecture.
 
-Do not recommend putting important typography inside WebGL unless there is an extraordinary reason.
+Do not put important typography into WebGL unless there is an extraordinary reason.
 
 ---
 
-# 5. OUR INTENDED MOTION STORY
+# 5. INTENDED MOTION STORY
 
-The motion should **explain the business system**, not act as decorative VFX.
+Motion should **explain the business system**, not act as decorative VFX.
 
 Working choreography:
 
-## Entry
+### Entry
 
 - Hero enters calmly;
 - copy resolves quickly and confidently;
-- Core becomes visible with subtle material/light formation rather than a flashy explosion;
+- Core becomes visible through subtle material/light formation rather than a flashy explosion;
 - four stages establish spatially;
 - scene settles into premium idle.
 
-## Idle
+### Idle
 
 - extremely slow Core orientation/material movement;
 - subtle pearlescent/cold-steel response;
 - tiny internal cyan modulation;
 - restrained depth/parallax;
-- cards remain legible and stable;
-- no constant distracting orbit circus.
+- cards remain stable and legible;
+- no orbit circus.
 
-## Stage 01 — TRUST
+### 01 — TRUST
 
-- TRUST card becomes foreground/active;
+- TRUST becomes foreground/active;
 - Core reacts softly;
-- a restrained signal or reflected energy establishes connection to the Core;
-- visual meaning: first impression / trust enters the system.
+- restrained signal/reflected energy establishes the connection;
+- visual meaning: first impression / trust enters the connected system.
 
-## Stage 02 — INQUIRY
+### 02 — INQUIRY
 
 - TRUST settles;
 - INQUIRY activates;
-- signal is captured/structured by the Core;
-- internal light/geometry response suggests organization, not magic AI.
+- information is captured/structured by the Core;
+- internal light/geometry response suggests organization, not “AI magic”.
 
-## Stage 03 — RESPONSE
+### 03 — RESPONSE
 
 - RESPONSE activates;
 - Core shows the strongest controlled intelligence/automation response;
 - signal exits processing in a more resolved form;
 - no laser-beam spectacle.
 
-## Stage 04 — RESULT
+### 04 — RESULT
 
 - RESULT activates;
 - all four stages briefly read as one connected system;
 - Core reaches a calm resolved material/light state;
-- result should feel like completion, not an arcade reward animation.
+- completion should feel precise, not like an arcade reward.
 
-## Return
+### Return
 
-- scene returns to calm idle;
+- scene returns smoothly to idle;
 - no abrupt reset.
 
-We want you to improve the choreography, pacing, staging, transitions and visual logic while preserving this core narrative.
+Improve the choreography, pacing, staging, transitions and cause/effect logic while preserving the core narrative.
 
 ---
 
@@ -361,28 +352,28 @@ We want you to improve the choreography, pacing, staging, transitions and visual
 
 The entire Hero should sit in **one seamless near-black environment**.
 
-No left panel / right panel split.
-No visible background seam.
+No left/right panel split.  
+No visible background seam.  
 No separate green rectangle behind the copy.
 
-Cyan/blue/warm response should be local transparent light/atmosphere generated by the Core and scene, not different background panels.
+Cyan/blue/warm response should be local transparent light/atmosphere produced by the Core and scene, not different background panels.
 
 The left copy and right 3D scene must feel like one composition even though the text remains clean DOM content.
 
-We want specific recommendations for:
+Give specific recommendations for:
 
 - background tonal structure;
 - negative space;
 - atmospheric bridge between copy and Core;
-- contact/reflection cues;
-- how much the Core should visually encroach toward the center;
+- grounding/reflection cues;
+- how much the Core should encroach toward center;
 - how to prevent the right side from reading as an inserted demo widget.
 
 ---
 
 # 7. MOBILE IS PART OF THE CONCEPT
 
-The desktop scene must not simply shrink.
+Desktop must not simply shrink.
 
 We need deliberate recomposition for:
 
@@ -395,12 +386,12 @@ Possible direction:
 - copy remains first and clear;
 - Core becomes more compact and centrally composed;
 - four stages may become a sequential vertical/stacked journey rather than four floating desktop corners;
-- WebGL object complexity can reduce while preserving material identity;
-- motion timing can shorten;
+- WebGL complexity can reduce while preserving material identity;
+- motion can shorten;
 - no tiny unreadable cards;
 - CTA remains immediately usable.
 
-We want your recommendation for the best mobile manifestation of the same concept.
+Recommend the strongest mobile manifestation of the same concept.
 
 ---
 
@@ -410,7 +401,7 @@ The desired perception is:
 
 **bespoke premium technology / digital studio / `$100k+` web experience**
 
-Premium should come from:
+Premium must come from:
 
 - authored composition;
 - strong narrative;
@@ -441,8 +432,8 @@ Avoid:
 - fake chrome;
 - meaningless mouse-follow;
 - over-animation;
-- text inside unreadable 3D scenes;
-- a Hero that is impressive for five seconds but weak as a business communication tool.
+- unreadable 3D text;
+- a Hero that is impressive for five seconds but weak as business communication.
 
 ---
 
@@ -457,28 +448,20 @@ Act simultaneously as:
 - UX/Conversion Strategist;
 - Senior Front-End Architect.
 
-Your task is to help us improve **this chosen Hybrid Connected System Core concept**.
+Do **not** code or implement anything.
 
-Answer the following.
+Critically review **our selected Hybrid Connected System Core concept** and answer:
 
 ## 1. First-principles critique
 
-Looking at the live production Hero and our detailed redesign plan above:
+Looking at the live production Hero and our redesign plan:
 
-- which parts of the proposed Hybrid concept are already strong;
-- which parts are weak, generic, unclear or risky;
-- which parts should be simplified;
-- which individual elements should be rejected/replaced while preserving the overall architecture.
+- what is already strong and should be protected;
+- what is weak, generic, unclear or risky;
+- what should be simplified;
+- what should be rejected/replaced inside the chosen architecture.
 
-Do not propose a different Hero concept.
-
-## 2. Missing 20–25%
-
-What are the most important missing decisions/details that separate the concept as currently described from a credible bespoke `$100k+` execution?
-
-Prioritize them.
-
-## 3. Composition
+## 2. Composition
 
 Recommend the strongest desktop composition for:
 
@@ -486,30 +469,29 @@ Recommend the strongest desktop composition for:
 - central/right Core;
 - four journey cards;
 - negative space;
-- visual balance;
 - depth hierarchy;
 - relationship between copy and scene.
 
 Be specific about what should sit where and why.
 
-## 4. System Core art direction
+## 3. System Core art direction
 
-Give a concrete recommendation for:
+Give concrete recommendations for:
 
 - final geometry language;
 - bevel/inset/chamber treatment;
 - material stack;
 - metal roughness;
-- smoked glass use;
+- smoked-glass use;
 - cyan internal light;
 - pearlescent behavior;
 - blue-steel/champagne reflections;
 - edge treatment;
 - what should move and what should remain visually stable.
 
-Tell us which proposed material ideas are valuable and which risk becoming decorative noise.
+Tell us which proposed material ideas add real value and which risk becoming decorative noise.
 
-## 5. Four-stage cards
+## 4. Four-stage cards
 
 Critique and improve:
 
@@ -517,49 +499,44 @@ Critique and improve:
 
 Within this four-stage structure:
 
-- confirm or improve stage naming;
+- confirm or improve the stage naming;
 - write the strongest short microcopy for all four;
 - recommend card proportions/layout;
 - typography hierarchy;
 - material/depth treatment;
 - active/inactive states;
-- how the four cards should spatially relate to the Core.
+- how the cards should spatially relate to the Core.
 
-Do not replace the Hero with a different narrative architecture.
+## 5. Input → processing → output logic
 
-## 6. Meaningful input → processing → output logic
+Explain exactly how the Core can become understandable without literal diagrams or cheesy beams.
 
-Explain exactly how the visual system can make the role of the Core understandable without literal diagrams or cheesy beams.
-
-How should TRUST/INQUIRY enter the system?
-How should processing be perceived?
+How should TRUST/INQUIRY enter the system?  
+How should processing be perceived?  
 How should RESPONSE/RESULT emerge?
 
 We want conceptual clarity plus cinematic restraint.
 
-## 7. Motion choreography
+## 6. Motion choreography
 
-Take our working sequence and improve it into one coherent premium motion story.
-
-Specify:
+Improve the working sequence into one coherent premium motion story:
 
 - entry;
 - idle;
 - TRUST activation;
-- transition;
-- INQUIRY;
-- Core processing reaction;
+- INQUIRY transition;
+- processing;
 - RESPONSE;
 - RESULT;
 - resolution;
 - return to idle;
-- pointer/parallax behavior if justified;
-- reduced-motion state;
+- pointer/parallax only if justified;
+- reduced-motion equivalent;
 - pacing philosophy.
 
 Reject any motion element that feels gimmicky.
 
-## 8. Technical architecture
+## 7. Technical architecture
 
 Evaluate the proposed DOM + Three.js/WebGL hybrid **within the chosen concept**.
 
@@ -568,88 +545,69 @@ Tell us:
 - what belongs in WebGL;
 - what must remain DOM;
 - whether cards need CSS 3D or normal DOM transforms;
-- which shader/material techniques have real visual ROI;
+- which shader/material techniques have real perceptual ROI;
 - what WebGL effects are unnecessary;
 - how to maintain performance and stability;
 - how to synchronize DOM and WebGL cleanly.
 
-## 9. Mobile recomposition
+## 8. Mobile recomposition
 
-Give a concrete design strategy for:
+Give a concrete strategy for:
 
 - ~390px portrait;
 - ~320px portrait;
 - short landscape.
 
-Preserve the same story but redesign spatial composition for mobile.
+Preserve the same story but redesign the spatial composition for mobile.
 
-## 10. Highest perceptual ROI
+## 9. Highest-value premium upgrades
 
-List the **10 highest-leverage details** that would most strongly improve perceived quality.
+List the **10 highest-leverage improvements** you would make to this concept to push the final Hero toward a true bespoke `$100k+` result.
 
-Rank them from highest to lowest impact.
+Prioritize perceptual and strategic impact, not feature count.
 
-Focus on details that make viewers feel:
+## 10. Failure modes
 
-`this was art-directed and engineered specifically for this brand`
+Identify the main ways this exact concept could become:
 
-—not just “this has a lot of effects.”
+- cheap;
+- generic;
+- gaming/crypto-like;
+- visually overloaded;
+- unclear;
+- technically unstable;
+- weak on mobile;
+- slow.
 
-## 11. What to cut
+For each, give a prevention strategy.
 
-List any ideas from our current proposal that you would **remove or reduce** because they could make the result generic, noisy, gimmicky or technically fragile.
+## 11. Final consolidated recommendation
 
-Be decisive.
+Give **one recommended best version of this same Hybrid Connected System Core concept**.
 
-## 12. Failure prevention
+State clearly:
 
-Identify the major ways this exact chosen concept could still fail:
+- what to KEEP;
+- what to REMOVE;
+- what to REDESIGN;
+- what to ADD;
+- the single strongest visual idea;
+- the single strongest motion idea;
+- the single most important technical safeguard.
 
-- generic SaaS;
-- gaming/crypto;
-- weak Core geometry;
-- too much cyan;
-- cards looking like dashboard UI;
-- motion overwhelming the message;
-- mobile collapse;
-- performance instability;
-- weak static frame.
-
-For each, give a prevention rule.
-
-## 13. Final enhancement blueprint
-
-End with **one consolidated improved version of our Hybrid Connected System Core concept**.
-
-Do not offer multiple directions.
-Do not reopen the C-shape.
-Do not propose a completely different Hero.
-
-Describe the version you believe we should actually build after incorporating your strongest recommendations.
-
-Then score the improved concept from `0–10` for:
-
-- Brand distinctiveness;
-- Narrative clarity;
-- Premium visual potential;
-- Motion potential;
-- Technical reliability;
-- Mobile adaptability;
-- Performance safety;
-- Probability of reaching the target quality.
+Do not provide multiple equal options.
 
 ---
 
-# 10. REVIEW BEHAVIOR
+## 10. REVIEW BEHAVIOR
 
-Be critical, specific and practical.
+Be critical, concrete and professional.
 
-Do not flatter us.
-Do not agree automatically with every proposed detail.
-Do not reopen already closed concept selection.
-Do not recommend C-shape continuation.
-Do not invent a third Hero direction.
-Do not start implementation.
+Do not flatter us.  
+Do not simply repeat our proposal.  
+Do not give multiple unrelated Hero concepts.  
+Do not reopen the archived C-shape direction.  
+Do not start implementation.  
 Do not write production code.
 
-We are collecting 5–7 independent expert enhancement reviews of **the same chosen concept** and will synthesize them into one final build specification.
+We are collecting 5–7 independent expert reviews of **the same selected concept** and will synthesize them into one final implementation specification.

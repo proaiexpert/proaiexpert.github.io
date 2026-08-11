@@ -41,7 +41,7 @@ jobs:
         shell: bash
         run: |
           base_ref="origin/agent/hero-layered-25d-static-r1"
-          git show-ref --verify --quiet "refs/remotes/${base_ref#origin/}" || {
+          git rev-parse --verify "${base_ref}^{commit}" > /dev/null || {
             echo "Required research base ref is missing: ${base_ref}" >&2
             exit 1
           }

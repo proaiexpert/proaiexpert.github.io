@@ -75,6 +75,7 @@ RU uses the exact locked equivalent. Plates are DOM controls, materially larger 
 - locked EN/RU copy is preserved exactly;
 - no authored H1 hard breaks;
 - responsive Core/stage recomposition for desktop, 390 px, 320 px and short landscape;
+- short landscape uses a compact plate grammar so all four stage numbers remain visible at 844×390;
 - reduced-motion settles on Stage 04 with Core motion disabled while retaining a premium static composition;
 - adaptive canvas resolution and DPR discipline;
 - rendering skips when hidden/offscreen;

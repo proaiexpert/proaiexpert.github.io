@@ -10,6 +10,10 @@ const routes = {
   ru: '/ru/hero-premium-core-2-preview/'
 };
 const screenshotTimeout = 120000;
+const freeze = async (page, state = true) => {
+  await page.evaluate((detail) => window.dispatchEvent(new CustomEvent('hero-core2:capture-freeze', { detail })), state);
+  await page.waitForTimeout(state ? 80 : 40);
+};
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
@@ -79,6 +83,7 @@ async function captureStatic({ locale, width, height, mobile, file, minVisualRat
   if (!diagnostics.ready || diagnostics.fallback || !diagnostics.canvas.webgl2) throw new Error(`${locale} ${width}x${height}: WebGL2 did not reach ready state`);
   if (diagnostics.scrollWidth > diagnostics.innerWidth + 1) throw new Error(`${locale} ${width}x${height}: horizontal overflow ${diagnostics.scrollWidth} > ${diagnostics.innerWidth}`);
   if (minVisualRatio && (diagnostics.visual?.viewportRatio || 0) < minVisualRatio) throw new Error(`${locale} ${width}x${height}: Core visibility ratio ${(diagnostics.visual?.viewportRatio || 0)} < ${minVisualRatio}`);
+  await freeze(page, true);
   await page.screenshot({ path: path.join(out, file), fullPage: false, timeout: screenshotTimeout });
   await context.close();
   return diagnostics;
@@ -104,6 +109,7 @@ const diagnostics = {
     ready: document.documentElement.classList.contains('hero-core2--ready')
   }));
   if (!reduced.ready || reduced.active !== 3) throw new Error(`Reduced-motion state invalid: ${JSON.stringify(reduced)}`);
+  await freeze(page, true);
   await page.screenshot({ path: path.join(out, 'CORE2_EN_REDUCED_MOTION_390x844.png'), fullPage: false, timeout: screenshotTimeout });
   await context.close();
 }
@@ -126,10 +132,12 @@ const diagnostics = {
   await ready(page, routes.en);
   const stages = page.locator('[data-hero-core2-stage-button]');
   for (let i = 0; i < names.length; i += 1) {
+    await freeze(page, false);
     await stages.nth(i).click();
     await page.waitForTimeout(650);
     const active = await page.evaluate(() => [...document.querySelectorAll('[data-hero-core2-stage]')].findIndex(el => el.classList.contains('is-active')));
     if (active !== i) throw new Error(`Stage review capture mismatch for ${names[i]}: active ${active}`);
+    await freeze(page, true);
     await page.screenshot({ path: path.join(out, `CORE2_EN_STAGE_0${i + 1}_${names[i]}.png`), fullPage: false, timeout: screenshotTimeout });
   }
   await context.close();
@@ -146,6 +154,7 @@ let webmPath;
   });
   const page = await context.newPage();
   await ready(page, routes.en);
+  await freeze(page, false);
   const video = page.video();
 
   await page.evaluate(() => {

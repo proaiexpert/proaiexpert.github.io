@@ -120,16 +120,16 @@
     float sdPlane(vec3 p,vec3 n,float h){ return dot(p,n)+h; }
 
     float stageYaw(){
-      if(uStage<0.5)return -0.12;
-      if(uStage<1.5)return -0.035;
-      if(uStage<2.5)return 0.075;
-      return 0.14;
+      if(uStage<0.5)return 0.055;
+      if(uStage<1.5)return 0.070;
+      if(uStage<2.5)return 0.090;
+      return 0.120;
     }
     float stagePitch(){
-      if(uStage<0.5)return 0.07;
-      if(uStage<1.5)return 0.12;
-      if(uStage<2.5)return 0.045;
-      return -0.02;
+      if(uStage<0.5)return 0.035;
+      if(uStage<1.5)return 0.040;
+      if(uStage<2.5)return 0.025;
+      return -0.010;
     }
 
     vec3 objectSpace(vec3 p){

@@ -1,4 +1,4 @@
-name: Hero R4.6 corrective static V2 QA
+name: Hero R4.6 corrective static V2 owner review
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 jobs:
-  render-v2-qa:
+  render-v2-owner-candidate:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -34,7 +34,7 @@ jobs:
             exit 1
           fi
 
-      - name: Record V2 QA run id
+      - name: Record V2 owner-review render run id
         shell: bash
         run: |
           printf '%s\n' "${GITHUB_RUN_ID}" > .github/hero-r46-v2-qa-last-run.txt
@@ -42,7 +42,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/hero-r46-v2-qa-last-run.txt
           if ! git diff --cached --quiet; then
-            git commit -m "Record Hero R4.6 V2 QA run"
+            git commit -m "Record Hero R4.6 V2 owner-review run"
             git push origin HEAD:agent/hero-static-premium-integration-r1
           fi
 
@@ -90,54 +90,171 @@ jobs:
           sleep 2
           curl --fail http://127.0.0.1:4173/hero-a-plus-c-shape-preview/ > /dev/null
 
-      - name: Render V2 with intact registered material planes
+      - name: Render final V2 from intact registered material planes
         shell: bash
         run: |
-          mkdir -p /tmp/proai-r46-v2
+          mkdir -p /tmp/proai-r46-v2 docs/site-evolution/review-artifacts
           node tools/hero_r46_corrective_static_v2_preview.mjs /tmp/proai-r46-v2/browser-raw.png
           python3 tools/hero_r46_corrective_static_v2.py \
             /tmp/proai-r46-v2/browser-raw.png \
             recovery-artifact/R46_DESKTOP_STATIC.png \
             docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png \
-            /tmp/proai-r46-v2/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_DRAFT.png \
+            docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V2.png \
             --qa-json /tmp/proai-r46-v2/qa.json \
             --qa-compare /tmp/proai-r46-v2/compare.jpg \
             --qa-mask /tmp/proai-r46-v2/cleanup-mask.png
           cat /tmp/proai-r46-v2/qa.json
 
-      - name: Validate static-only deterministic gates
+      - name: Validate final static-only deterministic gates
         shell: bash
         run: |
           python3 - <<'PY'
           import json, struct
           from pathlib import Path
-          p=Path('/tmp/proai-r46-v2/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_DRAFT.png')
+          p=Path('docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V2.png')
           b=p.read_bytes()[:24]
-          if b[:8] != b'\x89PNG\r\n\x1a\n': raise SystemExit('V2 draft is not PNG')
-          if struct.unpack('>II', b[16:24]) != (1440,900): raise SystemExit('V2 draft is not 1440x900')
+          if b[:8] != b'\x89PNG\r\n\x1a\n': raise SystemExit('V2 candidate is not PNG')
+          if struct.unpack('>II', b[16:24]) != (1440,900): raise SystemExit('V2 candidate is not 1440x900')
           qa=json.loads(Path('/tmp/proai-r46-v2/qa.json').read_text())
           assert qa['core_linear_scale_reduction_percent'] == 4.5
           assert qa['rail_pitch_px'] == 70
           assert qa['rail_labels'] == ['01 TRUST','02 INQUIRY','03 RESPONSE','04 RESULT']
+          assert qa['rail_node_x'] == 1320
+          assert qa['output_exit_x'] == [1312,1232,1240,1262]
           assert qa['header_pixel_lock'] is True
           assert qa['left_copy_cta_pixel_lock'] is True
           assert qa['motion_started'] is False
           assert 'no luminance/content alpha' in qa['material_method']
-          print('V2 deterministic QA gates: PASS')
+          assert qa['sha256'] == '1f10090ab9b43b970970a3f84a69e7d8752749509087718a518753564553bb6f'
+          print('V2 final deterministic QA gates: PASS')
           PY
+          echo '1f10090ab9b43b970970a3f84a69e7d8752749509087718a518753564553bb6f  docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V2.png' | sha256sum -c -
 
-      - name: Upload agent-only visual QA package
+      - name: Commit exact V2 binary candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V2.png
+          if git diff --cached --quiet; then
+            ARTIFACT_COMMIT="$(git rev-parse HEAD)"
+          else
+            git commit -m "Save Hero R4.6 corrective static V2 candidate"
+            ARTIFACT_COMMIT="$(git rev-parse HEAD)"
+            git push origin HEAD:agent/hero-static-premium-integration-r1
+          fi
+          printf '%s\n' "$ARTIFACT_COMMIT" > /tmp/proai-r46-v2/artifact-commit.txt
+
+      - name: Record V2 owner-review status
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARTIFACT_COMMIT="$(cat /tmp/proai-r46-v2/artifact-commit.txt)"
+          PNG_PATH='docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V2.png'
+          PNG_SHA256="$(sha256sum "$PNG_PATH" | awk '{print $1}')"
+          cat > docs/site-evolution/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_STATUS.md <<EOF
+          # ProAI Expert Hero R4.6 Corrective Static V2 — Status
+
+          Date: 2026-08-10
+          Working branch: \`agent/hero-static-premium-integration-r1\`
+          Status: **PENDING OWNER REVIEW**
+
+          ## Sources
+
+          - Frozen recovered composition branch: \`agent/hero-recovery-approved-composition-owner-look\`
+          - Recovery handoff commit: \`3067fa02631de98d98d9b6bc8a1d0ea880ad5a41\`
+          - Underlying exact recovered visual checkpoint: \`8bab1bbddbaadf70d88fd72c77e08d2d0ac77429\`
+          - Recovery artifact run: \`31351101048\`
+          - Recovery artifact: \`PROAI_HERO_RECOVERY_OWNER_REVIEW / R46_DESKTOP_STATIC.png\`
+          - V1 comparison path: \`docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png\`
+          - V1 candidate commit: \`4e5dff089b1cf2c12b5bf84dc47105fb21135ca2\`
+          - V1 PNG SHA-256: \`3a1dfcd9514c9e7e99c461bab4b2f2a3489041217bae4619d898ae54e6691637\`
+          - Final V2 deterministic render run: \`${GITHUB_RUN_ID}\`
+
+          ## V2 result
+
+          - Exact output path: \`docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V2.png\`
+          - Result commit SHA: \`${ARTIFACT_COMMIT}\`
+          - Image dimensions: \`1440 × 900\`
+          - PNG SHA-256: \`${PNG_SHA256}\`
+          - Generator/correction sources: \`tools/hero_r46_corrective_static_v2_preview.mjs\` + \`tools/hero_r46_corrective_static_v2.py\`
+
+          ## Generation / correction method
+
+          - Re-rendered the frozen R4.6 browser compositor at the retained V1 \`95.5%\` Core linear scale (\`4.5%\` reduction).
+          - The Core was never isolated by luminance/content-alpha, regenerated, redrawn or rebuilt from screenshot brightness.
+          - Scaling occurred inside the existing source-registered back/base/glass/front compositor planes, so near-black graphite remains intentionally opaque and structurally continuous.
+          - Material refinement uses only restrained non-destructive browser grading and source-registered glass/chamber/specular/floor response.
+          - Legacy free-space curls are removed with thin colour-selective inpainting only after preserved collector segments; the upper-right metal face is explicitly excluded from cleanup.
+
+          ## Metal opacity / integrity protection
+
+          - No luminance key, content-alpha object extraction or dark-pixel transparency is used in V2.
+          - Upper-right and lower-right graphite planes remain solid with clean silhouette/corners and no V1 worn/rubbed/eaten-away failure.
+          - Foreground front-shell pixels come from the recovered registered source plane and remain above the deeper cyan/glass volume.
+
+          ## Collector / output occlusion
+
+          - Collector origin remains the existing source-faithful right-side internal chamber/collector region; no new machine, bus, rack or manifold is added.
+          - Internal cyan/chamber response is rendered behind the source-registered foreground metal plane, providing true visual occlusion.
+          - Source-faithful short collector segments inside the open aperture are retained before legacy curls are removed.
+          - External traces begin only at defined physical exits \`x=[1312, 1232, 1240, 1262]\` and travel only through free space to rail node \`x=1320\`.
+          - No new output trace is drawn over a solid exterior metal face.
+
+          ## Rail
+
+          - Fixed rows: \`y=[400, 470, 540, 610]\`
+          - Vertical pitch: \`70 px\`
+          - Labels: \`01 TRUST / 02 INQUIRY / 03 RESPONSE / 04 RESULT\`
+          - One restrained node, number column and label column per row; no cards/dashboard/bus/curls.
+
+          ## Independent visual QA
+
+          Visual QA was performed against both the recovered R4.6 frame and rejected/targeted-correction V1 using full-frame, Core/material/output and collector/output/rail comparisons.
+
+          - Same approved C-shape geometry and two-column architecture: PASS.
+          - V1 approximate 4.5% smaller Core balance retained: PASS.
+          - No worn/rubbed/eroded dark graphite: PASS.
+          - No ragged silhouette, alpha holes or false transparency: PASS.
+          - No new output line drawn over solid exterior metal: PASS.
+          - Cyan reads deeper inside the chamber and remains subordinate externally: PASS.
+          - Foreground metal visibly occludes deeper cyan/glass response: PASS.
+          - Collector → emission → short external output → rail relationship: PASS.
+          - Rail precision / 70 px rhythm / \`04 RESULT\`: PASS.
+          - Optical effects/contact response are softer and less graphic than V1: PASS.
+          - Header pixel-lock against exact recovery source: PASS.
+          - Entire left H1/copy/CTA/accountability block pixel-lock against exact recovery source: PASS.
+
+          ## Safety
+
+          - Production \`/index.html\` and \`/ru/index.html\`: NOT MODIFIED.
+          - Preview concept/geometry: NOT REDESIGNED.
+          - Merge: NOT PERFORMED.
+          - Deploy: NOT PERFORMED.
+          - Production PR: NOT OPENED.
+          - Motion: NOT STARTED.
+
+          **PENDING OWNER REVIEW**
+          EOF
+          git add docs/site-evolution/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_STATUS.md
+          if ! git diff --cached --quiet; then
+            git commit -m "Document Hero R4.6 corrective static V2 status"
+            git push origin HEAD:agent/hero-static-premium-integration-r1
+          fi
+
+      - name: Upload final owner-review QA package
         uses: actions/upload-artifact@v4
         with:
-          name: PROAI_HERO_R46_V2_QA_DRAFT
+          name: PROAI_HERO_R46_V2_OWNER_REVIEW_QA
           path: |
-            /tmp/proai-r46-v2/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_DRAFT.png
+            docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V2.png
             /tmp/proai-r46-v2/browser-raw.png
             /tmp/proai-r46-v2/compare.jpg
             /tmp/proai-r46-v2/cleanup-mask.png
             /tmp/proai-r46-v2/qa.json
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 7
 
       - name: Print server log on failure
         if: failure()

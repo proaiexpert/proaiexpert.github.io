@@ -104,7 +104,8 @@ const diagnostics = {
   await context.close();
 }
 
-// Browser-native desktop motion capture.
+// Browser-native desktop motion capture. Playwright starts video recording before navigation,
+// so the final MP4 trims the deterministic browser pre-roll and keeps the complete 4-stage story.
 const videoDir = path.join(out, '.video-tmp');
 fs.mkdirSync(videoDir, { recursive: true });
 let webmPath;
@@ -117,7 +118,7 @@ let webmPath;
   const page = await context.newPage();
   await ready(page, routes.en);
   const video = page.video();
-  await page.waitForTimeout(9300);
+  await page.waitForTimeout(11800);
   await page.close();
   webmPath = await video.path();
   await context.close();
@@ -127,7 +128,8 @@ await browser.close();
 
 const mp4 = path.join(out, 'CORE2_EN_DESKTOP_MOTION.mp4');
 const ff = spawnSync('ffmpeg', [
-  '-y', '-i', webmPath,
+  '-y', '-ss', '2.8', '-i', webmPath,
+  '-t', '9.6',
   '-c:v', 'libx264', '-preset', 'medium', '-crf', '20',
   '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
   mp4

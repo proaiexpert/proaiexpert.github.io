@@ -39,7 +39,7 @@ async function captureStatic(filename, viewport, options = {}) {
   await waitForCore(page, options.settleMs ?? 8500);
   await page.screenshot({
     path: path.join(outDir, filename),
-    fullPage: false,
+    fullPage: options.fullPage ?? false,
     animations: 'allow',
   });
   await context.close();
@@ -47,7 +47,9 @@ async function captureStatic(filename, viewport, options = {}) {
 
 await captureStatic('HYBRID_CORE_R1_DESKTOP_STATIC.png', { width: 1440, height: 900 }, { settleMs: 8300 });
 await captureStatic('HYBRID_CORE_R1_MOBILE_390_STATIC.png', { width: 390, height: 844 }, { reducedMotion: 'reduce', settleMs: 1200 });
+await captureStatic('HYBRID_CORE_R1_MOBILE_390_FULL.png', { width: 390, height: 844 }, { reducedMotion: 'reduce', settleMs: 1200, fullPage: true });
 await captureStatic('HYBRID_CORE_R1_MOBILE_320_STATIC.png', { width: 320, height: 780 }, { reducedMotion: 'reduce', settleMs: 1200 });
+await captureStatic('HYBRID_CORE_R1_MOBILE_320_FULL.png', { width: 320, height: 780 }, { reducedMotion: 'reduce', settleMs: 1200, fullPage: true });
 await captureStatic('HYBRID_CORE_R1_SHORT_LANDSCAPE_STATIC.png', { width: 844, height: 390 }, { reducedMotion: 'reduce', settleMs: 1200 });
 
 const motionContext = await browser.newContext({

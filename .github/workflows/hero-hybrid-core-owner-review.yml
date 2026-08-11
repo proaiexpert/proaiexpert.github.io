@@ -1,0 +1,121 @@
+name: Hero Hybrid Connected Core R1 owner review
+
+on:
+  push:
+    branches:
+      - agent/hero-hybrid-connected-core-prototype-r1
+    paths:
+      - hero-hybrid-connected-core-preview/**
+      - tools/hero_hybrid_core_preview.mjs
+      - docs/site-evolution/PROAI_HERO_HYBRID_CONNECTED_CORE_FINAL_BUILD_SPEC_2026-08-10.md
+      - .github/workflows/hero-hybrid-core-owner-review.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  owner-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout isolated prototype branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/hero-hybrid-connected-core-prototype-r1
+
+      - name: Guard production homepage routes
+        shell: bash
+        run: |
+          git fetch origin main --depth=1
+          if git diff --name-only origin/main...HEAD | grep -Eq '^(index\.html|ru/index\.html)$'; then
+            echo 'Production homepage route changed — forbidden in isolated owner-review branch.' >&2
+            exit 1
+          fi
+
+      - name: Setup Ruby and build Jekyll
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - run: gem install jekyll -v 4.3.4 --no-document
+      - run: jekyll build --source . --destination _site --trace
+
+      - name: Setup Node and Chromium
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Serve isolated preview
+        run: |
+          python3 -m http.server 4173 --directory _site > /tmp/hero-hybrid-core-http.log 2>&1 &
+          sleep 2
+          curl --fail http://127.0.0.1:4173/hero-hybrid-connected-core-preview/ > /dev/null
+
+      - name: Capture owner-review outputs
+        env:
+          HERO_PREVIEW_BASE_URL: http://127.0.0.1:4173
+        run: node tools/hero_hybrid_core_preview.mjs
+
+      - name: Convert desktop motion to MP4
+        shell: bash
+        run: |
+          ffmpeg -loglevel error \
+            -i hero-hybrid-core-owner-review/HYBRID_CORE_R1_DESKTOP_MOTION.webm \
+            -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -movflags +faststart \
+            hero-hybrid-core-owner-review/HYBRID_CORE_R1_DESKTOP_MOTION.mp4
+
+      - name: Validate owner-review package
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import struct
+          from pathlib import Path
+
+          expected = {
+              Path('hero-hybrid-core-owner-review/HYBRID_CORE_R1_DESKTOP_STATIC.png'): (1440, 900),
+              Path('hero-hybrid-core-owner-review/HYBRID_CORE_R1_MOBILE_390_STATIC.png'): (390, 844),
+              Path('hero-hybrid-core-owner-review/HYBRID_CORE_R1_MOBILE_320_STATIC.png'): (320, 780),
+              Path('hero-hybrid-core-owner-review/HYBRID_CORE_R1_SHORT_LANDSCAPE_STATIC.png'): (844, 390),
+          }
+          for p, dims in expected.items():
+              data = p.read_bytes()[:24]
+              if data[:8] != b'\x89PNG\r\n\x1a\n':
+                  raise SystemExit(f'Not a PNG: {p}')
+              w, h = struct.unpack('>II', data[16:24])
+              if (w, h) != dims:
+                  raise SystemExit(f'Wrong PNG dimensions for {p}: {(w,h)} != {dims}')
+              if p.stat().st_size < 25000:
+                  raise SystemExit(f'Suspiciously small screenshot: {p} ({p.stat().st_size} bytes)')
+          PY
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height -of csv=s=x:p=0 hero-hybrid-core-owner-review/HYBRID_CORE_R1_DESKTOP_MOTION.mp4)" = "1440x900"
+          duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 hero-hybrid-core-owner-review/HYBRID_CORE_R1_DESKTOP_MOTION.mp4)"
+          python3 - "$duration" <<'PY'
+          import sys
+          d=float(sys.argv[1])
+          if not 8.0 <= d <= 18.0:
+              raise SystemExit(f'Unexpected motion duration: {d:.3f}s')
+          print(f'Validated motion duration: {d:.3f}s')
+          PY
+
+      - name: Upload isolated owner-review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROAI_HYBRID_CONNECTED_CORE_R1_OWNER_REVIEW
+          path: |
+            hero-hybrid-core-owner-review/HYBRID_CORE_R1_DESKTOP_STATIC.png
+            hero-hybrid-core-owner-review/HYBRID_CORE_R1_DESKTOP_MOTION.mp4
+            hero-hybrid-core-owner-review/HYBRID_CORE_R1_MOBILE_390_STATIC.png
+            hero-hybrid-core-owner-review/HYBRID_CORE_R1_MOBILE_320_STATIC.png
+            hero-hybrid-core-owner-review/HYBRID_CORE_R1_SHORT_LANDSCAPE_STATIC.png
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Print server log on failure
+        if: failure()
+        run: cat /tmp/hero-hybrid-core-http.log || true

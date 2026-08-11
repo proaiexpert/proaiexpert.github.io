@@ -42,10 +42,15 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          R3_PATH='docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R3.png'
+          cp "$R3_PATH" /tmp/PROAI_HERO_LAYERED_25D_STATIC_R3.png
+          RENDER_SHA="$(sha256sum /tmp/PROAI_HERO_LAYERED_25D_STATIC_R3.png | awk '{print $1}')"
+          test "$RENDER_SHA" != "fd049642b4b27b373f441621164ef3d1e7d2adf59f07bfe6061ca7b2e2a33ea2"
           git fetch origin agent/hero-layered-25d-static-r1
           git reset --hard origin/agent/hero-layered-25d-static-r1
-          test -s docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R3.png
-          git add docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R3.png
+          cp /tmp/PROAI_HERO_LAYERED_25D_STATIC_R3.png "$R3_PATH"
+          test "$(sha256sum "$R3_PATH" | awk '{print $1}')" = "$RENDER_SHA"
+          git add "$R3_PATH"
           git commit -m "Save Hero Layered 2.5D Static R3 candidate"
           CANDIDATE_COMMIT="$(git rev-parse HEAD)"
           printf '%s\n' "$CANDIDATE_COMMIT" >/tmp/r3-candidate-commit.txt
@@ -95,7 +100,7 @@ jobs:
           - Cyan/green/blue-steel response is a set of wide, transparent, low-frequency light fields localized around the Core and lower floor response.
           - The atmosphere decays progressively toward the central/left whitespace and approaches zero without a vertical termination.
           - A restrained shared floor/atmosphere response crosses the former divide to provide a static composition bridge without a beam, cable, fog wall or rectangular gradient plate.
-          - Registered Core, output and rail pixels are composited over the shared field using the existing depth/alpha foundation.
+          - Registered physical Core, contact response, output and rail remain on the existing layered geometry; the support-only foreground occlusion mask is not used as a full-frame background lock.
 
           ## Preserved R2 foundation
 
@@ -118,11 +123,12 @@ jobs:
 
           - Exact R2 SHA validation: PASS.
           - Candidate dimensions \`1440 × 900\`: PASS.
+          - R3 is materially different from R2: PASS.
           - One common near-black body base: PASS.
           - Former seam sampled under normal and diagnostic gamma/exposure lift: PASS.
           - No rectangular right-field edge / independent panel logic: PASS.
           - Header exact R2 pixels: PASS.
-          - Strong Core interior registration: PASS.
+          - Strong physical Core interior registration: PASS.
           - Rail/output registered pixels: PASS.
           - Production \`/index.html\` modified: **NO**.
           - Production \`/ru/index.html\` modified: **NO**.

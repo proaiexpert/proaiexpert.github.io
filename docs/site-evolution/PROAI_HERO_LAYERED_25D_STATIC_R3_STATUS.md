@@ -2,7 +2,21 @@
 
 Date: 2026-08-10  
 Working branch: `agent/hero-layered-25d-static-r1`  
-Status: **PENDING OWNER REVIEW**
+Status: **ARCHIVED / FROZEN — NO FURTHER EXECUTION**
+
+## Owner freeze decision
+
+The owner explicitly froze the C-shape R3 direction as an archived R&D baseline while a new external expert review is conducted. This is not a production approval and not a rejection of the accumulated work.
+
+Do not create R4, do not start motion, do not merge, deploy, or modify production from this direction unless the owner explicitly reactivates it after the external review synthesis.
+
+Canonical archive lock:
+
+`docs/site-evolution/PROAI_HERO_CSHAPE_R3_ARCHIVE_FREEZE_2026-08-10.md`
+
+External expert review brief:
+
+`docs/site-evolution/PROAI_HERO_EXTERNAL_EXPERT_REVIEW_BRIEF_2026-08-10.md`
 
 ## Exact R2 source used
 
@@ -11,60 +25,44 @@ Status: **PENDING OWNER REVIEW**
 - R2 SHA-256: `fd049642b4b27b373f441621164ef3d1e7d2adf59f07bfe6061ca7b2e2a33ea2`
 - Registered layered foundation: `assets/hero-layered-25d-r1/`
 
-## R3 owner-review result
+## Exact archived R3 candidate
 
 - Candidate: `docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R3.png`
 - Candidate commit: `f2e734c357cb155396ae8f74266dbfee1ba964fb`
 - Dimensions: `1440 × 900`
 - PNG SHA-256: `c21c99731aed3dc4093d5890733096ee87d74d9c6e5590940631e44e16e13f87`
-- Status: **PENDING OWNER REVIEW**
+- Final cleanup HEAD at owner freeze: `04e60f8548cadefb2755af635a5e0299b0976364`
 
-## Global background strategy
+## Global background strategy preserved as learning
 
-R3 replaces the prior two-surface Hero-body logic with one common near-black base in the `#06080B` family across the entire content area below the Header. The previous left-side background pixel lock was intentionally released exactly as required by the R3 authority.
+R3 replaced the prior two-surface Hero-body logic with one common near-black base in the `#06080B` family across the entire content area below the Header. Typography/layout geometry remained locked while the obsolete greenish low-frequency left background was released.
 
-Typography/layout geometry remains locked: Header placement, H1 position/line breaks/typography hierarchy, support-copy geometry, CTA geometry/treatment, microcopy positions, trust-line position, Core registration, rail positions and labels are preserved. The obsolete greenish low-frequency left background itself is not preserved.
+The R2 frame was decomposed into a low-frequency dark surface estimate plus high-frequency visual detail. Only the obsolete low-frequency surface was replaced; text/control detail was retained continuously rather than extracted with a binary luminance/content-alpha key.
 
-The R2 frame is decomposed into a low-frequency dark surface estimate plus high-frequency visual detail. Only the obsolete low-frequency surface is replaced; text/control detail is retained continuously rather than extracted with a binary luminance/content-alpha key.
+## Seam / panel split elimination preserved as learning
 
-## Seam / panel split elimination
+- no separate right-panel fill;
+- no `x≈695` background cutoff;
+- both columns share the same near-black body base;
+- cyan/green/blue-steel response is localized around the Core and lower floor response;
+- atmosphere decays progressively instead of terminating vertically;
+- shared floor/atmosphere response provides a composition bridge without beam/cable/fog wall/rectangular gradient plate.
 
-- There is no separate right-panel fill in R3.
-- There is no `x≈695` background cutoff.
-- Both columns share the same near-black body base.
-- Cyan/green/blue-steel response is a set of wide, transparent, low-frequency light fields localized around the Core and lower floor response.
-- The atmosphere decays progressively toward the central/left whitespace and approaches zero without a vertical termination.
-- A restrained shared floor/atmosphere response crosses the former divide to provide a static composition bridge without a beam, cable, fog wall or rectangular gradient plate.
-- Registered physical Core, contact response, output and rail remain on the existing layered geometry; the support-only foreground occlusion mask is not used as a full-frame background lock.
+## Preserved R2/R3 learning
 
-## Preserved R2 foundation
+- approved C-shape geometry and approximately `-4.5%` Core scale;
+- floating/broken geometry fragment removed;
+- RU chevron;
+- intentional `View Work →` underline;
+- microcopy/trust-line contrast improvement;
+- chamber recess/mid/deep hierarchy and restrained cyan depth;
+- graphite/steel material treatment and restrained warm counter-reflection;
+- front-shell occlusion, contact/floor grounding and output-to-row logic;
+- rail `01 TRUST / 02 INQUIRY / 03 RESPONSE / 04 RESULT`;
+- one common near-black Hero base.
 
-- approved C-shape geometry, perspective and approximately `-4.5%` Core scale;
-- floating/broken geometry fragment remains removed;
-- RU chevron remains;
-- intentional `View Work →` underline remains;
-- R2 microcopy/trust-line contrast improvements remain;
-- chamber recess/mid/deep hierarchy and restrained cyan depth remain;
-- graphite/steel material treatment and warm counter-reflection remain;
-- front-shell occlusion, contact/floor grounding and output-to-row logic remain;
-- rail remains `01 TRUST / 02 INQUIRY / 03 RESPONSE / 04 RESULT` with no explanatory copy.
+## Safety at freeze
 
-## Microcopy
-
-- Microcopy size change: `0 px`.
-- R2 readability/contrast improvement retained without promoting the text hierarchy.
-
-## QA / safety
-
-- Exact R2 SHA validation: PASS.
-- Candidate dimensions `1440 × 900`: PASS.
-- R3 is materially different from R2: PASS.
-- One common near-black body base: PASS.
-- Former seam sampled under normal and diagnostic gamma/exposure lift: PASS.
-- No rectangular right-field edge / independent panel logic: PASS.
-- Header exact R2 pixels: PASS.
-- Strong physical Core interior registration: PASS.
-- Rail/output registered pixels: PASS.
 - Production `/index.html` modified: **NO**.
 - Production `/ru/index.html` modified: **NO**.
 - Merge performed: **NO**.
@@ -72,4 +70,4 @@ The R2 frame is decomposed into a low-frequency dark surface estimate plus high-
 - Production PR opened: **NO**.
 - Motion started: **NO**.
 
-**PENDING OWNER REVIEW**
+**ARCHIVED / FROZEN — NO FURTHER EXECUTION**

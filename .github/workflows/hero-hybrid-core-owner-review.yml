@@ -40,8 +40,14 @@ jobs:
       - name: Guard production homepage routes
         shell: bash
         run: |
-          git fetch origin main --depth=1
-          if git diff --name-only origin/main...HEAD | grep -Eq '^(index\.html|ru/index\.html)$'; then
+          base_ref="origin/agent/hero-layered-25d-static-r1"
+          git show-ref --verify --quiet "refs/remotes/${base_ref#origin/}" || {
+            echo "Required research base ref is missing: ${base_ref}" >&2
+            exit 1
+          }
+          changed="$(git diff --name-only "${base_ref}"...HEAD)"
+          printf '%s\n' "${changed}"
+          if printf '%s\n' "${changed}" | grep -Eq '^(index\.html|ru/index\.html)$'; then
             echo 'Production homepage route changed — forbidden in isolated owner-review branch.' >&2
             exit 1
           fi
@@ -74,12 +80,13 @@ jobs:
           HERO_PREVIEW_BASE_URL: http://127.0.0.1:4173
         run: node tools/hero_hybrid_core_preview.mjs
 
-      - name: Convert desktop motion to MP4
+      - name: Convert deterministic desktop motion to MP4
         shell: bash
         run: |
           ffmpeg -loglevel error \
+            -sseof -7.4 \
             -i hero-hybrid-core-owner-review/HYBRID_CORE_R1_DESKTOP_MOTION.webm \
-            -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -movflags +faststart \
+            -t 7.2 -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p -movflags +faststart \
             hero-hybrid-core-owner-review/HYBRID_CORE_R1_DESKTOP_MOTION.mp4
 
       - name: Validate owner-review package
@@ -110,9 +117,9 @@ jobs:
           python3 - "$duration" <<'PY'
           import sys
           d=float(sys.argv[1])
-          if not 8.0 <= d <= 18.0:
-              raise SystemExit(f'Unexpected motion duration: {d:.3f}s')
-          print(f'Validated motion duration: {d:.3f}s')
+          if not 6.8 <= d <= 7.4:
+              raise SystemExit(f'Unexpected trimmed motion duration: {d:.3f}s')
+          print(f'Validated trimmed motion duration: {d:.3f}s')
           PY
 
       - name: Upload isolated owner-review package

@@ -33,9 +33,11 @@ collector=alpha(AS/'collector_emitter_zone.png')
 contact=alpha(AS/'contact_shadow_floor_response.png')
 outputs=alpha(AS/'external_output_impulses.png')
 rail=alpha(AS/'rail_ui.png')
-fg_occ=alpha(AS/'foreground_occlusion_mask.png')
-core=np.maximum.reduce([rear,chamber,front,collector,contact,fg_occ])
-core=np.clip(core,0,1)
+# foreground_occlusion_mask is support/occlusion metadata, not the physical Core silhouette.
+# It must not lock the full background back to R2.
+physical_core=np.maximum.reduce([rear,chamber,front,collector])
+physical_core=np.clip(physical_core,0,1)
+scene_hold=np.maximum(physical_core,contact*0.82)
 ui_right=np.maximum(outputs,rail)
 
 # One global near-black body base, with only localized wide-falloff light around the Core.
@@ -61,16 +63,16 @@ low_residual=np.clip(residual,-5.0,5.0)*0.10
 new=field+low_residual
 new=new*(1-left_detail[...,None])+(field+residual)*left_detail[...,None]
 
-# Registered Core and journey system stay on the same geometry over the common room field.
-core_a=np.clip(core,0,1)
-new=new*(1-core_a[...,None])+src*core_a[...,None]
+# Registered physical Core and grounded contact response stay on the same geometry over the common room field.
+scene_a=np.clip(scene_hold,0,1)
+new=new*(1-scene_a[...,None])+src*scene_a[...,None]
 right_a=np.clip(ui_right,0,1)
 new=new*(1-right_a[...,None])+src*right_a[...,None]
 new[:87]=src[:87]
 final=np.clip(new,0,255).astype(np.uint8)
 
 keep=ui_right>0.45
-keep_core=core>0.97
+keep_core=physical_core>0.97
 final[keep]=src_u8[keep]
 final[keep_core]=src_u8[keep_core]
 final[:87]=src_u8[:87]
@@ -79,8 +81,12 @@ if not np.array_equal(final[:87],src_u8[:87]): raise SystemExit('Header drift')
 if not np.array_equal(final[keep],src_u8[keep]): raise SystemExit('Rail/output pixel drift')
 if not np.array_equal(final[keep_core],src_u8[keep_core]): raise SystemExit('Core interior drift')
 
+# Guard against a no-op R3: scene-unification pass must materially differ from exact R2.
+if np.array_equal(final,src_u8): raise SystemExit('R3 is a no-op / identical to R2')
+changed=np.count_nonzero(np.any(final!=src_u8,axis=2))
+if changed < 120000: raise SystemExit(f'R3 changed too few pixels: {changed}')
+
 # Seam gate: physical upper background band around the former x≈695 divide, before the C-shape reaches it.
-# Registered masks intentionally do not participate here because some cover invisible support/foreground areas.
 qa_band=(yy>=105)&(yy<295)
 left=qa_band&(xx>=610)&(xx<680)
 right=qa_band&(xx>=710)&(xx<780)
@@ -100,6 +106,7 @@ OUT.parent.mkdir(parents=True,exist_ok=True)
 Image.fromarray(final,'RGB').save(OUT,optimize=True)
 print('R3_SHA256='+sha(OUT))
 print('R3_DIMENSIONS=1440x900')
+print('R3_CHANGED_PIXELS='+str(changed))
 print('R3_SEAM_MEDIAN_LEFT='+','.join(f'{x:.2f}' for x in left_med))
 print('R3_SEAM_MEDIAN_RIGHT='+','.join(f'{x:.2f}' for x in right_med))
 print('R3_BOUNDARY_JUMP='+f'{jump:.3f}')

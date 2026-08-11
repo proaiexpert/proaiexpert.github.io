@@ -8,18 +8,51 @@ Working branch: `agent/hero-static-premium-integration-r1`
 
 `docs/site-evolution/PROAI_HERO_OWNER_WORKFLOW_LOCK_2026-08-10.md`
 
-The owner is NEVER a context/file transport layer. Do not ask the owner to upload, attach, download, move, resend, or relay anything manually.
+The owner is NEVER a context/file transport layer. Do not ask the owner to upload, attach, download, move, resend, relay, copy or manually transfer anything.
 
 ## EXECUTE ONLY THIS CURRENT TASK
 
-Read and execute:
+Read and execute completely:
 
-`docs/site-evolution/PROAI_HERO_CORRECTIVE_STATIC_ONLY_TASK_2026-08-10.md`
+`docs/site-evolution/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_TASK_2026-08-10.md`
 
-That task is self-contained and is the current authority for the next visual pass.
+This V2 task is the current execution authority for the next visual pass.
 
+Do not execute the older V1 corrective task as current authority.
 Do not restart concept exploration.
-Do not use older Hero task files as execution authority.
+Do not restart benchmark/copy/architecture work.
+Do not create alternate task versions.
+
+## V1 OWNER VERDICT
+
+V1 candidate:
+
+`docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png`
+
+Candidate commit:
+
+`4e5dff089b1cf2c12b5bf84dc47105fb21135ca2`
+
+Owner-review verdict:
+
+`TARGETED CORRECTION REQUIRED — SUPERSEDED BY V2 TASK`
+
+V1 changes to retain where specified by V2:
+
+- approximately 4.5% smaller Core balance;
+- calm precise 01–04 rail concept;
+- `04 RESULT`;
+- left/Header composition unchanged.
+
+V1 problems that V2 must correct:
+
+- outputs still read partly as cyan graphics drawn over solid exterior metal;
+- luminance/content-alpha compositing locally erodes dark graphite and creates worn/rubbed/eaten-away material;
+- insufficient foreground occlusion / chamber → collector → output depth hierarchy;
+- internal cyan needs embedded depth, not simply more glow;
+- effects/contact/reflection must be softer, cleaner and more premium.
+
+Full visual/technical requirements are in the V2 task. Do not improvise a different concept.
 
 ## CANONICAL CROSS-CHAT SOURCE — GITHUB
 
@@ -46,72 +79,46 @@ Recovery lock:
 
 `docs/site-evolution/PROAI_EXPERT_HERO_RECOVERY_LOCK_2026-08-09.md`
 
-Reconstruct/render the current baseline from the repository-backed recovery state yourself.
+Reconstruct/render the baseline from the repository-backed recovery state yourself.
 
 The historical `RECOVERED_R46_DESKTOP_STATIC.png` is owner-review evidence only. Do not ask the owner to provide it and do not treat `/mnt/data/...` as cross-chat authority.
 
-## CURRENT OWNER CORRECTION
+## V2 REQUIRED OUTPUT
 
-Perform one narrow corrective static pass only.
+Produce exactly one desktop static candidate:
 
-Key corrections:
+`docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V2.png`
 
-- preserve the same Hero concept/layout;
-- reduce C-object perceived scale by roughly 3–6%;
-- rebuild `01–04` rail alignment precisely;
-- use `04 RESULT`, not `04 OUTCOME`;
-- align output endpoints exactly to the corresponding rows;
-- enrich material/depth/contact/reflection without changing the C-shape concept;
-- make cyan energy feel more internal/spatial and less like a flat line overlay;
-- do not redesign H1/header/CTA/page architecture;
-- one candidate only;
-- no motion until owner approval.
+Create/update status:
 
-Full acceptance/rejection criteria are in:
+`docs/site-evolution/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_STATUS.md`
 
-`docs/site-evolution/PROAI_HERO_CORRECTIVE_STATIC_ONLY_TASK_2026-08-10.md`
+Status must remain:
 
-## PERSISTENCE — GITHUB
+`PENDING OWNER REVIEW`
 
-The corrected candidate must be committed to this isolated working branch as:
+until explicit owner approval.
 
-`docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png`
-
-Status must be recorded at:
-
-`docs/site-evolution/PROAI_HERO_R46_CORRECTIVE_STATIC_V1_STATUS.md`
-
-The status must remain `PENDING OWNER REVIEW` until the owner explicitly approves it.
-
-A future fresh chat must be able to recover the exact candidate from GitHub alone.
+Do not call the result ACCEPTED, LOCKED, FINAL or production-ready before owner review.
 
 ## LONG-TERM HOMEPAGE / HERO KNOWLEDGE RECOVERY — READ-ONLY CONTEXT
 
-The accumulated Homepage + Hero research, accepted decision gates, benchmark synthesis, branch/SHA history, technical constraints, rejected paths and asset locations are preserved here:
+Accumulated Homepage + Hero research, accepted decision gates, benchmark synthesis, branch/SHA history, technical constraints, rejected paths and asset locations:
 
 `docs/site-evolution/PROAI_HOMEPAGE_HERO_MASTER_RECOVERY_PACK_2026-08-10.md`
 
-The dedicated visual/image asset index is:
+Dedicated visual/image asset index:
 
 `docs/site-evolution/PROAI_HOMEPAGE_HERO_ASSET_INDEX_2026-08-10.md`
 
-These two files are **recovery / knowledge indexes only**. They must not override the current corrective-static task above.
+These are recovery / knowledge indexes only. They do not override the V2 task.
 
-Use them to recover prior research without restarting settled benchmark, copy, architecture or technical work.
-
-The existing Google Drive Hero review folder also contains a cross-reference pointer back to these GitHub indexes:
+Google Drive recovery pointer:
 
 `PROAI_HOMEPAGE_HERO_RECOVERY_POINTER_2026-08-10.md`
 
 - Drive file ID: `1qmlZ-x_kIWDAbIooP1i1rBu7QmVSAlLb`
 - Drive folder ID: `1wqHjUAfk2vOJcY013V0EX2LtK0aszPZS`
-
-Important supersession reminder:
-
-- older Hero material may contain `04 OUTCOME`;
-- the current owner correction is `04 RESULT`;
-- older Homepage/Hero documents may contain the rejected three-line H1 model;
-- do not restore it as the current primary Hero architecture.
 
 ## SAFETY
 
@@ -119,3 +126,4 @@ Do not modify production `/index.html` or `/ru/index.html`.
 Do not merge or deploy.
 Do not open a production PR.
 Do not touch Financial Stream.
+Do not start motion.

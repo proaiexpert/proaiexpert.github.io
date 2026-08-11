@@ -1,0 +1,141 @@
+name: Hero Premium Core 2.0 owner review
+
+on:
+  push:
+    branches:
+      - agent/hero-premium-core-2-r1
+    paths:
+      - assets/css/hero-premium-core-2.css
+      - assets/js/hero-premium-core-2.js
+      - hero-premium-core-2-preview/**
+      - ru/hero-premium-core-2-preview/**
+      - tools/hero_premium_core_2_owner_review.mjs
+      - .github/workflows/hero-premium-core-2-owner-review.yml
+      - .github/hero-premium-core-2-run.txt
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  owner-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout isolated Premium Core branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: agent/hero-premium-core-2-r1
+
+      - name: Guard production and unrelated systems
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --quiet
+          CHANGED="$(git diff --name-only origin/main...HEAD)"
+          if printf '%s\n' "$CHANGED" | grep -Eq '^(index\.html|ru/index\.html)$'; then
+            echo 'Production homepage route changed — forbidden in owner-review branch.' >&2
+            exit 1
+          fi
+          if printf '%s\n' "$CHANGED" | grep -E '^financialstream/' >/dev/null; then
+            echo 'Financial Stream changed — forbidden in Hero scope.' >&2
+            exit 1
+          fi
+
+      - name: Verify final EN/RU copy locks in Premium Core preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          en=Path('hero-premium-core-2-preview/index.html').read_text(encoding='utf-8')
+          ru=Path('ru/hero-premium-core-2-preview/index.html').read_text(encoding='utf-8')
+          en_locks=[
+            'AI SYSTEMS · AUTOMATION · PREMIUM WEBSITES',
+            'From first impression to result — one system.',
+            'We build premium websites for service businesses and connect them with AI and automation. Customers understand your services and reach out with the right information; you respond faster and spend less time on routine work. Key decisions stay with you.',
+            'Request a Review',
+            'Briefly describe the challenge. We’ll recommend where to start.',
+            'View Work',
+            'Washington-based · Working across the U.S. · EN / RU / UA',
+            '>TRUST<','>INQUIRY<','>RESPONSE<','>RESULT<'
+          ]
+          ru_locks=[
+            'AI-СИСТЕМЫ · АВТОМАТИЗАЦИЯ · ПРЕМИАЛЬНЫЕ САЙТЫ',
+            'От первого впечатления до результата — одна система.',
+            'Создаём премиальные сайты для компаний сферы услуг и соединяем их с AI и автоматизацией. Клиенту проще понять ваши услуги и обратиться с нужной информацией, вам — быстрее ответить и меньше заниматься рутиной. Ключевые решения — за вами.',
+            'Запросить разбор',
+            'Коротко опишите задачу. Мы предложим, с чего разумнее начать.',
+            'Смотреть проекты',
+            'Штат Вашингтон · Работаем по всей США · EN / RU / UA',
+            '>ДОВЕРИЕ<','>ОБРАЩЕНИЕ<','>ОТВЕТ<','>РЕЗУЛЬТАТ<'
+          ]
+          for lock in en_locks:
+              if lock not in en: raise SystemExit(f'Missing EN lock: {lock}')
+          for lock in ru_locks:
+              if lock not in ru: raise SystemExit(f'Missing RU lock: {lock}')
+          h1=en.split('<h1 class="hero-core2__title" id="hero-core2-title">',1)[1].split('</h1>',1)[0]
+          if '<br' in h1.lower() or '<span' in h1.lower(): raise SystemExit('EN H1 contains authored hard split')
+          h1=ru.split('<h1 class="hero-core2__title" id="hero-core2-title">',1)[1].split('</h1>',1)[0]
+          if '<br' in h1.lower() or '<span' in h1.lower(): raise SystemExit('RU H1 contains authored hard split')
+          print('Final copy locks: PASS')
+          PY
+
+      - name: Setup Ruby and build Jekyll
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - run: gem install jekyll -v 4.3.4 --no-document
+      - run: jekyll build --source . --destination _site --trace
+
+      - name: Setup browser and ffmpeg
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Serve isolated preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory _site > /tmp/core2-http.log 2>&1 &
+          sleep 2
+          curl --fail http://127.0.0.1:4173/hero-premium-core-2-preview/ > /dev/null
+          curl --fail http://127.0.0.1:4173/ru/hero-premium-core-2-preview/ > /dev/null
+
+      - name: Browser runtime and owner-review captures
+        run: node tools/hero_premium_core_2_owner_review.mjs
+
+      - name: Static implementation guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'sdRoundBox' assets/js/hero-premium-core-2.js
+          grep -q 'curveDistance' assets/js/hero-premium-core-2.js
+          grep -q 'innerDistanceFromObject' assets/js/hero-premium-core-2.js
+          grep -q 'requestAnimationFrame' assets/js/hero-premium-core-2.js
+          if grep -Eq 'THREE\.BoxGeometry|new THREE\.BoxGeometry|stroke-dasharray: *4, *12' assets/js/hero-premium-core-2.js assets/css/hero-premium-core-2.css; then
+            echo 'Rejected primitive/orbit language detected.' >&2
+            exit 1
+          fi
+
+      - name: Upload Premium Core 2.0 owner-review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: PROAI_HERO_PREMIUM_CORE_2_OWNER_REVIEW
+          path: premium-core-2-owner-review/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Print diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          cat /tmp/core2-http.log || true
+          if test -f premium-core-2-owner-review/diagnostics.json; then cat premium-core-2-owner-review/diagnostics.json; fi

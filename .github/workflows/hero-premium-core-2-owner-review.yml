@@ -12,7 +12,6 @@ on:
       - hero-premium-core-2-preview/**
       - ru/hero-premium-core-2-preview/**
       - tools/hero_premium_core_2_owner_review.mjs
-      - tools/apply_premium_core_r2_second_pass.py
       - .github/workflows/hero-premium-core-2-owner-review.yml
       - .github/hero-premium-core-2-run.txt
   pull_request:
@@ -30,7 +29,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   actions: read
 
 jobs:
@@ -43,27 +42,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: agent/hero-premium-core-2-r1
-
-      - name: Apply asserted R2 second-pass refinement when needed
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 tools/apply_premium_core_r2_second_pass.py
-          node --check assets/js/hero-premium-core-2-r2.js
-
-      - name: Persist second-pass runtime when patch changed it
-        shell: bash
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- assets/js/hero-premium-core-2-r2.js; then
-            echo 'Second-pass runtime already persisted.'
-            exit 0
-          fi
-          git config user.name 'ProAI Hero Agent'
-          git config user.email 'actions@users.noreply.github.com'
-          git add assets/js/hero-premium-core-2-r2.js
-          git commit -m 'Refine Premium Core R2 silhouette and internal intelligence'
-          git push origin HEAD:agent/hero-premium-core-2-r1
 
       - name: Guard production and unrelated systems
         shell: bash
@@ -153,13 +131,16 @@ jobs:
         run: |
           set -euo pipefail
           grep -q 'sdRoundBox' assets/js/hero-premium-core-2-r2.js
+          grep -q 'sdFacetedSlab' assets/js/hero-premium-core-2-r2.js
           grep -q 'sdCapsule' assets/js/hero-premium-core-2-r2.js
           grep -q 'curveDistance' assets/js/hero-premium-core-2-r2.js
           grep -q 'mapInternal' assets/js/hero-premium-core-2-r2.js
+          grep -q 'float lamella1=' assets/js/hero-premium-core-2-r2.js
           grep -q 'brandMark' assets/js/hero-premium-core-2-r2.js
           grep -q 'vec3 sail=' assets/js/hero-premium-core-2-r2.js
           grep -q 'platformTopD' assets/js/hero-premium-core-2-r2.js
           grep -q 'uSignalMix' assets/js/hero-premium-core-2-r2.js
+          grep -q 'hero-core2:capture-freeze' assets/js/hero-premium-core-2-r2.js
           grep -q 'requestAnimationFrame' assets/js/hero-premium-core-2-r2.js
           grep -q 'hero-core2__stage-detail' hero-premium-core-2-preview/index.html
           grep -q 'hero-core2__stage-detail' ru/hero-premium-core-2-preview/index.html

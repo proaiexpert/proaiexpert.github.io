@@ -2,6 +2,7 @@ import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+// Final QC rerun after isolated responsive overflow correction.
 const baseURL = process.env.HERO_PREVIEW_BASE_URL || 'http://127.0.0.1:4173';
 const route = `${baseURL}/hero-hybrid-connected-core-preview/`;
 const outDir = path.resolve('hero-hybrid-core-owner-review');

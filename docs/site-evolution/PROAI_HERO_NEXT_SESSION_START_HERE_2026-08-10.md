@@ -2,7 +2,7 @@
 
 Repository: `proaiexpert/proaiexpert.github.io`
 
-Working branch: `agent/hero-static-premium-integration-r1`
+Working branch: `agent/hero-layered-25d-static-r1`
 
 ## READ FIRST — OWNER WORKFLOW LOCK
 
@@ -14,49 +14,35 @@ The owner is NEVER a context/file transport layer. Do not ask the owner to uploa
 
 Read and execute completely:
 
+`docs/site-evolution/PROAI_HERO_LAYERED_25D_STATIC_R1_TASK_2026-08-10.md`
+
+This is the only current execution authority on this branch.
+
+The previous raster-retouch V2 task was intentionally stopped and is superseded as an execution path.
+
+Do not continue:
+
 `docs/site-evolution/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_TASK_2026-08-10.md`
 
-This V2 task is the current execution authority for the next visual pass.
-
-Do not execute the older V1 corrective task as current authority.
 Do not restart concept exploration.
 Do not restart benchmark/copy/architecture work.
 Do not create alternate task versions.
 
-## V1 OWNER VERDICT
+## METHOD CHANGE — IMPORTANT
 
-V1 candidate:
+The Hero concept is NOT changing.
 
-`docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png`
+The implementation method is changing from a flattened raster-retouch compositor to a **registered layered 2.5D scene** derived from the exact approved/recovered C-shape.
 
-Candidate commit:
+Primary reasons:
 
-`4e5dff089b1cf2c12b5bf84dc47105fb21135ca2`
+- V1 luminance/content-alpha compositing eroded dark graphite/steel material;
+- V1 output lines were composited over the raster and still read as graphics drawn on top of metal;
+- the new pass must use explicit layer separation and real foreground occlusion so the cyan signal can physically emerge from the internal chamber.
 
-Owner-review verdict:
-
-`TARGETED CORRECTION REQUIRED — SUPERSEDED BY V2 TASK`
-
-V1 changes to retain where specified by V2:
-
-- approximately 4.5% smaller Core balance;
-- calm precise 01–04 rail concept;
-- `04 RESULT`;
-- left/Header composition unchanged.
-
-V1 problems that V2 must correct:
-
-- outputs still read partly as cyan graphics drawn over solid exterior metal;
-- luminance/content-alpha compositing locally erodes dark graphite and creates worn/rubbed/eaten-away material;
-- insufficient foreground occlusion / chamber → collector → output depth hierarchy;
-- internal cyan needs embedded depth, not simply more glow;
-- effects/contact/reflection must be softer, cleaner and more premium.
-
-Full visual/technical requirements are in the V2 task. Do not improvise a different concept.
+The new method must preserve the approved geometry, perspective, silhouette, Header, H1, copy, CTA and overall Hero composition.
 
 ## CANONICAL CROSS-CHAT SOURCE — GITHUB
-
-Do not depend on a local screenshot path.
 
 Frozen recovered composition branch:
 
@@ -70,28 +56,60 @@ Underlying exact recovered visual checkpoint:
 
 `8bab1bbddbaadf70d88fd72c77e08d2d0ac77429`
 
-Preview routes in the recovered GitHub state:
+Recovered owner-review artifact:
 
-- EN: `/hero-a-plus-c-shape-preview/`
-- RU: `/ru/hero-a-plus-c-shape-preview/`
+- workflow run: `31351101048`
+- artifact: `PROAI_HERO_RECOVERY_OWNER_REVIEW`
+- file: `R46_DESKTOP_STATIC.png`
+- frame: `1440 × 900`
 
 Recovery lock:
 
 `docs/site-evolution/PROAI_EXPERT_HERO_RECOVERY_LOCK_2026-08-09.md`
 
-Reconstruct/render the baseline from the repository-backed recovery state yourself.
+Long-term recovery/context indexes:
 
-The historical `RECOVERED_R46_DESKTOP_STATIC.png` is owner-review evidence only. Do not ask the owner to provide it and do not treat `/mnt/data/...` as cross-chat authority.
+- `docs/site-evolution/PROAI_HOMEPAGE_HERO_MASTER_RECOVERY_PACK_2026-08-10.md`
+- `docs/site-evolution/PROAI_HOMEPAGE_HERO_ASSET_INDEX_2026-08-10.md`
 
-## V2 REQUIRED OUTPUT
+Recover every required source yourself. Do not depend on the owner or a local `/mnt/data` path.
 
-Produce exactly one desktop static candidate:
+## V1 — NEGATIVE QA REFERENCE
 
-`docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V2.png`
+V1 candidate:
 
-Create/update status:
+`docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png`
 
-`docs/site-evolution/PROAI_HERO_R46_CORRECTIVE_STATIC_V2_STATUS.md`
+Commit:
+
+`4e5dff089b1cf2c12b5bf84dc47105fb21135ca2`
+
+SHA-256:
+
+`3a1dfcd9514c9e7e99c461bab4b2f2a3489041217bae4619d898ae54e6691637`
+
+Retain from V1 only where the new task explicitly requires it:
+
+- approximately 4.5% smaller Core balance;
+- calm precise four-row rail;
+- `04 RESULT`;
+- unchanged Header / left-side hierarchy.
+
+Do not inherit V1's luminance-key/content-alpha material extraction or overlay-line method.
+
+## REQUIRED R1 OUTPUT
+
+Produce exactly one owner-review static candidate:
+
+`docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R1.png`
+
+Required dimensions:
+
+`1440 × 900`
+
+Status:
+
+`docs/site-evolution/PROAI_HERO_LAYERED_25D_STATIC_R1_STATUS.md`
 
 Status must remain:
 
@@ -99,31 +117,26 @@ Status must remain:
 
 until explicit owner approval.
 
-Do not call the result ACCEPTED, LOCKED, FINAL or production-ready before owner review.
+Create the isolated neutral preview foundation at:
 
-## LONG-TERM HOMEPAGE / HERO KNOWLEDGE RECOVERY — READ-ONLY CONTEXT
+`/hero-layered-25d-static-preview/`
 
-Accumulated Homepage + Hero research, accepted decision gates, benchmark synthesis, branch/SHA history, technical constraints, rejected paths and asset locations:
+No competing owner candidates.
 
-`docs/site-evolution/PROAI_HOMEPAGE_HERO_MASTER_RECOVERY_PACK_2026-08-10.md`
+## FUTURE EFFECTS / MOTION — RESERVED, NOT NOW
 
-Dedicated visual/image asset index:
+The architecture must be future-ready for a later owner-approved enhancement phase with richer color nuance, soft warm/cold reflections, depth parallax, restrained tilt, internal light propagation, subtle optical dispersion, reflection lag and controlled internal particles.
 
-`docs/site-evolution/PROAI_HOMEPAGE_HERO_ASSET_INDEX_2026-08-10.md`
+Do not implement those motion/effect behaviors now.
 
-These are recovery / knowledge indexes only. They do not override the V2 task.
-
-Google Drive recovery pointer:
-
-`PROAI_HOMEPAGE_HERO_RECOVERY_POINTER_2026-08-10.md`
-
-- Drive file ID: `1qmlZ-x_kIWDAbIooP1i1rBu7QmVSAlLb`
-- Drive folder ID: `1wqHjUAfk2vOJcY013V0EX2LtK0aszPZS`
+Static quality must pass first.
 
 ## SAFETY
 
 Do not modify production `/index.html` or `/ru/index.html`.
-Do not merge or deploy.
+Do not merge.
+Do not deploy.
 Do not open a production PR.
 Do not touch Financial Stream.
 Do not start motion.
+Do not regenerate or redesign the C-shape.

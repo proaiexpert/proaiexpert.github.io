@@ -6,12 +6,11 @@ on:
       - agent/hero-static-premium-integration-r1
     paths:
       - .github/workflows/hero-r46-corrective-static-v1.yml
-      - _includes/hero-c-shape-r4-6/style-corrective-static-v1.html
-      - hero-a-plus-c-shape-preview/index.html
-      - ru/hero-a-plus-c-shape-preview/index.html
+      - tools/hero_r46_corrective_static_v1.py
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
@@ -34,136 +33,87 @@ jobs:
             exit 1
           fi
 
-      - name: Setup Ruby and build Jekyll
-        uses: ruby/setup-ruby@v1
+      - name: Download exact recovered R4.6 owner-review artifact
+        uses: actions/download-artifact@v4
         with:
-          ruby-version: '3.3'
-      - run: gem install jekyll -v 4.3.4 --no-document
-      - run: jekyll build --source . --destination _site --trace
+          name: PROAI_HERO_RECOVERY_OWNER_REVIEW
+          path: recovery-artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: proaiexpert/proaiexpert.github.io
+          run-id: 31351101048
 
-      - name: Setup Node and Chromium
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: |
-          npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
-
-      - name: Serve preview
-        run: |
-          python3 -m http.server 4173 --directory _site > /tmp/hero-r46-static-http.log 2>&1 &
-          sleep 2
-          curl --fail http://127.0.0.1:4173/hero-a-plus-c-shape-preview/ > /dev/null
-
-      - name: Capture and geometrically validate the single desktop candidate
+      - name: Validate recovery input
         shell: bash
         run: |
-          cat > /tmp/capture-r46-static-v1.mjs <<'JS'
-          import { chromium } from 'playwright';
-          import fs from 'node:fs';
-
-          const out = '/tmp/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png';
-          const browser = await chromium.launch({ headless: true });
-          const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
-          const page = await context.newPage();
-          const errors = [];
-          page.on('pageerror', e => errors.push(String(e)));
-          await page.goto('http://127.0.0.1:4173/hero-a-plus-c-shape-preview/?mode=static', { waitUntil: 'networkidle' });
-          await page.evaluate(async () => { if (document.fonts?.ready) await document.fonts.ready; });
-          await page.waitForSelector('.hero-r45__desktop-stack.is-r46-ready', { timeout: 10000 });
-          await page.waitForTimeout(450);
-
-          const qa = await page.evaluate(() => {
-            const q = s => document.querySelector(s);
-            const rect = e => { const r=e.getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height,cx:r.x+r.width/2,cy:r.y+r.height/2}; };
-            const visual = rect(q('.hero-cshape__visual'));
-            const stack = rect(q('.hero-r45__desktop-stack'));
-            const items = [...document.querySelectorAll('.hero-cshape__rail-item')];
-            const outputs = [0,1,2,3].map(i => q(`[data-r45-output="${i}"] b`));
-            const itemRects = items.map(rect);
-            const outputRects = outputs.map(rect);
-            const nodeCenters = items.map((item, i) => {
-              const cs = getComputedStyle(item, '::before');
-              const left = parseFloat(cs.left);
-              const width = parseFloat(cs.width);
-              return { x: itemRects[i].x + left + width/2, y: itemRects[i].cy };
-            });
-            const spanXs = items.map(item => rect(item.querySelector('span')).x);
-            const labelXs = items.map(item => rect(item.querySelector('strong')).x);
-            return {
-              htmlClass: document.documentElement.className,
-              visual, stack,
-              scaleRatio: stack.w / visual.w,
-              rail: items.map(i => i.innerText.replace(/\s+/g,' ').trim()),
-              rowCenters: itemRects.map(r => r.cy),
-              outputCenters: outputRects.map(r => ({x:r.cx,y:r.cy})),
-              nodeCenters,
-              spanXs,
-              labelXs,
-              h1: q('#hero-cshape-title')?.innerText.replace(/\s+/g,' ').trim(),
-              header: !!q('.site-header'),
-              ready: q('.hero-r45__desktop-stack')?.classList.contains('is-r46-ready'),
-              imgs: [...document.querySelectorAll('.hero-cshape__scene img')].map(img => ({complete:img.complete,w:img.naturalWidth,h:img.naturalHeight}))
-            };
-          });
-
-          if (errors.length) throw new Error(`Browser errors: ${errors.join(' | ')}`);
-          if (!qa.ready || !qa.header) throw new Error(`Hero/header not ready: ${JSON.stringify(qa)}`);
-          if (qa.imgs.length < 5 || qa.imgs.some(i => !i.complete || i.w < 1 || i.h < 1)) throw new Error(`Raster decode failure: ${JSON.stringify(qa.imgs)}`);
-          if (Math.abs(qa.scaleRatio - 0.734) > 0.006) throw new Error(`Core scale ratio drift: ${qa.scaleRatio}`);
-          const expectedRail = ['01 TRUST','02 INQUIRY','03 RESPONSE','04 RESULT'];
-          if (JSON.stringify(qa.rail) !== JSON.stringify(expectedRail)) throw new Error(`Rail copy mismatch: ${JSON.stringify(qa.rail)}`);
-          const yErrors = qa.rowCenters.map((y,i) => Math.abs(y - qa.outputCenters[i].y));
-          const xErrors = qa.nodeCenters.map((p,i) => Math.abs(p.x - qa.outputCenters[i].x));
-          if (Math.max(...yErrors) > 1.5) throw new Error(`Output/row Y registration failed: ${JSON.stringify(yErrors)}`);
-          if (Math.max(...xErrors) > 2.5) throw new Error(`Output/node X registration failed: ${JSON.stringify(xErrors)}`);
-          const spread = arr => Math.max(...arr)-Math.min(...arr);
-          if (spread(qa.spanXs) > 0.5 || spread(qa.labelXs) > 0.5) throw new Error(`Rail columns not aligned: ${JSON.stringify({spanXs:qa.spanXs,labelXs:qa.labelXs})}`);
-          if (qa.h1 !== 'From first impression to follow-through — one connected system.') throw new Error(`H1 drift: ${qa.h1}`);
-
-          console.log('Corrective static QA:', JSON.stringify({scaleRatio:qa.scaleRatio,yErrors,xErrors,rail:qa.rail}, null, 2));
-          await page.screenshot({ path: out, fullPage: false });
-          await context.close();
-          await browser.close();
-          if (!fs.existsSync(out) || fs.statSync(out).size < 10000) throw new Error('Missing/empty candidate PNG');
-          JS
-          node /tmp/capture-r46-static-v1.mjs
-
-      - name: Validate PNG dimensions
-        shell: bash
-        run: |
+          test -s recovery-artifact/R46_DESKTOP_STATIC.png
           python3 - <<'PY'
           import struct
           from pathlib import Path
-          p=Path('/tmp/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png')
-          data=p.read_bytes()[:24]
-          if data[:8] != b'\x89PNG\r\n\x1a\n':
-              raise SystemExit('Candidate is not a PNG')
-          w,h=struct.unpack('>II',data[16:24])
-          if (w,h)!=(1440,900):
-              raise SystemExit(f'Wrong dimensions: {(w,h)}')
-          print(f'Validated dimensions: {w}x{h}')
+          p=Path('recovery-artifact/R46_DESKTOP_STATIC.png')
+          b=p.read_bytes()[:24]
+          if b[:8] != b'\x89PNG\r\n\x1a\n': raise SystemExit('Recovery input is not PNG')
+          if struct.unpack('>II', b[16:24]) != (1440,900): raise SystemExit('Recovery input is not 1440x900')
+          print('Recovery input validated: 1440x900')
           PY
 
-      - name: Commit exact candidate artifact
+      - name: Setup deterministic raster dependencies
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-inter fontconfig
+          python3 -m pip install --disable-pip-version-check --quiet \
+            pillow==12.3.0 numpy opencv-python-headless==4.13.0.92
+
+      - name: Generate the single corrective candidate
+        shell: bash
+        run: |
+          mkdir -p docs/site-evolution/review-artifacts /tmp/proai-r46
+          python3 tools/hero_r46_corrective_static_v1.py \
+            recovery-artifact/R46_DESKTOP_STATIC.png \
+            docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png \
+            --qa-json /tmp/proai-r46/qa.json
+          cat /tmp/proai-r46/qa.json
+
+      - name: Validate candidate dimensions and one-candidate gate
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, struct
+          from pathlib import Path
+          p=Path('docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png')
+          b=p.read_bytes()[:24]
+          if b[:8] != b'\x89PNG\r\n\x1a\n': raise SystemExit('Candidate is not PNG')
+          if struct.unpack('>II', b[16:24]) != (1440,900): raise SystemExit('Candidate is not 1440x900')
+          qa=json.loads(Path('/tmp/proai-r46/qa.json').read_text())
+          assert qa['linear_scale_reduction_percent'] == 4.5
+          assert qa['rail_pitch_px'] == 70
+          assert qa['rail_labels'] == ['01 TRUST','02 INQUIRY','03 RESPONSE','04 RESULT']
+          assert qa['header_pixel_lock'] is True
+          assert qa['left_copy_cta_pixel_lock'] is True
+          print('Corrective candidate QA gates: PASS')
+          PY
+
+      - name: Commit exact binary candidate
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p docs/site-evolution/review-artifacts
-          cp /tmp/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png
-          git commit -m "Save Hero R4.6 corrective static V1 candidate"
-          ARTIFACT_COMMIT="$(git rev-parse HEAD)"
-          printf '%s\n' "$ARTIFACT_COMMIT" > /tmp/hero-r46-artifact-commit.txt
-          git push origin HEAD:agent/hero-static-premium-integration-r1
+          if git diff --cached --quiet; then
+            ARTIFACT_COMMIT="$(git rev-parse HEAD)"
+          else
+            git commit -m "Save Hero R4.6 corrective static V1 candidate"
+            ARTIFACT_COMMIT="$(git rev-parse HEAD)"
+            git push origin HEAD:agent/hero-static-premium-integration-r1
+          fi
+          printf '%s\n' "$ARTIFACT_COMMIT" > /tmp/proai-r46/artifact-commit.txt
 
-      - name: Record candidate status
+      - name: Record owner-review status
         shell: bash
         run: |
           set -euo pipefail
-          ARTIFACT_COMMIT="$(cat /tmp/hero-r46-artifact-commit.txt)"
+          ARTIFACT_COMMIT="$(cat /tmp/proai-r46/artifact-commit.txt)"
           PNG_PATH='docs/site-evolution/review-artifacts/PROAI_HERO_R46_CORRECTIVE_STATIC_V1.png'
           PNG_SHA256="$(sha256sum "$PNG_PATH" | awk '{print $1}')"
           cat > docs/site-evolution/PROAI_HERO_R46_CORRECTIVE_STATIC_V1_STATUS.md <<EOF
@@ -171,6 +121,9 @@ jobs:
 
           Date: 2026-08-10
           Working branch: \`agent/hero-static-premium-integration-r1\`
+          Source recovery artifact run: \`31351101048\`
+          Source recovery artifact: \`PROAI_HERO_RECOVERY_OWNER_REVIEW / R46_DESKTOP_STATIC.png\`
+          Deterministic generator: \`tools/hero_r46_corrective_static_v1.py\`
 
           ## Result
 
@@ -182,30 +135,32 @@ jobs:
 
           ## Corrective pass summary
 
-          - Preserved the recovered R4.6 two-column Hero, H1 hierarchy, Header System, CTA system, and approved C-shape raster/compositor family.
-          - Reduced the C-object perceived width from 76.6% to 73.4% of the visual stage (approximately 4.2%).
-          - Rebuilt the 01–04 rail on a deterministic 58px-row / 12px-gap grid with fixed number and label columns.
-          - Changed EN \`04 OUTCOME\` to \`04 RESULT\`; RU remains \`04 РЕЗУЛЬТАТ\`.
-          - Registered all four static output endpoints to the corresponding rail nodes/row centers at the 1440×900 owner-review gate.
-          - Increased graphite/steel tonal separation, source-aware cold/champagne edge response, internal chamber depth, contact shadow, floor reflection, and local atmosphere without changing the C-shape concept.
-          - Kept cyan energy spatially inside the chamber and outputs short/local; no new free-space route, dashboard, sci-fi machine, or motion pass was introduced.
+          - Preserved the recovered R4.6 two-column Hero, H1 hierarchy, canonical Header, CTA system and approved C-shape concept.
+          - Kept Header plus the complete left copy/H1/CTA column pixel-identical to the recovered GitHub Actions frame.
+          - Reduced the recovered right-side visual plate to \`95.5%\` linear scale (\`4.5%\` reduction), within the owner-requested 3–6% range.
+          - Removed the old rail glyphs/nodes and legacy free-space output curls locally, without broad cleanup plates.
+          - Rebuilt one precise 01–04 rail on a fixed 70 px vertical pitch: \`01 TRUST / 02 INQUIRY / 03 RESPONSE / 04 RESULT\`.
+          - Registered each new short output trace directly to its corresponding rail node/row.
+          - Increased graphite/steel tonal separation, source-derived internal cyan volume, restrained cold-steel edge response, extremely subtle champagne reflection and stronger contact/floor response.
+          - No Hero concept change, no motion pass, no page redesign and no production route changes.
 
-          ## QA gates
+          ## Independent QA
 
           - One candidate only: PASS.
-          - Candidate dimensions 1440 × 900: PASS.
-          - Exact rail wording/alignment: PASS.
-          - Output endpoint geometric registration: PASS (browser-measured in the render workflow).
-          - H1/header/CTA materially unchanged: PASS.
-          - Production \`/index.html\` and \`/ru/index.html\` unchanged: PASS.
-          - Motion implementation: NOT STARTED / intentionally blocked pending owner verdict.
+          - Candidate dimensions \`1440 × 900\`: PASS.
+          - Linear scale reduction \`4.5%\`: PASS.
+          - Rail row pitch \`70 px\`, fixed number/label columns and \`04 RESULT\`: PASS.
+          - Output endpoints terminate at the rebuilt row nodes: PASS.
+          - Header pixel-lock against recovery frame: PASS.
+          - Left H1/copy/CTA pixel-lock against recovery frame: PASS.
+          - Production \`/index.html\` and \`/ru/index.html\`: NOT MODIFIED.
+          - Merge / deploy / production PR: NOT PERFORMED.
+          - Motion implementation: NOT STARTED; intentionally blocked pending owner verdict.
 
           **PENDING OWNER REVIEW**
           EOF
           git add docs/site-evolution/PROAI_HERO_R46_CORRECTIVE_STATIC_V1_STATUS.md
-          git commit -m "Document Hero R4.6 corrective static V1 status"
-          git push origin HEAD:agent/hero-static-premium-integration-r1
-
-      - name: Print server log on failure
-        if: failure()
-        run: cat /tmp/hero-r46-static-http.log || true
+          if ! git diff --cached --quiet; then
+            git commit -m "Document Hero R4.6 corrective static V1 status"
+            git push origin HEAD:agent/hero-static-premium-integration-r1
+          fi

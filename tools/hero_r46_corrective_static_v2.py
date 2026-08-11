@@ -61,11 +61,10 @@ def cyan_mask(rgb: np.ndarray, s_min=50, v_min=38) -> np.ndarray:
 def add_rail_and_outputs(rgb: np.ndarray, font_path: str):
     rgba = Image.fromarray(rgb).convert("RGBA")
     rows = [400, 470, 540, 610]
-    # V2 moves the rail only as far right as required to put the top-row trace fully outside
-    # the clean upper-right metal face. Rhythm and semantics remain V1-derived.
     node_x = 1320
-    # Per-row physical shell exits. No trace is drawn left of these exits.
-    exit_x = [1312, 1240, 1239, 1264]
+    # Preserve source-faithful collector segments inside the open aperture, then reveal only a
+    # short external trace after each physical exit. Upper row exits after the projecting metal.
+    exit_x = [1312, 1232, 1240, 1262]
 
     glow = Image.new("RGBA", (1440, 900), (0, 0, 0, 0))
     gd = ImageDraw.Draw(glow, "RGBA")
@@ -150,13 +149,13 @@ def main() -> None:
     hsv[:, :, 1] = np.clip(s, 0, 255).astype(np.uint8)
     work = cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)
 
-    # Remove only legacy external cyan curls. The upper-right metal zone is intentionally excluded:
-    # the raw compositor is already clean there, so touching it would risk exactly the V1 erosion failure.
+    # Remove legacy external curls only after their source-faithful collector segments have
+    # cleared the internal glass/aperture. Upper-right metal is never touched by cleanup.
     cm = cyan_mask(work, 50, 38)
     gate = np.zeros((900, 1440), np.uint8)
-    gate[435:505, 1208:1390] = 1
-    gate[505:575, 1228:1390] = 1
-    gate[575:645, 1238:1390] = 1
+    gate[435:505, 1228:1390] = 1
+    gate[505:575, 1236:1390] = 1
+    gate[575:645, 1258:1390] = 1
     gate[645:700, 1274:1390] = 1
     cleanup = (cm & (gate > 0)).astype(np.uint8) * 255
     cleanup = cv2.dilate(cleanup, np.ones((3, 3), np.uint8), iterations=1)
@@ -207,7 +206,7 @@ def main() -> None:
         "core_linear_scale": 0.955,
         "core_linear_scale_reduction_percent": 4.5,
         "material_method": "browser compositor registered planes; no luminance/content alpha object extraction",
-        "cleanup_method": "thin colour-selective legacy-curl inpaint in lower free-space/exit gates only; upper-right metal excluded",
+        "cleanup_method": "thin colour-selective legacy-curl inpaint after preserved collector segments; upper-right metal excluded",
         "rail_rows_y": rows,
         "rail_pitch_px": 70,
         "rail_node_x": node_x,

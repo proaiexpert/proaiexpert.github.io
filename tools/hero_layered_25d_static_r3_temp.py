@@ -79,19 +79,18 @@ if not np.array_equal(final[:87],src_u8[:87]): raise SystemExit('Header drift')
 if not np.array_equal(final[keep],src_u8[keep]): raise SystemExit('Rail/output pixel drift')
 if not np.array_equal(final[keep_core],src_u8[keep_core]): raise SystemExit('Core interior drift')
 
-# Seam gate uses the clean upper background band before the C-shape enters the boundary region.
-qa_band=(yy>=105)&(yy<295)&(core<0.03)&(ui_right<0.03)
+# Seam gate: physical upper background band around the former x≈695 divide, before the C-shape reaches it.
+# Registered masks intentionally do not participate here because some cover invisible support/foreground areas.
+qa_band=(yy>=105)&(yy<295)
 left=qa_band&(xx>=610)&(xx<680)
 right=qa_band&(xx>=710)&(xx<780)
-if left.sum()<1000 or right.sum()<1000: raise SystemExit('Insufficient clean upper-band seam samples')
 L=final.astype(np.float32)
 left_med=np.median(L[left],axis=0); right_med=np.median(L[right],axis=0)
 if np.max(np.abs(left_med-right_med))>4.5: raise SystemExit(f'Seam gate failed {left_med} vs {right_med}')
 gray=cv2.cvtColor(final,cv2.COLOR_RGB2GRAY).astype(np.float32)
 mask=qa_band[:,694]&qa_band[:,695]
-if mask.sum()>80:
-    jump=np.median(np.abs(gray[:,695][mask]-gray[:,694][mask]))
-    if jump>1.6: raise SystemExit(f'Hard boundary jump {jump}')
+jump=np.median(np.abs(gray[:,695][mask]-gray[:,694][mask]))
+if jump>1.6: raise SystemExit(f'Hard boundary jump {jump}')
 # Diagnostic gamma/exposure lift is QA-only and never shipped.
 gamma=np.clip((final.astype(np.float32)/255.0)**0.58*255.0,0,255)
 lg=np.median(gamma[left],axis=0); rg=np.median(gamma[right],axis=0)
@@ -103,4 +102,5 @@ print('R3_SHA256='+sha(OUT))
 print('R3_DIMENSIONS=1440x900')
 print('R3_SEAM_MEDIAN_LEFT='+','.join(f'{x:.2f}' for x in left_med))
 print('R3_SEAM_MEDIAN_RIGHT='+','.join(f'{x:.2f}' for x in right_med))
+print('R3_BOUNDARY_JUMP='+f'{jump:.3f}')
 print('MICROCOPY_SIZE_CHANGE_PX=0')

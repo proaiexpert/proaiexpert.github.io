@@ -85,6 +85,27 @@ The status must remain `PENDING OWNER REVIEW` until the owner explicitly approve
 
 A future fresh chat must be able to recover the exact candidate from GitHub alone.
 
+## LONG-TERM HOMEPAGE / HERO KNOWLEDGE RECOVERY — READ-ONLY CONTEXT
+
+The accumulated Homepage + Hero research, accepted decision gates, benchmark synthesis, branch/SHA history, technical constraints, rejected paths and asset locations are preserved here:
+
+`docs/site-evolution/PROAI_HOMEPAGE_HERO_MASTER_RECOVERY_PACK_2026-08-10.md`
+
+The dedicated visual/image asset index is:
+
+`docs/site-evolution/PROAI_HOMEPAGE_HERO_ASSET_INDEX_2026-08-10.md`
+
+These two files are **recovery / knowledge indexes only**. They must not override the current corrective-static task above.
+
+Use them to recover prior research without restarting settled benchmark, copy, architecture or technical work.
+
+Important supersession reminder:
+
+- older Hero material may contain `04 OUTCOME`;
+- the current owner correction is `04 RESULT`;
+- older Homepage/Hero documents may contain the rejected three-line H1 model;
+- do not restore it as the current primary Hero architecture.
+
 ## SAFETY
 
 Do not modify production `/index.html` or `/ru/index.html`.

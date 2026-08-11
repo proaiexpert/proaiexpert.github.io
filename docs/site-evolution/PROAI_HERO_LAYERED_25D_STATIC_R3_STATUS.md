@@ -14,9 +14,9 @@ Status: **PENDING OWNER REVIEW**
 ## R3 owner-review result
 
 - Candidate: `docs/site-evolution/review-artifacts/PROAI_HERO_LAYERED_25D_STATIC_R3.png`
-- Candidate commit: `4c4ec9aeee9047d4ab685322751cafdf70a3e6ed`
+- Candidate commit: `f2e734c357cb155396ae8f74266dbfee1ba964fb`
 - Dimensions: `1440 × 900`
-- PNG SHA-256: `fd049642b4b27b373f441621164ef3d1e7d2adf59f07bfe6061ca7b2e2a33ea2`
+- PNG SHA-256: `c21c99731aed3dc4093d5890733096ee87d74d9c6e5590940631e44e16e13f87`
 - Status: **PENDING OWNER REVIEW**
 
 ## Global background strategy
@@ -35,7 +35,7 @@ The R2 frame is decomposed into a low-frequency dark surface estimate plus high-
 - Cyan/green/blue-steel response is a set of wide, transparent, low-frequency light fields localized around the Core and lower floor response.
 - The atmosphere decays progressively toward the central/left whitespace and approaches zero without a vertical termination.
 - A restrained shared floor/atmosphere response crosses the former divide to provide a static composition bridge without a beam, cable, fog wall or rectangular gradient plate.
-- Registered Core, output and rail pixels are composited over the shared field using the existing depth/alpha foundation.
+- Registered physical Core, contact response, output and rail remain on the existing layered geometry; the support-only foreground occlusion mask is not used as a full-frame background lock.
 
 ## Preserved R2 foundation
 
@@ -58,11 +58,12 @@ The R2 frame is decomposed into a low-frequency dark surface estimate plus high-
 
 - Exact R2 SHA validation: PASS.
 - Candidate dimensions `1440 × 900`: PASS.
+- R3 is materially different from R2: PASS.
 - One common near-black body base: PASS.
 - Former seam sampled under normal and diagnostic gamma/exposure lift: PASS.
 - No rectangular right-field edge / independent panel logic: PASS.
 - Header exact R2 pixels: PASS.
-- Strong Core interior registration: PASS.
+- Strong physical Core interior registration: PASS.
 - Rail/output registered pixels: PASS.
 - Production `/index.html` modified: **NO**.
 - Production `/ru/index.html` modified: **NO**.

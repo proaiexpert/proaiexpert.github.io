@@ -130,6 +130,21 @@ let webmPath;
   const page = await context.newPage();
   await ready(page, routes.en);
   const video = page.video();
+
+  // Full-frame marker is inserted only into the raw capture after the Hero is ready. The final
+  // encoding trims through the end of this marker, so it never appears in the review MP4.
+  await page.evaluate(() => {
+    const marker = document.createElement('div');
+    marker.id = 'hero-core2-capture-marker';
+    Object.assign(marker.style, {
+      position: 'fixed', inset: '0', background: '#ffffff', zIndex: '2147483647', pointerEvents: 'none'
+    });
+    document.body.appendChild(marker);
+  });
+  await page.waitForTimeout(240);
+  await page.evaluate(() => document.getElementById('hero-core2-capture-marker')?.remove());
+  await page.waitForTimeout(120);
+
   const stages = page.locator('[data-hero-core2-stage-button]');
   await stages.nth(0).click();
   await page.waitForTimeout(1900);
@@ -146,7 +161,8 @@ let webmPath;
 
 await browser.close();
 
-// Detect the first dark Hero frame instead of assuming a fixed browser-navigation pre-roll.
+// Find the last full-white marker frame. Initial browser pre-roll may also be white, so the last
+// high-luminance frame is the stable boundary immediately before the deterministic Hero sequence.
 const statsPath = path.join(videoDir, 'signalstats.txt');
 const scan = spawnSync('ffmpeg', [
   '-y', '-i', webmPath,
@@ -156,16 +172,14 @@ const scan = spawnSync('ffmpeg', [
 if (scan.status !== 0) process.exit(scan.status ?? 1);
 
 let currentPts = 0;
-let trimStart = 0;
+let lastWhitePts = 0;
 for (const line of fs.readFileSync(statsPath, 'utf8').split(/\r?\n/)) {
   const tm = line.match(/pts_time:([0-9.]+)/);
   if (tm) currentPts = Number(tm[1]);
   const ym = line.match(/lavfi\.signalstats\.YAVG=([0-9.]+)/);
-  if (ym && Number(ym[1]) < 120) {
-    trimStart = Math.max(0, currentPts - 0.08);
-    break;
-  }
+  if (ym && Number(ym[1]) > 220) lastWhitePts = currentPts;
 }
+const trimStart = Math.max(0, lastWhitePts + 0.08);
 diagnostics.motionTrimStartSeconds = Number(trimStart.toFixed(3));
 
 const mp4 = path.join(out, 'CORE2_EN_DESKTOP_MOTION.mp4');

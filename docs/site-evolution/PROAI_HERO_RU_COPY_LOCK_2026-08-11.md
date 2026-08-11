@@ -1,17 +1,17 @@
 # ProAI Expert Hero — Russian Copy Lock
 
 Date: 2026-08-11  
-Status: **CURRENT RU HERO COPY LOCK / DISCUSSION BASELINE**  
+Status: **FINAL RU HERO COPY LOCK**  
 Scope: **HERO ONLY**  
 Branch: `agent/hero-layered-25d-static-r1`
 
-This document fixes the current Russian Hero communication so it is not silently changed in later design or implementation passes.
+This document fixes the final agreed Russian Hero communication so it is not silently changed in later design or implementation passes.
 
 It does **not** authorize production changes, deployment, merge, motion work, or redesign of the rest of the homepage.
 
 ---
 
-# 1. Russian Hero — current locked copy
+# 1. Final Russian Hero copy
 
 ## Eyebrow
 
@@ -25,7 +25,7 @@ It does **not** authorize production changes, deployment, merge, motion work, or
 
 ## Supporting copy
 
-`Создаём премиальные сайты для компаний в сфере услуг и соединяем их с AI-системами и автоматизацией. Клиенту проще понять ваши услуги и обратиться с нужной информацией, а вам — быстрее отвечать и меньше тратить времени на рутину. Важные решения остаются за человеком.`
+`Создаём премиальные сайты для компаний сферы услуг и соединяем их с AI и автоматизацией. Клиенту проще понять ваши услуги и обратиться с нужной информацией, вам — быстрее ответить и меньше заниматься рутиной. Ключевые решения — за вами.`
 
 ## Primary CTA
 
@@ -56,78 +56,59 @@ Canonical semantic chain:
 
 ---
 
-# 2. What changed in the supporting copy
+# 2. Final H1 decision
 
-Previous version:
+Selected:
 
-`Создаём премиальные сайты для компаний в сфере услуг и соединяем их с AI-системами и автоматизацией. Клиенту проще понять ваши услуги и обратиться, а вам — получать нужную информацию, быстрее отвечать и тратить меньше времени на повторяющиеся задачи. Важные решения остаются за человеком.`
+`От первого впечатления до результата — одна система.`
 
-Current locked version:
+Why it stays:
+
+- `система` is the strongest semantic anchor for a studio connecting premium websites, AI and automation;
+- `одна` is shorter and more direct than `единая`;
+- the em dash preserves one continuous idea: the full span from first impression to result is handled as one connected system;
+- it maps cleanly to the visual four-stage journey and the System Core concept;
+- alternatives such as `весь путь клиента`, `единый путь`, `всё работает вместе`, `всё связано` and `через одну систему` either weaken the technology/system anchor, become more generic, or become more explanatory.
+
+The punctuation remains an em dash, not a forced split into `От первого впечатления до результата. Одна система.` The split version is punchier but makes `Одна система.` more product-like and more semantically detached from the first clause.
+
+---
+
+# 3. Final supporting-copy decision
+
+Previous longer version:
 
 `Создаём премиальные сайты для компаний в сфере услуг и соединяем их с AI-системами и автоматизацией. Клиенту проще понять ваши услуги и обратиться с нужной информацией, а вам — быстрее отвечать и меньше тратить времени на рутину. Важные решения остаются за человеком.`
 
-Reason for change:
+Final version:
 
-- preserves the same commercial meaning;
-- removes duplicated explanation of information capture;
-- makes the inquiry stage more concrete: the client reaches out **with the needed information**;
-- shortens `повторяющиеся задачи` to the more natural Hero-level `рутину`;
-- keeps human control as the closing trust statement;
-- improves scan speed without weakening the integrated website + AI + automation positioning.
+`Создаём премиальные сайты для компаний сферы услуг и соединяем их с AI и автоматизацией. Клиенту проще понять ваши услуги и обратиться с нужной информацией, вам — быстрее ответить и меньше заниматься рутиной. Ключевые решения — за вами.`
 
----
+Why this version:
 
-# 3. Independent semantic comparison — РЕЗУЛЬТАТ vs FOLLOW-THROUGH
+- keeps the bespoke-studio verb `Создаём` instead of turning the support copy into a product fragment;
+- keeps the audience qualifier `компании сферы услуг`;
+- simplifies `AI-системы и автоматизация` to `AI и автоматизация` because the H1 already carries the system concept;
+- preserves the important inquiry-quality idea `обратиться с нужной информацией`;
+- compresses the business benefit to `быстрее ответить и меньше заниматься рутиной`;
+- changes the passive/general `важные решения остаются за человеком` into the more direct owner-facing `Ключевые решения — за вами.`;
+- reduces density without reducing the Hero to vague brand language.
 
-`FOLLOW-THROUGH` is **not** the same as `follow-up`.
-
-Its closest practical meaning in this context is:
-
-`доведение начатого до конца / последовательное выполнение следующих шагов`.
-
-## FOLLOW-THROUGH — strengths
-
-- operationally precise;
-- describes continuation after the first response;
-- avoids sounding like a guarantee of a commercial business outcome;
-- closes the English phrase `From first impression to follow-through` naturally.
-
-## FOLLOW-THROUGH — weaknesses for Russian localization
-
-A literal Russian equivalent becomes long and weak for a premium Hero:
-
-- `доведение до конца`;
-- `последующие действия`;
-- `сопровождение следующих шагов`;
-- `доведение следующих шагов до конца`.
-
-These are less immediate, less memorable, and visually heavier than one strong noun.
-
-## РЕЗУЛЬТАТ — strengths
-
-- one short, strong business word;
-- immediately understandable in Russian;
-- gives the four-stage journey a clear endpoint;
-- creates a clean semantic loop with the H1: `От первого впечатления до результата — одна система.`;
-- reads more confidently and more naturally in a premium Russian Hero.
-
-## РЕЗУЛЬТАТ — risk
-
-The word can theoretically sound broader than the system can guarantee. That risk is controlled by the surrounding copy, which makes no revenue, conversion, lead, or business-success guarantee and explains the actual operational value: better inquiry context, faster response, less routine work, human control.
-
-## Decision
-
-For the **Russian Hero**, keep:
-
-`04 РЕЗУЛЬТАТ`
-
-Do not replace it with a literal translation of `FOLLOW-THROUGH`.
-
-English and Russian may remain localized counterparts rather than mechanical translations.
+No fixed rule such as “support copy must be 1–1.5 lines” is treated as authoritative; line count depends on viewport, type size and measure. The acceptance criterion is fast scanning, clean hierarchy and preservation of the core meaning.
 
 ---
 
-# 4. Scope lock
+# 4. Stage lock
+
+For Russian Hero:
+
+`ДОВЕРИЕ → ОБРАЩЕНИЕ → ОТВЕТ → РЕЗУЛЬТАТ`
+
+`РЕЗУЛЬТАТ` remains the final Russian fourth stage. Do not replace it with a literal localization of `FOLLOW-THROUGH`.
+
+---
+
+# 5. Scope lock
 
 This document concerns only the Russian Hero communication.
 

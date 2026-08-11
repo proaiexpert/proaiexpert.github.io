@@ -99,6 +99,13 @@ These two files are **recovery / knowledge indexes only**. They must not overrid
 
 Use them to recover prior research without restarting settled benchmark, copy, architecture or technical work.
 
+The existing Google Drive Hero review folder also contains a cross-reference pointer back to these GitHub indexes:
+
+`PROAI_HOMEPAGE_HERO_RECOVERY_POINTER_2026-08-10.md`
+
+- Drive file ID: `1qmlZ-x_kIWDAbIooP1i1rBu7QmVSAlLb`
+- Drive folder ID: `1wqHjUAfk2vOJcY013V0EX2LtK0aszPZS`
+
 Important supersession reminder:
 
 - older Hero material may contain `04 OUTCOME`;

@@ -6,7 +6,9 @@ on:
       - agent/hero-premium-core-2-r1
     paths:
       - assets/css/hero-premium-core-2.css
+      - assets/css/hero-premium-core-2-r2.css
       - assets/js/hero-premium-core-2.js
+      - assets/js/hero-premium-core-2-r2.js
       - hero-premium-core-2-preview/**
       - ru/hero-premium-core-2-preview/**
       - tools/hero_premium_core_2_owner_review.mjs
@@ -17,7 +19,9 @@ on:
       - agent/hero-layered-25d-static-r1
     paths:
       - assets/css/hero-premium-core-2.css
+      - assets/css/hero-premium-core-2-r2.css
       - assets/js/hero-premium-core-2.js
+      - assets/js/hero-premium-core-2-r2.js
       - hero-premium-core-2-preview/**
       - ru/hero-premium-core-2-preview/**
       - tools/hero_premium_core_2_owner_review.mjs
@@ -126,11 +130,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -q 'sdRoundBox' assets/js/hero-premium-core-2.js
-          grep -q 'curveDistance' assets/js/hero-premium-core-2.js
-          grep -q 'innerDistanceFromObject' assets/js/hero-premium-core-2.js
-          grep -q 'requestAnimationFrame' assets/js/hero-premium-core-2.js
-          if grep -Eq 'THREE\.BoxGeometry|new THREE\.BoxGeometry|stroke-dasharray: *4, *12' assets/js/hero-premium-core-2.js assets/css/hero-premium-core-2.css; then
+          grep -q 'sdRoundBox' assets/js/hero-premium-core-2-r2.js
+          grep -q 'sdCapsule' assets/js/hero-premium-core-2-r2.js
+          grep -q 'curveDistance' assets/js/hero-premium-core-2-r2.js
+          grep -q 'innerDistanceFromObject' assets/js/hero-premium-core-2-r2.js
+          grep -q 'requestAnimationFrame' assets/js/hero-premium-core-2-r2.js
+          grep -q "hero-premium-core-2-r2.js" hero-premium-core-2-preview/index.html
+          grep -q "hero-premium-core-2-r2.js" ru/hero-premium-core-2-preview/index.html
+          if grep -Eq 'THREE\.BoxGeometry|new THREE\.BoxGeometry|stroke-dasharray: *4, *12' assets/js/hero-premium-core-2-r2.js assets/css/hero-premium-core-2-r2.css; then
             echo 'Rejected primitive/orbit language detected.' >&2
             exit 1
           fi

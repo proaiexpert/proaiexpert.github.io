@@ -35,10 +35,9 @@ async function ready(page, route, reducedMotion = 'no-preference') {
   await page.waitForFunction(() => document.documentElement.classList.contains('hero-core2--ready'), null, { timeout: 20000 });
   await page.waitForTimeout(550);
   if (errors.length) throw new Error(errors.join('\n'));
-  return errors;
 }
 
-async function captureStatic({ locale, width, height, mobile, file }) {
+async function captureStatic({ locale, width, height, mobile, file, minVisualRatio = 0 }) {
   const context = await browser.newContext({
     viewport: { width, height },
     deviceScaleFactor: 1,
@@ -47,23 +46,36 @@ async function captureStatic({ locale, width, height, mobile, file }) {
   });
   const page = await context.newPage();
   await ready(page, routes[locale]);
-  const diagnostics = await page.evaluate(() => ({
-    ready: document.documentElement.classList.contains('hero-core2--ready'),
-    fallback: document.documentElement.classList.contains('hero-core2--fallback'),
-    scrollWidth: document.documentElement.scrollWidth,
-    innerWidth: window.innerWidth,
-    title: document.querySelector('.hero-core2__title')?.textContent?.trim(),
-    lead: document.querySelector('.hero-core2__lead')?.textContent?.trim(),
-    primary: document.querySelector('.hero-core2__button--primary span')?.textContent?.trim(),
-    stageLabels: [...document.querySelectorAll('.hero-core2__stage-label')].map(el => el.textContent.trim()),
-    canvas: (() => {
-      const c = document.querySelector('[data-hero-core2-canvas]');
-      const gl = c?.getContext('webgl2');
-      return { width: c?.width || 0, height: c?.height || 0, webgl2: !!gl };
-    })()
-  }));
+  const diagnostics = await page.evaluate(() => {
+    const visual = document.querySelector('[data-hero-core2-visual]');
+    const rect = visual?.getBoundingClientRect();
+    const viewportVisible = rect ? Math.max(0, Math.min(rect.bottom, innerHeight) - Math.max(rect.top, 0)) : 0;
+    return {
+      ready: document.documentElement.classList.contains('hero-core2--ready'),
+      fallback: document.documentElement.classList.contains('hero-core2--fallback'),
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      title: document.querySelector('.hero-core2__title')?.textContent?.trim(),
+      lead: document.querySelector('.hero-core2__lead')?.textContent?.trim(),
+      primary: document.querySelector('.hero-core2__button--primary span')?.textContent?.trim(),
+      stageLabels: [...document.querySelectorAll('.hero-core2__stage-label')].map(el => el.textContent.trim()),
+      visual: rect ? {
+        top: Math.round(rect.top),
+        bottom: Math.round(rect.bottom),
+        height: Math.round(rect.height),
+        viewportRatio: Number((viewportVisible / Math.max(rect.height, 1)).toFixed(3))
+      } : null,
+      canvas: (() => {
+        const c = document.querySelector('[data-hero-core2-canvas]');
+        const gl = c?.getContext('webgl2');
+        return { width: c?.width || 0, height: c?.height || 0, webgl2: !!gl };
+      })()
+    };
+  });
   if (!diagnostics.ready || diagnostics.fallback || !diagnostics.canvas.webgl2) throw new Error(`${locale} ${width}x${height}: WebGL2 did not reach ready state`);
   if (diagnostics.scrollWidth > diagnostics.innerWidth + 1) throw new Error(`${locale} ${width}x${height}: horizontal overflow ${diagnostics.scrollWidth} > ${diagnostics.innerWidth}`);
+  if (minVisualRatio && (diagnostics.visual?.viewportRatio || 0) < minVisualRatio) throw new Error(`${locale} ${width}x${height}: Core visibility ratio ${(diagnostics.visual?.viewportRatio || 0)} < ${minVisualRatio}`);
   await page.screenshot({ path: path.join(out, file), fullPage: false });
   await context.close();
   return diagnostics;
@@ -72,9 +84,10 @@ async function captureStatic({ locale, width, height, mobile, file }) {
 const diagnostics = {
   enDesktop: await captureStatic({ locale: 'en', width: 1440, height: 900, mobile: false, file: 'CORE2_EN_DESKTOP_1440x900.png' }),
   ruDesktop: await captureStatic({ locale: 'ru', width: 1440, height: 900, mobile: false, file: 'CORE2_RU_DESKTOP_1440x900.png' }),
-  enMobile: await captureStatic({ locale: 'en', width: 390, height: 844, mobile: true, file: 'CORE2_EN_MOBILE_390x844.png' }),
-  ruMobile: await captureStatic({ locale: 'ru', width: 390, height: 844, mobile: true, file: 'CORE2_RU_MOBILE_390x844.png' }),
-  enNarrow: await captureStatic({ locale: 'en', width: 320, height: 780, mobile: true, file: 'CORE2_EN_MOBILE_320x780.png' })
+  enMobile: await captureStatic({ locale: 'en', width: 390, height: 844, mobile: true, file: 'CORE2_EN_MOBILE_390x844.png', minVisualRatio: 0.54 }),
+  ruMobile: await captureStatic({ locale: 'ru', width: 390, height: 844, mobile: true, file: 'CORE2_RU_MOBILE_390x844.png', minVisualRatio: 0.50 }),
+  enNarrow: await captureStatic({ locale: 'en', width: 320, height: 780, mobile: true, file: 'CORE2_EN_MOBILE_320x780.png', minVisualRatio: 0.72 }),
+  enLandscape: await captureStatic({ locale: 'en', width: 844, height: 390, mobile: true, file: 'CORE2_EN_LANDSCAPE_844x390.png', minVisualRatio: 0.78 })
 };
 
 // Reduced-motion runtime gate: WebGL remains available but the final/result state is static.
@@ -130,6 +143,7 @@ for (const file of [
   'CORE2_EN_MOBILE_390x844.png',
   'CORE2_RU_MOBILE_390x844.png',
   'CORE2_EN_MOBILE_320x780.png',
+  'CORE2_EN_LANDSCAPE_844x390.png',
   'CORE2_EN_REDUCED_MOTION_390x844.png',
   'CORE2_EN_DESKTOP_MOTION.mp4',
   'diagnostics.json'

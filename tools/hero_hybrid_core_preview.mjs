@@ -38,6 +38,17 @@ async function captureStatic(filename, viewport, options = {}) {
   });
   const page = await context.newPage();
   await waitForCore(page, options.settleMs ?? 8500);
+
+  // Full-page mobile captures must exercise the same offscreen visibility path as a real scroll.
+  // Render the Core once while its scene intersects the viewport, then return to the top so the
+  // resulting screenshot represents the complete page rather than an unpainted offscreen canvas.
+  if (options.fullPage) {
+    await page.locator('#hybrid-system-scene').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(700);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(150);
+  }
+
   await page.screenshot({
     path: path.join(outDir, filename),
     fullPage: options.fullPage ?? false,

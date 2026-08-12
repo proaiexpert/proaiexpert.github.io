@@ -9,7 +9,6 @@ const canvas = document.getElementById('cube-canvas');
 const status = document.getElementById('runtime-status');
 const params = new URLSearchParams(location.search);
 const captureMode = params.has('capture');
-const qaMode = params.has('qa');
 const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const AXES = ['X', 'Y', 'Z'];
@@ -41,6 +40,24 @@ const MOTION = Object.freeze({
   },
 });
 
+const PRESENTATION_R1_1 = Object.freeze({
+  inspectionDurationRangeMs: [6400, 8800],
+  autonomousYawRangeDeg: [150, 360],
+  fullTurnDeg: 360,
+  easingProfiles: Object.freeze([
+    [0.42, 0.0, 0.12, 1.0],
+    [0.38, 0.0, 0.10, 1.0],
+    [0.46, 0.0, 0.14, 1.0],
+  ]),
+  moves: Object.freeze([
+    Object.freeze({ yawDeg: 150, pitchAmpDeg: 6.2, rollAmpDeg: -1.05, durationMs: 6400, holdMs: 1450, easing: [0.42, 0.0, 0.12, 1.0] }),
+    Object.freeze({ yawDeg: -225, pitchAmpDeg: -7.6, rollAmpDeg: 1.45, durationMs: 7600, holdMs: 1720, easing: [0.38, 0.0, 0.10, 1.0] }),
+    Object.freeze({ yawDeg: 360, pitchAmpDeg: 7.5, rollAmpDeg: -1.35, durationMs: 8800, holdMs: 2180, easing: [0.46, 0.0, 0.14, 1.0], rare: true }),
+    Object.freeze({ yawDeg: 175, pitchAmpDeg: -5.8, rollAmpDeg: 0.95, durationMs: 6900, holdMs: 1580, easing: [0.40, 0.0, 0.11, 1.0] }),
+  ]),
+  overlapStartProgress: 0.72,
+});
+
 const PRIMARY_PHRASE = Object.freeze([
   { axis: 'X', layer: 1, direction: 1, durationMs: 1380, holdMs: 1480 },
   { axis: 'Y', layer: 0, direction: -1, durationMs: 1320, holdMs: 560 },
@@ -63,20 +80,6 @@ const RESOLUTION_PHRASE = Object.freeze(
 );
 
 const CHOREOGRAPHY = Object.freeze([...PRIMARY_PHRASE, ...RESOLUTION_PHRASE]);
-
-
-const PRESENTATION = Object.freeze({
-  rotationRangeDeg: [138, 360],
-  durationRangeMs: [5800, 9600],
-  settleRangeMs: [1300, 1800],
-  inspectionMoves: Object.freeze([
-    Object.freeze({ id: 'inspection-156', yawDeg: 156, targetPitchDeg: 6.0, targetRollDeg: -0.8, pitchWaveDeg: 4.8, rollWaveDeg: 0.65, durationMs: 6200, settleMs: 1350, easing: [0.48, 0.0, 0.38, 1.0], sliceTrigger: 0.72 }),
-    Object.freeze({ id: 'inspection-minus228', yawDeg: -228, targetPitchDeg: -5.0, targetRollDeg: 0.6, pitchWaveDeg: -5.8, rollWaveDeg: -0.90, durationMs: 7600, settleMs: 1500, easing: [0.44, 0.0, 0.34, 1.0], sliceTrigger: 0.75 }),
-    Object.freeze({ id: 'inspection-360', yawDeg: 360, targetPitchDeg: 3.0, targetRollDeg: -0.3, pitchWaveDeg: 6.5, rollWaveDeg: 1.10, durationMs: 9600, settleMs: 1800, easing: [0.50, 0.0, 0.40, 1.0], sliceTrigger: 0.78 }),
-    Object.freeze({ id: 'inspection-minus138', yawDeg: -138, targetPitchDeg: 0.0, targetRollDeg: 0.0, pitchWaveDeg: -4.2, rollWaveDeg: 0.70, durationMs: 5800, settleMs: 1300, easing: [0.46, 0.0, 0.42, 1.0], sliceTrigger: 0.70 }),
-  ]),
-  triggerSliceIndices: Object.freeze([2, 5, 10, 14]),
-});
 
 const GEOMETRY_R1 = Object.freeze({
   faceOuterSize: 196.8,
@@ -164,7 +167,7 @@ let cubeCenterLocal = new THREE.Vector3();
 let activeTurn = null;
 let motionState = 'loading';
 let motionBusy = false;
-let choreographyEnabled = !captureMode && !qaMode && !prefersReducedMotion;
+let choreographyEnabled = !captureMode && !prefersReducedMotion;
 let choreographyRunning = false;
 let interactionActive = false;
 let manualResumeAt = 0;
@@ -174,18 +177,18 @@ let frozenPresentationQuaternion = new THREE.Quaternion();
 let lastTurnResult = null;
 let turnSerial = 0;
 let geometryStats = null;
-let presentationAngles = { yaw: 0, pitch: 0, roll: 0 };
-let activePresentationMove = null;
-let lastPresentationMove = null;
-let presentationMoveSerial = 0;
-let presentationCycle = 0;
+let presentationBaseQuaternion = new THREE.Quaternion();
+let activeInspection = null;
+let inspectionSerial = 0;
+let presentationLastNow = 0;
+let reviewInspection = null;
 
 const api = {
   ready: false,
   motionState,
   motionConfig: MOTION,
   geometryConfig: GEOMETRY_R1,
-  presentationConfig: PRESENTATION,
+  presentationConfig: PRESENTATION_R1_1,
   geometry: null,
   hierarchy: null,
   mechanics: null,
@@ -207,11 +210,9 @@ const api = {
   },
   beginReviewTurn,
   setReviewTurnProgress,
+  beginReviewInspection,
+  setReviewInspectionProgress,
   setReviewPresentation,
-  beginReviewPresentationMove,
-  setReviewPresentationMoveProgress,
-  runPresentationMove,
-  getPresentationState,
   renderReviewFrame,
   captureFrame(type = 'image/png', quality = 0.94) {
     renderReviewFrame();
@@ -915,8 +916,8 @@ function driftQuaternion(timeMs) {
   return new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, roll, 'XYZ'));
 }
 
-function presentationBezierEase(x, easing) {
-  const [x1, y1, x2, y2] = easing;
+function presentationBezierEase(x, curve) {
+  const [x1, y1, x2, y2] = curve;
   const cx = 3 * x1;
   const bx = 3 * (x2 - x1) - cx;
   const ax = 1 - cx - bx;
@@ -933,128 +934,60 @@ function presentationBezierEase(x, easing) {
     if (Math.abs(error) < 1e-7 || Math.abs(slope) < 1e-7) break;
     t = THREE.MathUtils.clamp(t - error / slope, 0, 1);
   }
-  let low = 0;
-  let high = 1;
-  for (let i = 0; i < 10 && Math.abs(sampleX(t) - x) > 1e-6; i += 1) {
-    if (sampleX(t) < x) low = t;
-    else high = t;
-    t = (low + high) * 0.5;
-  }
   return sampleY(t);
 }
 
-function presentationBaseQuaternion(angles = presentationAngles) {
-  return new THREE.Quaternion().setFromEuler(new THREE.Euler(angles.pitch, angles.yaw, angles.roll, 'YXZ')).normalize();
+function inspectionDeltaQuaternion(move, eased) {
+  const yaw = THREE.MathUtils.degToRad(move.yawDeg) * eased;
+  const arc = Math.sin(Math.PI * eased);
+  const pitch = THREE.MathUtils.degToRad(move.pitchAmpDeg) * arc;
+  const roll = THREE.MathUtils.degToRad(move.rollAmpDeg) * arc;
+  return new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, roll, 'YXZ')).normalize();
 }
 
-function presentationTargetQuaternion(timeMs) {
-  return presentationBaseQuaternion().multiply(driftQuaternion(timeMs)).normalize();
+function inspectionFinalYawQuaternion(move) {
+  return new THREE.Quaternion().setFromAxisAngle(AXIS_VECTOR.Y, THREE.MathUtils.degToRad(move.yawDeg)).normalize();
 }
 
-function getPresentationState() {
-  return {
-    anglesDeg: {
-      yaw: THREE.MathUtils.radToDeg(presentationAngles.yaw),
-      pitch: THREE.MathUtils.radToDeg(presentationAngles.pitch),
-      roll: THREE.MathUtils.radToDeg(presentationAngles.roll),
-    },
-    cycle: presentationCycle,
-    activeMove: activePresentationMove ? {
-      id: activePresentationMove.definition.id,
-      serial: activePresentationMove.serial,
-      linear: activePresentationMove.linear,
-      eased: activePresentationMove.eased,
-      yawDeltaDeg: activePresentationMove.definition.yawDeg,
-      durationMs: activePresentationMove.definition.durationMs,
-    } : null,
-    lastMove: lastPresentationMove,
-  };
+function currentPresentationTarget(now) {
+  const target = presentationBaseQuaternion.clone();
+  if (activeInspection) target.multiply(inspectionDeltaQuaternion(activeInspection.move, activeInspection.eased));
+  target.multiply(driftQuaternion(now));
+  return target.normalize();
 }
 
-function resolvePresentationDefinition(input) {
-  if (typeof input === 'string') {
-    const found = PRESENTATION.inspectionMoves.find((move) => move.id === input);
-    if (!found) throw new Error(`Unknown presentation move ${input}`);
-    return found;
-  }
-  if (!input || typeof input !== 'object') throw new Error('Presentation move definition required');
-  return {
-    id: input.id || `custom-${presentationMoveSerial + 1}`,
-    yawDeg: Number(input.yawDeg || 0),
-    targetPitchDeg: Number(input.targetPitchDeg || 0),
-    targetRollDeg: Number(input.targetRollDeg || 0),
-    pitchWaveDeg: Number(input.pitchWaveDeg || 0),
-    rollWaveDeg: Number(input.rollWaveDeg || 0),
-    durationMs: Number(input.durationMs || 6200),
-    settleMs: Number(input.settleMs || 1400),
-    easing: Array.isArray(input.easing) ? input.easing : [0.42, 0, 0.12, 1],
-    sliceTrigger: Number.isFinite(input.sliceTrigger) ? input.sliceTrigger : 0.74,
-  };
+function beginInspection(move) {
+  if (activeInspection) return false;
+  activeInspection = { serial: ++inspectionSerial, move, elapsedMs: 0, eased: 0, linear: 0, lastNow: performance.now(), resolve: null };
+  return activeInspection;
 }
 
-function beginPresentationMove(input) {
-  if (activePresentationMove) throw new Error('A whole-cube presentation move is already active');
-  const definition = resolvePresentationDefinition(input);
-  const startAngles = { ...presentationAngles };
-  const targetAngles = {
-    yaw: startAngles.yaw + THREE.MathUtils.degToRad(definition.yawDeg),
-    pitch: THREE.MathUtils.degToRad(definition.targetPitchDeg),
-    roll: THREE.MathUtils.degToRad(definition.targetRollDeg),
-  };
-  activePresentationMove = {
-    serial: ++presentationMoveSerial,
-    definition,
-    startAngles,
-    targetAngles,
-    linear: 0,
-    eased: 0,
-  };
-  return activePresentationMove;
+function finalizeInspection() {
+  if (!activeInspection) return false;
+  const finished = activeInspection;
+  presentationBaseQuaternion.multiply(inspectionFinalYawQuaternion(finished.move)).normalize();
+  activeInspection = null;
+  if (finished.resolve) finished.resolve({ serial: finished.serial, yawDeg: finished.move.yawDeg, durationMs: finished.move.durationMs });
+  return true;
 }
 
-function setPresentationMoveProgress(linear, { finalize = false } = {}) {
-  if (!activePresentationMove) throw new Error('No active whole-cube presentation move');
-  const progress = THREE.MathUtils.clamp(linear, 0, 1);
-  const move = activePresentationMove;
-  const eased = presentationBezierEase(progress, move.definition.easing);
-  const wave = Math.sin(Math.PI * eased);
-  move.linear = progress;
-  move.eased = eased;
-  presentationAngles.yaw = THREE.MathUtils.lerp(move.startAngles.yaw, move.targetAngles.yaw, eased);
-  presentationAngles.pitch = THREE.MathUtils.lerp(move.startAngles.pitch, move.targetAngles.pitch, eased)
-    + THREE.MathUtils.degToRad(move.definition.pitchWaveDeg) * wave;
-  presentationAngles.roll = THREE.MathUtils.lerp(move.startAngles.roll, move.targetAngles.roll, eased)
-    + THREE.MathUtils.degToRad(move.definition.rollWaveDeg) * wave;
-  if (finalize || progress >= 1) return finalizePresentationMove();
-  return getPresentationState().activeMove;
-}
-
-function finalizePresentationMove() {
-  if (!activePresentationMove) throw new Error('No active whole-cube presentation move to finalize');
-  const move = activePresentationMove;
-  presentationAngles = { ...move.targetAngles };
-  lastPresentationMove = {
-    serial: move.serial,
-    id: move.definition.id,
-    yawDeltaDeg: move.definition.yawDeg,
-    durationMs: move.definition.durationMs,
-    settleMs: move.definition.settleMs,
-    easing: [...move.definition.easing],
-    endpointLinear: 1,
-    finalAnglesDeg: {
-      yaw: THREE.MathUtils.radToDeg(presentationAngles.yaw),
-      pitch: THREE.MathUtils.radToDeg(presentationAngles.pitch),
-      roll: THREE.MathUtils.radToDeg(presentationAngles.roll),
-    },
-  };
-  activePresentationMove = null;
-  return lastPresentationMove;
-}
-
-function updatePresentationPose(now) {
+function updatePresentationMotion(now) {
   if (!api.ready || captureMode) return;
-  if (interactionActive || now < manualResumeAt) return;
-  const target = presentationTargetQuaternion(now);
+  if (!presentationLastNow) presentationLastNow = now;
+  const delta = Math.max(0, now - presentationLastNow);
+  presentationLastNow = now;
+  const blocked = autonomyBlocked();
+  if (activeInspection) {
+    activeInspection.lastNow = now;
+    if (!blocked) {
+      activeInspection.elapsedMs += delta;
+      activeInspection.linear = THREE.MathUtils.clamp(activeInspection.elapsedMs / activeInspection.move.durationMs, 0, 1);
+      activeInspection.eased = presentationBezierEase(activeInspection.linear, activeInspection.move.easing);
+      if (activeInspection.linear >= 1) finalizeInspection();
+    }
+  }
+  if (blocked) return;
+  const target = currentPresentationTarget(now);
   if (presentationResumeStart > 0 && now < presentationResumeStart + MOTION.manualResumeBlendMs) {
     const progress = smoothstep((now - presentationResumeStart) / MOTION.manualResumeBlendMs);
     presentationRig.quaternion.slerpQuaternions(presentationResumeFrom, target, progress).normalize();
@@ -1062,6 +995,14 @@ function updatePresentationPose(now) {
     presentationRig.quaternion.copy(target);
     if (presentationResumeStart > 0) presentationResumeStart = 0;
   }
+}
+
+function animateInspection(move) {
+  return new Promise((resolve) => {
+    const state = beginInspection(move);
+    if (!state) { resolve(false); return; }
+    state.resolve = resolve;
+  });
 }
 
 async function sleepAutonomous(durationMs) {
@@ -1076,40 +1017,30 @@ async function sleepAutonomous(durationMs) {
   }
 }
 
-async function animatePresentationMove(input, concurrentSlice = null) {
-  const move = beginPresentationMove(input);
-  let elapsed = 0;
-  let previous = performance.now();
-  let slicePromise = null;
-  await new Promise((resolve) => {
-    function tick(now) {
-      const delta = Math.max(0, now - previous);
-      previous = now;
-      const blocked = autonomyBlocked();
-      if (!blocked) elapsed += delta;
-      const linear = THREE.MathUtils.clamp(elapsed / Math.max(1, move.definition.durationMs), 0, 1);
-      if (!blocked) setPresentationMoveProgress(linear);
-      if (!slicePromise && concurrentSlice && !blocked && linear >= move.definition.sliceTrigger && !motionBusy && motionState === 'rest') {
-        slicePromise = turnSlice({ ...concurrentSlice, ignoreInteraction: true });
-      }
-      if (linear >= 1) {
-        if (activePresentationMove) setPresentationMoveProgress(1, { finalize: true });
-        resolve();
-        return;
-      }
-      requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  });
-  if (slicePromise) await slicePromise;
-  while (motionBusy || activeTurn) await sleep(16);
-  return lastPresentationMove;
+async function runAutonomousSlice(move) {
+  while (autonomyBlocked() && choreographyEnabled) await sleep(48);
+  if (!choreographyEnabled) return false;
+  const result = await turnSlice({ ...move, ignoreInteraction: false });
+  if (!result) return false;
+  await sleepAutonomous(move.holdMs);
+  return result;
 }
 
-async function runPresentationMove(input = 'inspection-156', concurrentSlice = null) {
-  if (!api.ready || activePresentationMove) return false;
-  if (autonomyBlocked()) return false;
-  return animatePresentationMove(input, concurrentSlice);
+async function runAutonomousInspection(move, overlapSlice = null) {
+  while (autonomyBlocked() && choreographyEnabled) await sleep(48);
+  if (!choreographyEnabled) return false;
+  const inspectionPromise = animateInspection(move);
+  if (overlapSlice) {
+    await sleepAutonomous(move.durationMs * PRESENTATION_R1_1.overlapStartProgress);
+    while (autonomyBlocked() && choreographyEnabled) await sleep(48);
+    if (choreographyEnabled) {
+      await turnSlice({ ...overlapSlice, ignoreInteraction: false });
+      await sleepAutonomous(overlapSlice.holdMs);
+    }
+  }
+  await inspectionPromise;
+  await sleepAutonomous(move.holdMs);
+  return true;
 }
 
 async function autonomousLoop() {
@@ -1117,23 +1048,19 @@ async function autonomousLoop() {
   choreographyRunning = true;
   await sleepAutonomous(1550);
   while (choreographyEnabled) {
-    for (let index = 0; index < CHOREOGRAPHY.length; index += 1) {
-      if (!choreographyEnabled) break;
-      while ((autonomyBlocked() || motionBusy || activeTurn) && choreographyEnabled) await sleep(48);
-      if (!choreographyEnabled) break;
-      const move = CHOREOGRAPHY[index];
-      const presentationSlot = PRESENTATION.triggerSliceIndices.indexOf(index);
-      if (presentationSlot >= 0) {
-        const inspection = PRESENTATION.inspectionMoves[presentationSlot];
-        await animatePresentationMove(inspection, move);
-        await sleepAutonomous(inspection.settleMs);
-        await sleepAutonomous(move.holdMs);
-      } else {
-        await turnSlice({ ...move, ignoreInteraction: true });
-        await sleepAutonomous(move.holdMs);
-      }
-    }
-    presentationCycle += 1;
+    let i = 0;
+    await runAutonomousSlice(CHOREOGRAPHY[i++]);
+    await runAutonomousSlice(CHOREOGRAPHY[i++]);
+    await runAutonomousInspection(PRESENTATION_R1_1.moves[0], CHOREOGRAPHY[i++]);
+    await runAutonomousSlice(CHOREOGRAPHY[i++]);
+    await runAutonomousSlice(CHOREOGRAPHY[i++]);
+    await runAutonomousInspection(PRESENTATION_R1_1.moves[1]);
+    await runAutonomousSlice(CHOREOGRAPHY[i++]);
+    await runAutonomousSlice(CHOREOGRAPHY[i++]);
+    await runAutonomousSlice(CHOREOGRAPHY[i++]);
+    await runAutonomousInspection(PRESENTATION_R1_1.moves[2], CHOREOGRAPHY[i++]);
+    while (i < CHOREOGRAPHY.length && choreographyEnabled) await runAutonomousSlice(CHOREOGRAPHY[i++]);
+    if (choreographyEnabled) await runAutonomousInspection(PRESENTATION_R1_1.moves[3]);
   }
   choreographyRunning = false;
 }
@@ -1143,12 +1070,11 @@ function getInteractionState() {
   return {
     interactionActive,
     autonomyBlocked: autonomyBlocked(),
-    resumeDelayRemainingMs: Number.isFinite(manualResumeAt) ? Math.max(0, manualResumeAt - now) : null,
+    resumeDelayRemainingMs: Math.max(0, manualResumeAt - now),
     presentationResumeActive: presentationResumeStart > 0 && now < presentationResumeStart + MOTION.manualResumeBlendMs,
     cameraPosition: camera.position.toArray(),
     presentationQuaternion: presentationRig.quaternion.toArray(),
-    activeSlice: activeTurn ? { axis: activeTurn.axis, layer: activeTurn.layer, direction: activeTurn.direction, linear: activeTurn.linear } : null,
-    presentation: getPresentationState(),
+    activeInspection: activeInspection ? { serial: activeInspection.serial, yawDeg: activeInspection.move.yawDeg, linear: activeInspection.linear, eased: activeInspection.eased } : null,
   };
 }
 
@@ -1184,9 +1110,32 @@ function setReviewTurnProgress(linear) {
   return result;
 }
 
+function beginReviewInspection(index = 0) {
+  if (!captureMode || !api.ready || reviewInspection) return false;
+  const move = PRESENTATION_R1_1.moves[index];
+  if (!move) return false;
+  reviewInspection = { index, move, baseQuaternion: presentationBaseQuaternion.clone() };
+  return { index, ...move };
+}
+
+function setReviewInspectionProgress(linear, timeSec = 0) {
+  if (!captureMode || !reviewInspection) return false;
+  const progress = THREE.MathUtils.clamp(linear, 0, 1);
+  const eased = presentationBezierEase(progress, reviewInspection.move.easing);
+  const target = reviewInspection.baseQuaternion.clone().multiply(inspectionDeltaQuaternion(reviewInspection.move, eased)).multiply(driftQuaternion(Math.max(0, timeSec) * 1000)).normalize();
+  presentationRig.quaternion.copy(target);
+  const result = { index: reviewInspection.index, progress, eased, yawTravelDeg: reviewInspection.move.yawDeg * eased, pitchAmpDeg: reviewInspection.move.pitchAmpDeg, rollAmpDeg: reviewInspection.move.rollAmpDeg };
+  if (progress >= 1) {
+    presentationBaseQuaternion.copy(reviewInspection.baseQuaternion).multiply(inspectionFinalYawQuaternion(reviewInspection.move)).normalize();
+    reviewInspection = null;
+  }
+  renderReviewFrame();
+  return result;
+}
+
 function setReviewPresentation(timeSec = 0, resumeProgress = 1) {
   if (!captureMode || !api.ready) return false;
-  const target = presentationTargetQuaternion(Math.max(0, timeSec) * 1000);
+  const target = presentationBaseQuaternion.clone().multiply(driftQuaternion(Math.max(0, timeSec) * 1000)).normalize();
   if (resumeProgress < 1) {
     const progress = smoothstep(resumeProgress);
     presentationRig.quaternion.slerpQuaternions(frozenPresentationQuaternion, target, progress).normalize();
@@ -1195,21 +1144,6 @@ function setReviewPresentation(timeSec = 0, resumeProgress = 1) {
   }
   renderReviewFrame();
   return presentationRig.quaternion.toArray();
-}
-
-function beginReviewPresentationMove(input = 'inspection-360') {
-  if (!captureMode || !api.ready || activePresentationMove) return false;
-  const move = beginPresentationMove(input);
-  return { id: move.definition.id, yawDeg: move.definition.yawDeg, durationMs: move.definition.durationMs };
-}
-
-function setReviewPresentationMoveProgress(linear, timeSec = 0) {
-  if (!captureMode || !activePresentationMove) return false;
-  const progress = THREE.MathUtils.clamp(linear, 0, 1);
-  const result = setPresentationMoveProgress(progress, { finalize: progress >= 1 });
-  presentationRig.quaternion.copy(presentationTargetQuaternion(Math.max(0, timeSec) * 1000));
-  renderReviewFrame();
-  return result;
 }
 
 function renderReviewFrame() {
@@ -1244,6 +1178,11 @@ function getDiagnostics() {
     hierarchy: api.hierarchy,
     mechanics: api.mechanics,
     motionConfig: MOTION,
+    presentationConfig: PRESENTATION_R1_1,
+    presentation: {
+      baseQuaternion: presentationBaseQuaternion.toArray(),
+      activeInspection: activeInspection ? { serial: activeInspection.serial, yawDeg: activeInspection.move.yawDeg, durationMs: activeInspection.move.durationMs, linear: activeInspection.linear, eased: activeInspection.eased } : null,
+    },
     activeTurn: activeTurn ? {
       axis: activeTurn.axis,
       layer: activeTurn.layer,
@@ -1272,7 +1211,7 @@ function resize() {
 window.addEventListener('resize', resize, { passive: true });
 
 function render(now) {
-  updatePresentationPose(now);
+  updatePresentationMotion(now);
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(render);

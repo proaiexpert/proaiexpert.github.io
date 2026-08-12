@@ -90,6 +90,35 @@ jobs:
           cat /tmp/proai-presentation-vite.log
           exit 1
 
+      - name: Browser startup diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$DIR"
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--use-angle=swiftshader']});
+          const page = await browser.newPage({viewport:{width:900,height:1040}});
+          const errors=[];
+          page.on('pageerror', e => { errors.push(`PAGEERROR: ${e.stack || e}`); console.log(errors.at(-1)); });
+          page.on('console', m => { if (m.type()==='error') { errors.push(`CONSOLE: ${m.text()}`); console.log(errors.at(-1)); } });
+          await page.goto('http://127.0.0.1:4173/?capture=1', {waitUntil:'networkidle', timeout:60000});
+          await page.waitForTimeout(5000);
+          const state = await page.evaluate(() => ({
+            hasApi: Boolean(window.__PROAI_CUBE_R1),
+            ready: window.__PROAI_CUBE_R1?.ready ?? null,
+            motionState: window.__PROAI_CUBE_R1?.motionState ?? null,
+            status: document.getElementById('runtime-status')?.textContent ?? null,
+          }));
+          console.log('STARTUP_STATE', JSON.stringify(state));
+          await browser.close();
+          if (!state.ready) {
+            console.log('VITE_LOG');
+            process.exitCode = 2;
+          }
+          NODE
+          if [ $? -ne 0 ]; then cat /tmp/proai-presentation-vite.log || true; exit 1; fi
+
       - name: Mechanical presentation interaction QA and owner review capture
         shell: bash
         env:

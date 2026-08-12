@@ -25,15 +25,8 @@ jobs:
           from pathlib import Path
           p = Path('docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/main.js')
           s = p.read_text()
-          old = '''function directChildSignature(group) {
-  return group.children.map((child) => child.name).filter(Boolean).sort();
-}'''
-          new = '''function directChildSignature(group) {
-  return group.children
-    .map((child) => child.name?.replace(/_\\d+$/, ''))
-    .filter(Boolean)
-    .sort();
-}'''
+          old = "function directChildSignature(group) {\n  return group.children.map((child) => child.name).filter(Boolean).sort();\n}"
+          new = "function directChildSignature(group) {\n  return group.children\n    .map((child) => child.name?.replace(/_[0-9]+$/, ''))\n    .filter(Boolean)\n    .sort();\n}"
           if old not in s:
               raise SystemExit('Expected directChildSignature function not found')
           p.write_text(s.replace(old, new, 1))

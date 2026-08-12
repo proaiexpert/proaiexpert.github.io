@@ -20,7 +20,13 @@ const MOTION = Object.freeze({
   orbitZoomSpeed: 0.55,
 });
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  alpha: false,
+  powerPreference: 'high-performance',
+  preserveDrawingBuffer: captureMode,
+});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -97,6 +103,11 @@ const api = {
   resetSlice,
   runRepeatabilityTest,
   getDiagnostics,
+  captureFrame() {
+    controls.update();
+    renderer.render(scene, camera);
+    return canvas.toDataURL('image/png');
+  },
   stopAutoLoop() { autoLoopEnabled = false; },
   startAutoLoop() {
     if (!prefersReducedMotion) {

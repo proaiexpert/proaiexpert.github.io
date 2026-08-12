@@ -19,15 +19,94 @@ jobs:
         with:
           ref: agent/proai-cube-threejs-mechanical-r0
           fetch-depth: 0
-      - name: Patch deterministic motion and video QA
+
+      - name: Patch two-pass WebM normalization
         run: |
-          echo 'CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAppbXBvcnQgcmUKCnAgPSBQYXRoKCdkb2NzL3NpdGUtZXZvbHV0aW9uL3NwbGluZS9wcm9haS1jdWJlLXRocmVlanMtbWVjaGFuaWNhbC1yMC9jYXB0dXJlLm1qcycpCnMgPSBwLnJlYWRfdGV4dCgpCgptID0gcmUuc2VhcmNoKHIiZnVuY3Rpb24gcmV0aW1lUmV2aWV3VmlkZW9cKHJhd1ZpZGVvLCB0YXJnZXRWaWRlbywgc291cmNlRHVyYXRpb25TZWNcKSBcey4qP1xuXH1cblxuY29uc3QgdGVsZW1ldHJ5IiwgcywgcmUuUykKaWYgbm90IG06CiAgICByYWlzZSBTeXN0ZW1FeGl0KCdyZXRpbWVSZXZpZXdWaWRlbyBibG9jayBub3QgZm91bmQnKQoKbmV3ID0gciIiImZ1bmN0aW9uIGVuY29kZVJldGltZWRWaWRlbyhmZm1wZWdQYXRoLCByYXdWaWRlbywgdGFyZ2V0VmlkZW8sIHRpbWVzdGFtcFNjYWxlKSB7CiAgY29uc3QgcmVzdWx0ID0gc3Bhd25TeW5jKAogICAgZmZtcGVnUGF0aCwKICAgIFsKICAgICAgJy15JywKICAgICAgJy1pdHNzY2FsZScsIFN0cmluZyh0aW1lc3RhbXBTY2FsZSksCiAgICAgICctaScsIHJhd1ZpZGVvLAogICAgICAnLW1hcCcsICcwOnY6MCcsCiAgICAgICctYW4nLAogICAgICAnLWM6dicsICdsaWJ2cHgnLAogICAgICAnLWRlYWRsaW5lJywgJ3JlYWx0aW1lJywKICAgICAgJy1jcHUtdXNlZCcsICc4JywKICAgICAgJy1waXhfZm10JywgJ3l1djQyMHAnLAogICAgICAnLWF1dG8tYWx0LXJlZicsICcwJywKICAgICAgJy1iOnYnLCAnMTIwMGsnLAogICAgICB0YXJnZXRWaWRlbywKICAgIF0sCiAgICB7IGVuY29kaW5nOiAndXRmOCcgfSwKICApOwogIGlmIChyZXN1bHQuc3RhdHVzICE9PSAwIHx8ICFmcy5leGlzdHNTeW5jKHRhcmdldFZpZGVvKSkgewogICAgdGhyb3cgbmV3IEVycm9yKGBQbGF5d3JpZ2h0IGZmbXBlZyBWUDggcmV0aW1lIGZhaWxlZDogJHtyZXN1bHQuc3RkZXJyIHx8IHJlc3VsdC5zdGRvdXQgfHwgYGV4aXQgJHtyZXN1bHQuc3RhdHVzfWB9YCk7CiAgfQp9CgpmdW5jdGlvbiByZXRpbWVSZXZpZXdWaWRlbyhyYXdWaWRlbywgdGFyZ2V0VmlkZW8sIHNvdXJjZUR1cmF0aW9uU2VjKSB7CiAgY29uc3QgZmZtcGVnUGF0aCA9IGZpbmRQbGF5d3JpZ2h0RmZtcGVnKCk7CiAgY29uc3QgcGFzc09uZVZpZGVvID0gYCR7dGFyZ2V0VmlkZW99LnBhc3Mtb25lLndlYm1gOwogIGxldCB0aW1lc3RhbXBTY2FsZSA9IFRBUkdFVF9WSURFT19EVVJBVElPTl9TRUMgLyBzb3VyY2VEdXJhdGlvblNlYzsKCiAgZW5jb2RlUmV0aW1lZFZpZGVvKGZmbXBlZ1BhdGgsIHJhd1ZpZGVvLCBwYXNzT25lVmlkZW8sIHRpbWVzdGFtcFNjYWxlKTsKICBjb25zdCBmaXJzdFBhc3NEdXJhdGlvblNlYyA9IHByb2JlV2VibUR1cmF0aW9uKGZmbXBlZ1BhdGgsIHBhc3NPbmVWaWRlbyk7CiAgaWYgKGZpcnN0UGFzc0R1cmF0aW9uU2VjID09IG51bGwgfHwgZmlyc3RQYXNzRHVyYXRpb25TZWMgPD0gMCkgewogICAgdGhyb3cgbmV3IEVycm9yKCdVbmFibGUgdG8gdmVyaWZ5IGZpcnN0LXBhc3MgV2ViTSBkdXJhdGlvbicpOwogIH0KCiAgdGltZXN0YW1wU2NhbGUgKj0gVEFSR0VUX1ZJREVPX0RVUkFUSU9OX1NFQyAvIGZpcnN0UGFzc0R1cmF0aW9uU2VjOwogIGVuY29kZVJldGltZWRWaWRlbyhmZm1wZWdQYXRoLCByYXdWaWRlbywgdGFyZ2V0VmlkZW8sIHRpbWVzdGFtcFNjYWxlKTsKICBjb25zdCBvdXRwdXREdXJhdGlvblNlYyA9IHByb2JlV2VibUR1cmF0aW9uKGZmbXBlZ1BhdGgsIHRhcmdldFZpZGVvKTsKICBmcy5ybVN5bmMocGFzc09uZVZpZGVvLCB7IGZvcmNlOiB0cnVlIH0pOwogIGlmIChvdXRwdXREdXJhdGlvblNlYyA9PSBudWxsKSB0aHJvdyBuZXcgRXJyb3IoJ1VuYWJsZSB0byB2ZXJpZnkgcmV0aW1lZCBXZWJNIGR1cmF0aW9uJyk7CiAgcmV0dXJuIHsgZmZtcGVnUGF0aCwgdGltZXN0YW1wU2NhbGUsIGZpcnN0UGFzc0R1cmF0aW9uU2VjLCBvdXRwdXREdXJhdGlvblNlYyB9Owp9CgpmdW5jdGlvbiBjdWJpY0JlemllclByb2dyZXNzKGNvbnRyb2wsIHgpIHsKICBjb25zdCBbeDEsIHkxLCB4MiwgeTJdID0gY29udHJvbDsKICBjb25zdCBjdWJpYyA9IChhLCBiLCBjLCB0KSA9PiAzICogYSAqICgxIC0gdCkgKiogMiAqIHQgKyAzICogYiAqICgxIC0gdCkgKiB0ICoqIDIgKyBjICogdCAqKiAzOwogIGxldCBsb3cgPSAwOwogIGxldCBoaWdoID0gMTsKICBsZXQgdCA9IHg7CiAgZm9yIChsZXQgaSA9IDA7IGkgPCAyODsgaSArPSAxKSB7CiAgICB0ID0gKGxvdyArIGhpZ2gpIC8gMjsKICAgIGlmIChjdWJpYyh4MSwgeDIsIDEsIHQpIDwgeCkgbG93ID0gdDsKICAgIGVsc2UgaGlnaCA9IHQ7CiAgfQogIHJldHVybiBjdWJpYyh5MSwgeTIsIDEsIHQpOwp9CgpmdW5jdGlvbiBkZXRlcm1pbmlzdGljTW90aW9uQ3VydmUoY29uZmlnLCBzYW1wbGVDb3VudCA9IDI0MCkgewogIGNvbnN0IGFuZ2xlcyA9IFtdOwogIGZvciAobGV0IGkgPSAwOyBpIDw9IHNhbXBsZUNvdW50OyBpICs9IDEpIHsKICAgIGFuZ2xlcy5wdXNoKChNYXRoLlBJIC8gMikgKiBjdWJpY0JlemllclByb2dyZXNzKGNvbmZpZy5lYXNpbmcsIGkgLyBzYW1wbGVDb3VudCkpOwogIH0KICBjb25zdCBzdGVwcyA9IGFuZ2xlcy5zbGljZSgxKS5tYXAoKHZhbHVlLCBpbmRleCkgPT4gdmFsdWUgLSBhbmdsZXNbaW5kZXhdKTsKICBjb25zdCBtb25vdG9uaWMgPSBzdGVwcy5ldmVyeSgoc3RlcCkgPT4gc3RlcCA+PSAtMWUtMTIpOwogIGNvbnN0IG92ZXJzaG9vdCA9IGFuZ2xlcy5zb21lKChhbmdsZSkgPT4gYW5nbGUgPCAtMWUtMTIgfHwgYW5nbGUgPiBNYXRoLlBJIC8gMiArIDFlLTEyKTsKICBjb25zdCBmaXJzdFN0ZXBSYWQgPSBNYXRoLmFicyhzdGVwc1swXSk7CiAgY29uc3QgbGFzdFN0ZXBSYWQgPSBNYXRoLmFicyhzdGVwcy5hdCgtMSkpOwogIGNvbnN0IG1heEFic1N0ZXBSYWQgPSBNYXRoLm1heCguLi5zdGVwcy5tYXAoTWF0aC5hYnMpKTsKICByZXR1cm4gewogICAgc2FtcGxlQ291bnQsCiAgICBtb25vdG9uaWMsCiAgICBvdmVyc2hvb3QsCiAgICBmaXJzdFN0ZXBSYWQsCiAgICBsYXN0U3RlcFJhZCwKICAgIG1heEFic1N0ZXBSYWQsCiAgICBlbmRwb2ludEVycm9yUmFkOiBNYXRoLmFicyhhbmdsZXMuYXQoLTEpIC0gTWF0aC5QSSAvIDIpLAogIH07Cn0KCmNvbnN0IHRlbGVtZXRyeSIiIgpzID0gc1s6bS5zdGFydCgpXSArIG5ldyArIHNbbS5lbmQoKTpdCgpvbGRfZ2F0ZSA9ICIiImNvbnN0IG1vdGlvblRlbGVtZXRyeVBhc3MgPQogIEJvb2xlYW4oZm9yd2FyZCkgJiYKICBmb3J3YXJkLm1vbm90b25pYyA9PT0gdHJ1ZSAmJgogIGZvcndhcmQub3ZlcnNob290ID09PSBmYWxzZSAmJgogIE1hdGguYWJzKHR1cm5lZERpYWdub3N0aWNzLmVuZHBvaW50RXJyb3JSYWQgPz8gOTk5KSA8IDFlLTggJiYKICAoZm9yd2FyZC5maXJzdFN0ZXBSYWQgPz8gMSkgPCAwLjAyICYmCiAgKGZvcndhcmQubGFzdFN0ZXBSYWQgPz8gMSkgPCAwLjAzOyIiIgpuZXdfZ2F0ZSA9ICIiImNvbnN0IGRldGVybWluaXN0aWNDdXJ2ZSA9IGRldGVybWluaXN0aWNNb3Rpb25DdXJ2ZShpbml0aWFsRGlhZ25vc3RpY3MubW90aW9uQ29uZmlnKTsKY29uc3QgbW90aW9uVGVsZW1ldHJ5UGFzcyA9CiAgQm9vbGVhbihmb3J3YXJkKSAmJgogIGZvcndhcmQubW9ub3RvbmljID09PSB0cnVlICYmCiAgZm9yd2FyZC5vdmVyc2hvb3QgPT09IGZhbHNlICYmCiAgZGV0ZXJtaW5pc3RpY0N1cnZlLm1vbm90b25pYyA9PT0gdHJ1ZSAmJgogIGRldGVybWluaXN0aWNDdXJ2ZS5vdmVyc2hvb3QgPT09IGZhbHNlICYmCiAgZGV0ZXJtaW5pc3RpY0N1cnZlLmVuZHBvaW50RXJyb3JSYWQgPCAxZS0xMiAmJgogIGRldGVybWluaXN0aWNDdXJ2ZS5maXJzdFN0ZXBSYWQgPCAwLjAwMSAmJgogIGRldGVybWluaXN0aWNDdXJ2ZS5sYXN0U3RlcFJhZCA8IDAuMDAxICYmCiAgZGV0ZXJtaW5pc3RpY0N1cnZlLm1heEFic1N0ZXBSYWQgPCAwLjAyNSAmJgogIE1hdGguYWJzKHR1cm5lZERpYWdub3N0aWNzLmVuZHBvaW50RXJyb3JSYWQgPz8gOTk5KSA8IDFlLTg7IiIiCmlmIG9sZF9nYXRlIG5vdCBpbiBzOgogICAgcmFpc2UgU3lzdGVtRXhpdCgnbW90aW9uIHRlbGVtZXRyeSBnYXRlIG5vdCBmb3VuZCcpCnMgPSBzLnJlcGxhY2Uob2xkX2dhdGUsIG5ld19nYXRlLCAxKQoKaWYgIiAgcmVwZWF0YWJpbGl0eSxcbiAgdmlkZW86IHsiIGluIHM6CiAgICBzID0gcy5yZXBsYWNlKCIgIHJlcGVhdGFiaWxpdHksXG4gIHZpZGVvOiB7IiwgIiAgcmVwZWF0YWJpbGl0eSxcbiAgZGV0ZXJtaW5pc3RpY01vdGlvbkN1cnZlOiBkZXRlcm1pbmlzdGljQ3VydmUsXG4gIHZpZGVvOiB7IiwgMSkKCmlmICIgICAgdGltZXN0YW1wU2NhbGU6IHJldGltZS50aW1lc3RhbXBTY2FsZSxcbiAgICBieXRlTGVuZ3RoOiB0YXJnZXRWaWRlb0J5dGVzLCIgaW4gczoKICAgIHMgPSBzLnJlcGxhY2UoCiAgICAgICAgIiAgICB0aW1lc3RhbXBTY2FsZTogcmV0aW1lLnRpbWVzdGFtcFNjYWxlLFxuICAgIGJ5dGVMZW5ndGg6IHRhcmdldFZpZGVvQnl0ZXMsIiwKICAgICAgICAiICAgIHRpbWVzdGFtcFNjYWxlOiByZXRpbWUudGltZXN0YW1wU2NhbGUsXG4gICAgZmlyc3RQYXNzRHVyYXRpb25TZWM6IHJldGltZS5maXJzdFBhc3NEdXJhdGlvblNlYyxcbiAgICBieXRlTGVuZ3RoOiB0YXJnZXRWaWRlb0J5dGVzLCIsCiAgICAgICAgMSwKICAgICkKCnMgPSBzLnJlcGxhY2UoCiAgICAiYC0gRm9yd2FyZCB0ZWxlbWV0cnk6ICR7SlNPTi5zdHJpbmdpZnkoZm9yd2FyZCl9LlxcbmAgK1xuYC0gRnJhbWUtcmF0ZS1pbmRlcGVuZGVudCBib3VuZGFyeSBnYXRlOiBmaXJzdCBzdGVwICR7Zm9yd2FyZD8uZmlyc3RTdGVwUmFkfSwgbGFzdCBzdGVwICR7Zm9yd2FyZD8ubGFzdFN0ZXBSYWR9LCBtb25vdG9uaWMgJHtmb3J3YXJkPy5tb25vdG9uaWN9LCBvdmVyc2hvb3QgJHtmb3J3YXJkPy5vdmVyc2hvb3R9LlxcbmAgKyIsCiAgICAiYC0gQnJvd3NlciBmcmFtZSB0ZWxlbWV0cnk6ICR7SlNPTi5zdHJpbmdpZnkoZm9yd2FyZCl9LlxcbmAgK1xuYC0gRGV0ZXJtaW5pc3RpYyBlYXNpbmcgZ2F0ZSAoMjQwIHNhbXBsZXMsIGluZGVwZW5kZW50IG9mIENJIEZQUyk6ICR7SlNPTi5zdHJpbmdpZnkoZGV0ZXJtaW5pc3RpY0N1cnZlKX0uXFxuYCArIiwKICAgIDEsCikKcyA9IHMucmVwbGFjZSgKICAgICJgLSBDSSBzb3VyY2UgY2FwdHVyZSByYW4gJHtzb3VyY2VWaWRlb0R1cmF0aW9uU2VjLnRvRml4ZWQoMil9IHMgdW5kZXIgU3dpZnRTaGFkZXI7IHRpbWVzdGFtcHMgd2VyZSBub3JtYWxpemVkIGJ5IGZhY3RvciAke3JldGltZS50aW1lc3RhbXBTY2FsZS50b0ZpeGVkKDQpfSBhbmQgcmUtZW5jb2RlZCBhcyBWUDggdG8gcmVzdG9yZSBhIDEw4oCTMTUgcyByZXZpZXcgY2xpcCB3aGlsZSBwcmVzZXJ2aW5nIHJlbmRlcmVkIGZyYW1lIG9yZGVyLlxcblxcbmAgKyIsCiAgICAiYC0gQ0kgc291cmNlIGNhcHR1cmUgcmFuICR7c291cmNlVmlkZW9EdXJhdGlvblNlYy50b0ZpeGVkKDIpfSBzIHVuZGVyIFN3aWZ0U2hhZGVyOyBmaXJzdC1wYXNzIGVuY29kZWQgZHVyYXRpb24gd2FzICR7cmV0aW1lLmZpcnN0UGFzc0R1cmF0aW9uU2VjLnRvRml4ZWQoMil9IHMsIHRoZW4gdGltZXN0YW1wcyB3ZXJlIGNvcnJlY3RlZCBieSBmYWN0b3IgJHtyZXRpbWUudGltZXN0YW1wU2NhbGUudG9GaXhlZCg0KX0gYW5kIHJlLWVuY29kZWQgYXMgVlA4IHRvIHJlc3RvcmUgYSAxMOKAkzE1IHMgcmV2aWV3IGNsaXAgd2hpbGUgcHJlc2VydmluZyByZW5kZXJlZCBmcmFtZSBvcmRlci5cXG5cXG5gICsiLAogICAgMSwKKQoKcC53cml0ZV90ZXh0KHMpCg==' | base64 -d > /tmp/patch-r0.py
-          python /tmp/patch-r0.py
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs')
+          s = p.read_text()
+
+          start = s.find('function retimeReviewVideo(rawVideo, targetVideo) {')
+          end = s.find('\n\nconst telemetry', start)
+          if start < 0 or end < 0:
+              raise SystemExit('current retimeReviewVideo block not found')
+
+          replacement = r'''function retimeReviewVideo(rawVideo, targetVideo, sourceWallClockDurationSec) {
+  const ffmpegPath = findPlaywrightFfmpeg();
+  const passOneVideo = `${targetVideo}.pass-one.webm`;
+
+  const encode = (outputPath, timestampScale) => {
+    const result = spawnSync(
+      ffmpegPath,
+      [
+        '-y',
+        '-itsscale', String(timestampScale),
+        '-i', rawVideo,
+        '-map', '0:v:0',
+        '-an',
+        '-c:v', 'libvpx',
+        '-deadline', 'realtime',
+        '-cpu-used', '8',
+        '-pix_fmt', 'yuv420p',
+        '-auto-alt-ref', '0',
+        '-b:v', '1200k',
+        outputPath,
+      ],
+      { encoding: 'utf8' },
+    );
+    if (result.status !== 0 || !fs.existsSync(outputPath)) {
+      throw new Error(`Playwright ffmpeg VP8 retime failed: ${result.stderr || result.stdout || `exit ${result.status}`}`);
+    }
+  };
+
+  const initialTimestampScale = TARGET_VIDEO_DURATION_SEC / sourceWallClockDurationSec;
+  encode(passOneVideo, initialTimestampScale);
+  const firstPassDurationSec = probeWebmDuration(ffmpegPath, passOneVideo);
+  if (!firstPassDurationSec || firstPassDurationSec <= 0) {
+    throw new Error('Unable to verify first-pass WebM duration');
+  }
+
+  const correction = TARGET_VIDEO_DURATION_SEC / firstPassDurationSec;
+  const timestampScale = initialTimestampScale * correction;
+  encode(targetVideo, timestampScale);
+  const outputDurationSec = probeWebmDuration(ffmpegPath, targetVideo);
+  fs.rmSync(passOneVideo, { force: true });
+  if (outputDurationSec == null) throw new Error('Unable to verify retimed WebM duration');
+
+  const sourceMediaDurationSec = firstPassDurationSec / initialTimestampScale;
+  return {
+    sourceMediaDurationSec,
+    firstPassDurationSec,
+    initialTimestampScale,
+    correction,
+    timestampScale,
+    outputDurationSec,
+  };
+}'''
+
+          s = s[:start] + replacement + s[end:]
+          old_call = 'const retime = retimeReviewVideo(rawVideo, targetVideo);'
+          new_call = 'const retime = retimeReviewVideo(rawVideo, targetVideo, sourceWallClockDurationSec);'
+          if old_call not in s:
+              raise SystemExit('retime call site not found')
+          s = s.replace(old_call, new_call, 1)
+
+          old_video_meta = '    sourceMediaDurationSec: retime.sourceMediaDurationSec,\n    reviewDurationSec: videoDurationSec,'
+          new_video_meta = '    sourceMediaDurationSec: retime.sourceMediaDurationSec,\n    firstPassDurationSec: retime.firstPassDurationSec,\n    reviewDurationSec: videoDurationSec,'
+          if old_video_meta in s:
+              s = s.replace(old_video_meta, new_video_meta, 1)
+
+          p.write_text(s)
+          PY
           node --check docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs
+
       - name: Commit QA patch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs
-          git commit -m 'test: make R0 motion and video QA deterministic'
+          git commit -m 'test: normalize R0 WebM evidence in two passes'
           git push origin HEAD:agent/proai-cube-threejs-mechanical-r0

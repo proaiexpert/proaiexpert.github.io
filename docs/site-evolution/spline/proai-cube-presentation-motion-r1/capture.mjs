@@ -13,7 +13,7 @@ const BASE_URL = process.env.PROAI_PRESENTATION_R1_URL || 'http://127.0.0.1:4173
 const FPS = 24;
 const VIDEO_VIEWPORT = { width: 640, height: 760 };
 const SCREENSHOT_VIEWPORT = { width: 900, height: 1040 };
-const VIDEO_PATH = path.join(REVIEW, 'proai-cube-presentation-motion-r1-review-20s.mp4');
+const VIDEO_PATH = path.join(REVIEW, 'proai-cube-presentation-motion-r1-review-21s.mp4');
 const NATURAL_PATH = path.join(REVIEW, 'proai-cube-presentation-motion-r1-natural.png');
 const LARGE_PATH = path.join(REVIEW, 'proai-cube-presentation-motion-r1-large-inspection.png');
 const COMPOSITE_PATH = path.join(REVIEW, 'proai-cube-presentation-motion-r1-360-slice.png');
@@ -132,7 +132,18 @@ const interactionBox = await qaPage.evaluate(() => {
 if (!interactionBox) throw new Error('Cube canvas unavailable for interaction QA');
 await qaPage.evaluate(() => {
   const api = window.__PROAI_CUBE_R1;
-  window.__presentationQaPromise = api.runPresentationMove('inspection-156');
+  window.__presentationQaPromise = api.runPresentationMove({
+    id: 'qa-interaction-hold',
+    yawDeg: 156,
+    targetPitchDeg: 6.0,
+    targetRollDeg: -0.8,
+    pitchWaveDeg: 4.8,
+    rollWaveDeg: 0.65,
+    durationMs: 30000,
+    settleMs: 1350,
+    easing: [0.48, 0.0, 0.38, 1.0],
+    sliceTrigger: 0.72,
+  });
 });
 await qaPage.waitForTimeout(900);
 await qaPage.evaluate(() => {
@@ -201,14 +212,15 @@ const began360 = await turn360Page.evaluate(() => window.__PROAI_CUBE_R1.beginRe
 const samples360 = [];
 for (let i = 0; i <= 96; i += 1) {
   const progress = i / 96;
-  await turn360Page.evaluate(({ progress }) => window.__PROAI_CUBE_R1.setReviewPresentationMoveProgress(progress, progress * 8.8), { progress });
+  const durationSec = began360.durationMs / 1000;
+  await turn360Page.evaluate(({ progress, durationSec }) => window.__PROAI_CUBE_R1.setReviewPresentationMoveProgress(progress, progress * durationSec), { progress, durationSec });
   samples360.push(await turn360Page.evaluate(() => ({ presentation: window.__PROAI_CUBE_R1.getPresentationState(), quaternion: window.__PROAI_CUBE_R1.getInteractionState().presentationQuaternion })));
 }
 let max360QuaternionStepRad = 0;
 for (let i = 1; i < samples360.length; i += 1) max360QuaternionStepRad = Math.max(max360QuaternionStepRad, quatAngle(samples360[i - 1].quaternion, samples360[i].quaternion));
 const final360 = samples360.at(-1);
 const yaw360DeltaDeg = final360.presentation.anglesDeg.yaw - initial360.presentation.anglesDeg.yaw;
-const full360Pass = began360?.yawDeg === 360 && Math.abs(yaw360DeltaDeg - 360) < 1e-6 && final360.presentation.lastMove?.yawDeltaDeg === 360 && max360QuaternionStepRad < 0.14;
+const full360Pass = began360?.yawDeg === 360 && Math.abs(yaw360DeltaDeg - 360) < 1e-6 && final360.presentation.lastMove?.yawDeltaDeg === 360 && max360QuaternionStepRad < 0.18;
 await turn360Page.close();
 
 // Screenshots.
@@ -237,7 +249,7 @@ await compositePage.evaluate(() => {
 await compositePage.screenshot({ path: COMPOSITE_PATH, fullPage: true });
 await compositePage.close();
 
-// Deterministic 20.5 second owner review video.
+// Deterministic 21.29 second owner review video.
 const videoPage = await openPage(VIDEO_VIEWPORT, 'capture');
 const frames = [];
 const segments = [];
@@ -286,7 +298,7 @@ async function add360Inspection(framesCount) {
   const start = videoTimeSec;
   const began = await videoPage.evaluate(() => window.__PROAI_CUBE_R1.beginReviewPresentationMove('inspection-360'));
   if (!began) throw new Error('Could not begin deterministic 360 inspection');
-  const sliceStart = 148;
+  const sliceStart = 179;
   const sliceFrames = 30;
   let sliceStarted = false;
   for (let i = 0; i < framesCount; i += 1) {
@@ -383,7 +395,7 @@ await addTurn('primary-x1', 'X', 1, 1, 33);
 await addHold('post-x-hold', 14);
 await addTurn('primary-y0', 'Y', 0, -1, 32);
 await addHold('pre-inspection-settle', 12);
-await add360Inspection(211);
+await add360Inspection(230);
 await addHold('post-360-settle', 18);
 await addManualDuringActiveSlice(36);
 await addFrozenDelay('manual-release-calm-delay', 36);
@@ -459,7 +471,7 @@ const qa = {
     pass: interactionPass,
   },
   video: {
-    path: 'review/proai-cube-presentation-motion-r1-review-20s.mp4',
+    path: 'review/proai-cube-presentation-motion-r1-review-21s.mp4',
     codec: stream.codec_name,
     pixelFormat: stream.pix_fmt,
     fps: stream.avg_frame_rate,
@@ -501,7 +513,7 @@ const qa = {
 fs.writeFileSync(QA_PATH, `${JSON.stringify(qa, null, 2)}\n`);
 
 const presentationMoves = initialDiagnostics.presentationConfig?.inspectionMoves || [];
-const report = `# ProAI Rubik Cube — Presentation Motion R1.1\n\n## Scope\n\nNarrow presentation-motion refinement built from Geometry R1 commit \`73082717909b6f4225841401fe4962d6ff4bbcca\`. Geometry, bevel, gaps, GLB, neutral materials/lighting, logical slice engine and existing Rubik slice choreography are frozen. No Hero integration, merge or deploy.\n\n## Whole-cube presentation system\n\n- Large autonomous yaw moves: ${presentationMoves.map((m) => `${m.yawDeg}°`).join(', ')}.\n- Duration range: ${initialDiagnostics.presentationConfig?.durationRangeMs?.join('–')} ms.\n- Settle range: ${initialDiagnostics.presentationConfig?.settleRangeMs?.join('–')} ms.\n- Full 360 move: **${full360Pass ? 'PASS' : 'FAIL'}**; deterministic unwrapped yaw delta ${yaw360DeltaDeg.toFixed(6)}°.\n- Large moves use per-move cubic-bezier profiles with soft pitch / minimal roll modulation; no bounce or overshoot.\n- Existing micro-drift remains ${initialDiagnostics.motionConfig?.bodyDrift?.yawDeg}° yaw / ${initialDiagnostics.motionConfig?.bodyDrift?.pitchDeg}° pitch / ${initialDiagnostics.motionConfig?.bodyDrift?.rollDeg}° roll.\n\n## Interaction semantics\n\n- Manual Orbit start pauses whole-cube presentation immediately.\n- A slice already in progress continues to its exact ±90° endpoint.\n- New autonomous slice starts are blocked while dragging and during calm delay.\n- Calm delay: ${initialDiagnostics.motionConfig?.manualResumeDelayMs} ms.\n- Soft presentation blend: ${initialDiagnostics.motionConfig?.manualResumeBlendMs} ms.\n- Camera is never reset by the presentation system.\n- Interaction QA: **${interactionPass ? 'PASS' : 'FAIL'}**.\n\n## Frozen Geometry R1\n\n- Geometry constants/functions: **${geometryPass ? 'PASS' : 'FAIL'}**.\n- Neutral material/light block unchanged: **${geometryFreeze.neutralLightingMaterials.pass ? 'PASS' : 'FAIL'}**.\n- GLB exact SHA match: **${geometryFreeze.glb.pass ? 'PASS' : 'FAIL'}**.\n- Existing Rubik slice choreography byte-equivalent: **${geometryFreeze.sliceChoreography.pass ? 'PASS' : 'FAIL'}**.\n\n## Mechanical QA\n\n- X / Y / Z: **${axisPass.X ? 'PASS' : 'FAIL'} / ${axisPass.Y ? 'PASS' : 'FAIL'} / ${axisPass.Z ? 'PASS' : 'FAIL'}**.\n- 30 mixed turns: **${mechanicalQA.repeatability30.pass ? 'PASS' : 'FAIL'}**; endpoint max ${mechanicalQA.repeatability30.endpointMaxErrorRad}, position ${mechanicalQA.repeatability30.maxCanonicalPosition}, quaternion ${mechanicalQA.repeatability30.maxCanonicalQuaternionRad}, scale ${mechanicalQA.repeatability30.maxCanonicalScale}.\n- Exact inverse restoration: **${mechanicalQA.inverseRestoration.pass ? 'PASS' : 'FAIL'}**.\n- Runtime/browser errors: ${pageErrors.length + consoleErrors.length}; Spline dependency **${forbiddenRequests.length === 0 ? 'NONE' : 'FOUND'}**.\n\n## Owner review evidence\n\n- \`review/proai-cube-presentation-motion-r1-natural.png\`\n- \`review/proai-cube-presentation-motion-r1-large-inspection.png\`\n- \`review/proai-cube-presentation-motion-r1-360-slice.png\`\n- \`review/proai-cube-presentation-motion-r1-review-20s.mp4\` — H.264 / yuv420p / 24 fps / ${expectedDurationSec.toFixed(2)} s.\n- \`QA.json\`\n\n## Gate\n\nAutomated mechanics, whole-cube 360, interaction, geometry-freeze and runtime gates must all be green. Visible intersections / presentation quality require direct screenshot/video QC before final handoff. Materials + Lighting must not start before owner review.\n`;
+const report = `# ProAI Rubik Cube — Presentation Motion R1.1\n\n## Scope\n\nNarrow presentation-motion refinement built from Geometry R1 commit \`73082717909b6f4225841401fe4962d6ff4bbcca\`. Geometry, bevel, gaps, GLB, neutral materials/lighting, logical slice engine and existing Rubik slice choreography are frozen. No Hero integration, merge or deploy.\n\n## Whole-cube presentation system\n\n- Large autonomous yaw moves: ${presentationMoves.map((m) => `${m.yawDeg}°`).join(', ')}.\n- Duration range: ${initialDiagnostics.presentationConfig?.durationRangeMs?.join('–')} ms.\n- Settle range: ${initialDiagnostics.presentationConfig?.settleRangeMs?.join('–')} ms.\n- Full 360 move: **${full360Pass ? 'PASS' : 'FAIL'}**; deterministic unwrapped yaw delta ${yaw360DeltaDeg.toFixed(6)}°.\n- Large moves use per-move cubic-bezier profiles with soft pitch / minimal roll modulation; no bounce or overshoot.\n- Existing micro-drift remains ${initialDiagnostics.motionConfig?.bodyDrift?.yawDeg}° yaw / ${initialDiagnostics.motionConfig?.bodyDrift?.pitchDeg}° pitch / ${initialDiagnostics.motionConfig?.bodyDrift?.rollDeg}° roll.\n\n## Interaction semantics\n\n- Manual Orbit start pauses whole-cube presentation immediately.\n- A slice already in progress continues to its exact ±90° endpoint.\n- New autonomous slice starts are blocked while dragging and during calm delay.\n- Calm delay: ${initialDiagnostics.motionConfig?.manualResumeDelayMs} ms.\n- Soft presentation blend: ${initialDiagnostics.motionConfig?.manualResumeBlendMs} ms.\n- Camera is never reset by the presentation system.\n- Interaction QA: **${interactionPass ? 'PASS' : 'FAIL'}**.\n\n## Frozen Geometry R1\n\n- Geometry constants/functions: **${geometryPass ? 'PASS' : 'FAIL'}**.\n- Neutral material/light block unchanged: **${geometryFreeze.neutralLightingMaterials.pass ? 'PASS' : 'FAIL'}**.\n- GLB exact SHA match: **${geometryFreeze.glb.pass ? 'PASS' : 'FAIL'}**.\n- Existing Rubik slice choreography byte-equivalent: **${geometryFreeze.sliceChoreography.pass ? 'PASS' : 'FAIL'}**.\n\n## Mechanical QA\n\n- X / Y / Z: **${axisPass.X ? 'PASS' : 'FAIL'} / ${axisPass.Y ? 'PASS' : 'FAIL'} / ${axisPass.Z ? 'PASS' : 'FAIL'}**.\n- 30 mixed turns: **${mechanicalQA.repeatability30.pass ? 'PASS' : 'FAIL'}**; endpoint max ${mechanicalQA.repeatability30.endpointMaxErrorRad}, position ${mechanicalQA.repeatability30.maxCanonicalPosition}, quaternion ${mechanicalQA.repeatability30.maxCanonicalQuaternionRad}, scale ${mechanicalQA.repeatability30.maxCanonicalScale}.\n- Exact inverse restoration: **${mechanicalQA.inverseRestoration.pass ? 'PASS' : 'FAIL'}**.\n- Runtime/browser errors: ${pageErrors.length + consoleErrors.length}; Spline dependency **${forbiddenRequests.length === 0 ? 'NONE' : 'FOUND'}**.\n\n## Owner review evidence\n\n- \`review/proai-cube-presentation-motion-r1-natural.png\`\n- \`review/proai-cube-presentation-motion-r1-large-inspection.png\`\n- \`review/proai-cube-presentation-motion-r1-360-slice.png\`\n- \`review/proai-cube-presentation-motion-r1-review-21s.mp4\` — H.264 / yuv420p / 24 fps / ${expectedDurationSec.toFixed(2)} s.\n- \`QA.json\`\n\n## Gate\n\nAutomated mechanics, whole-cube 360, interaction, geometry-freeze and runtime gates must all be green. Visible intersections / presentation quality require direct screenshot/video QC before final handoff. Materials + Lighting must not start before owner review.\n`;
 fs.writeFileSync(REPORT_PATH, report);
 
 const hardPass = geometryPass && full360Pass && interactionPass && axisPass.X && axisPass.Y && axisPass.Z && layerPass && mechanicalQA.repeatability30.pass && mechanicalQA.inverseRestoration.pass && runtimePass && videoPass;

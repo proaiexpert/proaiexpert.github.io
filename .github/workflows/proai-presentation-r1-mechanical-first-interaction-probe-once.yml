@@ -1,0 +1,83 @@
+name: ProAI Presentation R1.1 Mechanical-First Interaction Probe Once
+on:
+  push:
+    branches: [agent/proai-cube-presentation-motion-r1]
+    paths: ['.github/workflows/proai-presentation-r1-mechanical-first-interaction-probe-once.yml']
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: docs/site-evolution/spline/proai-cube-presentation-motion-r1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-presentation-motion-r1
+          fetch-depth: 0
+      - run: |
+          npm install --package-lock=false
+          npx playwright install chromium
+      - run: |
+          nohup npx vite --host 127.0.0.1 --port 4173 >/tmp/mech-first-probe-vite.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Reproduce full-harness interaction predicates
+        run: |
+          cat > mech-first-probe.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const b=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--use-angle=swiftshader']});
+          const p=await b.newPage({viewport:{width:900,height:1040}});
+          await p.goto('http://127.0.0.1:4173/?qa=1',{waitUntil:'networkidle',timeout:120000});
+          await p.waitForFunction(()=>window.__PROAI_CUBE_R1?.ready===true,null,{timeout:90000});
+          await p.evaluate(()=>window.__PROAI_CUBE_R1.runAutomatedQA());
+          const box=await p.evaluate(()=>{const r=document.getElementById('cube-canvas').getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};});
+          const st=()=>p.evaluate(()=>({interaction:window.__PROAI_CUBE_R1.getInteractionState(),diagnostics:window.__PROAI_CUBE_R1.getDiagnostics()}));
+          await p.evaluate(()=>{const a=window.__PROAI_CUBE_R1;window.__p=a.runPresentationMove({id:'qa-interaction-hold',yawDeg:156,targetPitchDeg:6,targetRollDeg:-.8,pitchWaveDeg:4.8,rollWaveDeg:.65,durationMs:600000,settleMs:1350,easing:[.48,0,.38,1],sliceTrigger:.72});});
+          await p.waitForTimeout(900);
+          await p.evaluate(()=>{window.__s=window.__PROAI_CUBE_R1.turnSlice({axis:'X',layer:1,direction:1,durationMs:1200,ignoreInteraction:true});});
+          await p.waitForTimeout(250);
+          const before=await st();const x0=box.x+box.width*.52,y0=box.y+box.height*.50;
+          await p.mouse.move(x0,y0);await p.mouse.down();await p.waitForTimeout(60);const start=await st();
+          for(let i=1;i<=9;i++){const q=i/9;await p.mouse.move(x0+132*q,y0-34*Math.sin(Math.PI*q*.75));await p.waitForTimeout(150);}
+          const held=await st();const blocked=await p.evaluate(()=>window.__PROAI_CUBE_R1.turnSlice({axis:'Y',layer:0,direction:-1,durationMs:100}));
+          await p.mouse.up();await p.waitForTimeout(100);const release=await st();
+          await p.waitForTimeout(1150);const delay=await st();const cameraSettled=delay.interaction.cameraPosition;
+          await p.waitForTimeout(850);const samples=[];for(let i=0;i<20;i++){await p.waitForTimeout(120);samples.push(await st());}const after=samples.at(-1);
+          const vd=(a,b)=>Math.sqrt(a.reduce((s,v,i)=>s+(v-b[i])**2,0));
+          const qa=(a,b)=>{const dot=Math.min(1,Math.abs(a.reduce((s,v,i)=>s+v*b[i],0)));return 2*Math.acos(dot)};let maxStep=0;for(let i=1;i<samples.length;i++)maxStep=Math.max(maxStep,qa(samples[i-1].interaction.presentationQuaternion,samples[i].interaction.presentationQuaternion));
+          const pre=before.interaction.activeSlice?.linear??null;
+          const heldDone=held.interaction.activeSlice===null&&held.diagnostics.lastTurnResult?.endpointErrorRad===0;
+          const p0=before.interaction.presentation.activeMove?.linear??0,pHeld=held.interaction.presentation.activeMove?.linear??p0,pDelay=delay.interaction.presentation.activeMove?.linear??pHeld,pAfter=after.interaction.presentation.activeMove?.linear??pDelay;
+          const predicates={
+            interactionStart:Boolean(start.interaction.interactionActive),
+            sliceWasActive:pre>0&&pre<1,
+            sliceCompleted:heldDone,
+            nextSliceBlocked:blocked===false,
+            presentationPausedDrag:Math.abs(pHeld-p0)<.04,
+            releaseBlocked:release.interaction.autonomyBlocked,
+            releaseDelayGt1500:release.interaction.resumeDelayRemainingMs>1500,
+            delayStillBlocked:delay.interaction.autonomyBlocked,
+            presentationPausedDelay:Math.abs(pDelay-pHeld)<.04,
+            presentationResumed:pAfter>pDelay+.001,
+            cameraMoved:vd(before.interaction.cameraPosition,held.interaction.cameraPosition)>1,
+            cameraStayed:vd(cameraSettled,after.interaction.cameraPosition)<.8,
+            smooth:maxStep<.16
+          };
+          console.log('MECH_FIRST_PREDICATES='+JSON.stringify(predicates));
+          console.log('MECH_FIRST_METRICS='+JSON.stringify({pre,p0,pHeld,pDelay,pAfter,releaseDelay:release.interaction.resumeDelayRemainingMs,delayRemaining:delay.interaction.resumeDelayRemainingMs,cameraMove:vd(before.interaction.cameraPosition,held.interaction.cameraPosition),cameraAfter:vd(cameraSettled,after.interaction.cameraPosition),maxStep,lastTurn:held.diagnostics.lastTurnResult}));
+          await b.close();
+          EOF
+          node mech-first-probe.mjs
+          rm mech-first-probe.mjs
+      - name: Remove probe workflow
+        if: always()
+        working-directory: .
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/proai-presentation-r1-mechanical-first-interaction-probe-once.yml
+          git commit -m 'chore: remove Presentation R1.1 mechanical-first probe'
+          git push origin HEAD:agent/proai-cube-presentation-motion-r1

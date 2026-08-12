@@ -1,0 +1,55 @@
+name: ProAI Cube R0 Mid-turn Screenshot Patch
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-threejs-mechanical-r0
+    paths:
+      - '.github/workflows/proai-cube-r0-midshot.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-threejs-mechanical-r0
+          fetch-depth: 0
+
+      - name: Capture the second review screenshot during the slice turn
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs')
+          s = p.read_text()
+          old = """await page.evaluate(() => { void window.__PROAI_CUBE_R0.playSlice({ direction: 1 }); });
+          await page.waitForFunction(() => window.__PROAI_CUBE_R0?.motionState === 'turned', null, { timeout: 90000 });
+          await page.waitForTimeout(150);
+          await screenshot(page, 'proai-cube-r0-slice-turn.png');
+          const turnedDiagnostics = await page.evaluate(() => window.__PROAI_CUBE_R0.getDiagnostics());"""
+          old = '\n'.join(line.strip() for line in old.splitlines())
+          new = """await page.evaluate(() => { void window.__PROAI_CUBE_R0.playSlice({ direction: 1 }); });
+          await page.waitForFunction(() => window.__PROAI_CUBE_R0?.motionState === 'turning', null, { timeout: 90000 });
+          await page.waitForTimeout(700);
+          await screenshot(page, 'proai-cube-r0-slice-turn.png');
+          await page.waitForFunction(() => window.__PROAI_CUBE_R0?.motionState === 'turned', null, { timeout: 90000 });
+          const turnedDiagnostics = await page.evaluate(() => window.__PROAI_CUBE_R0.getDiagnostics());"""
+          new = '\n'.join(line.strip() for line in new.splitlines())
+          if old not in s:
+              raise SystemExit('Expected screenshot block not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          node --check docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs
+
+      - name: Commit patch and remove helper workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs
+          git rm .github/workflows/proai-cube-r0-midshot.yml
+          git commit -m 'test: capture R0 slice screenshot mid-turn'
+          git push origin HEAD:agent/proai-cube-threejs-mechanical-r0

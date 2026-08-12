@@ -19,7 +19,7 @@ function attachDiagnostics(page, bucket) {
   page.on('console', (msg) => {
     if (msg.type() === 'error' || msg.type() === 'warning') bucket.console.push(`${msg.type()}: ${msg.text()}`);
   });
-  page.on('pageerror', (error) => bucket.pageErrors.push(String(error));
+  page.on('pageerror', (error) => bucket.pageErrors.push(String(error)));
   page.on('request', (request) => bucket.requests.push(request.url()));
 }
 

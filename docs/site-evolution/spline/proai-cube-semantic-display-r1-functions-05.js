@@ -27,7 +27,7 @@ function advanceReviewSemanticExit(elapsedMs, renderFrame = true) {
 }
 
 function beginSemanticQA(word = 'TRUST') {
-  if (!reviewMode || !api.ready || !semanticReady) return false;
+  if (!(reviewMode || captureMode) || !api.ready || !semanticReady) return false;
   return beginSemanticEvent({ word, source: 'qa', relaxedFaceGate: true });
 }
 

@@ -73,20 +73,43 @@ function probeWebmDuration(ffmpegPath, filepath) {
   return timecodeToSeconds(matches.at(-1));
 }
 
-function retimeReviewVideo(rawVideo, targetVideo) {
-  const ffmpegPath = findPlaywrightFfmpeg();
-  const sourceMediaDurationSec = probeWebmDuration(ffmpegPath, rawVideo);
-  if (!sourceMediaDurationSec || sourceMediaDurationSec <= 0) throw new Error('Unable to determine source WebM media duration');
-  const timestampScale = TARGET_VIDEO_DURATION_SEC / sourceMediaDurationSec;
+function encodeRetimedVideo(ffmpegPath, rawVideo, outputPath, timestampScale) {
   const result = spawnSync(
     ffmpegPath,
-    ['-y', '-itsscale', String(timestampScale), '-i', rawVideo, '-map', '0:v:0', '-an', '-c:v', 'libvpx', '-deadline', 'realtime', '-cpu-used', '8', '-pix_fmt', 'yuv420p', '-auto-alt-ref', '0', '-b:v', '1200k', targetVideo],
+    ['-y', '-itsscale', String(timestampScale), '-i', rawVideo, '-map', '0:v:0', '-an', '-c:v', 'libvpx', '-deadline', 'realtime', '-cpu-used', '8', '-pix_fmt', 'yuv420p', '-auto-alt-ref', '0', '-b:v', '1200k', outputPath],
     { encoding: 'utf8' },
   );
-  if (result.status !== 0 || !fs.existsSync(targetVideo)) throw new Error(`Playwright ffmpeg VP8 retime failed: ${result.stderr || result.stdout || `exit ${result.status}`}`);
+  if (result.status !== 0 || !fs.existsSync(outputPath)) {
+    throw new Error(`Playwright ffmpeg VP8 retime failed: ${result.stderr || result.stdout || `exit ${result.status}`}`);
+  }
+}
+
+function retimeReviewVideo(rawVideo, targetVideo, sourceWallClockDurationSec) {
+  const ffmpegPath = findPlaywrightFfmpeg();
+  const passOneVideo = `${targetVideo}.pass-one.webm`;
+  const initialTimestampScale = TARGET_VIDEO_DURATION_SEC / sourceWallClockDurationSec;
+
+  encodeRetimedVideo(ffmpegPath, rawVideo, passOneVideo, initialTimestampScale);
+  const firstPassDurationSec = probeWebmDuration(ffmpegPath, passOneVideo);
+  if (!firstPassDurationSec || firstPassDurationSec <= 0) {
+    throw new Error('Unable to verify first-pass WebM duration');
+  }
+
+  const correction = TARGET_VIDEO_DURATION_SEC / firstPassDurationSec;
+  const timestampScale = initialTimestampScale * correction;
+  encodeRetimedVideo(ffmpegPath, rawVideo, targetVideo, timestampScale);
   const outputDurationSec = probeWebmDuration(ffmpegPath, targetVideo);
+  fs.rmSync(passOneVideo, { force: true });
   if (outputDurationSec == null) throw new Error('Unable to verify retimed WebM duration');
-  return { sourceMediaDurationSec, timestampScale, outputDurationSec };
+
+  return {
+    sourceMediaDurationSec: firstPassDurationSec / initialTimestampScale,
+    firstPassDurationSec,
+    initialTimestampScale,
+    correction,
+    timestampScale,
+    outputDurationSec,
+  };
 }
 
 const telemetry = { console: [], pageErrors: [], requests: [] };
@@ -164,7 +187,7 @@ const targetVideo = path.join(REVIEW, 'proai-cube-r0-review-12s.webm');
 for (const file of [rawVideo, targetVideo]) if (fs.existsSync(file)) fs.rmSync(file);
 fs.writeFileSync(rawVideo, Buffer.from(videoPayload.base64, 'base64'));
 const sourceWallClockDurationSec = videoPayload.wallClockDurationMs / 1000;
-const retime = retimeReviewVideo(rawVideo, targetVideo);
+const retime = retimeReviewVideo(rawVideo, targetVideo, sourceWallClockDurationSec);
 const videoDurationSec = retime.outputDurationSec;
 const targetVideoBytes = fs.statSync(targetVideo).size;
 fs.rmSync(rawVideo);
@@ -185,13 +208,22 @@ const runtimePass = browserErrors.length === 0 && consoleErrors.length === 0;
 const qa = {
   generatedAt: new Date().toISOString(), url: URL, viewport: VIEWPORT,
   initialDiagnostics, turnedDiagnostics, finalDiagnostics, repeatability,
-  video: { sourceWallClockDurationSec, sourceMediaDurationSec: retime.sourceMediaDurationSec, reviewDurationSec: videoDurationSec, timestampScale: retime.timestampScale, byteLength: targetVideoBytes, mimeType: videoPayload.mimeType, normalization: 'VP8 timestamps normalized from actual source WebM media duration to a 12-second review clip; rendered frame order is unchanged.' },
+  video: {
+    sourceWallClockDurationSec,
+    sourceMediaDurationSec: retime.sourceMediaDurationSec,
+    firstPassDurationSec: retime.firstPassDurationSec,
+    reviewDurationSec: videoDurationSec,
+    timestampScale: retime.timestampScale,
+    byteLength: targetVideoBytes,
+    mimeType: videoPayload.mimeType,
+    normalization: 'Two-pass VP8 timestamp normalization compensates for software-WebGL runner slowdown while preserving rendered frame order.',
+  },
   network: { totalRequests: allRequests.length, forbiddenRequests, splineDependency: splineDependencyNone ? 'NONE' : 'FOUND' },
   browser: { pageErrors: browserErrors, consoleErrors },
   acceptance: { hierarchy: hierarchyPass ? 'PASS' : 'FAIL', sliceMechanics90: mechanicsPass ? 'PASS' : 'FAIL', motionTelemetry: motionTelemetryPass ? 'PASS' : 'FAIL', videoDuration: videoDurationPass ? 'PASS' : 'FAIL', runtime: runtimePass ? 'PASS' : 'FAIL', splineDependency: splineDependencyNone ? 'NONE' : 'FOUND' },
 };
 fs.writeFileSync(path.join(REVIEW, 'qa-report.json'), JSON.stringify(qa, null, 2) + '\n');
-const report = `# ProAI Cube — Three.js Mechanical Parity R0 — Technical Report\n\n## Scope\n\nIsolated Three.js proof using the exact clean GLB geometry. No Hero integration, production route changes, Spline runtime, .splinecode runtime dependency, or prod.spline.design request.\n\n## Geometry / hierarchy\n\n- Named hierarchy: **${qa.acceptance.hierarchy}**.\n- Axis: **${initialDiagnostics.mechanics.axis}**; X clusters: \`${JSON.stringify(initialDiagnostics.mechanics.xClusterMeans)}\`.\n- Right layer objects: **${initialDiagnostics.mechanics.rightLayerObjectCount}**; unique spatial cubies: **${initialDiagnostics.mechanics.rightLayerUniqueSpatialCubies}**.\n- Source hierarchy is restored exactly after reset.\n\n## Motion\n\n- Turn **${initialDiagnostics.motionConfig.turnDurationMs} ms**; reset **${initialDiagnostics.motionConfig.resetDurationMs} ms**; easing **${initialDiagnostics.motionConfig.easing.join(', ')}**; hold **${initialDiagnostics.motionConfig.holdAfterTurnMs} ms**.\n- Orbit damping **${initialDiagnostics.motionConfig.orbitDampingFactor}**; rotate speed **${initialDiagnostics.motionConfig.orbitRotateSpeed}**.\n- Endpoint error **${turnedDiagnostics.endpointErrorRad} rad**; telemetry ${JSON.stringify(forward)}.\n- Motion gate is frame-rate-independent: monotonic/no-overshoot easing, exact terminal quaternion, soft first-step acceleration.\n- Repeatability ${repeatability.cycles} cycles: position ${repeatability.maxPosition}; quaternion ${repeatability.maxQuaternionRad}; scale ${repeatability.maxScale}; **${repeatability.pass ? 'PASS' : 'FAIL'}**.\n\n## Reference calibration\n\nResend was used for motion character only. R0 does not copy its proprietary implementation. Motion is slow/weighted with long acceleration/deceleration, zero overshoot, visible hold, restrained orbit damping.\n\n## Browser / dependency QA\n\n- Runtime **${qa.acceptance.runtime}**; Spline dependency **${qa.acceptance.splineDependency}**; forbidden requests ${forbiddenRequests.length}; browser errors ${browserErrors.length}; console errors ${consoleErrors.length}.\n- Review video ${videoDurationSec.toFixed(2)} s; source media ${retime.sourceMediaDurationSec.toFixed(2)} s; SwiftShader wall clock ${sourceWallClockDurationSec.toFixed(2)} s; timestamp factor ${retime.timestampScale.toFixed(4)}.\n\n## Review evidence\n\n- \`review/proai-cube-r0-natural-3q.png\`\n- \`review/proai-cube-r0-slice-turn.png\`\n- \`review/proai-cube-r0-review-12s.webm\`\n- \`review/qa-report.json\`\n\n## Gate\n\nOwner visual review remains the gate. No Hero/final-art pass started.\n`;
+const report = `# ProAI Cube — Three.js Mechanical Parity R0 — Technical Report\n\n## Scope\n\nIsolated Three.js proof using the exact clean GLB geometry. No Hero integration, production route changes, Spline runtime, .splinecode runtime dependency, or prod.spline.design request.\n\n## Geometry / hierarchy\n\n- Named hierarchy: **${qa.acceptance.hierarchy}**.\n- Axis: **${initialDiagnostics.mechanics.axis}**; X clusters: \`${JSON.stringify(initialDiagnostics.mechanics.xClusterMeans)}\`.\n- Right layer objects: **${initialDiagnostics.mechanics.rightLayerObjectCount}**; unique spatial cubies: **${initialDiagnostics.mechanics.rightLayerUniqueSpatialCubies}**.\n- Source hierarchy is restored exactly after reset.\n\n## Motion\n\n- Turn **${initialDiagnostics.motionConfig.turnDurationMs} ms**; reset **${initialDiagnostics.motionConfig.resetDurationMs} ms**; easing **${initialDiagnostics.motionConfig.easing.join(', ')}**; hold **${initialDiagnostics.motionConfig.holdAfterTurnMs} ms**.\n- Orbit damping **${initialDiagnostics.motionConfig.orbitDampingFactor}**; rotate speed **${initialDiagnostics.motionConfig.orbitRotateSpeed}**.\n- Endpoint error **${turnedDiagnostics.endpointErrorRad} rad**; telemetry ${JSON.stringify(forward)}.\n- Motion gate: monotonic/no-overshoot easing, exact terminal quaternion, soft first-step acceleration.\n- Repeatability ${repeatability.cycles} cycles: position ${repeatability.maxPosition}; quaternion ${repeatability.maxQuaternionRad}; scale ${repeatability.maxScale}; **${repeatability.pass ? 'PASS' : 'FAIL'}**.\n\n## Reference calibration\n\nResend was used for motion character only. R0 does not copy its proprietary implementation. Motion is slow/weighted with long acceleration/deceleration, zero overshoot, visible hold, restrained orbit damping.\n\n## Browser / dependency QA\n\n- Runtime **${qa.acceptance.runtime}**; Spline dependency **${qa.acceptance.splineDependency}**; forbidden requests ${forbiddenRequests.length}; browser errors ${browserErrors.length}; console errors ${consoleErrors.length}.\n- Review video ${videoDurationSec.toFixed(2)} s; inferred source media ${retime.sourceMediaDurationSec.toFixed(2)} s; first-pass ${retime.firstPassDurationSec.toFixed(2)} s; SwiftShader wall clock ${sourceWallClockDurationSec.toFixed(2)} s; final timestamp factor ${retime.timestampScale.toFixed(4)}.\n\n## Review evidence\n\n- \`review/proai-cube-r0-natural-3q.png\`\n- \`review/proai-cube-r0-slice-turn.png\`\n- \`review/proai-cube-r0-review-12s.webm\`\n- \`review/qa-report.json\`\n\n## Gate\n\nOwner visual review remains the gate. No Hero/final-art pass started.\n`;
 fs.writeFileSync(path.join(ROOT, 'TECHNICAL_REPORT.md'), report);
 if (!hierarchyPass || !mechanicsPass || !motionTelemetryPass || !videoDurationPass || !splineDependencyNone || !runtimePass) {
   console.error(JSON.stringify(qa, null, 2));

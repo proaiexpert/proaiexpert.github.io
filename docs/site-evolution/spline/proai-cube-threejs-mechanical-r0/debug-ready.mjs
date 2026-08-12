@@ -1,3 +1,4 @@
+// Browser readiness probe; rerun after GLTFLoader duplicate-name normalization.
 import { chromium } from 'playwright';
 
 const URL = process.env.PROAI_R0_URL || 'http://127.0.0.1:4173/?capture=1';

@@ -552,3 +552,153 @@ File:
 The branch was created from verified Geometry R1 commit `73082717909b6f4225841401fe4962d6ff4bbcca`.
 
 Use this document as the cross-chat continuity source of truth for the current Hero direction.
+
+## 22. FUTURE BRAND DIRECTION LOCK — AFTER HERO, DO NOT LOSE
+
+The owner has set a stronger future visual identity direction that should guide the Hero finishing passes and the later site-wide brand system.
+
+### Core tonal system
+
+Do **not** return to the old bright-neon/cyan-heavy language.
+
+Target visual system:
+
+- predominantly near-black / deep dark backgrounds;
+- graphite, gunmetal, black-chrome and smoked-black surfaces;
+- soft white rather than harsh pure white for primary typography;
+- cool silver / pearl / subtle metallic reflections;
+- extremely restrained accent color, if used at all;
+- any blue or other accent should read as a controlled premium tint, not neon;
+- visual richness should come primarily from light, material, contrast, reflections, depth and micro-gradients rather than saturated glow.
+
+This is better described as a **premium dark tonal system**, not merely black-and-white.
+
+### Hero UI language
+
+Future Hero UI should follow the same restraint:
+
+- H1 primarily soft white / premium neutral;
+- do not make the H1 strongly neon-blue;
+- if a gradient/accent is used, keep it subtle and localized;
+- buttons may use very soft tonal gradients, specular highlights, thin premium borders and controlled internal glow/reflection;
+- no loud cyan CTA treatment;
+- avoid gaming / sci-fi / HUD cues;
+- the object and typography must feel executive, expensive and controlled.
+
+### Cube as a signature brand asset
+
+If the final ProAI Cube reaches the intended quality, treat it as a **signature ProAI brand asset**, not only a one-off Hero illustration.
+
+Potential future uses after Hero completion:
+
+- Hero centerpiece;
+- presentation/marketing visual;
+- case-study signature object;
+- motion ident / intro asset;
+- small secondary brand mark derived from the cube geometry;
+- favicon/app-icon exploration;
+- dark and light/inverse applications.
+
+Important distinction:
+
+The full complex 3D cube does **not** have to become the only primary small logo. For tiny sizes, header, favicon and print, a simplified geometric/monochrome derivative may be stronger and more practical.
+
+The full premium 3D cube can remain the flagship brand object while the logo system uses a cleaner mark/wordmark derived from the same visual DNA.
+
+### Light/inverse applications
+
+Although the website is expected to remain predominantly dark, the future identity should also support a clean white/light background application:
+
+- graphite/black cube or simplified cube mark on white;
+- monochrome/dark wordmark on light;
+- white/soft-white mark on near-black;
+- preserve the same premium tonal character in both directions.
+
+Do not build the logo now. This is a future lock only until Hero is complete.
+
+## 23. FUTURE LOGO / HEADER / FOOTER SEQUENCE — OWNER LOCK
+
+After the Hero is fully owner-approved, the next priority is **not** to jump immediately into random Homepage sections.
+
+The intended post-Hero sequence is:
+
+1. **Logo / brand mark refinement first.**
+2. **Header completion/refinement** using the new brand identity while preserving the existing shared Header System architecture.
+3. **Footer completion/refinement** in the same visual system.
+4. Establish the reusable site-wide brand tokens/components that come out of those decisions.
+5. Only then move into the rest of the Homepage / landing-page architecture and section-by-section redesign.
+
+### Logo direction
+
+The future logo should be explored in a restrained monochrome / graphite / soft-white system.
+
+Potential relationship to the cube:
+
+- simplified cube-derived symbol;
+- geometric motif influenced by the cube;
+- premium wordmark paired with a restrained symbol;
+- strong black/white inverse versions.
+
+Do not force a literal miniature 3D cube into every logo use if it hurts readability or scalability.
+
+The goal is one coherent identity where:
+
+`ProAI Cube + logo + header + footer + UI accents`
+
+feel like one designed system.
+
+### Header
+
+The existing shared Header System remains the implementation foundation. Later work may restyle/refine it visually after the new logo/brand mark is approved, but should not discard its architecture without evidence.
+
+Header future pass should align:
+
+- logo/wordmark;
+- navigation typography;
+- button treatment;
+- spacing;
+- dark tonal system;
+- mobile behavior;
+- EN/RU parity.
+
+### Footer
+
+Footer should be treated as part of the brand system, not an afterthought.
+
+Later footer pass should align with:
+
+- new logo/wordmark;
+- premium dark tonal palette;
+- restrained links/navigation;
+- clear service/business identity;
+- language parity;
+- final CTA cadence;
+- no generic template feel.
+
+## 24. POST-HERO LANDING / HOMEPAGE COMPLETION PLAN — FUTURE, NOT ACTIVE NOW
+
+After Hero → Logo → Header → Footer are complete and owner-approved, open the broader Homepage/landing-page phase.
+
+At that point:
+
+- perform the full-page premium benchmark synthesis already planned;
+- inspect the existing Homepage as a whole;
+- decide section architecture from evidence;
+- classify every current block as `KEEP / REFINE / MERGE / MOVE / REPLACE / REMOVE`;
+- carry the new premium dark tonal system through the whole page;
+- maintain EN/RU parity without mechanical translation;
+- maintain SEO/entity structure without keeping weak sections solely for keywords;
+- preserve performance/accessibility/mobile quality;
+- integrate the final brand language consistently rather than styling each section independently.
+
+The provisional historical section sequence remains only a hypothesis until that future audit.
+
+### Permanent scope reminder
+
+**Right now this future plan is storage only.**
+
+Current execution remains:
+
+`finish Hero first`
+
+Do not let Logo/Header/Footer/Homepage work distract from completing and owner-approving the Hero.

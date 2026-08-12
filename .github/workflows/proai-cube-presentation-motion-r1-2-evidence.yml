@@ -10,6 +10,10 @@ on:
       - 'docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/**'
       - '.github/workflows/proai-cube-presentation-motion-r1-2-evidence.yml'
 
+concurrency:
+  group: proai-cube-presentation-motion-r1-2-evidence
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -21,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: agent/proai-cube-presentation-motion-r1-2
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Generate isolated R1.2 prototype from exact R1.1 base
@@ -97,4 +101,6 @@ jobs:
           git add docs/site-evolution/spline/proai-cube-presentation-motion-r1-2
           if git diff --cached --quiet; then exit 0; fi
           git commit -m 'feat: add ProAI cube Presentation Motion R1.2'
+          git fetch origin agent/proai-cube-presentation-motion-r1-2
+          git rebase origin/agent/proai-cube-presentation-motion-r1-2
           git push origin HEAD:agent/proai-cube-presentation-motion-r1-2

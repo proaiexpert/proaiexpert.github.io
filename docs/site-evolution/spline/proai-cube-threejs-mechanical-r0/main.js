@@ -6,7 +6,9 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 const GLB_URL = new URL('./rubik_39_s_cube_animation.glb', import.meta.url).href;
 const canvas = document.getElementById('cube-canvas');
 const status = document.getElementById('runtime-status');
-const captureMode = new URLSearchParams(location.search).has('capture');
+const params = new URLSearchParams(location.search);
+const captureMode = params.has('capture');
+const videoMode = params.has('video');
 const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 const MOTION = Object.freeze({
@@ -27,7 +29,7 @@ const renderer = new THREE.WebGLRenderer({
   powerPreference: 'high-performance',
   preserveDrawingBuffer: captureMode,
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, captureMode ? 1 : 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.08;
@@ -35,11 +37,13 @@ renderer.setClearColor(0x07090c, 1);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x07090c);
-const pmrem = new THREE.PMREMGenerator(renderer);
-const roomEnvironment = new RoomEnvironment();
-scene.environment = pmrem.fromScene(roomEnvironment, 0.035).texture;
-roomEnvironment.dispose();
-pmrem.dispose();
+if (!captureMode) {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const roomEnvironment = new RoomEnvironment();
+  scene.environment = pmrem.fromScene(roomEnvironment, 0.035).texture;
+  roomEnvironment.dispose();
+  pmrem.dispose();
+}
 
 const camera = new THREE.PerspectiveCamera(31, 1, 0.01, 1000);
 const controls = new OrbitControls(camera, canvas);
@@ -318,11 +322,13 @@ function animatePivotQuaternion(from, to, durationMs, telemetryTarget) {
       const angle = slicePivot.quaternion.angleTo(identity);
       telemetryTarget.push({ tMs: now - started, linear, eased, angle, deltaAngle: angle - previousAngle });
       previousAngle = angle;
+      if (captureMode && !videoMode) renderer.render(scene, camera);
       if (linear < 1) {
         requestAnimationFrame(tick);
       } else {
         slicePivot.quaternion.copy(to);
         slicePivot.updateMatrixWorld(true);
+        if (captureMode && !videoMode) renderer.render(scene, camera);
         resolve();
       }
     }
@@ -491,7 +497,7 @@ function render() {
   renderer.render(scene, camera);
   requestAnimationFrame(render);
 }
-render();
+if (!captureMode || videoMode) render();
 
 const loader = new GLTFLoader();
 loader.load(
@@ -516,6 +522,7 @@ loader.load(
     prepareSliceMembers();
     frameCamera();
     resize();
+    if (captureMode && !videoMode) renderer.render(scene, camera);
 
     api.ready = true;
     setMotionState('rest');

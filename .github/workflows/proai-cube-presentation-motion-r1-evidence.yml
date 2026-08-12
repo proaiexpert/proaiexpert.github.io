@@ -28,7 +28,10 @@ jobs:
       - name: Verify isolated scope and no Spline runtime
         run: |
           set -euo pipefail
-          ! grep -RniE '@splinetool|prod\.spline\.design|\.splinecode' . --exclude-dir=node_modules --exclude='QA.json' --exclude='REPORT.md'
+          if grep -niE '@splinetool|prod\.spline\.design|\.splinecode' main.js package.json index.html styles.css prepare-glb.mjs; then
+            echo 'Forbidden Spline runtime reference found'
+            exit 1
+          fi
           node --check main.js
           node --check capture.mjs
           cmp rubik_39_s_cube_animation.glb ../proai-cube-geometry-r1/rubik_39_s_cube_animation.glb

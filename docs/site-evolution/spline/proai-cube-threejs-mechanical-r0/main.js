@@ -94,6 +94,7 @@ let autoLoopEnabled = !captureMode && !prefersReducedMotion;
 let lastForwardTelemetry = [];
 let lastResetTelemetry = [];
 let lastEndpointErrorRad = null;
+let reviewCameraBase = null;
 
 const api = {
   ready: false,
@@ -107,6 +108,9 @@ const api = {
   resetSlice,
   runRepeatabilityTest,
   getDiagnostics,
+  setReviewSliceProgress,
+  setReviewResetProgress,
+  setReviewOrbitProgress,
   captureFrame() {
     controls.update();
     renderer.render(scene, camera);
@@ -157,6 +161,69 @@ function cubicBezierEase(x) {
     t = (low + high) * 0.5;
   }
   return sampleY(t);
+}
+
+function setReviewSliceProgress(linear = 0, direction = 1) {
+  if (!captureMode || !api.ready) return false;
+  const progress = THREE.MathUtils.clamp(linear, 0, 1);
+  if (progress <= 0 && !slicePivot) {
+    setMotionState('rest');
+    renderer.render(scene, camera);
+    return { linear: progress, eased: 0, angleRad: 0 };
+  }
+  createSlicePivot();
+  const eased = cubicBezierEase(progress);
+  const angleRad = direction * Math.PI / 2 * eased;
+  slicePivot.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), angleRad);
+  slicePivot.updateMatrixWorld(true);
+  setMotionState(progress >= 1 ? 'turned' : 'turning');
+  renderer.render(scene, camera);
+  return { linear: progress, eased, angleRad };
+}
+
+function setReviewResetProgress(linear = 0, direction = 1) {
+  if (!captureMode || !api.ready) return false;
+  const progress = THREE.MathUtils.clamp(linear, 0, 1);
+  if (!slicePivot) {
+    createSlicePivot();
+    slicePivot.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), direction * Math.PI / 2);
+  }
+  const eased = cubicBezierEase(progress);
+  const angleRad = direction * Math.PI / 2 * (1 - eased);
+  slicePivot.quaternion.setFromAxisAngle(new THREE.Vector3(1, 0, 0), angleRad);
+  slicePivot.updateMatrixWorld(true);
+  if (progress >= 1) {
+    slicePivot.quaternion.identity();
+    destroySlicePivotAndRestoreExact();
+    setMotionState('rest');
+  } else {
+    setMotionState('resetting');
+  }
+  renderer.render(scene, camera);
+  return { linear: progress, eased, angleRad };
+}
+
+function setReviewOrbitProgress(linear = 0) {
+  if (!captureMode || !api.ready) return false;
+  if (!reviewCameraBase) {
+    reviewCameraBase = {
+      target: controls.target.clone(),
+      spherical: new THREE.Spherical().setFromVector3(camera.position.clone().sub(controls.target)),
+    };
+  }
+  const progress = THREE.MathUtils.clamp(linear, 0, 1);
+  const eased = progress * progress * (3 - 2 * progress);
+  const spherical = reviewCameraBase.spherical.clone();
+  spherical.theta -= 0.20 * eased;
+  spherical.phi = THREE.MathUtils.clamp(spherical.phi + 0.055 * eased, 0.08, Math.PI - 0.08);
+  const offset = new THREE.Vector3().setFromSpherical(spherical);
+  controls.enabled = false;
+  controls.target.copy(reviewCameraBase.target);
+  camera.position.copy(reviewCameraBase.target).add(offset);
+  camera.lookAt(reviewCameraBase.target);
+  camera.updateMatrixWorld(true);
+  renderer.render(scene, camera);
+  return { linear: progress, eased };
 }
 
 function directChildSignature(group) {

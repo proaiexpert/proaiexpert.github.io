@@ -24,12 +24,13 @@ jobs:
         run: node docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/inspect-glb-structure.mjs
       - name: Commit inspection report
         run: |
-          if git diff --quiet -- docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/GLB_STRUCTURE_INSPECTION.json; then
+          REPORT='docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/GLB_STRUCTURE_INSPECTION.json'
+          if [ -z "$(git status --porcelain -- "$REPORT")" ]; then
             echo 'Inspection report unchanged.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/GLB_STRUCTURE_INSPECTION.json
+          git add "$REPORT"
           git commit -m 'test: record ProAI cube GLB structure'
           git push origin HEAD:agent/proai-cube-threejs-mechanical-r0

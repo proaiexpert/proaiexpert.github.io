@@ -145,7 +145,10 @@ function cubicBezierEase(x) {
 }
 
 function directChildSignature(group) {
-  return group.children.map((child) => child.name).filter(Boolean).sort();
+  return group.children
+    .map((child) => child.name?.replace(/_[0-9]+$/, ''))
+    .filter(Boolean)
+    .sort();
 }
 
 function hierarchyCheck() {

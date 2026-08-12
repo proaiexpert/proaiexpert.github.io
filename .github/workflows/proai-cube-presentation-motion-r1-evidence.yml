@@ -1,0 +1,86 @@
+name: ProAI Cube Presentation Motion R1.1 Evidence
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-presentation-motion-r1
+    paths:
+      - 'docs/site-evolution/spline/proai-cube-presentation-motion-r1/**'
+      - '.github/workflows/proai-cube-presentation-motion-r1-evidence.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  presentation-r1-evidence:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: docs/site-evolution/spline/proai-cube-presentation-motion-r1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-presentation-motion-r1
+          fetch-depth: 0
+
+      - name: Verify isolated scope and no Spline runtime
+        run: |
+          set -euo pipefail
+          ! grep -RniE '@splinetool|prod\.spline\.design|\.splinecode' . --exclude-dir=node_modules --exclude='QA.json' --exclude='REPORT.md'
+          node --check main.js
+          node --check capture.mjs
+          cmp rubik_39_s_cube_animation.glb ../proai-cube-geometry-r1/rubik_39_s_cube_animation.glb
+
+      - name: Install dependencies
+        run: npm install --package-lock=false
+
+      - name: Verify exact GLB and build
+        run: npm run build
+
+      - name: Install Chromium and ffmpeg
+        run: |
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Start isolated Vite server
+        run: |
+          nohup npx vite --host 127.0.0.1 --port 4173 > /tmp/proai-presentation-r1-vite.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/proai-presentation-r1-vite.log
+          exit 1
+
+      - name: Run mechanics, 360, interaction QA and capture review
+        env:
+          PROAI_PRESENTATION_R1_URL: http://127.0.0.1:4173/
+        run: npm run capture
+
+      - name: Upload owner review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-presentation-motion-r1-owner-review
+          path: |
+            docs/site-evolution/spline/proai-cube-presentation-motion-r1/QA.json
+            docs/site-evolution/spline/proai-cube-presentation-motion-r1/REPORT.md
+            docs/site-evolution/spline/proai-cube-presentation-motion-r1/review/*.png
+            docs/site-evolution/spline/proai-cube-presentation-motion-r1/review/*.mp4
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit evidence
+        working-directory: .
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/spline/proai-cube-presentation-motion-r1/QA.json \
+                  docs/site-evolution/spline/proai-cube-presentation-motion-r1/REPORT.md \
+                  docs/site-evolution/spline/proai-cube-presentation-motion-r1/review
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'test: record ProAI cube Presentation Motion R1.1 evidence'
+          git push origin HEAD:agent/proai-cube-presentation-motion-r1

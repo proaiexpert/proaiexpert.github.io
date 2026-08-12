@@ -86,6 +86,19 @@ Only after isolated owner approval.
 - responsive framing;
 - production routes remain untouched until explicit owner authorization.
 
+## Review video compatibility — REQUIRED
+
+For every future visual/motion pass that produces review video evidence:
+
+- **Always produce an iPhone-compatible MP4 as the primary owner-review video.**
+- Format: `.mp4`
+- Codec: H.264 / AVC
+- Pixel format: `yuv420p`
+- Preferred review rate: 24 or 30 fps
+- 1080p is preferred unless a lighter file is needed for quick review.
+- The MP4 must be committed/pushed to GitHub and the final response must include a direct GitHub link to it.
+- WebM may be generated as a secondary technical artifact, but **must not be the only review video**, because it does not reliably open for the owner on iPhone/GitHub preview.
+
 ## Guardrails
 
 - Visual quality first.

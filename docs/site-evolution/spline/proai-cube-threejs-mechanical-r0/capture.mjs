@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const REVIEW = path.join(ROOT, 'review');
 const URL = process.env.PROAI_R0_URL || 'http://127.0.0.1:4173/?capture=1';
+const VIDEO_URL = `${URL}${URL.includes('?') ? '&' : '?'}video=1`;
 const VIEWPORT = { width: 900, height: 1040 };
 fs.mkdirSync(REVIEW, { recursive: true });
 
@@ -23,10 +24,10 @@ function attachDiagnostics(page, bucket) {
   page.on('request', (request) => bucket.requests.push(request.url()));
 }
 
-async function waitReady(page) {
-  await page.goto(URL, { waitUntil: 'networkidle', timeout: 120000 });
+async function waitReady(page, url = URL) {
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 120000 });
   await page.waitForFunction(() => window.__PROAI_CUBE_R0?.ready === true, null, { timeout: 90000 });
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(250);
 }
 
 async function screenshot(page, filename) {
@@ -46,7 +47,7 @@ await screenshot(page, 'proai-cube-r0-natural-3q.png');
 
 await page.evaluate(() => { void window.__PROAI_CUBE_R0.playSlice({ direction: 1 }); });
 await page.waitForFunction(() => window.__PROAI_CUBE_R0?.motionState === 'turned', null, { timeout: 90000 });
-await page.waitForTimeout(220);
+await page.waitForTimeout(150);
 await screenshot(page, 'proai-cube-r0-slice-turn.png');
 const turnedDiagnostics = await page.evaluate(() => window.__PROAI_CUBE_R0.getDiagnostics());
 await page.evaluate(() => window.__PROAI_CUBE_R0.resetSlice({ direction: 1 }));
@@ -59,11 +60,11 @@ const videoTelemetry = { console: [], pageErrors: [], requests: [] };
 const videoContext = await browser.newContext({ viewport: VIEWPORT, recordVideo: { dir: REVIEW, size: VIEWPORT } });
 const videoPage = await videoContext.newPage();
 attachDiagnostics(videoPage, videoTelemetry);
-await waitReady(videoPage);
-await videoPage.waitForTimeout(1300);
+await waitReady(videoPage, VIDEO_URL);
+await videoPage.waitForTimeout(1200);
 await videoPage.evaluate(() => { void window.__PROAI_CUBE_R0.playSlice({ direction: 1 }); });
 await videoPage.waitForFunction(() => window.__PROAI_CUBE_R0?.motionState === 'turned', null, { timeout: 90000 });
-await videoPage.waitForTimeout(1300);
+await videoPage.waitForTimeout(1200);
 
 const start = { x: VIEWPORT.width * 0.54, y: VIEWPORT.height * 0.52 };
 const end = { x: start.x - 118, y: start.y + 44 };

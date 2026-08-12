@@ -1,5 +1,4 @@
 import { chromium } from 'playwright';
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,47 +56,80 @@ const finalDiagnostics = await page.evaluate(() => window.__PROAI_CUBE_R0.getDia
 await page.close();
 
 const videoTelemetry = { console: [], pageErrors: [], requests: [] };
-const videoContext = await browser.newContext({ viewport: VIEWPORT, recordVideo: { dir: REVIEW, size: VIEWPORT } });
-const videoPage = await videoContext.newPage();
+const videoPage = await browser.newPage({ viewport: VIEWPORT });
 attachDiagnostics(videoPage, videoTelemetry);
 await waitReady(videoPage, VIDEO_URL);
-await videoPage.waitForTimeout(1200);
+
+const mediaRecorderSupport = await videoPage.evaluate(() => {
+  const candidates = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  const mimeType = candidates.find((type) => MediaRecorder.isTypeSupported(type)) || '';
+  const canvas = document.getElementById('cube-canvas');
+  if (!canvas?.captureStream || typeof MediaRecorder === 'undefined') return { supported: false, mimeType: null };
+  const stream = canvas.captureStream(30);
+  const chunks = [];
+  const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+  recorder.addEventListener('dataavailable', (event) => {
+    if (event.data?.size) chunks.push(event.data);
+  });
+  window.__R0_CAPTURE_RECORDER = { recorder, chunks, startedAt: performance.now() };
+  recorder.start(250);
+  return { supported: true, mimeType: recorder.mimeType };
+});
+if (!mediaRecorderSupport.supported) throw new Error('Canvas MediaRecorder capture is unavailable');
+
+await videoPage.waitForTimeout(1450);
 await videoPage.evaluate(() => { void window.__PROAI_CUBE_R0.playSlice({ direction: 1 }); });
 await videoPage.waitForFunction(() => window.__PROAI_CUBE_R0?.motionState === 'turned', null, { timeout: 90000 });
-await videoPage.waitForTimeout(1200);
+await videoPage.waitForTimeout(1450);
 
 const start = { x: VIEWPORT.width * 0.54, y: VIEWPORT.height * 0.52 };
 const end = { x: start.x - 118, y: start.y + 44 };
 await videoPage.mouse.move(start.x, start.y);
 await videoPage.mouse.down();
-for (let i = 1; i <= 22; i += 1) {
-  const t = i / 22;
+for (let i = 1; i <= 24; i += 1) {
+  const t = i / 24;
   await videoPage.mouse.move(start.x + (end.x - start.x) * t, start.y + (end.y - start.y) * t);
-  await videoPage.waitForTimeout(18);
+  await videoPage.waitForTimeout(20);
 }
 await videoPage.mouse.up();
-await videoPage.waitForTimeout(1400);
+await videoPage.waitForTimeout(1450);
 await videoPage.evaluate(() => { void window.__PROAI_CUBE_R0.resetSlice({ direction: 1 }); });
 await videoPage.waitForFunction(() => window.__PROAI_CUBE_R0?.motionState === 'rest', null, { timeout: 90000 });
-await videoPage.waitForTimeout(1200);
+await videoPage.waitForTimeout(2100);
 
-const video = videoPage.video();
-await videoContext.close();
-const rawVideo = path.join(REVIEW, 'proai-cube-r0-review-raw.webm');
+const videoPayload = await videoPage.evaluate(() => new Promise((resolve, reject) => {
+  const state = window.__R0_CAPTURE_RECORDER;
+  if (!state?.recorder) {
+    reject(new Error('MediaRecorder state missing'));
+    return;
+  }
+  const finish = async () => {
+    try {
+      const blob = new Blob(state.chunks, { type: state.recorder.mimeType || 'video/webm' });
+      const bytes = new Uint8Array(await blob.arrayBuffer());
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)));
+      }
+      resolve({
+        base64: btoa(binary),
+        mimeType: blob.type,
+        byteLength: bytes.length,
+        durationMs: performance.now() - state.startedAt,
+      });
+    } catch (error) {
+      reject(error);
+    }
+  };
+  state.recorder.addEventListener('stop', finish, { once: true });
+  state.recorder.stop();
+}));
+
 const targetVideo = path.join(REVIEW, 'proai-cube-r0-review-12s.webm');
-for (const file of [rawVideo, targetVideo]) if (fs.existsSync(file)) fs.rmSync(file);
-await video.saveAs(rawVideo);
-
-let videoDurationSec = null;
-try {
-  execFileSync('ffmpeg', ['-y', '-sseof', '-13', '-i', rawVideo, '-t', '13', '-c', 'copy', targetVideo], { stdio: 'ignore' });
-  const duration = execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', targetVideo], { encoding: 'utf8' }).trim();
-  videoDurationSec = Number(duration);
-  fs.rmSync(rawVideo);
-} catch (error) {
-  console.warn(`Video trim probe failed; retaining raw evidence: ${error}`);
-  if (!fs.existsSync(targetVideo) && fs.existsSync(rawVideo)) fs.renameSync(rawVideo, targetVideo);
-}
+fs.writeFileSync(targetVideo, Buffer.from(videoPayload.base64, 'base64'));
+const videoDurationSec = videoPayload.durationMs / 1000;
+await videoPage.close();
 await browser.close();
 
 const allRequests = [...telemetry.requests, ...videoTelemetry.requests];
@@ -115,9 +147,10 @@ const motionTelemetryPass =
   Boolean(forward) &&
   forward.monotonic === true &&
   forward.overshoot === false &&
-  forward.sampleCount >= 8 &&
-  forward.maxAbsStepRad < 0.35;
-const videoDurationPass = videoDurationSec == null || (videoDurationSec >= 9.5 && videoDurationSec <= 15.5);
+  Math.abs(turnedDiagnostics.endpointErrorRad ?? 999) < 1e-8 &&
+  (forward.firstStepRad ?? 1) < 0.02 &&
+  (forward.lastStepRad ?? 1) < 0.03;
+const videoDurationPass = videoDurationSec >= 9.5 && videoDurationSec <= 15.5 && videoPayload.byteLength > 1024;
 const splineDependencyNone = forbiddenRequests.length === 0;
 const runtimePass = browserErrors.length === 0 && consoleErrors.length === 0;
 
@@ -129,7 +162,11 @@ const qa = {
   turnedDiagnostics,
   finalDiagnostics,
   repeatability,
-  videoDurationSec,
+  video: {
+    durationSec: videoDurationSec,
+    byteLength: videoPayload.byteLength,
+    mimeType: videoPayload.mimeType,
+  },
   network: {
     totalRequests: allRequests.length,
     forbiddenRequests,
@@ -153,9 +190,9 @@ fs.writeFileSync(path.join(REVIEW, 'qa-report.json'), JSON.stringify(qa, null, 2
 const report = `# ProAI Cube — Three.js Mechanical Parity R0 — Technical Report\n\n` +
 `## Scope\n\nIsolated Three.js proof using the exact clean GLB geometry. No Hero integration, production route changes, Spline runtime, .splinecode runtime dependency, or prod.spline.design request.\n\n` +
 `## Geometry / hierarchy\n\n- Named hierarchy: **${qa.acceptance.hierarchy}**.\n- Axis selected from actual GLB/world-space clustering: **${initialDiagnostics.mechanics.axis}**.\n- X cluster means: \`${JSON.stringify(initialDiagnostics.mechanics.xClusterMeans)}\`.\n- X cluster object counts: \`${JSON.stringify(initialDiagnostics.mechanics.xClusterObjectCounts)}\`.\n- Right layer objects temporarily pivoted: **${initialDiagnostics.mechanics.rightLayerObjectCount}**.\n- Right layer unique spatial cubies: **${initialDiagnostics.mechanics.rightLayerUniqueSpatialCubies}**.\n- Source hierarchy is restored exactly after reset; leaf meshes are never flattened into a new cube.\n\n` +
-`## Motion\n\n- Forward turn: **${initialDiagnostics.motionConfig.turnDurationMs} ms**.\n- Reset: **${initialDiagnostics.motionConfig.resetDurationMs} ms**.\n- Easing: cubic-bezier **${initialDiagnostics.motionConfig.easing.join(', ')}**.\n- Settle/hold: **${initialDiagnostics.motionConfig.holdAfterTurnMs} ms**.\n- Orbit damping factor: **${initialDiagnostics.motionConfig.orbitDampingFactor}**; rotate speed **${initialDiagnostics.motionConfig.orbitRotateSpeed}**.\n- Exact 90° endpoint error: **${turnedDiagnostics.endpointErrorRad} rad**.\n- Forward telemetry: ${JSON.stringify(forward)}.\n- Repeatability: ${repeatability.cycles} accelerated cycles; max position error ${repeatability.maxPosition}; max quaternion error ${repeatability.maxQuaternionRad}; max scale error ${repeatability.maxScale}; **${repeatability.pass ? 'PASS' : 'FAIL'}**.\n\n` +
-`## Reference calibration\n\nResend's current design documentation describes the homepage object as a rotating Rubik's Cube and frames it as a deliberate demonstration of technical craft; Spline's case study confirms that the live cube is built in Spline and evolved through material, lighting, and interaction passes. R0 does not copy that implementation. Motion was calibrated toward a slow weighted turn: long acceleration/deceleration envelope, no overshoot, exact terminal quaternion, visible hold, and restrained orbit damping.\n\n` +
-`## Browser / dependency QA\n\n- Runtime: **${qa.acceptance.runtime}**.\n- Spline runtime/network dependency: **${qa.acceptance.splineDependency}**.\n- Forbidden network requests: ${forbiddenRequests.length}.\n- Browser page errors: ${browserErrors.length}.\n- Browser console errors: ${consoleErrors.length}.\n- Review video duration: ${videoDurationSec == null ? 'unknown' : `${videoDurationSec.toFixed(2)} s`}.\n\n` +
+`## Motion\n\n- Forward turn: **${initialDiagnostics.motionConfig.turnDurationMs} ms**.\n- Reset: **${initialDiagnostics.motionConfig.resetDurationMs} ms**.\n- Easing: cubic-bezier **${initialDiagnostics.motionConfig.easing.join(', ')}**.\n- Settle/hold: **${initialDiagnostics.motionConfig.holdAfterTurnMs} ms**.\n- Orbit damping factor: **${initialDiagnostics.motionConfig.orbitDampingFactor}**; rotate speed **${initialDiagnostics.motionConfig.orbitRotateSpeed}**.\n- Exact 90° endpoint error: **${turnedDiagnostics.endpointErrorRad} rad**.\n- Forward telemetry: ${JSON.stringify(forward)}.\n- Frame-rate-independent boundary gate: first step ${forward?.firstStepRad}, last step ${forward?.lastStepRad}, monotonic ${forward?.monotonic}, overshoot ${forward?.overshoot}.\n- Repeatability: ${repeatability.cycles} accelerated cycles; max position error ${repeatability.maxPosition}; max quaternion error ${repeatability.maxQuaternionRad}; max scale error ${repeatability.maxScale}; **${repeatability.pass ? 'PASS' : 'FAIL'}**.\n\n` +
+`## Reference calibration\n\nResend's current design documentation describes the homepage object as a rotating Rubik's Cube and frames it as a deliberate demonstration of technical craft; Spline's case study confirms that the live cube is built in Spline and evolved through material, lighting, and interaction passes. R0 does not copy that implementation. Motion was calibrated toward a slow weighted turn: long acceleration/deceleration envelope, zero-overshoot terminal quaternion, visible hold, and restrained orbit damping.\n\n` +
+`## Browser / dependency QA\n\n- Runtime: **${qa.acceptance.runtime}**.\n- Spline runtime/network dependency: **${qa.acceptance.splineDependency}**.\n- Forbidden network requests: ${forbiddenRequests.length}.\n- Browser page errors: ${browserErrors.length}.\n- Browser console errors: ${consoleErrors.length}.\n- Review video: ${videoDurationSec.toFixed(2)} s, ${videoPayload.byteLength} bytes, ${videoPayload.mimeType}.\n\n` +
 `## Review evidence\n\n- \`review/proai-cube-r0-natural-3q.png\`\n- \`review/proai-cube-r0-slice-turn.png\`\n- \`review/proai-cube-r0-review-12s.webm\`\n- \`review/qa-report.json\`\n\n` +
 `## Gate\n\nAutomated hierarchy/mechanics/runtime checks are recorded above. Visual premium-motion acceptance remains an owner-review gate; this R0 does not advance to Hero or final art direction.\n`;
 fs.writeFileSync(path.join(ROOT, 'TECHNICAL_REPORT.md'), report);

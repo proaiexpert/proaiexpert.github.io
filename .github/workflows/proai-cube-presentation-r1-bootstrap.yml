@@ -1,20 +1,14 @@
-# Final candidate rerun after live-URL normalization and exact micro-drift freeze.
 name: ProAI Cube Presentation Motion R1.1 Bootstrap
 
 on:
   push:
-    branches:
-      - agent/proai-cube-presentation-motion-r1
-    paths:
-      - '.github/workflows/proai-cube-presentation-r1-bootstrap.yml'
-
+    branches: [agent/proai-cube-presentation-motion-r1]
+    paths: ['.github/workflows/proai-cube-presentation-r1-bootstrap.yml']
 permissions:
   contents: write
-
 env:
   DIR: docs/site-evolution/spline/proai-cube-presentation-motion-r1
   SRC: docs/site-evolution/spline/proai-cube-geometry-r1
-
 jobs:
   build-qa-review:
     runs-on: ubuntu-latest
@@ -24,44 +18,37 @@ jobs:
         with:
           ref: agent/proai-cube-presentation-motion-r1
           fetch-depth: 0
-
-      - name: Materialize Presentation Motion R1.1 from exact Geometry R1
+      - name: Materialize from exact Geometry R1
         shell: bash
         run: |
           set -euo pipefail
           test "$(git merge-base HEAD 73082717909b6f4225841401fe4962d6ff4bbcca)" = "73082717909b6f4225841401fe4962d6ff4bbcca"
-          mkdir -p /tmp/proai-presentation
-          base64 -d .github/tmp/proai-cube-presentation-r1-payload.b64 | tar -xzf - -C /tmp/proai-presentation
-          python3 /tmp/proai-presentation/presentation_bootstrap.py
-          cp /tmp/proai-presentation/presentation_capture.mjs "$DIR/capture.mjs"
+          python3 .github/tmp/proai-cube-presentation-r1-bootstrap.py
+          cat .github/tmp/proai-cube-presentation-r1-capture.part.00.mjs .github/tmp/proai-cube-presentation-r1-capture.part.01.mjs .github/tmp/proai-cube-presentation-r1-capture.part.02.mjs > "$DIR/capture.mjs"
           node --check "$DIR/main.js"
           node --check "$DIR/capture.mjs"
-
-      - name: Prove Geometry R1 code and visual baseline are frozen
+      - name: Prove Geometry R1 and visual baseline frozen
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          src = Path('docs/site-evolution/spline/proai-cube-geometry-r1/main.js').read_text()
-          dst = Path('docs/site-evolution/spline/proai-cube-presentation-motion-r1/main.js').read_text()
-          pairs = [
-              ('const GEOMETRY_R1 = Object.freeze({', 'const renderer = new THREE.WebGLRenderer({'),
-              ('// Temporary neutral studio baseline for geometry inspection only.', 'let cubeRoot;'),
-              ('function roundedRectShape(width, height, radius) {', 'function findCubieParents() {'),
+          src=Path('docs/site-evolution/spline/proai-cube-geometry-r1/main.js').read_text()
+          dst=Path('docs/site-evolution/spline/proai-cube-presentation-motion-r1/main.js').read_text()
+          pairs=[
+            ('const GEOMETRY_R1 = Object.freeze({','const renderer = new THREE.WebGLRenderer({'),
+            ('// Temporary neutral studio baseline for geometry inspection only.','let cubeRoot;'),
+            ('function roundedRectShape(width, height, radius) {','function findCubieParents() {'),
           ]
-          for start, end in pairs:
-              a = src[src.index(start):src.index(end)]
-              b = dst[dst.index(start):dst.index(end)]
-              if a != b:
-                  raise SystemExit(f'Geometry/material/light freeze mismatch at {start}')
-          print('Geometry R1 + temporary material/light code freeze: PASS')
+          for a,b in pairs:
+            if src[src.index(a):src.index(b)] != dst[dst.index(a):dst.index(b)]: raise SystemExit('freeze mismatch '+a)
+          drift="return new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, roll, 'XYZ'));"
+          if drift not in dst: raise SystemExit('micro-drift XYZ freeze mismatch')
+          print('Geometry/material/light + micro-drift freeze: PASS')
           PY
           cmp "$SRC/rubik_39_s_cube_animation.glb" "$DIR/rubik_39_s_cube_animation.glb"
           ! grep -niE '@splinetool|prod\.spline\.design|\.splinecode' "$DIR/main.js" "$DIR/index.html" "$DIR/styles.css" "$DIR/package.json"
-
       - name: Install dependencies and ffmpeg
-        shell: bash
         run: |
           set -euo pipefail
           sudo apt-get update -qq
@@ -69,28 +56,16 @@ jobs:
           cd "$DIR"
           npm install --package-lock=false
           npx playwright install chromium
-
       - name: Build isolated prototype
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$DIR"
-          npm run build
-
+        run: cd "$DIR" && npm run build
       - name: Start isolated Vite server
         shell: bash
         run: |
           set -euo pipefail
           cd "$DIR"
           npm run dev -- --host 127.0.0.1 --port 4173 >/tmp/proai-presentation-vite.log 2>&1 &
-          echo $! >/tmp/proai-presentation-vite.pid
-          for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
-            sleep 1
-          done
-          cat /tmp/proai-presentation-vite.log
-          exit 1
-
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/proai-presentation-vite.log; exit 1
       - name: Browser startup diagnostic
         shell: bash
         run: |
@@ -98,35 +73,20 @@ jobs:
           cd "$DIR"
           node --input-type=module <<'NODE'
           import { chromium } from 'playwright';
-          const browser = await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--use-angle=swiftshader']});
-          const page = await browser.newPage({viewport:{width:900,height:1040}});
-          const errors=[];
-          page.on('pageerror', e => { errors.push(`PAGEERROR: ${e.stack || e}`); console.log(errors.at(-1)); });
-          page.on('console', m => { if (m.type()==='error') { errors.push(`CONSOLE: ${m.text()}`); console.log(errors.at(-1)); } });
-          await page.goto('http://127.0.0.1:4173/?capture=1', {waitUntil:'networkidle', timeout:60000});
-          await page.waitForTimeout(5000);
-          const state = await page.evaluate(() => ({
-            hasApi: Boolean(window.__PROAI_CUBE_R1),
-            ready: window.__PROAI_CUBE_R1?.ready ?? null,
-            motionState: window.__PROAI_CUBE_R1?.motionState ?? null,
-            status: document.getElementById('runtime-status')?.textContent ?? null,
-          }));
-          console.log('STARTUP_STATE', JSON.stringify(state));
-          await browser.close();
-          if (!state.ready) process.exitCode = 2;
+          const b=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--use-angle=swiftshader']});
+          const p=await b.newPage({viewport:{width:900,height:1040}});
+          p.on('pageerror',e=>console.log('PAGEERROR',String(e)));
+          p.on('console',m=>{if(m.type()==='error')console.log('CONSOLE',m.text())});
+          await p.goto('http://127.0.0.1:4173/?capture=1',{waitUntil:'networkidle',timeout:60000});
+          await p.waitForFunction(()=>window.__PROAI_CUBE_R1?.ready===true,null,{timeout:90000});
+          console.log('STARTUP_STATE',JSON.stringify(await p.evaluate(()=>window.__PROAI_CUBE_R1.getDiagnostics())));
+          await b.close();
           NODE
-          if [ $? -ne 0 ]; then cat /tmp/proai-presentation-vite.log || true; exit 1; fi
-
       - name: Mechanical presentation interaction QA and owner review capture
-        shell: bash
         env:
           PROAI_GEOMETRY_CODE_FROZEN: '1'
           PROAI_PRESENTATION_R1_URL: http://127.0.0.1:4173/?capture=1
-        run: |
-          set -euo pipefail
-          cd "$DIR"
-          npm run capture
-
+        run: cd "$DIR" && npm run capture
       - name: Upload owner review artifact
         uses: actions/upload-artifact@v4
         with:
@@ -139,8 +99,7 @@ jobs:
             ${{ env.DIR }}/review/*.webm
           if-no-files-found: error
           retention-days: 7
-
-      - name: Commit Presentation Motion R1.1 evidence and remove bootstrap transport
+      - name: Commit evidence and remove bootstrap transport
         shell: bash
         run: |
           set -euo pipefail
@@ -148,6 +107,6 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "$DIR"
           git rm .github/workflows/proai-cube-presentation-r1-bootstrap.yml
-          git rm .github/tmp/proai-cube-presentation-r1-payload.b64
+          git rm .github/tmp/proai-cube-presentation-r1-*
           git commit -m 'feat: add ProAI cube Presentation Motion R1.1'
           git push origin HEAD:agent/proai-cube-presentation-motion-r1

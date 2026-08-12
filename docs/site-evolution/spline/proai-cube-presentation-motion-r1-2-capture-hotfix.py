@@ -17,7 +17,7 @@ capture_path.write_text(text)
 main_path = Path('docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/main.js')
 main = main_path.read_text()
 old_delta = "const deltaMs = Math.min(80, Math.max(0, now - presentationLastNow));"
-new_delta = "const deltaMs = Math.min(250, Math.max(0, now - presentationLastNow));"
+new_delta = "const rawDeltaMs = Math.max(0, now - presentationLastNow);\n  const deltaMs = reviewMode ? rawDeltaMs : Math.min(80, rawDeltaMs);"
 if old_delta not in main:
     raise SystemExit('presentation delta anchor not found')
 main = main.replace(old_delta, new_delta, 1)

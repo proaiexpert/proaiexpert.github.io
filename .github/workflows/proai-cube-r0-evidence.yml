@@ -1,5 +1,5 @@
 name: ProAI Cube R0 Browser Evidence
-# Rerun marker after hierarchy-parent correction.
+# Readiness probe + evidence capture after hierarchy-parent correction.
 
 on:
   push:
@@ -11,6 +11,7 @@ on:
       - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/main.js'
       - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/package.json'
       - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs'
+      - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/debug-ready.mjs'
       - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/rubik_39_s_cube_animation.glb'
       - '.github/workflows/proai-cube-r0-evidence.yml'
 
@@ -60,6 +61,10 @@ jobs:
           done
           cat /tmp/proai-cube-r0-vite.log
           exit 1
+
+      - name: Diagnose browser readiness
+        working-directory: docs/site-evolution/spline/proai-cube-threejs-mechanical-r0
+        run: node debug-ready.mjs
 
       - name: Capture screenshots video and mechanical QA
         working-directory: docs/site-evolution/spline/proai-cube-threejs-mechanical-r0

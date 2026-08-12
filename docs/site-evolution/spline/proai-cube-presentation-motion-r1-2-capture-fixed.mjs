@@ -207,7 +207,9 @@ const videoEvents = [
 ];
 const eventRuntime = new Map();
 const MANUAL_START = 18.45;
+const MANUAL_MOVE_END = 19.05;
 const MANUAL_END = 19.35;
+const CAMERA_SETTLED_SAMPLE = 20.95;
 const CALM_END = 21.20;
 const SOFT_RESUME_END = 23.60;
 let manualDown = false;
@@ -245,12 +247,11 @@ for (let frame = 0; frame < Math.round(VIDEO_SECONDS * FPS); frame += 1) {
     manualDown = true;
   }
   if (manualDown && !manualReleasedVideo && inManual) {
-    const p = Math.min(1, (t - MANUAL_START) / (MANUAL_END - MANUAL_START));
+    const p = Math.min(1, Math.max(0, (Math.min(t, MANUAL_MOVE_END) - MANUAL_START) / (MANUAL_MOVE_END - MANUAL_START)));
     const eased = p * p * (3 - 2 * p);
     await videoPage.mouse.move(mx + 150 * eased, my - 22 * eased);
   }
   if (manualDown && !manualReleasedVideo && t >= MANUAL_END) {
-    manualCameraAtRelease = (await videoPage.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics())).interaction.cameraPosition;
     await videoPage.mouse.up();
     manualReleasedVideo = true;
   }
@@ -281,6 +282,9 @@ for (let frame = 0; frame < Math.round(VIDEO_SECONDS * FPS); frame += 1) {
   const diag = await videoPage.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
   if (manualDown && !manualReleasedVideo && diag.activeTurns.length === 0 && diag.lastTurnResult?.axis === 'Z' && diag.lastTurnResult?.layer === 1) {
     manualVideoTurnFinishedWhileHeld = true;
+  }
+  if (manualReleasedVideo && manualCameraAtRelease === null && t >= CAMERA_SETTLED_SAMPLE) {
+    manualCameraAtRelease = [...diag.interaction.cameraPosition];
   }
   for (const turn of diag.activeTurns) observedAxes.add(turn.axis);
 
@@ -317,7 +321,7 @@ for (let frame = 0; frame < Math.round(VIDEO_SECONDS * FPS); frame += 1) {
 }
 if (manualDown && !manualReleasedVideo) await videoPage.mouse.up();
 const finalVideoDiag = await videoPage.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
-const videoCameraPreserved = !manualCameraAtRelease || vectorDistance(manualCameraAtRelease, finalVideoDiag.interaction.cameraPosition) < 1.0;
+const videoCameraPreserved = Boolean(manualCameraAtRelease) && vectorDistance(manualCameraAtRelease, finalVideoDiag.interaction.cameraPosition) < 1.0;
 await videoPage.close();
 await browser.close();
 
@@ -395,7 +399,7 @@ const qa = {
   mechanicalQA,
   interactionQA: {
     deterministic: { dragTurn, activeSliceCompleted, blockedNewSliceAttempt, nextSliceBlocked, cameraNoSnap, pass: interactionPass },
-    ownerVideo: { manualStartSec: MANUAL_START, manualEndSec: MANUAL_END, calmEndSec: CALM_END, softResumeEndSec: SOFT_RESUME_END, manualVideoTurnFinishedWhileHeld, videoCameraPreserved, pass: videoInteractionPass },
+    ownerVideo: { manualStartSec: MANUAL_START, manualMoveEndSec: MANUAL_MOVE_END, manualEndSec: MANUAL_END, cameraSettledSampleSec: CAMERA_SETTLED_SAMPLE, calmEndSec: CALM_END, softResumeEndSec: SOFT_RESUME_END, manualVideoTurnFinishedWhileHeld, videoCameraPreserved, pass: videoInteractionPass },
   },
   liveness: {
     autonomousFrames: eligibleFrames,

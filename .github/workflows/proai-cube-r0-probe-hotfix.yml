@@ -1,0 +1,67 @@
+name: ProAI Cube R0 Media Probe Hotfix
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-threejs-mechanical-r0
+    paths:
+      - '.github/workflows/proai-cube-r0-probe-hotfix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-threejs-mechanical-r0
+          fetch-depth: 0
+      - name: Add duration fallback from decoded final frame timestamp
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs')
+          s = p.read_text()
+          old = '''function probeWebmDuration(ffmpegPath, filepath) {
+  const probe = spawnSync(ffmpegPath, ['-hide_banner', '-i', filepath], { encoding: 'utf8' });
+  const text = `${probe.stdout || ''}\\n${probe.stderr || ''}`;
+  const match = text.match(/Duration:\\s*(\\d+):(\\d+):(\\d+(?:\\.\\d+)?)/i);
+  if (!match) return null;
+  return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
+}'''
+          new = '''function timecodeToSeconds(match) {
+  return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
+}
+
+function probeWebmDuration(ffmpegPath, filepath) {
+  const probe = spawnSync(ffmpegPath, ['-hide_banner', '-i', filepath], { encoding: 'utf8' });
+  const headerText = `${probe.stdout || ''}\\n${probe.stderr || ''}`;
+  const headerMatch = headerText.match(/Duration:\\s*(\\d+):(\\d+):(\\d+(?:\\.\\d+)?)/i);
+  if (headerMatch) return timecodeToSeconds(headerMatch);
+
+  const decode = spawnSync(
+    ffmpegPath,
+    ['-hide_banner', '-i', filepath, '-map', '0:v:0', '-an', '-f', 'null', '-'],
+    { encoding: 'utf8' },
+  );
+  const decodeText = `${decode.stdout || ''}\\n${decode.stderr || ''}`;
+  const matches = [...decodeText.matchAll(/time=(\\d+):(\\d+):(\\d+(?:\\.\\d+)?)/gi)];
+  if (!matches.length) return null;
+  return timecodeToSeconds(matches.at(-1));
+}'''
+          if old not in s:
+              raise SystemExit('Expected probeWebmDuration block not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+          node --check docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs
+      - name: Commit patch and remove helper
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs
+          git rm .github/workflows/proai-cube-r0-probe-hotfix.yml
+          git commit -m 'fix: probe R0 WebM duration from decoded frames'
+          git push origin HEAD:agent/proai-cube-threejs-mechanical-r0

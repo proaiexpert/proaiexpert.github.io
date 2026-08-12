@@ -15,7 +15,7 @@ Isolated Three.js proof using the exact clean GLB geometry. No Hero integration,
 
 - Turn **1650 ms**; reset **1750 ms**; easing **0.42, 0, 0.16, 1**; hold **1600 ms**.
 - Orbit damping **0.068**; rotate speed **0.55**.
-- Endpoint error **0 rad**; telemetry {"sampleCount":30,"monotonic":true,"overshoot":false,"maxAbsStepRad":0.8246576025403395,"firstStepRad":0.00017583354302986461,"lastStepRad":0.19835368612852644}.
+- Endpoint error **0 rad**; telemetry {"sampleCount":31,"monotonic":true,"overshoot":false,"maxAbsStepRad":0.7804857339057492,"firstStepRad":0.00048382509659751965,"lastStepRad":0.21749043139515534}.
 - Motion gate: monotonic/no-overshoot easing, exact terminal quaternion, soft first-step acceleration.
 - Repeatability 6 cycles: position 0; quaternion 0; scale 0; **PASS**.
 
@@ -26,7 +26,7 @@ Resend was used for motion character only. R0 does not copy its proprietary impl
 ## Browser / dependency QA
 
 - Runtime **PASS**; Spline dependency **NONE**; forbidden requests 0; browser errors 0; console errors 0.
-- Review video 11.59 s; inferred source media 20.36 s; first-pass 7.86 s; SwiftShader wall clock 31.09 s; final timestamp factor 0.5893.
+- Review video 10.63 s at 24 fps (255 unique rendered frames, 1062317 bytes); deterministic frame-stepping, no wall-clock retiming.
 
 ## Review evidence
 

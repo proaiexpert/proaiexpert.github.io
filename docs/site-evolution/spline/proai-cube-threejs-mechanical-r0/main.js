@@ -486,7 +486,7 @@ loader.load(
     cubeRoot = gltf.scene;
     scene.add(cubeRoot);
     cubeRoot.updateMatrixWorld(true);
-    sceneOne = cubeRoot.getObjectByName('Scene 1') || cubeRoot;
+    sceneOne = cubeRoot.getObjectByName('right')?.parent || cubeRoot.getObjectByName('Scene 1') || cubeRoot;
 
     cubeRoot.traverse((object) => {
       if (object.name === 'Plane' || object.isLight) object.visible = false;

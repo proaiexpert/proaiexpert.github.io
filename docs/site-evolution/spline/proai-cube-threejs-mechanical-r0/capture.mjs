@@ -74,6 +74,8 @@ function retimeReviewVideo(rawVideo, targetVideo, sourceDurationSec) {
       '-c:v', 'libvpx',
       '-deadline', 'realtime',
       '-cpu-used', '8',
+      '-pix_fmt', 'yuv420p',
+      '-auto-alt-ref', '0',
       '-b:v', '1200k',
       targetVideo,
     ],

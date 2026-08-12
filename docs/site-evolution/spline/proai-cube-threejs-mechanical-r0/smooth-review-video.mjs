@@ -7,7 +7,6 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const REVIEW = path.join(ROOT, 'review');
-const FRAME_DIR = path.join(os.tmpdir(), 'proai-cube-r0-deterministic-frames');
 const URL = process.env.PROAI_R0_URL || 'http://127.0.0.1:4173/?capture=1&deterministic=1';
 const VIEWPORT = { width: 720, height: 840 };
 const FPS = 24;
@@ -33,10 +32,10 @@ function probeDuration(ffmpegPath, filepath) {
   return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
 }
 
-function writePngDataUrl(dataUrl, filepath) {
+function jpegBufferFromDataUrl(dataUrl) {
   const comma = dataUrl.indexOf(',');
-  if (!dataUrl.startsWith('data:image/png') || comma < 0) throw new Error('Invalid PNG data URL');
-  fs.writeFileSync(filepath, Buffer.from(dataUrl.slice(comma + 1), 'base64'));
+  if (!dataUrl.startsWith('data:image/jpeg') || comma < 0) throw new Error('Invalid JPEG data URL');
+  return Buffer.from(dataUrl.slice(comma + 1), 'base64');
 }
 
 function addFrames(timeline, seconds, factory) {
@@ -58,8 +57,6 @@ function makeTimeline() {
 }
 
 fs.mkdirSync(REVIEW, { recursive: true });
-fs.rmSync(FRAME_DIR, { recursive: true, force: true });
-fs.mkdirSync(FRAME_DIR, { recursive: true });
 
 const browser = await chromium.launch({
   headless: true,
@@ -83,6 +80,7 @@ if (!apiSupport.slice || !apiSupport.reset || !apiSupport.orbit) {
 }
 
 const timeline = makeTimeline();
+const frameBuffers = [];
 for (let index = 0; index < timeline.length; index += 1) {
   const frame = timeline[index];
   const dataUrl = await page.evaluate(({ phase, progress, orbit }) => {
@@ -90,9 +88,10 @@ for (let index = 0; index < timeline.length; index += 1) {
     if (phase === 'turn' || phase === 'turned') api.setReviewSliceProgress(progress, 1);
     else if (phase === 'reset') api.setReviewResetProgress(progress, 1);
     api.setReviewOrbitProgress(orbit);
-    return api.captureFrame();
+    const canvas = document.getElementById('cube-canvas');
+    return canvas.toDataURL('image/jpeg', 0.94);
   }, frame);
-  writePngDataUrl(dataUrl, path.join(FRAME_DIR, `frame-${String(index).padStart(4, '0')}.png`));
+  frameBuffers.push(jpegBufferFromDataUrl(dataUrl));
   if (index % 48 === 0 || index === timeline.length - 1) {
     console.log(`deterministic review frame ${index + 1}/${timeline.length}`);
   }
@@ -106,9 +105,10 @@ const encode = spawnSync(
   ffmpegPath,
   [
     '-y',
+    '-f', 'image2pipe',
     '-framerate', String(FPS),
-    '-start_number', '0',
-    '-i', path.join(FRAME_DIR, 'frame-%04d.png'),
+    '-vcodec', 'mjpeg',
+    '-i', 'pipe:0',
     '-an',
     '-c:v', 'libvpx',
     '-deadline', 'realtime',
@@ -119,7 +119,11 @@ const encode = spawnSync(
     '-r', String(FPS),
     OUTPUT,
   ],
-  { encoding: 'utf8' },
+  {
+    input: Buffer.concat(frameBuffers),
+    encoding: 'utf8',
+    maxBuffer: 32 * 1024 * 1024,
+  },
 );
 if (encode.status !== 0 || !fs.existsSync(OUTPUT)) {
   throw new Error(`Deterministic VP8 encode failed: ${encode.stderr || encode.stdout || `exit ${encode.status}`}`);
@@ -158,7 +162,6 @@ if (/^- Review video .*$/m.test(report)) report = report.replace(/^- Review vide
 else report += `\n${deterministicLine}\n`;
 fs.writeFileSync(reportPath, report);
 
-fs.rmSync(FRAME_DIR, { recursive: true, force: true });
 console.log(JSON.stringify({
   video: 'PASS',
   fps: FPS,

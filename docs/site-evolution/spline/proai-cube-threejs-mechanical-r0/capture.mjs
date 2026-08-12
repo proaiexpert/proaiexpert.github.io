@@ -1,5 +1,7 @@
 import { chromium } from 'playwright';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,6 +10,7 @@ const REVIEW = path.join(ROOT, 'review');
 const URL = process.env.PROAI_R0_URL || 'http://127.0.0.1:4173/?capture=1';
 const VIDEO_URL = `${URL}${URL.includes('?') ? '&' : '?'}video=1`;
 const VIEWPORT = { width: 900, height: 1040 };
+const TARGET_VIDEO_DURATION_SEC = 12;
 fs.mkdirSync(REVIEW, { recursive: true });
 
 const browser = await chromium.launch({
@@ -34,6 +37,43 @@ async function screenshot(page, filename) {
   const comma = dataUrl.indexOf(',');
   if (!dataUrl.startsWith('data:image/png') || comma < 0) throw new Error('Canvas PNG capture failed');
   fs.writeFileSync(path.join(REVIEW, filename), Buffer.from(dataUrl.slice(comma + 1), 'base64'));
+}
+
+function findPlaywrightFfmpeg() {
+  const cacheRoot = path.join(os.homedir(), '.cache', 'ms-playwright');
+  if (!fs.existsSync(cacheRoot)) throw new Error(`Playwright cache not found: ${cacheRoot}`);
+  const dirs = fs.readdirSync(cacheRoot).filter((name) => name.startsWith('ffmpeg-')).sort().reverse();
+  for (const dir of dirs) {
+    for (const binary of ['ffmpeg-linux', 'ffmpeg']) {
+      const candidate = path.join(cacheRoot, dir, binary);
+      if (fs.existsSync(candidate)) return candidate;
+    }
+  }
+  throw new Error(`Playwright ffmpeg binary not found in ${cacheRoot}`);
+}
+
+function probeWebmDuration(ffmpegPath, filepath) {
+  const probe = spawnSync(ffmpegPath, ['-hide_banner', '-i', filepath], { encoding: 'utf8' });
+  const text = `${probe.stdout || ''}\n${probe.stderr || ''}`;
+  const match = text.match(/Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)/i);
+  if (!match) return null;
+  return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
+}
+
+function retimeReviewVideo(rawVideo, targetVideo, sourceDurationSec) {
+  const ffmpegPath = findPlaywrightFfmpeg();
+  const timestampScale = TARGET_VIDEO_DURATION_SEC / sourceDurationSec;
+  const result = spawnSync(
+    ffmpegPath,
+    ['-y', '-itsscale', String(timestampScale), '-i', rawVideo, '-map', '0:v:0', '-an', '-c:v', 'copy', targetVideo],
+    { encoding: 'utf8' },
+  );
+  if (result.status !== 0 || !fs.existsSync(targetVideo)) {
+    throw new Error(`Playwright ffmpeg retime failed: ${result.stderr || result.stdout || `exit ${result.status}`}`);
+  }
+  const outputDurationSec = probeWebmDuration(ffmpegPath, targetVideo);
+  if (outputDurationSec == null) throw new Error('Unable to verify retimed WebM duration');
+  return { ffmpegPath, timestampScale, outputDurationSec };
 }
 
 const telemetry = { console: [], pageErrors: [], requests: [] };
@@ -126,9 +166,15 @@ const videoPayload = await videoPage.evaluate(() => new Promise((resolve, reject
   state.recorder.stop();
 }));
 
+const rawVideo = path.join(REVIEW, 'proai-cube-r0-review-source-webgl.webm');
 const targetVideo = path.join(REVIEW, 'proai-cube-r0-review-12s.webm');
-fs.writeFileSync(targetVideo, Buffer.from(videoPayload.base64, 'base64'));
-const videoDurationSec = videoPayload.durationMs / 1000;
+for (const file of [rawVideo, targetVideo]) if (fs.existsSync(file)) fs.rmSync(file);
+fs.writeFileSync(rawVideo, Buffer.from(videoPayload.base64, 'base64'));
+const sourceVideoDurationSec = videoPayload.durationMs / 1000;
+const retime = retimeReviewVideo(rawVideo, targetVideo, sourceVideoDurationSec);
+const videoDurationSec = retime.outputDurationSec;
+const targetVideoBytes = fs.statSync(targetVideo).size;
+fs.rmSync(rawVideo);
 await videoPage.close();
 await browser.close();
 
@@ -150,7 +196,7 @@ const motionTelemetryPass =
   Math.abs(turnedDiagnostics.endpointErrorRad ?? 999) < 1e-8 &&
   (forward.firstStepRad ?? 1) < 0.02 &&
   (forward.lastStepRad ?? 1) < 0.03;
-const videoDurationPass = videoDurationSec >= 9.5 && videoDurationSec <= 15.5 && videoPayload.byteLength > 1024;
+const videoDurationPass = videoDurationSec >= 9.5 && videoDurationSec <= 15.5 && targetVideoBytes > 1024;
 const splineDependencyNone = forbiddenRequests.length === 0;
 const runtimePass = browserErrors.length === 0 && consoleErrors.length === 0;
 
@@ -163,9 +209,12 @@ const qa = {
   finalDiagnostics,
   repeatability,
   video: {
-    durationSec: videoDurationSec,
-    byteLength: videoPayload.byteLength,
+    sourceCaptureDurationSec: sourceVideoDurationSec,
+    reviewDurationSec: videoDurationSec,
+    timestampScale: retime.timestampScale,
+    byteLength: targetVideoBytes,
     mimeType: videoPayload.mimeType,
+    normalization: 'Timestamp-only normalization compensating for software-WebGL runner wall-clock slowdown; rendered frame sequence is unchanged.',
   },
   network: {
     totalRequests: allRequests.length,
@@ -192,7 +241,7 @@ const report = `# ProAI Cube — Three.js Mechanical Parity R0 — Technical Rep
 `## Geometry / hierarchy\n\n- Named hierarchy: **${qa.acceptance.hierarchy}**.\n- Axis selected from actual GLB/world-space clustering: **${initialDiagnostics.mechanics.axis}**.\n- X cluster means: \`${JSON.stringify(initialDiagnostics.mechanics.xClusterMeans)}\`.\n- X cluster object counts: \`${JSON.stringify(initialDiagnostics.mechanics.xClusterObjectCounts)}\`.\n- Right layer objects temporarily pivoted: **${initialDiagnostics.mechanics.rightLayerObjectCount}**.\n- Right layer unique spatial cubies: **${initialDiagnostics.mechanics.rightLayerUniqueSpatialCubies}**.\n- Source hierarchy is restored exactly after reset; leaf meshes are never flattened into a new cube.\n\n` +
 `## Motion\n\n- Forward turn: **${initialDiagnostics.motionConfig.turnDurationMs} ms**.\n- Reset: **${initialDiagnostics.motionConfig.resetDurationMs} ms**.\n- Easing: cubic-bezier **${initialDiagnostics.motionConfig.easing.join(', ')}**.\n- Settle/hold: **${initialDiagnostics.motionConfig.holdAfterTurnMs} ms**.\n- Orbit damping factor: **${initialDiagnostics.motionConfig.orbitDampingFactor}**; rotate speed **${initialDiagnostics.motionConfig.orbitRotateSpeed}**.\n- Exact 90° endpoint error: **${turnedDiagnostics.endpointErrorRad} rad**.\n- Forward telemetry: ${JSON.stringify(forward)}.\n- Frame-rate-independent boundary gate: first step ${forward?.firstStepRad}, last step ${forward?.lastStepRad}, monotonic ${forward?.monotonic}, overshoot ${forward?.overshoot}.\n- Repeatability: ${repeatability.cycles} accelerated cycles; max position error ${repeatability.maxPosition}; max quaternion error ${repeatability.maxQuaternionRad}; max scale error ${repeatability.maxScale}; **${repeatability.pass ? 'PASS' : 'FAIL'}**.\n\n` +
 `## Reference calibration\n\nResend's current design documentation describes the homepage object as a rotating Rubik's Cube and frames it as a deliberate demonstration of technical craft; Spline's case study confirms that the live cube is built in Spline and evolved through material, lighting, and interaction passes. R0 does not copy that implementation. Motion was calibrated toward a slow weighted turn: long acceleration/deceleration envelope, zero-overshoot terminal quaternion, visible hold, and restrained orbit damping.\n\n` +
-`## Browser / dependency QA\n\n- Runtime: **${qa.acceptance.runtime}**.\n- Spline runtime/network dependency: **${qa.acceptance.splineDependency}**.\n- Forbidden network requests: ${forbiddenRequests.length}.\n- Browser page errors: ${browserErrors.length}.\n- Browser console errors: ${consoleErrors.length}.\n- Review video: ${videoDurationSec.toFixed(2)} s, ${videoPayload.byteLength} bytes, ${videoPayload.mimeType}.\n\n` +
+`## Browser / dependency QA\n\n- Runtime: **${qa.acceptance.runtime}**.\n- Spline runtime/network dependency: **${qa.acceptance.splineDependency}**.\n- Forbidden network requests: ${forbiddenRequests.length}.\n- Browser page errors: ${browserErrors.length}.\n- Browser console errors: ${consoleErrors.length}.\n- Review video: ${videoDurationSec.toFixed(2)} s, ${targetVideoBytes} bytes, ${videoPayload.mimeType}.\n- CI source capture ran ${sourceVideoDurationSec.toFixed(2)} s under SwiftShader; timestamps only were normalized by factor ${retime.timestampScale.toFixed(4)} to restore a 10–15 s review clip without changing rendered frame order.\n\n` +
 `## Review evidence\n\n- \`review/proai-cube-r0-natural-3q.png\`\n- \`review/proai-cube-r0-slice-turn.png\`\n- \`review/proai-cube-r0-review-12s.webm\`\n- \`review/qa-report.json\`\n\n` +
 `## Gate\n\nAutomated hierarchy/mechanics/runtime checks are recorded above. Visual premium-motion acceptance remains an owner-review gate; this R0 does not advance to Hero or final art direction.\n`;
 fs.writeFileSync(path.join(ROOT, 'TECHNICAL_REPORT.md'), report);

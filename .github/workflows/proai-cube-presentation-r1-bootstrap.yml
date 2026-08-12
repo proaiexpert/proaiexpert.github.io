@@ -1,3 +1,4 @@
+# Final candidate rerun after live-URL normalization and exact micro-drift freeze.
 name: ProAI Cube Presentation Motion R1.1 Bootstrap
 
 on:
@@ -112,10 +113,7 @@ jobs:
           }));
           console.log('STARTUP_STATE', JSON.stringify(state));
           await browser.close();
-          if (!state.ready) {
-            console.log('VITE_LOG');
-            process.exitCode = 2;
-          }
+          if (!state.ready) process.exitCode = 2;
           NODE
           if [ $? -ne 0 ]; then cat /tmp/proai-presentation-vite.log || true; exit 1; fi
 

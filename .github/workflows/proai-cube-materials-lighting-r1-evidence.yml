@@ -1,0 +1,152 @@
+name: ProAI Cube Materials Lighting R1 Evidence
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-materials-lighting-r1
+    paths:
+      - 'docs/site-evolution/spline/build-proai-cube-materials-lighting-r1.py'
+      - '.github/workflows/proai-cube-materials-lighting-r1-evidence.yml'
+      - 'docs/site-evolution/spline/proai-cube-materials-lighting-r1/**'
+
+concurrency:
+  group: proai-cube-materials-lighting-r1-evidence
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  materials-lighting-r1-evidence:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Generate isolated Materials + Lighting R1 prototype
+        run: |
+          set -euo pipefail
+          python docs/site-evolution/spline/build-proai-cube-materials-lighting-r1.py
+
+      - name: Verify syntax, GLB identity, Spline absence and production lock
+        working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
+        run: |
+          set -euo pipefail
+          node --check main.js
+          node --check capture.mjs
+          cmp rubik_39_s_cube_animation.glb ../proai-cube-presentation-motion-r1-2/rubik_39_s_cube_animation.glb
+          cmp rubik_39_s_cube_animation.glb ../proai-cube-geometry-r1/rubik_39_s_cube_animation.glb
+          test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print toupper($1)}')" = 'DBB7FC4156F8C9ED2481DD76443DFFB9A45ECB5493463F99BFFB34DD3B59C79B'
+          if grep -niE '@splinetool|prod\.spline\.design|\.splinecode' main.js package.json index.html styles.css prepare-glb.mjs; then
+            echo 'Forbidden Spline runtime reference found'
+            exit 1
+          fi
+          cd ../../../..
+          git diff --name-only 89965750e4456a6e2d54d8309809471f8dbfcc75...HEAD | grep -E '^index\.html$|^ru/index\.html$' && { echo 'Production root modified'; exit 1; } || true
+
+      - name: Prove Geometry R1 and Motion R1.2 code freeze
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, json, re
+
+          base = Path('docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/main.js').read_text()
+          current = Path('docs/site-evolution/spline/proai-cube-materials-lighting-r1/main.js').read_text()
+
+          blocks = {
+              'MOTION': r"const MOTION = Object\.freeze\(\{.*?\n\}\);",
+              'PRESENTATION_R1_2': r"const PRESENTATION_R1_2 = Object\.freeze\(\{.*?\n\}\);",
+              'SLICE_R1_2': r"const SLICE_R1_2 = Object\.freeze\(\{.*?\n\}\);",
+              'GEOMETRY_R1': r"const GEOMETRY_R1 = Object\.freeze\(\{.*?\n\}\);",
+              'turn_mechanics': r"function beginTurn\(.*?\nfunction presentationAutonomyBlocked\(",
+              'presentation_engine': r"function presentationVelocityAt\(.*?\nfunction seededUnit\(",
+              'slice_scheduler': r"function seededUnit\(.*?\nfunction getInteractionState\(",
+              'interaction_contract': r"controls\.addEventListener\('start'.*?\nfunction beginReviewTurn\(",
+          }
+
+          result = {}
+          for name, pattern in blocks.items():
+              bm = re.search(pattern, base, re.S)
+              cm = re.search(pattern, current, re.S)
+              if not bm or not cm:
+                  raise SystemExit(f'Freeze block missing: {name}')
+              b = bm.group(0)
+              c = cm.group(0)
+              same = b == c
+              result[name] = {
+                  'same': same,
+                  'baselineSha256': hashlib.sha256(b.encode()).hexdigest(),
+                  'currentSha256': hashlib.sha256(c.encode()).hexdigest(),
+              }
+              if not same:
+                  raise SystemExit(f'Frozen block changed: {name}')
+
+          result['pass'] = all(v.get('same', True) for v in result.values())
+          Path('docs/site-evolution/spline/proai-cube-materials-lighting-r1/MOTION_FREEZE.json').write_text(json.dumps(result, indent=2) + '\n')
+          print(json.dumps(result, indent=2))
+          PY
+
+      - name: Install dependencies and build
+        working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run build
+
+      - name: Install Chromium and ffmpeg
+        working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
+        run: |
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Start isolated Vite server
+        working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
+        run: |
+          nohup npx vite --host 127.0.0.1 --port 4173 > /tmp/proai-materials-lighting-r1-vite.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/proai-materials-lighting-r1-vite.log
+          exit 1
+
+      - name: Run look-dev, mechanics, interaction and 1080 review capture
+        working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
+        env:
+          PROAI_MATERIALS_LIGHTING_R1_URL: http://127.0.0.1:4173/
+          PROAI_GEOMETRY_CODE_FROZEN: '1'
+          PROAI_MOTION_CODE_FROZEN: '1'
+        run: npm run capture
+
+      - name: Upload owner review and internal look-dev evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-materials-lighting-r1-owner-review
+          path: |
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/QA.json
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/REPORT.md
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/MOTION_FREEZE.json
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/review/*.png
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/review/*.mp4
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/review-internal/*.png
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit final isolated prototype and owner evidence
+        run: |
+          set -euo pipefail
+          rm -rf docs/site-evolution/spline/proai-cube-materials-lighting-r1/review-internal
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/spline/proai-cube-materials-lighting-r1
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'feat: add ProAI cube Materials and Lighting R1'
+          git fetch origin agent/proai-cube-materials-lighting-r1
+          git rebase origin/agent/proai-cube-materials-lighting-r1
+          git push origin HEAD:agent/proai-cube-materials-lighting-r1

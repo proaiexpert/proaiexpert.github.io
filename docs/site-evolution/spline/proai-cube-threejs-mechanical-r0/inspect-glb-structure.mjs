@@ -40,6 +40,7 @@ function summarizeNode(index) {
     parentName: parent?.name ?? null,
     children: node.children || [],
     childNames: (node.children || []).map((child) => nodes[child]?.name ?? null),
+    childMeshes: (node.children || []).map((child) => nodes[child]?.mesh ?? null),
     localTranslation: translationOf(node),
     matrix: node.matrix || null,
     translation: node.translation || null,
@@ -66,6 +67,29 @@ for (const item of meshNodes) {
   meshParentHistogram[key] = (meshParentHistogram[key] || 0) + 1;
 }
 
+const cubieParents = nodes
+  .map((node, index) => ({ node, index }))
+  .filter(({ node }) => {
+    const children = node.children || [];
+    if (children.length !== 7) return false;
+    return children.every((child) => Number.isInteger(nodes[child]?.mesh));
+  })
+  .map(({ index }) => summarizeNode(index));
+
+function rounded(value) {
+  const snap = Math.round(value / 0.5) * 0.5;
+  return Math.abs(value - snap) < 0.15 ? snap : Math.round(value * 1000) / 1000;
+}
+
+const cubieClusters = { x: {}, y: {}, z: {} };
+for (const cubie of cubieParents) {
+  const [x, y, z] = cubie.localTranslation;
+  for (const [axis, value] of [['x', x], ['y', y], ['z', z]]) {
+    const key = String(rounded(value));
+    cubieClusters[axis][key] = (cubieClusters[axis][key] || 0) + 1;
+  }
+}
+
 const report = {
   source: GLB,
   header: { magic, version, declaredLength, actualLength: buffer.length, jsonLength, jsonType },
@@ -77,6 +101,7 @@ const report = {
     animations: (gltf.animations || []).length,
     meshNodes: meshNodes.length,
     unnamedMeshNodes: unnamedMeshNodes.length,
+    cubieParents: cubieParents.length,
   },
   sceneRoots: (gltf.scenes || []).map((scene, sceneIndex) => ({
     sceneIndex,
@@ -84,6 +109,8 @@ const report = {
     nodeNames: (scene.nodes || []).map((index) => nodes[index]?.name ?? null),
   })),
   namedGroups,
+  cubieClusters,
+  cubieParents,
   meshParentHistogram,
   meshNodes,
   nodes: nodes.map((_, index) => summarizeNode(index)),
@@ -92,4 +119,4 @@ const report = {
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify(report, null, 2) + '\n');
 console.log(`Wrote ${OUT}`);
-console.log(JSON.stringify({ counts: report.counts, namedGroups, meshParentHistogram }, null, 2));
+console.log(JSON.stringify({ counts: report.counts, namedGroups, cubieClusters, cubieParents }, null, 2));

@@ -31,6 +31,16 @@ jobs:
         run: |
           set -euo pipefail
           python docs/site-evolution/spline/build-proai-cube-materials-lighting-r1.py
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/site-evolution/spline/proai-cube-materials-lighting-r1/capture.mjs')
+          s = p.read_text()
+          old = 'const VIDEO_VIEWPORT = { width: 1080, height: 1080 };'
+          new = 'const VIDEO_VIEWPORT = { width: 720, height: 720 };'
+          if old not in s:
+              raise SystemExit('Expected 1080 review viewport anchor not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
 
       - name: Verify syntax, GLB identity, Spline absence and production lock
         working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
@@ -116,7 +126,7 @@ jobs:
           cat /tmp/proai-materials-lighting-r1-vite.log
           exit 1
 
-      - name: Run look-dev, mechanics, interaction and 1080 review capture
+      - name: Run look-dev, mechanics, interaction and 720 review capture
         working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
         env:
           PROAI_MATERIALS_LIGHTING_R1_URL: http://127.0.0.1:4173/

@@ -8,6 +8,20 @@ OUT = ROOT / 'proai-cube-semantic-display-r1' / 'BASELINE_FREEZE.json'
 base = BASE.read_text()
 cur = CUR.read_text()
 
+# Semantic functions are intentionally inserted immediately before the original
+# presentationAutonomyBlocked() boundary. Remove that additive block only for
+# the turn-engine hash comparison so the freeze proof measures the frozen R1.2
+# engine, not the new semantic controller that surrounds it.
+cur_core = re.sub(
+    r"\nfunction semanticSeededUnit\(\).*?\nfunction presentationAutonomyBlocked\(\)",
+    "\nfunction presentationAutonomyBlocked()",
+    cur,
+    count=1,
+    flags=re.S,
+)
+if cur_core == cur:
+    raise SystemExit('Could not normalize additive Semantic Display function block')
+
 patterns = {
     'MOTION': r"const MOTION = Object\.freeze\(\{.*?\n\}\);",
     'PRESENTATION_R1_2': r"const PRESENTATION_R1_2 = Object\.freeze\(\{.*?\n\}\);",
@@ -24,8 +38,9 @@ patterns = {
 }
 result = {}
 for name, pattern in patterns.items():
+    comparison_cur = cur_core if name == 'turn_engine' else cur
     a = re.search(pattern, base, re.S)
-    b = re.search(pattern, cur, re.S)
+    b = re.search(pattern, comparison_cur, re.S)
     if not a or not b:
         raise SystemExit(f'Freeze block missing: {name}')
     same = a.group(0) == b.group(0)
@@ -33,6 +48,7 @@ for name, pattern in patterns.items():
         'same': same,
         'baselineSha256': hashlib.sha256(a.group(0).encode()).hexdigest(),
         'semanticSha256': hashlib.sha256(b.group(0).encode()).hexdigest(),
+        'normalization': 'additive semantic controller removed before comparison' if name == 'turn_engine' else 'none',
     }
     if not same:
         raise SystemExit(f'Frozen baseline block changed: {name}')
@@ -68,7 +84,7 @@ result['interactionAdditions'] = {
 }
 result['materialsLightingFrozen'] = all(result[k]['same'] for k in ['LOOKDEV_R1','studio_environment','studio_lighting','material_classifier'])
 result['geometryFrozen'] = result['GEOMETRY_R1']['same']
-result['motionCoreFrozen'] = all(result[k]['same'] for k in ['MOTION','PRESENTATION_R1_2','SLICE_R1_2','turn_math','presentation_engine','scheduler_core'])
+result['motionCoreFrozen'] = all(result[k]['same'] for k in ['MOTION','PRESENTATION_R1_2','SLICE_R1_2','turn_math','turn_engine','presentation_engine','scheduler_core'])
 result['pass'] = all([result['materialsLightingFrozen'], result['geometryFrozen'], result['motionCoreFrozen'], interaction_preserved])
 OUT.write_text(json.dumps(result, indent=2) + '\n')
 print(json.dumps(result, indent=2))

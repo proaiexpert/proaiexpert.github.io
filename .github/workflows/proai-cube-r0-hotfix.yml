@@ -19,22 +19,53 @@ jobs:
         with:
           ref: agent/proai-cube-threejs-mechanical-r0
           fetch-depth: 0
-      - name: Canonicalize GLTFLoader duplicate-name suffixes for hierarchy QA
+      - name: Make WebGL review capture deterministic
         run: |
           python - <<'PY'
           from pathlib import Path
-          p = Path('docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/main.js')
-          s = p.read_text()
-          old = "function directChildSignature(group) {\n  return group.children.map((child) => child.name).filter(Boolean).sort();\n}"
-          new = "function directChildSignature(group) {\n  return group.children\n    .map((child) => child.name?.replace(/_[0-9]+$/, ''))\n    .filter(Boolean)\n    .sort();\n}"
-          if old not in s:
-              raise SystemExit('Expected directChildSignature function not found')
-          p.write_text(s.replace(old, new, 1))
+
+          main = Path('docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/main.js')
+          s = main.read_text()
+          old_renderer = "const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });"
+          new_renderer = "const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance', preserveDrawingBuffer: captureMode });"
+          if old_renderer not in s:
+              raise SystemExit('Expected renderer constructor not found')
+          s = s.replace(old_renderer, new_renderer, 1)
+
+          old_api = "  runRepeatabilityTest,\n  getDiagnostics,\n  stopAutoLoop() { autoLoopEnabled = false; },"
+          new_api = "  runRepeatabilityTest,\n  getDiagnostics,\n  captureFrame() {\n    controls.update();\n    renderer.render(scene, camera);\n    return canvas.toDataURL('image/png');\n  },\n  stopAutoLoop() { autoLoopEnabled = false; },"
+          if old_api not in s:
+              raise SystemExit('Expected API insertion point not found')
+          s = s.replace(old_api, new_api, 1)
+          main.write_text(s)
+
+          capture = Path('docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs')
+          c = capture.read_text()
+          old_capture = """async function screenshot(page, filename) {
+  await page.screenshot({
+    path: path.join(REVIEW, filename),
+    type: 'png',
+    timeout: 180000,
+  });
+}"""
+          new_capture = """async function screenshot(page, filename) {
+  const dataUrl = await page.evaluate(() => window.__PROAI_CUBE_R0.captureFrame());
+  const comma = dataUrl.indexOf(',');
+  if (!dataUrl.startsWith('data:image/png') || comma < 0) throw new Error('Canvas PNG capture failed');
+  fs.writeFileSync(path.join(REVIEW, filename), Buffer.from(dataUrl.slice(comma + 1), 'base64'));
+}"""
+          if old_capture not in c:
+              raise SystemExit('Expected screenshot helper not found')
+          capture.write_text(c.replace(old_capture, new_capture, 1))
           PY
+      - name: Syntax check capture script
+        run: node --check docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs
       - name: Commit targeted fix
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/main.js
-          git commit -m 'fix: normalize GLTFLoader duplicate names in hierarchy QA'
+          git add \
+            docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/main.js \
+            docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs
+          git commit -m 'fix: capture R0 evidence directly from WebGL canvas'
           git push origin HEAD:agent/proai-cube-threejs-mechanical-r0

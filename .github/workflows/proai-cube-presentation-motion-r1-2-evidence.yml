@@ -6,8 +6,7 @@ on:
       - agent/proai-cube-presentation-motion-r1-2
     paths:
       - 'docs/site-evolution/spline/build-proai-cube-presentation-motion-r1-2.py'
-      - 'docs/site-evolution/spline/proai-cube-presentation-motion-r1-2-capture-fast.mjs'
-      - 'docs/site-evolution/spline/proai-cube-presentation-motion-r1-2-capture-hotfix.py'
+      - 'docs/site-evolution/spline/proai-cube-presentation-motion-r1-2-capture-fixed.mjs'
       - 'docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/**'
       - '.github/workflows/proai-cube-presentation-motion-r1-2-evidence.yml'
 
@@ -29,9 +28,8 @@ jobs:
         run: |
           set -euo pipefail
           python docs/site-evolution/spline/build-proai-cube-presentation-motion-r1-2.py
-          cp docs/site-evolution/spline/proai-cube-presentation-motion-r1-2-capture-fast.mjs \
+          cp docs/site-evolution/spline/proai-cube-presentation-motion-r1-2-capture-fixed.mjs \
              docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/capture.mjs
-          python docs/site-evolution/spline/proai-cube-presentation-motion-r1-2-capture-hotfix.py
 
       - name: Verify isolated scope, syntax, GLB identity and no Spline runtime
         working-directory: docs/site-evolution/spline/proai-cube-presentation-motion-r1-2
@@ -72,15 +70,12 @@ jobs:
           cat /tmp/proai-presentation-r1-2-vite.log
           exit 1
 
-      - name: Run mechanics, paired-turn, interaction, liveness and review capture
+      - name: Run mechanics, paired-turn, interaction, liveness and owner-review capture
         working-directory: docs/site-evolution/spline/proai-cube-presentation-motion-r1-2
         env:
           PROAI_PRESENTATION_R1_2_URL: http://127.0.0.1:4173/
           PROAI_GEOMETRY_CODE_FROZEN: '1'
-        run: |
-          set -euo pipefail
-          npm run capture
-          rm -f review/*runtime.webm
+        run: npm run capture
 
       - name: Upload owner review artifact
         uses: actions/upload-artifact@v4

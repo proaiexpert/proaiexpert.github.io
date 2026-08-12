@@ -30,11 +30,10 @@ async function waitReady(page) {
 }
 
 async function screenshot(page, filename) {
-  await page.screenshot({
-    path: path.join(REVIEW, filename),
-    type: 'png',
-    timeout: 180000,
-  });
+  const dataUrl = await page.evaluate(() => window.__PROAI_CUBE_R0.captureFrame());
+  const comma = dataUrl.indexOf(',');
+  if (!dataUrl.startsWith('data:image/png') || comma < 0) throw new Error('Canvas PNG capture failed');
+  fs.writeFileSync(path.join(REVIEW, filename), Buffer.from(dataUrl.slice(comma + 1), 'base64'));
 }
 
 const telemetry = { console: [], pageErrors: [], requests: [] };

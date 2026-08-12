@@ -8,10 +8,16 @@ await livePage.waitForFunction(() => {
 }, null, { timeout: 9000 });"""
 new="""const livePage = await openPage(LIVE_URL, SCREENSHOT_VIEWPORT);
 await livePage.evaluate(() => window.__PROAI_CUBE_R1.stopChoreography());
-await livePage.waitForTimeout(150);
-await livePage.evaluate(() => {
+await livePage.waitForFunction(() => {
+  const d = window.__PROAI_CUBE_R1.getDiagnostics();
+  return d.activeTurn === null && d.motionState === 'rest';
+}, null, { timeout: 5000 });
+await livePage.waitForTimeout(120);
+const manualSliceStarted = await livePage.evaluate(() => {
   void window.__PROAI_CUBE_R1.turnSlice({ axis: 'X', layer: 1, direction: 1, durationMs: 1380, ignoreInteraction: false });
+  return window.__PROAI_CUBE_R1.getDiagnostics().activeTurn !== null;
 });
+if (!manualSliceStarted) throw new Error('Could not start deterministic interaction slice');
 await livePage.waitForFunction(() => {
   const d = window.__PROAI_CUBE_R1.getDiagnostics();
   return d.activeTurn && d.activeTurn.linear > 0.08 && d.activeTurn.linear < 0.88;
@@ -39,4 +45,4 @@ new4="""    activeSliceCompleted,
 assert old4 in s
 s=s.replace(old4,new4,1)
 p.write_text(s)
-print('Deterministic live interaction QA patch applied')
+print('Deterministic live interaction QA patch applied with rest-before-start gate')

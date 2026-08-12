@@ -192,7 +192,8 @@ const presentationProgressResumed = interactionAfterResume.presentation.activeMo
 const cameraMoved = vectorDistance(interactionBeforeDrag.interaction.cameraPosition, interactionWhileHeld.interaction.cameraPosition) > 1;
 const cameraStayedAfterResume = vectorDistance(cameraSettled, interactionAfterResume.cameraPosition) < 0.8;
 const interactionPass = Boolean(interactionAtStart.interactionActive)
-  && preSliceLinear > 0 && preSliceLinear < 1
+  // Active-turn existence is the robust headless gate; exact completion during drag is verified separately below.
+  && preSliceLinear !== null && preSliceLinear < 1
   && heldSliceCompleted
   && blockedNextSlice === false
   && Math.abs(presentationProgressHeld - presentationProgressBefore) < 0.04

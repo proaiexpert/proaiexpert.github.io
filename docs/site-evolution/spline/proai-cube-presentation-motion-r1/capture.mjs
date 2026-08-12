@@ -125,7 +125,10 @@ const initialDiagnostics = await qaPage.evaluate(() => window.__PROAI_CUBE_R1.ge
 const mechanicalQA = await qaPage.evaluate(() => window.__PROAI_CUBE_R1.runAutomatedQA());
 
 // Interaction QA: whole-cube move + active slice; drag must pause presentation but allow slice completion.
-const interactionBox = await qaPage.locator('#cube-canvas').boundingBox();
+const interactionBox = await qaPage.evaluate(() => {
+  const rect = document.getElementById('cube-canvas')?.getBoundingClientRect();
+  return rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null;
+});
 if (!interactionBox) throw new Error('Cube canvas unavailable for interaction QA');
 await qaPage.evaluate(() => {
   const api = window.__PROAI_CUBE_R1;
@@ -309,7 +312,10 @@ async function add360Inspection(framesCount) {
 
 async function addManualDuringActiveSlice(framesCount) {
   const start = videoTimeSec;
-  const box = await videoPage.locator('#cube-canvas').boundingBox();
+  const box = await videoPage.evaluate(() => {
+    const rect = document.getElementById('cube-canvas')?.getBoundingClientRect();
+    return rect ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height } : null;
+  });
   if (!box) throw new Error('Video canvas unavailable for manual segment');
   const mx = box.x + box.width * 0.52;
   const my = box.y + box.height * 0.50;

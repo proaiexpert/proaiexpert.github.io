@@ -1,0 +1,27 @@
+name: ProAI Presentation R1.1 QA Clock Fix Once
+on:
+  push:
+    branches: [agent/proai-cube-presentation-motion-r1]
+    paths: ['.github/workflows/proai-presentation-r1-qa-clock-fix-once.yml']
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-presentation-motion-r1
+          fetch-depth: 0
+      - run: |
+          python3 .github/tmp/proai-presentation-r1-qa-clock-fix.py
+          node --check docs/site-evolution/spline/proai-cube-presentation-motion-r1/capture.mjs
+      - name: Commit harness-only fix and remove transport
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/spline/proai-cube-presentation-motion-r1/capture.mjs
+          git rm .github/tmp/proai-presentation-r1-qa-clock-fix.py .github/workflows/proai-presentation-r1-qa-clock-fix-once.yml
+          git commit -m 'test: harden Presentation R1.1 interaction timing gate'
+          git push origin HEAD:agent/proai-cube-presentation-motion-r1

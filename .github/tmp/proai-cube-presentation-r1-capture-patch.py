@@ -21,6 +21,17 @@ if (!manualSliceStarted) throw new Error('Could not start deterministic interact
 await livePage.waitForTimeout(100);"""
 assert old in s
 s=s.replace(old,new,1)
+old_box="""const liveBox = await livePage.locator('#cube-canvas').boundingBox();
+if (!liveBox) throw new Error('Live canvas box unavailable');"""
+new_box="""const liveBox = await livePage.evaluate(() => {
+  const el = document.getElementById('cube-canvas');
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { x: r.x, y: r.y, width: r.width, height: r.height };
+});
+if (!liveBox || liveBox.width <= 0 || liveBox.height <= 0) throw new Error('Live canvas rect unavailable');"""
+assert old_box in s
+s=s.replace(old_box,new_box,1)
 old2="""const sliceFinishedWhileDrag = await livePage.evaluate(() => window.__PROAI_CUBE_R1.getDiagnostics());
 await livePage.waitForTimeout(1200);"""
 new2="""const sliceFinishedWhileDrag = await livePage.evaluate(() => window.__PROAI_CUBE_R1.getDiagnostics());
@@ -41,5 +52,16 @@ new4="""    activeSliceCompleted,
     cameraNoSnap,"""
 assert old4 in s
 s=s.replace(old4,new4,1)
+old_video="""  const box = await videoPage.locator('#cube-canvas').boundingBox();
+  if (!box) throw new Error('Video canvas box unavailable');"""
+new_video="""  const box = await videoPage.evaluate(() => {
+    const el = document.getElementById('cube-canvas');
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.x, y: r.y, width: r.width, height: r.height };
+  });
+  if (!box || box.width <= 0 || box.height <= 0) throw new Error('Video canvas rect unavailable');"""
+assert old_video in s
+s=s.replace(old_video,new_video,1)
 p.write_text(s)
-print('Deterministic live interaction QA patch applied: active slice starts immediately before real drag')
+print('Deterministic interaction QA patch applied with direct DOM canvas rects')

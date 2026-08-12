@@ -1,0 +1,97 @@
+name: ProAI Cube Presentation Motion R1.2 Evidence
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-presentation-motion-r1-2
+    paths:
+      - 'docs/site-evolution/spline/build-proai-cube-presentation-motion-r1-2.py'
+      - 'docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/**'
+      - '.github/workflows/proai-cube-presentation-motion-r1-2-evidence.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  presentation-r1-2-evidence:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-presentation-motion-r1-2
+          fetch-depth: 0
+
+      - name: Generate isolated R1.2 prototype from exact R1.1 base
+        run: |
+          set -euo pipefail
+          python docs/site-evolution/spline/build-proai-cube-presentation-motion-r1-2.py
+
+      - name: Verify isolated scope, syntax, GLB identity and no Spline runtime
+        working-directory: docs/site-evolution/spline/proai-cube-presentation-motion-r1-2
+        run: |
+          set -euo pipefail
+          if grep -niE '@splinetool|prod\.spline\.design|\.splinecode' main.js package.json index.html styles.css prepare-glb.mjs; then
+            echo 'Forbidden Spline runtime reference found'
+            exit 1
+          fi
+          node --check main.js
+          node --check capture.mjs
+          cmp rubik_39_s_cube_animation.glb ../proai-cube-presentation-motion-r1/rubik_39_s_cube_animation.glb
+          cmp rubik_39_s_cube_animation.glb ../proai-cube-geometry-r1/rubik_39_s_cube_animation.glb
+          test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print toupper($1)}')" = 'DBB7FC4156F8C9ED2481DD76443DFFB9A45ECB5493463F99BFFB34DD3B59C79B'
+
+      - name: Install dependencies and build
+        working-directory: docs/site-evolution/spline/proai-cube-presentation-motion-r1-2
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run build
+
+      - name: Install Chromium and ffmpeg
+        working-directory: docs/site-evolution/spline/proai-cube-presentation-motion-r1-2
+        run: |
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Start isolated Vite server
+        working-directory: docs/site-evolution/spline/proai-cube-presentation-motion-r1-2
+        run: |
+          nohup npx vite --host 127.0.0.1 --port 4173 > /tmp/proai-presentation-r1-2-vite.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/proai-presentation-r1-2-vite.log
+          exit 1
+
+      - name: Run mechanics, paired-turn, interaction, liveness and review capture
+        working-directory: docs/site-evolution/spline/proai-cube-presentation-motion-r1-2
+        env:
+          PROAI_PRESENTATION_R1_2_URL: http://127.0.0.1:4173/
+          PROAI_GEOMETRY_CODE_FROZEN: '1'
+        run: npm run capture
+
+      - name: Upload owner review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-presentation-motion-r1-2-owner-review
+          path: |
+            docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/QA.json
+            docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/REPORT.md
+            docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/review/*.png
+            docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/review/*.mp4
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit generated prototype and evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/spline/proai-cube-presentation-motion-r1-2
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'feat: add ProAI cube Presentation Motion R1.2'
+          git push origin HEAD:agent/proai-cube-presentation-motion-r1-2

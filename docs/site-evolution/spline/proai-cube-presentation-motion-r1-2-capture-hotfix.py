@@ -17,6 +17,28 @@ new_trace = "  const api = window.__PROAI_CUBE_R1_2;\n  api.resetReviewPresentat
 if old_trace not in text:
     raise SystemExit('runtime trace anchor not found')
 text = text.replace(old_trace, new_trace, 1)
+old_360_wait = """// Wait for a cumulative 360 after recording begins; keep scheduler fully autonomous through that phase.
+await videoPage.waitForFunction((startYaw) => {
+  const d = window.__PROAI_CUBE_R1_2.getDiagnostics();
+  return d.presentation.cumulativeYawDeg - startYaw >= 360;
+}, traceStart.startCumulativeYawDeg, { timeout: 24000, polling: 100 });
+full360WallSec = (Date.now() - runtimeWallStart) / 1000;
+await videoPage.waitForTimeout(650);
+"""
+new_360_wait = """// Keep the runtime fully autonomous through the intended cumulative-360 inspection window.
+// Do not abort early: the completed trace below is the source of truth for the 360 and liveness gates.
+const inspectionTargetWallMs = 19000;
+const inspectionRemainingMs = Math.max(0, inspectionTargetWallMs - (Date.now() - runtimeWallStart));
+if (inspectionRemainingMs > 0) await videoPage.waitForTimeout(inspectionRemainingMs);
+const inspectionDiag = await videoPage.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
+const inspectionYawDelta = inspectionDiag.presentation.cumulativeYawDeg - traceStart.startCumulativeYawDeg;
+full360WallSec = inspectionYawDelta >= 360 ? (Date.now() - runtimeWallStart) / 1000 : null;
+console.log(`R1.2 inspection window: cumulative yaw ${inspectionYawDelta.toFixed(2)} deg; sim ${(inspectionDiag.presentation.simTimeMs / 1000).toFixed(2)} s; velocity ${inspectionDiag.presentation.yawVelocityDegPerSec.toFixed(2)} deg/s`);
+await videoPage.waitForTimeout(650);
+"""
+if old_360_wait not in text:
+    raise SystemExit('360 wait anchor not found')
+text = text.replace(old_360_wait, new_360_wait, 1)
 capture_path.write_text(text)
 
 main_path = Path('docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/main.js')

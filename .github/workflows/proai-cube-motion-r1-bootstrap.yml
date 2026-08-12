@@ -1,0 +1,39 @@
+name: ProAI Cube Motion R1 Bootstrap
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-motion-r1
+    paths:
+      - '.github/workflows/proai-cube-motion-r1-bootstrap.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-motion-r1
+          fetch-depth: 0
+      - name: Materialize Motion R1 prototype
+        run: |
+          ROOT='docs/site-evolution/spline/proai-cube-motion-r1'
+          mkdir -p "$ROOT"
+          cat .r1-bootstrap/main-js.b64.part1 .r1-bootstrap/main-js.b64.part2 .r1-bootstrap/main-js.b64.part3 | base64 -d | gzip -d > "$ROOT/main.js"
+          cat .r1-bootstrap/capture-mjs.b64.part1 .r1-bootstrap/capture-mjs.b64.part2 | base64 -d | gzip -d > "$ROOT/capture.mjs"
+          node --check "$ROOT/main.js"
+          node --check "$ROOT/capture.mjs"
+          node --check "$ROOT/prepare-glb.mjs"
+      - name: Commit clean Motion R1 prototype
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/spline/proai-cube-motion-r1/
+          git rm -r .r1-bootstrap
+          git rm .github/workflows/proai-cube-motion-r1-bootstrap.yml
+          git commit -m 'feat: build ProAI cube Motion R1 prototype'
+          git push origin HEAD:agent/proai-cube-motion-r1

@@ -6,21 +6,21 @@ Look-development pass built from owner-approved Presentation Motion R1.2 commit 
 
 ## Final PBR material hierarchy
 
-- Graphite face: color **#171b20**, metalness **0.9**, roughness **0.245**, clearcoat **0.22**, clearcoat roughness **0.17**, env intensity **1.34**.
-- Gunmetal face: color **#20262d**, metalness **0.88**, roughness **0.205**, clearcoat **0.28**, clearcoat roughness **0.14**, env intensity **1.42**.
-- Black-chrome face: color **#0d1014**, metalness **0.96**, roughness **0.165**, clearcoat **0.2**, clearcoat roughness **0.12**, env intensity **1.52**.
-- Smoked core: color **#07090b**, metalness **0.62**, roughness **0.385**, clearcoat **0.08**, clearcoat roughness **0.25**, env intensity **0.72**.
+- Graphite face: color **#242a31**, metalness **0.84**, roughness **0.295**, clearcoat **0.16**, clearcoat roughness **0.2**, env intensity **1.18**.
+- Gunmetal face: color **#2b323a**, metalness **0.86**, roughness **0.265**, clearcoat **0.2**, clearcoat roughness **0.18**, env intensity **1.22**.
+- Black-chrome face: color **#181d23**, metalness **0.92**, roughness **0.225**, clearcoat **0.16**, clearcoat roughness **0.16**, env intensity **1.26**.
+- Smoked core: color **#0c0f13**, metalness **0.48**, roughness **0.44**, clearcoat **0.06**, clearcoat roughness **0.28**, env intensity **0.66**.
 
 Material assignment counts: graphite 48, gunmetal 48, black-chrome 84, core 30.
 
 ## Lighting / reflections
 
-- Environment: **procedural PMREM studio reflection cards**, 4 broad cards, PMREM sigma 0.055, external textures 0.
-- Key: **RectAreaLight**, intensity 8.6, size 14.40 × 9.68, position [9.00, 7.43, 9.53].
-- Fill: **RectAreaLight**, intensity 2.65, size 12.83 × 11.52, position [-8.48, 0.94, 6.70].
-- Rim: **RectAreaLight**, intensity 6.9, size 5.50 × 14.40, position [-6.18, 6.49, -10.05].
-- Hemisphere fill: intensity 0.34, sky #78818c, ground #080a0d.
-- Tone mapping: **ACESFilmicToneMapping**; exposure **0.96**; output **SRGBColorSpace**.
+- Environment: **procedural PMREM studio reflection cards**, 4 broad cards, PMREM sigma 0.075, external textures 0.
+- Key: **RectAreaLight**, intensity 5.2, size 16.75 × 13.09, position [8.48, 3.25, 10.21].
+- Fill: **RectAreaLight**, intensity 4, size 14.92 × 13.87, position [-7.59, 1.15, 9.00].
+- Rim: **RectAreaLight**, intensity 4.6, size 6.02 × 13.87, position [-6.70, 5.34, -9.84].
+- Hemisphere fill: intensity 0.52, sky #8a949f, ground #0b0e12.
+- Tone mapping: **ACESFilmicToneMapping**; exposure **1**; output **SRGBColorSpace**.
 - Postprocessing: **NONE**.
 
 ## Motion freeze
@@ -42,7 +42,7 @@ Material assignment counts: graphite 48, gunmetal 48, black-chrome 84, core 30.
 - Inverse restoration: **PASS**.
 - Interaction: **PASS**.
 - Browser/runtime: **PASS**; Spline **NONE**.
-- Software-CI render benchmark: 3.14 ms/frame at 960×960 (diagnostic only).
+- Software-CI render benchmark: 1.98 ms/frame at 960×960 (diagnostic only).
 - Owner MP4: **PASS**, 27.000 s @ 24 fps, H.264/yuv420p, 720×720.
 
 ## Review evidence

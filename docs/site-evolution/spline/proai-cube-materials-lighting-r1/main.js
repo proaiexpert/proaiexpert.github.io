@@ -119,7 +119,7 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, (captureMode || reviewMode) ? 1 : 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.96;
+renderer.toneMappingExposure = 1.0;
 renderer.setClearColor(0x050607, 1);
 
 const scene = new THREE.Scene();
@@ -143,14 +143,14 @@ function createStudioCard(environmentScene, { position, width, height, color, in
 
 function createPremiumStudioEnvironment(pmrem) {
   const environmentScene = new THREE.Scene();
-  environmentScene.background = new THREE.Color(0x020304);
+  environmentScene.background = new THREE.Color(0x06080b);
   const cards = [
-    createStudioCard(environmentScene, { position: [4.8, 3.6, 5.8], width: 7.8, height: 4.8, color: 0xf2f4f7, intensity: 2.25 }),
-    createStudioCard(environmentScene, { position: [-5.8, 1.4, 3.9], width: 3.2, height: 6.4, color: 0xaab2bc, intensity: 1.28 }),
-    createStudioCard(environmentScene, { position: [-3.8, 4.6, -5.6], width: 2.4, height: 7.4, color: 0xffffff, intensity: 1.75 }),
-    createStudioCard(environmentScene, { position: [2.6, -4.8, -2.8], width: 5.6, height: 2.0, color: 0x7d858f, intensity: 0.72 }),
+    createStudioCard(environmentScene, { position: [4.8, 1.35, 5.8], width: 8.4, height: 5.8, color: 0xd9dee5, intensity: 1.34 }),
+    createStudioCard(environmentScene, { position: [-5.8, 0.55, 4.6], width: 4.6, height: 7.0, color: 0xaeb6c0, intensity: 1.12 }),
+    createStudioCard(environmentScene, { position: [-4.3, 3.7, -5.8], width: 2.3, height: 6.8, color: 0xe9edf2, intensity: 1.20 }),
+    createStudioCard(environmentScene, { position: [2.8, -4.5, -2.5], width: 6.2, height: 2.4, color: 0x848c96, intensity: 0.54 }),
   ];
-  const texture = pmrem.fromScene(environmentScene, 0.055, 0.1, 30).texture;
+  const texture = pmrem.fromScene(environmentScene, 0.075, 0.1, 30).texture;
   for (const card of cards) {
     card.geometry.dispose();
     card.material.dispose();
@@ -182,14 +182,14 @@ controls.maxAzimuthAngle = Infinity;
 const LOOKDEV_R1 = Object.freeze({
   selectedPreset: 'premiumHybrid',
   materialGroups: Object.freeze({
-    graphiteFace: Object.freeze({ color: '#171b20', metalness: 0.90, roughness: 0.245, clearcoat: 0.22, clearcoatRoughness: 0.17, envMapIntensity: 1.34 }),
-    gunmetalFace: Object.freeze({ color: '#20262d', metalness: 0.88, roughness: 0.205, clearcoat: 0.28, clearcoatRoughness: 0.14, envMapIntensity: 1.42 }),
-    blackChromeFace: Object.freeze({ color: '#0d1014', metalness: 0.96, roughness: 0.165, clearcoat: 0.20, clearcoatRoughness: 0.12, envMapIntensity: 1.52 }),
-    smokedCore: Object.freeze({ color: '#07090b', metalness: 0.62, roughness: 0.385, clearcoat: 0.08, clearcoatRoughness: 0.25, envMapIntensity: 0.72 }),
+    graphiteFace: Object.freeze({ color: '#242a31', metalness: 0.84, roughness: 0.295, clearcoat: 0.16, clearcoatRoughness: 0.20, envMapIntensity: 1.18 }),
+    gunmetalFace: Object.freeze({ color: '#2b323a', metalness: 0.86, roughness: 0.265, clearcoat: 0.20, clearcoatRoughness: 0.18, envMapIntensity: 1.22 }),
+    blackChromeFace: Object.freeze({ color: '#181d23', metalness: 0.92, roughness: 0.225, clearcoat: 0.16, clearcoatRoughness: 0.16, envMapIntensity: 1.26 }),
+    smokedCore: Object.freeze({ color: '#0c0f13', metalness: 0.48, roughness: 0.44, clearcoat: 0.06, clearcoatRoughness: 0.28, envMapIntensity: 0.66 }),
   }),
-  environment: Object.freeze({ method: 'procedural PMREM studio reflection cards', cardCount: 4, sigma: 0.055, externalTextures: 0 }),
-  lighting: Object.freeze({ hemisphereIntensity: 0.34, keyIntensity: 8.6, fillIntensity: 2.65, rimIntensity: 6.9, rectAreaLights: 3 }),
-  colorManagement: Object.freeze({ outputColorSpace: 'SRGBColorSpace', toneMapping: 'ACESFilmicToneMapping', exposure: 0.96 }),
+  environment: Object.freeze({ method: 'procedural PMREM studio reflection cards', cardCount: 4, sigma: 0.075, externalTextures: 0 }),
+  lighting: Object.freeze({ hemisphereIntensity: 0.52, keyIntensity: 5.2, fillIntensity: 4.0, rimIntensity: 4.6, rectAreaLights: 3 }),
+  colorManagement: Object.freeze({ outputColorSpace: 'SRGBColorSpace', toneMapping: 'ACESFilmicToneMapping', exposure: 1.0 }),
   postprocessing: 'NONE',
 });
 
@@ -261,11 +261,11 @@ function setLookDevPreset(name = LOOKDEV_R1.selectedPreset) {
   return true;
 }
 
-const hemisphereFill = new THREE.HemisphereLight(0x78818c, 0x080a0d, LOOKDEV_R1.lighting.hemisphereIntensity);
+const hemisphereFill = new THREE.HemisphereLight(0x8a949f, 0x0b0e12, LOOKDEV_R1.lighting.hemisphereIntensity);
 scene.add(hemisphereFill);
-const key = new THREE.RectAreaLight(0xf5f7fa, LOOKDEV_R1.lighting.keyIntensity, 1, 1);
-const fill = new THREE.RectAreaLight(0xaeb7c2, LOOKDEV_R1.lighting.fillIntensity, 1, 1);
-const rim = new THREE.RectAreaLight(0xffffff, LOOKDEV_R1.lighting.rimIntensity, 1, 1);
+const key = new THREE.RectAreaLight(0xe2e6eb, LOOKDEV_R1.lighting.keyIntensity, 1, 1);
+const fill = new THREE.RectAreaLight(0xb7c0ca, LOOKDEV_R1.lighting.fillIntensity, 1, 1);
+const rim = new THREE.RectAreaLight(0xe8ecf1, LOOKDEV_R1.lighting.rimIntensity, 1, 1);
 scene.add(key, fill, rim);
 
 function configureStudioLighting(centerWorld, radius) {
@@ -275,14 +275,14 @@ function configureStudioLighting(centerWorld, radius) {
     light.height = radius * heightScale;
     light.lookAt(centerWorld);
   };
-  place(key, [1.72, 1.42, 1.82], 2.75, 1.85);
-  place(fill, [-1.62, 0.18, 1.28], 2.45, 2.20);
-  place(rim, [-1.18, 1.24, -1.92], 1.05, 2.75);
+  place(key, [1.62, 0.62, 1.95], 3.20, 2.50);
+  place(fill, [-1.45, 0.22, 1.72], 2.85, 2.65);
+  place(rim, [-1.28, 1.02, -1.88], 1.15, 2.65);
   resolvedLighting = {
-    hemisphere: { type: 'HemisphereLight', skyColor: '#78818c', groundColor: '#080a0d', intensity: hemisphereFill.intensity },
-    key: { type: 'RectAreaLight', color: '#f5f7fa', intensity: key.intensity, width: key.width, height: key.height, position: key.position.toArray() },
-    fill: { type: 'RectAreaLight', color: '#aeb7c2', intensity: fill.intensity, width: fill.width, height: fill.height, position: fill.position.toArray() },
-    rim: { type: 'RectAreaLight', color: '#ffffff', intensity: rim.intensity, width: rim.width, height: rim.height, position: rim.position.toArray() },
+    hemisphere: { type: 'HemisphereLight', skyColor: '#8a949f', groundColor: '#0b0e12', intensity: hemisphereFill.intensity },
+    key: { type: 'RectAreaLight', color: '#e2e6eb', intensity: key.intensity, width: key.width, height: key.height, position: key.position.toArray() },
+    fill: { type: 'RectAreaLight', color: '#b7c0ca', intensity: fill.intensity, width: fill.width, height: fill.height, position: fill.position.toArray() },
+    rim: { type: 'RectAreaLight', color: '#e8ecf1', intensity: rim.intensity, width: rim.width, height: rim.height, position: rim.position.toArray() },
   };
 }
 

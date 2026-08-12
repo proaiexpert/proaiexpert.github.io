@@ -1,0 +1,67 @@
+name: ProAI Cube Geometry R1 MP4 Once
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-geometry-r1
+    paths:
+      - '.github/workflows/proai-cube-geometry-r1-mp4-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  transcode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-geometry-r1
+          fetch-depth: 0
+
+      - name: Transcode existing WebM to iPhone-compatible MP4
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR='docs/site-evolution/spline/proai-cube-geometry-r1/review'
+          SRC="$DIR/proai-cube-geometry-r1-review-14s.webm"
+          OUT="$DIR/proai-cube-geometry-r1-review-14s.mp4"
+
+          test -f "$SRC"
+          ffmpeg -y -v error -i "$SRC" -map 0:v:0 -an \
+            -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p \
+            -fps_mode passthrough -movflags +faststart "$OUT"
+
+          SRC_FRAMES=$(ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of default=nw=1:nk=1 "$SRC")
+          OUT_FRAMES=$(ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of default=nw=1:nk=1 "$OUT")
+          OUT_CODEC=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=nw=1:nk=1 "$OUT")
+          OUT_PIX=$(ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt -of default=nw=1:nk=1 "$OUT")
+          OUT_FPS=$(ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of default=nw=1:nk=1 "$OUT")
+          SRC_DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$SRC")
+          OUT_DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$OUT")
+          OUT_FMT=$(ffprobe -v error -show_entries format=format_name -of default=nw=1:nk=1 "$OUT")
+
+          echo "source_frames=$SRC_FRAMES output_frames=$OUT_FRAMES"
+          echo "codec=$OUT_CODEC pix_fmt=$OUT_PIX fps=$OUT_FPS"
+          echo "source_duration=$SRC_DUR output_duration=$OUT_DUR format=$OUT_FMT"
+
+          test "$SRC_FRAMES" = '348'
+          test "$OUT_FRAMES" = "$SRC_FRAMES"
+          test "$OUT_CODEC" = 'h264'
+          test "$OUT_PIX" = 'yuv420p'
+          test "$OUT_FPS" = '24/1'
+          test "$SRC_DUR" = '14.500000'
+          test "$OUT_DUR" = '14.500000'
+          [[ "$OUT_FMT" == *mp4* ]]
+
+      - name: Commit MP4 only and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/spline/proai-cube-geometry-r1/review/proai-cube-geometry-r1-review-14s.mp4
+          git rm .github/workflows/proai-cube-geometry-r1-mp4-once.yml
+          git commit -m 'chore: add iPhone-compatible Geometry R1 review MP4'
+          git push origin HEAD:agent/proai-cube-geometry-r1

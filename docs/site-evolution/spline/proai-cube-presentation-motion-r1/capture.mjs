@@ -139,7 +139,8 @@ await qaPage.evaluate(() => {
     targetRollDeg: -0.8,
     pitchWaveDeg: 4.8,
     rollWaveDeg: 0.65,
-    durationMs: 30000,
+    // Deliberately huge only for headless interaction QA: SwiftShader rAF virtual time can advance ~30x wall time.
+    durationMs: 600000,
     settleMs: 1350,
     easing: [0.48, 0.0, 0.38, 1.0],
     sliceTrigger: 0.72,

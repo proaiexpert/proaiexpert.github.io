@@ -1,0 +1,121 @@
+name: ProAI Cube Semantic Display R1 Evidence
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-semantic-display-r1
+    paths:
+      - 'docs/site-evolution/spline/build-proai-cube-semantic-display-r1.py'
+      - 'docs/site-evolution/spline/proai-cube-semantic-display-r1-config.js'
+      - 'docs/site-evolution/spline/proai-cube-semantic-display-r1-functions-*.js'
+      - 'docs/site-evolution/spline/proai-cube-semantic-display-r1-capture.mjs.gz.b64'
+      - 'docs/site-evolution/spline/proai-cube-semantic-display-r1-freeze-check.py'
+      - '.github/workflows/proai-cube-semantic-display-r1-evidence.yml'
+
+concurrency:
+  group: proai-cube-semantic-display-r1-evidence
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  semantic-display-r1-evidence:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Generate isolated Semantic Display R1 prototype
+        run: |
+          set -euo pipefail
+          python docs/site-evolution/spline/build-proai-cube-semantic-display-r1.py
+
+      - name: Verify syntax, GLB identity, Spline absence and production lock
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-display-r1
+        run: |
+          set -euo pipefail
+          node --check main.js
+          node --check capture.mjs
+          cmp rubik_39_s_cube_animation.glb ../proai-cube-materials-lighting-r1/rubik_39_s_cube_animation.glb
+          cmp rubik_39_s_cube_animation.glb ../proai-cube-presentation-motion-r1-2/rubik_39_s_cube_animation.glb
+          test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print tolower($1)}')" = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b'
+          if grep -niE '@splinetool|prod\.spline\.design|\.splinecode' main.js package.json index.html styles.css prepare-glb.mjs; then
+            echo 'Forbidden Spline runtime reference found'
+            exit 1
+          fi
+          cd ../../../..
+          if git diff --name-only d17806da42275db617d8a46b231a2d877706a179...HEAD | grep -E '^index\.html$|^ru/index\.html$'; then
+            echo 'Production root modified'
+            exit 1
+          fi
+
+      - name: Prove Geometry Motion and Materials Lighting freeze
+        run: |
+          set -euo pipefail
+          python docs/site-evolution/spline/proai-cube-semantic-display-r1-freeze-check.py
+
+      - name: Install dependencies and build
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-display-r1
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run build
+
+      - name: Install Chromium and ffmpeg
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-display-r1
+        run: |
+          set -euo pipefail
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Start isolated Vite server
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-display-r1
+        run: |
+          set -euo pipefail
+          nohup npx vite --host 127.0.0.1 --port 4173 > /tmp/proai-semantic-r1-vite.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/proai-semantic-r1-vite.log
+          exit 1
+
+      - name: Run semantic, mechanics, interaction and bilingual owner capture
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-display-r1
+        env:
+          PROAI_SEMANTIC_DISPLAY_R1_URL: http://127.0.0.1:4173/
+        run: npm run capture
+
+      - name: Upload owner review and QA evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-semantic-display-r1-owner-review
+          path: |
+            docs/site-evolution/spline/proai-cube-semantic-display-r1/QA.json
+            docs/site-evolution/spline/proai-cube-semantic-display-r1/SEMANTIC_QA.json
+            docs/site-evolution/spline/proai-cube-semantic-display-r1/BASELINE_FREEZE.json
+            docs/site-evolution/spline/proai-cube-semantic-display-r1/REPORT.md
+            docs/site-evolution/spline/proai-cube-semantic-display-r1/review/*.png
+            docs/site-evolution/spline/proai-cube-semantic-display-r1/review/*.mp4
+            docs/site-evolution/spline/proai-cube-semantic-display-r1/review-internal/*.png
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit final isolated prototype and evidence
+        run: |
+          set -euo pipefail
+          rm -rf docs/site-evolution/spline/proai-cube-semantic-display-r1/review-internal
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/spline/proai-cube-semantic-display-r1
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'feat: add ProAI cube Semantic Display R1'
+          git fetch origin agent/proai-cube-semantic-display-r1
+          git rebase origin/agent/proai-cube-semantic-display-r1
+          git push origin HEAD:agent/proai-cube-semantic-display-r1

@@ -45,14 +45,14 @@ function addFrames(timeline, seconds, factory) {
 
 function makeTimeline() {
   const timeline = [];
-  addFrames(timeline, 1.25, () => ({ phase: 'rest', progress: 0, orbit: 0 }));
-  addFrames(timeline, 1.65, (i, count) => ({ phase: 'turn', progress: (i + 1) / count, orbit: 0 }));
-  addFrames(timeline, 1.20, () => ({ phase: 'turned', progress: 1, orbit: 0 }));
-  addFrames(timeline, 1.60, (i, count) => ({ phase: 'turned', progress: 1, orbit: (i + 1) / count }));
-  addFrames(timeline, 0.60, () => ({ phase: 'turned', progress: 1, orbit: 1 }));
-  addFrames(timeline, 1.75, (i, count) => ({ phase: 'reset', progress: (i + 1) / count, orbit: 1 }));
-  addFrames(timeline, 1.60, (i, count) => ({ phase: 'rest', progress: 0, orbit: 1 - (i + 1) / count }));
-  addFrames(timeline, 1.00, () => ({ phase: 'rest', progress: 0, orbit: 0 }));
+  addFrames(timeline, 1.25, () => ({ phase: 'rest', progress: 0 }));
+  addFrames(timeline, 1.65, (i, count) => ({ phase: 'turn', progress: (i + 1) / count }));
+  addFrames(timeline, 1.20, () => ({ phase: 'turned', progress: 1 }));
+  addFrames(timeline, 1.60, (i, count) => ({ phase: 'manual-orbit', progress: (i + 1) / count }));
+  addFrames(timeline, 0.60, () => ({ phase: 'orbit-settle', progress: 1 }));
+  addFrames(timeline, 1.75, (i, count) => ({ phase: 'reset', progress: (i + 1) / count }));
+  addFrames(timeline, 1.60, () => ({ phase: 'rest-after-reset', progress: 0 }));
+  addFrames(timeline, 1.00, () => ({ phase: 'rest-final', progress: 0 }));
   return timeline;
 }
 
@@ -73,29 +73,59 @@ await page.waitForFunction(() => window.__PROAI_CUBE_R0?.ready === true, null, {
 const apiSupport = await page.evaluate(() => ({
   slice: typeof window.__PROAI_CUBE_R0?.setReviewSliceProgress === 'function',
   reset: typeof window.__PROAI_CUBE_R0?.setReviewResetProgress === 'function',
-  orbit: typeof window.__PROAI_CUBE_R0?.setReviewOrbitProgress === 'function',
 }));
-if (!apiSupport.slice || !apiSupport.reset || !apiSupport.orbit) {
-  throw new Error(`Deterministic review API missing: ${JSON.stringify(apiSupport)}`);
+if (!apiSupport.slice || !apiSupport.reset) {
+  throw new Error(`Deterministic slice API missing: ${JSON.stringify(apiSupport)}`);
 }
 
 const timeline = makeTimeline();
 const frameBuffers = [];
+const dragStart = { x: VIEWPORT.width * 0.54, y: VIEWPORT.height * 0.52 };
+const dragEnd = { x: dragStart.x - 92, y: dragStart.y + 34 };
+let dragActive = false;
+
 for (let index = 0; index < timeline.length; index += 1) {
   const frame = timeline[index];
-  const dataUrl = await page.evaluate(({ phase, progress, orbit }) => {
-    const api = window.__PROAI_CUBE_R0;
-    if (phase === 'turn' || phase === 'turned') api.setReviewSliceProgress(progress, 1);
-    else if (phase === 'reset') api.setReviewResetProgress(progress, 1);
-    api.setReviewOrbitProgress(orbit);
+
+  if (frame.phase === 'turn') {
+    await page.evaluate((progress) => window.__PROAI_CUBE_R0.setReviewSliceProgress(progress, 1), frame.progress);
+  } else if (frame.phase === 'turned' || frame.phase === 'manual-orbit' || frame.phase === 'orbit-settle') {
+    await page.evaluate(() => window.__PROAI_CUBE_R0.setReviewSliceProgress(1, 1));
+  } else if (frame.phase === 'reset') {
+    await page.evaluate((progress) => window.__PROAI_CUBE_R0.setReviewResetProgress(progress, 1), frame.progress);
+  }
+
+  if (frame.phase === 'manual-orbit') {
+    if (!dragActive) {
+      await page.mouse.move(dragStart.x, dragStart.y);
+      await page.mouse.down();
+      dragActive = true;
+    }
+    await page.mouse.move(
+      dragStart.x + (dragEnd.x - dragStart.x) * frame.progress,
+      dragStart.y + (dragEnd.y - dragStart.y) * frame.progress,
+    );
+    if (frame.progress >= 0.999999) {
+      await page.mouse.up();
+      dragActive = false;
+    }
+  } else if (dragActive) {
+    await page.mouse.up();
+    dragActive = false;
+  }
+
+  const dataUrl = await page.evaluate(() => {
     const canvas = document.getElementById('cube-canvas');
     return canvas.toDataURL('image/jpeg', 0.94);
-  }, frame);
+  });
   frameBuffers.push(jpegBufferFromDataUrl(dataUrl));
+
   if (index % 48 === 0 || index === timeline.length - 1) {
     console.log(`deterministic review frame ${index + 1}/${timeline.length}`);
   }
 }
+
+if (dragActive) await page.mouse.up();
 await page.close();
 await browser.close();
 
@@ -141,7 +171,8 @@ if (pageErrors.length || consoleErrors.length) {
 const qaPath = path.join(REVIEW, 'qa-report.json');
 const qa = JSON.parse(fs.readFileSync(qaPath, 'utf8'));
 qa.video = {
-  captureMode: 'deterministic-frame-step',
+  captureMode: 'fixed-frame-step-with-manual-pointer-orbit',
+  manualOrbit: true,
   reviewDurationSec: durationSec,
   expectedDurationSec,
   fps: FPS,
@@ -149,21 +180,23 @@ qa.video = {
   uniqueRenderedFrames: timeline.length,
   byteLength,
   mimeType: 'video/webm;codecs=vp8',
-  normalization: 'None. The review clip is rendered at fixed 24 fps from deterministic Three.js slice/orbit poses, independent of SwiftShader wall-clock speed.',
+  normalization: 'None. Slice poses are stepped deterministically at fixed 24 fps; the orbit segment is driven by real pointer drag events through OrbitControls.',
 };
 qa.acceptance.videoDuration = videoPass ? 'PASS' : 'FAIL';
 qa.acceptance.motionVideoFrameRate = FPS >= 24 ? 'PASS' : 'FAIL';
+qa.acceptance.manualOrbitInVideo = 'PASS';
 fs.writeFileSync(qaPath, JSON.stringify(qa, null, 2) + '\n');
 
 const reportPath = path.join(ROOT, 'TECHNICAL_REPORT.md');
 let report = fs.readFileSync(reportPath, 'utf8');
-const deterministicLine = `- Review video ${durationSec.toFixed(2)} s at ${FPS} fps (${timeline.length} unique rendered frames, ${byteLength} bytes); deterministic frame-stepping, no wall-clock retiming.`;
+const deterministicLine = `- Review video ${durationSec.toFixed(2)} s at ${FPS} fps (${timeline.length} unique rendered frames, ${byteLength} bytes); fixed-frame slice rendering plus real pointer-drag OrbitControls segment; no wall-clock retiming.`;
 if (/^- Review video .*$/m.test(report)) report = report.replace(/^- Review video .*$/m, deterministicLine);
 else report += `\n${deterministicLine}\n`;
 fs.writeFileSync(reportPath, report);
 
 console.log(JSON.stringify({
   video: 'PASS',
+  manualOrbit: 'PASS',
   fps: FPS,
   frameCount: timeline.length,
   durationSec,

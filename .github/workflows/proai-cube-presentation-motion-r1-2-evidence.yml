@@ -6,6 +6,7 @@ on:
       - agent/proai-cube-presentation-motion-r1-2
     paths:
       - 'docs/site-evolution/spline/build-proai-cube-presentation-motion-r1-2.py'
+      - 'docs/site-evolution/spline/proai-cube-presentation-motion-r1-2-capture-fast.mjs'
       - 'docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/**'
       - '.github/workflows/proai-cube-presentation-motion-r1-2-evidence.yml'
 
@@ -27,6 +28,8 @@ jobs:
         run: |
           set -euo pipefail
           python docs/site-evolution/spline/build-proai-cube-presentation-motion-r1-2.py
+          cp docs/site-evolution/spline/proai-cube-presentation-motion-r1-2-capture-fast.mjs \
+             docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/capture.mjs
 
       - name: Verify isolated scope, syntax, GLB identity and no Spline runtime
         working-directory: docs/site-evolution/spline/proai-cube-presentation-motion-r1-2
@@ -72,7 +75,10 @@ jobs:
         env:
           PROAI_PRESENTATION_R1_2_URL: http://127.0.0.1:4173/
           PROAI_GEOMETRY_CODE_FROZEN: '1'
-        run: npm run capture
+        run: |
+          set -euo pipefail
+          npm run capture
+          rm -f review/*runtime.webm
 
       - name: Upload owner review artifact
         uses: actions/upload-artifact@v4

@@ -87,6 +87,7 @@ jobs:
           done
           test "$PUBLIC_OK" -eq 1
           echo "url=$URL" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$URL" >/tmp/r3-live-url.txt
           {
             echo '## SEMANTIC BRAND FACE R3 — LIVE OWNER REVIEW'
             echo
@@ -103,6 +104,14 @@ jobs:
             echo "Motion studies: $URL/?capture&demo=1&concept=A · $URL/?capture&demo=1&concept=B · $URL/?capture&demo=1&concept=C"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "R3_LIVE_READY=$URL"
+
+      - name: Upload live URL handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-semantic-r3-live-url
+          path: /tmp/r3-live-url.txt
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Hold owner preview for 60 minutes
         shell: bash

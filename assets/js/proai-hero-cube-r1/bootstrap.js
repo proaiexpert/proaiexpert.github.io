@@ -176,6 +176,8 @@
 
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     slot.dataset.cubeMounted = 'true';
+    if (typeof runtime.resize === 'function') runtime.resize();
+    if (typeof runtime.renderReviewFrame === 'function') runtime.renderReviewFrame();
     mounted = true;
     syncLifecycle();
 

@@ -1,0 +1,144 @@
+name: ProAI Cube Semantic Brand Moment R2 Finalize
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-semantic-brand-moment-r2
+    paths:
+      - '.github/workflows/proai-cube-semantic-brand-moment-r2-finalize.yml'
+
+concurrency:
+  group: proai-cube-semantic-brand-moment-r2
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-r2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Reconstruct isolated R2 prototype
+        run: |
+          set -euo pipefail
+          cat .github/r2-bootstrap/part1.txt .github/r2-bootstrap/part2.txt .github/r2-bootstrap/part3.txt .github/r2-bootstrap/part4.txt > /tmp/proai-r2.b64
+          base64 -d /tmp/proai-r2.b64 > /tmp/proai-r2.zlib
+          python - <<'PY'
+          import zlib
+          payload = zlib.decompress(open('/tmp/proai-r2.zlib','rb').read()).decode('utf-8')
+          exec(compile(payload, 'proai-semantic-brand-moment-r2-builder.py', 'exec'), {'__name__':'__main__'})
+          PY
+
+      - name: Materialize source before capture
+        run: |
+          set -euo pipefail
+          R2='docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$R2"
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore: materialize Semantic Brand Moment R2 source'
+            git push origin HEAD:agent/proai-cube-semantic-brand-moment-r2
+          fi
+
+      - name: Verify source locks
+        run: |
+          set -euo pipefail
+          R2='docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2'
+          BASE='docs/site-evolution/spline/proai-cube-materials-lighting-r1'
+          node --check "$R2/main.js"
+          node --check "$R2/capture.mjs"
+          cmp "$R2/rubik_39_s_cube_animation.glb" "$BASE/rubik_39_s_cube_animation.glb"
+          test "$(sha256sum "$R2/rubik_39_s_cube_animation.glb" | awk '{print $1}')" = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b'
+          if grep -niE '@splinetool|prod\.spline\.design|\.splinecode' "$R2/main.js" "$R2/index.html" "$R2/package.json" "$R2/styles.css"; then exit 1; fi
+          if git diff --name-only d17806da42275db617d8a46b231a2d877706a179...HEAD -- index.html ru/index.html | grep -q .; then exit 1; fi
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, json, re
+          base=Path('docs/site-evolution/spline/proai-cube-materials-lighting-r1/main.js').read_text()
+          cur=Path('docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/main.js').read_text()
+          blocks={
+            'MOTION':r"const MOTION = Object\.freeze\(\{.*?\n\}\);",
+            'PRESENTATION_R1_2':r"const PRESENTATION_R1_2 = Object\.freeze\(\{.*?\n\}\);",
+            'SLICE_R1_2':r"const SLICE_R1_2 = Object\.freeze\(\{.*?\n\}\);",
+            'GEOMETRY_R1':r"const GEOMETRY_R1 = Object\.freeze\(\{.*?\n\}\);",
+            'LOOKDEV_R1':r"const LOOKDEV_R1 = Object\.freeze\(\{.*?\n\}\);",
+          }
+          out={'baseSha':'d17806da42275db617d8a46b231a2d877706a179','blocks':{}}
+          for n,p in blocks.items():
+            a=re.search(p,base,re.S); b=re.search(p,cur,re.S)
+            if not a or not b or a.group(0)!=b.group(0): raise SystemExit('frozen block changed: '+n)
+            out['blocks'][n]={'same':True,'sha256':hashlib.sha256(a.group(0).encode()).hexdigest()}
+          out['pass']=True
+          Path('docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/BASELINE_FREEZE.json').write_text(json.dumps(out,indent=2)+'\n')
+          PY
+
+      - name: Install dependencies
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run build
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Create exact Materials R1 baseline fixture
+        run: |
+          set -euo pipefail
+          R2='docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2'
+          BASE='docs/site-evolution/spline/proai-cube-materials-lighting-r1'
+          rm -rf "$R2/baseline-fixture"
+          cp -a "$BASE" "$R2/baseline-fixture"
+          rm -rf "$R2/baseline-fixture/review" "$R2/baseline-fixture/review-internal" "$R2/baseline-fixture/dist"
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/baseline-fixture/main.js')
+          s=p.read_text()
+          s=s.replace('  getDiagnostics,\n  getInteractionState,\n','  getDiagnostics,\n  getBaselineComparableState,\n  getInteractionState,\n',1)
+          anchor='function getDiagnostics() {\n'
+          fn='''function getBaselineComparableState() {\n  scene.updateMatrixWorld(true);\n  return {\n    presentationRig:{position:presentationRig.position.toArray(),quaternion:presentationRig.quaternion.toArray(),scale:presentationRig.scale.toArray()},\n    cubeRoot:{position:cubeRoot.position.toArray(),quaternion:cubeRoot.quaternion.toArray(),scale:cubeRoot.scale.toArray()},\n    logical:snapshotLogicalState(),\n    activeTurns:activeTurnList().map((turn)=>({axis:turn.axis,layer:turn.layer,direction:turn.direction,linear:turn.linear,eased:turn.eased})),\n    completedTurns:lastTurnResults.map((turn)=>({axis:turn.axis,layer:turn.layer,direction:turn.direction})),\n    scheduler:{enabled:sliceSchedulerEnabled,running:sliceSchedulerRunning,eventSerial:sliceEventSerial,eventsUntilBreath,seed:sliceSeed},\n    camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),target:controls.target.toArray()},\n  };\n}\n\n'''
+          if anchor not in s: raise SystemExit('baseline anchor missing')
+          p.write_text(s.replace(anchor,fn+anchor,1))
+          PY
+
+      - name: Start Vite
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+        run: |
+          nohup npx vite --host 127.0.0.1 --port 4173 > /tmp/proai-r2-vite.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/proai-r2-vite.log; exit 1
+
+      - name: Continuous 1080 capture and QA
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+        env:
+          PROAI_SEMANTIC_R2_URL: http://127.0.0.1:4173/
+          PROAI_BASELINE_URL: http://127.0.0.1:4173/baseline-fixture/
+        run: timeout 30m npm run capture
+
+      - name: Final evidence gate
+        run: |
+          set -euo pipefail
+          R2='docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2'
+          test "$(node -e "const q=require('./$R2/QA.json');process.stdout.write(String(q.allPass))")" = true
+          test "$(node -e "const q=require('./$R2/QA.json');process.stdout.write(String(q.evidence.video.spliceCount))")" = 0
+          test "$(find "$R2/review" -maxdepth 1 -name '*.png' | wc -l)" -le 2
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,pix_fmt,width,height,avg_frame_rate -of default=nw=1 "$R2/review/proai-cube-semantic-brand-moment-r2-owner-review.mp4"
+          rm -rf "$R2/baseline-fixture" "$R2/dist" "$R2/node_modules"
+
+      - name: Commit final isolated package
+        run: |
+          set -euo pipefail
+          R2='docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2'
+          git add "$R2"
+          git rm -r .github/r2-bootstrap .github/workflows/proai-cube-semantic-brand-moment-r2.yml .github/workflows/proai-cube-semantic-brand-moment-r2-finalize.yml
+          git commit -m 'feat: add ProAI Cube semantic brand moment R2'
+          git fetch origin agent/proai-cube-semantic-brand-moment-r2
+          git rebase origin/agent/proai-cube-semantic-brand-moment-r2
+          git push origin HEAD:agent/proai-cube-semantic-brand-moment-r2

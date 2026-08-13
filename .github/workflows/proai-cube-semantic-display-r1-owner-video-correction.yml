@@ -48,6 +48,17 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           cp ../proai-cube-semantic-display-r1-owner-tail-correction.mjs ./owner-tail-correction.mjs
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('owner-tail-correction.mjs')
+          s=p.read_text()
+          old="  await page.waitForFunction(() => window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics().activeTurns.length === 0, null, { timeout: 5000 });\n"
+          new="""  const replayRemaining = await page.evaluate(() => {\n    const a = window.__PROAI_CUBE_SEMANTIC_R1;\n    for (let pass = 0; pass < 4; pass++) {\n      const active = a.getDiagnostics().activeTurns;\n      if (!active.length) return [];\n      for (const turn of active) {\n        try { a.setReviewTurnProgress(turn.id, 1, false); } catch {}\n      }\n    }\n    return a.getDiagnostics().activeTurns;\n  });\n  if (replayRemaining.length) throw new Error(`Replay left active turns: ${JSON.stringify(replayRemaining)}`);\n"""
+          if old not in s:
+              raise SystemExit('Replay wait marker not found')
+          p.write_text(s.replace(old,new,1))
+          PY
+          node --check owner-tail-correction.mjs
 
       - name: Start isolated Vite
         working-directory: docs/site-evolution/spline/proai-cube-semantic-display-r1
@@ -98,10 +109,12 @@ jobs:
         run: |
           set -euo pipefail
           P=docs/site-evolution/spline/proai-cube-semantic-display-r1
+          cp "$P/owner-tail-correction.mjs" docs/site-evolution/spline/proai-cube-semantic-display-r1-owner-tail-correction.mjs
           rm -f "$P/owner-tail-correction.mjs"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add \
+            docs/site-evolution/spline/proai-cube-semantic-display-r1-owner-tail-correction.mjs \
             "$P/review/proai-cube-semantic-display-r1-en-review-41s.mp4" \
             "$P/review/video-contact-sheet-en.png" \
             "$P/review/11-en-result-owner-proof.png" \

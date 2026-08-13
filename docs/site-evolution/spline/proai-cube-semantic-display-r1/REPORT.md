@@ -42,3 +42,6 @@ See `review/` for ten high-resolution screenshots and video contact sheets.
 
 ## Gate
 Stop after Semantic Display R1. No Background/Spatial Integration or Hero Integration is started. Owner visual approval is required before any later phase.
+
+## Owner-video evidence correction
+Owner visual frame inspection found that the first EN Playwright/WebM wall-time normalization omitted the late **RESULT** state from the visible 41-second MP4 even though logical semantic QA passed. The canonical EN owner video was corrected at the evidence layer only: 0–35.5 s is retained, and 35.5–41.0 s is a deterministic capture from the same committed Three.js runtime showing **RESULT**, continuous body motion, semantic exit, and a post-semantic Y/-1 mechanical turn. Geometry R1, Motion R1.2, Materials + Lighting R1, Semantic R1 runtime/config, and the GLB were not changed. See `OWNER_VIDEO_CORRECTION.json` and `review/11-en-result-owner-proof.png`.

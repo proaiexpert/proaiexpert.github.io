@@ -108,7 +108,18 @@ for (const e of completedMechanicalEvents) {
     }, e);
     if (!id) throw new Error(`Failed to replay turn ${JSON.stringify(e)}`);
   }
-  await page.waitForFunction(() => window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics().activeTurns.length === 0, null, { timeout: 5000 });
+  const replayRemaining = await page.evaluate(() => {
+    const a = window.__PROAI_CUBE_SEMANTIC_R1;
+    for (let pass = 0; pass < 4; pass++) {
+      const active = a.getDiagnostics().activeTurns;
+      if (!active.length) return [];
+      for (const turn of active) {
+        try { a.setReviewTurnProgress(turn.id, 1, false); } catch {}
+      }
+    }
+    return a.getDiagnostics().activeTurns;
+  });
+  if (replayRemaining.length) throw new Error(`Replay left active turns: ${JSON.stringify(replayRemaining)}`);
 }
 
 await page.evaluate(() => window.__PROAI_CUBE_SEMANTIC_R1.setReviewPresentation(30.3, 1, true));

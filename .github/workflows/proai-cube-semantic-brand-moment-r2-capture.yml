@@ -1,0 +1,62 @@
+name: ProAI Cube Semantic Brand Moment R2 Capture
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-semantic-brand-moment-r2
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/package-lock.json
+      - name: Install prototype dependencies
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+        run: npm install --no-audit --no-fund
+      - name: Install Playwright Chromium
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+        run: npx playwright install --with-deps chromium
+      - name: Generate R2 runtime and continuous owner capture
+        id: capture
+        continue-on-error: true
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+        run: npm run capture
+      - name: Upload R2 review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-semantic-brand-moment-r2-review
+          path: |
+            docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/review/
+            docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/QA.json
+            docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/REPORT.md
+            docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/runtime-r2.js
+          if-no-files-found: warn
+      - name: Commit passing evidence
+        if: steps.capture.outcome == 'success'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/package-lock.json \
+                  docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/runtime-r2.js \
+                  docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/QA.json \
+                  docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/REPORT.md \
+                  docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/review/
+          git commit -m "test: capture continuous Semantic Brand Moment R2 evidence"
+          git push origin HEAD:agent/proai-cube-semantic-brand-moment-r2
+      - name: Enforce capture result
+        if: steps.capture.outcome != 'success'
+        run: exit 1

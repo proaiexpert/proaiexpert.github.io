@@ -72,8 +72,8 @@ replaceOnce(
 );
 
 replaceOnce(
-  '  sliceConfig: SLICE_R1_2,\n',
-  '  sliceConfig: SLICE_R1_2,\n  semanticR3Concept,\n  semanticR3Config: SEMANTIC_R3,\n',
+  '  presentationConfig: PRESENTATION_R1_2,\n  sliceConfig: SLICE_R1_2,\n  geometry: null,\n',
+  '  presentationConfig: PRESENTATION_R1_2,\n  sliceConfig: SLICE_R1_2,\n  semanticR3Concept,\n  semanticR3Config: SEMANTIC_R3,\n  geometry: null,\n',
   'R3 API fields',
 );
 

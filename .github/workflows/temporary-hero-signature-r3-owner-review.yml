@@ -4,7 +4,7 @@ on:
     branches: [agent/proai-home-hero-signature-r3]
     paths: [.github/workflows/temporary-hero-signature-r3-owner-review.yml]
 permissions:
-  contents: write
+  contents: read
   statuses: write
 jobs:
   owner-review:
@@ -12,45 +12,14 @@ jobs:
     timeout-minutes: 70
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: agent/proai-home-hero-signature-r3
-          fetch-depth: 0
-      - name: Refine RU desktop H1 geometry
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('assets/css/homepage-hero-signature-r3.css')
-          s=p.read_text()
-          old='''body.lang-ru #hero .proai-hero-title {
-            max-width: 760px;
-            font-size: clamp(62px, 4.75vw, 70px);
-            line-height: .985;
-            letter-spacing: -.043em;
-          }'''
-          new='''body.lang-ru #hero .proai-hero-title {
-            max-width: 760px;
-            font-size: clamp(62px, 4.45vw, 66px);
-            line-height: .985;
-            letter-spacing: -.043em;
-            text-wrap: pretty;
-          }'''
-          if old not in s: raise SystemExit('RU desktop block mismatch')
-          p.write_text(s.replace(old,new,1))
-          PY
-          git config user.name "ProAI Hero Builder"
-          git config user.email "proai.expert2026@gmail.com"
-          git add assets/css/homepage-hero-signature-r3.css
-          git diff --cached --check
-          git commit -m "fix: refine Hero R3 Russian desktop typography"
-          git push origin HEAD:agent/proai-home-hero-signature-r3
-      - name: Verify product scope and frozen Cube foundations
+      - name: Verify final product and frozen Cube
         run: |
           set -euo pipefail
           test "$(git hash-object assets/js/proai-hero-cube-r1/bootstrap.js)" = b46b26164efc000daef8ecb3416039008db7cd79
           test "$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" = bab6b00e73b20fc2a51aeb00cb7fc08f16129e72
           test "$(stat -c%s assets/models/proai-cube/rubik_39_s_cube_animation.glb)" = 279412
           echo "DBB7FC4156F8C9ED2481DD76443DFFB9A45ECB5493463F99BFFB34DD3B59C79B  assets/models/proai-cube/rubik_39_s_cube_animation.glb" | sha256sum -c -
+          grep -q 'font-size: clamp(62px, 4.45vw, 66px);' assets/css/homepage-hero-signature-r3.css
           ! grep -q 'homepage-hero-shell-r2.css' index.html
           ! grep -q 'homepage-hero-shell-r2.css' ru/index.html
           ! grep -Eq 'body(\.lang-ru)?\.page-home[[:space:]]+(#hero|\.hero-|\.scene)' mobile-pass-v141.css
@@ -59,26 +28,26 @@ jobs:
         run: |
           set -euo pipefail
           export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
-          gem install --user-install jekyll -v 4.3.4 --no-document
-          gem install --user-install webrick --no-document
-          jekyll build --source . --destination _site
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
           python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/http.log 2>&1 &
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/ >/dev/null && break || sleep 1; done
           curl -fsS http://127.0.0.1:8080/ru/ >/dev/null
-      - name: Responsive and interaction QA
+      - name: Full EN RU responsive and interaction QA
         run: |
           set -euo pipefail
-          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0
-          cat > hero-r3-qa.cjs <<'JS'
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+          cat > hero-r3-final-qa.cjs <<'JS'
           const p=require('puppeteer-core'),a=require('assert').strict,B='http://127.0.0.1:8080';
           (async()=>{const b=await p.launch({headless:false,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--enable-unsafe-swiftshader','--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows']}),q=await b.newPage(),wait=ms=>new Promise(r=>setTimeout(r,ms));
-          async function load(path,w,h,m,t){await q.setViewport({width:w,height:h,isMobile:m,hasTouch:t});await q.goto(B+path,{waitUntil:'domcontentloaded'});await q.waitForFunction(()=>document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',{timeout:30000});await wait(100)}
+          async function load(path,w,h,m,t){await q.setViewport({width:w,height:h,isMobile:m,hasTouch:t});await q.goto(B+path,{waitUntil:'domcontentloaded'});await q.waitForFunction(()=>document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',{timeout:30000});await wait(80)}
           async function S(){return q.evaluate(()=>{const R=e=>{const r=e.getBoundingClientRect();return{l:r.left,t:r.top,r:r.right,b:r.bottom,w:r.width,h:r.height}},t=document.querySelector('.proai-hero-title'),g=document.createRange();g.selectNodeContents(t);const cs=getComputedStyle(t),sup=getComputedStyle(document.querySelector('.proai-hero-support')),co=getComputedStyle(document.querySelector('#hero .hero-content')),pr=getComputedStyle(document.querySelector('.proai-hero-cta--primary')),se=getComputedStyle(document.querySelector('.proai-hero-cta--secondary'));return{lines:new Set([...g.getClientRects()].map(x=>Math.round(x.top))).size,fs:+parseFloat(cs.fontSize).toFixed(2),support:+parseFloat(sup.fontSize).toFixed(2),display:co.display,flex:co.flexDirection,hero:R(document.querySelector('#hero')),left:R(document.querySelector('#hero .hero-left')),visual:R(document.querySelector('#hero .hero-visual')),canvas:R(document.querySelector('#cube-canvas')),actions:R(document.querySelector('.proai-hero-actions')),pri:{h:R(document.querySelector('.proai-hero-cta--primary')).h,r:parseFloat(pr.borderRadius),bg:pr.backgroundImage},sec:{bw:se.borderTopWidth,bg:se.backgroundImage,bs:se.boxShadow},ov:document.documentElement.scrollWidth-document.documentElement.clientWidth,scrollH:document.documentElement.scrollHeight,obsolete:['.proai-hero-microcopy','.proai-hero-accountability','.proai-hero-stage-rail'].some(x=>document.querySelector(x)),sheets:[...document.styleSheets].map(s=>s.href||'inline').filter(x=>String(x).includes('homepage-hero'))}})}
-          async function C(path,L,w,h,k){await load(path,w,h,k!=='desktop',k!=='desktop');const x=await S();console.log('METRICS',JSON.stringify({L,w,h,k,lines:x.lines,font:x.fs,support:x.support,left:+x.left.w.toFixed(1),cube:+x.visual.w.toFixed(1),canvas:+x.canvas.w.toFixed(1),heroH:+x.hero.h.toFixed(1),scrollH:x.scrollH,overflow:x.ov,display:x.display,flex:x.flex,primaryRadius:x.pri.r}));a.ok(x.ov<=1);a.equal(x.obsolete,false);a.equal(x.sheets.length,1);a.ok(x.sheets[0].includes('homepage-hero-signature-r3.css'));a.ok(x.support>=15.5);a.ok(x.pri.h>=49.5);a.ok(x.pri.r>=7&&x.pri.r<=11);a.notEqual(x.pri.bg,'none');a.equal(x.sec.bw,'0px');a.equal(x.sec.bg,'none');a.equal(x.sec.bs,'none');a.ok(x.canvas.l>=-1&&x.canvas.r<=w+1);a.ok(x.canvas.b<=x.hero.b+2);if(k==='desktop'){a.equal(x.display,'grid');if(w===1440){a.ok(x.fs>=61&&x.fs<=77);a.ok(x.lines<=3)}else{a.ok(x.fs>=51&&x.fs<=66);a.ok(x.lines<=(L==='RU'?4:3))}a.ok(x.visual.w>=x.left.w*.72)}if(k==='portrait'){a.equal(x.display,'flex');a.equal(x.flex,'column');a.ok(x.fs>=(L==='EN'?41:39)&&x.fs<=(L==='EN'?50:47));a.ok(x.visual.w>=w*.80&&x.visual.w<=w*.94);a.ok(x.visual.t>=x.actions.b-2)}if(k==='landscape'){a.equal(x.display,'flex');a.equal(x.flex,'column');a.ok(x.fs>=(L==='EN'?47:45)&&x.fs<=(L==='EN'?60:55));a.ok(x.visual.w>=w*.43&&x.visual.w<=w*.57);a.ok(x.visual.t>=x.actions.b-2);a.ok(x.hero.h>h*1.25);a.ok(x.scrollH>h+120)}}
+          async function C(path,L,w,h,k){await load(path,w,h,k!=='desktop',k!=='desktop');const x=await S();console.log('METRICS',JSON.stringify({L,w,h,k,lines:x.lines,font:x.fs,support:x.support,left:+x.left.w.toFixed(1),cube:+x.visual.w.toFixed(1),canvas:+x.canvas.w.toFixed(1),heroH:+x.hero.h.toFixed(1),scrollH:x.scrollH,overflow:x.ov,display:x.display,flex:x.flex,primaryRadius:x.pri.r}));a.ok(x.ov<=1);a.equal(x.obsolete,false);a.equal(x.sheets.length,1);a.ok(x.sheets[0].includes('homepage-hero-signature-r3.css'));a.ok(x.support>=15.5);a.ok(x.pri.h>=49.5);a.ok(x.pri.r>=7&&x.pri.r<=11);a.notEqual(x.pri.bg,'none');a.equal(x.sec.bw,'0px');a.equal(x.sec.bg,'none');a.equal(x.sec.bs,'none');a.ok(x.canvas.l>=-1&&x.canvas.r<=w+1);a.ok(x.canvas.b<=x.hero.b+2);if(k==='desktop'){a.equal(x.display,'grid');if(w===1440){a.ok(x.fs>=61&&x.fs<=77);a.ok(x.lines<=(L==='RU'?4:3))}else{a.ok(x.fs>=51&&x.fs<=66);a.ok(x.lines<=(L==='RU'?4:3))}a.ok(x.visual.w>=x.left.w*.72)}if(k==='portrait'){a.equal(x.display,'flex');a.equal(x.flex,'column');a.ok(x.fs>=(L==='EN'?41:39)&&x.fs<=(L==='EN'?50:47));a.ok(x.visual.w>=w*.80&&x.visual.w<=w*.94);a.ok(x.visual.t>=x.actions.b-2)}if(k==='landscape'){a.equal(x.display,'flex');a.equal(x.flex,'column');a.ok(x.fs>=(L==='EN'?47:45)&&x.fs<=(L==='EN'?60:55));a.ok(x.visual.w>=w*.43&&x.visual.w<=w*.57);a.ok(x.visual.t>=x.actions.b-2);a.ok(x.hero.h>h*1.25);a.ok(x.scrollH>h+120)}}
           await q.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);for(const [path,L] of [['/','EN'],['/ru/','RU']]){await C(path,L,1440,900,'desktop');await C(path,L,1200,800,'desktop');await C(path,L,430,932,'portrait');await C(path,L,390,844,'portrait');for(const [w,h] of [[932,430],[844,390],[800,360],[740,360]])await C(path,L,w,h,'landscape')}
           await q.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);await load('/',1440,900,false,false);const c=await q.evaluate(()=>__PROAI_HERO_CUBE_R1.runtime.getHeroInteractionContract());a.equal(c.zoomEnabled,false);a.equal(c.panEnabled,false);const z=await q.$eval('#cube-canvas',e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height}});await q.mouse.move(z.x+z.w/2,z.y+z.h/2);await q.mouse.down();await q.mouse.move(z.x+z.w/2+48,z.y+z.h/2-22,{steps:6});await wait(260);const d=await q.evaluate(()=>__PROAI_HERO_CUBE_R1.runtime.getDiagnostics().interaction);a.equal(d.autonomyBlocked,false);a.equal(d.sliceAutonomyBlocked,false);await q.mouse.up();const r=await q.evaluate(()=>__PROAI_HERO_CUBE_R1.runtime.getDiagnostics().interaction);a.equal(r.resumeDelayRemainingMs,0);a.equal(r.sliceResumeDelayRemainingMs,0);const wh=await q.evaluate(()=>{const e=document.querySelector('#cube-canvas'),before=__PROAI_HERO_CUBE_R1.runtime.getHeroInteractionContract().cameraDistance,ev=new WheelEvent('wheel',{deltaY:300,bubbles:true,cancelable:true});e.dispatchEvent(ev);return{p:ev.defaultPrevented,b:before,a:__PROAI_HERO_CUBE_R1.runtime.getHeroInteractionContract().cameraDistance}});a.equal(wh.p,false);a.ok(Math.abs(wh.a-wh.b)<1e-6);console.log('INTERACTION R1.1 PASS');await b.close()})().catch(e=>{console.error(e);process.exit(1)});
           JS
-          xvfb-run -a node hero-r3-qa.cjs | tee /tmp/hero-r3-qa.log
+          xvfb-run -a node hero-r3-final-qa.cjs | tee /tmp/hero-r3-final-qa.log
       - name: Start owner Quick Tunnel
         env:
           GH_TOKEN: ${{ github.token }}

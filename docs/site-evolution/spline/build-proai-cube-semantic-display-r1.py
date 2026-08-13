@@ -7,7 +7,6 @@ DST = ROOT / 'proai-cube-semantic-display-r1'
 CONFIG = ROOT / 'proai-cube-semantic-display-r1-config.js'
 FUNCTION_PARTS = sorted(ROOT.glob('proai-cube-semantic-display-r1-functions-*.js'))
 CAPTURE_B64 = ROOT / 'proai-cube-semantic-display-r1-capture.mjs.gz.b64'
-STATIC_CAPTURE_TEMPLATE = ROOT / 'proai-cube-semantic-display-r1-capture-static.mjs'
 
 
 def replace_once(text, old, new, label):
@@ -93,7 +92,7 @@ main = replace_once(main, "let lastPresentationQuaternion = new THREE.Quaternion
 main = replace_once(main, "  ready: false,\n  motionState,", "  ready: false,\n  semanticReady: false,\n  motionState,", 'api semantic ready')
 main = replace_once(main,
     "  getReviewPresentationSample,\n  setLookDevPreset,",
-    "  getReviewPresentationSample,\n  semanticConfig: SEMANTIC_R1,\n  getSemanticDiagnostics,\n  runSemanticStringFitQA,\n  runSemanticFaceAnchorQA,\n  selectSemanticFace,\n  prepareReviewSemantic,\n  setReviewSemanticVisual,\n  clearReviewSemantic,\n  advanceReviewSemanticExit,\n  semanticTransitionAt,\n  beginSemanticQA,\n  setSemanticLookVariant: applySemanticLookVariant,\n  stopSemanticScheduler() { semanticSchedulerEnabled = false; },\n  startSemanticScheduler() { if (!prefersReducedMotion && !captureMode) semanticSchedulerEnabled = true; },\n  setLookDevPreset,",
+    "  getReviewPresentationSample,\n  semanticConfig: SEMANTIC_R1,\n  getSemanticDiagnostics,\n  runSemanticStringFitQA,\n  runSemanticFaceAnchorQA,\n  selectSemanticFace,\n  prepareReviewSemantic,\n  setReviewSemanticVisual,\n  clearReviewSemantic,\n  advanceReviewSemanticExit,\n  semanticTransitionAt,\n  beginSemanticQA,\n  getCameraSnapshot() {\n    return {\n      position: camera.position.toArray(),\n      quaternion: camera.quaternion.toArray(),\n      target: controls.target.toArray(),\n    };\n  },\n  setSemanticLookVariant: applySemanticLookVariant,\n  stopSemanticScheduler() { semanticSchedulerEnabled = false; },\n  startSemanticScheduler() { if (!prefersReducedMotion && !captureMode) semanticSchedulerEnabled = true; },\n  setLookDevPreset,",
     'semantic api')
 main = replace_once(main, "window.__PROAI_CUBE_ML_R1 = api;", "window.__PROAI_CUBE_ML_R1 = api;\nwindow.__PROAI_CUBE_SEMANTIC_R1 = api;", 'semantic api alias')
 main = replace_once(main, "function presentationAutonomyBlocked() {", functions + "\n\nfunction presentationAutonomyBlocked() {", 'semantic functions')
@@ -129,14 +128,4 @@ index_path = DST / 'index.html'
 index_path.write_text(index_path.read_text().replace('Materials + Lighting R1', 'Semantic Display R1'))
 capture_bytes = gzip.decompress(base64.b64decode(CAPTURE_B64.read_text().strip()))
 (DST / 'capture.mjs').write_bytes(capture_bytes)
-
-# QA-only harness correction: interaction proof uses capture mode so the frozen
-# autonomous review scheduler cannot continually create new test turns while
-# the harness is waiting for an idle mechanical state. OrbitControls and all
-# semantic interaction helpers remain active in capture mode.
-if STATIC_CAPTURE_TEMPLATE.exists():
-    static_capture = STATIC_CAPTURE_TEMPLATE.read_text()
-    static_capture = static_capture.replace("const interaction=await open('en','review');", "const interaction=await open('en','capture');")
-    STATIC_CAPTURE_TEMPLATE.write_text(static_capture)
-
 print(DST)

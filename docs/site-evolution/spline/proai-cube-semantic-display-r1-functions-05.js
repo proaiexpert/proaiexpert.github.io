@@ -18,7 +18,7 @@ function clearReviewSemantic(renderFrame = true) {
 }
 
 function advanceReviewSemanticExit(elapsedMs, renderFrame = true) {
-  if (!captureMode || semanticState.phase !== 'exitFast') return false;
+  if (!(captureMode || reviewMode) || semanticState.phase !== 'exitFast') return false;
   const p = smoothstep(elapsedMs / SEMANTIC_R1.timings.interactionExitMs);
   applySemanticOpacity(semanticState.exitSurfaceFrom * (1 - p), semanticState.exitTextFrom * (1 - p));
   if (p >= 1) completeSemanticEvent(performance.now());

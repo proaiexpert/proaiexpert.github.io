@@ -33,7 +33,7 @@ jobs:
           python - <<'PY'
           import zlib
           payload = zlib.decompress(open('/tmp/proai-r2.zlib','rb').read()).decode('utf-8')
-          exec(compile(payload, 'proai-semantic-brand-moment-r2-builder.py', 'exec'))
+          exec(compile(payload, 'proai-semantic-brand-moment-r2-builder.py', 'exec'), {'__name__':'__main__'})
           PY
 
       - name: Verify isolated scope, syntax, GLB and Spline absence

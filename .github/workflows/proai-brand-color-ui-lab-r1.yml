@@ -1,0 +1,40 @@
+name: ProAI Color Lab R1
+on:
+  push:
+    branches: [agent/proai-brand-color-ui-lab-r1]
+permissions:
+  contents: write
+jobs:
+  capture:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Prepare
+        run: |
+          L=docs/site-evolution/brand/proai-brand-color-ui-lab-r1
+          mkdir -p "$L/assets" "$L/review" /tmp/pw
+          curl -L --fail https://raw.githubusercontent.com/proaiexpert/proaiexpert.github.io/d17806da42275db617d8a46b231a2d877706a179/docs/site-evolution/spline/proai-cube-materials-lighting-r1/review/proai-cube-materials-lighting-r1-natural.png -o "$L/assets/cube-materials-r1.png"
+          cd /tmp/pw && npm init -y >/dev/null && npm i playwright@1.55.0 >/dev/null && npx playwright install chromium >/dev/null
+          cd "$GITHUB_WORKSPACE" && nohup python3 -m http.server 8123 --directory "$L" >/tmp/http.log 2>&1 &
+          sleep 2
+      - name: Capture
+        env: {NODE_PATH: /tmp/pw/node_modules}
+        run: |
+          node <<'JS'
+          const {chromium}=require('playwright'),p=require('path'),f=require('fs');
+          (async()=>{const b=await chromium.launch({headless:true}),o='docs/site-evolution/brand/proai-brand-color-ui-lab-r1/review',u='http://127.0.0.1:8123/';f.mkdirSync(o,{recursive:true});
+          async function hero(v,m,n){const x=await b.newPage({viewport:m?{width:390,height:844}:{width:1440,height:900},deviceScaleFactor:m?2:1});await x.goto(u+'?variant='+v,{waitUntil:'networkidle'});await x.evaluate(()=>document.body.classList.add('machine-event'));await x.addStyleTag({content:'.lab-topbar,.hero-lab>.section-heading,.variant-toolbar{display:none!important}.hero-lab{padding:0!important}.hero-stage{border-radius:0!important;min-height:100vh!important}body{overflow:hidden!important}'});await x.locator('.cube-frame img').waitFor();if(!await x.locator('.cube-frame img').evaluate(i=>i.complete&&i.naturalWidth>0))throw Error('cube image failed');await x.screenshot({path:p.join(o,n)});await x.close()}
+          for(const [v,k] of [['A','a'],['B','b'],['C','c'],['D','d']]){await hero(v,0,`hero-${k}-desktop.png`);await hero(v,1,`hero-${k}-mobile.png`)}
+          async function sec(s,n){const x=await b.newPage({viewport:{width:1440,height:1200}});await x.goto(u,{waitUntil:'networkidle'});await x.locator(s).screenshot({path:p.join(o,n)});await x.close()}
+          for(const [s,n] of [['#buttons','button-lab.png'],['#blacks','black-hierarchy.png'],['#inverse','light-inverse.png'],['#page-families','page-family-board.png'],['#contextual','contextual-tint-board.png'],['#energy','spectral-energy-study.png'],['#warm-energy','warm-energy-study.png'],['#type-study','typography-study.png']])await sec(s,n);await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Finalize branch
+        run: |
+          rm -f docs/site-evolution/brand/proai-brand-color-ui-lab-r1/{.keep2,LAST_TEMP,ONE_MORE_TEMP,REPORT.md.tmp,REPORT2.md,STOP_CREATING_TEMP,TEMP_FINAL_TEST,ZZZ_IGNORE,absolutely-last-temp} docs/site-evolution/brand/{proaiexpert-test-do-not-use.txt,proaiexpert-delete-me.txt,proaiexpert-final-temp.txt}
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'lab: finalize owner-review visual evidence' || true
+          git push

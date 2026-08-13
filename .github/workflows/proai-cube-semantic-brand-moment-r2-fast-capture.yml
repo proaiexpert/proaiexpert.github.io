@@ -1,0 +1,250 @@
+name: ProAI Cube Semantic Brand Moment R2 Fast Capture
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-semantic-brand-moment-r2
+    paths:
+      - '.github/workflows/proai-cube-semantic-brand-moment-r2-fast-capture.yml'
+
+concurrency:
+  group: proai-cube-semantic-brand-moment-r2-fast-capture
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Optimize capture IPC only
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/capture.mjs')
+          s=p.read_text()
+
+          pose_pat=r"const posePage = await openPage\(\);\nconst candidates = \[\];\nconst decelPresentationAdvanceSec = .*?\nawait posePage\.close\(\);"
+          pose_repl=r'''const posePage = await openPage();
+const candidateTimes = [];
+const decelPresentationAdvanceSec = (TIMING.decelerationMs / 1000) * 0.5;
+for (let t = 3.0; t <= 8.05; t += 1 / 120) {
+  const start = t - decelPresentationAdvanceSec;
+  if (!stableGapAt(t) || !stableGapAt(start)) continue;
+  const nextStart = Math.min(...videoEvents.filter((event) => event.start > t).map((event) => event.start), Infinity);
+  if (nextStart - t < 0.08) continue;
+  const crossingEvent = videoEvents.some((event) => event.end > start && event.start < t);
+  if (crossingEvent) continue;
+  candidateTimes.push(t);
+}
+const candidates = await posePage.evaluate((times) => times.map((timeSec) => window.__PROAI_CUBE_R1_2.getSemanticPoseAt(timeSec)), candidateTimes);
+if (!candidates.length) throw new Error('No stable semantic pose candidates');
+candidates.sort((a, b) => b.dot - a.dot);
+const selectedPose = candidates[0];
+if (selectedPose.dot < 0.88) throw new Error(`No semantic pose reached absolute minimum visibility dot; best=${selectedPose.dot}`);
+await posePage.close();'''
+          s,n=re.subn(pose_pat,pose_repl,s,flags=re.S)
+          if n!=1: raise SystemExit(f'pose optimization anchor count={n}')
+
+          eq_pat=r"const equivalenceSamples = \[\];\nfor \(const t of \[2\.0, 6\.0, 9\.0, 15\.0, 17\.4, 26\.7\]\) \{.*?\nconst baselineEquivalencePass = equivalenceSamples\.every\(\(sample\) => sample\.pass\);"
+          eq_repl=r'''const equivalenceSamples = [];
+const equivalenceBaselinePage = await openPage(BASELINE_CAPTURE_URL);
+const equivalenceCurrentPage = await openPage(CAPTURE_URL);
+for (const t of [2.0, 6.0, 9.0, 15.0, 17.4, 26.7]) {
+  const a = await applyFilmstripState(equivalenceBaselinePage, t);
+  const b = await applyFilmstripState(equivalenceCurrentPage, t);
+  const diff = compareState(a, b);
+  const pass = diff.presentationQuaternionRad < 1e-9
+    && diff.presentationPosition < 1e-9 && diff.presentationScale < 1e-9
+    && diff.cubeRootPosition < 1e-9 && diff.cubeRootQuaternionRad < 1e-9 && diff.cubeRootScale < 1e-9
+    && diff.cameraPosition < 1e-9 && diff.cameraQuaternionRad < 1e-9 && diff.orbitTarget < 1e-9
+    && diff.logicalExact && diff.completedTurnsExact && diff.activeTurnIdentityExact && diff.schedulerExact;
+  equivalenceSamples.push({ presentationTimeSec: t, pass, diff });
+}
+await equivalenceBaselinePage.close();
+await equivalenceCurrentPage.close();
+const baselineEquivalencePass = equivalenceSamples.every((sample) => sample.pass);'''
+          s,n=re.subn(eq_pat,eq_repl,s,flags=re.S)
+          if n!=1: raise SystemExit(f'equivalence optimization anchor count={n}')
+
+          loop_start=s.index('for (let frame = 0; frame < wallTimeline.length; frame += 1) {')
+          loop_end=s.index('if (manualDown && !manualReleased) await page.mouse.up();',loop_start)
+          loop_repl=r'''await page.evaluate(() => { window.__PROAI_R2_CAPTURE_TURNS = {}; });
+for (let frame = 0; frame < wallTimeline.length; frame += 1) {
+  const point = wallTimeline[frame];
+  const t = point.presentationT;
+  const inManual = t >= MANUAL_START && t < MANUAL_END;
+  const inCalm = t >= MANUAL_END && t < CALM_END;
+
+  if (!manualDown && t >= MANUAL_START && t < MANUAL_START + FRAME_DT * 1.5) {
+    await page.mouse.move(mx, my);
+    await page.mouse.down();
+    manualDown = true;
+  }
+  if (manualDown && !manualReleased && inManual) {
+    const p = Math.min(1, Math.max(0, (Math.min(t, MANUAL_MOVE_END) - MANUAL_START) / (MANUAL_MOVE_END - MANUAL_START)));
+    const eased = p * p * (3 - 2 * p);
+    await page.mouse.move(mx + 150 * eased, my - 22 * eased);
+  }
+  if (manualDown && !manualReleased && t >= MANUAL_END) {
+    await page.mouse.up();
+    manualReleased = true;
+  }
+
+  const setPresentation = !inManual && !inCalm;
+  const resumeProgress = t < CALM_END ? 1 : (t < SOFT_RESUME_END ? Math.max(0, Math.min(1, (t - CALM_END) / (SOFT_RESUME_END - CALM_END))) : 1);
+  const instructions = [];
+  for (const event of videoEvents) {
+    if (!activeWindow(event, t)) continue;
+    const progress = Math.max(0, Math.min(1, (t + FRAME_DT * Math.max(point.timeScale, 0.0001) - event.start) / (event.end - event.start)));
+    instructions.push({ id: event.id, axis: event.axis, layer: event.layer, direction: event.direction, progress });
+  }
+
+  const result = await page.evaluate(({ t, resumeProgress, setPresentation, instructions, semantic, face }) => {
+    const api = window.__PROAI_CUBE_R1_2;
+    const turns = window.__PROAI_R2_CAPTURE_TURNS;
+    if (setPresentation) api.setReviewPresentation(t, resumeProgress, false);
+    for (const inst of instructions) {
+      let state = turns[inst.id];
+      if (!state) {
+        const began = api.beginReviewTurn(inst.axis, inst.layer, inst.direction);
+        if (!began) return { error: `Could not begin owner video event ${inst.id}` };
+        state = { turnId: began.id, finalized: false };
+        turns[inst.id] = state;
+      }
+      if (!state.finalized) {
+        api.setReviewTurnProgress(state.turnId, inst.progress, false);
+        if (inst.progress >= 1) state.finalized = true;
+      }
+    }
+    if (semantic) {
+      api.setSemanticReviewState({ face, surface: semantic.surface, formation: semantic.formation, luminance: semantic.luminance, sweep: semantic.sweep, exit: semantic.exit });
+    } else {
+      api.clearSemanticReviewState();
+    }
+    const diag = api.getDiagnostics();
+    const cameraQuaternion = diag.interaction?.cameraQuaternion || api.getBaselineComparableState().camera.quaternion;
+    api.renderReviewFrame();
+    const dataUrl = document.getElementById('cube-canvas').toDataURL('image/jpeg', 0.91);
+    return { diag, cameraQuaternion, dataUrl };
+  }, { t, resumeProgress, setPresentation, instructions, semantic: point.semantic, face: selectedPose.face });
+  if (result.error) throw new Error(result.error);
+
+  const diag = result.diag;
+  const currentIds = new Set(diag.activeTurns.map((turn) => turn.id));
+  if (point.semantic && point.semantic.timeScale <= 0.0001 && diag.activeTurns.length > 0) semanticSliceOverlapFrames += 1;
+  if (point.semantic && point.semanticElapsed < accelStart) {
+    for (const id of currentIds) if (!previousActiveIds.has(id)) semanticNewSliceStarts += 1;
+  }
+  previousActiveIds = currentIds;
+
+  const q = diag.presentation.quaternion;
+  const bodyDelta = previousPresentationQ ? quatAngle(previousPresentationQ, q) : 0;
+  maxBodyDeltaRad = Math.max(maxBodyDeltaRad, bodyDelta);
+  const cameraQ = result.cameraQuaternion;
+  const cameraDelta = previousCameraQ ? quatAngle(previousCameraQ, cameraQ) : 0;
+  if (!inManual) maxCameraDeltaRadOutsideManual = Math.max(maxCameraDeltaRadOutsideManual, cameraDelta);
+  if (point.semantic && point.semantic.timeScale <= 0.0001) {
+    if (!holdStartBodyQ) holdStartBodyQ = [...q];
+    lastHoldBodyQ = [...q];
+  }
+  if (previousTimeScale <= 0.0001 && point.timeScale > 0.0001 && firstResumeBodyDeltaRad === null) firstResumeBodyDeltaRad = bodyDelta;
+
+  const peakWindow = point.semanticElapsed >= TIMING.specularStartMs + TIMING.specularMs * 0.52
+    && point.semanticElapsed < TIMING.specularStartMs + TIMING.specularMs * 0.52 + FRAME_DT * 1000;
+  if (!peakCaptured && peakWindow) {
+    await page.screenshot({ path: PEAK_PATH, fullPage: true });
+    peakCaptured = true;
+  }
+  if (!postCaptured && semanticEventFinished && t >= 9.05 && t < 9.05 + FRAME_DT * 1.2) {
+    await page.screenshot({ path: POST_PATH, fullPage: true });
+    postCaptured = true;
+  }
+
+  frameBuffers.push(jpegBufferFromDataUrl(result.dataUrl));
+  frameStates.push({ wallT: point.wallT, presentationT: t, timeScale: point.timeScale, bodyDelta, cameraDelta, activeTurns: diag.activeTurns.length });
+  previousPresentationQ = [...q];
+  previousCameraQ = [...cameraQ];
+  previousTimeScale = point.timeScale;
+  if ((frame + 1) % 120 === 0) console.log(`Semantic R2 frame ${frame + 1}/${wallTimeline.length}`);
+}
+'''
+          s=s[:loop_start]+loop_repl+s[loop_end:]
+          p.write_text(s)
+          PY
+          node --check docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/capture.mjs
+
+      - name: Verify frozen source and GLB
+        run: |
+          set -euo pipefail
+          R2='docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2'
+          BASE='docs/site-evolution/spline/proai-cube-materials-lighting-r1'
+          cmp "$R2/rubik_39_s_cube_animation.glb" "$BASE/rubik_39_s_cube_animation.glb"
+          if git diff --name-only d17806da42275db617d8a46b231a2d877706a179...HEAD -- index.html ru/index.html | grep -q .; then exit 1; fi
+
+      - name: Install dependencies
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run build
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Create baseline fixture
+        run: |
+          set -euo pipefail
+          R2='docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2'
+          BASE='docs/site-evolution/spline/proai-cube-materials-lighting-r1'
+          rm -rf "$R2/baseline-fixture"; cp -a "$BASE" "$R2/baseline-fixture"
+          rm -rf "$R2/baseline-fixture/review" "$R2/baseline-fixture/review-internal" "$R2/baseline-fixture/dist"
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/baseline-fixture/main.js')
+          s=p.read_text(); s=s.replace('  getDiagnostics,\n  getInteractionState,\n','  getDiagnostics,\n  getBaselineComparableState,\n  getInteractionState,\n',1)
+          a='function getDiagnostics() {\n'
+          f='''function getBaselineComparableState() {\n  scene.updateMatrixWorld(true);\n  return {presentationRig:{position:presentationRig.position.toArray(),quaternion:presentationRig.quaternion.toArray(),scale:presentationRig.scale.toArray()},cubeRoot:{position:cubeRoot.position.toArray(),quaternion:cubeRoot.quaternion.toArray(),scale:cubeRoot.scale.toArray()},logical:snapshotLogicalState(),activeTurns:activeTurnList().map((turn)=>({axis:turn.axis,layer:turn.layer,direction:turn.direction,linear:turn.linear,eased:turn.eased})),completedTurns:lastTurnResults.map((turn)=>({axis:turn.axis,layer:turn.layer,direction:turn.direction})),scheduler:{enabled:sliceSchedulerEnabled,running:sliceSchedulerRunning,eventSerial:sliceEventSerial,eventsUntilBreath,seed:sliceSeed},camera:{position:camera.position.toArray(),quaternion:camera.quaternion.toArray(),target:controls.target.toArray()}};\n}\n\n'''
+          if a not in s: raise SystemExit('baseline anchor missing')
+          p.write_text(s.replace(a,f+a,1))
+          PY
+
+      - name: Start Vite
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+        run: |
+          nohup npx vite --host 127.0.0.1 --port 4173 > /tmp/proai-r2-fast-vite.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/proai-r2-fast-vite.log; exit 1
+
+      - name: Continuous 1080 owner capture
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+        env:
+          PROAI_SEMANTIC_R2_URL: http://127.0.0.1:4173/
+          PROAI_BASELINE_URL: http://127.0.0.1:4173/baseline-fixture/
+        run: timeout 25m npm run capture
+
+      - name: Final gate and commit
+        run: |
+          set -euo pipefail
+          R2='docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2'
+          test "$(node -e "const q=require('./$R2/QA.json');process.stdout.write(String(q.allPass))")" = true
+          test "$(node -e "const q=require('./$R2/QA.json');process.stdout.write(String(q.evidence.video.spliceCount))")" = 0
+          test "$(find "$R2/review" -maxdepth 1 -name '*.png' | wc -l)" -le 2
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,pix_fmt,width,height,avg_frame_rate -of default=nw=1 "$R2/review/proai-cube-semantic-brand-moment-r2-owner-review.mp4"
+          rm -rf "$R2/baseline-fixture" "$R2/dist" "$R2/node_modules"
+          git config user.name 'github-actions[bot]'; git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$R2"
+          git rm -r .github/r2-bootstrap .github/workflows/proai-cube-semantic-brand-moment-r2.yml .github/workflows/proai-cube-semantic-brand-moment-r2-finalize.yml .github/workflows/proai-cube-semantic-brand-moment-r2-materialize.yml .github/workflows/proai-cube-semantic-brand-moment-r2-fast-capture.yml
+          git commit -m 'feat: add ProAI Cube semantic brand moment R2'
+          git fetch origin agent/proai-cube-semantic-brand-moment-r2
+          git rebase origin/agent/proai-cube-semantic-brand-moment-r2
+          git push origin HEAD:agent/proai-cube-semantic-brand-moment-r2

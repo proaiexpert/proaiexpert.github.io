@@ -6,6 +6,7 @@ on:
       - agent/proai-cube-semantic-brand-moment-r2
     paths:
       - '.github/r2-bootstrap/**'
+      - '.github/r2-capture-optimize.py'
       - '.github/workflows/proai-cube-semantic-brand-moment-r2.yml'
 
 concurrency:
@@ -36,22 +37,10 @@ jobs:
           exec(compile(payload, 'proai-semantic-brand-moment-r2-builder.py', 'exec'), {'__name__':'__main__'})
           PY
 
-      - name: Adapt evidence capture to runner-safe 720p
+      - name: Optimize runner-safe 720p evidence capture
         run: |
           set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          p = Path('docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/capture.mjs')
-          s = p.read_text()
-          old_view = 'const VIEWPORT = { width: 1080, height: 1080 };'
-          new_view = 'const VIEWPORT = { width: 720, height: 720 };'
-          old_probe = '&& Number(stream.width) === 1080 && Number(stream.height) === 1080'
-          new_probe = '&& Number(stream.width) === 720 && Number(stream.height) === 720'
-          if old_view not in s or old_probe not in s:
-            raise SystemExit('720p adaptation anchors missing')
-          s = s.replace(old_view, new_view, 1).replace(old_probe, new_probe, 1)
-          p.write_text(s)
-          PY
+          python .github/r2-capture-optimize.py
           node --check docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/capture.mjs
 
       - name: Verify isolated scope, syntax, GLB and Spline absence
@@ -168,7 +157,7 @@ jobs:
           cat /tmp/proai-r2-vite.log
           exit 1
 
-      - name: Run continuous 720p owner capture and QA
+      - name: Run continuous optimized 720p owner capture and QA
         working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
         env:
           PROAI_SEMANTIC_R2_URL: http://127.0.0.1:4173/
@@ -208,7 +197,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "$R2"
-          git rm -r .github/r2-bootstrap .github/workflows/proai-cube-semantic-brand-moment-r2.yml
+          git rm -r .github/r2-bootstrap .github/r2-capture-optimize.py .github/workflows/proai-cube-semantic-brand-moment-r2.yml
           if git diff --cached --name-only | grep -E '^index\.html$|^ru/index\.html$'; then
             echo 'Production file staged unexpectedly'
             exit 1

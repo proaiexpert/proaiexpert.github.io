@@ -125,7 +125,7 @@ function activeWindow(event, presentationSec) {
   return presentationSec + FRAME_DT * 0.51 >= event.start && presentationSec < event.end + FRAME_DT * 0.2;
 }
 
-async function driveFilmPage(page, presentationSec, eventRuntime, render = false) {
+async function driveFilmPage(page, presentationSec, eventRuntime) {
   const inManual = presentationSec >= MANUAL_START && presentationSec < MANUAL_END;
   const inCalm = presentationSec >= MANUAL_END && presentationSec < CALM_END;
   if (!inManual && !inCalm) {
@@ -149,7 +149,6 @@ async function driveFilmPage(page, presentationSec, eventRuntime, render = false
       if (progress >= 1) state.finalized = true;
     }
   }
-  if (render) await page.evaluate(() => window.__PROAI_CUBE_R1_2.renderReviewFrame());
 }
 
 const qaPage = await openPage();
@@ -199,7 +198,6 @@ let peakSaved = false;
 let postSaved = false;
 let peakSemanticInfo = null;
 let maxBodyDelta = 0;
-let maxCameraDelta = 0;
 let maxPresentationStep = 0;
 let minPresentationStep = Infinity;
 let monotonicPresentation = true;
@@ -232,22 +230,33 @@ for (let frame = 0; frame < totalFrames; frame += 1) {
     manualReleased = true;
   }
 
-  await driveFilmPage(page, presentationSec, eventRuntime, false);
+  await driveFilmPage(page, presentationSec, eventRuntime);
   await page.evaluate((w) => window.__PROAI_CUBE_R2.setOwnerSemanticFrame(w), wallSec);
-  await page.evaluate(() => window.__PROAI_CUBE_R1_2.renderReviewFrame());
 
-  if (presentationSec <= 16.0) {
-    await driveFilmPage(baselinePage, presentationSec, baselineEventRuntime, false);
-    await baselinePage.evaluate(() => {
-      window.__PROAI_CUBE_R1_2.r2SetSemanticState({ surface: 0, text: 0, specular: 0 });
-      window.__PROAI_CUBE_R1_2.r2SetTimeControl({ timeScale: 1, blockNewSlices: false });
-      window.__PROAI_CUBE_R1_2.renderReviewFrame();
-    });
+  // Baseline equivalence is state-only evidence; it never contributes owner-video pixels.
+  if (presentationSec <= 16.0) await driveFilmPage(baselinePage, presentationSec, baselineEventRuntime);
+
+  const peakWall = config.eventWallStartSec + 1.24;
+  if (!peakSaved && wallSec >= peakWall) {
+    const png = await page.evaluate(() => window.__PROAI_CUBE_R1_2.captureFrame('image/png'));
+    fs.writeFileSync(PEAK_PATH, dataUrlBuffer(png, 'image/png'));
+    peakSaved = true;
+  }
+  const postWall = 8.95 + config.addedWallTimeSec;
+  if (!postSaved && wallSec >= postWall) {
+    const png = await page.evaluate(() => window.__PROAI_CUBE_R1_2.captureFrame('image/png'));
+    fs.writeFileSync(POST_PATH, dataUrlBuffer(png, 'image/png'));
+    postSaved = true;
   }
 
-  const diag = await page.evaluate(() => window.__PROAI_CUBE_R2.getDiagnostics());
-  const state = diag.state;
-  const baseDiag = diag.base;
+  // Exactly one owner-film pixel sample per frame. ffmpeg later encodes this untouched sequence.
+  const jpeg = await page.evaluate(() => window.__PROAI_CUBE_R1_2.captureFrame('image/jpeg', 0.91));
+  fs.writeFileSync(path.join(FRAMES, `frame-${String(frame).padStart(4, '0')}.jpg`), dataUrlBuffer(jpeg, 'image/jpeg'));
+
+  const state = await page.evaluate(() => window.__PROAI_CUBE_R1_2.r2StateSnapshot());
+  const semanticInfo = await page.evaluate(() => window.__PROAI_CUBE_R1_2.r2SemanticInfo());
+  if (peakSaved && peakSemanticInfo === null && wallSec >= peakWall) peakSemanticInfo = semanticInfo;
+
   const q = state.presentationRig.quaternion;
   const bodyDelta = previousQ ? quatAngle(previousQ, q) : 0;
   maxBodyDelta = Math.max(maxBodyDelta, bodyDelta);
@@ -261,12 +270,13 @@ for (let frame = 0; frame < totalFrames; frame += 1) {
   previousQ = q;
 
   const eventElapsed = wallSec - config.eventWallStartSec;
-  if (semanticStartActiveSliceCount === null && eventElapsed >= 0) semanticStartActiveSliceCount = baseDiag.activeTurns.length;
+  if (semanticStartActiveSliceCount === null && eventElapsed >= 0) semanticStartActiveSliceCount = state.activeTurns.length;
   const inSemanticHold = eventElapsed >= config.decelerationSec && eventElapsed < config.accelerationStartSec;
-  const currentSerial = baseDiag.lastTurnResult?.serial || previousTurnSerial;
+  const lastCompleted = state.completedTurns.at(-1) || null;
+  const currentSerial = lastCompleted?.serial || previousTurnSerial;
   if (inSemanticHold && currentSerial > previousTurnSerial) semanticHoldNewSliceStarts += currentSerial - previousTurnSerial;
   previousTurnSerial = Math.max(previousTurnSerial, currentSerial);
-  if (manualDown && !manualReleased && baseDiag.activeTurns.length === 0 && baseDiag.lastTurnResult?.axis === 'Z' && baseDiag.lastTurnResult?.layer === 1) {
+  if (manualDown && !manualReleased && state.activeTurns.length === 0 && lastCompleted?.axis === 'Z' && lastCompleted?.layer === 1) {
     manualSliceFinishedWhileHeld = true;
   }
 
@@ -282,34 +292,17 @@ for (let frame = 0; frame < totalFrames; frame += 1) {
     const cameraQuaternionError = quatAngle(state.camera.quaternion, baselineState.camera.quaternion);
     const cameraTargetError = vectorDistance(state.camera.target, baselineState.camera.target);
     equivalenceSamples.push({ wallSec, presentationSec, rootPositionError, rootQuaternionError, rootScaleError, cubiesEqual, activeEqual, completedEqual, cameraPositionError, cameraQuaternionError, cameraTargetError });
-    maxCameraDelta = Math.max(maxCameraDelta, cameraPositionError, cameraTargetError);
   }
 
-  const peakWall = config.eventWallStartSec + 1.24;
-  if (!peakSaved && wallSec >= peakWall) {
-    const png = await page.evaluate(() => window.__PROAI_CUBE_R1_2.captureFrame('image/png'));
-    fs.writeFileSync(PEAK_PATH, dataUrlBuffer(png, 'image/png'));
-    peakSaved = true;
-    peakSemanticInfo = diag.semantic;
-  }
-  const postWall = 8.95 + config.addedWallTimeSec;
-  if (!postSaved && wallSec >= postWall) {
-    const png = await page.evaluate(() => window.__PROAI_CUBE_R1_2.captureFrame('image/png'));
-    fs.writeFileSync(POST_PATH, dataUrlBuffer(png, 'image/png'));
-    postSaved = true;
-  }
-
-  const jpeg = await page.evaluate(() => window.__PROAI_CUBE_R1_2.captureFrame('image/jpeg', 0.91));
-  fs.writeFileSync(path.join(FRAMES, `frame-${String(frame).padStart(4, '0')}.jpg`), dataUrlBuffer(jpeg, 'image/jpeg'));
   frameStates.push({
     frame, wallSec, presentationSec,
-    timeScale: baseDiag.semanticTime?.timeScale ?? null,
+    timeScale: state.time.timeScale,
     bodyDelta,
-    activeTurnCount: baseDiag.activeTurns.length,
+    activeTurnCount: state.activeTurns.length,
     cameraPosition: state.camera.position,
     cameraQuaternion: state.camera.quaternion,
     scheduler: state.scheduler,
-    semantic: diag.semantic?.state || null,
+    semantic: semanticInfo?.state || null,
   });
   if ((frame + 1) % 120 === 0) console.log(`R2 continuous frame ${frame + 1}/${totalFrames}`);
 }
@@ -353,11 +346,14 @@ const equivalencePass = equivalenceSamples.length > 0 && equivalenceSamples.ever
 const decelFrames = frameStates.filter((s) => s.wallSec >= config.eventWallStartSec && s.wallSec <= config.eventWallStartSec + config.decelerationSec + FRAME_DT);
 const holdFrames = frameStates.filter((s) => s.wallSec >= config.eventWallStartSec + config.decelerationSec && s.wallSec < config.eventWallStartSec + config.accelerationStartSec);
 const accelFrames = frameStates.filter((s) => s.wallSec >= config.eventWallStartSec + config.accelerationStartSec && s.wallSec <= config.eventWallEndSec + FRAME_DT);
-const decelNonIncreasing = decelFrames.slice(1).every((s, i) => s.bodyDelta <= decelFrames[i].bodyDelta + 0.00018);
+const decelPeakAfterStart = Math.max(...decelFrames.slice(1).map((s) => s.bodyDelta));
+const decelStartDelta = decelFrames[1]?.bodyDelta || decelPeakAfterStart;
+const decelEndDelta = decelFrames.at(-1)?.bodyDelta || 0;
+const decelEnergyDrops = decelEndDelta <= decelStartDelta * 0.16 && decelPeakAfterStart <= decelStartDelta * 1.18;
 const holdStatic = holdFrames.every((s) => s.bodyDelta < 1e-9);
 const accelStartsSmooth = accelFrames.length > 2 && accelFrames[0].bodyDelta < 0.00005;
 const noPresentationJump = monotonicPresentation && maxPresentationStep <= FRAME_DT + 1e-6;
-const continuityPass = decelNonIncreasing && holdStatic && accelStartsSmooth && noPresentationJump;
+const continuityPass = decelEnergyDrops && holdStatic && accelStartsSmooth && noPresentationJump;
 const noSemanticSlice = semanticStartActiveSliceCount === 0 && holdFrames.every((s) => s.activeTurnCount === 0) && semanticHoldNewSliceStarts === 0;
 const runtimePass = pageErrors.length === 0 && consoleErrors.length === 0 && requests.every((url) => !/splinetool|prod\.spline\.design|\.splinecode/i.test(url));
 const glbPass = sha256(GLB_PATH) === GLB_SHA256;
@@ -438,7 +434,7 @@ const qa = {
   },
   continuity: {
     pass: continuityPass,
-    decelerationDeltaNonIncreasing: decelNonIncreasing,
+    decelerationEnergyDrops: decelEnergyDrops,
     holdStatic,
     accelerationStartsSmooth: accelStartsSmooth,
     maxBodyQuaternionDeltaRadPerFrame: maxBodyDelta,

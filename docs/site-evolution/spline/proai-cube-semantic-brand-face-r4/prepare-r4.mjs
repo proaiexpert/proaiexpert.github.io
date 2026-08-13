@@ -10,7 +10,7 @@ const baseGlbPath = path.join(baseDir, 'rubik_39_s_cube_animation.glb');
 const outMainPath = path.join(here, 'main.generated.js');
 const outGlbPath = path.join(here, 'rubik_39_s_cube_animation.glb');
 const expectedGlbBytes = 279412;
-const expectedGlbSha = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ec5493463f99bffb34dd3b59c79b';
+const expectedGlbSha = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b';
 
 let source = fs.readFileSync(baseMainPath, 'utf8');
 

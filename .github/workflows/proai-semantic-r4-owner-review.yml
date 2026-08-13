@@ -1,0 +1,98 @@
+name: ProAI Semantic R4 Owner Preview
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proai-semantic-r4-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    defaults:
+      run:
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Verify frozen base
+        run: |
+          cd "$GITHUB_WORKSPACE"
+          test -z "$(git diff --name-only 295a67a27df127c95d799c93ea39448afd714793...HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2 index.html ru/index.html)"
+
+      - name: Build R4 review candidate
+        run: |
+          npm install --package-lock=false
+          npm install --no-save playwright@1.54.0
+          npx playwright install --with-deps chromium
+          npm run prepare-r4
+          node clock-r4.mjs
+          npx vite build
+          node --check main.generated.js
+          test "$(wc -c < rubik_39_s_cube_animation.glb)" -eq 279412
+          test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
+
+      - name: Start local runtime
+        run: |
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r4-http.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0
+            sleep 1
+          done
+          exit 1
+
+      - name: Run runtime QA
+        env:
+          DISPLAY: :99
+          LIBGL_ALWAYS_SOFTWARE: '1'
+          PROAI_URL: http://127.0.0.1:4173/
+        run: |
+          mkdir -p review-evidence
+          Xvfb :99 -screen 0 1024x768x24 -ac +extension GLX +render -noreset >/tmp/r4-xvfb.log 2>&1 &
+          for i in $(seq 1 40); do
+            xdpyinfo -display :99 >/dev/null 2>&1 && break
+            sleep 0.25
+          done
+          node qa-r4.mjs
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-semantic-r4-qa-evidence
+          path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/
+          retention-days: 1
+
+      - name: Publish owner preview
+        id: tunnel
+        run: |
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/r4-tunnel.log 2>&1 &
+          echo $! >/tmp/r4-tunnel.pid
+          URL=''
+          for i in $(seq 1 90); do
+            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/r4-tunnel.log | tail -1 || true)
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          test -n "$URL"
+          curl -fsSL --max-time 15 "$URL/" >/dev/null
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "R4_LIVE_READY=$URL"
+
+      - name: Hold preview for 60 minutes
+        env:
+          REVIEW_URL: ${{ steps.tunnel.outputs.url }}
+        run: |
+          curl -fsSL --max-time 15 "$REVIEW_URL/" >/dev/null
+          sleep 3600

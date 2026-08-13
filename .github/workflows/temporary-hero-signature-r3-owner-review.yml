@@ -1,32 +1,23 @@
-name: TEMP Hero Signature R3 Metrics
+name: TEMP Hero Signature R3 Cleanup
 on:
   push:
     branches: [agent/proai-home-hero-signature-r3]
     paths: [.github/workflows/temporary-hero-signature-r3-owner-review.yml]
 permissions:
-  contents: read
+  contents: write
 jobs:
-  metrics:
+  cleanup:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
-      - name: Build
+        with:
+          ref: agent/proai-home-hero-signature-r3
+          fetch-depth: 0
+      - name: Remove temporary review workflow
         run: |
           set -euo pipefail
-          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
-          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
-          gem install --user-install webrick --no-document >/dev/null
-          jekyll build --source . --destination _site >/dev/null
-          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/http.log 2>&1 &
-          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/ru/ >/dev/null && break || sleep 1; done
-      - name: Capture RU metrics
-        run: |
-          set -euo pipefail
-          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
-          cat > hero-r3-metrics.cjs <<'JS'
-          const p=require('puppeteer-core');
-          (async()=>{const b=await p.launch({headless:false,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--enable-unsafe-swiftshader']}),q=await b.newPage();await q.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
-          for(const [w,h,k] of [[1440,900,'desktop'],[1200,800,'laptop'],[430,932,'portrait430'],[390,844,'portrait390'],[932,430,'landscape932'],[844,390,'landscape844'],[800,360,'landscape800'],[740,360,'landscape740']]){await q.setViewport({width:w,height:h,isMobile:w<1000,hasTouch:w<1000});await q.goto('http://127.0.0.1:8080/ru/',{waitUntil:'domcontentloaded'});await q.waitForFunction(()=>document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',{timeout:30000});const x=await q.evaluate(()=>{const t=document.querySelector('.proai-hero-title'),g=document.createRange();g.selectNodeContents(t);const r=document.querySelector('#hero .hero-visual').getBoundingClientRect(),hr=document.querySelector('#hero').getBoundingClientRect(),c=getComputedStyle(t);return{lines:new Set([...g.getClientRects()].map(x=>Math.round(x.top))).size,font:+parseFloat(c.fontSize).toFixed(2),cube:+r.width.toFixed(1),heroH:+hr.height.toFixed(1),overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth}});console.log('RU_METRIC',JSON.stringify({w,h,k,...x}))}await b.close()})().catch(e=>{console.error(e);process.exit(1)});
-          JS
-          xvfb-run -a node hero-r3-metrics.cjs
+          git config user.name "ProAI Hero Builder"
+          git config user.email "proai.expert2026@gmail.com"
+          git rm .github/workflows/temporary-hero-signature-r3-owner-review.yml
+          git commit -m "chore: remove temporary Hero R3 review workflow"
+          git push origin HEAD:agent/proai-home-hero-signature-r3

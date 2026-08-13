@@ -24,8 +24,8 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function quatAngle(a,b){const dot=Math.min(1,Math.abs(a.reduce((s,v,i)=>s+v*b[i],0)));return 2*Math.acos(dot);}
 function probe(file){const p=spawnSync('ffprobe',['-v','error','-count_frames','-select_streams','v:0','-show_entries','stream=codec_name,pix_fmt,avg_frame_rate,nb_read_frames,width,height:format=duration,size','-of','json',file],{encoding:'utf8'});if(p.status)throw new Error(p.stderr);return JSON.parse(p.stdout);}
 function encodeRecording(input,file,trimStart,timelineWallSec){
-  const speed=Math.max(.8,Math.min(1.25,SECONDS/Math.max(.1,timelineWallSec)));
-  const p=spawnSync('ffmpeg',['-y','-v','error','-ss',trimStart.toFixed(3),'-i',input,'-vf',`setpts=${speed.toFixed(8)}*PTS,fps=${FPS},scale=720:720:flags=lanczos`,'-t',String(SECONDS),'-an','-c:v','libx264','-preset','slow','-crf','18','-pix_fmt','yuv420p','-movflags','+faststart','-r',String(FPS),file],{encoding:'utf8'});
+  const speed=SECONDS/Math.max(.1,timelineWallSec);
+  const p=spawnSync('ffmpeg',['-y','-v','error','-ss',trimStart.toFixed(3),'-i',input,'-vf',`setpts=${speed.toFixed(10)}*PTS,fps=${FPS},scale=720:720:flags=lanczos`,'-t',String(SECONDS),'-an','-c:v','libx264','-preset','medium','-crf','18','-pix_fmt','yuv420p','-movflags','+faststart','-r',String(FPS),file],{encoding:'utf8'});
   if(p.status||!fs.existsSync(file))throw new Error(`ffmpeg encode failed ${p.stderr||''}`);
 }
 function videoContact(video,out,cols,rows){const frames=cols*rows,dur=Number(probe(video).format.duration),fps=Math.max(.01,frames/dur);const p=spawnSync('ffmpeg',['-y','-v','error','-i',video,'-vf',`fps=${fps},scale=360:360,tile=${cols}x${rows}`,'-frames:v','1',out],{encoding:'utf8'});if(p.status)throw new Error(p.stderr);}
@@ -73,7 +73,7 @@ for(let frame=0;frame<frameCount;frame++){
   if(activeSemantic){
     const a=activeSemantic,ms=(t-a.start)*1000,tx=transition(ms,timings);
     if(LANG==='en'&&a.event.word==='RESPONSE'&&interactionStart===null&&ms>=1350){
-      interactionStart=t;dragEnd=t+.8;releaseAt=dragEnd;calmEnd=releaseAt+1.85;blendEnd=calmEnd+2.4;freezePresentation=pstate.time;cameraBefore=await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics().camera.quaternion);
+      interactionStart=t;dragEnd=t+.8;releaseAt=dragEnd;calmEnd=releaseAt+1.85;blendEnd=calmEnd+2.4;freezePresentation=pstate.time;cameraBefore=(await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getCameraSnapshot())).quaternion;
       const cx=box.x+box.width*.5,cy=box.y+box.height*.5;await page.mouse.move(cx,cy);await page.mouse.down();mouseDown=true;a.early=true;a.exitAt=t;records.at(-1).earlyExit=true;records.at(-1).earlyExitAt=t;
     }
     if(a.early){
@@ -86,7 +86,7 @@ for(let frame=0;frame<frameCount;frame++){
   }
   if(mouseDown&&t<dragEnd){const p=Math.max(0,Math.min(1,(t-interactionStart)/(dragEnd-interactionStart))),cx=box.x+box.width*.5,cy=box.y+box.height*.5;await page.mouse.move(cx+145*p,cy-26*p);}
   if(mouseDown&&t>=dragEnd){await page.mouse.up();mouseDown=false;}
-  if(LANG==='en'&&interactionStart!==null&&cameraAfter===null&&t>=blendEnd)cameraAfter=await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics().camera.quaternion);
+  if(LANG==='en'&&interactionStart!==null&&cameraAfter===null&&t>=blendEnd)cameraAfter=(await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getCameraSnapshot())).quaternion;
   await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.renderReviewFrame());
   const d=await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics()),vis=d.semantic.surfaceOpacity>.01||d.semantic.textOpacity>.01;
   if(vis&&d.activeTurns.length)overlap++;
@@ -102,7 +102,7 @@ const webm=await video.path();
 await browser.close();
 encodeRecording(webm,MP4,trimStart,timelineWallSec);videoContact(MP4,CONTACT,LANG==='en'?5:4,LANG==='en'?4:3);
 const meta=probe(MP4);const videoPass=meta.streams?.[0]?.codec_name==='h264'&&meta.streams?.[0]?.pix_fmt==='yuv420p'&&meta.streams?.[0]?.avg_frame_rate==='24/1'&&Number(meta.streams?.[0]?.width)===720&&Number(meta.streams?.[0]?.height)===720&&Number(meta.streams?.[0]?.nb_read_frames)===Math.round(SECONDS*FPS)&&Math.abs(Number(meta.format.duration)-SECONDS)<.05;
-const out={generatedAt:new Date().toISOString(),captureMethod:'Playwright browser video recording of deterministic Three.js timeline; no per-frame JPEG readback',lang:LANG,semanticActivationCount:activation,semanticCompletedCount:completed,semanticEarlyExitCount:early,semanticSliceOverlapCount:overlap,semanticBodyActiveFrameRatio:bodyPairs?bodyActive/bodyPairs:1,averageReadableHoldMs:readableEvents?readableTotal/readableEvents:0,minimumEntryFaceVisibilityDot:Number.isFinite(minEntry)?minEntry:null,minimumActiveFaceVisibilityDot:Number.isFinite(minActive)?minActive:null,maxSimultaneousSemanticFaces:1,distinctSelectedFaces:[...faces],semanticRecords:records,mechanicalStartedCount:mechanicalStarted,interaction:{performed:interactionStart!==null,start:interactionStart,dragEnd,calmEnd,blendEnd,cameraBefore,cameraAfter,cameraAnglePreserved:cameraBefore&&cameraAfter?quatAngle(cameraBefore,cameraAfter)>1e-6:null},runtime:{pageErrors,consoleErrors},recording:{trimStartSec:trimStart,timelineWallSec},mp4:{path:path.basename(MP4),metadata:meta,pass:videoPass}};fs.writeFileSync(OUT,JSON.stringify(out,null,2)+'\n');
+const out={generatedAt:new Date().toISOString(),captureMethod:'Playwright browser video recording of full deterministic Three.js timeline; wall-time normalized without truncating late semantic events',lang:LANG,semanticActivationCount:activation,semanticCompletedCount:completed,semanticEarlyExitCount:early,semanticSliceOverlapCount:overlap,semanticBodyActiveFrameRatio:bodyPairs?bodyActive/bodyPairs:1,averageReadableHoldMs:readableEvents?readableTotal/readableEvents:0,minimumEntryFaceVisibilityDot:Number.isFinite(minEntry)?minEntry:null,minimumActiveFaceVisibilityDot:Number.isFinite(minActive)?minActive:null,maxSimultaneousSemanticFaces:1,distinctSelectedFaces:[...faces],semanticRecords:records,mechanicalStartedCount:mechanicalStarted,interaction:{performed:interactionStart!==null,start:interactionStart,dragEnd,calmEnd,blendEnd,cameraBefore,cameraAfter,cameraAnglePreserved:cameraBefore&&cameraAfter?quatAngle(cameraBefore,cameraAfter)>1e-6:null},runtime:{pageErrors,consoleErrors},recording:{trimStartSec:trimStart,timelineWallSec,normalizationSetpts:SECONDS/Math.max(.1,timelineWallSec)},mp4:{path:path.basename(MP4),metadata:meta,pass:videoPass}};fs.writeFileSync(OUT,JSON.stringify(out,null,2)+'\n');
 const required=LANG==='en'?5:3;
 if(activation!==required||completed+early!==required||overlap!==0||out.semanticBodyActiveFrameRatio<.95||!videoPass||pageErrors.length||consoleErrors.length)throw new Error(`Video QA failed ${JSON.stringify({activation,completed,early,overlap,body:out.semanticBodyActiveFrameRatio,videoPass,pageErrors,consoleErrors})}`);
 if(LANG==='en'&&faces.size<2)throw new Error(`EN used fewer than two faces ${[...faces]}`);

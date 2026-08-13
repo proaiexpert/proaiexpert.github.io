@@ -1,0 +1,1 @@
+Binary PNG owner-review artifacts are added in the final lab commit together with the copied approved Cube evidence asset.

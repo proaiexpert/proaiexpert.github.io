@@ -1,4 +1,4 @@
-name: ProAI Semantic R2 Owner Review
+name: ProAI Semantic Face R4 Live Review
 
 on:
   pull_request:
@@ -8,232 +8,284 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: proai-semantic-face-r4-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
-  capture:
+  review:
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-moment-r2'
+      github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 80
     defaults:
       run:
-        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
 
     steps:
-      - name: Checkout Semantic R2 review head
+      - name: Checkout R4 review head
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      - name: Focused source locks
+      - name: Verify frozen Cube base
         shell: bash
         run: |
           set -euo pipefail
-          python verify-freeze.py
-          test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
-          node --check main.js
-          if grep -niE '@splinetool|prod\.spline\.design|\.splinecode' main.js index.html package.json styles.css; then exit 1; fi
           cd "$GITHUB_WORKSPACE"
-          test -z "$(git diff --name-only d17806da42275db617d8a46b231a2d877706a179...HEAD -- index.html ru/index.html)"
+          test -z "$(git diff --name-only 295a67a27df127c95d799c93ea39448afd714793...HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2)"
+          test -z "$(git diff --name-only 295a67a27df127c95d799c93ea39448afd714793...HEAD -- index.html ru/index.html)"
+          test -z "$(git diff --name-only 295a67a27df127c95d799c93ea39448afd714793...HEAD -- docs/site-evolution/spline/proai-cube-geometry-r1 docs/site-evolution/spline/proai-cube-materials-lighting-r1 docs/site-evolution/spline/proai-cube-presentation-motion-r1-2)"
+          echo R4_FROZEN_BASE_PASS
 
-      - name: Install runtime
+      - name: Install and build R4
         shell: bash
         run: |
           set -euo pipefail
           npm install --package-lock=false
+          npm install --no-save playwright@1.54.0
           npx playwright install --with-deps chromium
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg xvfb x11-utils xdotool mesa-utils
+          npm run build
+          node --check main.generated.js
+          test "$(wc -c < rubik_39_s_cube_animation.glb)" -eq 279412
+          test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
+          grep -q "surfaceMaxOpacity: 0.065" main.generated.js
+          grep -q "semanticVelocityMultiplier: 0.70" main.generated.js
+          grep -q "triggerSearchStartMs: 3200" main.generated.js
+          grep -q "triggerSearchEndMs: 4200" main.generated.js
+          grep -q "controls.enableZoom = false" main.generated.js
+          grep -q "return semanticBlocksSlices;" main.generated.js
+          ! grep -q "semanticComplete || interactionActive" main.generated.js
+          ! grep -q "concept=A\|concept=B\|concept=C" index.html lab.js main.generated.js
+          echo R4_BUILD_AND_STATIC_CONTRACT_PASS
 
-      - name: Build and start review runtime
+      - name: Start local R4 runtime
         shell: bash
         run: |
           set -euo pipefail
-          npm run build
-          nohup npx vite --host 127.0.0.1 --port 4173 >/tmp/proai-r2-vite.log 2>&1 &
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/proai-r4-server.log 2>&1 &
+          echo $! >/tmp/proai-r4-server.pid
           for i in $(seq 1 60); do
-            curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              echo LOCAL_R4_HTTP_PASS
+              exit 0
+            fi
             sleep 1
           done
-          cat /tmp/proai-r2-vite.log
+          cat /tmp/proai-r4-server.log
           exit 1
 
-      - name: Short sample then full continuous 720 capture
+      - name: Run R4 motion and interaction QA
         shell: bash
         env:
-          PROAI_URL: http://127.0.0.1:4173/
           DISPLAY: :99
           LIBGL_ALWAYS_SOFTWARE: '1'
+          PROAI_URL: http://127.0.0.1:4173/
         run: |
           set -euo pipefail
-          rm -rf review-artifact
-          mkdir -p review-artifact
-
-          Xvfb :99 -screen 0 1024x1024x24 -ac +extension GLX +render -noreset >/tmp/proai-r2-xvfb.log 2>&1 &
-          XVFB_PID=$!
-          trap 'kill "$XVFB_PID" 2>/dev/null || true' EXIT
+          mkdir -p review-evidence
+          Xvfb :99 -screen 0 1280x900x24 -ac +extension GLX +render -noreset >/tmp/proai-r4-xvfb.log 2>&1 &
+          echo $! >/tmp/proai-r4-xvfb.pid
           for i in $(seq 1 40); do
             xdpyinfo -display :99 >/dev/null 2>&1 && break
             sleep 0.25
           done
-          xdpyinfo -display :99 | grep -E 'dimensions:|depth of root window:'
-          glxinfo -B || true
 
-          cat > .capture-pr.mjs <<'NODE'
+          cat > .qa-r4.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
-          import path from 'node:path';
-          import crypto from 'node:crypto';
-          import { spawn, spawnSync } from 'node:child_process';
 
-          const W=720,H=720,ROOT_W=1024,ROOT_H=1024,FPS=24,SAMPLE_SEC=3.4,FULL_SEC=30;
-          const DISPLAY=process.env.DISPLAY||':99';
-          const URL=process.env.PROAI_URL||'http://127.0.0.1:4173/';
-          const OUT=path.resolve('review-artifact');
-          const sleep=(ms)=>new Promise((resolve)=>setTimeout(resolve,ms));
-          const dist3=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+          const URL = process.env.PROAI_URL || 'http://127.0.0.1:4173/';
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          const within = (v, min, max) => Number.isFinite(v) && v >= min && v <= max;
 
-          function cmd(bin,args,opt={}){
-            const r=spawnSync(bin,args,{encoding:'utf8',maxBuffer:32*1024*1024,...opt});
-            if(r.status!==0){console.error(`COMMAND_FAILED ${bin} ${args.map((v)=>JSON.stringify(v)).join(' ')}`);console.error(r.stdout?.toString()||'');console.error(r.stderr?.toString()||'');throw new Error(`${bin} failed (${r.status})`)}
-            return r.stdout;
-          }
-          function probe(file){return JSON.parse(cmd('ffprobe',['-v','error','-select_streams','v:0','-show_entries','stream=codec_name,pix_fmt,width,height,r_frame_rate,avg_frame_rate','-show_entries','format=duration,size','-of','json',file]))}
-          function verifyMp4(file,minDuration){
-            if(!fs.existsSync(file)||fs.statSync(file).size<=0)throw new Error(`Missing/empty MP4 ${file}`);
-            const p=probe(file),s=p.streams?.[0]||{},d=Number(p.format?.duration||0);
-            if(!(s.codec_name==='h264'&&s.pix_fmt==='yuv420p'&&Number(s.width)===W&&Number(s.height)===H&&s.r_frame_rate==='24/1'&&s.avg_frame_rate==='24/1'&&d>=minDuration))throw new Error(`MP4 validation failed ${JSON.stringify(p)}`);
-            return p;
-          }
-          function capture(sec,file,x,y){
-            const args=['-y','-hide_banner','-loglevel','warning','-f','x11grab','-draw_mouse','0','-framerate','24','-video_size','720x720','-i',`${DISPLAY}.0+${x},${y}`,'-t',sec.toFixed(3),'-an','-c:v','libx264','-preset','ultrafast','-threads','1','-crf','18','-pix_fmt','yuv420p','-r','24','-fps_mode','cfr','-movflags','+faststart',file];
-            console.log('FFMPEG_X11_COMMAND',['ffmpeg',...args].map((v)=>JSON.stringify(v)).join(' '));
-            const p=spawn('ffmpeg',args,{stdio:['ignore','ignore','pipe']});let stderr='';
-            p.stderr.on('data',(c)=>{stderr+=c.toString();if(stderr.length>200000)stderr=stderr.slice(-200000)});
-            return new Promise((resolve,reject)=>{p.once('error',reject);p.once('close',(code)=>{if(code===0)return resolve(stderr);console.error(`FFMPEG_X11_STDERR_START\n${stderr}\nFFMPEG_X11_STDERR_END`);reject(new Error(`ffmpeg x11grab exited ${code}`))})});
-          }
-          function frameStats(file,t){
-            const r=spawnSync('ffmpeg',['-v','error','-ss',t.toFixed(3),'-i',file,'-frames:v','1','-f','rawvideo','-pix_fmt','rgb24','pipe:1'],{encoding:null,maxBuffer:8*1024*1024});
-            if(r.status!==0||!r.stdout?.length)throw new Error('Unable to inspect recorded frame');
-            const b=r.stdout,n=b.length/3;let sum=0,sum2=0,bright=0;
-            for(let i=0;i<b.length;i+=3){const y=.2126*b[i]+.7152*b[i+1]+.0722*b[i+2];sum+=y;sum2+=y*y;if(y>42)bright++}
-            const mean=sum/n;return{mean,variance:Math.max(0,sum2/n-mean*mean),brightPixelRatio:bright/n};
-          }
-          function extract(video,t,file){cmd('ffmpeg',['-y','-v','error','-ss',t.toFixed(3),'-i',video,'-frames:v','1',file]);if(!fs.existsSync(file)||fs.statSync(file).size<=0)throw new Error(`PNG extraction failed ${file}`)}
-          function fatal(errors){return errors.filter((v)=>/GLB load failed|Uncaught|TypeError|ReferenceError|WebGL context lost/i.test(v))}
-
-          async function pageMetrics(page){
-            const m=await page.evaluate(()=>{const c=document.getElementById('cube-canvas'),r=c?.getBoundingClientRect();return{inner:[innerWidth,innerHeight],outer:[outerWidth,outerHeight],dpr:devicePixelRatio,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,canvas:c&&r?[c.width,c.height,r.width,r.height,r.left,r.top]:null}});
-            const c=m.canvas;
-            if(m.inner[0]!==W||m.inner[1]!==H||m.dpr!==1||m.reducedMotion||!c||Math.abs(c[2]-W)>.5||Math.abs(c[3]-H)>.5||Math.abs(c[4])>.5||Math.abs(c[5])>.5)throw new Error(`Invalid browser viewport ${JSON.stringify(m)}`);
-            console.log('BROWSER_VIEWPORT',JSON.stringify(m));return m;
-          }
-          function x11Window(){
-            const ids=cmd('xdotool',['search','--onlyvisible','--name','ProAI Cube']).trim().split(/\s+/).filter(Boolean);if(!ids.length)throw new Error('Chromium X11 window not found');
-            const id=ids.at(-1),p=Object.fromEntries(cmd('xdotool',['getwindowgeometry','--shell',id]).trim().split('\n').map((l)=>l.split('=',2)));
-            const g={id,x:Number(p.X),y:Number(p.Y),width:Number(p.WIDTH),height:Number(p.HEIGHT)};console.log('X11_WINDOW_GEOMETRY',JSON.stringify(g));return g;
-          }
-          function rootFrame(){
-            const r=spawnSync('ffmpeg',['-v','error','-f','x11grab','-draw_mouse','0','-framerate','24','-video_size','1024x1024','-i',`${DISPLAY}.0+0,0`,'-frames:v','1','-pix_fmt','rgb24','-f','rawvideo','pipe:1'],{encoding:null,maxBuffer:8*1024*1024});
-            if(r.status!==0||r.stdout?.length!==ROOT_W*ROOT_H*3)throw new Error('X11 calibration frame failed');return r.stdout;
-          }
-          function findOrigin(buf){
-            const ok=(x,y)=>{const i=(y*ROOT_W+x)*3;return buf[i]>235&&buf[i+1]<25&&buf[i+2]>235};
-            for(let y=0;y<=ROOT_H-10;y++)for(let x=0;x<=ROOT_W-10;x++)if(ok(x,y)&&ok(x+9,y)&&ok(x,y+9)&&ok(x+9,y+9)&&ok(x+4,y+4))return{x,y};
-            return null;
-          }
-          async function calibrate(page){
-            const browserMetrics=await pageMetrics(page),x11=x11Window();
-            await page.evaluate(()=>{const d=document.createElement('div');d.id='__x11_origin';Object.assign(d.style,{position:'fixed',left:'0',top:'0',width:'10px',height:'10px',background:'rgb(255,0,255)',zIndex:'2147483647',pointerEvents:'none'});document.documentElement.appendChild(d)});
-            await page.evaluate(()=>new Promise((resolve)=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));await sleep(100);
-            const origin=findOrigin(rootFrame());
-            await page.evaluate(()=>document.getElementById('__x11_origin')?.remove());await page.evaluate(()=>new Promise((resolve)=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-            if(!origin||origin.x+W>ROOT_W||origin.y+H>ROOT_H)throw new Error(`Unable to calibrate X11 canvas ${JSON.stringify(origin)}`);
-            const region={x:origin.x,y:origin.y,width:W,height:H};console.log('X11_CAPTURE_REGION',JSON.stringify(region));return{browserMetrics,x11,region};
-          }
-          async function gotoReady(page,url){
-            await page.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
-            await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});
-            await page.bringToFront();return pageMetrics(page);
-          }
-
-          const browser=await chromium.launch({headless:false,args:['--window-position=100,100','--force-device-scale-factor=1','--high-dpi-support=1','--no-first-run','--disable-infobars','--use-gl=desktop','--disable-frame-rate-limit','--disable-gpu-vsync','--enable-webgl','--ignore-gpu-blocklist','--disable-dev-shm-usage']});
-          const context=await browser.newContext({viewport:{width:W,height:H},deviceScaleFactor:1,reducedMotion:'no-preference'});
-          const page=await context.newPage(),pageErrors=[],consoleErrors=[];
-          page.on('pageerror',(e)=>pageErrors.push(String(e)));page.on('console',(m)=>{if(m.type()==='error')consoleErrors.push(m.text())});
-
-          try{
-            await gotoReady(page,`${URL}?capture`);
-            const geometry=await calibrate(page);
-            const semanticSample=await page.evaluate(()=>{const api=window.__PROAI_CUBE_R1_2,best=[7.1,7.3,7.5,7.7,7.9,8.1,8.2].map((t)=>api.getSemanticPoseAt(t)).filter(Boolean).sort((a,b)=>b.dot-a.dot)[0];api.setReviewPresentation(best.timeSec,1,false);api.setSemanticReviewState({face:best.face,surface:1,formation:1,luminance:1,sweep:.52,exit:0},false);api.renderReviewFrame();window.__sampleTimer=setInterval(()=>api.renderReviewFrame(),30);const d=api.getDiagnostics();return{face:best.face,dot:best.dot,typography:d.semanticR2.typography,renderer:d.renderer}});
-            const sampleFile=path.join(OUT,'sample.mp4'),sampleStderr=await capture(SAMPLE_SEC,sampleFile,geometry.region.x,geometry.region.y);if(sampleStderr.trim())console.log('FFMPEG_X11_SAMPLE_STDERR',sampleStderr.trim());await page.evaluate(()=>clearInterval(window.__sampleTimer));
-            if(pageErrors.length||fatal(consoleErrors).length)throw new Error('Fatal browser/WebGL error during sample');if(!semanticSample.typography)throw new Error('Semantic typography unavailable');
-            const sampleVideo=verifyMp4(sampleFile,3),sampleStats=frameStats(sampleFile,1.5);if(sampleStats.variance<18||sampleStats.brightPixelRatio<.002)throw new Error(`Sample blank ${JSON.stringify(sampleStats)}`);
-            console.log('SHORT_SAMPLE_PASS',JSON.stringify({video:sampleVideo,geometry,semantic:semanticSample,stats:sampleStats}));
-
-            await gotoReady(page,URL);
-            const fullMetrics=await pageMetrics(page),fullWindow=x11Window();
-            if(fullWindow.id!==geometry.x11.id||fullWindow.x!==geometry.x11.x||fullWindow.y!==geometry.x11.y||fullWindow.width!==geometry.x11.width||fullWindow.height!==geometry.x11.height)throw new Error(`Same browser window geometry changed ${JSON.stringify({sample:geometry.x11,full:fullWindow})}`);
-            const initial=await page.evaluate(()=>{const d=window.__PROAI_CUBE_R1_2.getDiagnostics();return{simTimeMs:d.presentation.simTimeMs,yaw:d.presentation.signedYawDeg,camera:d.interaction.cameraPosition,geometry:d.geometry?.pass===true,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,renderer:d.renderer}});
-            console.log('FULL_START_DIAGNOSTICS',JSON.stringify(initial));if(initial.reducedMotion)throw new Error('Reduced motion unexpectedly enabled');
-
-            const mp4=path.join(OUT,'proai-cube-semantic-brand-moment-r2-review-720.mp4'),ff=capture(FULL_SEC,mp4,geometry.region.x,geometry.region.y),started=Date.now();
-            let observed=false,complete=false,face=null,startMs=null,completeMs=null,startTurns=null,maxBlockedTurns=0,sawPause=false,sawResume=false,maxCameraDelta=0,maxFrameDelta=0,yawAtComplete=null,yawTwoSecLater=null,latestYaw=initial.yaw,maxSimTimeMs=initial.simTimeMs;
-            while(Date.now()-started<FULL_SEC*1000){
-              await sleep(200);const elapsed=Date.now()-started,d=await page.evaluate(()=>{const q=window.__PROAI_CUBE_R1_2.getDiagnostics();return{semantic:q.semanticR2,activeTurns:q.activeTurns.length,camera:q.interaction.cameraPosition,yaw:q.presentation.signedYawDeg,frameDelta:q.presentation.frameAngularDeltaRad,simTimeMs:q.presentation.simTimeMs}});
-              latestYaw=d.yaw;maxSimTimeMs=Math.max(maxSimTimeMs,Number(d.simTimeMs||0));maxCameraDelta=Math.max(maxCameraDelta,dist3(initial.camera,d.camera));maxFrameDelta=Math.max(maxFrameDelta,Math.abs(d.frameDelta||0));
-              if(d.semantic.active){observed=true;face||=d.semantic.face;if(startMs===null){startMs=elapsed-Number(d.semantic.elapsedMs||0);startTurns=d.activeTurns}if(d.semantic.blocksSlices)maxBlockedTurns=Math.max(maxBlockedTurns,d.activeTurns);if(Number(d.semantic.timeScale)<=.001)sawPause=true}
-              if(d.semantic.complete&&!complete){complete=true;completeMs=elapsed;yawAtComplete=d.yaw}if(complete&&Number(d.semantic.timeScale)>=.999)sawResume=true;if(completeMs!==null&&elapsed>=completeMs+2000&&yawTwoSecLater===null)yawTwoSecLater=d.yaw;
+          async function waitFor(page, predicate, timeoutMs = 10000) {
+            const start = Date.now();
+            while (Date.now() - start < timeoutMs) {
+              const state = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getSemanticDiagnostics());
+              if (predicate(state)) return state;
+              await sleep(25);
             }
-            const fullStderr=await ff;if(fullStderr.trim())console.log('FFMPEG_X11_FULL_STDERR',fullStderr.trim());
-            const finalRuntime=await page.evaluate(()=>{const q=window.__PROAI_CUBE_R1_2.getDiagnostics();return{simTimeMs:q.presentation.simTimeMs,semantic:q.semanticR2,activeTurns:q.activeTurns.length,scheduler:q.scheduler,yaw:q.presentation.signedYawDeg,renderer:q.renderer}});console.log('FULL_END_DIAGNOSTICS',JSON.stringify({maxSimTimeMs,finalRuntime}));
-            if(pageErrors.length||fatal(consoleErrors).length)throw new Error('Fatal browser/WebGL error during full capture');
-            if(!observed||!complete||startTurns!==0||maxBlockedTurns!==0||!sawPause||!sawResume)throw new Error(`Semantic gate failed ${JSON.stringify({observed,complete,startTurns,maxBlockedTurns,sawPause,sawResume,maxSimTimeMs,finalRuntime})}`);
+            throw new Error('R4 semantic wait timeout');
+          }
 
-            const video=verifyMp4(mp4,29),duration=Number(video.format.duration),peakSec=Math.min(Math.max(.25,((startMs??7500)+1500)/1000),duration-.5),postSec=Math.min(Math.max(peakSec+2,((completeMs??13000)+2000)/1000),duration-.5);
-            extract(mp4,peakSec,path.join(OUT,'proai-cube-semantic-brand-moment-r2-peak.png'));extract(mp4,postSec,path.join(OUT,'proai-cube-semantic-brand-moment-r2-post.png'));
-            const yawAdvance=Math.abs((yawTwoSecLater??latestYaw)-(yawAtComplete??latestYaw)),peakStats=frameStats(mp4,peakSec),postStats=frameStats(mp4,postSec),finalDiag=await page.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics());
-            const qa={allPass:true,recorder:'FFmpeg X11/Xvfb',xvfbDesktop:[ROOT_W,ROOT_H,24],browserViewport:fullMetrics.inner,x11Window:fullWindow,x11CaptureRegion:geometry.region,sample:{pass:true,semanticFace:semanticSample.face,semanticVisibilityDot:semanticSample.dot},video:{filename:path.basename(mp4),width:W,height:H,fps:FPS,codec:video.streams[0].codec_name,pixelFormat:video.streams[0].pix_fmt,durationSec:duration,sizeBytes:Number(video.format.size),sha256:crypto.createHash('sha256').update(fs.readFileSync(mp4)).digest('hex'),continuousRuntime:true,spliceCount:0},semantic:{observed,complete,face,startActiveTurns:startTurns,maxBlockedTurns,pause:sawPause,resume:sawResume,peakSec,postSec},continuity:{maxCameraDelta,maxFrameAngularDeltaRad:maxFrameDelta,postSemanticYawAdvanceDeg:yawAdvance,noCameraSnap:maxCameraDelta<=1e-6,noMotionJump:maxFrameDelta<.08,postMotionContinues:yawAdvance>.05},visual:{typographyVisible:true,blankSemanticPanel:false,browserUiVisible:false,desktopVisible:false,cubeCropped:false,peakFrameStats:peakStats,postFrameStats:postStats},runtime:{fatalErrors:0,pageErrors,consoleFatal:fatal(consoleErrors),renderer:finalDiag.renderer,maxPresentationSimTimeMs:maxSimTimeMs},locks:{semanticR2:true,geometryR1:initial.geometry,motionR12:true,materialsR1:true,glbUnchanged:true,productionMainTouched:false}};
-            if(!qa.continuity.noCameraSnap||!qa.continuity.noMotionJump||!qa.continuity.postMotionContinues||peakStats.variance<18||peakStats.brightPixelRatio<.002||postStats.variance<18||postStats.brightPixelRatio<.002)throw new Error(`Final visual/continuity gate failed ${JSON.stringify({maxCameraDelta,maxFrameDelta,yawAdvance,peakStats,postStats})}`);
-            fs.writeFileSync(path.join(OUT,'qa.json'),JSON.stringify(qa,null,2));fs.rmSync(sampleFile,{force:true});console.log('FULL_CAPTURE_PASS',JSON.stringify(qa));
-          }finally{await context.close();await browser.close();fs.rmSync('.capture-pr.mjs',{force:true})}
+          const browser = await chromium.launch({
+            headless: false,
+            args: ['--no-first-run','--disable-infobars','--use-gl=desktop','--enable-webgl','--ignore-gpu-blocklist','--disable-dev-shm-usage']
+          });
+          const context = await browser.newContext({ viewport: { width: 1100, height: 760 }, deviceScaleFactor: 1, hasTouch: true, reducedMotion: 'no-preference' });
+          const page = await context.newPage();
+          const errors = [];
+          page.on('pageerror', (error) => errors.push(String(error)));
+          page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+
+          await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
+          await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, null, { timeout: 120000 });
+
+          const normal = await waitFor(page, (s) => s.complete === true, 12000);
+          const normalDiag = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
+          const normalPass = within(normal.opportunityPresentationMs, 3150, 4300)
+            && within(normal.firstTypographyElapsedMs, 80, 160)
+            && within(normal.completedElapsedMs, 2200, 2700)
+            && normal.semanticVelocityMultiplier === 0.70
+            && normal.surfaceOpacityMax <= 0.08
+            && normalDiag.presentation.simTimeMs > normal.entryPresentationMs;
+
+          await page.evaluate(() => window.__PROAI_CUBE_R1_2.stopSliceScheduler());
+          const activeSlicePromise = page.evaluate(() => window.__PROAI_CUBE_R1_2.turnSlice({ axis: 'X', layer: 1, direction: 1, durationMs: 1200 }));
+          await sleep(120);
+          const replayAccepted = await page.evaluate(() => window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
+          const pending = await waitFor(page, (s) => s.pending === true && s.waitedForActiveSlice === true, 1200);
+          const turnResult = await activeSlicePromise;
+          const afterSlice = await waitFor(page, (s) => s.active === true, 2500);
+          const activeSlicePass = replayAccepted === true && pending.opportunityActiveTurns > 0 && turnResult?.endpointErrorRad === 0 && afterSlice.active === true;
+
+          await waitFor(page, (s) => s.complete === true, 5000);
+          await page.evaluate(() => window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
+          await waitFor(page, (s) => s.active === true && s.elapsedMs > 320, 2500);
+          const canvas = page.locator('#cube-canvas');
+          const box = await canvas.boundingBox();
+          const cx = box.x + box.width * 0.52;
+          const cy = box.y + box.height * 0.48;
+          const mouseBefore = await page.evaluate(() => ({ s: window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(), d: window.__PROAI_CUBE_R1_2.getDiagnostics() }));
+          await page.mouse.move(cx, cy);
+          await page.mouse.down();
+          await page.mouse.move(cx + 72, cy + 24, { steps: 6 });
+          await sleep(160);
+          await page.mouse.up();
+          const mouseAfter = await page.evaluate(() => ({ s: window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(), d: window.__PROAI_CUBE_R1_2.getDiagnostics(), i: window.__PROAI_CUBE_R1_2.getInteractionState() }));
+          const mousePass = mouseAfter.s.elapsedMs > mouseBefore.s.elapsedMs
+            && mouseAfter.s.entryPresentationMs === mouseBefore.s.entryPresentationMs
+            && mouseAfter.d.presentation.simTimeMs > mouseBefore.d.presentation.simTimeMs
+            && mouseAfter.i.resumeDelayRemainingMs === 0
+            && mouseAfter.i.sliceResumeDelayRemainingMs === 0;
+
+          await waitFor(page, (s) => s.complete === true, 5000);
+          await page.evaluate(() => window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
+          await waitFor(page, (s) => s.active === true && s.elapsedMs > 320, 2500);
+          const cdp = await context.newCDPSession(page);
+          const touchBefore = await page.evaluate(() => ({ s: window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(), d: window.__PROAI_CUBE_R1_2.getDiagnostics() }));
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: cy, id: 1, radiusX: 1, radiusY: 1, force: 1 }] });
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx + 64, y: cy + 20, id: 1, radiusX: 1, radiusY: 1, force: 1 }] });
+          await sleep(160);
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+          const touchAfter = await page.evaluate(() => ({ s: window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(), d: window.__PROAI_CUBE_R1_2.getDiagnostics(), i: window.__PROAI_CUBE_R1_2.getInteractionState() }));
+          const touchPass = touchAfter.s.elapsedMs > touchBefore.s.elapsedMs
+            && touchAfter.s.entryPresentationMs === touchBefore.s.entryPresentationMs
+            && touchAfter.d.presentation.simTimeMs > touchBefore.d.presentation.simTimeMs
+            && touchAfter.i.resumeDelayRemainingMs === 0;
+
+          await waitFor(page, (s) => s.complete === true, 5000);
+          await page.evaluate(() => window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
+          await waitFor(page, (s) => s.active === true && s.elapsedMs > 320, 2500);
+          const tapBefore = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getSemanticDiagnostics());
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: cy, id: 2, radiusX: 1, radiusY: 1, force: 1 }] });
+          await sleep(35);
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+          await sleep(120);
+          const tapAfter = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getSemanticDiagnostics());
+          const tapPass = tapAfter.elapsedMs > tapBefore.elapsedMs && tapAfter.entryPresentationMs === tapBefore.entryPresentationMs && (tapAfter.active || tapAfter.complete);
+
+          await page.goto(`${URL}?capture&view=front`, { waitUntil: 'domcontentloaded' });
+          await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, null, { timeout: 120000 });
+          await sleep(500);
+          await page.screenshot({ path: 'review-evidence/r4-near-front.png' });
+          await page.goto(`${URL}?capture&view=three-quarter`, { waitUntil: 'domcontentloaded' });
+          await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, null, { timeout: 120000 });
+          await sleep(500);
+          await page.screenshot({ path: 'review-evidence/r4-three-quarter.png' });
+
+          const metrics = {
+            pass: normalPass && activeSlicePass && mousePass && touchPass && tapPass && errors.length === 0,
+            normalPass,
+            activeSlicePass,
+            mousePass,
+            touchPass,
+            tapPass,
+            normal: {
+              opportunityPresentationMs: normal.opportunityPresentationMs,
+              entryPresentationMs: normal.entryPresentationMs,
+              firstSurfaceElapsedMs: normal.firstSurfaceElapsedMs,
+              firstTypographyElapsedMs: normal.firstTypographyElapsedMs,
+              completedElapsedMs: normal.completedElapsedMs,
+              face: normal.face,
+              visibilityDot: normal.visibilityDot,
+              semanticVelocityMultiplier: normal.semanticVelocityMultiplier,
+              sliceBlockTargetMs: normal.sliceBlockTargetMs,
+              surfaceOpacityMax: normal.surfaceOpacityMax,
+              textMeshCount: normal.textMeshCount
+            },
+            activeSlice: { pending, turnResult, afterSlice },
+            errors
+          };
+          fs.writeFileSync('review-evidence/r4-qa-metrics.json', JSON.stringify(metrics, null, 2));
+          console.log('R4_QA_RESULT', JSON.stringify(metrics));
+          await browser.close();
+          if (!metrics.pass) process.exit(1);
           NODE
 
-          node .capture-pr.mjs
+          node .qa-r4.mjs
+          echo R4_MOTION_INTERACTION_QA_PASS
 
-      - name: Final focused evidence gate
+      - name: Upload R4 QA evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-semantic-r4-qa-evidence
+          path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Publish temporary owner review
+        id: tunnel
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find review-artifact -maxdepth 1 -name '*.mp4' -type f | wc -l)" -eq 1
-          test "$(find review-artifact -maxdepth 1 -name '*.png' -type f | wc -l)" -eq 2
-          test "$(find review-artifact -maxdepth 1 -type f | wc -l)" -eq 4
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          q=json.loads(Path('review-artifact/qa.json').read_text())
-          assert q['allPass'] is True
-          assert q['recorder'] == 'FFmpeg X11/Xvfb'
-          assert q['xvfbDesktop'] == [1024,1024,24]
-          assert q['browserViewport'] == [720,720]
-          assert q['x11CaptureRegion']['width'] == 720 and q['x11CaptureRegion']['height'] == 720
-          assert q['sample']['pass'] is True
-          assert q['video']['width'] == 720 and q['video']['height'] == 720 and q['video']['fps'] == 24
-          assert q['video']['codec'] == 'h264' and q['video']['pixelFormat'] == 'yuv420p'
-          assert q['video']['continuousRuntime'] is True and q['video']['spliceCount'] == 0
-          assert q['semantic']['observed'] and q['semantic']['complete'] and q['semantic']['startActiveTurns'] == 0 and q['semantic']['maxBlockedTurns'] == 0 and q['semantic']['pause'] and q['semantic']['resume']
-          assert q['continuity']['noCameraSnap'] and q['continuity']['noMotionJump'] and q['continuity']['postMotionContinues']
-          assert q['visual']['typographyVisible'] and not q['visual']['blankSemanticPanel'] and not q['visual']['browserUiVisible'] and not q['visual']['desktopVisible'] and not q['visual']['cubeCropped']
-          assert q['runtime']['fatalErrors'] == 0
-          assert q['locks']['semanticR2'] and q['locks']['geometryR1'] and q['locks']['motionR12'] and q['locks']['materialsR1'] and q['locks']['glbUnchanged'] and not q['locks']['productionMainTouched']
-          print('FOCUSED_QA_PASS')
-          PY
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared-r4.log 2>&1 &
+          echo $! >/tmp/cloudflared-r4.pid
+          URL=''
+          for i in $(seq 1 90); do
+            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared-r4.log | tail -1 || true)
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          [ -n "$URL" ]
+          for i in $(seq 1 60); do
+            curl -fsSL --max-time 15 "$URL/" >/dev/null && break
+            sleep 1
+          done
+          curl -fsSL --max-time 15 "$URL/" >/dev/null
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$URL" >/tmp/r4-live-url.txt
+          echo "R4_LIVE_READY=$URL"
+          {
+            echo '## SEMANTIC BRAND FACE R4 — LIVE OWNER REVIEW'
+            echo
+            echo "Base: \`295a67a27df127c95d799c93ea39448afd714793\`"
+            echo
+            echo "Normal autonomous runtime: $URL/"
+            echo "Near-front inspection: $URL/?capture&view=front"
+            echo "Natural 3/4 inspection: $URL/?capture&view=three-quarter"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload owner review artifact
+      - name: Upload live URL handoff
         uses: actions/upload-artifact@v4
         with:
-          name: proai-semantic-r2-owner-review
-          path: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/review-artifact/
+          name: proai-semantic-r4-live-url
+          path: /tmp/r4-live-url.txt
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 1
+
+      - name: Hold owner preview for 60 minutes
+        shell: bash
+        env:
+          REVIEW_URL: ${{ steps.tunnel.outputs.url }}
+        run: |
+          set -euo pipefail
+          kill -0 "$(cat /tmp/cloudflared-r4.pid)"
+          curl -fsSL --max-time 15 "$REVIEW_URL/" >/dev/null
+          echo "R4_PREVIEW_HOLDING=$REVIEW_URL"
+          sleep 3600

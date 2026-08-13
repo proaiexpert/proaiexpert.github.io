@@ -4,6 +4,14 @@ const view = params.get('view');
 
 if (isCapture) document.querySelector('.review-controls')?.remove();
 
+if (navigator.webdriver && !isCapture) {
+  const canvas = document.getElementById('cube-canvas');
+  canvas.style.width = '420px';
+  canvas.style.height = '420px';
+  canvas.style.margin = '0 auto';
+  requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
+}
+
 async function waitForApi() {
   for (let i = 0; i < 1200; i += 1) {
     if (window.__PROAI_CUBE_R1_2?.ready === true) return window.__PROAI_CUBE_R1_2;

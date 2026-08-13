@@ -42,12 +42,13 @@ jobs:
           chmod +x /tmp/cloudflared
           /tmp/cloudflared --version
 
-      - name: Start exact Semantic R2 runtime
+      - name: Build and start exact Semantic R2 runtime
         shell: bash
         run: |
           set -euo pipefail
-          nohup npx vite --host 127.0.0.1 --port 4173 >/tmp/proai-r2-vite.log 2>&1 &
-          echo $! >/tmp/proai-r2-vite.pid
+          npm run build
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/proai-r2-server.log 2>&1 &
+          echo $! >/tmp/proai-r2-server.pid
           for i in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:4173/ -o /tmp/local.html; then
               grep -qi '<html' /tmp/local.html
@@ -56,7 +57,7 @@ jobs:
             fi
             sleep 1
           done
-          cat /tmp/proai-r2-vite.log
+          cat /tmp/proai-r2-server.log
           exit 1
 
       - name: Publish temporary Safari preview and hold 60 minutes
@@ -70,7 +71,7 @@ jobs:
 
           /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared.log 2>&1 &
           TUNNEL_PID=$!
-          trap 'kill "$TUNNEL_PID" 2>/dev/null || true; kill "$(cat /tmp/proai-r2-vite.pid 2>/dev/null)" 2>/dev/null || true' EXIT
+          trap 'kill "$TUNNEL_PID" 2>/dev/null || true; kill "$(cat /tmp/proai-r2-server.pid 2>/dev/null)" 2>/dev/null || true' EXIT
 
           URL=''
           for i in $(seq 1 90); do

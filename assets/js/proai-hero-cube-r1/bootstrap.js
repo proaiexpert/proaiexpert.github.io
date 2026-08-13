@@ -17,6 +17,19 @@
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const dprCap = coarsePointer ? 1.5 : 2;
 
+  if (!document.querySelector('script[data-proai-three-importmap]')) {
+    const importMap = document.createElement('script');
+    importMap.type = 'importmap';
+    importMap.setAttribute('data-proai-three-importmap', 'r180');
+    importMap.textContent = JSON.stringify({
+      imports: {
+        three: '/assets/vendor/three-r180/build/three.module.min.js',
+        'three/addons/': '/assets/vendor/three-r180/examples/jsm/'
+      }
+    });
+    document.head.appendChild(importMap);
+  }
+
   slot.dataset.cubeMounted = 'false';
 
   const canvas = document.createElement('canvas');
@@ -102,12 +115,7 @@
       'production GLB URL'
     );
 
-    source = strictReplace(
-      source,
-      "  alpha: false,",
-      "  alpha: true,",
-      'transparent renderer'
-    );
+    source = strictReplace(source, "  alpha: false,", "  alpha: true,", 'transparent renderer');
 
     source = strictReplace(
       source,
@@ -116,12 +124,7 @@
       'DPR cap'
     );
 
-    source = strictReplace(
-      source,
-      "renderer.setClearColor(0x050607, 1);",
-      "renderer.setClearColor(0x000000, 0);",
-      'transparent clear color'
-    );
+    source = strictReplace(source, "renderer.setClearColor(0x050607, 1);", "renderer.setClearColor(0x000000, 0);", 'transparent clear color');
 
     source = strictReplace(
       source,
@@ -144,12 +147,7 @@
       'visibility-aware render loop'
     );
 
-    source = strictReplace(
-      source,
-      "    if (captureMode) renderReviewFrame();",
-      "    renderReviewFrame();",
-      'valid first frame before mount activation'
-    );
+    source = strictReplace(source, "    if (captureMode) renderReviewFrame();", "    renderReviewFrame();", 'valid first frame before mount activation');
 
     const blob = new Blob([source], { type: 'text/javascript' });
     moduleUrl = URL.createObjectURL(blob);

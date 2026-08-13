@@ -1,0 +1,4387 @@
+{
+  "generatedAt": "2026-08-13T01:38:37.892Z",
+  "source": {
+    "implementationBaseBranch": "agent/proai-cube-materials-lighting-r1",
+    "implementationBaseCommit": "d17806da42275db617d8a46b231a2d877706a179",
+    "geometryBaselineCommit": "73082717909b6f4225841401fe4962d6ff4bbcca",
+    "motionBaselineCommit": "89965750e4456a6e2d54d8309809471f8dbfcc75",
+    "branch": "agent/proai-cube-semantic-display-r1",
+    "prototypePath": "docs/site-evolution/spline/proai-cube-semantic-display-r1/",
+    "glbBytes": 279412,
+    "glbSha256": "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
+  },
+  "baselineFreeze": {
+    "MOTION": {
+      "same": true,
+      "baselineSha256": "ab529efcf456d10e7625b225e4bb61d87c0ac880766c80a4d1ed28d8d4ba4315",
+      "semanticSha256": "ab529efcf456d10e7625b225e4bb61d87c0ac880766c80a4d1ed28d8d4ba4315",
+      "normalization": "none"
+    },
+    "PRESENTATION_R1_2": {
+      "same": true,
+      "baselineSha256": "a77fb4129bf02e5067265b62a5c37726b8d892262a3d3c81cdeff3d819760d89",
+      "semanticSha256": "a77fb4129bf02e5067265b62a5c37726b8d892262a3d3c81cdeff3d819760d89",
+      "normalization": "none"
+    },
+    "SLICE_R1_2": {
+      "same": true,
+      "baselineSha256": "568acb77e7e66dfab976d06a051fb7911387e68ddfefbd8831b073164403a2c9",
+      "semanticSha256": "568acb77e7e66dfab976d06a051fb7911387e68ddfefbd8831b073164403a2c9",
+      "normalization": "none"
+    },
+    "GEOMETRY_R1": {
+      "same": true,
+      "baselineSha256": "e9cd2cc0fe4b84e40af8c5430b1d38c9642fdd20ec2530c9170a47ae3d755b5b",
+      "semanticSha256": "e9cd2cc0fe4b84e40af8c5430b1d38c9642fdd20ec2530c9170a47ae3d755b5b",
+      "normalization": "none"
+    },
+    "LOOKDEV_R1": {
+      "same": true,
+      "baselineSha256": "acb1961f9b61974fef5373428a1f9663ad3e096d75c1984b1bf79eebb546d427",
+      "semanticSha256": "acb1961f9b61974fef5373428a1f9663ad3e096d75c1984b1bf79eebb546d427",
+      "normalization": "none"
+    },
+    "studio_environment": {
+      "same": true,
+      "baselineSha256": "c6db01f90595d2d63a747bcb8a395dbe2d9ba1c248f16ce21d6be8ce303d1561",
+      "semanticSha256": "c6db01f90595d2d63a747bcb8a395dbe2d9ba1c248f16ce21d6be8ce303d1561",
+      "normalization": "none"
+    },
+    "studio_lighting": {
+      "same": true,
+      "baselineSha256": "a24641b0f3481a2512af668b6ae24b9b77b0ce1588335682c46bc08e57e907d1",
+      "semanticSha256": "a24641b0f3481a2512af668b6ae24b9b77b0ce1588335682c46bc08e57e907d1",
+      "normalization": "none"
+    },
+    "material_classifier": {
+      "same": true,
+      "baselineSha256": "b4be1e8f12343c370f2b9aae8b816f6d75da3028a4579b2a66031a65c9bcaffe",
+      "semanticSha256": "b4be1e8f12343c370f2b9aae8b816f6d75da3028a4579b2a66031a65c9bcaffe",
+      "normalization": "none"
+    },
+    "turn_math": {
+      "same": true,
+      "baselineSha256": "173b8735b526ac1fced62684e8dfc4aad902ae3b96ea96345733dca02fda943d",
+      "semanticSha256": "173b8735b526ac1fced62684e8dfc4aad902ae3b96ea96345733dca02fda943d",
+      "normalization": "none"
+    },
+    "turn_engine": {
+      "same": true,
+      "baselineSha256": "a86f10927a5b7e87f6c920179782f8b697c54a3d74c472655b35796416d842ce",
+      "semanticSha256": "a86f10927a5b7e87f6c920179782f8b697c54a3d74c472655b35796416d842ce",
+      "normalization": "additive semantic controller removed before comparison"
+    },
+    "presentation_engine": {
+      "same": true,
+      "baselineSha256": "059f079d6a9a9e2b1a4e54d201fc1053286fc41576478240ac8eb0a5244291a9",
+      "semanticSha256": "059f079d6a9a9e2b1a4e54d201fc1053286fc41576478240ac8eb0a5244291a9",
+      "normalization": "none"
+    },
+    "scheduler_core": {
+      "same": true,
+      "baselineSha256": "0510d350ab2c0f321ae62574a0b3ba8bd6fa9d94d6a9ad286c2334003286df0b",
+      "semanticSha256": "0510d350ab2c0f321ae62574a0b3ba8bd6fa9d94d6a9ad286c2334003286df0b",
+      "normalization": "none"
+    },
+    "intentionalSchedulerDelta": {
+      "location": "sliceAutonomyBlocked()",
+      "baseline": "interactionActive || performance.now() < sliceResumeAt",
+      "semanticR1": "semanticBaseSliceBlocked() || semanticBlocksNewSlices()",
+      "reason": "block initiation of NEW Rubik slice events while a semantic face is active/recovering; active turns and scheduler event distribution/timings remain unchanged",
+      "schedulerCoreHashUnchanged": true
+    },
+    "interactionAdditions": {
+      "onOrbitStart": "requestSemanticExit('interaction', performance.now(), true); semanticResumeAt = Infinity",
+      "onOrbitEnd": "semanticResumeAt = now + manualResumeDelayMs + manualResumeBlendMs + 420ms",
+      "existingInteractionSemanticsPreserved": true
+    },
+    "materialsLightingFrozen": true,
+    "geometryFrozen": true,
+    "motionCoreFrozen": true,
+    "pass": true
+  },
+  "semanticConfig": {
+    "language": "en",
+    "sequences": {
+      "en": [
+        "AI EXPERT",
+        "TRUST",
+        "INQUIRY",
+        "RESPONSE",
+        "RESULT"
+      ],
+      "ru": [
+        "AI EXPERT",
+        "ДОВЕРИЕ",
+        "ОБРАЩЕНИЕ",
+        "ОТВЕТ",
+        "РЕЗУЛЬТАТ"
+      ]
+    },
+    "selectedLook": "balancedSmokedChrome",
+    "displayInsetRatio": 0.988,
+    "faceOffset": 0.72,
+    "textOffset": 0.18,
+    "displayMaterial": {
+      "color": "#151c23",
+      "metalness": 0.62,
+      "roughness": 0.245,
+      "clearcoat": 0.14,
+      "clearcoatRoughness": 0.18,
+      "envMapIntensity": 1.08
+    },
+    "text": {
+      "color": "#e9edf0",
+      "textureWidth": 2048,
+      "textureHeight": 512,
+      "safeWidthRatio": 0.9,
+      "safeHeightRatio": 0.72,
+      "maxFontPx": 286,
+      "minFontPx": 126,
+      "fontWeight": 700,
+      "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+    },
+    "timings": {
+      "surfaceInMs": 420,
+      "textDelayMs": 140,
+      "textInMs": 320,
+      "readableHoldMs": 1650,
+      "textOutMs": 300,
+      "surfaceOutDelayMs": 100,
+      "surfaceOutMs": 420,
+      "interactionExitMs": 320,
+      "sliceResumeOffsetMs": 260
+    },
+    "cadence": {
+      "opportunityMinMs": 8200,
+      "opportunityMaxMs": 10400,
+      "initialDelayMs": 6200,
+      "seed": 1584034241
+    },
+    "gates": {
+      "entryVisibilityDot": 0.74,
+      "activeExitVisibilityDot": 0.56,
+      "minProjectedArea": 0.035,
+      "minActiveProjectedArea": 0.018,
+      "entryMaxAbsYawDegPerSec": 13.5,
+      "earlyExitMaxAbsYawDegPerSec": 18
+    },
+    "reducedMotion": {
+      "automaticSemanticCycling": false
+    }
+  },
+  "approvedLookDev": {
+    "selectedPreset": "premiumHybrid",
+    "materialGroups": {
+      "graphiteFace": {
+        "color": "#242a31",
+        "metalness": 0.84,
+        "roughness": 0.295,
+        "clearcoat": 0.16,
+        "clearcoatRoughness": 0.2,
+        "envMapIntensity": 1.18
+      },
+      "gunmetalFace": {
+        "color": "#2b323a",
+        "metalness": 0.86,
+        "roughness": 0.265,
+        "clearcoat": 0.2,
+        "clearcoatRoughness": 0.18,
+        "envMapIntensity": 1.22
+      },
+      "blackChromeFace": {
+        "color": "#181d23",
+        "metalness": 0.92,
+        "roughness": 0.225,
+        "clearcoat": 0.16,
+        "clearcoatRoughness": 0.16,
+        "envMapIntensity": 1.26
+      },
+      "smokedCore": {
+        "color": "#0c0f13",
+        "metalness": 0.48,
+        "roughness": 0.44,
+        "clearcoat": 0.06,
+        "clearcoatRoughness": 0.28,
+        "envMapIntensity": 0.66
+      }
+    },
+    "environment": {
+      "method": "procedural PMREM studio reflection cards",
+      "cardCount": 4,
+      "sigma": 0.075,
+      "externalTextures": 0
+    },
+    "lighting": {
+      "hemisphereIntensity": 0.52,
+      "keyIntensity": 5.2,
+      "fillIntensity": 4,
+      "rimIntensity": 4.6,
+      "rectAreaLights": 3
+    },
+    "colorManagement": {
+      "outputColorSpace": "SRGBColorSpace",
+      "toneMapping": "ACESFilmicToneMapping",
+      "exposure": 1
+    },
+    "postprocessing": "NONE"
+  },
+  "mechanicalQA": {
+    "axisSupport": {
+      "X": {
+        "forwardEndpointErrorRad": 0,
+        "inverseEndpointErrorRad": 0,
+        "restoredAfterPair": true
+      },
+      "Y": {
+        "forwardEndpointErrorRad": 0,
+        "inverseEndpointErrorRad": 0,
+        "restoredAfterPair": true
+      },
+      "Z": {
+        "forwardEndpointErrorRad": 0,
+        "inverseEndpointErrorRad": 0,
+        "restoredAfterPair": true
+      }
+    },
+    "layerSupport": {
+      "X": {
+        "0": {
+          "physicalCubies": 9,
+          "exportedObjects": 10,
+          "pass": true
+        },
+        "1": {
+          "physicalCubies": 9,
+          "exportedObjects": 10,
+          "pass": true
+        },
+        "-1": {
+          "physicalCubies": 9,
+          "exportedObjects": 10,
+          "pass": true
+        }
+      },
+      "Y": {
+        "0": {
+          "physicalCubies": 9,
+          "exportedObjects": 12,
+          "pass": true
+        },
+        "1": {
+          "physicalCubies": 9,
+          "exportedObjects": 9,
+          "pass": true
+        },
+        "-1": {
+          "physicalCubies": 9,
+          "exportedObjects": 9,
+          "pass": true
+        }
+      },
+      "Z": {
+        "0": {
+          "physicalCubies": 9,
+          "exportedObjects": 12,
+          "pass": true
+        },
+        "1": {
+          "physicalCubies": 9,
+          "exportedObjects": 9,
+          "pass": true
+        },
+        "-1": {
+          "physicalCubies": 9,
+          "exportedObjects": 9,
+          "pass": true
+        }
+      }
+    },
+    "repeatability30": {
+      "turns": 30,
+      "endpointMaxErrorRad": 0,
+      "maxCanonicalPosition": 6.961868572213853e-14,
+      "maxCanonicalQuaternionRad": 0,
+      "maxCanonicalScale": 0,
+      "logicalStateChanged": true,
+      "pass": true
+    },
+    "inverseRestoration": {
+      "logical": {
+        "coordinateMismatch": 0,
+        "orientationMismatch": 0
+      },
+      "canonical": {
+        "maxPosition": 4.9227844771419234e-14,
+        "maxQuaternionRad": 0,
+        "maxScale": 0
+      },
+      "startVsRestored": {
+        "coordinateMismatch": 0,
+        "orientationMismatch": 0
+      },
+      "pass": true
+    },
+    "pairedTurnQA": {
+      "sameAxis": "X",
+      "distinctLayers": true,
+      "physicalCubieIntersectionCount": 0,
+      "memberObjectIntersectionCount": 0,
+      "simultaneousActiveTurns": 2,
+      "forwardEndpointErrors": [
+        0,
+        0
+      ],
+      "inverseEndpointErrors": [
+        0,
+        0
+      ],
+      "logicalStateChangedAfterForward": true,
+      "restorationLogical": {
+        "coordinateMismatch": 0,
+        "orientationMismatch": 0
+      },
+      "restorationCanonical": {
+        "maxPosition": 4.9227844771419234e-14,
+        "maxQuaternionRad": 0,
+        "maxScale": 0
+      },
+      "pass": true
+    },
+    "startCanonical": {
+      "maxPosition": 4.263256414560601e-14,
+      "maxQuaternionRad": 0,
+      "maxScale": 0
+    }
+  },
+  "interactionQA": {
+    "semanticInteractionPass": true,
+    "mechanicalInteractionPass": true,
+    "cameraMoved": true,
+    "cameraNoSnap": true,
+    "cameraBefore": {
+      "position": [
+        12.58074783806352,
+        9.169019610792056,
+        14.179995444597019
+      ],
+      "quaternion": [
+        -0.20881325931507858,
+        0.3459769220493857,
+        0.0792790506052462,
+        0.9112693478212562
+      ],
+      "target": [
+        0,
+        -2.220446049250313e-16,
+        -2.220446049250313e-16
+      ]
+    },
+    "cameraAfterDrag": {
+      "position": [
+        11.396325358342029,
+        8.888694080089271,
+        15.314479862999516
+      ],
+      "quaternion": [
+        -0.20520356276876897,
+        0.30701259450635193,
+        0.06797369544441971,
+        0.9268302656738782
+      ],
+      "target": [
+        0,
+        -2.220446049250313e-16,
+        -2.220446049250313e-16
+      ]
+    },
+    "cameraAfterRelease": {
+      "position": [
+        11.396325358342029,
+        8.888694080089271,
+        15.314479862999516
+      ],
+      "quaternion": [
+        -0.20520356276876897,
+        0.30701259450635193,
+        0.06797369544441971,
+        0.9268302656738782
+      ],
+      "target": [
+        0,
+        -2.220446049250313e-16,
+        -2.220446049250313e-16
+      ]
+    },
+    "cameraAfterSettled": {
+      "position": [
+        11.396325358342029,
+        8.888694080089271,
+        15.314479862999516
+      ],
+      "quaternion": [
+        -0.20520356276876897,
+        0.30701259450635193,
+        0.06797369544441971,
+        0.9268302656738782
+      ],
+      "target": [
+        0,
+        -2.220446049250313e-16,
+        -2.220446049250313e-16
+      ]
+    },
+    "before": {
+      "ready": true,
+      "motionState": "rest",
+      "hierarchy": {
+        "pass": true,
+        "groups": {
+          "right": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          },
+          "center": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          },
+          "left": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          }
+        }
+      },
+      "mechanics": {
+        "axes": [
+          "X",
+          "Y",
+          "Z"
+        ],
+        "layers": [
+          -1,
+          0,
+          1
+        ],
+        "exportedCubieParents": 30,
+        "physicalCubies": 27,
+        "duplicateExportObjects": 3,
+        "latticeCenters": {
+          "X": [
+            -204.99999999999994,
+            -0.06497066745719593,
+            204.99999999999994
+          ],
+          "Y": [
+            -200.5,
+            -1.4210854715202004e-14,
+            200.5
+          ],
+          "Z": [
+            -200.50000000000003,
+            -2.842170943040401e-14,
+            200.49999999999997
+          ]
+        },
+        "layerStats": {
+          "X": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            }
+          },
+          "Y": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 12
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            }
+          },
+          "Z": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 12
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            }
+          }
+        },
+        "spatialDeduplication": "27 logical spatial cubies from 30 exported parent objects; slice selection is logical-position based, never mesh-name based."
+      },
+      "motionConfig": {
+        "turnDurationRangeMs": [
+          1080,
+          1420
+        ],
+        "easing": [
+          0.36,
+          0,
+          0.12,
+          1
+        ],
+        "orbitDampingFactor": 0.074,
+        "orbitRotateSpeed": 0.5,
+        "orbitZoomSpeed": 0.48,
+        "manualResumeDelayMs": 1850,
+        "manualResumeBlendMs": 2400,
+        "sliceResumeStaggerMs": 280
+      },
+      "presentationConfig": {
+        "normalYawVelocityDegPerSec": [
+          7,
+          12
+        ],
+        "inspectionYawVelocityDegPerSec": [
+          18,
+          30
+        ],
+        "pitchEnvelopeDeg": 10.2,
+        "rollEnvelopeDeg": 2.45,
+        "velocityCycleMs": 68000,
+        "velocityKeyframes": [
+          {
+            "timeMs": 0,
+            "velocityDegPerSec": 8
+          },
+          {
+            "timeMs": 3500,
+            "velocityDegPerSec": 11
+          },
+          {
+            "timeMs": 5500,
+            "velocityDegPerSec": 24
+          },
+          {
+            "timeMs": 9500,
+            "velocityDegPerSec": 30
+          },
+          {
+            "timeMs": 13500,
+            "velocityDegPerSec": 27
+          },
+          {
+            "timeMs": 16500,
+            "velocityDegPerSec": 12
+          },
+          {
+            "timeMs": 23000,
+            "velocityDegPerSec": 8
+          },
+          {
+            "timeMs": 29000,
+            "velocityDegPerSec": 10
+          },
+          {
+            "timeMs": 36000,
+            "velocityDegPerSec": -8
+          },
+          {
+            "timeMs": 43000,
+            "velocityDegPerSec": -11
+          },
+          {
+            "timeMs": 49000,
+            "velocityDegPerSec": -24
+          },
+          {
+            "timeMs": 55000,
+            "velocityDegPerSec": -29
+          },
+          {
+            "timeMs": 60000,
+            "velocityDegPerSec": -14
+          },
+          {
+            "timeMs": 68000,
+            "velocityDegPerSec": 8
+          }
+        ],
+        "pitchPrimaryPeriodMs": 14800,
+        "pitchSecondaryPeriodMs": 31100,
+        "rollPrimaryPeriodMs": 18400,
+        "rollSecondaryPeriodMs": 36700,
+        "review360TargetSec": 18
+      },
+      "sliceConfig": {
+        "turnDurationRangeMs": [
+          1080,
+          1420
+        ],
+        "typicalGapRangeMs": [
+          180,
+          420
+        ],
+        "breathingGapRangeMs": [
+          620,
+          820
+        ],
+        "pairedStaggerRangeMs": [
+          100,
+          220
+        ],
+        "phraseMicroGapRangeMs": [
+          90,
+          170
+        ],
+        "eventPattern": [
+          "single",
+          "pair",
+          "single",
+          "single",
+          "phrase",
+          "single",
+          "pair",
+          "single",
+          "single",
+          "phrase"
+        ],
+        "distribution": {
+          "single": 0.6,
+          "paired": 0.2,
+          "phrase": 0.2
+        },
+        "seed": 1369948382
+      },
+      "presentation": {
+        "simTimeMs": 0,
+        "signedYawDeg": 0,
+        "cumulativeYawDeg": 0,
+        "yawVelocityDegPerSec": 0,
+        "frameAngularDeltaRad": 0,
+        "quaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "activeTurns": [],
+      "lastTurnResult": null,
+      "lastTurnResults": [],
+      "interaction": {
+        "interactionActive": false,
+        "autonomyBlocked": false,
+        "sliceAutonomyBlocked": true,
+        "resumeDelayRemainingMs": 0,
+        "sliceResumeDelayRemainingMs": 0,
+        "presentationResumeActive": false,
+        "cameraPosition": [
+          12.58074783806352,
+          9.169019610792056,
+          14.179995444597019
+        ],
+        "presentationQuaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "scheduler": {
+        "enabled": false,
+        "running": false,
+        "eventSerial": 0,
+        "eventsUntilBreath": 4
+      },
+      "canonicalError": {
+        "maxPosition": 4.263256414560601e-14,
+        "maxQuaternionRad": 0,
+        "maxScale": 0
+      },
+      "geometry": {
+        "faceMeshes": 180,
+        "coreMeshes": 30,
+        "nonPlaneMeshes": 210,
+        "uniqueEnhancedGeometries": 21,
+        "faceSourceSizes": [
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ]
+        ],
+        "coreSourceSizes": [
+          [
+            200,
+            200,
+            200
+          ],
+          [
+            200,
+            200,
+            200
+          ],
+          [
+            200,
+            200,
+            200
+          ]
+        ],
+        "latticePitches": {
+          "X": 204.99999999999994,
+          "Y": 200.5,
+          "Z": 200.5
+        },
+        "faceGapRange": {
+          "min": 3.6999999999999886,
+          "max": 8.199999999999932
+        },
+        "coreGapRange": {
+          "min": 2.5,
+          "max": 6.999999999999943
+        },
+        "faceOutwardProtrusion": 0,
+        "pass": true
+      },
+      "geometryConfig": {
+        "faceOuterSize": 196.8,
+        "faceThickness": 3.6,
+        "faceCornerRadius": 10.6,
+        "faceBevelSize": 2.35,
+        "faceBevelThickness": 1.25,
+        "faceBevelSegments": 4,
+        "faceCurveSegments": 8,
+        "coreSize": 198,
+        "coreRadius": 9.2,
+        "coreSegments": 5
+      },
+      "semantic": {
+        "ready": true,
+        "language": "en",
+        "config": {
+          "language": "en",
+          "sequences": {
+            "en": [
+              "AI EXPERT",
+              "TRUST",
+              "INQUIRY",
+              "RESPONSE",
+              "RESULT"
+            ],
+            "ru": [
+              "AI EXPERT",
+              "ДОВЕРИЕ",
+              "ОБРАЩЕНИЕ",
+              "ОТВЕТ",
+              "РЕЗУЛЬТАТ"
+            ]
+          },
+          "selectedLook": "balancedSmokedChrome",
+          "displayInsetRatio": 0.988,
+          "faceOffset": 0.72,
+          "textOffset": 0.18,
+          "displayMaterial": {
+            "color": "#151c23",
+            "metalness": 0.62,
+            "roughness": 0.245,
+            "clearcoat": 0.14,
+            "clearcoatRoughness": 0.18,
+            "envMapIntensity": 1.08
+          },
+          "text": {
+            "color": "#e9edf0",
+            "textureWidth": 2048,
+            "textureHeight": 512,
+            "safeWidthRatio": 0.9,
+            "safeHeightRatio": 0.72,
+            "maxFontPx": 286,
+            "minFontPx": 126,
+            "fontWeight": 700,
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+          },
+          "timings": {
+            "surfaceInMs": 420,
+            "textDelayMs": 140,
+            "textInMs": 320,
+            "readableHoldMs": 1650,
+            "textOutMs": 300,
+            "surfaceOutDelayMs": 100,
+            "surfaceOutMs": 420,
+            "interactionExitMs": 320,
+            "sliceResumeOffsetMs": 260
+          },
+          "cadence": {
+            "opportunityMinMs": 8200,
+            "opportunityMaxMs": 10400,
+            "initialDelayMs": 6200,
+            "seed": 1584034241
+          },
+          "gates": {
+            "entryVisibilityDot": 0.74,
+            "activeExitVisibilityDot": 0.56,
+            "minProjectedArea": 0.035,
+            "minActiveProjectedArea": 0.018,
+            "entryMaxAbsYawDegPerSec": 13.5,
+            "earlyExitMaxAbsYawDegPerSec": 18
+          },
+          "reducedMotion": {
+            "automaticSemanticCycling": false
+          }
+        },
+        "phase": "enter",
+        "word": "RESPONSE",
+        "faceKey": "+Z",
+        "quarterTurns": 0,
+        "orientationDeg": 0,
+        "surfaceOpacity": 0,
+        "textOpacity": 0,
+        "currentFit": {
+          "word": "RESPONSE",
+          "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+          "resolvedFont": "Inter",
+          "fontSizePx": 285.9,
+          "measuredWidthPx": 1714.4227294921875,
+          "measuredHeightPx": 218.89219665527344,
+          "safeWidthPx": 1843.2,
+          "safeHeightPx": 368.64,
+          "clipping": false,
+          "glyphCoverage": true
+        },
+        "currentFace": {
+          "faceKey": "+Z",
+          "quarterTurns": 0,
+          "orientationDeg": 0,
+          "visibilityDot": 0.5828330039957739,
+          "projectedArea": 4.668753548843505,
+          "uprightScore": 2.4419905481515016,
+          "screenUpDot": 0.9986428256706746,
+          "screenRightDot": 0.9061651264084248,
+          "determinant": 1,
+          "centerWorld": [
+            0,
+            0,
+            3.0142
+          ],
+          "normalWorld": [
+            0,
+            0,
+            1
+          ],
+          "rightWorld": [
+            1,
+            0,
+            0
+          ],
+          "upWorld": [
+            0,
+            1,
+            0
+          ]
+        },
+        "activeLook": "balancedSmokedChrome",
+        "bounds": {
+          "min": [
+            -305.26497066745713,
+            -300.7,
+            -300.7
+          ],
+          "max": [
+            305.26497066745713,
+            300.7,
+            300.7
+          ],
+          "span": [
+            610.5299413349143,
+            601.4,
+            601.4
+          ],
+          "faces": {
+            "+X": {
+              "width": 601.4,
+              "height": 601.4,
+              "displayWidth": 594.1831999999999,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                305.26497066745713,
+                0,
+                0
+              ]
+            },
+            "-X": {
+              "width": 601.4,
+              "height": 601.4,
+              "displayWidth": 594.1831999999999,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                -305.26497066745713,
+                0,
+                0
+              ]
+            },
+            "+Y": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                300.7,
+                0
+              ]
+            },
+            "-Y": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                -300.7,
+                0
+              ]
+            },
+            "+Z": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                0,
+                300.7
+              ]
+            },
+            "-Z": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                0,
+                -300.7
+              ]
+            }
+          }
+        },
+        "scheduler": {
+          "enabled": false,
+          "sequenceIndex": 0,
+          "nextOpportunityAt": 9170.98996525706,
+          "resumeAt": 0,
+          "sliceResumeAt": 0,
+          "reducedMotionAutomaticCycling": false
+        },
+        "stats": {
+          "semanticActivationCount": 1,
+          "semanticCompletedCount": 0,
+          "semanticEarlyExitCount": 0,
+          "semanticFrames": 0,
+          "bodyActiveFrames": 0,
+          "totalReadableHoldMs": 0,
+          "readableEventCount": 0,
+          "minimumEntryFaceVisibilityDot": 0.5828330039957739,
+          "minimumActiveFaceVisibilityDot": null,
+          "maxSimultaneousSemanticFaces": 1,
+          "semanticBodyActiveFrameRatio": 1,
+          "averageReadableHoldMs": 0
+        },
+        "eventLog": [
+          {
+            "type": "activate",
+            "time": 746.7000000000116,
+            "word": "RESPONSE",
+            "faceKey": "+Z",
+            "entryVisibilityDot": 0.5828330039957739,
+            "orientationDeg": 0
+          }
+        ]
+      },
+      "lookDev": {
+        "config": {
+          "selectedPreset": "premiumHybrid",
+          "materialGroups": {
+            "graphiteFace": {
+              "color": "#242a31",
+              "metalness": 0.84,
+              "roughness": 0.295,
+              "clearcoat": 0.16,
+              "clearcoatRoughness": 0.2,
+              "envMapIntensity": 1.18
+            },
+            "gunmetalFace": {
+              "color": "#2b323a",
+              "metalness": 0.86,
+              "roughness": 0.265,
+              "clearcoat": 0.2,
+              "clearcoatRoughness": 0.18,
+              "envMapIntensity": 1.22
+            },
+            "blackChromeFace": {
+              "color": "#181d23",
+              "metalness": 0.92,
+              "roughness": 0.225,
+              "clearcoat": 0.16,
+              "clearcoatRoughness": 0.16,
+              "envMapIntensity": 1.26
+            },
+            "smokedCore": {
+              "color": "#0c0f13",
+              "metalness": 0.48,
+              "roughness": 0.44,
+              "clearcoat": 0.06,
+              "clearcoatRoughness": 0.28,
+              "envMapIntensity": 0.66
+            }
+          },
+          "environment": {
+            "method": "procedural PMREM studio reflection cards",
+            "cardCount": 4,
+            "sigma": 0.075,
+            "externalTextures": 0
+          },
+          "lighting": {
+            "hemisphereIntensity": 0.52,
+            "keyIntensity": 5.2,
+            "fillIntensity": 4,
+            "rimIntensity": 4.6,
+            "rectAreaLights": 3
+          },
+          "colorManagement": {
+            "outputColorSpace": "SRGBColorSpace",
+            "toneMapping": "ACESFilmicToneMapping",
+            "exposure": 1
+          },
+          "postprocessing": "NONE"
+        },
+        "activePreset": "premiumHybrid",
+        "materialAssignments": {
+          "graphiteFace": 48,
+          "gunmetalFace": 48,
+          "blackChromeFace": 84,
+          "smokedCore": 30
+        },
+        "lighting": {
+          "hemisphere": {
+            "type": "HemisphereLight",
+            "skyColor": "#8a949f",
+            "groundColor": "#0b0e12",
+            "intensity": 0.52
+          },
+          "key": {
+            "type": "RectAreaLight",
+            "color": "#e2e6eb",
+            "intensity": 5.2,
+            "width": 16.751249108415823,
+            "height": 13.086913365949862,
+            "position": [
+              8.480319861135511,
+              3.2455545147555656,
+              10.207792425440891
+            ]
+          },
+          "fill": {
+            "type": "RectAreaLight",
+            "color": "#b7c0ca",
+            "intensity": 4,
+            "width": 14.919081237182843,
+            "height": 13.872128167906853,
+            "position": [
+              -7.5904097522509195,
+              1.1516483762035876,
+              9.003796395773504
+            ]
+          },
+          "rim": {
+            "type": "RectAreaLight",
+            "color": "#e8ecf1",
+            "intensity": 4.6,
+            "width": 6.019980148336936,
+            "height": 13.872128167906853,
+            "position": [
+              -6.700499643366329,
+              5.339460653307544,
+              -9.841358851194295
+            ]
+          }
+        },
+        "environment": {
+          "method": "procedural PMREM studio reflection cards",
+          "cardCount": 4,
+          "sigma": 0.075,
+          "externalTextures": 0
+        },
+        "colorManagement": {
+          "outputColorSpace": "SRGBColorSpace",
+          "toneMapping": "ACESFilmicToneMapping",
+          "exposure": 1
+        },
+        "postprocessing": "NONE",
+        "materialTypes": {
+          "graphiteFace": "MeshPhysicalMaterial",
+          "gunmetalFace": "MeshPhysicalMaterial",
+          "blackChromeFace": "MeshPhysicalMaterial",
+          "smokedCore": "MeshPhysicalMaterial"
+        }
+      },
+      "renderer": {
+        "webgl2": true,
+        "pixelRatio": 1,
+        "calls": 210,
+        "triangles": 172440
+      }
+    },
+    "during": {
+      "ready": true,
+      "motionState": "rest",
+      "hierarchy": {
+        "pass": true,
+        "groups": {
+          "right": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          },
+          "center": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          },
+          "left": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          }
+        }
+      },
+      "mechanics": {
+        "axes": [
+          "X",
+          "Y",
+          "Z"
+        ],
+        "layers": [
+          -1,
+          0,
+          1
+        ],
+        "exportedCubieParents": 30,
+        "physicalCubies": 27,
+        "duplicateExportObjects": 3,
+        "latticeCenters": {
+          "X": [
+            -204.99999999999994,
+            -0.06497066745719593,
+            204.99999999999994
+          ],
+          "Y": [
+            -200.5,
+            -1.4210854715202004e-14,
+            200.5
+          ],
+          "Z": [
+            -200.50000000000003,
+            -2.842170943040401e-14,
+            200.49999999999997
+          ]
+        },
+        "layerStats": {
+          "X": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            }
+          },
+          "Y": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 12
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            }
+          },
+          "Z": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 12
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            }
+          }
+        },
+        "spatialDeduplication": "27 logical spatial cubies from 30 exported parent objects; slice selection is logical-position based, never mesh-name based."
+      },
+      "motionConfig": {
+        "turnDurationRangeMs": [
+          1080,
+          1420
+        ],
+        "easing": [
+          0.36,
+          0,
+          0.12,
+          1
+        ],
+        "orbitDampingFactor": 0.074,
+        "orbitRotateSpeed": 0.5,
+        "orbitZoomSpeed": 0.48,
+        "manualResumeDelayMs": 1850,
+        "manualResumeBlendMs": 2400,
+        "sliceResumeStaggerMs": 280
+      },
+      "presentationConfig": {
+        "normalYawVelocityDegPerSec": [
+          7,
+          12
+        ],
+        "inspectionYawVelocityDegPerSec": [
+          18,
+          30
+        ],
+        "pitchEnvelopeDeg": 10.2,
+        "rollEnvelopeDeg": 2.45,
+        "velocityCycleMs": 68000,
+        "velocityKeyframes": [
+          {
+            "timeMs": 0,
+            "velocityDegPerSec": 8
+          },
+          {
+            "timeMs": 3500,
+            "velocityDegPerSec": 11
+          },
+          {
+            "timeMs": 5500,
+            "velocityDegPerSec": 24
+          },
+          {
+            "timeMs": 9500,
+            "velocityDegPerSec": 30
+          },
+          {
+            "timeMs": 13500,
+            "velocityDegPerSec": 27
+          },
+          {
+            "timeMs": 16500,
+            "velocityDegPerSec": 12
+          },
+          {
+            "timeMs": 23000,
+            "velocityDegPerSec": 8
+          },
+          {
+            "timeMs": 29000,
+            "velocityDegPerSec": 10
+          },
+          {
+            "timeMs": 36000,
+            "velocityDegPerSec": -8
+          },
+          {
+            "timeMs": 43000,
+            "velocityDegPerSec": -11
+          },
+          {
+            "timeMs": 49000,
+            "velocityDegPerSec": -24
+          },
+          {
+            "timeMs": 55000,
+            "velocityDegPerSec": -29
+          },
+          {
+            "timeMs": 60000,
+            "velocityDegPerSec": -14
+          },
+          {
+            "timeMs": 68000,
+            "velocityDegPerSec": 8
+          }
+        ],
+        "pitchPrimaryPeriodMs": 14800,
+        "pitchSecondaryPeriodMs": 31100,
+        "rollPrimaryPeriodMs": 18400,
+        "rollSecondaryPeriodMs": 36700,
+        "review360TargetSec": 18
+      },
+      "sliceConfig": {
+        "turnDurationRangeMs": [
+          1080,
+          1420
+        ],
+        "typicalGapRangeMs": [
+          180,
+          420
+        ],
+        "breathingGapRangeMs": [
+          620,
+          820
+        ],
+        "pairedStaggerRangeMs": [
+          100,
+          220
+        ],
+        "phraseMicroGapRangeMs": [
+          90,
+          170
+        ],
+        "eventPattern": [
+          "single",
+          "pair",
+          "single",
+          "single",
+          "phrase",
+          "single",
+          "pair",
+          "single",
+          "single",
+          "phrase"
+        ],
+        "distribution": {
+          "single": 0.6,
+          "paired": 0.2,
+          "phrase": 0.2
+        },
+        "seed": 1369948382
+      },
+      "presentation": {
+        "simTimeMs": 0,
+        "signedYawDeg": 0,
+        "cumulativeYawDeg": 0,
+        "yawVelocityDegPerSec": 0,
+        "frameAngularDeltaRad": 0,
+        "quaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "activeTurns": [],
+      "lastTurnResult": null,
+      "lastTurnResults": [],
+      "interaction": {
+        "interactionActive": true,
+        "autonomyBlocked": true,
+        "sliceAutonomyBlocked": true,
+        "resumeDelayRemainingMs": null,
+        "sliceResumeDelayRemainingMs": null,
+        "presentationResumeActive": false,
+        "cameraPosition": [
+          11.396325358342029,
+          8.888694080089271,
+          15.314479862999516
+        ],
+        "presentationQuaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "scheduler": {
+        "enabled": false,
+        "running": false,
+        "eventSerial": 0,
+        "eventsUntilBreath": 4
+      },
+      "canonicalError": {
+        "maxPosition": 4.263256414560601e-14,
+        "maxQuaternionRad": 0,
+        "maxScale": 0
+      },
+      "geometry": {
+        "faceMeshes": 180,
+        "coreMeshes": 30,
+        "nonPlaneMeshes": 210,
+        "uniqueEnhancedGeometries": 21,
+        "faceSourceSizes": [
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ]
+        ],
+        "coreSourceSizes": [
+          [
+            200,
+            200,
+            200
+          ],
+          [
+            200,
+            200,
+            200
+          ],
+          [
+            200,
+            200,
+            200
+          ]
+        ],
+        "latticePitches": {
+          "X": 204.99999999999994,
+          "Y": 200.5,
+          "Z": 200.5
+        },
+        "faceGapRange": {
+          "min": 3.6999999999999886,
+          "max": 8.199999999999932
+        },
+        "coreGapRange": {
+          "min": 2.5,
+          "max": 6.999999999999943
+        },
+        "faceOutwardProtrusion": 0,
+        "pass": true
+      },
+      "geometryConfig": {
+        "faceOuterSize": 196.8,
+        "faceThickness": 3.6,
+        "faceCornerRadius": 10.6,
+        "faceBevelSize": 2.35,
+        "faceBevelThickness": 1.25,
+        "faceBevelSegments": 4,
+        "faceCurveSegments": 8,
+        "coreSize": 198,
+        "coreRadius": 9.2,
+        "coreSegments": 5
+      },
+      "semantic": {
+        "ready": true,
+        "language": "en",
+        "config": {
+          "language": "en",
+          "sequences": {
+            "en": [
+              "AI EXPERT",
+              "TRUST",
+              "INQUIRY",
+              "RESPONSE",
+              "RESULT"
+            ],
+            "ru": [
+              "AI EXPERT",
+              "ДОВЕРИЕ",
+              "ОБРАЩЕНИЕ",
+              "ОТВЕТ",
+              "РЕЗУЛЬТАТ"
+            ]
+          },
+          "selectedLook": "balancedSmokedChrome",
+          "displayInsetRatio": 0.988,
+          "faceOffset": 0.72,
+          "textOffset": 0.18,
+          "displayMaterial": {
+            "color": "#151c23",
+            "metalness": 0.62,
+            "roughness": 0.245,
+            "clearcoat": 0.14,
+            "clearcoatRoughness": 0.18,
+            "envMapIntensity": 1.08
+          },
+          "text": {
+            "color": "#e9edf0",
+            "textureWidth": 2048,
+            "textureHeight": 512,
+            "safeWidthRatio": 0.9,
+            "safeHeightRatio": 0.72,
+            "maxFontPx": 286,
+            "minFontPx": 126,
+            "fontWeight": 700,
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+          },
+          "timings": {
+            "surfaceInMs": 420,
+            "textDelayMs": 140,
+            "textInMs": 320,
+            "readableHoldMs": 1650,
+            "textOutMs": 300,
+            "surfaceOutDelayMs": 100,
+            "surfaceOutMs": 420,
+            "interactionExitMs": 320,
+            "sliceResumeOffsetMs": 260
+          },
+          "cadence": {
+            "opportunityMinMs": 8200,
+            "opportunityMaxMs": 10400,
+            "initialDelayMs": 6200,
+            "seed": 1584034241
+          },
+          "gates": {
+            "entryVisibilityDot": 0.74,
+            "activeExitVisibilityDot": 0.56,
+            "minProjectedArea": 0.035,
+            "minActiveProjectedArea": 0.018,
+            "entryMaxAbsYawDegPerSec": 13.5,
+            "earlyExitMaxAbsYawDegPerSec": 18
+          },
+          "reducedMotion": {
+            "automaticSemanticCycling": false
+          }
+        },
+        "phase": "exitFast",
+        "word": "RESPONSE",
+        "faceKey": "+Z",
+        "quarterTurns": 0,
+        "orientationDeg": 0,
+        "surfaceOpacity": 0,
+        "textOpacity": 0,
+        "currentFit": {
+          "word": "RESPONSE",
+          "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+          "resolvedFont": "Inter",
+          "fontSizePx": 285.9,
+          "measuredWidthPx": 1714.4227294921875,
+          "measuredHeightPx": 218.89219665527344,
+          "safeWidthPx": 1843.2,
+          "safeHeightPx": 368.64,
+          "clipping": false,
+          "glyphCoverage": true
+        },
+        "currentFace": {
+          "faceKey": "+Z",
+          "quarterTurns": 0,
+          "orientationDeg": 0,
+          "visibilityDot": 0.6481178623700328,
+          "projectedArea": 12.132903271104034,
+          "uprightScore": 2.48154614936612,
+          "screenUpDot": 0.9989636715012415,
+          "screenRightDot": 0.9364117539937915,
+          "determinant": 1,
+          "centerWorld": [
+            0,
+            0,
+            3.0142
+          ],
+          "normalWorld": [
+            0,
+            0,
+            1
+          ],
+          "rightWorld": [
+            1,
+            0,
+            0
+          ],
+          "upWorld": [
+            0,
+            1,
+            0
+          ]
+        },
+        "activeLook": "balancedSmokedChrome",
+        "bounds": {
+          "min": [
+            -305.26497066745713,
+            -300.7,
+            -300.7
+          ],
+          "max": [
+            305.26497066745713,
+            300.7,
+            300.7
+          ],
+          "span": [
+            610.5299413349143,
+            601.4,
+            601.4
+          ],
+          "faces": {
+            "+X": {
+              "width": 601.4,
+              "height": 601.4,
+              "displayWidth": 594.1831999999999,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                305.26497066745713,
+                0,
+                0
+              ]
+            },
+            "-X": {
+              "width": 601.4,
+              "height": 601.4,
+              "displayWidth": 594.1831999999999,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                -305.26497066745713,
+                0,
+                0
+              ]
+            },
+            "+Y": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                300.7,
+                0
+              ]
+            },
+            "-Y": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                -300.7,
+                0
+              ]
+            },
+            "+Z": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                0,
+                300.7
+              ]
+            },
+            "-Z": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                0,
+                -300.7
+              ]
+            }
+          }
+        },
+        "scheduler": {
+          "enabled": false,
+          "sequenceIndex": 0,
+          "nextOpportunityAt": 9170.98996525706,
+          "resumeAt": null,
+          "sliceResumeAt": 0,
+          "reducedMotionAutomaticCycling": false
+        },
+        "stats": {
+          "semanticActivationCount": 1,
+          "semanticCompletedCount": 0,
+          "semanticEarlyExitCount": 0,
+          "semanticFrames": 0,
+          "bodyActiveFrames": 0,
+          "totalReadableHoldMs": 0,
+          "readableEventCount": 0,
+          "minimumEntryFaceVisibilityDot": 0.5828330039957739,
+          "minimumActiveFaceVisibilityDot": null,
+          "maxSimultaneousSemanticFaces": 1,
+          "semanticBodyActiveFrameRatio": 1,
+          "averageReadableHoldMs": 0
+        },
+        "eventLog": [
+          {
+            "type": "activate",
+            "time": 746.7000000000116,
+            "word": "RESPONSE",
+            "faceKey": "+Z",
+            "entryVisibilityDot": 0.5828330039957739,
+            "orientationDeg": 0
+          },
+          {
+            "type": "early-exit",
+            "time": 11695.500000000058,
+            "reason": "interaction",
+            "word": "RESPONSE",
+            "faceKey": "+Z"
+          }
+        ]
+      },
+      "lookDev": {
+        "config": {
+          "selectedPreset": "premiumHybrid",
+          "materialGroups": {
+            "graphiteFace": {
+              "color": "#242a31",
+              "metalness": 0.84,
+              "roughness": 0.295,
+              "clearcoat": 0.16,
+              "clearcoatRoughness": 0.2,
+              "envMapIntensity": 1.18
+            },
+            "gunmetalFace": {
+              "color": "#2b323a",
+              "metalness": 0.86,
+              "roughness": 0.265,
+              "clearcoat": 0.2,
+              "clearcoatRoughness": 0.18,
+              "envMapIntensity": 1.22
+            },
+            "blackChromeFace": {
+              "color": "#181d23",
+              "metalness": 0.92,
+              "roughness": 0.225,
+              "clearcoat": 0.16,
+              "clearcoatRoughness": 0.16,
+              "envMapIntensity": 1.26
+            },
+            "smokedCore": {
+              "color": "#0c0f13",
+              "metalness": 0.48,
+              "roughness": 0.44,
+              "clearcoat": 0.06,
+              "clearcoatRoughness": 0.28,
+              "envMapIntensity": 0.66
+            }
+          },
+          "environment": {
+            "method": "procedural PMREM studio reflection cards",
+            "cardCount": 4,
+            "sigma": 0.075,
+            "externalTextures": 0
+          },
+          "lighting": {
+            "hemisphereIntensity": 0.52,
+            "keyIntensity": 5.2,
+            "fillIntensity": 4,
+            "rimIntensity": 4.6,
+            "rectAreaLights": 3
+          },
+          "colorManagement": {
+            "outputColorSpace": "SRGBColorSpace",
+            "toneMapping": "ACESFilmicToneMapping",
+            "exposure": 1
+          },
+          "postprocessing": "NONE"
+        },
+        "activePreset": "premiumHybrid",
+        "materialAssignments": {
+          "graphiteFace": 48,
+          "gunmetalFace": 48,
+          "blackChromeFace": 84,
+          "smokedCore": 30
+        },
+        "lighting": {
+          "hemisphere": {
+            "type": "HemisphereLight",
+            "skyColor": "#8a949f",
+            "groundColor": "#0b0e12",
+            "intensity": 0.52
+          },
+          "key": {
+            "type": "RectAreaLight",
+            "color": "#e2e6eb",
+            "intensity": 5.2,
+            "width": 16.751249108415823,
+            "height": 13.086913365949862,
+            "position": [
+              8.480319861135511,
+              3.2455545147555656,
+              10.207792425440891
+            ]
+          },
+          "fill": {
+            "type": "RectAreaLight",
+            "color": "#b7c0ca",
+            "intensity": 4,
+            "width": 14.919081237182843,
+            "height": 13.872128167906853,
+            "position": [
+              -7.5904097522509195,
+              1.1516483762035876,
+              9.003796395773504
+            ]
+          },
+          "rim": {
+            "type": "RectAreaLight",
+            "color": "#e8ecf1",
+            "intensity": 4.6,
+            "width": 6.019980148336936,
+            "height": 13.872128167906853,
+            "position": [
+              -6.700499643366329,
+              5.339460653307544,
+              -9.841358851194295
+            ]
+          }
+        },
+        "environment": {
+          "method": "procedural PMREM studio reflection cards",
+          "cardCount": 4,
+          "sigma": 0.075,
+          "externalTextures": 0
+        },
+        "colorManagement": {
+          "outputColorSpace": "SRGBColorSpace",
+          "toneMapping": "ACESFilmicToneMapping",
+          "exposure": 1
+        },
+        "postprocessing": "NONE",
+        "materialTypes": {
+          "graphiteFace": "MeshPhysicalMaterial",
+          "gunmetalFace": "MeshPhysicalMaterial",
+          "blackChromeFace": "MeshPhysicalMaterial",
+          "smokedCore": "MeshPhysicalMaterial"
+        }
+      },
+      "renderer": {
+        "webgl2": true,
+        "pixelRatio": 1,
+        "calls": 210,
+        "triangles": 172440
+      }
+    },
+    "cleared": {
+      "ready": true,
+      "motionState": "rest",
+      "hierarchy": {
+        "pass": true,
+        "groups": {
+          "right": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          },
+          "center": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          },
+          "left": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          }
+        }
+      },
+      "mechanics": {
+        "axes": [
+          "X",
+          "Y",
+          "Z"
+        ],
+        "layers": [
+          -1,
+          0,
+          1
+        ],
+        "exportedCubieParents": 30,
+        "physicalCubies": 27,
+        "duplicateExportObjects": 3,
+        "latticeCenters": {
+          "X": [
+            -204.99999999999994,
+            -0.06497066745719593,
+            204.99999999999994
+          ],
+          "Y": [
+            -200.5,
+            -1.4210854715202004e-14,
+            200.5
+          ],
+          "Z": [
+            -200.50000000000003,
+            -2.842170943040401e-14,
+            200.49999999999997
+          ]
+        },
+        "layerStats": {
+          "X": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            }
+          },
+          "Y": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 12
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            }
+          },
+          "Z": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 12
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            }
+          }
+        },
+        "spatialDeduplication": "27 logical spatial cubies from 30 exported parent objects; slice selection is logical-position based, never mesh-name based."
+      },
+      "motionConfig": {
+        "turnDurationRangeMs": [
+          1080,
+          1420
+        ],
+        "easing": [
+          0.36,
+          0,
+          0.12,
+          1
+        ],
+        "orbitDampingFactor": 0.074,
+        "orbitRotateSpeed": 0.5,
+        "orbitZoomSpeed": 0.48,
+        "manualResumeDelayMs": 1850,
+        "manualResumeBlendMs": 2400,
+        "sliceResumeStaggerMs": 280
+      },
+      "presentationConfig": {
+        "normalYawVelocityDegPerSec": [
+          7,
+          12
+        ],
+        "inspectionYawVelocityDegPerSec": [
+          18,
+          30
+        ],
+        "pitchEnvelopeDeg": 10.2,
+        "rollEnvelopeDeg": 2.45,
+        "velocityCycleMs": 68000,
+        "velocityKeyframes": [
+          {
+            "timeMs": 0,
+            "velocityDegPerSec": 8
+          },
+          {
+            "timeMs": 3500,
+            "velocityDegPerSec": 11
+          },
+          {
+            "timeMs": 5500,
+            "velocityDegPerSec": 24
+          },
+          {
+            "timeMs": 9500,
+            "velocityDegPerSec": 30
+          },
+          {
+            "timeMs": 13500,
+            "velocityDegPerSec": 27
+          },
+          {
+            "timeMs": 16500,
+            "velocityDegPerSec": 12
+          },
+          {
+            "timeMs": 23000,
+            "velocityDegPerSec": 8
+          },
+          {
+            "timeMs": 29000,
+            "velocityDegPerSec": 10
+          },
+          {
+            "timeMs": 36000,
+            "velocityDegPerSec": -8
+          },
+          {
+            "timeMs": 43000,
+            "velocityDegPerSec": -11
+          },
+          {
+            "timeMs": 49000,
+            "velocityDegPerSec": -24
+          },
+          {
+            "timeMs": 55000,
+            "velocityDegPerSec": -29
+          },
+          {
+            "timeMs": 60000,
+            "velocityDegPerSec": -14
+          },
+          {
+            "timeMs": 68000,
+            "velocityDegPerSec": 8
+          }
+        ],
+        "pitchPrimaryPeriodMs": 14800,
+        "pitchSecondaryPeriodMs": 31100,
+        "rollPrimaryPeriodMs": 18400,
+        "rollSecondaryPeriodMs": 36700,
+        "review360TargetSec": 18
+      },
+      "sliceConfig": {
+        "turnDurationRangeMs": [
+          1080,
+          1420
+        ],
+        "typicalGapRangeMs": [
+          180,
+          420
+        ],
+        "breathingGapRangeMs": [
+          620,
+          820
+        ],
+        "pairedStaggerRangeMs": [
+          100,
+          220
+        ],
+        "phraseMicroGapRangeMs": [
+          90,
+          170
+        ],
+        "eventPattern": [
+          "single",
+          "pair",
+          "single",
+          "single",
+          "phrase",
+          "single",
+          "pair",
+          "single",
+          "single",
+          "phrase"
+        ],
+        "distribution": {
+          "single": 0.6,
+          "paired": 0.2,
+          "phrase": 0.2
+        },
+        "seed": 1369948382
+      },
+      "presentation": {
+        "simTimeMs": 0,
+        "signedYawDeg": 0,
+        "cumulativeYawDeg": 0,
+        "yawVelocityDegPerSec": 0,
+        "frameAngularDeltaRad": 0,
+        "quaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "activeTurns": [],
+      "lastTurnResult": null,
+      "lastTurnResults": [],
+      "interaction": {
+        "interactionActive": true,
+        "autonomyBlocked": true,
+        "sliceAutonomyBlocked": true,
+        "resumeDelayRemainingMs": null,
+        "sliceResumeDelayRemainingMs": null,
+        "presentationResumeActive": false,
+        "cameraPosition": [
+          11.396325358342029,
+          8.888694080089271,
+          15.314479862999516
+        ],
+        "presentationQuaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "scheduler": {
+        "enabled": false,
+        "running": false,
+        "eventSerial": 0,
+        "eventsUntilBreath": 4
+      },
+      "canonicalError": {
+        "maxPosition": 4.263256414560601e-14,
+        "maxQuaternionRad": 0,
+        "maxScale": 0
+      },
+      "geometry": {
+        "faceMeshes": 180,
+        "coreMeshes": 30,
+        "nonPlaneMeshes": 210,
+        "uniqueEnhancedGeometries": 21,
+        "faceSourceSizes": [
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ]
+        ],
+        "coreSourceSizes": [
+          [
+            200,
+            200,
+            200
+          ],
+          [
+            200,
+            200,
+            200
+          ],
+          [
+            200,
+            200,
+            200
+          ]
+        ],
+        "latticePitches": {
+          "X": 204.99999999999994,
+          "Y": 200.5,
+          "Z": 200.5
+        },
+        "faceGapRange": {
+          "min": 3.6999999999999886,
+          "max": 8.199999999999932
+        },
+        "coreGapRange": {
+          "min": 2.5,
+          "max": 6.999999999999943
+        },
+        "faceOutwardProtrusion": 0,
+        "pass": true
+      },
+      "geometryConfig": {
+        "faceOuterSize": 196.8,
+        "faceThickness": 3.6,
+        "faceCornerRadius": 10.6,
+        "faceBevelSize": 2.35,
+        "faceBevelThickness": 1.25,
+        "faceBevelSegments": 4,
+        "faceCurveSegments": 8,
+        "coreSize": 198,
+        "coreRadius": 9.2,
+        "coreSegments": 5
+      },
+      "semantic": {
+        "ready": true,
+        "language": "en",
+        "config": {
+          "language": "en",
+          "sequences": {
+            "en": [
+              "AI EXPERT",
+              "TRUST",
+              "INQUIRY",
+              "RESPONSE",
+              "RESULT"
+            ],
+            "ru": [
+              "AI EXPERT",
+              "ДОВЕРИЕ",
+              "ОБРАЩЕНИЕ",
+              "ОТВЕТ",
+              "РЕЗУЛЬТАТ"
+            ]
+          },
+          "selectedLook": "balancedSmokedChrome",
+          "displayInsetRatio": 0.988,
+          "faceOffset": 0.72,
+          "textOffset": 0.18,
+          "displayMaterial": {
+            "color": "#151c23",
+            "metalness": 0.62,
+            "roughness": 0.245,
+            "clearcoat": 0.14,
+            "clearcoatRoughness": 0.18,
+            "envMapIntensity": 1.08
+          },
+          "text": {
+            "color": "#e9edf0",
+            "textureWidth": 2048,
+            "textureHeight": 512,
+            "safeWidthRatio": 0.9,
+            "safeHeightRatio": 0.72,
+            "maxFontPx": 286,
+            "minFontPx": 126,
+            "fontWeight": 700,
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+          },
+          "timings": {
+            "surfaceInMs": 420,
+            "textDelayMs": 140,
+            "textInMs": 320,
+            "readableHoldMs": 1650,
+            "textOutMs": 300,
+            "surfaceOutDelayMs": 100,
+            "surfaceOutMs": 420,
+            "interactionExitMs": 320,
+            "sliceResumeOffsetMs": 260
+          },
+          "cadence": {
+            "opportunityMinMs": 8200,
+            "opportunityMaxMs": 10400,
+            "initialDelayMs": 6200,
+            "seed": 1584034241
+          },
+          "gates": {
+            "entryVisibilityDot": 0.74,
+            "activeExitVisibilityDot": 0.56,
+            "minProjectedArea": 0.035,
+            "minActiveProjectedArea": 0.018,
+            "entryMaxAbsYawDegPerSec": 13.5,
+            "earlyExitMaxAbsYawDegPerSec": 18
+          },
+          "reducedMotion": {
+            "automaticSemanticCycling": false
+          }
+        },
+        "phase": "idle",
+        "word": null,
+        "faceKey": null,
+        "quarterTurns": null,
+        "orientationDeg": null,
+        "surfaceOpacity": 0,
+        "textOpacity": 0,
+        "currentFit": {
+          "word": "RESPONSE",
+          "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+          "resolvedFont": "Inter",
+          "fontSizePx": 285.9,
+          "measuredWidthPx": 1714.4227294921875,
+          "measuredHeightPx": 218.89219665527344,
+          "safeWidthPx": 1843.2,
+          "safeHeightPx": 368.64,
+          "clipping": false,
+          "glyphCoverage": true
+        },
+        "currentFace": null,
+        "activeLook": "balancedSmokedChrome",
+        "bounds": {
+          "min": [
+            -305.26497066745713,
+            -300.7,
+            -300.7
+          ],
+          "max": [
+            305.26497066745713,
+            300.7,
+            300.7
+          ],
+          "span": [
+            610.5299413349143,
+            601.4,
+            601.4
+          ],
+          "faces": {
+            "+X": {
+              "width": 601.4,
+              "height": 601.4,
+              "displayWidth": 594.1831999999999,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                305.26497066745713,
+                0,
+                0
+              ]
+            },
+            "-X": {
+              "width": 601.4,
+              "height": 601.4,
+              "displayWidth": 594.1831999999999,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                -305.26497066745713,
+                0,
+                0
+              ]
+            },
+            "+Y": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                300.7,
+                0
+              ]
+            },
+            "-Y": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                -300.7,
+                0
+              ]
+            },
+            "+Z": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                0,
+                300.7
+              ]
+            },
+            "-Z": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                0,
+                -300.7
+              ]
+            }
+          }
+        },
+        "scheduler": {
+          "enabled": false,
+          "sequenceIndex": 0,
+          "nextOpportunityAt": 9170.98996525706,
+          "resumeAt": null,
+          "sliceResumeAt": 12088.799999999988,
+          "reducedMotionAutomaticCycling": false
+        },
+        "stats": {
+          "semanticActivationCount": 1,
+          "semanticCompletedCount": 0,
+          "semanticEarlyExitCount": 1,
+          "semanticFrames": 0,
+          "bodyActiveFrames": 0,
+          "totalReadableHoldMs": 0,
+          "readableEventCount": 0,
+          "minimumEntryFaceVisibilityDot": 0.5828330039957739,
+          "minimumActiveFaceVisibilityDot": null,
+          "maxSimultaneousSemanticFaces": 1,
+          "semanticBodyActiveFrameRatio": 1,
+          "averageReadableHoldMs": 0
+        },
+        "eventLog": [
+          {
+            "type": "activate",
+            "time": 746.7000000000116,
+            "word": "RESPONSE",
+            "faceKey": "+Z",
+            "entryVisibilityDot": 0.5828330039957739,
+            "orientationDeg": 0
+          },
+          {
+            "type": "early-exit",
+            "time": 11695.500000000058,
+            "reason": "interaction",
+            "word": "RESPONSE",
+            "faceKey": "+Z"
+          },
+          {
+            "type": "complete",
+            "time": 11828.799999999988,
+            "word": "RESPONSE",
+            "faceKey": "+Z",
+            "earlyExit": true,
+            "readableMs": 0
+          }
+        ]
+      },
+      "lookDev": {
+        "config": {
+          "selectedPreset": "premiumHybrid",
+          "materialGroups": {
+            "graphiteFace": {
+              "color": "#242a31",
+              "metalness": 0.84,
+              "roughness": 0.295,
+              "clearcoat": 0.16,
+              "clearcoatRoughness": 0.2,
+              "envMapIntensity": 1.18
+            },
+            "gunmetalFace": {
+              "color": "#2b323a",
+              "metalness": 0.86,
+              "roughness": 0.265,
+              "clearcoat": 0.2,
+              "clearcoatRoughness": 0.18,
+              "envMapIntensity": 1.22
+            },
+            "blackChromeFace": {
+              "color": "#181d23",
+              "metalness": 0.92,
+              "roughness": 0.225,
+              "clearcoat": 0.16,
+              "clearcoatRoughness": 0.16,
+              "envMapIntensity": 1.26
+            },
+            "smokedCore": {
+              "color": "#0c0f13",
+              "metalness": 0.48,
+              "roughness": 0.44,
+              "clearcoat": 0.06,
+              "clearcoatRoughness": 0.28,
+              "envMapIntensity": 0.66
+            }
+          },
+          "environment": {
+            "method": "procedural PMREM studio reflection cards",
+            "cardCount": 4,
+            "sigma": 0.075,
+            "externalTextures": 0
+          },
+          "lighting": {
+            "hemisphereIntensity": 0.52,
+            "keyIntensity": 5.2,
+            "fillIntensity": 4,
+            "rimIntensity": 4.6,
+            "rectAreaLights": 3
+          },
+          "colorManagement": {
+            "outputColorSpace": "SRGBColorSpace",
+            "toneMapping": "ACESFilmicToneMapping",
+            "exposure": 1
+          },
+          "postprocessing": "NONE"
+        },
+        "activePreset": "premiumHybrid",
+        "materialAssignments": {
+          "graphiteFace": 48,
+          "gunmetalFace": 48,
+          "blackChromeFace": 84,
+          "smokedCore": 30
+        },
+        "lighting": {
+          "hemisphere": {
+            "type": "HemisphereLight",
+            "skyColor": "#8a949f",
+            "groundColor": "#0b0e12",
+            "intensity": 0.52
+          },
+          "key": {
+            "type": "RectAreaLight",
+            "color": "#e2e6eb",
+            "intensity": 5.2,
+            "width": 16.751249108415823,
+            "height": 13.086913365949862,
+            "position": [
+              8.480319861135511,
+              3.2455545147555656,
+              10.207792425440891
+            ]
+          },
+          "fill": {
+            "type": "RectAreaLight",
+            "color": "#b7c0ca",
+            "intensity": 4,
+            "width": 14.919081237182843,
+            "height": 13.872128167906853,
+            "position": [
+              -7.5904097522509195,
+              1.1516483762035876,
+              9.003796395773504
+            ]
+          },
+          "rim": {
+            "type": "RectAreaLight",
+            "color": "#e8ecf1",
+            "intensity": 4.6,
+            "width": 6.019980148336936,
+            "height": 13.872128167906853,
+            "position": [
+              -6.700499643366329,
+              5.339460653307544,
+              -9.841358851194295
+            ]
+          }
+        },
+        "environment": {
+          "method": "procedural PMREM studio reflection cards",
+          "cardCount": 4,
+          "sigma": 0.075,
+          "externalTextures": 0
+        },
+        "colorManagement": {
+          "outputColorSpace": "SRGBColorSpace",
+          "toneMapping": "ACESFilmicToneMapping",
+          "exposure": 1
+        },
+        "postprocessing": "NONE",
+        "materialTypes": {
+          "graphiteFace": "MeshPhysicalMaterial",
+          "gunmetalFace": "MeshPhysicalMaterial",
+          "blackChromeFace": "MeshPhysicalMaterial",
+          "smokedCore": "MeshPhysicalMaterial"
+        }
+      },
+      "renderer": {
+        "webgl2": true,
+        "pixelRatio": 1,
+        "calls": 210,
+        "triangles": 172440
+      }
+    },
+    "after": {
+      "ready": true,
+      "motionState": "rest",
+      "hierarchy": {
+        "pass": true,
+        "groups": {
+          "right": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          },
+          "center": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          },
+          "left": {
+            "found": true,
+            "type": "Object3D",
+            "directChildren": [
+              "Cube",
+              "arancio",
+              "bianco",
+              "blu",
+              "giallo",
+              "rosso",
+              "verde"
+            ],
+            "exactChildren": true,
+            "parent": "Scene_1"
+          }
+        }
+      },
+      "mechanics": {
+        "axes": [
+          "X",
+          "Y",
+          "Z"
+        ],
+        "layers": [
+          -1,
+          0,
+          1
+        ],
+        "exportedCubieParents": 30,
+        "physicalCubies": 27,
+        "duplicateExportObjects": 3,
+        "latticeCenters": {
+          "X": [
+            -204.99999999999994,
+            -0.06497066745719593,
+            204.99999999999994
+          ],
+          "Y": [
+            -200.5,
+            -1.4210854715202004e-14,
+            200.5
+          ],
+          "Z": [
+            -200.50000000000003,
+            -2.842170943040401e-14,
+            200.49999999999997
+          ]
+        },
+        "layerStats": {
+          "X": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 10
+            }
+          },
+          "Y": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 12
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            }
+          },
+          "Z": {
+            "0": {
+              "physicalCubies": 9,
+              "exportedObjects": 12
+            },
+            "1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            },
+            "-1": {
+              "physicalCubies": 9,
+              "exportedObjects": 9
+            }
+          }
+        },
+        "spatialDeduplication": "27 logical spatial cubies from 30 exported parent objects; slice selection is logical-position based, never mesh-name based."
+      },
+      "motionConfig": {
+        "turnDurationRangeMs": [
+          1080,
+          1420
+        ],
+        "easing": [
+          0.36,
+          0,
+          0.12,
+          1
+        ],
+        "orbitDampingFactor": 0.074,
+        "orbitRotateSpeed": 0.5,
+        "orbitZoomSpeed": 0.48,
+        "manualResumeDelayMs": 1850,
+        "manualResumeBlendMs": 2400,
+        "sliceResumeStaggerMs": 280
+      },
+      "presentationConfig": {
+        "normalYawVelocityDegPerSec": [
+          7,
+          12
+        ],
+        "inspectionYawVelocityDegPerSec": [
+          18,
+          30
+        ],
+        "pitchEnvelopeDeg": 10.2,
+        "rollEnvelopeDeg": 2.45,
+        "velocityCycleMs": 68000,
+        "velocityKeyframes": [
+          {
+            "timeMs": 0,
+            "velocityDegPerSec": 8
+          },
+          {
+            "timeMs": 3500,
+            "velocityDegPerSec": 11
+          },
+          {
+            "timeMs": 5500,
+            "velocityDegPerSec": 24
+          },
+          {
+            "timeMs": 9500,
+            "velocityDegPerSec": 30
+          },
+          {
+            "timeMs": 13500,
+            "velocityDegPerSec": 27
+          },
+          {
+            "timeMs": 16500,
+            "velocityDegPerSec": 12
+          },
+          {
+            "timeMs": 23000,
+            "velocityDegPerSec": 8
+          },
+          {
+            "timeMs": 29000,
+            "velocityDegPerSec": 10
+          },
+          {
+            "timeMs": 36000,
+            "velocityDegPerSec": -8
+          },
+          {
+            "timeMs": 43000,
+            "velocityDegPerSec": -11
+          },
+          {
+            "timeMs": 49000,
+            "velocityDegPerSec": -24
+          },
+          {
+            "timeMs": 55000,
+            "velocityDegPerSec": -29
+          },
+          {
+            "timeMs": 60000,
+            "velocityDegPerSec": -14
+          },
+          {
+            "timeMs": 68000,
+            "velocityDegPerSec": 8
+          }
+        ],
+        "pitchPrimaryPeriodMs": 14800,
+        "pitchSecondaryPeriodMs": 31100,
+        "rollPrimaryPeriodMs": 18400,
+        "rollSecondaryPeriodMs": 36700,
+        "review360TargetSec": 18
+      },
+      "sliceConfig": {
+        "turnDurationRangeMs": [
+          1080,
+          1420
+        ],
+        "typicalGapRangeMs": [
+          180,
+          420
+        ],
+        "breathingGapRangeMs": [
+          620,
+          820
+        ],
+        "pairedStaggerRangeMs": [
+          100,
+          220
+        ],
+        "phraseMicroGapRangeMs": [
+          90,
+          170
+        ],
+        "eventPattern": [
+          "single",
+          "pair",
+          "single",
+          "single",
+          "phrase",
+          "single",
+          "pair",
+          "single",
+          "single",
+          "phrase"
+        ],
+        "distribution": {
+          "single": 0.6,
+          "paired": 0.2,
+          "phrase": 0.2
+        },
+        "seed": 1369948382
+      },
+      "presentation": {
+        "simTimeMs": 0,
+        "signedYawDeg": 0,
+        "cumulativeYawDeg": 0,
+        "yawVelocityDegPerSec": 0,
+        "frameAngularDeltaRad": 0,
+        "quaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "activeTurns": [],
+      "lastTurnResult": null,
+      "lastTurnResults": [],
+      "interaction": {
+        "interactionActive": false,
+        "autonomyBlocked": true,
+        "sliceAutonomyBlocked": true,
+        "resumeDelayRemainingMs": 1849.0999999999767,
+        "sliceResumeDelayRemainingMs": 2129.0999999999767,
+        "presentationResumeActive": false,
+        "cameraPosition": [
+          11.396325358342029,
+          8.888694080089271,
+          15.314479862999516
+        ],
+        "presentationQuaternion": [
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      "scheduler": {
+        "enabled": false,
+        "running": false,
+        "eventSerial": 0,
+        "eventsUntilBreath": 4
+      },
+      "canonicalError": {
+        "maxPosition": 4.263256414560601e-14,
+        "maxQuaternionRad": 0,
+        "maxScale": 0
+      },
+      "geometry": {
+        "faceMeshes": 180,
+        "coreMeshes": 30,
+        "nonPlaneMeshes": 210,
+        "uniqueEnhancedGeometries": 21,
+        "faceSourceSizes": [
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ],
+          [
+            190,
+            190,
+            0
+          ]
+        ],
+        "coreSourceSizes": [
+          [
+            200,
+            200,
+            200
+          ],
+          [
+            200,
+            200,
+            200
+          ],
+          [
+            200,
+            200,
+            200
+          ]
+        ],
+        "latticePitches": {
+          "X": 204.99999999999994,
+          "Y": 200.5,
+          "Z": 200.5
+        },
+        "faceGapRange": {
+          "min": 3.6999999999999886,
+          "max": 8.199999999999932
+        },
+        "coreGapRange": {
+          "min": 2.5,
+          "max": 6.999999999999943
+        },
+        "faceOutwardProtrusion": 0,
+        "pass": true
+      },
+      "geometryConfig": {
+        "faceOuterSize": 196.8,
+        "faceThickness": 3.6,
+        "faceCornerRadius": 10.6,
+        "faceBevelSize": 2.35,
+        "faceBevelThickness": 1.25,
+        "faceBevelSegments": 4,
+        "faceCurveSegments": 8,
+        "coreSize": 198,
+        "coreRadius": 9.2,
+        "coreSegments": 5
+      },
+      "semantic": {
+        "ready": true,
+        "language": "en",
+        "config": {
+          "language": "en",
+          "sequences": {
+            "en": [
+              "AI EXPERT",
+              "TRUST",
+              "INQUIRY",
+              "RESPONSE",
+              "RESULT"
+            ],
+            "ru": [
+              "AI EXPERT",
+              "ДОВЕРИЕ",
+              "ОБРАЩЕНИЕ",
+              "ОТВЕТ",
+              "РЕЗУЛЬТАТ"
+            ]
+          },
+          "selectedLook": "balancedSmokedChrome",
+          "displayInsetRatio": 0.988,
+          "faceOffset": 0.72,
+          "textOffset": 0.18,
+          "displayMaterial": {
+            "color": "#151c23",
+            "metalness": 0.62,
+            "roughness": 0.245,
+            "clearcoat": 0.14,
+            "clearcoatRoughness": 0.18,
+            "envMapIntensity": 1.08
+          },
+          "text": {
+            "color": "#e9edf0",
+            "textureWidth": 2048,
+            "textureHeight": 512,
+            "safeWidthRatio": 0.9,
+            "safeHeightRatio": 0.72,
+            "maxFontPx": 286,
+            "minFontPx": 126,
+            "fontWeight": 700,
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif"
+          },
+          "timings": {
+            "surfaceInMs": 420,
+            "textDelayMs": 140,
+            "textInMs": 320,
+            "readableHoldMs": 1650,
+            "textOutMs": 300,
+            "surfaceOutDelayMs": 100,
+            "surfaceOutMs": 420,
+            "interactionExitMs": 320,
+            "sliceResumeOffsetMs": 260
+          },
+          "cadence": {
+            "opportunityMinMs": 8200,
+            "opportunityMaxMs": 10400,
+            "initialDelayMs": 6200,
+            "seed": 1584034241
+          },
+          "gates": {
+            "entryVisibilityDot": 0.74,
+            "activeExitVisibilityDot": 0.56,
+            "minProjectedArea": 0.035,
+            "minActiveProjectedArea": 0.018,
+            "entryMaxAbsYawDegPerSec": 13.5,
+            "earlyExitMaxAbsYawDegPerSec": 18
+          },
+          "reducedMotion": {
+            "automaticSemanticCycling": false
+          }
+        },
+        "phase": "idle",
+        "word": null,
+        "faceKey": null,
+        "quarterTurns": null,
+        "orientationDeg": null,
+        "surfaceOpacity": 0,
+        "textOpacity": 0,
+        "currentFit": {
+          "word": "RESPONSE",
+          "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+          "resolvedFont": "Inter",
+          "fontSizePx": 285.9,
+          "measuredWidthPx": 1714.4227294921875,
+          "measuredHeightPx": 218.89219665527344,
+          "safeWidthPx": 1843.2,
+          "safeHeightPx": 368.64,
+          "clipping": false,
+          "glyphCoverage": true
+        },
+        "currentFace": null,
+        "activeLook": "balancedSmokedChrome",
+        "bounds": {
+          "min": [
+            -305.26497066745713,
+            -300.7,
+            -300.7
+          ],
+          "max": [
+            305.26497066745713,
+            300.7,
+            300.7
+          ],
+          "span": [
+            610.5299413349143,
+            601.4,
+            601.4
+          ],
+          "faces": {
+            "+X": {
+              "width": 601.4,
+              "height": 601.4,
+              "displayWidth": 594.1831999999999,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                305.26497066745713,
+                0,
+                0
+              ]
+            },
+            "-X": {
+              "width": 601.4,
+              "height": 601.4,
+              "displayWidth": 594.1831999999999,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                -305.26497066745713,
+                0,
+                0
+              ]
+            },
+            "+Y": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                300.7,
+                0
+              ]
+            },
+            "-Y": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                -300.7,
+                0
+              ]
+            },
+            "+Z": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                0,
+                300.7
+              ]
+            },
+            "-Z": {
+              "width": 610.5299413349143,
+              "height": 601.4,
+              "displayWidth": 603.2035820388953,
+              "displayHeight": 594.1831999999999,
+              "position": [
+                0,
+                0,
+                -300.7
+              ]
+            }
+          }
+        },
+        "scheduler": {
+          "enabled": false,
+          "sequenceIndex": 0,
+          "nextOpportunityAt": 9170.98996525706,
+          "resumeAt": 16509.399999999965,
+          "sliceResumeAt": 12088.799999999988,
+          "reducedMotionAutomaticCycling": false
+        },
+        "stats": {
+          "semanticActivationCount": 1,
+          "semanticCompletedCount": 0,
+          "semanticEarlyExitCount": 1,
+          "semanticFrames": 0,
+          "bodyActiveFrames": 0,
+          "totalReadableHoldMs": 0,
+          "readableEventCount": 0,
+          "minimumEntryFaceVisibilityDot": 0.5828330039957739,
+          "minimumActiveFaceVisibilityDot": null,
+          "maxSimultaneousSemanticFaces": 1,
+          "semanticBodyActiveFrameRatio": 1,
+          "averageReadableHoldMs": 0
+        },
+        "eventLog": [
+          {
+            "type": "activate",
+            "time": 746.7000000000116,
+            "word": "RESPONSE",
+            "faceKey": "+Z",
+            "entryVisibilityDot": 0.5828330039957739,
+            "orientationDeg": 0
+          },
+          {
+            "type": "early-exit",
+            "time": 11695.500000000058,
+            "reason": "interaction",
+            "word": "RESPONSE",
+            "faceKey": "+Z"
+          },
+          {
+            "type": "complete",
+            "time": 11828.799999999988,
+            "word": "RESPONSE",
+            "faceKey": "+Z",
+            "earlyExit": true,
+            "readableMs": 0
+          }
+        ]
+      },
+      "lookDev": {
+        "config": {
+          "selectedPreset": "premiumHybrid",
+          "materialGroups": {
+            "graphiteFace": {
+              "color": "#242a31",
+              "metalness": 0.84,
+              "roughness": 0.295,
+              "clearcoat": 0.16,
+              "clearcoatRoughness": 0.2,
+              "envMapIntensity": 1.18
+            },
+            "gunmetalFace": {
+              "color": "#2b323a",
+              "metalness": 0.86,
+              "roughness": 0.265,
+              "clearcoat": 0.2,
+              "clearcoatRoughness": 0.18,
+              "envMapIntensity": 1.22
+            },
+            "blackChromeFace": {
+              "color": "#181d23",
+              "metalness": 0.92,
+              "roughness": 0.225,
+              "clearcoat": 0.16,
+              "clearcoatRoughness": 0.16,
+              "envMapIntensity": 1.26
+            },
+            "smokedCore": {
+              "color": "#0c0f13",
+              "metalness": 0.48,
+              "roughness": 0.44,
+              "clearcoat": 0.06,
+              "clearcoatRoughness": 0.28,
+              "envMapIntensity": 0.66
+            }
+          },
+          "environment": {
+            "method": "procedural PMREM studio reflection cards",
+            "cardCount": 4,
+            "sigma": 0.075,
+            "externalTextures": 0
+          },
+          "lighting": {
+            "hemisphereIntensity": 0.52,
+            "keyIntensity": 5.2,
+            "fillIntensity": 4,
+            "rimIntensity": 4.6,
+            "rectAreaLights": 3
+          },
+          "colorManagement": {
+            "outputColorSpace": "SRGBColorSpace",
+            "toneMapping": "ACESFilmicToneMapping",
+            "exposure": 1
+          },
+          "postprocessing": "NONE"
+        },
+        "activePreset": "premiumHybrid",
+        "materialAssignments": {
+          "graphiteFace": 48,
+          "gunmetalFace": 48,
+          "blackChromeFace": 84,
+          "smokedCore": 30
+        },
+        "lighting": {
+          "hemisphere": {
+            "type": "HemisphereLight",
+            "skyColor": "#8a949f",
+            "groundColor": "#0b0e12",
+            "intensity": 0.52
+          },
+          "key": {
+            "type": "RectAreaLight",
+            "color": "#e2e6eb",
+            "intensity": 5.2,
+            "width": 16.751249108415823,
+            "height": 13.086913365949862,
+            "position": [
+              8.480319861135511,
+              3.2455545147555656,
+              10.207792425440891
+            ]
+          },
+          "fill": {
+            "type": "RectAreaLight",
+            "color": "#b7c0ca",
+            "intensity": 4,
+            "width": 14.919081237182843,
+            "height": 13.872128167906853,
+            "position": [
+              -7.5904097522509195,
+              1.1516483762035876,
+              9.003796395773504
+            ]
+          },
+          "rim": {
+            "type": "RectAreaLight",
+            "color": "#e8ecf1",
+            "intensity": 4.6,
+            "width": 6.019980148336936,
+            "height": 13.872128167906853,
+            "position": [
+              -6.700499643366329,
+              5.339460653307544,
+              -9.841358851194295
+            ]
+          }
+        },
+        "environment": {
+          "method": "procedural PMREM studio reflection cards",
+          "cardCount": 4,
+          "sigma": 0.075,
+          "externalTextures": 0
+        },
+        "colorManagement": {
+          "outputColorSpace": "SRGBColorSpace",
+          "toneMapping": "ACESFilmicToneMapping",
+          "exposure": 1
+        },
+        "postprocessing": "NONE",
+        "materialTypes": {
+          "graphiteFace": "MeshPhysicalMaterial",
+          "gunmetalFace": "MeshPhysicalMaterial",
+          "blackChromeFace": "MeshPhysicalMaterial",
+          "smokedCore": "MeshPhysicalMaterial"
+        }
+      },
+      "renderer": {
+        "webgl2": true,
+        "pixelRatio": 1,
+        "calls": 210,
+        "triangles": 172440
+      }
+    }
+  },
+  "reducedMotion": {
+    "schedulerEnabled": false,
+    "automaticCyclingDisabled": true,
+    "pass": true
+  },
+  "semanticQA": {
+    "semanticActivationCount": 5,
+    "semanticCompletedCount": 4,
+    "semanticEarlyExitCount": 1,
+    "semanticSliceOverlapCount": 0,
+    "semanticBodyActiveFrameRatio": 1,
+    "averageReadableHoldMs": 1503,
+    "minimumEntryFaceVisibilityDot": 0.7408556911660913,
+    "minimumActiveFaceVisibilityDot": 0.593542725000556,
+    "maxSimultaneousSemanticFaces": 1,
+    "textClipCount": 0,
+    "mirroredTextCount": 0,
+    "missingGlyphCount": 0,
+    "zFightingFlicker": "PASS_STRUCTURAL_MULTI_ANGLE_CAPTURE",
+    "cyrillicRendering": "PASS",
+    "enStringFit": [
+      {
+        "word": "AI EXPERT",
+        "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+        "resolvedFont": "Inter",
+        "fontSizePx": 285.9,
+        "measuredWidthPx": 1650.0673828125,
+        "measuredHeightPx": 209.9578094482422,
+        "safeWidthPx": 1843.2,
+        "safeHeightPx": 368.64,
+        "clipping": false,
+        "glyphCoverage": true
+      },
+      {
+        "word": "TRUST",
+        "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+        "resolvedFont": "Inter",
+        "fontSizePx": 285.9,
+        "measuredWidthPx": 1048.25341796875,
+        "measuredHeightPx": 218.89219665527344,
+        "safeWidthPx": 1843.2,
+        "safeHeightPx": 368.64,
+        "clipping": false,
+        "glyphCoverage": true
+      },
+      {
+        "word": "INQUIRY",
+        "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+        "resolvedFont": "Inter",
+        "fontSizePx": 285.9,
+        "measuredWidthPx": 1338.76025390625,
+        "measuredHeightPx": 259.09686279296875,
+        "safeWidthPx": 1843.2,
+        "safeHeightPx": 368.64,
+        "clipping": false,
+        "glyphCoverage": true
+      },
+      {
+        "word": "RESPONSE",
+        "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+        "resolvedFont": "Inter",
+        "fontSizePx": 285.9,
+        "measuredWidthPx": 1714.4227294921875,
+        "measuredHeightPx": 218.89219665527344,
+        "safeWidthPx": 1843.2,
+        "safeHeightPx": 368.64,
+        "clipping": false,
+        "glyphCoverage": true
+      },
+      {
+        "word": "RESULT",
+        "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+        "resolvedFont": "Inter",
+        "fontSizePx": 285.9,
+        "measuredWidthPx": 1183.3858642578125,
+        "measuredHeightPx": 218.89219665527344,
+        "safeWidthPx": 1843.2,
+        "safeHeightPx": 368.64,
+        "clipping": false,
+        "glyphCoverage": true
+      }
+    ],
+    "ruStringFit": [
+      {
+        "word": "AI EXPERT",
+        "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+        "resolvedFont": "Inter",
+        "fontSizePx": 285.9,
+        "measuredWidthPx": 1650.0673828125,
+        "measuredHeightPx": 209.9578094482422,
+        "safeWidthPx": 1843.2,
+        "safeHeightPx": 368.64,
+        "clipping": false,
+        "glyphCoverage": true
+      },
+      {
+        "word": "ДОВЕРИЕ",
+        "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+        "resolvedFont": "Inter",
+        "fontSizePx": 285.9,
+        "measuredWidthPx": 1555,
+        "measuredHeightPx": 263.5640869140625,
+        "safeWidthPx": 1843.2,
+        "safeHeightPx": 368.64,
+        "clipping": false,
+        "glyphCoverage": true
+      },
+      {
+        "word": "ОБРАЩЕНИЕ",
+        "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+        "resolvedFont": "Inter",
+        "fontSizePx": 246.2,
+        "measuredWidthPx": 1842.6798095703125,
+        "measuredHeightPx": 223,
+        "safeWidthPx": 1843.2,
+        "safeHeightPx": 368.64,
+        "clipping": false,
+        "glyphCoverage": true
+      },
+      {
+        "word": "ОТВЕТ",
+        "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+        "resolvedFont": "Inter",
+        "fontSizePx": 285.9,
+        "measuredWidthPx": 1046.299072265625,
+        "measuredHeightPx": 218.89219665527344,
+        "safeWidthPx": 1843.2,
+        "safeHeightPx": 368.64,
+        "clipping": false,
+        "glyphCoverage": true
+      },
+      {
+        "word": "РЕЗУЛЬТАТ",
+        "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+        "resolvedFont": "Inter",
+        "fontSizePx": 278,
+        "measuredWidthPx": 1842.7001953125,
+        "measuredHeightPx": 212.84375,
+        "safeWidthPx": 1843.2,
+        "safeHeightPx": 368.64,
+        "clipping": false,
+        "glyphCoverage": true
+      }
+    ],
+    "faceOrientation": {
+      "faces": {
+        "+X": {
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "expectedNormal": [
+            1,
+            0,
+            0
+          ],
+          "normalErrorRad": 0,
+          "determinant": 1,
+          "mirrored": false,
+          "selectedOrientationDeg": 0,
+          "uprightScore": 2.3779147209588123,
+          "stableParent": true,
+          "backfaceTextDisabled": true,
+          "pass": true
+        },
+        "-X": {
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "expectedNormal": [
+            -1,
+            0,
+            0
+          ],
+          "normalErrorRad": 0,
+          "determinant": 1,
+          "mirrored": false,
+          "selectedOrientationDeg": 0,
+          "uprightScore": 0.8013366814177916,
+          "stableParent": true,
+          "backfaceTextDisabled": true,
+          "pass": true
+        },
+        "+Y": {
+          "normal": [
+            0,
+            1,
+            0
+          ],
+          "expectedNormal": [
+            0,
+            1,
+            0
+          ],
+          "normalErrorRad": 0,
+          "determinant": 1,
+          "mirrored": false,
+          "selectedOrientationDeg": 0,
+          "uprightScore": 1.2494450157510841,
+          "stableParent": true,
+          "backfaceTextDisabled": true,
+          "pass": true
+        },
+        "-Y": {
+          "normal": [
+            0,
+            -1,
+            0
+          ],
+          "expectedNormal": [
+            0,
+            -1,
+            0
+          ],
+          "normalErrorRad": 0,
+          "determinant": 1,
+          "mirrored": false,
+          "selectedOrientationDeg": 180,
+          "uprightScore": -0.11409448830074481,
+          "stableParent": true,
+          "backfaceTextDisabled": true,
+          "pass": true
+        },
+        "+Z": {
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "expectedNormal": [
+            0,
+            0,
+            1
+          ],
+          "normalErrorRad": 0,
+          "determinant": 1,
+          "mirrored": false,
+          "selectedOrientationDeg": 0,
+          "uprightScore": 2.4419905481515016,
+          "stableParent": true,
+          "backfaceTextDisabled": true,
+          "pass": true
+        },
+        "-Z": {
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "expectedNormal": [
+            0,
+            0,
+            -1
+          ],
+          "normalErrorRad": 0,
+          "determinant": 1,
+          "mirrored": false,
+          "selectedOrientationDeg": 0,
+          "uprightScore": 0.7906847989923682,
+          "stableParent": true,
+          "backfaceTextDisabled": true,
+          "pass": true
+        }
+      },
+      "mirroredTextCount": 0,
+      "pass": true
+    },
+    "enVideo": {
+      "generatedAt": "2026-08-13T02:28:52.024Z",
+      "captureMethod": "Playwright browser video recording of full deterministic Three.js timeline; wall-time normalized without truncating late semantic events",
+      "lang": "en",
+      "semanticActivationCount": 5,
+      "semanticCompletedCount": 4,
+      "semanticEarlyExitCount": 1,
+      "semanticSliceOverlapCount": 0,
+      "semanticBodyActiveFrameRatio": 1,
+      "averageReadableHoldMs": 1503,
+      "minimumEntryFaceVisibilityDot": 0.7408556911660913,
+      "minimumActiveFaceVisibilityDot": 0.593542725000556,
+      "maxSimultaneousSemanticFaces": 1,
+      "distinctSelectedFaces": [
+        "+Z",
+        "-X"
+      ],
+      "semanticRecords": [
+        {
+          "word": "AI EXPERT",
+          "scheduledStart": 2,
+          "start": 3.4166666666666665,
+          "faceKey": "+Z",
+          "entryVisibilityDot": 0.7408556911660913,
+          "orientationDeg": 0,
+          "fit": {
+            "word": "AI EXPERT",
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+            "resolvedFont": "Inter",
+            "fontSizePx": 285.9,
+            "measuredWidthPx": 1650.0673828125,
+            "measuredHeightPx": 209.9578094482422,
+            "safeWidthPx": 1843.2,
+            "safeHeightPx": 368.64,
+            "clipping": false,
+            "glyphCoverage": true
+          },
+          "earlyExit": false
+        },
+        {
+          "word": "TRUST",
+          "scheduledStart": 16.6,
+          "start": 19.333333333333332,
+          "faceKey": "+Z",
+          "entryVisibilityDot": 0.7436728786957996,
+          "orientationDeg": 0,
+          "fit": {
+            "word": "TRUST",
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+            "resolvedFont": "Inter",
+            "fontSizePx": 285.9,
+            "measuredWidthPx": 1048.25341796875,
+            "measuredHeightPx": 218.89219665527344,
+            "safeWidthPx": 1843.2,
+            "safeHeightPx": 368.64,
+            "clipping": false,
+            "glyphCoverage": true
+          },
+          "earlyExit": false
+        },
+        {
+          "word": "INQUIRY",
+          "scheduledStart": 22.3,
+          "start": 22.333333333333332,
+          "faceKey": "+Z",
+          "entryVisibilityDot": 0.9025520192840581,
+          "orientationDeg": 0,
+          "fit": {
+            "word": "INQUIRY",
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+            "resolvedFont": "Inter",
+            "fontSizePx": 285.9,
+            "measuredWidthPx": 1338.76025390625,
+            "measuredHeightPx": 259.09686279296875,
+            "safeWidthPx": 1843.2,
+            "safeHeightPx": 368.64,
+            "clipping": false,
+            "glyphCoverage": true
+          },
+          "earlyExit": false
+        },
+        {
+          "word": "RESPONSE",
+          "scheduledStart": 28.9,
+          "start": 28.916666666666668,
+          "faceKey": "-X",
+          "entryVisibilityDot": 0.7748122013144328,
+          "orientationDeg": 0,
+          "fit": {
+            "word": "RESPONSE",
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+            "resolvedFont": "Inter",
+            "fontSizePx": 285.9,
+            "measuredWidthPx": 1714.4227294921875,
+            "measuredHeightPx": 218.89219665527344,
+            "safeWidthPx": 1843.2,
+            "safeHeightPx": 368.64,
+            "clipping": false,
+            "glyphCoverage": true
+          },
+          "earlyExit": true,
+          "earlyExitAt": 30.291666666666668
+        },
+        {
+          "word": "RESULT",
+          "scheduledStart": 36.2,
+          "start": 37,
+          "faceKey": "-X",
+          "entryVisibilityDot": 0.7416735723497283,
+          "orientationDeg": 0,
+          "fit": {
+            "word": "RESULT",
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+            "resolvedFont": "Inter",
+            "fontSizePx": 285.9,
+            "measuredWidthPx": 1183.3858642578125,
+            "measuredHeightPx": 218.89219665527344,
+            "safeWidthPx": 1843.2,
+            "safeHeightPx": 368.64,
+            "clipping": false,
+            "glyphCoverage": true
+          },
+          "earlyExit": false
+        }
+      ],
+      "mechanicalStartedCount": 8,
+      "interaction": {
+        "performed": true,
+        "start": 30.291666666666668,
+        "dragEnd": 31.09166666666667,
+        "calmEnd": 32.94166666666667,
+        "blendEnd": 35.34166666666667,
+        "cameraBefore": [
+          -0.20881325931507858,
+          0.3459769220493857,
+          0.0792790506052462,
+          0.9112693478212562
+        ],
+        "cameraAfter": [
+          -0.1681167028489051,
+          0.04911365656283687,
+          0.008386761020678661,
+          0.9845071280604435
+        ],
+        "cameraAnglePreserved": true
+      },
+      "runtime": {
+        "pageErrors": [],
+        "consoleErrors": []
+      },
+      "recording": {
+        "trimStartSec": 0.997,
+        "timelineWallSec": 3183.628,
+        "normalizationSetpts": 0.012878389058018084
+      },
+      "mp4": {
+        "path": "proai-cube-semantic-display-r1-en-review-41s.mp4",
+        "metadata": {
+          "programs": [],
+          "streams": [
+            {
+              "codec_name": "h264",
+              "width": 720,
+              "height": 720,
+              "pix_fmt": "yuv420p",
+              "avg_frame_rate": "24/1",
+              "nb_read_frames": "984"
+            }
+          ],
+          "format": {
+            "duration": "41.000000",
+            "size": "1871346"
+          }
+        },
+        "pass": true
+      }
+    },
+    "ruVideo": {
+      "generatedAt": "2026-08-13T02:02:15.454Z",
+      "captureMethod": "Playwright browser video recording of full deterministic Three.js timeline; wall-time normalized without truncating late semantic events",
+      "lang": "ru",
+      "semanticActivationCount": 3,
+      "semanticCompletedCount": 3,
+      "semanticEarlyExitCount": 0,
+      "semanticSliceOverlapCount": 0,
+      "semanticBodyActiveFrameRatio": 1,
+      "averageReadableHoldMs": 1650,
+      "minimumEntryFaceVisibilityDot": 0.7411914216586949,
+      "minimumActiveFaceVisibilityDot": 0.5314588491918509,
+      "maxSimultaneousSemanticFaces": 1,
+      "distinctSelectedFaces": [
+        "+Z",
+        "-X"
+      ],
+      "semanticRecords": [
+        {
+          "word": "ДОВЕРИЕ",
+          "scheduledStart": 1,
+          "start": 2.7083333333333335,
+          "faceKey": "+Z",
+          "entryVisibilityDot": 0.7411914216586949,
+          "orientationDeg": 0,
+          "fit": {
+            "word": "ДОВЕРИЕ",
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+            "resolvedFont": "Inter",
+            "fontSizePx": 285.9,
+            "measuredWidthPx": 1555,
+            "measuredHeightPx": 263.5640869140625,
+            "safeWidthPx": 1843.2,
+            "safeHeightPx": 368.64,
+            "clipping": false,
+            "glyphCoverage": true
+          },
+          "earlyExit": false
+        },
+        {
+          "word": "ОБРАЩЕНИЕ",
+          "scheduledStart": 8,
+          "start": 8,
+          "faceKey": "+Z",
+          "entryVisibilityDot": 0.8297473581079473,
+          "orientationDeg": 0,
+          "fit": {
+            "word": "ОБРАЩЕНИЕ",
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+            "resolvedFont": "Inter",
+            "fontSizePx": 246.2,
+            "measuredWidthPx": 1842.6798095703125,
+            "measuredHeightPx": 223,
+            "safeWidthPx": 1843.2,
+            "safeHeightPx": 368.64,
+            "clipping": false,
+            "glyphCoverage": true
+          },
+          "earlyExit": false
+        },
+        {
+          "word": "РЕЗУЛЬТАТ",
+          "scheduledStart": 15,
+          "start": 15,
+          "faceKey": "-X",
+          "entryVisibilityDot": 0.8677788349476914,
+          "orientationDeg": 0,
+          "fit": {
+            "word": "РЕЗУЛЬТАТ",
+            "requestedFontStack": "Inter, system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Arial, sans-serif",
+            "resolvedFont": "Inter",
+            "fontSizePx": 278,
+            "measuredWidthPx": 1842.7001953125,
+            "measuredHeightPx": 212.84375,
+            "safeWidthPx": 1843.2,
+            "safeHeightPx": 368.64,
+            "clipping": false,
+            "glyphCoverage": true
+          },
+          "earlyExit": false
+        }
+      ],
+      "mechanicalStartedCount": 2,
+      "interaction": {
+        "performed": false,
+        "start": null,
+        "dragEnd": null,
+        "calmEnd": null,
+        "blendEnd": null,
+        "cameraBefore": null,
+        "cameraAfter": null,
+        "cameraAnglePreserved": null
+      },
+      "runtime": {
+        "pageErrors": [],
+        "consoleErrors": []
+      },
+      "recording": {
+        "trimStartSec": 0.952,
+        "timelineWallSec": 1577.249,
+        "normalizationSetpts": 0.013948336629156208
+      },
+      "mp4": {
+        "path": "proai-cube-semantic-display-r1-ru-proof-22s.mp4",
+        "metadata": {
+          "programs": [],
+          "streams": [
+            {
+              "codec_name": "h264",
+              "width": 720,
+              "height": 720,
+              "pix_fmt": "yuv420p",
+              "avg_frame_rate": "24/1",
+              "nb_read_frames": "528"
+            }
+          ],
+          "format": {
+            "duration": "22.000000",
+            "size": "950058"
+          }
+        },
+        "pass": true
+      }
+    }
+  },
+  "performance": {
+    "softwareCIRenderBenchmark": {
+      "frames": 24,
+      "totalMs": 39.20000000001164,
+      "avgRenderMs": 1.6333333333338185,
+      "renderer": {
+        "webgl2": true,
+        "pixelRatio": 1,
+        "calls": 210,
+        "triangles": 172440
+      },
+      "textTexture": {
+        "width": 2048,
+        "height": 512
+      }
+    },
+    "note": "SwiftShader CI diagnostic only; not an iPhone FPS claim."
+  },
+  "runtime": {
+    "errors": [],
+    "forbiddenSplineRequests": [],
+    "pass": true
+  },
+  "videos": {
+    "en": {
+      "path": "proai-cube-semantic-display-r1-en-review-41s.mp4",
+      "metadata": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 720,
+            "height": 720,
+            "pix_fmt": "yuv420p",
+            "avg_frame_rate": "24/1",
+            "nb_read_frames": "984"
+          }
+        ],
+        "format": {
+          "duration": "41.000000",
+          "size": "1871346"
+        }
+      },
+      "pass": true
+    },
+    "ru": {
+      "path": "proai-cube-semantic-display-r1-ru-proof-22s.mp4",
+      "metadata": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 720,
+            "height": 720,
+            "pix_fmt": "yuv420p",
+            "avg_frame_rate": "24/1",
+            "nb_read_frames": "528"
+          }
+        ],
+        "format": {
+          "duration": "22.000000",
+          "size": "950058"
+        }
+      },
+      "pass": true
+    }
+  },
+  "acceptance": {
+    "semanticDisplayR1": "PASS",
+    "geometryR1Preserved": "PASS",
+    "motionR1_2CoreValuesPreserved": "PASS",
+    "materialsLightingR1Preserved": "PASS",
+    "X": "PASS",
+    "Y": "PASS",
+    "Z": "PASS",
+    "layerSupport": "PASS",
+    "repeatability30": "PASS",
+    "pairedTurns": "PASS",
+    "inverseRestoration": "PASS",
+    "interaction": "PASS",
+    "stringFitEN": "PASS",
+    "stringFitRU": "PASS",
+    "faceOrientationAllSix": "PASS",
+    "reducedMotion": "PASS",
+    "GLBUnchanged": "PASS",
+    "splineDependency": "NONE",
+    "browserRuntime": "PASS",
+    "ownerENMP4": "PASS",
+    "ownerRUMP4": "PASS",
+    "overall": "PASS"
+  }
+}

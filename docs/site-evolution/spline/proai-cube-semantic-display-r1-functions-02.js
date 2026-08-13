@@ -1,6 +1,8 @@
   const upLen = Math.max(1e-9, up2.length());
   const rightLen = Math.max(1e-9, right2.length());
-  const uprightScore = (up2.y / upLen) * 1.45 + (right2.x / rightLen) * 0.75 - Math.abs(up2.x / upLen) * 0.20;
+  const screenUpDot = up2.y / upLen;
+  const screenRightDot = right2.x / rightLen;
+  const uprightScore = screenUpDot * 1.70 + screenRightDot * 0.90 - Math.abs(up2.x / upLen) * 0.15 - Math.abs(right2.y / rightLen) * 0.15;
   return {
     faceKey,
     quarterTurns,
@@ -8,9 +10,13 @@
     visibilityDot,
     projectedArea,
     uprightScore,
+    screenUpDot,
+    screenRightDot,
     determinant: basis.determinant,
     centerWorld: centerWorld.toArray(),
     normalWorld: normalWorld.toArray(),
+    rightWorld: rightWorld.toArray(),
+    upWorld: upWorld.toArray(),
   };
 }
 

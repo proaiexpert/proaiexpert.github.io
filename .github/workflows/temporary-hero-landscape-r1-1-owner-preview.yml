@@ -1,0 +1,59 @@
+name: TEMP Hero Landscape R1.1 Owner Preview
+on:
+  push:
+    branches: [agent/proai-home-hero-landscape-r1-1]
+permissions:
+  contents: read
+  statuses: write
+jobs:
+  owner-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build and serve
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/http.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8080/ >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/ >/dev/null
+          curl -fsS http://127.0.0.1:8080/ru/ >/dev/null
+      - name: Open resilient Quick Tunnel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >/tmp/cloudflared.log 2>&1 &
+          URL=""
+          for i in $(seq 1 60); do
+            URL="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/cloudflared.log | head -1 || true)"
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          [ -n "$URL" ] || { cat /tmp/cloudflared.log; exit 1; }
+          READY=0
+          for i in $(seq 1 45); do
+            if curl -fsS --connect-timeout 5 "$URL/" >/dev/null 2>&1 && curl -fsS --connect-timeout 5 "$URL/ru/" >/dev/null 2>&1; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+          [ "$READY" = 1 ] || { cat /tmp/cloudflared.log; exit 1; }
+          echo "EN: $URL/" >> "$GITHUB_STEP_SUMMARY"
+          echo "RU: $URL/ru/" >> "$GITHUB_STEP_SUMMARY"
+          python3 -c 'import json,sys; print(json.dumps({"state":"success","target_url":sys.argv[1],"description":"Hero landscape R1.1 owner preview (~60 min)","context":"hero-landscape-r1-1-owner"}))' "$URL" >/tmp/status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d @/tmp/status.json >/dev/null
+          echo "LIVE_PREVIEW_READY=$URL"
+      - name: Keep preview alive
+        run: sleep 3600

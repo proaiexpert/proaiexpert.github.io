@@ -70,22 +70,24 @@ function semanticFaceProjection(faceKey, quarterTurns = 0) {
   camera.updateMatrixWorld(true);
   const basis = semanticBasis(faceKey, quarterTurns);
   const centerLocal = metric.position.clone().addScaledVector(basis.normal, SEMANTIC_R1.faceOffset);
-  const localMatrix = new THREE.Matrix4().compose(centerLocal, basis.quaternion, new THREE.Vector3(1, 1, 1));
-  const worldMatrix = new THREE.Matrix4().multiplyMatrices(sceneOne.matrixWorld, localMatrix);
-  const centerWorld = new THREE.Vector3(0, 0, 0).applyMatrix4(worldMatrix);
-  const rightWorld = new THREE.Vector3(1, 0, 0).transformDirection(worldMatrix);
-  const upWorld = new THREE.Vector3(0, 1, 0).transformDirection(worldMatrix);
-  const normalWorld = new THREE.Vector3(0, 0, 1).applyMatrix3(new THREE.Matrix3().getNormalMatrix(worldMatrix)).normalize();
+
+  // Keep the proven Materials/R1.2 face-visibility projection independent from
+  // semantic in-plane orientation. This is the authoritative gating geometry.
+  const centerWorld = sceneOne.localToWorld(centerLocal.clone());
+  const sceneWorldQuaternion = sceneOne.getWorldQuaternion(new THREE.Quaternion());
+  const normalWorld = basis.normal.clone().applyQuaternion(sceneWorldQuaternion).normalize();
+  const faceRightWorld = basis.right.clone().applyQuaternion(sceneWorldQuaternion).normalize();
+  const faceUpWorld = basis.up.clone().applyQuaternion(sceneWorldQuaternion).normalize();
   const toCamera = camera.position.clone().sub(centerWorld).normalize();
   const visibilityDot = normalWorld.dot(toCamera);
   const halfW = metric.displayWidth * 0.5;
   const halfH = metric.displayHeight * 0.5;
   const points = [
-    new THREE.Vector3(-halfW, -halfH, 0),
-    new THREE.Vector3(halfW, -halfH, 0),
-    new THREE.Vector3(halfW, halfH, 0),
-    new THREE.Vector3(-halfW, halfH, 0),
-  ].map((p) => p.applyMatrix4(worldMatrix).project(camera));
+    centerWorld.clone().addScaledVector(faceRightWorld, -halfW).addScaledVector(faceUpWorld, -halfH),
+    centerWorld.clone().addScaledVector(faceRightWorld, halfW).addScaledVector(faceUpWorld, -halfH),
+    centerWorld.clone().addScaledVector(faceRightWorld, halfW).addScaledVector(faceUpWorld, halfH),
+    centerWorld.clone().addScaledVector(faceRightWorld, -halfW).addScaledVector(faceUpWorld, halfH),
+  ].map((p) => p.project(camera));
   let projectedArea = 0;
   for (let i = 0; i < points.length; i += 1) {
     const a = points[i];
@@ -93,9 +95,15 @@ function semanticFaceProjection(faceKey, quarterTurns = 0) {
     projectedArea += a.x * b.y - b.x * a.y;
   }
   projectedArea = Math.abs(projectedArea) * 0.5;
-  const c = centerWorld.clone().project(camera);
+
+  // Score 0/90/180/270 from the exact matrix the reusable display group will
+  // use. This makes orientation QA match the rendered typography plane rather
+  // than an inferred cubie basis.
+  const displayLocalMatrix = new THREE.Matrix4().compose(centerLocal, basis.quaternion, new THREE.Vector3(1, 1, 1));
+  const displayWorldMatrix = new THREE.Matrix4().multiplyMatrices(sceneOne.matrixWorld, displayLocalMatrix);
+  const c = new THREE.Vector3(0, 0, 0).applyMatrix4(displayWorldMatrix).project(camera);
   const sampleDistance = Math.min(metric.displayWidth, metric.displayHeight) * 0.24;
-  const u = new THREE.Vector3(0, sampleDistance, 0).applyMatrix4(worldMatrix).project(camera);
-  const r = new THREE.Vector3(sampleDistance, 0, 0).applyMatrix4(worldMatrix).project(camera);
+  const u = new THREE.Vector3(0, sampleDistance, 0).applyMatrix4(displayWorldMatrix).project(camera);
+  const r = new THREE.Vector3(sampleDistance, 0, 0).applyMatrix4(displayWorldMatrix).project(camera);
   const up2 = new THREE.Vector2(u.x - c.x, u.y - c.y);
   const right2 = new THREE.Vector2(r.x - c.x, r.y - c.y);

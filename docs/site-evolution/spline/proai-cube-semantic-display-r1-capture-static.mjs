@@ -37,6 +37,7 @@ const context = await browser.newContext();
 const requests=[]; const pageErrors=[]; const consoleErrors=[];
 context.on('request', r => requests.push(r.url()));
 function wire(page){ page.on('pageerror',e=>pageErrors.push(String(e))); page.on('console',m=>{if(m.type()==='error') consoleErrors.push(m.text());}); }
+function quatAngle(a,b){const dot=Math.min(1,Math.abs(a.reduce((s,v,i)=>s+v*b[i],0)));return 2*Math.acos(dot);}
 function url(lang='en', mode='capture'){ const u=new URL(BASE_URL); u.searchParams.set(mode,'1'); u.searchParams.set('lang',lang); return u.toString(); }
 async function open(lang='en', mode='capture'){
   const page=await context.newPage(); await page.setViewportSize(VIEWPORT); wire(page);
@@ -102,20 +103,27 @@ for(const [i,w] of ['AI EXPERT','ДОВЕРИЕ','ОБРАЩЕНИЕ','ОТВЕ�
 contact(contactRu,paths.ruContact);
 await ru.close();
 
-const interaction=await open('en','review');
+const interaction=await open('en','capture');
 const box=await interaction.evaluate(()=>{const r=document.getElementById('cube-canvas').getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};});
 const semanticStarted=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.beginSemanticQA('RESPONSE'));
 if(!semanticStarted) throw new Error('Could not begin semantic interaction QA');
 await interaction.waitForTimeout(650);
 const before=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics());
-const x0=box.x+box.width*.5,y0=box.y+box.height*.5; await interaction.mouse.move(x0,y0);await interaction.mouse.down();await interaction.mouse.move(x0+140,y0-24,{steps:8});
+const cameraBefore=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getCameraSnapshot());
+const x0=box.x+box.width*.5,y0=box.y+box.height*.5;
+await interaction.mouse.move(x0,y0);await interaction.mouse.down();await interaction.mouse.move(x0+140,y0-24,{steps:8});
 const during=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics());
+const cameraAfterDrag=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getCameraSnapshot());
 await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.advanceReviewSemanticExit(400,false));
 const cleared=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics());
 await interaction.mouse.up();
 const after=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics());
-const cameraNoSnap=before.camera.quaternion && after.camera.quaternion ? true : true;
-const semanticInteractionPass=before.semantic.phase!=='idle'&&during.interaction.interactionActive&&during.semantic.phase==='exitFast'&&cleared.semantic.phase==='idle'&&cleared.semantic.surfaceOpacity===0&&cleared.semantic.textOpacity===0&&!after.interaction.interactionActive&&cameraNoSnap;
+const cameraAfterRelease=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getCameraSnapshot());
+await interaction.waitForTimeout(600);
+const cameraAfterSettled=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getCameraSnapshot());
+const cameraMoved=quatAngle(cameraBefore.quaternion,cameraAfterDrag.quaternion)>1e-5;
+const cameraNoSnap=quatAngle(cameraAfterRelease.quaternion,cameraAfterSettled.quaternion)<1e-6;
+const semanticInteractionPass=before.semantic.phase!=='idle'&&during.interaction.interactionActive&&during.semantic.phase==='exitFast'&&cleared.semantic.phase==='idle'&&cleared.semantic.surfaceOpacity===0&&cleared.semantic.textOpacity===0&&!after.interaction.interactionActive&&cameraMoved&&cameraNoSnap;
 await interaction.waitForTimeout(2250);
 const manualSlice=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.turnSlice({axis:'X',layer:1,direction:1,durationMs:1320}));
 if(!manualSlice) throw new Error('Could not start interaction slice');
@@ -123,15 +131,16 @@ await interaction.waitForTimeout(100);await interaction.mouse.move(x0,y0);await 
 const mechanicalDuring=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics());
 await interaction.waitForFunction(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics().activeTurns.length===0,null,{timeout:12000});
 const finished=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics());
-const blocked=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.turnSlice({axis:'Y',layer:0,direction:-1,durationMs:1200}));await interaction.mouse.up();
+const blocked=await interaction.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.turnSlice({axis:'Y',layer:0,direction:-1,durationMs:1200}));
+await interaction.mouse.up();
 const mechanicalInteractionPass=mechanicalDuring.interaction.interactionActive&&finished.lastTurnResult?.endpointErrorRad===0&&blocked===false;
 await interaction.close();
 
 const reducedContext=await browser.newContext({reducedMotion:'reduce'}); const reducedPage=await reducedContext.newPage(); await reducedPage.goto(url('en','capture'),{waitUntil:'networkidle',timeout:120000}); await reducedPage.waitForFunction(()=>window.__PROAI_CUBE_SEMANTIC_R1?.semanticReady,null,{timeout:120000}); const reduced=await reducedPage.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics().semantic.scheduler); await reducedContext.close();
 
 const glbSha=crypto.createHash('sha256').update(fs.readFileSync(GLB)).digest('hex');
-const out={generatedAt:new Date().toISOString(),initial,mechanicalQA,stringFitQA,anchorQA,screenshotQA,lookdev,performanceDiagnostic:perf,interaction:{semanticInteractionPass,mechanicalInteractionPass,before,during,cleared,after},reducedMotion:{schedulerEnabled:reduced.enabled,automaticCyclingDisabled:reduced.reducedMotionAutomaticCycling===false,pass:reduced.enabled===false},runtime:{pageErrors,consoleErrors,forbiddenSplineRequests:requests.filter(u=>/@splinetool|prod\.spline\.design|\.splinecode/i.test(u))},glb:{sha256:glbSha,bytes:fs.statSync(GLB).size}};
+const out={generatedAt:new Date().toISOString(),initial,mechanicalQA,stringFitQA,anchorQA,screenshotQA,lookdev,performanceDiagnostic:perf,interaction:{semanticInteractionPass,mechanicalInteractionPass,cameraMoved,cameraNoSnap,cameraBefore,cameraAfterDrag,cameraAfterRelease,cameraAfterSettled,before,during,cleared,after},reducedMotion:{schedulerEnabled:reduced.enabled,automaticCyclingDisabled:reduced.reducedMotionAutomaticCycling===false,pass:reduced.enabled===false},runtime:{pageErrors,consoleErrors,forbiddenSplineRequests:requests.filter(u=>/@splinetool|prod\.spline\.design|\.splinecode/i.test(u))},glb:{sha256:glbSha,bytes:fs.statSync(GLB).size}};
 fs.writeFileSync(OUT,JSON.stringify(out,null,2)+'\n');
 await browser.close();
-if(!stringFitQA.pass||!anchorQA.pass||!semanticInteractionPass||!mechanicalInteractionPass||!out.reducedMotion.pass||pageErrors.length||consoleErrors.length||out.runtime.forbiddenSplineRequests.length) throw new Error('Static semantic QA failed');
-console.log(JSON.stringify({staticQA:'PASS',screenshots:screenshotQA.length,avgRenderMs:perf.avgRenderMs},null,2));
+if(!stringFitQA.pass||!anchorQA.pass||!semanticInteractionPass||!mechanicalInteractionPass||!out.reducedMotion.pass||pageErrors.length||consoleErrors.length||out.runtime.forbiddenSplineRequests.length) throw new Error(`Static semantic QA failed ${JSON.stringify({stringFit:stringFitQA.pass,anchor:anchorQA.pass,semanticInteractionPass,mechanicalInteractionPass,reduced:out.reducedMotion.pass,pageErrors,consoleErrors})}`);
+console.log(JSON.stringify({staticQA:'PASS',screenshots:screenshotQA.length,avgRenderMs:perf.avgRenderMs,cameraMoved,cameraNoSnap},null,2));

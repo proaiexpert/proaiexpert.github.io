@@ -29,9 +29,9 @@ if n != 1:
 
 eq_pat = r"const equivalenceSamples = \[\];\nfor \(const t of \[2\.0, 6\.0, 9\.0, 15\.0, 17\.4, 26\.7\]\) \{.*?\nconst baselineEquivalencePass = equivalenceSamples\.every\(\(sample\) => sample\.pass\);"
 eq_repl = r'''const equivalenceSamples = [];
-const equivalenceBaselinePage = await openPage(BASELINE_CAPTURE_URL);
-const equivalenceCurrentPage = await openPage(CAPTURE_URL);
 for (const t of [2.0, 6.0, 9.0, 15.0, 17.4, 26.7]) {
+  const equivalenceBaselinePage = await openPage(BASELINE_CAPTURE_URL);
+  const equivalenceCurrentPage = await openPage(CAPTURE_URL);
   const a = await applyFilmstripState(equivalenceBaselinePage, t);
   const b = await applyFilmstripState(equivalenceCurrentPage, t);
   const diff = compareState(a, b);
@@ -41,9 +41,9 @@ for (const t of [2.0, 6.0, 9.0, 15.0, 17.4, 26.7]) {
     && diff.cameraPosition < 1e-9 && diff.cameraQuaternionRad < 1e-9 && diff.orbitTarget < 1e-9
     && diff.logicalExact && diff.completedTurnsExact && diff.activeTurnIdentityExact && diff.schedulerExact;
   equivalenceSamples.push({ presentationTimeSec: t, pass, diff });
+  await equivalenceBaselinePage.close();
+  await equivalenceCurrentPage.close();
 }
-await equivalenceBaselinePage.close();
-await equivalenceCurrentPage.close();
 const baselineEquivalencePass = equivalenceSamples.every((sample) => sample.pass);'''
 s, n = re.subn(eq_pat, eq_repl, s, flags=re.S)
 if n != 1:

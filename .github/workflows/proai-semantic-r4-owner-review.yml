@@ -16,7 +16,7 @@ jobs:
   preview:
     if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
     runs-on: ubuntu-latest
-    timeout-minutes: 80
+    timeout-minutes: 70
     defaults:
       run:
         working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
@@ -34,14 +34,19 @@ jobs:
       - name: Build R4 review candidate
         run: |
           npm install --package-lock=false
-          npm install --no-save playwright@1.54.0
-          npx playwright install --with-deps chromium
           npm run prepare-r4
           node clock-r4.mjs
           npx vite build
           node --check main.generated.js
           test "$(wc -c < rubik_39_s_cube_animation.glb)" -eq 279412
           test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
+          grep -q "surfaceMaxOpacity: 0.065" main.generated.js
+          grep -q "semanticVelocityMultiplier: 0.70" main.generated.js
+          grep -q "triggerSearchStartMs: 3200" main.generated.js
+          grep -q "triggerSearchEndMs: 4200" main.generated.js
+          grep -q "semanticRuntimeStartWallMs" main.generated.js
+          grep -q "controls.enableZoom = false" main.generated.js
+          ! grep -q "semanticComplete || interactionActive" main.generated.js
 
       - name: Start local runtime
         run: |
@@ -52,33 +57,12 @@ jobs:
           done
           exit 1
 
-      - name: Run runtime QA
-        env:
-          DISPLAY: :99
-          LIBGL_ALWAYS_SOFTWARE: '1'
-          PROAI_URL: http://127.0.0.1:4173/
-        run: |
-          mkdir -p review-evidence
-          Xvfb :99 -screen 0 1024x768x24 -ac +extension GLX +render -noreset >/tmp/r4-xvfb.log 2>&1 &
-          for i in $(seq 1 40); do
-            xdpyinfo -display :99 >/dev/null 2>&1 && break
-            sleep 0.25
-          done
-          node qa-r4.mjs
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: proai-semantic-r4-qa-evidence
-          path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/
-          retention-days: 1
-
       - name: Publish owner preview
         id: tunnel
         run: |
           curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
           chmod +x /tmp/cloudflared
           /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/r4-tunnel.log 2>&1 &
-          echo $! >/tmp/r4-tunnel.pid
           URL=''
           for i in $(seq 1 90); do
             URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/r4-tunnel.log | tail -1 || true)

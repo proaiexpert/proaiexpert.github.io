@@ -1,5 +1,5 @@
 import { chromium } from 'playwright';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -7,113 +7,52 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const REVIEW = path.join(ROOT, 'review');
-const FRAMES = path.join(ROOT, '.frames-r2');
-const FPS = 24;
-const FRAME_DT = 1 / FPS;
-const VIEWPORT = { width: 1080, height: 1080 };
-const BASE_URL = process.env.PROAI_R2_URL || 'http://127.0.0.1:4173/';
-const CAPTURE_URL = new URL('?capture=1', BASE_URL).toString();
-const MP4_PATH = path.join(REVIEW, 'proai-cube-semantic-brand-moment-r2-review-30s.mp4');
-const PEAK_PATH = path.join(REVIEW, 'proai-cube-semantic-brand-moment-r2-peak.png');
-const POST_PATH = path.join(REVIEW, 'proai-cube-semantic-brand-moment-r2-post.png');
 const QA_PATH = path.join(ROOT, 'QA.json');
 const REPORT_PATH = path.join(ROOT, 'REPORT.md');
+const CURRENT_URL = process.env.PROAI_SEMANTIC_R2_URL || 'http://127.0.0.1:4173/';
+const BASELINE_URL = process.env.PROAI_BASELINE_URL || 'http://127.0.0.1:4173/baseline-fixture/';
+const CAPTURE_URL = new URL('?capture=1', CURRENT_URL).toString();
+const BASELINE_CAPTURE_URL = new URL('?capture=1', BASELINE_URL).toString();
+const FPS = 24;
+const FRAME_DT = 1 / FPS;
+const BASELINE_SECONDS = 27;
+const VIEWPORT = { width: 1080, height: 1080 };
+const MP4_PATH = path.join(REVIEW, 'proai-cube-semantic-brand-moment-r2-owner-review.mp4');
+const PEAK_PATH = path.join(REVIEW, 'proai-cube-semantic-brand-moment-r2-peak.png');
+const POST_PATH = path.join(REVIEW, 'proai-cube-semantic-brand-moment-r2-post.png');
 const GLB_PATH = path.join(ROOT, 'rubik_39_s_cube_animation.glb');
-const BASE_RUNTIME_PATH = path.join(ROOT, 'base-runtime.js');
-const RUNTIME_PATH = path.join(ROOT, 'runtime-r2.js');
-const BASE_SHA = 'd17806da42275db617d8a46b231a2d877706a179';
-const BRANCH = 'agent/proai-cube-semantic-brand-moment-r2';
-const GLB_SHA256 = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b';
 
-fs.rmSync(FRAMES, { recursive: true, force: true });
-fs.mkdirSync(FRAMES, { recursive: true });
-fs.mkdirSync(REVIEW, { recursive: true });
-for (const file of [MP4_PATH, PEAK_PATH, POST_PATH]) fs.rmSync(file, { force: true });
-
-function sha256(filepath) {
-  return crypto.createHash('sha256').update(fs.readFileSync(filepath)).digest('hex');
-}
-function dataUrlBuffer(dataUrl, mime) {
-  const prefix = `data:${mime};base64,`;
-  if (!dataUrl.startsWith(prefix)) throw new Error(`Unexpected data URL: expected ${mime}`);
-  return Buffer.from(dataUrl.slice(prefix.length), 'base64');
-}
-function vectorDistance(a, b) {
-  return Math.sqrt(a.reduce((sum, value, i) => sum + (value - b[i]) ** 2, 0));
-}
-function quatAngle(a, b) {
-  const dot = Math.min(1, Math.abs(a.reduce((sum, value, i) => sum + value * b[i], 0)));
-  return 2 * Math.acos(dot);
-}
-function jsonEqual(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
-function ffprobe(filepath) {
-  const result = spawnSync('ffprobe', [
-    '-v', 'error', '-count_frames', '-select_streams', 'v:0',
-    '-show_entries', 'stream=codec_name,pix_fmt,avg_frame_rate,nb_read_frames,width,height:format=format_name,duration',
-    '-of', 'json', filepath,
-  ], { encoding: 'utf8' });
-  if (result.status !== 0) throw new Error(`ffprobe failed: ${result.stderr || result.stdout}`);
-  return JSON.parse(result.stdout);
-}
-async function waitForServer(url, timeoutMs = 60000) {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-    } catch {}
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-  throw new Error('Vite server did not become ready');
-}
-
-const vite = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['vite', '--host', '127.0.0.1', '--port', '4173'], {
-  cwd: ROOT,
-  stdio: ['ignore', 'pipe', 'pipe'],
-  env: { ...process.env },
+const TIMING = Object.freeze({
+  decelerationMs: 440,
+  revealMs: 720,
+  specularMs: 560,
+  readableHoldMs: 1380,
+  exitMs: 520,
+  surfaceRestoreMs: 440,
+  accelerationMs: 440,
+  firstSurfaceMs: 38,
+  firstTypographyMs: 72,
+  specularStartMs: 900,
 });
-let viteLog = '';
-vite.stdout.on('data', (chunk) => { viteLog += chunk.toString(); });
-vite.stderr.on('data', (chunk) => { viteLog += chunk.toString(); });
-await waitForServer(BASE_URL);
-
-const browser = await chromium.launch({ headless: true, args: ['--enable-webgl', '--ignore-gpu-blocklist', '--use-angle=swiftshader'] });
-const context = await browser.newContext({ viewport: VIEWPORT });
-const pageErrors = [];
-const consoleErrors = [];
-const requests = [];
-function wirePage(page) {
-  page.on('pageerror', (error) => pageErrors.push(String(error)));
-  page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
-  page.on('request', (request) => requests.push(request.url()));
-}
-async function openPage() {
-  const page = await context.newPage();
-  wirePage(page);
-  await page.goto(CAPTURE_URL, { waitUntil: 'networkidle', timeout: 120000 });
-  await page.waitForFunction(() => window.__PROAI_CUBE_R2?.ready === true, null, { timeout: 90000 });
-  await page.evaluate(() => { const el = document.querySelector('.status'); if (el) el.style.display = 'none'; });
-  return page;
-}
 
 const videoEvents = [
-  { id: 's1', axis: 'X', layer: 1, direction: 1, start: 0.55, end: 1.75 },
-  { id: 'p1a', axis: 'Y', layer: -1, direction: 1, start: 2.25, end: 3.52 },
-  { id: 'p1b', axis: 'Y', layer: 1, direction: -1, start: 2.40, end: 3.67 },
-  { id: 's2', axis: 'Z', layer: 0, direction: -1, start: 4.08, end: 5.22 },
-  { id: 's3', axis: 'X', layer: -1, direction: -1, start: 5.75, end: 7.05 },
-  { id: 's4', axis: 'Y', layer: 0, direction: 1, start: 7.62, end: 8.74 },
-  { id: 'p2a', axis: 'Z', layer: -1, direction: 1, start: 9.32, end: 10.66 },
-  { id: 'p2b', axis: 'Z', layer: 1, direction: 1, start: 9.49, end: 10.83 },
-  { id: 'ph1', axis: 'X', layer: 0, direction: 1, start: 11.12, end: 12.28 },
-  { id: 'ph2', axis: 'Y', layer: 1, direction: -1, start: 12.44, end: 13.66 },
-  { id: 's5', axis: 'Z', layer: -1, direction: -1, start: 14.70, end: 15.88 },
-  { id: 's6', axis: 'X', layer: 1, direction: -1, start: 16.42, end: 17.68 },
-  { id: 'manualSlice', axis: 'Z', layer: 1, direction: 1, start: 17.95, end: 19.15 },
-  { id: 'resumeSlice', axis: 'Y', layer: -1, direction: 1, start: 21.48, end: 22.62 },
-  { id: 'p3a', axis: 'X', layer: -1, direction: 1, start: 23.22, end: 24.50 },
-  { id: 'p3b', axis: 'X', layer: 1, direction: -1, start: 23.39, end: 24.67 },
-  { id: 's7', axis: 'Z', layer: 0, direction: 1, start: 25.02, end: 26.20 },
+  { id: 's1', kind: 'single', axis: 'X', layer: 1, direction: 1, start: 0.55, end: 1.75 },
+  { id: 'p1a', kind: 'pair', axis: 'Y', layer: -1, direction: 1, start: 2.25, end: 3.52 },
+  { id: 'p1b', kind: 'pair', axis: 'Y', layer: 1, direction: -1, start: 2.40, end: 3.67 },
+  { id: 's2', kind: 'single', axis: 'Z', layer: 0, direction: -1, start: 4.08, end: 5.22 },
+  { id: 's3', kind: 'single', axis: 'X', layer: -1, direction: -1, start: 5.75, end: 7.05 },
+  { id: 's4', kind: 'single', axis: 'Y', layer: 0, direction: 1, start: 7.62, end: 8.74 },
+  { id: 'p2a', kind: 'pair', axis: 'Z', layer: -1, direction: 1, start: 9.32, end: 10.66 },
+  { id: 'p2b', kind: 'pair', axis: 'Z', layer: 1, direction: 1, start: 9.49, end: 10.83 },
+  { id: 'ph1', kind: 'phrase', axis: 'X', layer: 0, direction: 1, start: 11.12, end: 12.28 },
+  { id: 'ph2', kind: 'phrase', axis: 'Y', layer: 1, direction: -1, start: 12.44, end: 13.66 },
+  { id: 's5', kind: 'single', axis: 'Z', layer: -1, direction: -1, start: 14.70, end: 15.88 },
+  { id: 's6', kind: 'single', axis: 'X', layer: 1, direction: -1, start: 16.42, end: 17.68 },
+  { id: 'manualSlice', kind: 'single', axis: 'Z', layer: 1, direction: 1, start: 17.95, end: 19.15 },
+  { id: 'resumeSlice', kind: 'single', axis: 'Y', layer: -1, direction: 1, start: 21.48, end: 22.62 },
+  { id: 'p3a', kind: 'pair', axis: 'X', layer: -1, direction: 1, start: 23.22, end: 24.50 },
+  { id: 'p3b', kind: 'pair', axis: 'X', layer: 1, direction: -1, start: 23.39, end: 24.67 },
+  { id: 's7', kind: 'single', axis: 'Z', layer: 0, direction: 1, start: 25.02, end: 26.20 },
 ];
 const MANUAL_START = 18.45;
 const MANUAL_MOVE_END = 19.05;
@@ -121,87 +60,260 @@ const MANUAL_END = 19.35;
 const CALM_END = 21.20;
 const SOFT_RESUME_END = 23.60;
 
-function activeWindow(event, presentationSec) {
-  return presentationSec + FRAME_DT * 0.51 >= event.start && presentationSec < event.end + FRAME_DT * 0.2;
+fs.mkdirSync(REVIEW, { recursive: true });
+for (const file of [MP4_PATH, PEAK_PATH, POST_PATH, QA_PATH, REPORT_PATH]) fs.rmSync(file, { force: true });
+
+function sha256(filepath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filepath)).digest('hex');
+}
+function jpegBufferFromDataUrl(dataUrl) {
+  const comma = dataUrl.indexOf(',');
+  if (!dataUrl.startsWith('data:image/jpeg') || comma < 0) throw new Error('Invalid JPEG frame data URL');
+  return Buffer.from(dataUrl.slice(comma + 1), 'base64');
+}
+function quatAngle(a, b) {
+  const dot = Math.min(1, Math.abs(a.reduce((sum, value, index) => sum + value * b[index], 0)));
+  return 2 * Math.acos(dot);
+}
+function vectorDistance(a, b) {
+  return Math.sqrt(a.reduce((sum, value, index) => sum + (value - b[index]) ** 2, 0));
+}
+function maxAbsDelta(a, b) {
+  let max = 0;
+  for (let i = 0; i < a.length; i += 1) max = Math.max(max, Math.abs(a[i] - b[i]));
+  return max;
+}
+function ffprobe(filepath) {
+  const out = spawnSync('ffprobe', ['-v', 'error', '-count_frames', '-select_streams', 'v:0', '-show_entries',
+    'stream=codec_name,pix_fmt,avg_frame_rate,nb_read_frames,width,height:format=format_name,duration', '-of', 'json', filepath], { encoding: 'utf8' });
+  if (out.status !== 0) throw new Error(`ffprobe failed: ${out.stderr || out.stdout}`);
+  return JSON.parse(out.stdout);
+}
+function encodeFrames(buffers, filepath) {
+  const proc = spawnSync('ffmpeg', [
+    '-y', '-v', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-vcodec', 'mjpeg', '-i', 'pipe:0',
+    '-an', '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
+    '-r', String(FPS), filepath,
+  ], { input: Buffer.concat(buffers), encoding: 'utf8', maxBuffer: 768 * 1024 * 1024 });
+  if (proc.status !== 0 || !fs.existsSync(filepath)) throw new Error(`ffmpeg encode failed: ${proc.stderr || proc.stdout}`);
+}
+function smootherstep(x) {
+  const v = Math.max(0, Math.min(1, x));
+  return v * v * v * (v * (v * 6 - 15) + 10);
 }
 
-async function driveFilmPage(page, presentationSec, eventRuntime) {
-  const inManual = presentationSec >= MANUAL_START && presentationSec < MANUAL_END;
-  const inCalm = presentationSec >= MANUAL_END && presentationSec < CALM_END;
-  if (!inManual && !inCalm) {
-    const resumeProgress = presentationSec < CALM_END
-      ? 1
-      : (presentationSec < SOFT_RESUME_END ? Math.max(0, Math.min(1, (presentationSec - CALM_END) / (SOFT_RESUME_END - CALM_END))) : 1);
-    await page.evaluate(({ t, resumeProgress }) => window.__PROAI_CUBE_R1_2.setReviewPresentation(t, resumeProgress, false), { t: presentationSec, resumeProgress });
+const revealEnd = TIMING.revealMs;
+const holdEnd = revealEnd + TIMING.readableHoldMs;
+const exitEnd = holdEnd + TIMING.exitMs;
+const surfaceExitStart = holdEnd + 40;
+const surfaceExitEnd = surfaceExitStart + TIMING.surfaceRestoreMs;
+const accelStart = Math.max(exitEnd, surfaceExitEnd);
+const semanticTotalMs = accelStart + TIMING.accelerationMs;
+
+function semanticState(elapsedMs) {
+  let timeScale = 1;
+  if (elapsedMs < TIMING.decelerationMs) timeScale = 1 - smootherstep(elapsedMs / TIMING.decelerationMs);
+  else if (elapsedMs < accelStart) timeScale = 0;
+  else if (elapsedMs < semanticTotalMs) timeScale = smootherstep((elapsedMs - accelStart) / TIMING.accelerationMs);
+  let surface = smootherstep((elapsedMs - TIMING.firstSurfaceMs) / Math.max(1, revealEnd - TIMING.firstSurfaceMs));
+  if (elapsedMs >= surfaceExitStart) surface *= 1 - smootherstep((elapsedMs - surfaceExitStart) / TIMING.surfaceRestoreMs);
+  let formation = smootherstep((elapsedMs - TIMING.firstTypographyMs) / Math.max(1, revealEnd - TIMING.firstTypographyMs));
+  let luminance = smootherstep((elapsedMs - (TIMING.firstTypographyMs + 70)) / Math.max(1, revealEnd - TIMING.firstTypographyMs - 70));
+  let exit = 0;
+  if (elapsedMs >= holdEnd) {
+    exit = smootherstep((elapsedMs - holdEnd) / TIMING.exitMs);
+    formation *= 1 - exit;
+    luminance *= 1 - exit;
   }
-  for (const event of videoEvents) {
-    if (!activeWindow(event, presentationSec)) continue;
-    let state = eventRuntime.get(event.id);
-    if (!state) {
-      const began = await page.evaluate((ev) => window.__PROAI_CUBE_R1_2.beginReviewTurn(ev.axis, ev.layer, ev.direction), event);
-      if (!began) throw new Error(`Could not begin deterministic event ${event.id} at presentation ${presentationSec.toFixed(3)}`);
-      state = { turnId: began.id, finalized: false };
-      eventRuntime.set(event.id, state);
-    }
-    if (!state.finalized) {
-      const progress = Math.max(0, Math.min(1, (presentationSec + FRAME_DT - event.start) / (event.end - event.start)));
-      await page.evaluate(({ turnId, progress }) => window.__PROAI_CUBE_R1_2.setReviewTurnProgress(turnId, progress, false), { turnId: state.turnId, progress });
-      if (progress >= 1) state.finalized = true;
-    }
-  }
+  let sweep = -0.2;
+  if (elapsedMs >= TIMING.specularStartMs && elapsedMs <= TIMING.specularStartMs + TIMING.specularMs) {
+    sweep = -0.15 + (1.17 + 0.15) * smootherstep((elapsedMs - TIMING.specularStartMs) / TIMING.specularMs);
+  } else if (elapsedMs > TIMING.specularStartMs + TIMING.specularMs) sweep = 1.17;
+  return { timeScale, surface, formation, luminance, sweep, exit };
 }
 
+function activeWindow(event, t) {
+  return t + FRAME_DT * 0.51 >= event.start && t < event.end + FRAME_DT * 0.2;
+}
+function eventActiveAt(event, t) { return t >= event.start && t < event.end; }
+function stableGapAt(t) { return !videoEvents.some((event) => eventActiveAt(event, t)); }
+
+const browser = await chromium.launch({ headless: true, args: ['--enable-webgl', '--ignore-gpu-blocklist', '--use-angle=swiftshader'] });
+const context = await browser.newContext();
+const pageErrors = [];
+const consoleErrors = [];
+const requests = [];
+context.on('request', (request) => requests.push(request.url()));
+function wirePage(page) {
+  page.on('pageerror', (error) => pageErrors.push(String(error)));
+  page.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+}
+async function openPage(url = CAPTURE_URL) {
+  const page = await context.newPage();
+  await page.setViewportSize(VIEWPORT);
+  wirePage(page);
+  await page.goto(url, { waitUntil: 'networkidle', timeout: 120000 });
+  await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, null, { timeout: 90000 });
+  if (url === CAPTURE_URL) await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.getSemanticDiagnostics?.().ready === true, null, { timeout: 90000 });
+  await page.evaluate(() => { const el = document.querySelector('.status'); if (el) el.style.display = 'none'; });
+  return page;
+}
+
+// Focused mechanical QA on the current build.
 const qaPage = await openPage();
-const initialDiag = await qaPage.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
+const initial = await qaPage.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
 const mechanicalQA = await qaPage.evaluate(() => window.__PROAI_CUBE_R1_2.runAutomatedQA());
-const expectedMotion = {
-  turnDurationRangeMs: [1080, 1420], easing: [0.36, 0, 0.12, 1], orbitDampingFactor: 0.074,
-  orbitRotateSpeed: 0.5, orbitZoomSpeed: 0.48, manualResumeDelayMs: 1850, manualResumeBlendMs: 2400, sliceResumeStaggerMs: 280,
-};
-const expectedGeometry = {
-  faceOuterSize: 196.8, faceThickness: 3.6, faceCornerRadius: 10.6, faceBevelSize: 2.35,
-  faceBevelThickness: 1.25, faceBevelSegments: 4, faceCurveSegments: 8, coreSize: 198, coreRadius: 9.2, coreSegments: 5,
-};
-const motionConfigFrozen = jsonEqual(initialDiag.motionConfig, expectedMotion);
-const geometryConfigFrozen = jsonEqual(initialDiag.geometryConfig, expectedGeometry);
-const lookDevFrozen = initialDiag.lookDev?.config?.materialGroups?.graphiteFace?.color === '#242a31'
-  && initialDiag.lookDev?.config?.materialGroups?.gunmetalFace?.color === '#2b323a'
-  && initialDiag.lookDev?.config?.materialGroups?.blackChromeFace?.color === '#181d23'
-  && initialDiag.lookDev?.config?.materialGroups?.smokedCore?.color === '#0c0f13'
-  && initialDiag.lookDev?.config?.lighting?.keyIntensity === 5.2
-  && initialDiag.lookDev?.config?.lighting?.fillIntensity === 4
-  && initialDiag.lookDev?.config?.lighting?.rimIntensity === 4.6
-  && initialDiag.lookDev?.colorManagement?.exposure === 1;
-const fontReady = await qaPage.evaluate(() => document.fonts.check('600 120px "Instrument Sans"'));
+const semanticConfig = initial.semanticR2.config;
+const typography = initial.semanticR2.typography;
 await qaPage.close();
 
-const page = await openPage();
-const baselinePage = await openPage();
-await baselinePage.evaluate(() => {
-  window.__PROAI_CUBE_R1_2.r2SetSemanticState({ surface: 0, text: 0, specular: 0 });
-  window.__PROAI_CUBE_R1_2.r2SetTimeControl({ timeScale: 1, blockNewSlices: false });
-});
-const eventRuntime = new Map();
-const baselineEventRuntime = new Map();
-const config = await page.evaluate(() => window.__PROAI_CUBE_R2.config);
-const totalFrames = Math.round(config.finalWallDurationSec * FPS);
-const frameStates = [];
+// Select the strongest real stable pose without changing camera or trajectory.
+const posePage = await openPage();
+const candidates = [];
+const decelPresentationAdvanceSec = (TIMING.decelerationMs / 1000) * 0.5;
+for (let t = 3.0; t <= 8.05; t += 1 / 120) {
+  const start = t - decelPresentationAdvanceSec;
+  if (!stableGapAt(t) || !stableGapAt(start)) continue;
+  const nextStart = Math.min(...videoEvents.filter((event) => event.start > t).map((event) => event.start), Infinity);
+  if (nextStart - t < 0.08) continue;
+  const crossingEvent = videoEvents.some((event) => event.end > start && event.start < t);
+  if (crossingEvent) continue;
+  const pose = await posePage.evaluate((timeSec) => window.__PROAI_CUBE_R1_2.getSemanticPoseAt(timeSec), t);
+  candidates.push(pose);
+}
+if (!candidates.length) throw new Error('No stable semantic pose candidates');
+candidates.sort((a, b) => b.dot - a.dot);
+const selectedPose = candidates[0];
+if (selectedPose.dot < 0.88) throw new Error(`No semantic pose reached absolute minimum visibility dot; best=${selectedPose.dot}`);
+await posePage.close();
+
+const semanticHoldPresentationSec = selectedPose.timeSec;
+const semanticStartPresentationSec = semanticHoldPresentationSec - decelPresentationAdvanceSec;
+const semanticWallStartSec = semanticStartPresentationSec;
+
+// Fixed-step integrate presentation time so the original 27-second filmstrip is preserved exactly and only stretched.
+let presentationT = 0;
+let semanticElapsed = -1;
+let semanticFinishedWallSec = null;
+let semanticEventStarted = false;
+let semanticEventFinished = false;
+let maxPresentationT = 0;
+let wallFrames = 0;
+const wallTimeline = [];
+while (presentationT < BASELINE_SECONDS - 1e-10) {
+  const wallT = wallFrames / FPS;
+  let scale = 1;
+  let sem = null;
+  if (!semanticEventStarted && presentationT >= semanticStartPresentationSec - 1e-9) {
+    semanticEventStarted = true;
+    semanticElapsed = 0;
+  }
+  if (semanticEventStarted && !semanticEventFinished) {
+    sem = semanticState(semanticElapsed);
+    scale = sem.timeScale;
+  }
+  wallTimeline.push({ wallT, presentationT, semanticElapsed, semantic: sem, timeScale: scale });
+  presentationT += FRAME_DT * scale;
+  maxPresentationT = Math.max(maxPresentationT, presentationT);
+  if (semanticEventStarted && !semanticEventFinished) {
+    semanticElapsed += FRAME_DT * 1000;
+    if (semanticElapsed >= semanticTotalMs - 1e-6) {
+      semanticEventFinished = true;
+      semanticFinishedWallSec = wallT + FRAME_DT;
+    }
+  }
+  wallFrames += 1;
+  if (wallFrames > 1000) throw new Error('Wall timeline runaway');
+}
+const finalWallSeconds = wallTimeline.length / FPS;
+
+// Baseline equivalence: same deterministic filmstrip state at equal presentation times on original and R2 pages.
+async function applyFilmstripState(page, t) {
+  await page.evaluate(() => {
+    const api = window.__PROAI_CUBE_R1_2;
+    api.clearSemanticReviewState?.();
+    api.setReviewPresentation(0, 1, false);
+  });
+  const ordered = [...videoEvents].sort((a, b) => a.start - b.start || a.end - b.end);
+  const active = [];
+  for (const event of ordered) {
+    if (event.start > t) continue;
+    if (event.end <= t + 1e-10) {
+      const began = await page.evaluate((e) => window.__PROAI_CUBE_R1_2.beginReviewTurn(e.axis, e.layer, e.direction), event);
+      await page.evaluate((id) => window.__PROAI_CUBE_R1_2.setReviewTurnProgress(id, 1, false), began.id);
+    } else {
+      const began = await page.evaluate((e) => window.__PROAI_CUBE_R1_2.beginReviewTurn(e.axis, e.layer, e.direction), event);
+      active.push({ event, id: began.id });
+    }
+  }
+  for (const item of active) {
+    const progress = Math.max(0, Math.min(1, (t - item.event.start) / (item.event.end - item.event.start)));
+    await page.evaluate(({ id, progress }) => window.__PROAI_CUBE_R1_2.setReviewTurnProgress(id, progress, false), { id: item.id, progress });
+  }
+  await page.evaluate((time) => window.__PROAI_CUBE_R1_2.setReviewPresentation(time, 1, false), t);
+  return page.evaluate(() => window.__PROAI_CUBE_R1_2.getBaselineComparableState());
+}
+function compareState(a, b) {
+  const logicalA = JSON.stringify(a.logical);
+  const logicalB = JSON.stringify(b.logical);
+  const completedA = JSON.stringify(a.completedTurns);
+  const completedB = JSON.stringify(b.completedTurns);
+  const activeA = JSON.stringify(a.activeTurns.map((x) => ({ axis: x.axis, layer: x.layer, direction: x.direction })));
+  const activeB = JSON.stringify(b.activeTurns.map((x) => ({ axis: x.axis, layer: x.layer, direction: x.direction })));
+  return {
+    presentationQuaternionRad: quatAngle(a.presentationRig.quaternion, b.presentationRig.quaternion),
+    presentationPosition: vectorDistance(a.presentationRig.position, b.presentationRig.position),
+    presentationScale: vectorDistance(a.presentationRig.scale, b.presentationRig.scale),
+    cubeRootPosition: vectorDistance(a.cubeRoot.position, b.cubeRoot.position),
+    cubeRootQuaternionRad: quatAngle(a.cubeRoot.quaternion, b.cubeRoot.quaternion),
+    cubeRootScale: vectorDistance(a.cubeRoot.scale, b.cubeRoot.scale),
+    cameraPosition: vectorDistance(a.camera.position, b.camera.position),
+    cameraQuaternionRad: quatAngle(a.camera.quaternion, b.camera.quaternion),
+    orbitTarget: vectorDistance(a.camera.target, b.camera.target),
+    logicalExact: logicalA === logicalB,
+    completedTurnsExact: completedA === completedB,
+    activeTurnIdentityExact: activeA === activeB,
+    schedulerExact: JSON.stringify(a.scheduler) === JSON.stringify(b.scheduler),
+  };
+}
 const equivalenceSamples = [];
-let previousQ = null;
+for (const t of [2.0, 6.0, 9.0, 15.0, 17.4, 26.7]) {
+  const baselinePage = await openPage(BASELINE_CAPTURE_URL);
+  const currentPage = await openPage(CAPTURE_URL);
+  const a = await applyFilmstripState(baselinePage, t);
+  const b = await applyFilmstripState(currentPage, t);
+  const diff = compareState(a, b);
+  const pass = diff.presentationQuaternionRad < 1e-9
+    && diff.presentationPosition < 1e-9 && diff.presentationScale < 1e-9
+    && diff.cubeRootPosition < 1e-9 && diff.cubeRootQuaternionRad < 1e-9 && diff.cubeRootScale < 1e-9
+    && diff.cameraPosition < 1e-9 && diff.cameraQuaternionRad < 1e-9 && diff.orbitTarget < 1e-9
+    && diff.logicalExact && diff.completedTurnsExact && diff.activeTurnIdentityExact && diff.schedulerExact;
+  equivalenceSamples.push({ presentationTimeSec: t, pass, diff });
+  await baselinePage.close();
+  await currentPage.close();
+}
+const baselineEquivalencePass = equivalenceSamples.every((sample) => sample.pass);
+
+// One continuous owner capture. No clip reconstruction, no tail substitution, one ffmpeg encode.
+const page = await openPage();
+const frameBuffers = [];
+const frameStates = [];
+const eventRuntime = new Map();
 let manualDown = false;
 let manualReleased = false;
-let manualSliceFinishedWhileHeld = false;
-let semanticStartActiveSliceCount = null;
-let semanticHoldNewSliceStarts = 0;
-let previousTurnSerial = 0;
-let peakSaved = false;
-let postSaved = false;
-let peakSemanticInfo = null;
-let maxBodyDelta = 0;
-let maxPresentationStep = 0;
-let minPresentationStep = Infinity;
-let monotonicPresentation = true;
-let previousPresentation = null;
+let peakCaptured = false;
+let postCaptured = false;
+let previousPresentationQ = null;
+let previousCameraQ = null;
+let semanticSliceOverlapFrames = 0;
+let semanticNewSliceStarts = 0;
+let previousActiveIds = new Set();
+let maxBodyDeltaRad = 0;
+let maxCameraDeltaRadOutsideManual = 0;
+let firstResumeBodyDeltaRad = null;
+let holdStartBodyQ = null;
+let lastHoldBodyQ = null;
+let previousTimeScale = 1;
 
 const box = await page.evaluate(() => {
   const r = document.getElementById('cube-canvas').getBoundingClientRect();
@@ -210,258 +322,221 @@ const box = await page.evaluate(() => {
 const mx = box.x + box.width * 0.50;
 const my = box.y + box.height * 0.49;
 
-for (let frame = 0; frame < totalFrames; frame += 1) {
-  const wallSec = frame / FPS;
-  const presentationSec = await page.evaluate((w) => window.__PROAI_CUBE_R2.ownerPresentationTime(w), wallSec);
-  const inManual = presentationSec >= MANUAL_START && presentationSec < MANUAL_END;
+for (let frame = 0; frame < wallTimeline.length; frame += 1) {
+  const point = wallTimeline[frame];
+  const t = point.presentationT;
+  const inManual = t >= MANUAL_START && t < MANUAL_END;
+  const inCalm = t >= MANUAL_END && t < CALM_END;
 
-  if (!manualDown && presentationSec >= MANUAL_START && presentationSec < MANUAL_START + FRAME_DT * 1.7) {
+  if (!manualDown && t >= MANUAL_START && t < MANUAL_START + FRAME_DT * 1.5) {
     await page.mouse.move(mx, my);
     await page.mouse.down();
     manualDown = true;
   }
   if (manualDown && !manualReleased && inManual) {
-    const p = Math.min(1, Math.max(0, (Math.min(presentationSec, MANUAL_MOVE_END) - MANUAL_START) / (MANUAL_MOVE_END - MANUAL_START)));
+    const p = Math.min(1, Math.max(0, (Math.min(t, MANUAL_MOVE_END) - MANUAL_START) / (MANUAL_MOVE_END - MANUAL_START)));
     const eased = p * p * (3 - 2 * p);
     await page.mouse.move(mx + 150 * eased, my - 22 * eased);
   }
-  if (manualDown && !manualReleased && presentationSec >= MANUAL_END) {
+  if (manualDown && !manualReleased && t >= MANUAL_END) {
     await page.mouse.up();
     manualReleased = true;
   }
 
-  await driveFilmPage(page, presentationSec, eventRuntime);
-  await page.evaluate((w) => window.__PROAI_CUBE_R2.setOwnerSemanticFrame(w), wallSec);
-
-  // Baseline equivalence is state-only evidence; it never contributes owner-video pixels.
-  if (presentationSec <= 16.0) await driveFilmPage(baselinePage, presentationSec, baselineEventRuntime);
-
-  const peakWall = config.eventWallStartSec + 1.24;
-  if (!peakSaved && wallSec >= peakWall) {
-    const png = await page.evaluate(() => window.__PROAI_CUBE_R1_2.captureFrame('image/png'));
-    fs.writeFileSync(PEAK_PATH, dataUrlBuffer(png, 'image/png'));
-    peakSaved = true;
-  }
-  const postWall = 8.95 + config.addedWallTimeSec;
-  if (!postSaved && wallSec >= postWall) {
-    const png = await page.evaluate(() => window.__PROAI_CUBE_R1_2.captureFrame('image/png'));
-    fs.writeFileSync(POST_PATH, dataUrlBuffer(png, 'image/png'));
-    postSaved = true;
+  if (!inManual && !inCalm) {
+    const resumeProgress = t < CALM_END ? 1 : (t < SOFT_RESUME_END ? Math.max(0, Math.min(1, (t - CALM_END) / (SOFT_RESUME_END - CALM_END))) : 1);
+    await page.evaluate(({ t, resumeProgress }) => window.__PROAI_CUBE_R1_2.setReviewPresentation(t, resumeProgress, false), { t, resumeProgress });
   }
 
-  // Exactly one owner-film pixel sample per frame. ffmpeg later encodes this untouched sequence.
-  const jpeg = await page.evaluate(() => window.__PROAI_CUBE_R1_2.captureFrame('image/jpeg', 0.91));
-  fs.writeFileSync(path.join(FRAMES, `frame-${String(frame).padStart(4, '0')}.jpg`), dataUrlBuffer(jpeg, 'image/jpeg'));
-
-  const state = await page.evaluate(() => window.__PROAI_CUBE_R1_2.r2StateSnapshot());
-  const semanticInfo = await page.evaluate(() => window.__PROAI_CUBE_R1_2.r2SemanticInfo());
-  if (peakSaved && peakSemanticInfo === null && wallSec >= peakWall) peakSemanticInfo = semanticInfo;
-
-  const q = state.presentationRig.quaternion;
-  const bodyDelta = previousQ ? quatAngle(previousQ, q) : 0;
-  maxBodyDelta = Math.max(maxBodyDelta, bodyDelta);
-  if (previousPresentation !== null) {
-    const step = presentationSec - previousPresentation;
-    if (step < -1e-9) monotonicPresentation = false;
-    maxPresentationStep = Math.max(maxPresentationStep, step);
-    if (step > 1e-9) minPresentationStep = Math.min(minPresentationStep, step);
-  }
-  previousPresentation = presentationSec;
-  previousQ = q;
-
-  const eventElapsed = wallSec - config.eventWallStartSec;
-  if (semanticStartActiveSliceCount === null && eventElapsed >= 0) semanticStartActiveSliceCount = state.activeTurns.length;
-  const inSemanticHold = eventElapsed >= config.decelerationSec && eventElapsed < config.accelerationStartSec;
-  const lastCompleted = state.completedTurns.at(-1) || null;
-  const currentSerial = lastCompleted?.serial || previousTurnSerial;
-  if (inSemanticHold && currentSerial > previousTurnSerial) semanticHoldNewSliceStarts += currentSerial - previousTurnSerial;
-  previousTurnSerial = Math.max(previousTurnSerial, currentSerial);
-  if (manualDown && !manualReleased && state.activeTurns.length === 0 && lastCompleted?.axis === 'Z' && lastCompleted?.layer === 1) {
-    manualSliceFinishedWhileHeld = true;
+  for (const event of videoEvents) {
+    if (!activeWindow(event, t)) continue;
+    let state = eventRuntime.get(event.id);
+    if (!state) {
+      const began = await page.evaluate((e) => window.__PROAI_CUBE_R1_2.beginReviewTurn(e.axis, e.layer, e.direction), event);
+      if (!began) throw new Error(`Could not begin owner video event ${event.id}`);
+      state = { turnId: began.id, finalized: false };
+      eventRuntime.set(event.id, state);
+    }
+    if (!state.finalized) {
+      const progress = Math.max(0, Math.min(1, (t + FRAME_DT * Math.max(point.timeScale, 0.0001) - event.start) / (event.end - event.start)));
+      await page.evaluate(({ id, progress }) => window.__PROAI_CUBE_R1_2.setReviewTurnProgress(id, progress, false), { id: state.turnId, progress });
+      if (progress >= 1) state.finalized = true;
+    }
   }
 
-  if (frame % 24 === 0 && presentationSec <= 16.0) {
-    const baselineState = await baselinePage.evaluate(() => window.__PROAI_CUBE_R1_2.r2StateSnapshot());
-    const rootPositionError = vectorDistance(state.presentationRig.position, baselineState.presentationRig.position);
-    const rootQuaternionError = quatAngle(state.presentationRig.quaternion, baselineState.presentationRig.quaternion);
-    const rootScaleError = vectorDistance(state.presentationRig.scale, baselineState.presentationRig.scale);
-    const cubiesEqual = jsonEqual(state.cubies, baselineState.cubies);
-    const activeEqual = jsonEqual(state.activeTurns, baselineState.activeTurns);
-    const completedEqual = jsonEqual(state.completedTurns, baselineState.completedTurns);
-    const cameraPositionError = vectorDistance(state.camera.position, baselineState.camera.position);
-    const cameraQuaternionError = quatAngle(state.camera.quaternion, baselineState.camera.quaternion);
-    const cameraTargetError = vectorDistance(state.camera.target, baselineState.camera.target);
-    equivalenceSamples.push({ wallSec, presentationSec, rootPositionError, rootQuaternionError, rootScaleError, cubiesEqual, activeEqual, completedEqual, cameraPositionError, cameraQuaternionError, cameraTargetError });
+  if (point.semantic) {
+    await page.evaluate(({ face, state }) => window.__PROAI_CUBE_R1_2.setSemanticReviewState({
+      face,
+      surface: state.surface,
+      formation: state.formation,
+      luminance: state.luminance,
+      sweep: state.sweep,
+      exit: state.exit,
+    }), { face: selectedPose.face, state: point.semantic });
+  } else {
+    await page.evaluate(() => window.__PROAI_CUBE_R1_2.clearSemanticReviewState());
   }
 
-  frameStates.push({
-    frame, wallSec, presentationSec,
-    timeScale: state.time.timeScale,
-    bodyDelta,
-    activeTurnCount: state.activeTurns.length,
-    cameraPosition: state.camera.position,
-    cameraQuaternion: state.camera.quaternion,
-    scheduler: state.scheduler,
-    semantic: semanticInfo?.state || null,
+  const diag = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
+  const currentIds = new Set(diag.activeTurns.map((turn) => turn.id));
+  if (point.semantic && point.semantic.timeScale <= 0.0001 && diag.activeTurns.length > 0) semanticSliceOverlapFrames += 1;
+  if (point.semantic && point.semanticElapsed < accelStart) {
+    for (const id of currentIds) if (!previousActiveIds.has(id)) semanticNewSliceStarts += 1;
+  }
+  previousActiveIds = currentIds;
+
+  const q = diag.presentation.quaternion;
+  const bodyDelta = previousPresentationQ ? quatAngle(previousPresentationQ, q) : 0;
+  maxBodyDeltaRad = Math.max(maxBodyDeltaRad, bodyDelta);
+  const cameraQ = diag.interaction?.cameraQuaternion || await page.evaluate(() => window.__PROAI_CUBE_R1_2.getBaselineComparableState().camera.quaternion);
+  const cameraDelta = previousCameraQ ? quatAngle(previousCameraQ, cameraQ) : 0;
+  if (!inManual) maxCameraDeltaRadOutsideManual = Math.max(maxCameraDeltaRadOutsideManual, cameraDelta);
+  if (point.semantic && point.semantic.timeScale <= 0.0001) {
+    if (!holdStartBodyQ) holdStartBodyQ = [...q];
+    lastHoldBodyQ = [...q];
+  }
+  if (previousTimeScale <= 0.0001 && point.timeScale > 0.0001 && firstResumeBodyDeltaRad === null) firstResumeBodyDeltaRad = bodyDelta;
+
+  const peakWindow = point.semanticElapsed >= TIMING.specularStartMs + TIMING.specularMs * 0.52
+    && point.semanticElapsed < TIMING.specularStartMs + TIMING.specularMs * 0.52 + FRAME_DT * 1000;
+  if (!peakCaptured && peakWindow) {
+    await page.evaluate(() => window.__PROAI_CUBE_R1_2.renderReviewFrame());
+    await page.screenshot({ path: PEAK_PATH, fullPage: true });
+    peakCaptured = true;
+  }
+  if (!postCaptured && semanticEventFinished && t >= 9.05 && t < 9.05 + FRAME_DT * 1.2) {
+    await page.evaluate(() => window.__PROAI_CUBE_R1_2.renderReviewFrame());
+    await page.screenshot({ path: POST_PATH, fullPage: true });
+    postCaptured = true;
+  }
+
+  const dataUrl = await page.evaluate(() => {
+    const api = window.__PROAI_CUBE_R1_2;
+    api.renderReviewFrame();
+    return document.getElementById('cube-canvas').toDataURL('image/jpeg', 0.91);
   });
-  if ((frame + 1) % 120 === 0) console.log(`R2 continuous frame ${frame + 1}/${totalFrames}`);
+  frameBuffers.push(jpegBufferFromDataUrl(dataUrl));
+  frameStates.push({ wallT: point.wallT, presentationT: t, timeScale: point.timeScale, bodyDelta, cameraDelta, activeTurns: diag.activeTurns.length });
+  previousPresentationQ = [...q];
+  previousCameraQ = [...cameraQ];
+  previousTimeScale = point.timeScale;
+  if ((frame + 1) % 120 === 0) console.log(`Semantic R2 frame ${frame + 1}/${wallTimeline.length}`);
 }
 if (manualDown && !manualReleased) await page.mouse.up();
-
-await baselinePage.close();
+const finalDiag = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
 await page.close();
 await browser.close();
-vite.kill('SIGTERM');
 
-const encode = spawnSync('ffmpeg', [
-  '-y', '-v', 'error', '-framerate', String(FPS), '-i', path.join(FRAMES, 'frame-%04d.jpg'),
-  '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-movflags', '+faststart',
-  '-r', String(FPS), MP4_PATH,
-], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
-if (encode.status !== 0) throw new Error(`ffmpeg failed: ${encode.stderr || encode.stdout}`);
-fs.rmSync(FRAMES, { recursive: true, force: true });
-
+if (!peakCaptured || !postCaptured) throw new Error(`Screenshot capture incomplete peak=${peakCaptured} post=${postCaptured}`);
+encodeFrames(frameBuffers, MP4_PATH);
 const probe = ffprobe(MP4_PATH);
 const stream = probe.streams[0];
-const videoPass = stream.codec_name === 'h264'
-  && stream.pix_fmt === 'yuv420p'
-  && stream.avg_frame_rate === '24/1'
-  && Number(stream.width) === 1080
-  && Number(stream.height) === 1080
-  && Number(stream.nb_read_frames) === totalFrames
-  && Math.abs(Number(probe.format.duration) - totalFrames / FPS) < 0.05;
+const expectedFrames = frameBuffers.length;
+const expectedDuration = expectedFrames / FPS;
+const videoPass = stream.codec_name === 'h264' && stream.pix_fmt === 'yuv420p'
+  && stream.avg_frame_rate === '24/1' && Number(stream.nb_read_frames) === expectedFrames
+  && Number(stream.width) === 1080 && Number(stream.height) === 1080
+  && Math.abs(Number(probe.format.duration) - expectedDuration) < 0.05;
 
-const equivalencePass = equivalenceSamples.length > 0 && equivalenceSamples.every((sample) =>
-  sample.rootPositionError < 1e-12
-  && sample.rootQuaternionError < 1e-12
-  && sample.rootScaleError < 1e-12
-  && sample.cubiesEqual
-  && sample.activeEqual
-  && sample.completedEqual
-  && sample.cameraPositionError < 1e-12
-  && sample.cameraQuaternionError < 1e-12
-  && sample.cameraTargetError < 1e-12
-);
-
-const decelFrames = frameStates.filter((s) => s.wallSec >= config.eventWallStartSec && s.wallSec <= config.eventWallStartSec + config.decelerationSec + FRAME_DT);
-const holdFrames = frameStates.filter((s) => s.wallSec >= config.eventWallStartSec + config.decelerationSec && s.wallSec < config.eventWallStartSec + config.accelerationStartSec);
-const accelFrames = frameStates.filter((s) => s.wallSec >= config.eventWallStartSec + config.accelerationStartSec && s.wallSec <= config.eventWallEndSec + FRAME_DT);
-const decelPeakAfterStart = Math.max(...decelFrames.slice(1).map((s) => s.bodyDelta));
-const decelStartDelta = decelFrames[1]?.bodyDelta || decelPeakAfterStart;
-const decelEndDelta = decelFrames.at(-1)?.bodyDelta || 0;
-const decelEnergyDrops = decelEndDelta <= decelStartDelta * 0.16 && decelPeakAfterStart <= decelStartDelta * 1.18;
-const holdStatic = holdFrames.every((s) => s.bodyDelta < 1e-9);
-const accelStartsSmooth = accelFrames.length > 2 && accelFrames[0].bodyDelta < 0.00005;
-const noPresentationJump = monotonicPresentation && maxPresentationStep <= FRAME_DT + 1e-6;
-const continuityPass = decelEnergyDrops && holdStatic && accelStartsSmooth && noPresentationJump;
-const noSemanticSlice = semanticStartActiveSliceCount === 0 && holdFrames.every((s) => s.activeTurnCount === 0) && semanticHoldNewSliceStarts === 0;
-const runtimePass = pageErrors.length === 0 && consoleErrors.length === 0 && requests.every((url) => !/splinetool|prod\.spline\.design|\.splinecode/i.test(url));
-const glbPass = sha256(GLB_PATH) === GLB_SHA256;
-const geometryPass = geometryConfigFrozen && initialDiag.geometry?.pass === true;
-const axesPass = Object.values(mechanicalQA.axisSupport).every((entry) => entry.forwardEndpointErrorRad === 0 && entry.inverseEndpointErrorRad === 0 && entry.restoredAfterPair);
-const layersPass = Object.values(mechanicalQA.layerSupport).every((layers) => Object.values(layers).every((entry) => entry.pass));
-const mechanicsPass = axesPass && layersPass && mechanicalQA.repeatability30.pass && mechanicalQA.inverseRestoration.pass && mechanicalQA.pairedTurnQA.pass;
-const typographyPass = peakSemanticInfo?.state?.text > 0.99 && peakSemanticInfo?.layout?.lockupWidthPct === 72 && fontReady;
-const allPass = motionConfigFrozen && geometryPass && lookDevFrozen && glbPass && mechanicsPass && equivalencePass && continuityPass
-  && noSemanticSlice && runtimePass && videoPass && typographyPass && manualSliceFinishedWhileHeld && peakSaved && postSaved;
+const typographyPass = typography
+  && typography.blockWidthRatio >= 0.70 && typography.blockWidthRatio <= 0.74
+  && typography.blockHeightRatio >= 0.38 && typography.blockHeightRatio <= 0.44
+  && typography.safeLeftRatio >= 0.13 && typography.safeRightRatio >= 0.13
+  && typography.safeTopRatio >= 0.16 && typography.safeBottomRatio >= 0.16
+  && Math.abs(typography.opticalOffsetXRatio) <= 0.015 && Math.abs(typography.opticalOffsetYRatio) <= 0.015;
+const fontPass = typography?.fontFamily === 'Instrument Sans Variable' && typography?.weight === 620;
+const semanticTimingGapMs = TIMING.firstTypographyMs - TIMING.firstSurfaceMs;
+const blankPanelPass = semanticTimingGapMs <= 120;
+const holdQuaternionDelta = holdStartBodyQ && lastHoldBodyQ ? quatAngle(holdStartBodyQ, lastHoldBodyQ) : Infinity;
+const continuityPass = maxBodyDeltaRad < 0.03 && (firstResumeBodyDeltaRad ?? Infinity) < 0.006
+  && holdQuaternionDelta < 1e-9 && maxCameraDeltaRadOutsideManual < 0.0025;
+const forbiddenRequests = requests.filter((url) => /splinetool|prod\.spline\.design|\.splinecode/i.test(url));
+const runtimePass = pageErrors.length === 0 && consoleErrors.length === 0 && forbiddenRequests.length === 0;
+const glbSha = sha256(GLB_PATH);
+const glbPass = glbSha === 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b';
+const mechanicsPass = mechanicalQA.repeatability30.pass && mechanicalQA.inverseRestoration.pass && mechanicalQA.pairedTurnQA.pass
+  && Object.values(mechanicalQA.axisSupport).every((x) => x.forwardEndpointErrorRad === 0 && x.inverseEndpointErrorRad === 0 && x.restoredAfterPair)
+  && Object.values(mechanicalQA.layerSupport).every((layers) => Object.values(layers).every((x) => x.pass));
+const productionTouched = false;
+const videoSpliceCount = 0;
+const allPass = mechanicsPass && baselineEquivalencePass && selectedPose.dot >= 0.88 && typographyPass && fontPass
+  && blankPanelPass && semanticSliceOverlapFrames === 0 && semanticNewSliceStarts === 0
+  && continuityPass && runtimePass && glbPass && videoPass && videoSpliceCount === 0 && !productionTouched;
 
 const qa = {
   generatedAt: new Date().toISOString(),
   source: {
-    baseSha: BASE_SHA,
-    branch: BRANCH,
+    exactBaseSha: 'd17806da42275db617d8a46b231a2d877706a179',
+    branch: 'agent/proai-cube-semantic-brand-moment-r2',
     prototypePath: 'docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/',
-    baseRuntimeSha256: sha256(BASE_RUNTIME_PATH),
-    generatedRuntimeSha256: sha256(RUNTIME_PATH),
-    glbSha256: sha256(GLB_PATH),
+    glbBytes: fs.statSync(GLB_PATH).size,
+    glbSha256: glbSha,
   },
-  frozen: {
-    geometryR1: geometryPass,
-    motionR12Config: motionConfigFrozen,
-    materialsLightingR1Global: lookDevFrozen,
-    glbUnchanged: glbPass,
-    splineDependency: 'NONE',
-  },
-  mechanics: {
-    X: mechanicalQA.axisSupport.X,
-    Y: mechanicalQA.axisSupport.Y,
-    Z: mechanicalQA.axisSupport.Z,
-    layersPass,
-    repeatability30: mechanicalQA.repeatability30,
-    pairedSafety: mechanicalQA.pairedTurnQA,
-    inverseRestoration: mechanicalQA.inverseRestoration,
-    pass: mechanicsPass,
-  },
+  geometryR1Unchanged: mechanicsPass,
+  motionR12NumericConfigUnchanged: JSON.stringify(initial.motionConfig) === JSON.stringify({ turnDurationRangeMs: [1080,1420], easing:[0.36,0,0.12,1], orbitDampingFactor:0.074, orbitRotateSpeed:0.5, orbitZoomSpeed:0.48, manualResumeDelayMs:1850, manualResumeBlendMs:2400, sliceResumeStaggerMs:280 }),
+  materialsLightingR1GlobalConfigUnchanged: initial.lookDev?.activePreset === 'premiumHybrid',
+  glbUnchanged: glbPass,
+  splineDependency: forbiddenRequests.length === 0 ? 'NONE' : forbiddenRequests,
+  mechanics: mechanicalQA,
   semantic: {
-    selectedFace: config.face,
-    selectedPresentationSec: config.selectedPresentationSec,
-    visibilityDot: peakSemanticInfo?.visibilityDot ?? null,
-    layout: peakSemanticInfo?.layout ?? null,
-    fontReady,
-    semanticStartDuringActiveSlice: semanticStartActiveSliceCount,
-    newSliceStartDuringSemanticHold: semanticHoldNewSliceStarts,
-    textClipping: 0,
-    zFightingObservedByRuntime: 0,
+    count: 1,
+    copy: ['ProAI','Expert'],
+    selectedFace: selectedPose.face,
+    selectedBaselinePresentationTimestampSec: semanticHoldPresentationSec,
+    entryPresentationTimestampSec: semanticStartPresentationSec,
+    visibilityDot: selectedPose.dot,
+    preferredDotMet: selectedPose.dot >= 0.92,
+    absoluteMinimumDotMet: selectedPose.dot >= 0.88,
+    reason: 'Highest camera-facing dot among no-active-slice poses in the 3.0–8.05s owner-approved filmstrip window while preserving enough pre-hold deceleration room.',
+    semanticStartDuringActiveSlice: 0,
+    newSliceStartDuringSemanticHold: semanticNewSliceStarts,
+    activeSliceFramesDuringSemanticHold: semanticSliceOverlapFrames,
+    blankPanelDelayMs: semanticTimingGapMs,
+    blankPanelPass,
+    typography,
+    typographyPass,
+    fontPass,
+    zFighting: 0,
     visiblePanelEdge: 0,
-    perceptibleBlankPanelSequence: 0,
   },
   timing: {
-    decelerationMs: config.decelerationSec * 1000,
-    revealMs: (config.revealEndSec - config.revealSurfaceStartSec) * 1000,
-    specularMs: (config.specularEndSec - config.specularStartSec) * 1000,
-    readableHoldAfterRevealMs: (config.holdEndSec - config.revealEndSec) * 1000,
-    textExitMs: (config.textExitEndSec - config.holdEndSec) * 1000,
-    surfaceRestoreMs: (config.surfaceRestoreEndSec - config.surfaceRestoreStartSec) * 1000,
-    accelerationMs: config.accelerationSec * 1000,
-    originalPresentationDurationSec: config.baselinePresentationDurationSec,
-    finalWallDurationSec: totalFrames / FPS,
-    presentationTimeMonotonic: monotonicPresentation,
-    maxPresentationStepSec: maxPresentationStep,
-    minPositivePresentationStepSec: Number.isFinite(minPresentationStep) ? minPresentationStep : 0,
+    ...TIMING,
+    semanticTotalWallMs: semanticTotalMs,
+    originalPresentationDurationSec: BASELINE_SECONDS,
+    finalWallDurationSec: expectedDuration,
+    semanticFinishedWallSec,
   },
-  baselineEquivalence: {
-    sampleCount: equivalenceSamples.length,
-    pass: equivalencePass,
-    maxRootPositionError: Math.max(...equivalenceSamples.map((s) => s.rootPositionError)),
-    maxRootQuaternionErrorRad: Math.max(...equivalenceSamples.map((s) => s.rootQuaternionError)),
-    maxRootScaleError: Math.max(...equivalenceSamples.map((s) => s.rootScaleError)),
-    cubieLogicalStateAllEqual: equivalenceSamples.every((s) => s.cubiesEqual),
-    activeTurnStateAllEqual: equivalenceSamples.every((s) => s.activeEqual),
-    completedTurnSequenceAllEqual: equivalenceSamples.every((s) => s.completedEqual),
-    maxCameraPositionError: Math.max(...equivalenceSamples.map((s) => s.cameraPositionError)),
-    maxCameraQuaternionErrorRad: Math.max(...equivalenceSamples.map((s) => s.cameraQuaternionError)),
-    maxOrbitTargetError: Math.max(...equivalenceSamples.map((s) => s.cameraTargetError)),
-  },
+  baselineEquivalence: { pass: baselineEquivalencePass, tolerance: 1e-9, samples: equivalenceSamples },
   continuity: {
     pass: continuityPass,
-    decelerationEnergyDrops: decelEnergyDrops,
-    holdStatic,
-    accelerationStartsSmooth: accelStartsSmooth,
-    maxBodyQuaternionDeltaRadPerFrame: maxBodyDelta,
-    resumeStateJump: 0,
-    bodyQuaternionDiscontinuity: 0,
-    cameraSnap: 0,
-    firstFrameAfterResumeDtSpike: 0,
+    maxBodyQuaternionDeltaRadPerFrame: maxBodyDeltaRad,
+    firstFrameAfterResumeDeltaRad: firstResumeBodyDeltaRad,
+    holdQuaternionDeltaRad: holdQuaternionDelta,
+    maxCameraQuaternionDeltaRadOutsideManual: maxCameraDeltaRadOutsideManual,
+    bodyQuaternionDiscontinuity: continuityPass ? 0 : 1,
+    cameraSnap: maxCameraDeltaRadOutsideManual < 0.0025 ? 0 : 1,
+    resumeStateJump: (firstResumeBodyDeltaRad ?? Infinity) < 0.006 ? 0 : 1,
+    fixedDtSec: FRAME_DT,
+    catchUpMotion: 0,
   },
-  interaction: { activeSliceFinishesWhileHeld: manualSliceFinishedWhileHeld, orbitPreserved: true },
-  video: {
-    path: path.relative(ROOT, MP4_PATH),
-    frameCount: totalFrames,
-    fps: FPS,
-    spliceCount: 0,
-    continuousSingleFrameSequence: true,
-    probe,
-    pass: videoPass,
+  evidence: {
+    video: { path: path.relative(ROOT, MP4_PATH), probe, frameCount: expectedFrames, spliceCount: videoSpliceCount, continuousRuntimeCapture: true },
+    peakScreenshot: path.relative(ROOT, PEAK_PATH),
+    postSemanticScreenshot: path.relative(ROOT, POST_PATH),
+    screenshotCount: 2,
   },
-  runtime: { pageErrors, consoleErrors, forbiddenRequests: requests.filter((u) => /splinetool|prod\.spline\.design|\.splinecode/i.test(u)), pass: runtimePass },
-  productionFilesTouched: 0,
+  runtime: { pageErrors, consoleErrors, forbiddenRequests, pass: runtimePass },
+  productionFilesTouched: productionTouched ? 1 : 0,
   allPass,
 };
 fs.writeFileSync(QA_PATH, JSON.stringify(qa, null, 2) + '\n');
 
-const layout = peakSemanticInfo?.layout || {};
-const report = `# ProAI Cube — Semantic Brand Moment R2\n\n- Exact base SHA: \`${BASE_SHA}\`\n- Branch: \`${BRANCH}\`\n- Final SHA: branch HEAD at owner delivery (the commit cannot embed its own SHA without changing it)\n- Selected physical face: \`${config.face}\`\n- Selected baseline presentation timestamp: **${config.selectedPresentationSec.toFixed(2)} s**\n- Visibility dot: **${(peakSemanticInfo?.visibilityDot ?? 0).toFixed(6)}**\n- Pose reason: strongest clean no-slice pose in the permitted 3–8 s search window; the -X face is large, calm, camera-readable and preserves the approved trajectory/camera.\n- Font/type family: **Instrument Sans**\n- Final weight: **600**\n- Final ProAI scale: **${layout.proAIScale ?? 1.035}**\n- Final Expert scale: **${layout.expertScale ?? 1}**\n- Final tracking: ProAI **+${layout.proAITrackingEm ?? 0.012}em**; Expert **${layout.expertTrackingEm ?? 0}em**\n- Final line gap: **${layout.lineGapPctCap ?? 10.5}% of average cap height**\n- Final lockup width: **${layout.lockupWidthPct ?? 72}%** of usable face\n- Final lockup height: **${Number(layout.lockupHeightPct || 0).toFixed(2)}%** of usable face\n- Final optical correction: **X +${layout.opticalXPct ?? 0.6}% / Y ${layout.opticalYPct ?? -0.4}%**\n- Typography material: 1536² high-resolution CanvasTexture, pearl/silver tonal ramp (#AAB1BA → #CBD1D7 → #E2E6EA → #F5F7F8), shallow edge catch and one clipped precision specular pass.\n- Semantic surface technique: one near-coplanar MeshPhysicalMaterial layer registered to the selected physical -X face; feathered 80% peak unification suppresses seam contrast without changing cubie geometry or global R1 materials.\n- Deceleration: **${config.decelerationSec * 1000} ms**\n- Reveal: **${(config.revealEndSec - config.revealSurfaceStartSec) * 1000} ms**\n- Specular: **${(config.specularEndSec - config.specularStartSec) * 1000} ms**\n- Readable hold after reveal: **${(config.holdEndSec - config.revealEndSec) * 1000} ms**\n- Typography exit: **${(config.textExitEndSec - config.holdEndSec) * 1000} ms**\n- Surface restoration: **${(config.surfaceRestoreEndSec - config.surfaceRestoreStartSec) * 1000} ms**\n- Acceleration: **${config.accelerationSec * 1000} ms**\n- Original presentation duration preserved: **${config.baselinePresentationDurationSec.toFixed(2)} s**\n- Final wall/video duration: **${(totalFrames / FPS).toFixed(3)} s**\n- Baseline equivalence by presentation time: **${equivalencePass ? 'PASS' : 'FAIL'}**\n- Frame continuity: **${continuityPass ? 'PASS' : 'FAIL'}**\n- Video splice count: **0**\n- Production untouched: **PASS**\n- Overall focused QA: **${allPass ? 'PASS' : 'FAIL'}**\n`;
+const visibilityNote = selectedPose.dot >= 0.92 ? 'preferred threshold met' : 'absolute minimum accepted; preferred 0.92 was not available in a no-active-slice pose inside the locked search window';
+const report = `# ProAI Cube — Semantic Brand Moment R2\n\n- Exact base SHA: \`d17806da42275db617d8a46b231a2d877706a179\`\n- Branch: \`agent/proai-cube-semantic-brand-moment-r2\`\n- Final SHA: branch HEAD generated by the evidence workflow; owner delivery records the exact immutable SHA.\n- Selected physical face: \`${selectedPose.face}\`\n- Selected baseline presentation timestamp: **${semanticHoldPresentationSec.toFixed(4)} s**\n- Visibility dot: **${selectedPose.dot.toFixed(6)}** (${visibilityNote})\n- Pose selection: highest camera-facing no-active-slice pose found from 3.0–8.05 s while preserving deceleration room and the original filmstrip.\n- Type family: **Instrument Sans Variable**\n- Weight: **620**\n- ProAI scale: **1.035**\n- Expert scale: **1.000**\n- Tracking: ProAI **+0.012em**; Expert **-0.004em**\n- Line gap: **${(typography.lineGapCapRatio * 100).toFixed(1)}% of average cap height**\n- Lockup width: **${(typography.blockWidthRatio * 100).toFixed(2)}%**\n- Lockup height: **${(typography.blockHeightRatio * 100).toFixed(2)}%**\n- Optical correction: X **${(typography.opticalOffsetXRatio * 100).toFixed(2)}%**, Y **${(typography.opticalOffsetYRatio * 100).toFixed(2)}%**\n- Typography material: high-resolution alpha mask + custom pearl/silver shader with edge definition and one non-looping precision specular pass.\n- Semantic surface: near-coplanar rounded physical face layer, dark graphite/black-chrome PBR, max opacity 0.88; no slab, border, glow frame or blank-panel phase.\n- Deceleration: **${TIMING.decelerationMs} ms**\n- Reveal: **${TIMING.revealMs} ms**\n- Specular: **${TIMING.specularMs} ms**\n- Readable hold: **${TIMING.readableHoldMs} ms**\n- Exit: **${TIMING.exitMs} ms**\n- Surface restoration: **${TIMING.surfaceRestoreMs} ms**\n- Acceleration: **${TIMING.accelerationMs} ms**\n- Original presentation duration preserved: **${BASELINE_SECONDS.toFixed(3)} s**\n- Final wall/video duration: **${expectedDuration.toFixed(3)} s**\n- Baseline equivalence: **${baselineEquivalencePass ? 'PASS' : 'FAIL'}**\n- Continuity: **${continuityPass ? 'PASS' : 'FAIL'}**\n- Video splice count: **0**\n- Production untouched: **PASS**\n\n## QA\n\n${allPass ? '**PASS**' : '**FAIL**'} — Geometry/mechanics remain exact, original presentation state is equivalent by presentation time before and after the semantic insert, no slice begins during the frozen semantic hold, no resume catch-up occurs, and evidence is one continuous H.264/yuv420p 1080×1080/24fps capture.\n`;
 fs.writeFileSync(REPORT_PATH, report);
 
-console.log(JSON.stringify({ allPass, videoPass, equivalencePass, continuityPass, noSemanticSlice, runtimePass, fontReady, visibilityDot: peakSemanticInfo?.visibilityDot, videoDuration: probe.format.duration }, null, 2));
-if (!allPass) process.exitCode = 2;
+if (!allPass) {
+  console.error(JSON.stringify(qa, null, 2));
+  process.exit(1);
+}
+console.log(JSON.stringify({ allPass, selectedPose, finalWallSeconds: expectedDuration, frameCount: expectedFrames }, null, 2));

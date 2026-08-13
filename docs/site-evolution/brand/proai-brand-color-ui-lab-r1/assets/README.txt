@@ -1,0 +1,1 @@
+Static color-judgment assets only. The Cube image in this lab is copied by blob reference from owner-approved Materials + Lighting R1 evidence at commit d17806da42275db617d8a46b231a2d877706a179. Do not edit or treat this lab copy as an active Cube implementation.

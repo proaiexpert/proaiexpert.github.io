@@ -1,30 +1,17 @@
-name: TEMP Hero Signature R3 Owner Review
+name: TEMP Hero Signature R3 Metrics
 on:
   push:
     branches: [agent/proai-home-hero-signature-r3]
     paths: [.github/workflows/temporary-hero-signature-r3-owner-review.yml]
 permissions:
   contents: read
-  statuses: write
 jobs:
-  owner-review:
+  metrics:
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
-      - name: Verify final product and frozen Cube
-        run: |
-          set -euo pipefail
-          test "$(git hash-object assets/js/proai-hero-cube-r1/bootstrap.js)" = b46b26164efc000daef8ecb3416039008db7cd79
-          test "$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" = bab6b00e73b20fc2a51aeb00cb7fc08f16129e72
-          test "$(stat -c%s assets/models/proai-cube/rubik_39_s_cube_animation.glb)" = 279412
-          echo "DBB7FC4156F8C9ED2481DD76443DFFB9A45ECB5493463F99BFFB34DD3B59C79B  assets/models/proai-cube/rubik_39_s_cube_animation.glb" | sha256sum -c -
-          grep -q 'font-size: clamp(62px, 4.45vw, 66px);' assets/css/homepage-hero-signature-r3.css
-          ! grep -q 'homepage-hero-shell-r2.css' index.html
-          ! grep -q 'homepage-hero-shell-r2.css' ru/index.html
-          ! grep -Eq 'body(\.lang-ru)?\.page-home[[:space:]]+(#hero|\.hero-|\.scene)' mobile-pass-v141.css
-          ! grep -q '!important' assets/css/homepage-hero-signature-r3.css
-      - name: Build and serve
+      - name: Build
         run: |
           set -euo pipefail
           export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
@@ -32,37 +19,14 @@ jobs:
           gem install --user-install webrick --no-document >/dev/null
           jekyll build --source . --destination _site >/dev/null
           python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/http.log 2>&1 &
-          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/ >/dev/null && break || sleep 1; done
-          curl -fsS http://127.0.0.1:8080/ru/ >/dev/null
-      - name: Full EN RU responsive and interaction QA
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/ru/ >/dev/null && break || sleep 1; done
+      - name: Capture RU metrics
         run: |
           set -euo pipefail
           npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
-          cat > hero-r3-final-qa.cjs <<'JS'
-          const p=require('puppeteer-core'),a=require('assert').strict,B='http://127.0.0.1:8080';
-          (async()=>{const b=await p.launch({headless:false,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--enable-unsafe-swiftshader','--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows']}),q=await b.newPage(),wait=ms=>new Promise(r=>setTimeout(r,ms));
-          async function load(path,w,h,m,t){await q.setViewport({width:w,height:h,isMobile:m,hasTouch:t});await q.goto(B+path,{waitUntil:'domcontentloaded'});await q.waitForFunction(()=>document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',{timeout:30000});await wait(80)}
-          async function S(){return q.evaluate(()=>{const R=e=>{const r=e.getBoundingClientRect();return{l:r.left,t:r.top,r:r.right,b:r.bottom,w:r.width,h:r.height}},t=document.querySelector('.proai-hero-title'),g=document.createRange();g.selectNodeContents(t);const cs=getComputedStyle(t),sup=getComputedStyle(document.querySelector('.proai-hero-support')),co=getComputedStyle(document.querySelector('#hero .hero-content')),pr=getComputedStyle(document.querySelector('.proai-hero-cta--primary')),se=getComputedStyle(document.querySelector('.proai-hero-cta--secondary'));return{lines:new Set([...g.getClientRects()].map(x=>Math.round(x.top))).size,fs:+parseFloat(cs.fontSize).toFixed(2),support:+parseFloat(sup.fontSize).toFixed(2),display:co.display,flex:co.flexDirection,hero:R(document.querySelector('#hero')),left:R(document.querySelector('#hero .hero-left')),visual:R(document.querySelector('#hero .hero-visual')),canvas:R(document.querySelector('#cube-canvas')),actions:R(document.querySelector('.proai-hero-actions')),pri:{h:R(document.querySelector('.proai-hero-cta--primary')).h,r:parseFloat(pr.borderRadius),bg:pr.backgroundImage},sec:{bw:se.borderTopWidth,bg:se.backgroundImage,bs:se.boxShadow},ov:document.documentElement.scrollWidth-document.documentElement.clientWidth,scrollH:document.documentElement.scrollHeight,obsolete:['.proai-hero-microcopy','.proai-hero-accountability','.proai-hero-stage-rail'].some(x=>document.querySelector(x)),sheets:[...document.styleSheets].map(s=>s.href||'inline').filter(x=>String(x).includes('homepage-hero'))}})}
-          async function C(path,L,w,h,k){await load(path,w,h,k!=='desktop',k!=='desktop');const x=await S();console.log('METRICS',JSON.stringify({L,w,h,k,lines:x.lines,font:x.fs,support:x.support,left:+x.left.w.toFixed(1),cube:+x.visual.w.toFixed(1),canvas:+x.canvas.w.toFixed(1),heroH:+x.hero.h.toFixed(1),scrollH:x.scrollH,overflow:x.ov,display:x.display,flex:x.flex,primaryRadius:x.pri.r}));a.ok(x.ov<=1);a.equal(x.obsolete,false);a.equal(x.sheets.length,1);a.ok(x.sheets[0].includes('homepage-hero-signature-r3.css'));a.ok(x.support>=15.5);a.ok(x.pri.h>=49.5);a.ok(x.pri.r>=7&&x.pri.r<=11);a.notEqual(x.pri.bg,'none');a.equal(x.sec.bw,'0px');a.equal(x.sec.bg,'none');a.equal(x.sec.bs,'none');a.ok(x.canvas.l>=-1&&x.canvas.r<=w+1);a.ok(x.canvas.b<=x.hero.b+2);if(k==='desktop'){a.equal(x.display,'grid');if(w===1440){a.ok(x.fs>=61&&x.fs<=77);a.ok(x.lines<=(L==='RU'?4:3))}else{a.ok(x.fs>=51&&x.fs<=66);a.ok(x.lines<=(L==='RU'?4:3))}a.ok(x.visual.w>=x.left.w*.72)}if(k==='portrait'){a.equal(x.display,'flex');a.equal(x.flex,'column');a.ok(x.fs>=(L==='EN'?41:39)&&x.fs<=(L==='EN'?50:47));a.ok(x.visual.w>=w*.80&&x.visual.w<=w*.94);a.ok(x.visual.t>=x.actions.b-2)}if(k==='landscape'){a.equal(x.display,'flex');a.equal(x.flex,'column');a.ok(x.fs>=(L==='EN'?47:45)&&x.fs<=(L==='EN'?60:55));a.ok(x.visual.w>=w*.43&&x.visual.w<=w*.57);a.ok(x.visual.t>=x.actions.b-2);a.ok(x.hero.h>h*1.25);a.ok(x.scrollH>h+120)}}
-          await q.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);for(const [path,L] of [['/','EN'],['/ru/','RU']]){await C(path,L,1440,900,'desktop');await C(path,L,1200,800,'desktop');await C(path,L,430,932,'portrait');await C(path,L,390,844,'portrait');for(const [w,h] of [[932,430],[844,390],[800,360],[740,360]])await C(path,L,w,h,'landscape')}
-          await q.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);await load('/',1440,900,false,false);const c=await q.evaluate(()=>__PROAI_HERO_CUBE_R1.runtime.getHeroInteractionContract());a.equal(c.zoomEnabled,false);a.equal(c.panEnabled,false);const z=await q.$eval('#cube-canvas',e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height}});await q.mouse.move(z.x+z.w/2,z.y+z.h/2);await q.mouse.down();await q.mouse.move(z.x+z.w/2+48,z.y+z.h/2-22,{steps:6});await wait(260);const d=await q.evaluate(()=>__PROAI_HERO_CUBE_R1.runtime.getDiagnostics().interaction);a.equal(d.autonomyBlocked,false);a.equal(d.sliceAutonomyBlocked,false);await q.mouse.up();const r=await q.evaluate(()=>__PROAI_HERO_CUBE_R1.runtime.getDiagnostics().interaction);a.equal(r.resumeDelayRemainingMs,0);a.equal(r.sliceResumeDelayRemainingMs,0);const wh=await q.evaluate(()=>{const e=document.querySelector('#cube-canvas'),before=__PROAI_HERO_CUBE_R1.runtime.getHeroInteractionContract().cameraDistance,ev=new WheelEvent('wheel',{deltaY:300,bubbles:true,cancelable:true});e.dispatchEvent(ev);return{p:ev.defaultPrevented,b:before,a:__PROAI_HERO_CUBE_R1.runtime.getHeroInteractionContract().cameraDistance}});a.equal(wh.p,false);a.ok(Math.abs(wh.a-wh.b)<1e-6);console.log('INTERACTION R1.1 PASS');await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          cat > hero-r3-metrics.cjs <<'JS'
+          const p=require('puppeteer-core');
+          (async()=>{const b=await p.launch({headless:false,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--enable-unsafe-swiftshader']}),q=await b.newPage();await q.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
+          for(const [w,h,k] of [[1440,900,'desktop'],[1200,800,'laptop'],[430,932,'portrait430'],[390,844,'portrait390'],[932,430,'landscape932'],[844,390,'landscape844'],[800,360,'landscape800'],[740,360,'landscape740']]){await q.setViewport({width:w,height:h,isMobile:w<1000,hasTouch:w<1000});await q.goto('http://127.0.0.1:8080/ru/',{waitUntil:'domcontentloaded'});await q.waitForFunction(()=>document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',{timeout:30000});const x=await q.evaluate(()=>{const t=document.querySelector('.proai-hero-title'),g=document.createRange();g.selectNodeContents(t);const r=document.querySelector('#hero .hero-visual').getBoundingClientRect(),hr=document.querySelector('#hero').getBoundingClientRect(),c=getComputedStyle(t);return{lines:new Set([...g.getClientRects()].map(x=>Math.round(x.top))).size,font:+parseFloat(c.fontSize).toFixed(2),cube:+r.width.toFixed(1),heroH:+hr.height.toFixed(1),overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth}});console.log('RU_METRIC',JSON.stringify({w,h,k,...x}))}await b.close()})().catch(e=>{console.error(e);process.exit(1)});
           JS
-          xvfb-run -a node hero-r3-final-qa.cjs | tee /tmp/hero-r3-final-qa.log
-      - name: Start owner Quick Tunnel
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          curl -fsSL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
-          chmod +x /tmp/cloudflared
-          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >/tmp/cloudflared.log 2>&1 &
-          URL=""; for i in $(seq 1 60); do URL="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/cloudflared.log | head -1 || true)"; [ -n "$URL" ] && break; sleep 1; done
-          [ -n "$URL" ] || { cat /tmp/cloudflared.log; exit 1; }
-          READY=0; for i in $(seq 1 45); do if curl -fsS --connect-timeout 5 "$URL/" >/dev/null 2>&1 && curl -fsS --connect-timeout 5 "$URL/ru/" >/dev/null 2>&1; then READY=1; break; fi; sleep 2; done
-          [ "$READY" = 1 ] || { cat /tmp/cloudflared.log; exit 1; }
-          echo "EN: $URL/" >> "$GITHUB_STEP_SUMMARY"; echo "RU: $URL/ru/" >> "$GITHUB_STEP_SUMMARY"
-          python3 -c 'import json,sys; print(json.dumps({"state":"success","target_url":sys.argv[1],"description":"Hero R3 owner review (~60 min)","context":"hero-signature-r3-owner"}))' "$URL" >/tmp/status.json
-          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d @/tmp/status.json >/dev/null
-          echo "LIVE_PREVIEW_READY=$URL"
-      - name: Keep preview alive
-        run: sleep 3600
+          xvfb-run -a node hero-r3-metrics.cjs

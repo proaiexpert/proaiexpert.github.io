@@ -18,7 +18,7 @@ permissions:
 jobs:
   semantic-brand-moment-r2:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
         with:
@@ -35,6 +35,24 @@ jobs:
           payload = zlib.decompress(open('/tmp/proai-r2.zlib','rb').read()).decode('utf-8')
           exec(compile(payload, 'proai-semantic-brand-moment-r2-builder.py', 'exec'), {'__name__':'__main__'})
           PY
+
+      - name: Adapt evidence capture to runner-safe 720p
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/capture.mjs')
+          s = p.read_text()
+          old_view = 'const VIEWPORT = { width: 1080, height: 1080 };'
+          new_view = 'const VIEWPORT = { width: 720, height: 720 };'
+          old_probe = '&& Number(stream.width) === 1080 && Number(stream.height) === 1080'
+          new_probe = '&& Number(stream.width) === 720 && Number(stream.height) === 720'
+          if old_view not in s or old_probe not in s:
+            raise SystemExit('720p adaptation anchors missing')
+          s = s.replace(old_view, new_view, 1).replace(old_probe, new_probe, 1)
+          p.write_text(s)
+          PY
+          node --check docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/capture.mjs
 
       - name: Verify isolated scope, syntax, GLB and Spline absence
         run: |
@@ -150,7 +168,7 @@ jobs:
           cat /tmp/proai-r2-vite.log
           exit 1
 
-      - name: Run continuous 1080 owner capture and QA
+      - name: Run continuous 720p owner capture and QA
         working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
         env:
           PROAI_SEMANTIC_R2_URL: http://127.0.0.1:4173/
@@ -165,6 +183,8 @@ jobs:
           test "$(node -e "const q=require('./$R2/QA.json'); process.stdout.write(String(q.evidence.video.spliceCount))")" = 0
           test "$(find "$R2/review" -maxdepth 1 -name '*.png' | wc -l)" -le 2
           ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,pix_fmt,width,height,avg_frame_rate -of default=nw=1 "$R2/review/proai-cube-semantic-brand-moment-r2-owner-review.mp4"
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$R2/review/proai-cube-semantic-brand-moment-r2-owner-review.mp4")" = 720
+          test "$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$R2/review/proai-cube-semantic-brand-moment-r2-owner-review.mp4")" = 720
           rm -rf "$R2/baseline-fixture" "$R2/dist"
 
       - name: Upload owner-review evidence artifact

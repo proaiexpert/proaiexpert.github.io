@@ -15,8 +15,8 @@
     determinant: basis.determinant,
     centerWorld: centerWorld.toArray(),
     normalWorld: normalWorld.toArray(),
-    rightWorld: rightWorld.toArray(),
-    upWorld: upWorld.toArray(),
+    rightWorld: faceRightWorld.toArray(),
+    upWorld: faceUpWorld.toArray(),
   };
 }
 

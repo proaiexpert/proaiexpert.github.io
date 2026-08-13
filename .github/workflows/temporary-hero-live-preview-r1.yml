@@ -1,0 +1,115 @@
+name: TEMP — Hero Live Owner Preview R1
+
+on:
+  push:
+    branches:
+      - agent/proai-home-hero-cube-integration-r1
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  live-preview:
+    if: github.ref == 'refs/heads/agent/proai-home-hero-cube-integration-r1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+
+    steps:
+      - name: Checkout frozen integration branch
+        uses: actions/checkout@v6
+
+      - name: Build actual Jekyll site
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+
+      - name: Start local static server and smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/proai-preview-http.log 2>&1 &
+          echo $! >/tmp/proai-preview-http.pid
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/ >/dev/null; then break; fi
+            sleep 1
+          done
+
+          curl -fsS http://127.0.0.1:8080/ >/dev/null
+          curl -fsS http://127.0.0.1:8080/ru/ >/dev/null
+          curl -fsS http://127.0.0.1:8080/assets/models/proai-cube/rubik_39_s_cube_animation.glb >/dev/null
+          curl -fsS http://127.0.0.1:8080/assets/js/proai-hero-cube-r1/bootstrap.js >/dev/null
+
+      - name: Start temporary Cloudflare Quick Tunnel
+        id: tunnel
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >/tmp/proai-cloudflared.log 2>&1 &
+          echo $! >/tmp/proai-cloudflared.pid
+
+          PUBLIC_URL=""
+          for i in $(seq 1 60); do
+            PUBLIC_URL="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/proai-cloudflared.log | head -n 1 || true)"
+            if [ -n "$PUBLIC_URL" ]; then break; fi
+            sleep 1
+          done
+
+          if [ -z "$PUBLIC_URL" ]; then
+            cat /tmp/proai-cloudflared.log
+            exit 1
+          fi
+
+          for i in $(seq 1 30); do
+            if curl -fsS --retry 2 --retry-delay 1 "$PUBLIC_URL/" >/dev/null; then break; fi
+            sleep 1
+          done
+
+          curl -fsS --retry 3 --retry-delay 1 "$PUBLIC_URL/" >/dev/null
+          curl -fsS --retry 3 --retry-delay 1 "$PUBLIC_URL/ru/" >/dev/null
+          curl -fsS --retry 3 --retry-delay 1 "$PUBLIC_URL/assets/models/proai-cube/rubik_39_s_cube_animation.glb" >/dev/null
+          curl -fsS --retry 3 --retry-delay 1 "$PUBLIC_URL/assets/js/proai-hero-cube-r1/bootstrap.js" >/dev/null
+
+          echo "public_url=$PUBLIC_URL" >> "$GITHUB_OUTPUT"
+          echo "## LIVE HERO OWNER PREVIEW" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "EN: $PUBLIC_URL/" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "RU: $PUBLIC_URL/ru/" >> "$GITHUB_STEP_SUMMARY"
+
+          payload="$(python3 - "$PUBLIC_URL" <<'PY'
+          import json, sys
+          print(json.dumps({
+              'state': 'success',
+              'target_url': sys.argv[1],
+              'description': 'Live Hero owner preview (~60 min)',
+              'context': 'hero-live-preview-r1',
+          }))
+          PY
+          )"
+
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d "$payload" >/dev/null
+
+          echo "LIVE_PREVIEW_READY=$PUBLIC_URL"
+
+      - name: Keep preview alive for owner review
+        shell: bash
+        run: |
+          echo "Preview active for approximately 60 minutes."
+          sleep 3600

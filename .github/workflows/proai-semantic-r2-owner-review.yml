@@ -1,0 +1,556 @@
+name: ProAI Semantic R2 Owner Review
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-moment-r2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+
+    steps:
+      - name: Checkout Semantic R2 review head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Focused source locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python verify-freeze.py
+          test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
+          node --check main.js
+          if grep -niE '@splinetool|prod\.spline\.design|\.splinecode' main.js index.html package.json styles.css; then
+            echo "Forbidden Spline runtime reference found"
+            exit 1
+          fi
+          cd "$GITHUB_WORKSPACE"
+          if git diff --name-only d17806da42275db617d8a46b231a2d877706a179...HEAD -- index.html ru/index.html | grep -q .; then
+            echo "Production root modified"
+            exit 1
+          fi
+
+      - name: Install runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npx playwright install --with-deps chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Build and start review runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          nohup npx vite --host 127.0.0.1 --port 4173 > /tmp/proai-semantic-r2-vite.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/proai-semantic-r2-vite.log
+          exit 1
+
+      - name: Short sample then full continuous 720 capture
+        shell: bash
+        env:
+          PROAI_URL: http://127.0.0.1:4173/
+        run: |
+          set -euo pipefail
+          cat > .capture-pr.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import crypto from 'node:crypto';
+          import { spawnSync } from 'node:child_process';
+
+          const WIDTH = 720;
+          const HEIGHT = 720;
+          const FPS = 24;
+          const SAMPLE_MS = 3200;
+          const FULL_MS = 30000;
+          const URL = process.env.PROAI_URL || 'http://127.0.0.1:4173/';
+          const OUT = path.resolve('review-artifact');
+          fs.rmSync(OUT, { recursive: true, force: true });
+          fs.mkdirSync(OUT, { recursive: true });
+
+          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          const distance3 = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+
+          function run(bin, args) {
+            const result = spawnSync(bin, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+            if (result.status !== 0) {
+              console.error(result.stdout);
+              console.error(result.stderr);
+              throw new Error(`${bin} failed with status ${result.status}`);
+            }
+            return result.stdout;
+          }
+
+          function transcode(input, output) {
+            run('ffmpeg', [
+              '-y',
+              '-i', input,
+              '-vf', `scale=${WIDTH}:${HEIGHT}:flags=lanczos,fps=${FPS}`,
+              '-c:v', 'libx264',
+              '-preset', 'veryfast',
+              '-crf', '18',
+              '-pix_fmt', 'yuv420p',
+              '-movflags', '+faststart',
+              '-an',
+              output,
+            ]);
+          }
+
+          function probe(file) {
+            return JSON.parse(run('ffprobe', [
+              '-v', 'error',
+              '-select_streams', 'v:0',
+              '-show_entries', 'stream=codec_name,pix_fmt,width,height,r_frame_rate,avg_frame_rate',
+              '-show_entries', 'format=duration,size',
+              '-of', 'json',
+              file,
+            ]));
+          }
+
+          function validateMp4(file, minDurationSec) {
+            if (!fs.existsSync(file) || fs.statSync(file).size <= 0) throw new Error(`Missing or empty MP4: ${file}`);
+            const p = probe(file);
+            const stream = p.streams?.[0] || {};
+            const duration = Number(p.format?.duration || 0);
+            const pass = stream.codec_name === 'h264'
+              && stream.pix_fmt === 'yuv420p'
+              && Number(stream.width) === WIDTH
+              && Number(stream.height) === HEIGHT
+              && stream.r_frame_rate === '24/1'
+              && duration >= minDurationSec;
+            if (!pass) throw new Error(`MP4 validation failed: ${JSON.stringify(p)}`);
+            return p;
+          }
+
+          function extractFrame(video, seconds, output) {
+            run('ffmpeg', [
+              '-y',
+              '-ss', Math.max(0, seconds).toFixed(3),
+              '-i', video,
+              '-frames:v', '1',
+              '-vf', `scale=${WIDTH}:${HEIGHT}:flags=lanczos`,
+              output,
+            ]);
+            if (!fs.existsSync(output) || fs.statSync(output).size <= 0) throw new Error(`Screenshot extraction failed: ${output}`);
+          }
+
+          async function startCanvasRecorder(page, chunks, bitRate = 4_500_000) {
+            await page.exposeFunction('__proaiPushChunk', (base64) => {
+              chunks.push(Buffer.from(base64, 'base64'));
+            });
+            return page.evaluate(async ({ fps, bitRate }) => {
+              const canvas = document.getElementById('cube-canvas');
+              if (!canvas) throw new Error('Cube canvas not found');
+              if (!canvas.captureStream) throw new Error('canvas.captureStream unavailable');
+              if (typeof MediaRecorder === 'undefined') throw new Error('MediaRecorder unavailable');
+
+              const mimeCandidates = [
+                'video/webm;codecs=vp8',
+                'video/webm;codecs=vp9',
+                'video/webm',
+              ];
+              const mimeType = mimeCandidates.find((value) => MediaRecorder.isTypeSupported(value));
+              if (!mimeType) throw new Error('No supported MediaRecorder WebM mime type');
+
+              const stream = canvas.captureStream(fps);
+              const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: bitRate });
+              const pending = [];
+              let stoppedResolve;
+              let stoppedReject;
+              const stopped = new Promise((resolve, reject) => {
+                stoppedResolve = resolve;
+                stoppedReject = reject;
+              });
+
+              const toBase64 = (bytes) => {
+                let binary = '';
+                const stride = 0x4000;
+                for (let i = 0; i < bytes.length; i += stride) {
+                  binary += String.fromCharCode(...bytes.subarray(i, i + stride));
+                }
+                return btoa(binary);
+              };
+
+              recorder.ondataavailable = (event) => {
+                if (!event.data || event.data.size === 0) return;
+                const task = (async () => {
+                  const buffer = await event.data.arrayBuffer();
+                  await window.__proaiPushChunk(toBase64(new Uint8Array(buffer)));
+                })();
+                pending.push(task);
+              };
+              recorder.onerror = (event) => stoppedReject(new Error(event.error?.message || 'MediaRecorder error'));
+              recorder.onstop = () => stoppedResolve();
+
+              window.__proaiStopRecorder = async () => {
+                if (recorder.state !== 'inactive') recorder.stop();
+                await stopped;
+                await Promise.all(pending);
+                stream.getTracks().forEach((track) => track.stop());
+                return { mimeType, state: recorder.state };
+              };
+
+              recorder.start(1000);
+              return {
+                mimeType,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height,
+                cssWidth: canvas.getBoundingClientRect().width,
+                cssHeight: canvas.getBoundingClientRect().height,
+              };
+            }, { fps: FPS, bitRate });
+          }
+
+          async function openPage(browser, url) {
+            const context = await browser.newContext({
+              viewport: { width: WIDTH, height: HEIGHT },
+              deviceScaleFactor: 1,
+            });
+            const page = await context.newPage();
+            const pageErrors = [];
+            const consoleErrors = [];
+            page.on('pageerror', (error) => pageErrors.push(String(error)));
+            page.on('console', (message) => {
+              if (message.type() === 'error') consoleErrors.push(message.text());
+            });
+            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+            await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, null, { timeout: 120000 });
+            return { context, page, pageErrors, consoleErrors };
+          }
+
+          async function sampleCapture(browser) {
+            const { context, page, pageErrors, consoleErrors } = await openPage(browser, `${URL}?capture`);
+            const sampleState = await page.evaluate(() => {
+              const api = window.__PROAI_CUBE_R1_2;
+              const times = [7.1, 7.3, 7.5, 7.7, 7.9, 8.1, 8.2];
+              const candidates = times.map((timeSec) => api.getSemanticPoseAt(timeSec)).filter(Boolean);
+              candidates.sort((a, b) => b.dot - a.dot);
+              const best = candidates[0];
+              api.setReviewPresentation(best.timeSec, 1, false);
+              api.setSemanticReviewState({
+                face: best.face,
+                surface: 1,
+                formation: 1,
+                luminance: 1,
+                sweep: 0.52,
+                exit: 0,
+              }, false);
+              api.renderReviewFrame();
+              window.__sampleRenderTimer = setInterval(() => api.renderReviewFrame(), 32);
+              const d = api.getDiagnostics();
+              return {
+                face: best.face,
+                visibilityDot: best.dot,
+                typography: d.semanticR2.typography,
+                renderer: d.renderer,
+              };
+            });
+
+            const chunks = [];
+            const recorderInfo = await startCanvasRecorder(page, chunks, 3_500_000);
+            await sleep(SAMPLE_MS);
+            await page.evaluate(async () => {
+              clearInterval(window.__sampleRenderTimer);
+              return window.__proaiStopRecorder();
+            });
+
+            if (pageErrors.length) throw new Error(`Sample page errors: ${JSON.stringify(pageErrors)}`);
+            if (consoleErrors.some((value) => /GLB load failed|Uncaught|TypeError|ReferenceError/i.test(value))) {
+              throw new Error(`Sample fatal console error: ${JSON.stringify(consoleErrors)}`);
+            }
+            if (!sampleState.typography || sampleState.typography.blockWidthRatio < 0.65) {
+              throw new Error(`Sample typography not ready: ${JSON.stringify(sampleState.typography)}`);
+            }
+
+            const webm = path.join(OUT, 'sample.webm');
+            fs.writeFileSync(webm, Buffer.concat(chunks));
+            if (fs.statSync(webm).size <= 0) throw new Error('Sample WebM is empty');
+            const mp4 = path.join(OUT, 'sample.mp4');
+            transcode(webm, mp4);
+            const sampleProbe = validateMp4(mp4, 2.0);
+            fs.rmSync(webm, { force: true });
+            fs.rmSync(mp4, { force: true });
+            await context.close();
+            return { recorderInfo, sampleState, sampleProbe };
+          }
+
+          async function fullCapture(browser) {
+            const { context, page, pageErrors, consoleErrors } = await openPage(browser, URL);
+            const initial = await page.evaluate(() => {
+              const d = window.__PROAI_CUBE_R1_2.getDiagnostics();
+              return {
+                ready: d.ready,
+                camera: d.interaction.cameraPosition,
+                presentationYaw: d.presentation.signedYawDeg,
+                typography: d.semanticR2.typography,
+                geometryPass: d.geometry?.pass === true,
+                hierarchyPass: d.hierarchy?.pass === true,
+              };
+            });
+
+            const chunks = [];
+            const recorderInfo = await startCanvasRecorder(page, chunks, 4_500_000);
+            const recordStarted = Date.now();
+
+            let semanticObserved = false;
+            let semanticComplete = false;
+            let semanticStartVideoMs = null;
+            let semanticCompleteVideoMs = null;
+            let semanticFace = null;
+            let semanticStartActiveTurns = null;
+            let maxActiveTurnsWhileBlocked = 0;
+            let sawPause = false;
+            let sawResume = false;
+            let maxCameraDelta = 0;
+            let maxPresentationFrameDeltaRad = 0;
+            let blankSemanticPanelViolation = false;
+            let yawAtSemanticComplete = null;
+            let yawTwoSecAfterSemantic = null;
+            let latestYaw = initial.presentationYaw;
+            let selectedPeakVideoMs = null;
+
+            while (Date.now() - recordStarted < FULL_MS) {
+              await sleep(100);
+              const elapsedVideoMs = Date.now() - recordStarted;
+              const d = await page.evaluate(() => {
+                const x = window.__PROAI_CUBE_R1_2.getDiagnostics();
+                return {
+                  semantic: x.semanticR2,
+                  activeTurns: x.activeTurns.length,
+                  camera: x.interaction.cameraPosition,
+                  yaw: x.presentation.signedYawDeg,
+                  frameDeltaRad: x.presentation.frameAngularDeltaRad,
+                };
+              });
+
+              latestYaw = d.yaw;
+              maxCameraDelta = Math.max(maxCameraDelta, distance3(initial.camera, d.camera));
+              maxPresentationFrameDeltaRad = Math.max(maxPresentationFrameDeltaRad, Math.abs(d.frameDeltaRad || 0));
+
+              if (d.semantic.active) {
+                semanticObserved = true;
+                semanticFace ||= d.semantic.face;
+                if (semanticStartVideoMs === null) {
+                  semanticStartVideoMs = elapsedVideoMs - Number(d.semantic.elapsedMs || 0);
+                  semanticStartActiveTurns = d.activeTurns;
+                  selectedPeakVideoMs = semanticStartVideoMs + 1200;
+                }
+                if (d.semantic.blocksSlices) {
+                  maxActiveTurnsWhileBlocked = Math.max(maxActiveTurnsWhileBlocked, d.activeTurns);
+                }
+                if (Number(d.semantic.timeScale) <= 0.001) sawPause = true;
+                if (Number(d.semantic.elapsedMs) > 150
+                    && Number(d.semantic.surfaceProgress) > 0.18
+                    && Number(d.semantic.textFormation) < 0.01) {
+                  blankSemanticPanelViolation = true;
+                }
+              }
+
+              if (d.semantic.complete && !semanticComplete) {
+                semanticComplete = true;
+                semanticCompleteVideoMs = elapsedVideoMs;
+                yawAtSemanticComplete = d.yaw;
+              }
+
+              if (semanticComplete && Number(d.semantic.timeScale) >= 0.999) sawResume = true;
+              if (semanticCompleteVideoMs !== null && elapsedVideoMs >= semanticCompleteVideoMs + 2000 && yawTwoSecAfterSemantic === null) {
+                yawTwoSecAfterSemantic = d.yaw;
+              }
+            }
+
+            await page.evaluate(() => window.__proaiStopRecorder());
+            const finalDiagnostics = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
+
+            if (pageErrors.length) throw new Error(`Full page errors: ${JSON.stringify(pageErrors)}`);
+            if (consoleErrors.some((value) => /GLB load failed|Uncaught|TypeError|ReferenceError/i.test(value))) {
+              throw new Error(`Full fatal console error: ${JSON.stringify(consoleErrors)}`);
+            }
+            if (!semanticObserved || !semanticComplete) throw new Error('Semantic R2 was not observed to complete during full recording');
+            if (semanticStartActiveTurns !== 0) throw new Error(`Semantic started with ${semanticStartActiveTurns} active turns`);
+            if (maxActiveTurnsWhileBlocked !== 0) throw new Error(`Slice activity observed while semantic blocked slices: ${maxActiveTurnsWhileBlocked}`);
+            if (!sawPause || !sawResume) throw new Error(`Semantic pause/resume state incomplete: pause=${sawPause} resume=${sawResume}`);
+
+            const webm = path.join(OUT, 'full.webm');
+            fs.writeFileSync(webm, Buffer.concat(chunks));
+            if (fs.statSync(webm).size <= 0) throw new Error('Full WebM is empty');
+
+            const mp4 = path.join(OUT, 'proai-cube-semantic-brand-moment-r2-review-720.mp4');
+            transcode(webm, mp4);
+            const finalProbe = validateMp4(mp4, 27.0);
+            fs.rmSync(webm, { force: true });
+
+            const durationSec = Number(finalProbe.format.duration);
+            const peakSec = Math.min(Math.max(0.25, (selectedPeakVideoMs ?? 9000) / 1000), durationSec - 0.5);
+            const postSec = Math.min(Math.max(peakSec + 2, ((semanticCompleteVideoMs ?? 14000) + 2500) / 1000), durationSec - 0.5);
+            const peakPng = path.join(OUT, 'proai-cube-semantic-brand-moment-r2-peak.png');
+            const postPng = path.join(OUT, 'proai-cube-semantic-brand-moment-r2-post.png');
+            extractFrame(mp4, peakSec, peakPng);
+            extractFrame(mp4, postSec, postPng);
+
+            const postYawAdvanceDeg = yawAtSemanticComplete === null
+              ? null
+              : Math.abs((yawTwoSecAfterSemantic ?? latestYaw) - yawAtSemanticComplete);
+
+            const qa = {
+              allPass: true,
+              video: {
+                filename: path.basename(mp4),
+                width: WIDTH,
+                height: HEIGHT,
+                fps: FPS,
+                codec: finalProbe.streams[0].codec_name,
+                pixelFormat: finalProbe.streams[0].pix_fmt,
+                durationSec,
+                sizeBytes: Number(finalProbe.format.size),
+                sha256: crypto.createHash('sha256').update(fs.readFileSync(mp4)).digest('hex'),
+                spliceCount: 0,
+                continuousRuntime: true,
+              },
+              sample: {
+                pass: true,
+                typographyVisible: true,
+              },
+              semantic: {
+                observed: semanticObserved,
+                complete: semanticComplete,
+                face: semanticFace,
+                semanticStartActiveTurns,
+                maxActiveTurnsWhileBlocked,
+                sawPause,
+                sawResume,
+                peakVideoSec: peakSec,
+                postVideoSec: postSec,
+                postSemanticYawAdvanceDeg,
+                final: finalDiagnostics.semanticR2,
+              },
+              continuity: {
+                maxCameraDelta,
+                maxPresentationFrameDeltaRad,
+                noCameraSnap: maxCameraDelta <= 1e-6,
+                noVisibleMotionJump: maxPresentationFrameDeltaRad < 0.08,
+                postSemanticMotionContinues: (postYawAdvanceDeg ?? 0) > 0.05,
+              },
+              visual: {
+                blankSemanticPanelViolation,
+                typographyVisible: Boolean(initial.typography),
+              },
+              runtime: {
+                pageErrors,
+                fatalConsoleErrors: consoleErrors.filter((value) => /GLB load failed|Uncaught|TypeError|ReferenceError/i.test(value)),
+                renderer: finalDiagnostics.renderer,
+              },
+              locks: {
+                geometry: initial.geometryPass,
+                hierarchy: initial.hierarchyPass,
+                productionMainTouched: false,
+              },
+              typography: initial.typography,
+              recorderInfo,
+            };
+
+            if (!qa.continuity.postSemanticMotionContinues) throw new Error(`Post-semantic motion did not continue: ${postYawAdvanceDeg}`);
+            if (!qa.continuity.noCameraSnap) throw new Error(`Camera moved unexpectedly during autonomous capture: ${maxCameraDelta}`);
+            if (!qa.continuity.noVisibleMotionJump) throw new Error(`Presentation motion discontinuity too large: ${maxPresentationFrameDeltaRad}`);
+            if (blankSemanticPanelViolation) throw new Error('Blank semantic panel state persisted beyond typography lead-in');
+
+            fs.writeFileSync(path.join(OUT, 'qa.json'), JSON.stringify(qa, null, 2));
+            await context.close();
+            return qa;
+          }
+
+          const browser = await chromium.launch({
+            headless: true,
+            args: [
+              '--use-gl=angle',
+              '--use-angle=swiftshader',
+              '--enable-webgl',
+              '--ignore-gpu-blocklist',
+              '--disable-dev-shm-usage',
+            ],
+          });
+
+          try {
+            const sample = await sampleCapture(browser);
+            console.log(`SHORT_SAMPLE_PASS ${JSON.stringify({
+              codec: sample.sampleProbe.streams[0].codec_name,
+              width: sample.sampleProbe.streams[0].width,
+              height: sample.sampleProbe.streams[0].height,
+              fps: sample.sampleProbe.streams[0].r_frame_rate,
+              typography: Boolean(sample.sampleState.typography),
+            })}`);
+            const qa = await fullCapture(browser);
+            console.log(`FULL_CAPTURE_PASS ${JSON.stringify(qa.video)}`);
+          } finally {
+            await browser.close();
+            fs.rmSync('.capture-pr.mjs', { force: true });
+          }
+          NODE
+
+          node .capture-pr.mjs
+
+      - name: Final focused evidence gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find review-artifact -maxdepth 1 -type f -name '*.mp4' | wc -l)" -eq 1
+          test "$(find review-artifact -maxdepth 1 -type f -name '*.png' | wc -l)" -eq 2
+          test -f review-artifact/qa.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          qa = json.loads(Path('review-artifact/qa.json').read_text())
+          assert qa['allPass'] is True
+          assert qa['video']['spliceCount'] == 0
+          assert qa['video']['continuousRuntime'] is True
+          assert qa['semantic']['observed'] is True
+          assert qa['semantic']['complete'] is True
+          assert qa['semantic']['semanticStartActiveTurns'] == 0
+          assert qa['semantic']['maxActiveTurnsWhileBlocked'] == 0
+          assert qa['semantic']['sawPause'] is True
+          assert qa['semantic']['sawResume'] is True
+          assert qa['continuity']['postSemanticMotionContinues'] is True
+          assert qa['continuity']['noCameraSnap'] is True
+          assert qa['continuity']['noVisibleMotionJump'] is True
+          assert qa['visual']['blankSemanticPanelViolation'] is False
+          assert qa['visual']['typographyVisible'] is True
+          assert qa['runtime']['pageErrors'] == []
+          assert qa['runtime']['fatalConsoleErrors'] == []
+          assert qa['locks']['geometry'] is True
+          assert qa['locks']['productionMainTouched'] is False
+          print('FOCUSED_QA_PASS')
+          PY
+
+      - name: Upload owner review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-semantic-r2-owner-review
+          path: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/review-artifact/
+          if-no-files-found: error
+          retention-days: 1

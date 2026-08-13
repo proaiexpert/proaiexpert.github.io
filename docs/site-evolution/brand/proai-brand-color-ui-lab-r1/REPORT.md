@@ -7,9 +7,10 @@ Status: isolated visual decision lab. No production integration.
 - Repository: `proaiexpert/proaiexpert.github.io`
 - Branch: `agent/proai-brand-color-ui-lab-r1`
 - Base/control commit: `c37dab13663007b6307fdea74e53c3990131720c`
+- Exact visual-evidence commit: `dea7e84e7119bf911e438837d46ede0cc5c6a4a0`
 - Prototype path: `docs/site-evolution/brand/proai-brand-color-ui-lab-r1/`
 - Cube evidence source: Materials + Lighting R1, commit `d17806da42275db617d8a46b231a2d877706a179`
-- Static Cube evidence is referenced/copied only inside this isolated lab; original evidence is not edited.
+- Static Cube evidence is copied only inside this isolated lab; original evidence is not edited.
 
 ## Scope and locks
 
@@ -208,7 +209,7 @@ Required owner-review PNGs are stored in `review/`:
 15. `warm-energy-study.png`
 16. `typography-study.png`
 
-The live browser prototype references the exact owner-approved Materials + Lighting R1 static image copied into the isolated lab. The review PNG set is a deterministic owner-review render of the same palette/layout logic; it uses a neutral material-context proxy to keep review generation independent from active 3D/Semantic implementation.
+The live browser prototype and the committed owner-review PNG set use the exact owner-approved Materials + Lighting R1 static image copied into this isolated lab. The copied image blob SHA is `4f462472177bf8c9423019a0ee2a50603ae34542`, identical to the approved evidence source blob. No active Cube/Semantic implementation was modified or duplicated.
 
 ## Builder self-assessment / ranking
 

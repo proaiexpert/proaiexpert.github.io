@@ -7,10 +7,12 @@ import { fileURLToPath } from 'node:url';
 const ROOT=process.env.PROAI_SEMANTIC_PROTOTYPE_DIR||path.dirname(fileURLToPath(import.meta.url));
 const BASE_URL=process.env.PROAI_SEMANTIC_DISPLAY_R1_URL||'http://127.0.0.1:4173/';
 const LANG=process.env.PROAI_VIDEO_LANG==='ru'?'ru':'en';
-const FPS=24, DT=1/FPS, VIEW={width:720,height:720};
+const FPS=24, FRAME_MS=1000/FPS, VIEW={width:720,height:720};
 const SECONDS=LANG==='en'?41:22;
 const PRESENTATION_BASE=LANG==='ru'?16.6:0;
-const REVIEW=path.join(ROOT,'review');fs.mkdirSync(REVIEW,{recursive:true});
+const REVIEW=path.join(ROOT,'review');
+const TMP=path.join(ROOT,`video-tmp-${LANG}`);
+fs.rmSync(TMP,{recursive:true,force:true});fs.mkdirSync(TMP,{recursive:true});fs.mkdirSync(REVIEW,{recursive:true});
 const MP4=path.join(REVIEW,LANG==='en'?'proai-cube-semantic-display-r1-en-review-41s.mp4':'proai-cube-semantic-display-r1-ru-proof-22s.mp4');
 const CONTACT=path.join(REVIEW,LANG==='en'?'video-contact-sheet-en.png':'video-contact-sheet-ru.png');
 const OUT=path.join(ROOT,`${LANG.toUpperCase()}_VIDEO_QA.json`);
@@ -18,43 +20,91 @@ const semanticEvents=(LANG==='en'?[['AI EXPERT',2],['TRUST',16.6],['INQUIRY',22.
 const mechanicalEvents=LANG==='en'?
 [{id:'e1',kind:'single',axis:'X',layer:1,direction:1,start:.35,end:1.55},{id:'e2',kind:'pair',axis:'Y',layerA:-1,layerB:1,directionA:1,directionB:-1,start:5.15,end:6.55},{id:'e3',kind:'single',axis:'Z',layer:0,direction:-1,start:7.15,end:8.35},{id:'e4',kind:'single',axis:'X',layer:-1,direction:-1,start:9.1,end:10.38},{id:'e5',kind:'pair',axis:'Z',layerA:-1,layerB:1,directionA:1,directionB:1,start:11.15,end:12.55},{id:'e6',kind:'single',axis:'Y',layer:0,direction:1,start:13.25,end:14.48},{id:'e7',kind:'single',axis:'Z',layer:-1,direction:-1,start:19.65,end:20.86},{id:'e8',kind:'pair',axis:'X',layerA:-1,layerB:1,directionA:-1,directionB:1,start:25.35,end:26.72},{id:'e9',kind:'single',axis:'Y',layer:-1,direction:1,start:39.25,end:40.55}]:
 [{id:'r1',kind:'single',axis:'X',layer:0,direction:1,start:4.15,end:5.35},{id:'r2',kind:'pair',axis:'Z',layerA:-1,layerB:1,directionA:-1,directionB:1,start:11.25,end:12.65},{id:'r3',kind:'single',axis:'Y',layer:1,direction:-1,start:18.45,end:19.7}];
-function jpeg(data){return Buffer.from(data.slice(data.indexOf(',')+1),'base64');}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function quatAngle(a,b){const dot=Math.min(1,Math.abs(a.reduce((s,v,i)=>s+v*b[i],0)));return 2*Math.acos(dot);}
 function probe(file){const p=spawnSync('ffprobe',['-v','error','-count_frames','-select_streams','v:0','-show_entries','stream=codec_name,pix_fmt,avg_frame_rate,nb_read_frames,width,height:format=duration,size','-of','json',file],{encoding:'utf8'});if(p.status)throw new Error(p.stderr);return JSON.parse(p.stdout);}
-function encode(frames,file){const p=spawnSync('ffmpeg',['-y','-v','error','-f','image2pipe','-framerate',String(FPS),'-vcodec','mjpeg','-i','pipe:0','-an','-c:v','libx264','-preset','slow','-crf','18','-pix_fmt','yuv420p','-movflags','+faststart','-r',String(FPS),file],{input:Buffer.concat(frames),maxBuffer:200*1024*1024});if(p.status||!fs.existsSync(file))throw new Error('ffmpeg encode failed');}
+function encodeRecording(input,file,trimStart,timelineWallSec){
+  const speed=Math.max(.8,Math.min(1.25,SECONDS/Math.max(.1,timelineWallSec)));
+  const p=spawnSync('ffmpeg',['-y','-v','error','-ss',trimStart.toFixed(3),'-i',input,'-vf',`setpts=${speed.toFixed(8)}*PTS,fps=${FPS},scale=720:720:flags=lanczos`,'-t',String(SECONDS),'-an','-c:v','libx264','-preset','slow','-crf','18','-pix_fmt','yuv420p','-movflags','+faststart','-r',String(FPS),file],{encoding:'utf8'});
+  if(p.status||!fs.existsSync(file))throw new Error(`ffmpeg encode failed ${p.stderr||''}`);
+}
 function videoContact(video,out,cols,rows){const frames=cols*rows,dur=Number(probe(video).format.duration),fps=Math.max(.01,frames/dur);const p=spawnSync('ffmpeg',['-y','-v','error','-i',video,'-vf',`fps=${fps},scale=360:360,tile=${cols}x${rows}`,'-frames:v','1',out],{encoding:'utf8'});if(p.status)throw new Error(p.stderr);}
 function transition(ms,t){const sm=x=>{const v=Math.max(0,Math.min(1,x));return v*v*(3-2*v)};const si=sm(ms/t.surfaceInMs),ti=sm((ms-t.textDelayMs)/t.textInMs),rs=Math.max(t.surfaceInMs,t.textDelayMs+t.textInMs),he=rs+t.readableHoldMs,to=he+t.textOutMs,ss=he+t.surfaceOutDelayMs,se=ss+t.surfaceOutMs;let s=si,x=ti;if(ms>=he)x=1-sm((ms-he)/t.textOutMs);if(ms>=ss)s=1-sm((ms-ss)/t.surfaceOutMs);return{surface:Math.max(0,Math.min(1,s)),text:Math.max(0,Math.min(1,x)),readableStartMs:rs,holdEndMs:he,completeMs:Math.max(to,se)};}
 
 const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--use-angle=swiftshader']});
-const page=await browser.newPage({viewport:VIEW});const pageErrors=[],consoleErrors=[];page.on('pageerror',e=>pageErrors.push(String(e)));page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
-const u=new URL(BASE_URL);u.searchParams.set('capture','1');u.searchParams.set('lang',LANG);await page.goto(u.toString(),{waitUntil:'networkidle',timeout:120000});await page.waitForFunction(()=>window.__PROAI_CUBE_SEMANTIC_R1?.ready&&window.__PROAI_CUBE_SEMANTIC_R1?.semanticReady,null,{timeout:120000});
+const recordingOrigin=Date.now();
+const context=await browser.newContext({viewport:VIEW,recordVideo:{dir:TMP,size:VIEW}});
+const page=await context.newPage();const pageErrors=[],consoleErrors=[];page.on('pageerror',e=>pageErrors.push(String(e)));page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
+const video=page.video();
+const u=new URL(BASE_URL);u.searchParams.set('capture','1');u.searchParams.set('lang',LANG);
+await page.goto(u.toString(),{waitUntil:'networkidle',timeout:120000});await page.waitForFunction(()=>window.__PROAI_CUBE_SEMANTIC_R1?.ready&&window.__PROAI_CUBE_SEMANTIC_R1?.semanticReady,null,{timeout:120000});
 await page.evaluate(()=>{const a=window.__PROAI_CUBE_SEMANTIC_R1;a.stopSliceScheduler();const e=document.querySelector('.status');if(e)e.style.display='none';});await page.waitForFunction(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics().activeTurns.length===0,null,{timeout:15000});
-const config=await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.semanticConfig);const timings=config.timings;const frames=[],activeMechanical=new Map(),records=[],faces=new Set();
+const config=await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.semanticConfig);const timings=config.timings;const activeMechanical=new Map(),records=[],faces=new Set();
 let activeSemantic=null,lastSemanticCompletedAt=-Infinity,activation=0,completed=0,early=0,overlap=0,minEntry=Infinity,minActive=Infinity,bodyPairs=0,bodyActive=0,prevQ=null,readableTotal=0,readableEvents=0,mechanicalStarted=0;
 let mouseDown=false,box=null,interactionStart=null,dragEnd=null,releaseAt=null,calmEnd=null,blendEnd=null,freezePresentation=null,cameraBefore=null,cameraAfter=null;
-if(LANG==='en') box=await page.evaluate(()=>{const r=document.getElementById('cube-canvas').getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};});
+if(LANG==='en')box=await page.evaluate(()=>{const r=document.getElementById('cube-canvas').getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height};});
 function presentationAt(t){if(interactionStart===null)return{time:PRESENTATION_BASE+t,resume:1};if(t<calmEnd)return{time:freezePresentation,resume:1};const rt=freezePresentation+(t-calmEnd);if(t<blendEnd)return{time:rt,resume:(t-calmEnd)/(blendEnd-calmEnd)};return{time:rt,resume:1};}
+const timelineStartWall=Date.now();
+const trimStart=(timelineStartWall-recordingOrigin)/1000;
+const frameCount=Math.round(SECONDS*FPS);
 
-for(let frame=0;frame<Math.round(SECONDS*FPS);frame++){
-  const t=frame*DT,pstate=presentationAt(t);await page.evaluate(({time,resume})=>window.__PROAI_CUBE_SEMANTIC_R1.setReviewPresentation(time,resume,false),pstate);
-  for(const e of mechanicalEvents){if(!activeMechanical.has(e.id)&&!e.done&&t>=e.start&&t<e.end&&!activeSemantic&&t>=lastSemanticCompletedAt+timings.sliceResumeOffsetMs/1000){let r;if(e.kind==='pair')r=await page.evaluate(x=>window.__PROAI_CUBE_SEMANTIC_R1.beginReviewPair(x.axis,x.layerA,x.layerB,x.directionA,x.directionB),e);else r=await page.evaluate(x=>window.__PROAI_CUBE_SEMANTIC_R1.beginReviewTurn(x.axis,x.layer,x.direction),e);if(r){e.done=true;mechanicalStarted++;activeMechanical.set(e.id,{e,ids:Array.isArray(r)?r.map(z=>z.id):[r.id]});}}}
-  for(const [id,s] of [...activeMechanical]){const e=s.e,p=Math.max(0,Math.min(1,(t-e.start)/(e.end-e.start)));if(e.kind==='pair'){const p2=Math.max(0,Math.min(1,(t-(e.start+.16))/Math.max(.01,e.end-(e.start+.16))));await page.evaluate(({ids,p,p2})=>window.__PROAI_CUBE_SEMANTIC_R1.setReviewPairProgress(ids,p,p2),{ids:s.ids,p,p2});}else await page.evaluate(({id,p})=>window.__PROAI_CUBE_SEMANTIC_R1.setReviewTurnProgress(id,p,false),{id:s.ids[0],p});if(p>=1||t>=e.end)activeMechanical.delete(id);}
-
+for(let frame=0;frame<frameCount;frame++){
+  const t=frame/FPS,pstate=presentationAt(t);
+  await page.evaluate(({time,resume})=>window.__PROAI_CUBE_SEMANTIC_R1.setReviewPresentation(time,resume,false),pstate);
+  for(const e of mechanicalEvents){
+    if(!activeMechanical.has(e.id)&&!e.done&&t>=e.start&&t<e.end&&!activeSemantic&&t>=lastSemanticCompletedAt+timings.sliceResumeOffsetMs/1000){
+      let r;if(e.kind==='pair')r=await page.evaluate(x=>window.__PROAI_CUBE_SEMANTIC_R1.beginReviewPair(x.axis,x.layerA,x.layerB,x.directionA,x.directionB),e);else r=await page.evaluate(x=>window.__PROAI_CUBE_SEMANTIC_R1.beginReviewTurn(x.axis,x.layer,x.direction),e);
+      if(r){e.done=true;mechanicalStarted++;activeMechanical.set(e.id,{e,ids:Array.isArray(r)?r.map(z=>z.id):[r.id]});}
+    }
+  }
+  for(const [id,s] of [...activeMechanical]){
+    const e=s.e,p=Math.max(0,Math.min(1,(t-e.start)/(e.end-e.start)));
+    if(e.kind==='pair'){const p2=Math.max(0,Math.min(1,(t-(e.start+.16))/Math.max(.01,e.end-(e.start+.16))));await page.evaluate(({ids,p,p2})=>window.__PROAI_CUBE_SEMANTIC_R1.setReviewPairProgress(ids,p,p2),{ids:s.ids,p,p2});}
+    else await page.evaluate(({id,p})=>window.__PROAI_CUBE_SEMANTIC_R1.setReviewTurnProgress(id,p,false),{id:s.ids[0],p});
+    if(p>=1||t>=e.end)activeMechanical.delete(id);
+  }
   if(!activeSemantic&&activeMechanical.size===0&&!(interactionStart!==null&&t<blendEnd+.42)){
     const next=semanticEvents.find(e=>!e.started&&t>=e.start);
-    if(next){const r=await page.evaluate(w=>{const a=window.__PROAI_CUBE_SEMANTIC_R1;const d=a.getDiagnostics();if(Math.abs(d.presentation.velocityDegPerSec)>a.semanticConfig.gates.entryMaxAbsYawDegPerSec)return null;const f=a.selectSemanticFace(null,false);return f?a.prepareReviewSemantic(w,f.faceKey):null;},next.word);if(r){next.started=true;activeSemantic={event:next,start:t,prep:r,early:false,exitAt:null};activation++;minEntry=Math.min(minEntry,r.entryVisibilityDot);faces.add(r.faceKey);records.push({word:next.word,scheduledStart:next.start,start:t,faceKey:r.faceKey,entryVisibilityDot:r.entryVisibilityDot,orientationDeg:r.orientation.orientationDeg,fit:r.fit,earlyExit:false});}}
+    if(next){
+      const r=await page.evaluate(w=>{const a=window.__PROAI_CUBE_SEMANTIC_R1;const d=a.getDiagnostics();if(Math.abs(d.presentation.yawVelocityDegPerSec)>a.semanticConfig.gates.entryMaxAbsYawDegPerSec)return null;const f=a.selectSemanticFace(null,false);return f?a.prepareReviewSemantic(w,f.faceKey):null;},next.word);
+      if(r){next.started=true;activeSemantic={event:next,start:t,prep:r,early:false,exitAt:null};activation++;minEntry=Math.min(minEntry,r.entryVisibilityDot);faces.add(r.faceKey);records.push({word:next.word,scheduledStart:next.start,start:t,faceKey:r.faceKey,entryVisibilityDot:r.entryVisibilityDot,orientationDeg:r.orientation.orientationDeg,fit:r.fit,earlyExit:false});}
+    }
   }
-  if(activeSemantic){const a=activeSemantic,ms=(t-a.start)*1000,tx=transition(ms,timings);
-    if(LANG==='en'&&a.event.word==='RESPONSE'&&interactionStart===null&&ms>=1350){interactionStart=t;dragEnd=t+.8;releaseAt=dragEnd;calmEnd=releaseAt+1.85;blendEnd=calmEnd+2.4;freezePresentation=pstate.time;cameraBefore=await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics().camera.quaternion);const cx=box.x+box.width*.5,cy=box.y+box.height*.5;await page.mouse.move(cx,cy);await page.mouse.down();mouseDown=true;a.early=true;a.exitAt=t;records.at(-1).earlyExit=true;records.at(-1).earlyExitAt=t;}
-    if(a.early){const ems=(t-a.exitAt)*1000;await page.evaluate(ms=>window.__PROAI_CUBE_SEMANTIC_R1.advanceReviewSemanticExit(ms,false),ems);if(ems>=timings.interactionExitMs){const rm=Math.max(0,(a.exitAt-a.start)*1000-tx.readableStartMs);readableTotal+=Math.min(timings.readableHoldMs,rm);readableEvents++;early++;activeSemantic=null;prevQ=null;lastSemanticCompletedAt=t;}}
-    else{await page.evaluate(({s,x})=>window.__PROAI_CUBE_SEMANTIC_R1.setReviewSemanticVisual(s,x,false),{s:tx.surface,x:tx.text});if(ms>=tx.completeMs){readableTotal+=timings.readableHoldMs;readableEvents++;completed++;await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.clearReviewSemantic(false));activeSemantic=null;prevQ=null;lastSemanticCompletedAt=t;}}
+  if(activeSemantic){
+    const a=activeSemantic,ms=(t-a.start)*1000,tx=transition(ms,timings);
+    if(LANG==='en'&&a.event.word==='RESPONSE'&&interactionStart===null&&ms>=1350){
+      interactionStart=t;dragEnd=t+.8;releaseAt=dragEnd;calmEnd=releaseAt+1.85;blendEnd=calmEnd+2.4;freezePresentation=pstate.time;cameraBefore=await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics().camera.quaternion);
+      const cx=box.x+box.width*.5,cy=box.y+box.height*.5;await page.mouse.move(cx,cy);await page.mouse.down();mouseDown=true;a.early=true;a.exitAt=t;records.at(-1).earlyExit=true;records.at(-1).earlyExitAt=t;
+    }
+    if(a.early){
+      const ems=(t-a.exitAt)*1000;await page.evaluate(ms=>window.__PROAI_CUBE_SEMANTIC_R1.advanceReviewSemanticExit(ms,false),ems);
+      if(ems>=timings.interactionExitMs){const rm=Math.max(0,(a.exitAt-a.start)*1000-tx.readableStartMs);readableTotal+=Math.min(timings.readableHoldMs,rm);readableEvents++;early++;activeSemantic=null;prevQ=null;lastSemanticCompletedAt=t;}
+    } else {
+      await page.evaluate(({s,x})=>window.__PROAI_CUBE_SEMANTIC_R1.setReviewSemanticVisual(s,x,false),{s:tx.surface,x:tx.text});
+      if(ms>=tx.completeMs){readableTotal+=timings.readableHoldMs;readableEvents++;completed++;await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.clearReviewSemantic(false));activeSemantic=null;prevQ=null;lastSemanticCompletedAt=t;}
+    }
   }
   if(mouseDown&&t<dragEnd){const p=Math.max(0,Math.min(1,(t-interactionStart)/(dragEnd-interactionStart))),cx=box.x+box.width*.5,cy=box.y+box.height*.5;await page.mouse.move(cx+145*p,cy-26*p);}
   if(mouseDown&&t>=dragEnd){await page.mouse.up();mouseDown=false;}
   if(LANG==='en'&&interactionStart!==null&&cameraAfter===null&&t>=blendEnd)cameraAfter=await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics().camera.quaternion);
-  await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.renderReviewFrame());const d=await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics()),vis=d.semantic.surfaceOpacity>.01||d.semantic.textOpacity>.01;if(vis&&d.activeTurns.length)overlap++;if(vis&&d.semantic.currentFace)minActive=Math.min(minActive,d.semantic.currentFace.visibilityDot);if(vis&&!d.interaction.interactionActive){const q=d.presentation.quaternion;if(prevQ){bodyPairs++;if(quatAngle(prevQ,q)>1e-8)bodyActive++;}prevQ=q;}else if(!vis)prevQ=null;
-  frames.push(jpeg(await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.captureFrame('image/jpeg',.90))));
+  await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.renderReviewFrame());
+  const d=await page.evaluate(()=>window.__PROAI_CUBE_SEMANTIC_R1.getDiagnostics()),vis=d.semantic.surfaceOpacity>.01||d.semantic.textOpacity>.01;
+  if(vis&&d.activeTurns.length)overlap++;
+  if(vis&&d.semantic.currentFace)minActive=Math.min(minActive,d.semantic.currentFace.visibilityDot);
+  if(vis&&!d.interaction.interactionActive){const q=d.presentation.quaternion;if(prevQ){bodyPairs++;if(quatAngle(prevQ,q)>1e-8)bodyActive++;}prevQ=q;}else if(!vis)prevQ=null;
+  const targetWall=timelineStartWall+(frame+1)*FRAME_MS;
+  const remain=targetWall-Date.now();if(remain>0)await sleep(remain);
 }
-if(mouseDown)await page.mouse.up();await browser.close();encode(frames,MP4);videoContact(MP4,CONTACT,LANG==='en'?5:4,LANG==='en'?4:3);const meta=probe(MP4);const videoPass=meta.streams?.[0]?.codec_name==='h264'&&meta.streams?.[0]?.pix_fmt==='yuv420p'&&meta.streams?.[0]?.avg_frame_rate==='24/1'&&Number(meta.streams?.[0]?.width)===720&&Number(meta.streams?.[0]?.height)===720&&Number(meta.streams?.[0]?.nb_read_frames)===Math.round(SECONDS*FPS)&&Math.abs(Number(meta.format.duration)-SECONDS)<.05;
-const out={generatedAt:new Date().toISOString(),lang:LANG,semanticActivationCount:activation,semanticCompletedCount:completed,semanticEarlyExitCount:early,semanticSliceOverlapCount:overlap,semanticBodyActiveFrameRatio:bodyPairs?bodyActive/bodyPairs:1,averageReadableHoldMs:readableEvents?readableTotal/readableEvents:0,minimumEntryFaceVisibilityDot:Number.isFinite(minEntry)?minEntry:null,minimumActiveFaceVisibilityDot:Number.isFinite(minActive)?minActive:null,maxSimultaneousSemanticFaces:1,distinctSelectedFaces:[...faces],semanticRecords:records,mechanicalStartedCount:mechanicalStarted,interaction:{performed:interactionStart!==null,start:interactionStart,dragEnd,calmEnd,blendEnd,cameraBefore,cameraAfter,cameraAnglePreserved:cameraBefore&&cameraAfter?quatAngle(cameraBefore,cameraAfter)>1e-6:null},runtime:{pageErrors,consoleErrors},mp4:{path:path.basename(MP4),metadata:meta,pass:videoPass}};fs.writeFileSync(OUT,JSON.stringify(out,null,2)+'\n');
-const required=LANG==='en'?5:3;if(activation!==required||completed+early!==required||overlap!==0||out.semanticBodyActiveFrameRatio<.95||!videoPass||pageErrors.length||consoleErrors.length)throw new Error(`Video QA failed ${JSON.stringify({activation,completed,early,overlap,body:out.semanticBodyActiveFrameRatio,videoPass,pageErrors,consoleErrors})}`);if(LANG==='en'&&faces.size<2)throw new Error(`EN used fewer than two faces ${[...faces]}`);if(LANG==='ru'&&!records.some(r=>r.word==='ОБРАЩЕНИЕ'))throw new Error('RU ОБРАЩЕНИЕ missing');console.log(JSON.stringify({lang:LANG,activation,completed,early,faces:[...faces],body:out.semanticBodyActiveFrameRatio,videoPass},null,2));
+if(mouseDown)await page.mouse.up();
+const timelineWallSec=(Date.now()-timelineStartWall)/1000;
+await page.close();await context.close();
+const webm=await video.path();
+await browser.close();
+encodeRecording(webm,MP4,trimStart,timelineWallSec);videoContact(MP4,CONTACT,LANG==='en'?5:4,LANG==='en'?4:3);
+const meta=probe(MP4);const videoPass=meta.streams?.[0]?.codec_name==='h264'&&meta.streams?.[0]?.pix_fmt==='yuv420p'&&meta.streams?.[0]?.avg_frame_rate==='24/1'&&Number(meta.streams?.[0]?.width)===720&&Number(meta.streams?.[0]?.height)===720&&Number(meta.streams?.[0]?.nb_read_frames)===Math.round(SECONDS*FPS)&&Math.abs(Number(meta.format.duration)-SECONDS)<.05;
+const out={generatedAt:new Date().toISOString(),captureMethod:'Playwright browser video recording of deterministic Three.js timeline; no per-frame JPEG readback',lang:LANG,semanticActivationCount:activation,semanticCompletedCount:completed,semanticEarlyExitCount:early,semanticSliceOverlapCount:overlap,semanticBodyActiveFrameRatio:bodyPairs?bodyActive/bodyPairs:1,averageReadableHoldMs:readableEvents?readableTotal/readableEvents:0,minimumEntryFaceVisibilityDot:Number.isFinite(minEntry)?minEntry:null,minimumActiveFaceVisibilityDot:Number.isFinite(minActive)?minActive:null,maxSimultaneousSemanticFaces:1,distinctSelectedFaces:[...faces],semanticRecords:records,mechanicalStartedCount:mechanicalStarted,interaction:{performed:interactionStart!==null,start:interactionStart,dragEnd,calmEnd,blendEnd,cameraBefore,cameraAfter,cameraAnglePreserved:cameraBefore&&cameraAfter?quatAngle(cameraBefore,cameraAfter)>1e-6:null},runtime:{pageErrors,consoleErrors},recording:{trimStartSec:trimStart,timelineWallSec},mp4:{path:path.basename(MP4),metadata:meta,pass:videoPass}};fs.writeFileSync(OUT,JSON.stringify(out,null,2)+'\n');
+const required=LANG==='en'?5:3;
+if(activation!==required||completed+early!==required||overlap!==0||out.semanticBodyActiveFrameRatio<.95||!videoPass||pageErrors.length||consoleErrors.length)throw new Error(`Video QA failed ${JSON.stringify({activation,completed,early,overlap,body:out.semanticBodyActiveFrameRatio,videoPass,pageErrors,consoleErrors})}`);
+if(LANG==='en'&&faces.size<2)throw new Error(`EN used fewer than two faces ${[...faces]}`);
+if(LANG==='ru'&&!records.some(r=>r.word==='ОБРАЩЕНИЕ'))throw new Error('RU ОБРАЩЕНИЕ missing');
+console.log(JSON.stringify({lang:LANG,activation,completed,early,faces:[...faces],body:out.semanticBodyActiveFrameRatio,videoPass,timelineWallSec},null,2));

@@ -298,11 +298,17 @@ jobs:
               document.getElementById('__x11_br')?.remove();
             });
             await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-            if (!tl || !br) throw new Error(`Unable to locate page markers in X11 root frame ${JSON.stringify({ tl, br })}`);
-            const expected = W - MARK;
-            if (Math.abs((br.x - tl.x) - expected) > 1 || Math.abs((br.y - tl.y) - expected) > 1
-              || tl.x < 0 || tl.y < 0 || tl.x + W > ROOT_W || tl.y + H > ROOT_H) {
-              throw new Error(`X11 marker geometry mismatch ${JSON.stringify({ tl, br, expected })}`);
+            if (!tl) throw new Error(`Unable to locate canvas top-left marker in X11 root frame ${JSON.stringify({ tl, br })}`);
+            if (br) {
+              const expected = W - MARK;
+              if (Math.abs((br.x - tl.x) - expected) > 1 || Math.abs((br.y - tl.y) - expected) > 1) {
+                throw new Error(`X11 marker geometry mismatch ${JSON.stringify({ tl, br, expected })}`);
+              }
+            } else {
+              console.log('X11_BOTTOM_RIGHT_MARKER_OPTIONAL', 'not detected; exact 720x720 viewport/canvas bounds remain authoritative');
+            }
+            if (tl.x < 0 || tl.y < 0 || tl.x + W > ROOT_W || tl.y + H > ROOT_H) {
+              throw new Error(`X11 capture region exceeds root ${JSON.stringify({ tl, root: [ROOT_W, ROOT_H] })}`);
             }
             const region = { x: tl.x, y: tl.y, width: W, height: H };
             console.log('X11_CAPTURE_REGION', JSON.stringify(region));

@@ -1,0 +1,117 @@
+name: ProAI Cube Semantic Display R1 Owner Video Correction
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-semantic-display-r1
+    paths:
+      - 'docs/site-evolution/spline/proai-cube-semantic-display-r1-owner-tail-correction.mjs'
+      - '.github/workflows/proai-cube-semantic-display-r1-owner-video-correction.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: proai-cube-semantic-display-r1-owner-video-correction
+  cancel-in-progress: true
+
+jobs:
+  correct-owner-evidence:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify frozen implementation before correction
+        run: |
+          set -euo pipefail
+          P=docs/site-evolution/spline/proai-cube-semantic-display-r1
+          test -f "$P/review/proai-cube-semantic-display-r1-en-review-41s.mp4"
+          test "$(sha256sum "$P/rubik_39_s_cube_animation.glb" | awk '{print tolower($1)}')" = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b'
+          sha256sum "$P/main.js" > /tmp/main-before.sha256
+          python docs/site-evolution/spline/proai-cube-semantic-display-r1-freeze-check.py
+          if git diff --name-only d17806da42275db617d8a46b231a2d877706a179...HEAD | grep -E '^index\.html$|^ru/index\.html$'; then
+            echo 'Production root files changed'; exit 1
+          fi
+
+      - name: Install browser and video tooling
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-display-r1
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run build
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          cp ../proai-cube-semantic-display-r1-owner-tail-correction.mjs ./owner-tail-correction.mjs
+
+      - name: Start isolated Vite
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-display-r1
+        run: |
+          nohup npx vite --host 127.0.0.1 --port 4173 >/tmp/proai-semantic-owner-correction.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/proai-semantic-owner-correction.log; exit 1
+
+      - name: Correct deterministic RESULT evidence tail
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-display-r1
+        env:
+          PROAI_SEMANTIC_DISPLAY_R1_URL: http://127.0.0.1:4173/
+          PROAI_SEMANTIC_PROTOTYPE_DIR: ${{ github.workspace }}/docs/site-evolution/spline/proai-cube-semantic-display-r1
+        run: node owner-tail-correction.mjs
+
+      - name: Verify corrected canonical evidence and freeze
+        run: |
+          set -euo pipefail
+          P=docs/site-evolution/spline/proai-cube-semantic-display-r1
+          sha256sum -c /tmp/main-before.sha256
+          test "$(sha256sum "$P/rubik_39_s_cube_animation.glb" | awk '{print tolower($1)}')" = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b'
+          python docs/site-evolution/spline/proai-cube-semantic-display-r1-freeze-check.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('docs/site-evolution/spline/proai-cube-semantic-display-r1')
+          c=json.loads((p/'OWNER_VIDEO_CORRECTION.json').read_text())
+          q=json.loads((p/'QA.json').read_text())
+          assert c['pass'] is True
+          assert c['result']['word']=='RESULT'
+          assert c['runtime']['pass'] is True
+          assert q['ownerVisualReview']['enAllLockedWordsVisible']=='PASS'
+          assert q['acceptance']['overall']=='PASS'
+          s=c['mp4']['metadata']['streams'][0]
+          f=c['mp4']['metadata']['format']
+          assert s['codec_name']=='h264' and s['pix_fmt']=='yuv420p'
+          assert s['avg_frame_rate']=='24/1' and s['nb_read_frames']=='984'
+          assert s['width']==720 and s['height']==720
+          assert abs(float(f['duration'])-41.0)<0.05
+          print(json.dumps({'correction':'PASS','result':c['result'],'mp4':c['mp4']['metadata']},indent=2))
+          PY
+          git diff --exit-code -- "$P/main.js" "$P/rubik_39_s_cube_animation.glb"
+          if git diff --name-only | grep -E '^index\.html$|^ru/index\.html$'; then
+            echo 'Production root files changed in working tree'; exit 1
+          fi
+
+      - name: Commit corrected owner evidence
+        run: |
+          set -euo pipefail
+          P=docs/site-evolution/spline/proai-cube-semantic-display-r1
+          rm -f "$P/owner-tail-correction.mjs"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            "$P/review/proai-cube-semantic-display-r1-en-review-41s.mp4" \
+            "$P/review/video-contact-sheet-en.png" \
+            "$P/review/11-en-result-owner-proof.png" \
+            "$P/OWNER_VIDEO_CORRECTION.json" \
+            "$P/QA.json" \
+            "$P/SEMANTIC_QA.json" \
+            "$P/REPORT.md" \
+            "$P/BASELINE_FREEZE.json"
+          git diff --cached --quiet && { echo 'No correction changes staged'; exit 1; }
+          git commit -m 'qa: correct Semantic R1 EN RESULT owner evidence'
+          git fetch origin agent/proai-cube-semantic-display-r1
+          git rebase origin/agent/proai-cube-semantic-display-r1
+          git push origin HEAD:agent/proai-cube-semantic-display-r1

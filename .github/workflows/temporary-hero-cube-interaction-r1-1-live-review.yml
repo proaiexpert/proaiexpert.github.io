@@ -62,7 +62,18 @@ jobs:
           export npm_config_package_lock=false
           npm install --no-save --no-audit --no-fund playwright@1.55.0
           npx playwright install --with-deps chromium
-          node .github/scripts/temporary-hero-interaction-r1-1-qa.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.github/scripts/temporary-hero-interaction-r1-1-qa.mjs')
+          s = p.read_text()
+          s = s.replace('headless: true,', 'headless: false,', 1)
+          marker = "const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });"
+          s = s.replace(marker, marker + "\nawait page.emulateMedia({ reducedMotion: 'no-preference' });", 1)
+          s = s.replace("const initial = await sample();", "const initial = await sample();\nconsole.log('QA_INITIAL', JSON.stringify(initial), JSON.stringify(await page.evaluate(() => ({ hidden: document.hidden, visibility: document.visibilityState, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches, hero: (() => { const r = document.getElementById('hero').getBoundingClientRect(); return {top:r.top,bottom:r.bottom,height:r.height}; })() }))));", 1)
+          s = s.replace("const baseline = await sample();", "const baseline = await sample();\nconsole.log('QA_BASELINE', JSON.stringify(baseline));", 1)
+          p.write_text(s)
+          PY
+          xvfb-run -a node .github/scripts/temporary-hero-interaction-r1-1-qa.mjs
 
       - name: Start temporary Cloudflare Quick Tunnel
         id: tunnel

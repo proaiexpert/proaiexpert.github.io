@@ -56,6 +56,7 @@ jobs:
           grep -q "triggerSearchStartMs: 3200" main.generated.js
           grep -q "triggerSearchEndMs: 4200" main.generated.js
           grep -q "controls.enableZoom = false" main.generated.js
+          grep -q "function presentationAutonomyBlocked()" main.generated.js
           grep -q "return semanticBlocksSlices;" main.generated.js
           ! grep -q "semanticComplete || interactionActive" main.generated.js
           ! grep -q "concept=A\|concept=B\|concept=C" index.html lab.js main.generated.js
@@ -68,16 +69,13 @@ jobs:
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/proai-r4-server.log 2>&1 &
           echo $! >/tmp/proai-r4-server.pid
           for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
-              echo LOCAL_R4_HTTP_PASS
-              exit 0
-            fi
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && { echo LOCAL_R4_HTTP_PASS; exit 0; }
             sleep 1
           done
           cat /tmp/proai-r4-server.log
           exit 1
 
-      - name: Run R4 motion and interaction QA
+      - name: Run R4 runtime QA
         shell: bash
         env:
           DISPLAY: :99
@@ -86,148 +84,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p review-evidence
-          Xvfb :99 -screen 0 1280x900x24 -ac +extension GLX +render -noreset >/tmp/proai-r4-xvfb.log 2>&1 &
+          Xvfb :99 -screen 0 1024x768x24 -ac +extension GLX +render -noreset >/tmp/proai-r4-xvfb.log 2>&1 &
           echo $! >/tmp/proai-r4-xvfb.pid
           for i in $(seq 1 40); do
             xdpyinfo -display :99 >/dev/null 2>&1 && break
             sleep 0.25
           done
-
-          cat > .qa-r4.mjs <<'NODE'
-          import { chromium } from 'playwright';
-          import fs from 'node:fs';
-
-          const URL = process.env.PROAI_URL || 'http://127.0.0.1:4173/';
-          const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-          const within = (v, min, max) => Number.isFinite(v) && v >= min && v <= max;
-
-          async function waitFor(page, predicate, timeoutMs = 10000) {
-            const start = Date.now();
-            while (Date.now() - start < timeoutMs) {
-              const state = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getSemanticDiagnostics());
-              if (predicate(state)) return state;
-              await sleep(25);
-            }
-            throw new Error('R4 semantic wait timeout');
-          }
-
-          const browser = await chromium.launch({
-            headless: false,
-            args: ['--no-first-run','--disable-infobars','--use-gl=desktop','--enable-webgl','--ignore-gpu-blocklist','--disable-dev-shm-usage']
-          });
-          const context = await browser.newContext({ viewport: { width: 1100, height: 760 }, deviceScaleFactor: 1, hasTouch: true, reducedMotion: 'no-preference' });
-          const page = await context.newPage();
-          const errors = [];
-          page.on('pageerror', (error) => errors.push(String(error)));
-          page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
-
-          await page.goto(URL, { waitUntil: 'domcontentloaded', timeout: 120000 });
-          await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, null, { timeout: 120000 });
-
-          const normal = await waitFor(page, (s) => s.complete === true, 12000);
-          const normalDiag = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
-          const normalPass = within(normal.opportunityPresentationMs, 3150, 4300)
-            && within(normal.firstTypographyElapsedMs, 80, 160)
-            && within(normal.completedElapsedMs, 2200, 2700)
-            && normal.semanticVelocityMultiplier === 0.70
-            && normal.surfaceOpacityMax <= 0.08
-            && normalDiag.presentation.simTimeMs > normal.entryPresentationMs;
-
-          await page.evaluate(() => window.__PROAI_CUBE_R1_2.stopSliceScheduler());
-          const activeSlicePromise = page.evaluate(() => window.__PROAI_CUBE_R1_2.turnSlice({ axis: 'X', layer: 1, direction: 1, durationMs: 1200 }));
-          await sleep(120);
-          const replayAccepted = await page.evaluate(() => window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
-          const pending = await waitFor(page, (s) => s.pending === true && s.waitedForActiveSlice === true, 1200);
-          const turnResult = await activeSlicePromise;
-          const afterSlice = await waitFor(page, (s) => s.active === true, 2500);
-          const activeSlicePass = replayAccepted === true && pending.opportunityActiveTurns > 0 && turnResult?.endpointErrorRad === 0 && afterSlice.active === true;
-
-          await waitFor(page, (s) => s.complete === true, 5000);
-          await page.evaluate(() => window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
-          await waitFor(page, (s) => s.active === true && s.elapsedMs > 320, 2500);
-          const canvas = page.locator('#cube-canvas');
-          const box = await canvas.boundingBox();
-          const cx = box.x + box.width * 0.52;
-          const cy = box.y + box.height * 0.48;
-          const mouseBefore = await page.evaluate(() => ({ s: window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(), d: window.__PROAI_CUBE_R1_2.getDiagnostics() }));
-          await page.mouse.move(cx, cy);
-          await page.mouse.down();
-          await page.mouse.move(cx + 72, cy + 24, { steps: 6 });
-          await sleep(160);
-          await page.mouse.up();
-          const mouseAfter = await page.evaluate(() => ({ s: window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(), d: window.__PROAI_CUBE_R1_2.getDiagnostics(), i: window.__PROAI_CUBE_R1_2.getInteractionState() }));
-          const mousePass = mouseAfter.s.elapsedMs > mouseBefore.s.elapsedMs
-            && mouseAfter.s.entryPresentationMs === mouseBefore.s.entryPresentationMs
-            && mouseAfter.d.presentation.simTimeMs > mouseBefore.d.presentation.simTimeMs
-            && mouseAfter.i.resumeDelayRemainingMs === 0
-            && mouseAfter.i.sliceResumeDelayRemainingMs === 0;
-
-          await waitFor(page, (s) => s.complete === true, 5000);
-          await page.evaluate(() => window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
-          await waitFor(page, (s) => s.active === true && s.elapsedMs > 320, 2500);
-          const cdp = await context.newCDPSession(page);
-          const touchBefore = await page.evaluate(() => ({ s: window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(), d: window.__PROAI_CUBE_R1_2.getDiagnostics() }));
-          await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: cy, id: 1, radiusX: 1, radiusY: 1, force: 1 }] });
-          await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: cx + 64, y: cy + 20, id: 1, radiusX: 1, radiusY: 1, force: 1 }] });
-          await sleep(160);
-          await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-          const touchAfter = await page.evaluate(() => ({ s: window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(), d: window.__PROAI_CUBE_R1_2.getDiagnostics(), i: window.__PROAI_CUBE_R1_2.getInteractionState() }));
-          const touchPass = touchAfter.s.elapsedMs > touchBefore.s.elapsedMs
-            && touchAfter.s.entryPresentationMs === touchBefore.s.entryPresentationMs
-            && touchAfter.d.presentation.simTimeMs > touchBefore.d.presentation.simTimeMs
-            && touchAfter.i.resumeDelayRemainingMs === 0;
-
-          await waitFor(page, (s) => s.complete === true, 5000);
-          await page.evaluate(() => window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
-          await waitFor(page, (s) => s.active === true && s.elapsedMs > 320, 2500);
-          const tapBefore = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getSemanticDiagnostics());
-          await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: cx, y: cy, id: 2, radiusX: 1, radiusY: 1, force: 1 }] });
-          await sleep(35);
-          await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-          await sleep(120);
-          const tapAfter = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getSemanticDiagnostics());
-          const tapPass = tapAfter.elapsedMs > tapBefore.elapsedMs && tapAfter.entryPresentationMs === tapBefore.entryPresentationMs && (tapAfter.active || tapAfter.complete);
-
-          await page.goto(`${URL}?capture&view=front`, { waitUntil: 'domcontentloaded' });
-          await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, null, { timeout: 120000 });
-          await sleep(500);
-          await page.screenshot({ path: 'review-evidence/r4-near-front.png' });
-          await page.goto(`${URL}?capture&view=three-quarter`, { waitUntil: 'domcontentloaded' });
-          await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, null, { timeout: 120000 });
-          await sleep(500);
-          await page.screenshot({ path: 'review-evidence/r4-three-quarter.png' });
-
-          const metrics = {
-            pass: normalPass && activeSlicePass && mousePass && touchPass && tapPass && errors.length === 0,
-            normalPass,
-            activeSlicePass,
-            mousePass,
-            touchPass,
-            tapPass,
-            normal: {
-              opportunityPresentationMs: normal.opportunityPresentationMs,
-              entryPresentationMs: normal.entryPresentationMs,
-              firstSurfaceElapsedMs: normal.firstSurfaceElapsedMs,
-              firstTypographyElapsedMs: normal.firstTypographyElapsedMs,
-              completedElapsedMs: normal.completedElapsedMs,
-              face: normal.face,
-              visibilityDot: normal.visibilityDot,
-              semanticVelocityMultiplier: normal.semanticVelocityMultiplier,
-              sliceBlockTargetMs: normal.sliceBlockTargetMs,
-              surfaceOpacityMax: normal.surfaceOpacityMax,
-              textMeshCount: normal.textMeshCount
-            },
-            activeSlice: { pending, turnResult, afterSlice },
-            errors
-          };
-          fs.writeFileSync('review-evidence/r4-qa-metrics.json', JSON.stringify(metrics, null, 2));
-          console.log('R4_QA_RESULT', JSON.stringify(metrics));
-          await browser.close();
-          if (!metrics.pass) process.exit(1);
-          NODE
-
-          node .qa-r4.mjs
-          echo R4_MOTION_INTERACTION_QA_PASS
+          node qa-r4.mjs
+          echo R4_RUNTIME_QA_PASS
 
       - name: Upload R4 QA evidence
         uses: actions/upload-artifact@v4
@@ -253,18 +117,12 @@ jobs:
             sleep 1
           done
           [ -n "$URL" ]
-          for i in $(seq 1 60); do
-            curl -fsSL --max-time 15 "$URL/" >/dev/null && break
-            sleep 1
-          done
           curl -fsSL --max-time 15 "$URL/" >/dev/null
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           printf '%s\n' "$URL" >/tmp/r4-live-url.txt
           echo "R4_LIVE_READY=$URL"
           {
             echo '## SEMANTIC BRAND FACE R4 — LIVE OWNER REVIEW'
-            echo
-            echo "Base: \`295a67a27df127c95d799c93ea39448afd714793\`"
             echo
             echo "Normal autonomous runtime: $URL/"
             echo "Near-front inspection: $URL/?capture&view=front"
@@ -285,7 +143,6 @@ jobs:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
           set -euo pipefail
-          kill -0 "$(cat /tmp/cloudflared-r4.pid)"
           curl -fsSL --max-time 15 "$REVIEW_URL/" >/dev/null
           echo "R4_PREVIEW_HOLDING=$REVIEW_URL"
           sleep 3600

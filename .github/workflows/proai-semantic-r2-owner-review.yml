@@ -71,7 +71,7 @@ jobs:
 
           /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared.log 2>&1 &
           TUNNEL_PID=$!
-          trap 'kill "$TUNNEL_PID" 2>/dev/null || true; kill "$(cat /tmp/proai-r2-server.pid 2>/dev/null)" 2>/dev/null || true' EXIT
+          trap 'rm -f .public-smoke.mjs; kill "$TUNNEL_PID" 2>/dev/null || true; kill "$(cat /tmp/proai-r2-server.pid 2>/dev/null)" 2>/dev/null || true' EXIT
 
           URL=''
           for i in $(seq 1 90); do
@@ -100,7 +100,7 @@ jobs:
           test "$PUBLIC_OK" -eq 1
           echo 'PUBLIC_HTTP_HTML_PASS'
 
-          cat > /tmp/public-smoke.mjs <<'NODE'
+          cat > .public-smoke.mjs <<'NODE'
           import { chromium } from 'playwright';
 
           const url = process.env.PUBLIC_URL;
@@ -161,7 +161,8 @@ jobs:
           await browser.close();
           NODE
 
-          PUBLIC_URL="$URL" node /tmp/public-smoke.mjs
+          PUBLIC_URL="$URL" node .public-smoke.mjs
+          rm -f .public-smoke.mjs
 
           CURRENT_BODY=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.body // ""')
           CLEAN_BODY=$(printf '%s\n' "$CURRENT_BODY" | sed '/<!-- LIVE_PREVIEW_START -->/,/<!-- LIVE_PREVIEW_END -->/d')

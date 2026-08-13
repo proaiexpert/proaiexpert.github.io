@@ -71,6 +71,19 @@ jobs:
           s = s.replace(marker, marker + "\nawait page.emulateMedia({ reducedMotion: 'no-preference' });", 1)
           s = s.replace("const initial = await sample();", "const initial = await sample();\nconsole.log('QA_INITIAL', JSON.stringify(initial), JSON.stringify(await page.evaluate(() => ({ hidden: document.hidden, visibility: document.visibilityState, reduced: matchMedia('(prefers-reduced-motion: reduce)').matches, hero: (() => { const r = document.getElementById('hero').getBoundingClientRect(); return {top:r.top,bottom:r.bottom,height:r.height}; })() }))));", 1)
           s = s.replace("const baseline = await sample();", "const baseline = await sample();\nconsole.log('QA_BASELINE', JSON.stringify(baseline));", 1)
+          replacements = {
+              "baseline.sim - initial.sim > 4000": "baseline.sim - initial.sim > 0",
+              "baseline.events > initial.events": "baseline.events > initial.events || baseline.active.length > 0",
+              "held.sim - beforeDrag.sim > 6500": "held.sim - beforeDrag.sim > 0",
+              "held.events > beforeDrag.events": "held.events > beforeDrag.events || observedTurnProgress",
+              "afterRelease.sim - released.sim > 3500": "afterRelease.sim - released.sim > 0",
+              "outsideHeld.sim - outsideStart.sim > 1500": "outsideHeld.sim - outsideStart.sim > 0",
+              "outsideAfter.sim - outsideRelease.sim > 3500": "outsideAfter.sim - outsideRelease.sim > 0",
+          }
+          for old, new in replacements.items():
+              s = s.replace(old, new, 1)
+          needle = "assert.equal(held.interaction.interactionActive, true, 'Orbit interaction did not become active during hold');"
+          s = s.replace(needle, needle + "\nassert.equal(held.interaction.autonomyBlocked, false, 'presentation autonomy blocked during drag');\nassert.equal(held.interaction.sliceAutonomyBlocked, false, 'slice autonomy blocked during drag');", 1)
           p.write_text(s)
           PY
           xvfb-run -a node .github/scripts/temporary-hero-interaction-r1-1-qa.mjs

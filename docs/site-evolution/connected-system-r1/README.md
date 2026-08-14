@@ -1,37 +1,41 @@
-# ProAI Connected System R1 — Owner Review Prototype
+# ProAI Connected System R1.1 — Owner Review Prototype
 
-Status: isolated owner-review implementation. Not production.
+Isolated owner-review implementation for the post-Hero Connected System architecture.
 
-## Authority
+## Product baseline
 
-- Repository: `proaiexpert/proaiexpert.github.io`
-- Branch: `agent/proai-connected-system-r1`
-- Exact base product SHA: `735982473854c29a6f1eeeb4d87773abbc573b4d`
-- Product scope is restricted to `docs/site-evolution/connected-system-r1/`.
-- Production `index.html`, `ru/index.html`, Header, Hero, Cube and Logo sources are intentionally untouched.
+R1 product baseline: `58119cff2e0171ab07758f2c433a96db3f9c51d2`.
 
-## Review routes
+R1.1 preserves the approved semantic architecture and copy:
 
-- `en.html` — current R3 EN Header/Hero context → Connected System R1 → restrained Capability Architecture handoff.
-- `ru.html` — current R3 RU Header/Hero context → Connected System R1 → restrained Capability Architecture handoff.
+`TRUST → INQUIRY → RESPONSE → RESULT`
 
-The contextual Header/Hero references exact-base assets through immutable RawGitHack URLs. The new Connected System uses only local DOM/CSS/vanilla JS.
+The correction is visual, motion, material and responsive only.
 
-## System architecture
+## R1.1 premium living mechanism
 
-EN: `TRUST → INQUIRY → RESPONSE → RESULT`
+- Seamless Obsidian handoff from the unchanged contextual Hero into Connected System.
+- Multi-layer precision-machined rail: recessed Black Chrome channel, Graphite/Gunmetal body, micro Pearl/Silver edge.
+- Purpose-designed transfer joints and short machining incisions physically connect each stage to the rail.
+- Entry **Context Transfer** uses one asymmetric broad specular condition rather than a progress fill or moving node.
+- Desktop ambient state uses irregular local low-amplitude events every **8.5–13.5 seconds** while the section is visible.
+- Mobile ambient state is quieter: local joint events every **12–18 seconds** after stages have entered the reading zone.
+- Desktop pointer/focus inspection produces a local material response without card lift, scale or glow-box UI.
+- Mobile scroll activates one local rail/joint/stage handoff per stage.
+- Review-only replay control resets the mechanism, cancels pending ambient work and replays without page reload or scroll movement.
+- `prefers-reduced-motion: reduce` disables travelling, ambient and local choreography while retaining the static material system.
 
-RU: `ДОВЕРИЕ → ОБРАЩЕНИЕ → ОТВЕТ → РЕЗУЛЬТАТ`
+## Responsive strategy
 
-The implementation is intentionally one continuous system spine, not four cards. Desktop uses one horizontal engineered seam; portrait and short-height landscape use one vertical connected seam.
+- Large desktop retains architectural breathing room.
+- 1200×800, 1280×800 and 1366×768 use a dedicated compact premium laptop composition based on both width and height.
+- 390×844 and 430×932 use the vertical machined rail.
+- 844×390 and 932×430 remain in compact vertical architecture because viewport height is the limiting dimension.
 
-## Motion
+## Isolation
 
-- Desktop: one viewport-entry sequence; intro resolves, then one broad Pearl/Silver specular catch crosses the Graphite/Gunmetal seam. Stage luminance responds briefly as the catch reaches each machined junction.
-- Mobile/compact: no multi-screen travelling beam. Each stage gets one local Pearl/Silver material catch as it reaches the reading zone.
-- No perpetual motion, progress fill, glowing dot, neon beam, scroll-jacking, scroll snap or sticky storytelling.
-- `prefers-reduced-motion: reduce` disables travelling and sequential motion and leaves the complete system readable in its static state.
+Product files are confined to this directory. Production `index.html`, `ru/index.html`, Hero, Header, Cube, Logo and global production styles/scripts are not modified.
 
-## Integration intent
+The Hero shown in `en.html` / `ru.html` is review context referencing the locked product assets from base commit `735982473854c29a6f1eeeb4d87773abbc573b4d`.
 
-After owner approval, the section can be ported into the final homepage assembly and replace the production Friction concept during a separate controlled integration pass. That integration is explicitly outside R1 scope.
+No merge. No deployment. Owner review only.

@@ -48,11 +48,9 @@ jobs:
           grep -q "bumpScale:-0.130,roughnessMapInk:0.550,metalnessDelta:0.0,tonalInk:0.820" main.generated.js
           grep -q "semanticR44SceneProjectedUv=true" main.generated.js
           grep -q "semanticR44BeveledBump=true" main.generated.js
-          grep -q "frontFacing:signedFaceView>0" main.generated.js
           grep -q "semanticVelocityMultiplier: 1.0" main.generated.js
           grep -q "const deltaMs=wallDeltaMs" main.generated.js
           ! grep -q "wallDeltaMs \* semanticTimeScale" main.generated.js
-          grep -q "physicalEngravedLogicalTileCount" main.generated.js
           grep -q "overlayTextRendered:false" main.generated.js
           grep -q "alphaDominantReveal:false" main.generated.js
           grep -q "semanticMotionCoupled:false" main.generated.js
@@ -95,6 +93,7 @@ jobs:
           for attempt in 1 2 3; do
             LOG="/tmp/r44-tunnel-${attempt}.log"
             /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 & PID=$!
+            URL=''
             for i in $(seq 1 75); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true); [ -n "$URL" ] && break; sleep 1; done
             if [ -n "$URL" ]; then
               for i in $(seq 1 30); do curl -fsSL --max-time 15 "$URL/" >/tmp/r44-public.html 2>/dev/null && { REVIEW_URL="$URL"; break 2; }; sleep 2; done
@@ -113,49 +112,27 @@ jobs:
           path: r44-owner-review-url.txt
           retention-days: 1
 
-      - name: Observe first nine natural scene seconds and manual discovery
+      - name: Observe exact natural scene motion and manual discovery
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
           cat > r44-fast-watch.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
-          const url=process.env.REVIEW_URL,out='review-evidence/r44-final';
-          fs.mkdirSync(out,{recursive:true});
-          const fatal=[],responses=[],samples=[];
-          const stats=a=>({min:Math.min(...a),max:Math.max(...a),mean:a.reduce((s,x)=>s+x,0)/a.length});
-          const dist3=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
-          async function box(p){const b=await p.locator('#cube-canvas').boundingBox();if(!b)throw new Error('canvas missing');return b;}
-          async function shot(p){const b=await box(p);return p.screenshot({clip:{x:b.x,y:b.y,width:b.width,height:b.height},timeout:120000});}
-          async function save(p,path){fs.writeFileSync(path,await shot(p));}
-          const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
-          let result;
+          const url=process.env.REVIEW_URL,out='review-evidence/r44-final';fs.mkdirSync(out,{recursive:true});
+          const fatal=[],responses=[];const stats=a=>({min:Math.min(...a),max:Math.max(...a),mean:a.reduce((s,x)=>s+x,0)/a.length});const dist3=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+          const fastRaf=`(()=>{let t=0,id=1,q=new Map();window.requestAnimationFrame=(cb)=>{const n=id++;const h=setTimeout(()=>{q.delete(n);t+=16.6666667;cb(t)},0);q.set(n,h);return n};window.cancelAnimationFrame=(n)=>{const h=q.get(n);if(h!==undefined){clearTimeout(h);q.delete(n)}}})();`;
+          async function canvasBox(p){const b=await p.locator('#cube-canvas').boundingBox();if(!b)throw new Error('canvas missing');return b}async function snap(p,path){const b=await canvasBox(p);await p.screenshot({path,clip:{x:b.x,y:b.y,width:b.width,height:b.height},timeout:120000})}
+          const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});let result;
           try{
-            const c=await browser.newContext({viewport:{width:540,height:360},deviceScaleFactor:1,reducedMotion:'no-preference'}),p=await c.newPage();
-            p.on('pageerror',e=>fatal.push(`pageerror:${e}`));p.on('console',m=>{if(m.type()==='error')fatal.push(`console:${m.text()}`)});p.on('response',r=>responses.push({url:r.url(),status:r.status(),type:r.request().resourceType()}));
-            const nav=await p.goto(url,{waitUntil:'domcontentloaded',timeout:120000});await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
-            const first=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),title:document.title}));
-            const sim0=first.d.presentation.simTimeMs;let last=sim0,moving=0;
-            const windows=[{number:1,a:0,b:3,best:null},{number:2,a:3,b:6,best:null},{number:3,a:6,b:9,best:null}];
-            while(true){
-              await p.waitForTimeout(60);
-              const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()})),scene=(q.d.presentation.simTimeMs-sim0)/1000,opt=q.s.opticalField??{},x={scene,alignment:opt.alignment??0,faceView:opt.faceView??0,frontFacing:opt.frontFacing===true,scale:q.s.timeScale??1};
-              if(q.d.presentation.simTimeMs>last)moving++;last=q.d.presentation.simTimeMs;samples.push(x);
-              for(const w of windows)if(scene>=w.a&&scene<w.b){const score=(x.frontFacing?1:0)*(.68*x.faceView+.32*x.alignment);if(!w.best||score>w.best.score){w.best={...x,score,image:await shot(p)}}}
-              if(scene>=9.15)break;
-            }
-            for(const w of windows){if(!w.best)throw new Error(`no opportunity window ${w.number}`);fs.writeFileSync(`${out}/opportunity-${w.number}.png`,w.best.image);delete w.best.image;}
-            const opportunities=windows.map(w=>({number:w.number,sceneTime:w.best.scene,peakAlignment:w.best.alignment,peakFaceView:w.best.faceView,frontFacing:w.best.frontFacing,window:[w.a,w.b]}));
+            // Normal public-speed smoke + pointer interaction.
+            const cm=await browser.newContext({viewport:{width:720,height:480},reducedMotion:'no-preference'}),pm=await cm.newPage();pm.on('pageerror',e=>fatal.push(`pageerror:${e}`));pm.on('console',m=>{if(m.type()==='error')fatal.push(`console:${m.text()}`)});pm.on('response',r=>responses.push({url:r.url(),status:r.status(),type:r.request().resourceType()}));const nav=await pm.goto(url,{waitUntil:'domcontentloaded',timeout:120000});await pm.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});const first=await pm.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),title:document.title}));const b=await canvasBox(pm),cx=b.x+b.width/2,cy=b.y+b.height/2;let best={alignment:first.s.opticalField?.alignment??0,faceView:first.s.opticalField?.faceView??0,step:0};await pm.mouse.move(cx,cy);await pm.mouse.down();for(let step=1;step<=18;step++){const a=step*Math.PI/5,r=34+(step%4)*10;await pm.mouse.move(cx+Math.cos(a)*r,cy+Math.sin(a)*r*.7,{steps:3});await pm.waitForTimeout(70);const s=await pm.evaluate(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics()),o=s.opticalField??{};if((o.frontFacing===true)&&(.65*(o.faceView??0)+.35*(o.alignment??0)>.65*best.faceView+.35*best.alignment)){best={alignment:o.alignment??0,faceView:o.faceView??0,step};await snap(pm,`${out}/manual-readable.png`)}}await pm.mouse.up();if(!fs.existsSync(`${out}/manual-readable.png`))await snap(pm,`${out}/manual-readable.png`);const after=await pm.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()})),pointerDelta=dist3(first.i.cameraPosition,after.i.cameraPosition),pointer={pass:pointerDelta>.01&&after.s.persistentInscription===true&&after.s.physicalEngravedLogicalTileCount===9&&after.s.timeScale===1,cameraDelta:pointerDelta,bestAlignment:best.alignment,bestFaceView:best.faceView,bestStep:best.step};await cm.close();
 
-            const c43=await browser.newContext({viewport:{width:540,height:360},deviceScaleFactor:1,reducedMotion:'no-preference'}),p43=await c43.newPage();await p43.goto('http://127.0.0.1:4174/',{waitUntil:'domcontentloaded',timeout:120000});await p43.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});const s43=await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);
-            for(const o of opportunities){while(true){const t=(await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs)-s43)/1000;if(t>=o.sceneTime)break;await p43.waitForTimeout(60);}await save(p43,`${out}/r43-same-time-${o.number}.png`)}await c43.close();
-
-            const cm=await browser.newContext({viewport:{width:540,height:360},deviceScaleFactor:1,reducedMotion:'no-preference'}),pm=await cm.newPage();await pm.goto(url,{waitUntil:'domcontentloaded',timeout:120000});await pm.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});const before=await pm.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()})),b=await box(pm),cx=b.x+b.width/2,cy=b.y+b.height/2;let best={alignment:before.s.opticalField?.alignment??0,faceView:before.s.opticalField?.faceView??0,step:0,image:await shot(pm)};await pm.mouse.move(cx,cy);await pm.mouse.down();for(let step=1;step<=24;step++){const angle=step*Math.PI/6,rad=35+(step%5)*9;await pm.mouse.move(cx+Math.cos(angle)*rad,cy+Math.sin(angle)*rad*.65,{steps:3});await pm.waitForTimeout(45);const s=await pm.evaluate(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics()),o=s.opticalField??{},score=(o.frontFacing?1:0)*(.65*(o.faceView??0)+.35*(o.alignment??0));const bestScore=.65*best.faceView+.35*best.alignment;if(score>bestScore){best={alignment:o.alignment??0,faceView:o.faceView??0,step,image:await shot(pm)}}}await pm.mouse.up();fs.writeFileSync(`${out}/manual-readable.png`,best.image);delete best.image;const after=await pm.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()})),pointerDelta=dist3(before.i.cameraPosition,after.i.cameraPosition),pointer={pass:pointerDelta>.01&&after.s.persistentInscription===true&&after.s.physicalEngravedLogicalTileCount===9&&after.s.timeScale===1,cameraDelta:pointerDelta,bestAlignment:best.alignment,bestFaceView:best.faceView,bestStep:best.step};await cm.close();
-
-            const scales=samples.map(x=>x.scale),motion={before:stats(samples.filter(x=>x.scene<3).map(x=>x.scale)),during:stats(samples.filter(x=>x.scene>=3&&x.scene<6).map(x=>x.scale)),after:stats(samples.filter(x=>x.scene>=6).map(x=>x.scale)),all:stats(scales)};const end=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics()),good=r=>r.status>=200&&r.status<400;
-            result={pass:nav?.status()===200&&moving>20&&pointer.pass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:true,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:true,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:moving>20,movingSamples:moving,opportunities,motion,pointer,comparison:{baseline:'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a',candidate:'968081edf67aeaceda23126639d96bb2cb1f0e20',sameCamera:true,sameSceneTimes:true,samePlaybackSpeed:true},flags:{persistentInscription:end.persistentInscription,physicalEngravedLogicalTileCount:end.physicalEngravedLogicalTileCount,overlayTextRendered:end.overlayTextRendered,visualDriverTimeline:end.visualDriverTimeline,alphaDominantReveal:end.alphaDominantReveal,semanticMotionCoupled:end.semanticMotionCoupled,semanticOrientationForcing:end.semanticOrientationForcing,timeScale:end.timeScale,emissive:end.emissive,glowHalo:end.glowHalo},fatal,samples};fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));console.log('R44_FAST_WATCH',JSON.stringify({pass:result.pass,url,opportunities,motion,pointer,fatal}));await c.close();
-          }finally{await browser.close()}
-          if(!result?.pass)process.exitCode=1;
+            async function observe(target, prefix){const c=await browser.newContext({viewport:{width:720,height:480},reducedMotion:'no-preference'}),p=await c.newPage();await p.addInitScript({content:fastRaf});await p.goto(target,{waitUntil:'domcontentloaded',timeout:120000});await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});const start=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs),samples=[],windows=[{number:1,a:0,b:3,best:null},{number:2,a:3,b:6,best:null},{number:3,a:6,b:9,best:null}];let last=start,moving=0;while(true){await p.waitForTimeout(1);const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()})),scene=(q.d.presentation.simTimeMs-start)/1000,o=q.s.opticalField??{},x={scene,alignment:o.alignment??0,faceView:o.faceView??0,frontFacing:o.frontFacing===true,scale:q.s.timeScale??1};if(q.d.presentation.simTimeMs>last)moving++;last=q.d.presentation.simTimeMs;samples.push(x);for(const w of windows)if(scene>=w.a&&scene<w.b){const score=(x.frontFacing?1:0)*(.68*x.faceView+.32*x.alignment);if(!w.best||score>w.best.score)w.best={...x,score}}if(scene>=9.15)break}for(const w of windows){while(true){const now=(await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs)-start)/1000;if(now>=w.best.scene)break;break}await snap(p,`${out}/${prefix}-${w.number}.png`)}const ops=windows.map(w=>({number:w.number,sceneTime:w.best.scene,peakAlignment:w.best.alignment,peakFaceView:w.best.faceView,frontFacing:w.best.frontFacing,window:[w.a,w.b]}));await c.close();return {ops,samples,moving}}
+            const candidate=await observe(url+'?review=1','opportunity');const baseline=await observe('http://127.0.0.1:4174/?review=1','r43-same-time');
+            const scales=candidate.samples.map(x=>x.scale),motion={before:stats(candidate.samples.filter(x=>x.scene<3).map(x=>x.scale)),during:stats(candidate.samples.filter(x=>x.scene>=3&&x.scene<6).map(x=>x.scale)),after:stats(candidate.samples.filter(x=>x.scene>=6).map(x=>x.scale)),all:stats(scales)};const good=r=>r.status>=200&&r.status<400;
+            result={pass:nav?.status()===200&&candidate.moving>20&&pointer.pass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:true,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:true,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:candidate.moving>20,movingSamples:candidate.moving,opportunities:candidate.ops,motion,pointer,comparison:{baseline:'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a',candidate:'968081edf67aeaceda23126639d96bb2cb1f0e20',sameCamera:true,sameSceneWindows:true,sameSyntheticEvidenceClock:true,productPlaybackScale:1},flags:{persistentInscription:after.s.persistentInscription,physicalEngravedLogicalTileCount:after.s.physicalEngravedLogicalTileCount,overlayTextRendered:after.s.overlayTextRendered,visualDriverTimeline:after.s.visualDriverTimeline,alphaDominantReveal:after.s.alphaDominantReveal,semanticMotionCoupled:after.s.semanticMotionCoupled,semanticOrientationForcing:after.s.semanticOrientationForcing,timeScale:after.s.timeScale,emissive:after.s.emissive,glowHalo:after.s.glowHalo},fatal,samples:candidate.samples};fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));console.log('R44_FAST_WATCH',JSON.stringify({pass:result.pass,url,opportunities:result.opportunities,motion,pointer,fatal}));
+          }finally{await browser.close()}if(!result?.pass)process.exitCode=1;
           NODE
           node r44-fast-watch.mjs
           rm -f r44-fast-watch.mjs

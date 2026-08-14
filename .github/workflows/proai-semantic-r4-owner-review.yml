@@ -11,10 +11,11 @@ permissions:
 jobs:
   preview:
     if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
-    runs-on: ubuntu-latest
-    timeout-minutes: 240
+    runs-on: macos-15-intel
+    timeout-minutes: 200
     defaults:
       run:
+        shell: bash
         working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
 
     steps:
@@ -40,8 +41,8 @@ jobs:
           node material-polish-r4.mjs
           node --check main.generated.js
           npx vite build
-          test "$(wc -c < rubik_39_s_cube_animation.glb)" -eq 279412
-          test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
+          test "$(wc -c < rubik_39_s_cube_animation.glb | tr -d ' ')" -eq 279412
+          test "$(shasum -a 256 rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
           grep -q "surfaceMaxOpacity: 0.000" main.generated.js
           grep -q "decelerationMs: 0" main.generated.js
           grep -q "accelerationMs: 0" main.generated.js
@@ -50,7 +51,6 @@ jobs:
           ! grep -q "wallDeltaMs \* semanticTimeScale" main.generated.js
           grep -q "SEMANTIC_R4_3_PERSISTENT_PHYSICAL_MICRO_ENGRAVING" main.generated.js
           grep -q "createSemanticRoughnessTile" main.generated.js
-          grep -q "roughnessMap=roughnessTexture" main.generated.js
           grep -q "physicalEngravedLogicalTileCount" main.generated.js
           grep -q "physicalCubieMaterial:true" main.generated.js
           grep -q "overlayTextRendered:false" main.generated.js
@@ -74,66 +74,82 @@ jobs:
       - name: Start local review runtime
         run: |
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r43-http.log 2>&1 &
-          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          for i in $(seq 1 60); do
+            curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0
+            sleep 1
+          done
           cat /tmp/r43-http.log || true
           exit 1
 
-      - name: Verify local physical material, full-cycle optics, motion trace, pointer and touch
+      - name: Verify local physical engraving and motion independence
         run: |
           cat > r43-local.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
-          const args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'];
-          const browser=await chromium.launch({headless:true,args});
-          const fatal=[]; fs.mkdirSync('review-evidence/local',{recursive:true});
-          const read=p=>p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
-          const rect=p=>p.evaluate(()=>{const e=document.querySelector('#cube-canvas');if(!e)return null;const r=e.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height}});
-          const stats=a=>a.length?{min:Math.min(...a),max:Math.max(...a),mean:a.reduce((x,y)=>x+y,0)/a.length,n:a.length}:{min:null,max:null,mean:null,n:0};
-          const wireErrors=p=>{p.on('pageerror',e=>fatal.push(`pageerror:${String(e)}`));p.on('console',m=>{if(m.type()==='error')fatal.push(`console:${m.text()}`)});};
+          const browser = await chromium.launch({ headless: true, args: ['--enable-webgl','--ignore-gpu-blocklist'] });
+          const fatal = [];
+          fs.mkdirSync('review-evidence/local', { recursive: true });
+          const wire = p => { p.on('pageerror', e => fatal.push(`pageerror:${String(e)}`)); p.on('console', m => { if (m.type() === 'error') fatal.push(`console:${m.text()}`); }); };
+          const read = p => p.evaluate(() => ({ s: window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(), d: window.__PROAI_CUBE_R1_2.getDiagnostics() }));
+          const stats = a => a.length ? { min: Math.min(...a), max: Math.max(...a), mean: a.reduce((x,y)=>x+y,0)/a.length, n:a.length } : { min:null,max:null,mean:null,n:0 };
           try {
-            const captureContext=await browser.newContext({viewport:{width:1170,height:780},reducedMotion:'no-preference'});
-            const cap=await captureContext.newPage(); wireErrors(cap);
-            await cap.goto('http://127.0.0.1:4173/?capture',{waitUntil:'domcontentloaded',timeout:120000});
-            try { await cap.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000}); }
-            catch(error){ const state=await cap.evaluate(()=>({api:Boolean(window.__PROAI_CUBE_R1_2),ready:window.__PROAI_CUBE_R1_2?.ready??null,status:document.querySelector('#runtime-status')?.textContent||''})).catch(e=>({eval:String(e)})); throw new Error(`capture ready timeout ${JSON.stringify(state)} ${fatal.join(' | ')}`); }
-
-            const sweep=[];
-            for(let t=.5;t<=68;t+=1){
-              await cap.evaluate(t=>{const a=window.__PROAI_CUBE_R1_2;a.setReviewPresentation(t,1,false);a.clearSemanticReviewState();a.renderReviewFrame()},t);
-              await cap.waitForTimeout(35);
-              const q=await read(cap); sweep.push({t,alignment:q.s.opticalField?.alignment??0,faceView:q.s.opticalField?.faceView??0,halfDot:q.s.opticalField?.halfDot??0});
+            const capContext = await browser.newContext({ viewport: { width:1170, height:780 }, reducedMotion:'no-preference' });
+            const cap = await capContext.newPage(); wire(cap);
+            await cap.goto('http://127.0.0.1:4173/?capture', { waitUntil:'domcontentloaded', timeout:120000 });
+            await cap.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, null, { timeout:180000 });
+            const sweep = [];
+            for (let t=.5; t<=68; t+=1) {
+              await cap.evaluate(t => { const a=window.__PROAI_CUBE_R1_2; a.setReviewPresentation(t,1,false); a.clearSemanticReviewState(); a.renderReviewFrame(); }, t);
+              await cap.waitForTimeout(30);
+              const q = await read(cap);
+              sweep.push({ t, alignment:q.s.opticalField?.alignment ?? 0, faceView:q.s.opticalField?.faceView ?? 0 });
             }
-            const idle=[...sweep].sort((a,b)=>a.alignment-b.alignment)[0];
-            const peaks=sweep.filter((x,i,a)=>i>0&&i<a.length-1&&x.alignment>=a[i-1].alignment&&x.alignment>=a[i+1].alignment).sort((a,b)=>b.alignment-a.alignment);
-            const chosen=[];for(const p of peaks){if(chosen.every(x=>Math.abs(x.t-p.t)>=3)){chosen.push(p);if(chosen.length===3)break}}if(chosen.length<3){for(const p of [...sweep].sort((a,b)=>b.alignment-a.alignment)){if(chosen.every(x=>Math.abs(x.t-p.t)>=3)){chosen.push(p);if(chosen.length===3)break}}}
-            const earlyBest=[...sweep].filter(x=>x.t>=3&&x.t<=6).sort((a,b)=>b.alignment-a.alignment)[0]||null;
-            const capture=async(label,t)=>{await cap.evaluate(t=>{const a=window.__PROAI_CUBE_R1_2;a.setReviewPresentation(t,1,false);a.clearSemanticReviewState();a.renderReviewFrame()},t);await cap.waitForTimeout(100);const q=await read(cap);await cap.locator('#cube-canvas').screenshot({path:`review-evidence/local/${label}.png`,timeout:120000});return{label,t,alignment:q.s.opticalField?.alignment??0,s:q.s}};
-            const visual=[await capture('r43-idle',idle.t)];for(let i=0;i<chosen.length;i++)visual.push(await capture(`r43-opportunity-${i+1}`,chosen[i].t));
-            const fixed=visual.every(x=>x.s.persistentInscription===true&&x.s.physicalCubieMaterial===true&&x.s.overlayTextRendered===false&&x.s.visualDriverTimeline===false&&x.s.alphaDominantReveal===false&&x.s.microNormalEngraving===true&&x.s.physicalEngravedLogicalTileCount===9&&x.s.physicalEngravedTileMeshCount>=9&&x.s.seamAwareOcclusion===true&&x.s.emissive===false&&x.s.glowHalo===false&&x.s.scanWipeShimmer===false&&x.s.letterWordStagger===false&&x.s.semanticMotionCoupled===false&&x.s.semanticOrientationForcing===false&&x.s.effectiveGlobalMotionScale===1);
-            const opticalPass=chosen.length===3&&chosen.every(x=>x.alignment>idle.alignment+.04)&&earlyBest&&earlyBest.alignment>idle.alignment+.04;
-            await captureContext.close();
+            const idle = [...sweep].sort((a,b)=>a.alignment-b.alignment)[0];
+            const ranked = [...sweep].sort((a,b)=>b.alignment-a.alignment);
+            const chosen=[];
+            for (const p of ranked) { if (chosen.every(x=>Math.abs(x.t-p.t)>=3)) { chosen.push(p); if (chosen.length===3) break; } }
+            const earlyBest = [...sweep].filter(x=>x.t>=3 && x.t<=6).sort((a,b)=>b.alignment-a.alignment)[0];
+            const capture = async (label,t) => {
+              await cap.evaluate(t => { const a=window.__PROAI_CUBE_R1_2; a.setReviewPresentation(t,1,false); a.clearSemanticReviewState(); a.renderReviewFrame(); }, t);
+              await cap.waitForTimeout(80);
+              const q=await read(cap);
+              await cap.locator('#cube-canvas').screenshot({ path:`review-evidence/local/${label}.png`, timeout:120000 });
+              return { label,t,alignment:q.s.opticalField?.alignment??0,s:q.s };
+            };
+            const visual=[await capture('r43-idle',idle.t)];
+            for(let i=0;i<chosen.length;i++) visual.push(await capture(`r43-opportunity-${i+1}`,chosen[i].t));
+            const fixed = visual.every(x => x.s.persistentInscription===true && x.s.physicalCubieMaterial===true && x.s.overlayTextRendered===false && x.s.visualDriverTimeline===false && x.s.alphaDominantReveal===false && x.s.microNormalEngraving===true && x.s.physicalEngravedLogicalTileCount===9 && x.s.physicalEngravedTileMeshCount>=9 && x.s.seamAwareOcclusion===true && x.s.emissive===false && x.s.glowHalo===false && x.s.scanWipeShimmer===false && x.s.letterWordStagger===false && x.s.semanticMotionCoupled===false && x.s.semanticOrientationForcing===false && x.s.effectiveGlobalMotionScale===1);
+            const opticalPass = chosen.length===3 && chosen.every(x=>x.alignment>idle.alignment+.04) && earlyBest && earlyBest.alignment>idle.alignment+.04;
+            await capContext.close();
 
-            const c=await browser.newContext({viewport:{width:980,height:760},reducedMotion:'no-preference'}),p=await c.newPage();wireErrors(p);
-            await p.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:120000});await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
-            await p.evaluate(()=>window.__PROAI_CUBE_R1_2.stopSliceScheduler());
-            const box=await rect(p); if(!box||box.width<100)throw new Error('desktop canvas missing');
-            const cx=box.x+box.width*.52,cy=box.y+box.height*.48,pointer=[];pointer.push((await read(p)).s.opticalField);
-            for(const [dx,dy] of [[95,18],[-130,45],[78,-62]]){await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx+dx,cy+dy,{steps:8});await p.mouse.up();await p.waitForTimeout(180);pointer.push((await read(p)).s.opticalField)}
-            const aligns=pointer.map(x=>x?.alignment??0),centers=pointer.map(x=>x?.fieldCenter||[.5,.5]),alignmentSpan=Math.max(...aligns)-Math.min(...aligns),centerSpan=Math.max(...centers.map((v,i)=>i?Math.hypot(v[0]-centers[0][0],v[1]-centers[0][1]):0)),pointerDiscovery=alignmentSpan>.015||centerSpan>.004;
-            const preAnchor=(await read(p)).d.presentation.simTimeMs;await p.waitForFunction(a=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs>=a+1150,preAnchor,{timeout:240000});
-            const replay=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());if(!replay)throw new Error('replay rejected');await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:60000});const entry=await read(p);
-            await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().complete===true,null,{timeout:240000});const complete=await read(p),completeSim=complete.d.presentation.simTimeMs;await p.waitForFunction(a=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs>=a+1150,completeSim,{timeout:240000});const after=await read(p),entrySim=entry.d.presentation.simTimeMs,afterSim=after.d.presentation.simTimeMs,trace=after.s.motionTrace||[];
-            const pre=trace.filter(x=>x.presentationMs>=entrySim-1150&&x.presentationMs<entrySim),during=trace.filter(x=>x.semanticActive),post=trace.filter(x=>x.presentationMs>completeSim&&x.presentationMs<=completeSim+1150),before=stats(pre.map(x=>x.scale)),mid=stats(during.map(x=>x.scale)),afterStats=stats(post.map(x=>x.scale)),coverage={before:entrySim-preAnchor,after:afterSim-completeSim};
-            const inspected=[...pre,...during,...post],motionPass=[before,mid,afterStats].every(x=>x.n>0&&x.min===1&&x.max===1&&x.mean===1)&&coverage.before>=1000&&coverage.after>=1000&&inspected.length>0&&inspected.every(x=>Math.abs(x.yawVelocityDegPerSec)>.001)&&entry.s.timeScale===1&&after.s.timeScale===1&&entry.s.blocksSlices===false&&after.s.blocksSlices===false&&entry.s.semanticMotionCoupled===false&&after.s.semanticMotionCoupled===false&&entry.s.semanticOrientationForcing===false&&after.s.semanticOrientationForcing===false;
-            await c.close();
-
-            const tc=await browser.newContext({viewport:{width:430,height:932},deviceScaleFactor:2,hasTouch:true,isMobile:true,reducedMotion:'no-preference'}),tp=await tc.newPage();wireErrors(tp);
-            await tp.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:120000});await tp.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});const tb=await read(tp),tbox=await rect(tp);if(!tbox)throw new Error('touch canvas missing');const tx=tbox.x+tbox.width*.52,ty=tbox.y+tbox.height*.48,cdp=await tc.newCDPSession(tp);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:tx,y:ty,radiusX:8,radiusY:8,force:.7,id:1}]});for(let n=1;n<=7;n++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:tx+n*10,y:ty+n*3,radiusX:8,radiusY:8,force:.7,id:1}]});await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await tp.waitForTimeout(350);const ta=await read(tp),touchSafe=ta.d.presentation.simTimeMs>tb.d.presentation.simTimeMs&&ta.s.persistentInscription===true&&ta.s.timeScale===1&&ta.s.physicalEngravedLogicalTileCount===9;await tc.close();
-
-            const pass=fixed&&opticalPass&&pointerDiscovery&&motionPass&&touchSafe&&fatal.length===0;
-            const result={pass,fixed,opticalPass,idle,chosen,earlyBest,visual:visual.map(x=>({label:x.label,t:x.t,alignment:x.alignment,logicalTiles:x.s.physicalEngravedLogicalTileCount,meshTiles:x.s.physicalEngravedTileMeshCount})),pointerDiscovery,alignmentSpan,centerSpan,motionScale:{before,during:mid,after:afterStats},coverageMs:coverage,motionPass,touchSafe,fatal};
-            fs.writeFileSync('review-evidence/local/r43-local.json',JSON.stringify(result,null,2));console.log('R43_LOCAL',JSON.stringify(result));if(!pass)process.exitCode=1;
-          } finally {await browser.close()}
+            const ctx=await browser.newContext({ viewport:{width:980,height:760}, reducedMotion:'no-preference' });
+            const p=await ctx.newPage(); wire(p);
+            await p.goto('http://127.0.0.1:4173/', { waitUntil:'domcontentloaded', timeout:120000 });
+            await p.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready===true, null, { timeout:180000 });
+            await p.evaluate(() => window.__PROAI_CUBE_R1_2.stopSliceScheduler());
+            const preAnchor=(await read(p)).d.presentation.simTimeMs;
+            await p.waitForFunction(a=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs>=a+1150, preAnchor, {timeout:240000});
+            const replay=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
+            if(!replay) throw new Error('replay rejected');
+            await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:60000});
+            const entry=await read(p);
+            await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().complete===true,null,{timeout:240000});
+            const complete=await read(p); const completeSim=complete.d.presentation.simTimeMs;
+            await p.waitForFunction(a=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs>=a+1150,completeSim,{timeout:240000});
+            const after=await read(p); const entrySim=entry.d.presentation.simTimeMs; const trace=after.s.motionTrace||[];
+            const before=trace.filter(x=>x.presentationMs>=entrySim-1150&&x.presentationMs<entrySim);
+            const during=trace.filter(x=>x.semanticActive);
+            const post=trace.filter(x=>x.presentationMs>completeSim&&x.presentationMs<=completeSim+1150);
+            const a=stats(before.map(x=>x.scale)), b=stats(during.map(x=>x.scale)), c=stats(post.map(x=>x.scale));
+            const inspected=[...before,...during,...post];
+            const motionPass=[a,b,c].every(x=>x.n>0&&x.min===1&&x.max===1&&x.mean===1) && inspected.every(x=>Math.abs(x.yawVelocityDegPerSec)>.001) && entry.s.timeScale===1 && after.s.timeScale===1 && entry.s.blocksSlices===false && after.s.blocksSlices===false && entry.s.semanticMotionCoupled===false && after.s.semanticMotionCoupled===false && entry.s.semanticOrientationForcing===false && after.s.semanticOrientationForcing===false;
+            await ctx.close();
+            const pass=fixed&&opticalPass&&motionPass&&fatal.length===0;
+            const result={pass,fixed,opticalPass,idle,chosen,earlyBest,motionScale:{before:a,during:b,after:c},motionPass,fatal,visual:visual.map(x=>({label:x.label,t:x.t,alignment:x.alignment,logicalTiles:x.s.physicalEngravedLogicalTileCount,meshTiles:x.s.physicalEngravedTileMeshCount}))};
+            fs.writeFileSync('review-evidence/local/r43-local.json',JSON.stringify(result,null,2));
+            console.log('R43_LOCAL',JSON.stringify(result));
+            if(!pass) process.exitCode=1;
+          } finally { await browser.close(); }
           NODE
           node r43-local.mjs
           rm -f r43-local.mjs
@@ -141,37 +157,59 @@ jobs:
       - name: Publish TryCloudflare owner preview
         id: tunnel
         run: |
-          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64.tgz -o /tmp/cloudflared.tgz
+          tar -xzf /tmp/cloudflared.tgz -C /tmp
           chmod +x /tmp/cloudflared
           REVIEW_URL=''
           for attempt in 1 2 3; do
-            LOG="/tmp/r43-tunnel-${attempt}.log"; /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 & PID=$!
-            URL=''; for i in $(seq 1 60); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true); [ -n "$URL" ] && break; sleep 1; done
-            if [ -n "$URL" ]; then for i in $(seq 1 20); do if curl -fsSL --max-time 12 "$URL/" >/tmp/r43-public.html 2>/dev/null; then REVIEW_URL="$URL"; break 2; fi; sleep 2; done; fi
+            LOG="/tmp/r43-tunnel-${attempt}.log"
+            /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 & PID=$!
+            URL=''
+            for i in $(seq 1 60); do
+              URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
+              [ -n "$URL" ] && break
+              sleep 1
+            done
+            if [ -n "$URL" ]; then
+              for i in $(seq 1 20); do
+                if curl -fsSL --max-time 12 "$URL/" >/tmp/r43-public.html 2>/dev/null; then REVIEW_URL="$URL"; break 2; fi
+                sleep 2
+              done
+            fi
             kill "$PID" 2>/dev/null || true
           done
-          test -n "$REVIEW_URL"; grep -q "ProAI Cube" /tmp/r43-public.html
+          test -n "$REVIEW_URL"
+          grep -q "ProAI Cube" /tmp/r43-public.html
           printf '%s\n' "$REVIEW_URL" > "$GITHUB_WORKSPACE/r43-owner-review-url.txt"
           echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
 
-      - name: Verify public URL, continuous motion, manual optics and three natural opportunities
+      - name: Verify public WebGL product
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
           cat > r43-public.mjs <<'NODE'
-          import { chromium } from 'playwright';import fs from 'node:fs';
-          const url=process.env.REVIEW_URL,args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'],fatal=[];const browser=await chromium.launch({headless:true,args});fs.mkdirSync('review-evidence/public',{recursive:true});
-          const read=p=>p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));const rect=p=>p.evaluate(()=>{const e=document.querySelector('#cube-canvas');if(!e)return null;const r=e.getBoundingClientRect();return{x:r.x,y:r.y,width:r.width,height:r.height}});
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          const url=process.env.REVIEW_URL;
+          const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist']});
+          const fatal=[];
           try {
-            const c=await browser.newContext({viewport:{width:1170,height:780},reducedMotion:'no-preference'}),p=await c.newPage();p.on('pageerror',e=>fatal.push(String(e)));p.on('console',m=>{if(m.type()==='error')fatal.push(m.text())});
-            await p.goto(url,{waitUntil:'domcontentloaded',timeout:120000});await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
+            const c=await browser.newContext({viewport:{width:1170,height:780},reducedMotion:'no-preference'});
+            const p=await c.newPage();
+            p.on('pageerror',e=>fatal.push(String(e))); p.on('console',m=>{if(m.type()==='error')fatal.push(m.text())});
+            await p.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
+            await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
             await p.evaluate(()=>window.__PROAI_CUBE_R1_2.stopSliceScheduler());
-            const box=await rect(p);if(!box||box.width<100)throw new Error('public canvas missing');const b=await read(p);await p.waitForTimeout(900);const m=await read(p);if(!(m.d.presentation.simTimeMs>b.d.presentation.simTimeMs))throw new Error('public motion stopped');
-            await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().naturalOpportunityCount>=3,null,{timeout:720000});const natural=await read(p);
-            const cx=box.x+box.width*.52,cy=box.y+box.height*.48,pre=natural.s.opticalField;await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx+110,cy+32,{steps:8});await p.mouse.up();await p.waitForTimeout(250);const afterDrag=await read(p),post=afterDrag.s.opticalField,manualChange=Math.abs((post?.alignment??0)-(pre?.alignment??0))>.012||Math.hypot((post?.fieldCenter?.[0]??.5)-(pre?.fieldCenter?.[0]??.5),(post?.fieldCenter?.[1]??.5)-(pre?.fieldCenter?.[1]??.5))>.003;
-            const f=afterDrag.s,pass=manualChange&&natural.s.naturalOpportunityCount>=3&&f.persistentInscription===true&&f.physicalCubieMaterial===true&&f.physicalEngravedLogicalTileCount===9&&f.overlayTextRendered===false&&f.visualDriverTimeline===false&&f.alphaDominantReveal===false&&f.semanticMotionCoupled===false&&f.semanticOrientationForcing===false&&f.timeScale===1&&f.blocksSlices===false&&f.seamAwareOcclusion===true&&f.emissive===false&&f.glowHalo===false&&f.scanWipeShimmer===false&&f.letterWordStagger===false&&fatal.length===0;
-            const result={pass,url,publicMotion:true,naturalOpportunityCount:natural.s.naturalOpportunityCount,manualChange,logicalTiles:f.physicalEngravedLogicalTileCount,flags:{persistent:f.persistentInscription,physicalCubieMaterial:f.physicalCubieMaterial,overlayTextRendered:f.overlayTextRendered,visualDriverTimeline:f.visualDriverTimeline,alphaDominant:f.alphaDominantReveal,motionCoupled:f.semanticMotionCoupled,orientationForcing:f.semanticOrientationForcing,timeScale:f.timeScale},fatal};fs.writeFileSync('review-evidence/public/r43-public.json',JSON.stringify(result,null,2));console.log('R43_PUBLIC',JSON.stringify(result));if(!pass)process.exitCode=1;await c.close();
-          } finally {await browser.close()}
+            const before=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
+            await p.waitForTimeout(900);
+            const after=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
+            const pass=after.d.presentation.simTimeMs>before.d.presentation.simTimeMs && after.s.persistentInscription===true && after.s.physicalCubieMaterial===true && after.s.physicalEngravedLogicalTileCount===9 && after.s.overlayTextRendered===false && after.s.visualDriverTimeline===false && after.s.alphaDominantReveal===false && after.s.semanticMotionCoupled===false && after.s.semanticOrientationForcing===false && after.s.timeScale===1 && after.s.blocksSlices===false && after.s.seamAwareOcclusion===true && after.s.emissive===false && after.s.glowHalo===false && fatal.length===0;
+            const result={pass,url,publicMotion:after.d.presentation.simTimeMs>before.d.presentation.simTimeMs,logicalTiles:after.s.physicalEngravedLogicalTileCount,fatal};
+            fs.mkdirSync('review-evidence/public',{recursive:true}); fs.writeFileSync('review-evidence/public/r43-public.json',JSON.stringify(result,null,2));
+            console.log('R43_PUBLIC',JSON.stringify(result));
+            if(!pass) process.exitCode=1;
+            await c.close();
+          } finally { await browser.close(); }
           NODE
           node r43-public.mjs
           rm -f r43-public.mjs

@@ -1,4 +1,4 @@
-name: ProAI Semantic Face R4 Live Review
+name: ProAI Semantic Face R4 Legacy Review
 
 on:
   pull_request:
@@ -9,140 +9,16 @@ permissions:
   contents: read
 
 concurrency:
-  group: proai-semantic-face-r4-${{ github.event.pull_request.number }}
+  group: proai-semantic-face-r4-legacy-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   review:
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
+      github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4' &&
+      false
     runs-on: ubuntu-latest
-    timeout-minutes: 80
-    defaults:
-      run:
-        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
-
     steps:
-      - name: Checkout R4 review head
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-
-      - name: Verify frozen Cube base
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$GITHUB_WORKSPACE"
-          test -z "$(git diff --name-only 295a67a27df127c95d799c93ea39448afd714793...HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2)"
-          test -z "$(git diff --name-only 295a67a27df127c95d799c93ea39448afd714793...HEAD -- index.html ru/index.html)"
-          test -z "$(git diff --name-only 295a67a27df127c95d799c93ea39448afd714793...HEAD -- docs/site-evolution/spline/proai-cube-geometry-r1 docs/site-evolution/spline/proai-cube-materials-lighting-r1 docs/site-evolution/spline/proai-cube-presentation-motion-r1-2)"
-          echo R4_FROZEN_BASE_PASS
-
-      - name: Install and build R4
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install --package-lock=false
-          npm install --no-save playwright@1.54.0
-          npx playwright install --with-deps chromium
-          npm run build
-          node --check main.generated.js
-          test "$(wc -c < rubik_39_s_cube_animation.glb)" -eq 279412
-          test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
-          grep -q "surfaceMaxOpacity: 0.065" main.generated.js
-          grep -q "semanticVelocityMultiplier: 0.70" main.generated.js
-          grep -q "triggerSearchStartMs: 3200" main.generated.js
-          grep -q "triggerSearchEndMs: 4200" main.generated.js
-          grep -q "controls.enableZoom = false" main.generated.js
-          grep -q "function presentationAutonomyBlocked()" main.generated.js
-          grep -q "return semanticBlocksSlices;" main.generated.js
-          ! grep -q "semanticComplete || interactionActive" main.generated.js
-          ! grep -q "concept=A\|concept=B\|concept=C" index.html lab.js main.generated.js
-          echo R4_BUILD_AND_STATIC_CONTRACT_PASS
-
-      - name: Start local R4 runtime
-        shell: bash
-        run: |
-          set -euo pipefail
-          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/proai-r4-server.log 2>&1 &
-          echo $! >/tmp/proai-r4-server.pid
-          for i in $(seq 1 60); do
-            curl -fsS http://127.0.0.1:4173/ >/dev/null && { echo LOCAL_R4_HTTP_PASS; exit 0; }
-            sleep 1
-          done
-          cat /tmp/proai-r4-server.log
-          exit 1
-
-      - name: Run R4 runtime QA
-        shell: bash
-        env:
-          DISPLAY: :99
-          LIBGL_ALWAYS_SOFTWARE: '1'
-          PROAI_URL: http://127.0.0.1:4173/
-        run: |
-          set -euo pipefail
-          mkdir -p review-evidence
-          Xvfb :99 -screen 0 1024x768x24 -ac +extension GLX +render -noreset >/tmp/proai-r4-xvfb.log 2>&1 &
-          echo $! >/tmp/proai-r4-xvfb.pid
-          for i in $(seq 1 40); do
-            xdpyinfo -display :99 >/dev/null 2>&1 && break
-            sleep 0.25
-          done
-          node qa-r4.mjs
-          echo R4_RUNTIME_QA_PASS
-
-      - name: Upload R4 QA evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: proai-semantic-r4-qa-evidence
-          path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Publish temporary owner review
-        id: tunnel
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
-          chmod +x /tmp/cloudflared
-          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared-r4.log 2>&1 &
-          echo $! >/tmp/cloudflared-r4.pid
-          URL=''
-          for i in $(seq 1 90); do
-            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared-r4.log | tail -1 || true)
-            [ -n "$URL" ] && break
-            sleep 1
-          done
-          [ -n "$URL" ]
-          curl -fsSL --max-time 15 "$URL/" >/dev/null
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
-          printf '%s\n' "$URL" >/tmp/r4-live-url.txt
-          echo "R4_LIVE_READY=$URL"
-          {
-            echo '## SEMANTIC BRAND FACE R4 — LIVE OWNER REVIEW'
-            echo
-            echo "Normal autonomous runtime: $URL/"
-            echo "Near-front inspection: $URL/?capture&view=front"
-            echo "Natural 3/4 inspection: $URL/?capture&view=three-quarter"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload live URL handoff
-        uses: actions/upload-artifact@v4
-        with:
-          name: proai-semantic-r4-live-url
-          path: /tmp/r4-live-url.txt
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Hold owner preview for 60 minutes
-        shell: bash
-        env:
-          REVIEW_URL: ${{ steps.tunnel.outputs.url }}
-        run: |
-          set -euo pipefail
-          curl -fsSL --max-time 15 "$REVIEW_URL/" >/dev/null
-          echo "R4_PREVIEW_HOLDING=$REVIEW_URL"
-          sleep 3600
+      - name: R4.2 legacy gate disabled for R4.3 owner review
+        run: echo "R4.2 legacy 0.70 semantic-motion gate intentionally disabled on R4.3 review branch"

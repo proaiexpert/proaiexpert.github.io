@@ -1,0 +1,93 @@
+name: TEMP Hero R3 Owner Review 3H
+
+on:
+  push:
+    branches:
+      - agent/proai-home-hero-signature-r3
+    paths:
+      - .github/workflows/temporary-hero-r3-owner-review-3h.yml
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  owner-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 190
+    steps:
+      - name: Checkout exact product
+        uses: actions/checkout@v6
+        with:
+          ref: e553256a931aec4703fdb33db7cc7f7bfa4837bd
+
+      - name: Verify exact product
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "e553256a931aec4703fdb33db7cc7f7bfa4837bd"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/bootstrap.js)" = "b46b26164efc000daef8ecb3416039008db7cd79"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" = "bab6b00e73b20fc2a51aeb00cb7fc08f16129e72"
+          grep -q 'From first impression to result — one system.' index.html
+          grep -qi '#f2f0eb' assets/css/homepage-hero-signature-r3.css
+          ! grep -q 'letter-spacing: -.052em' assets/css/homepage-hero-signature-r3.css
+          echo "Exact product SHA verified: $(git rev-parse HEAD)"
+
+      - name: Build and serve exact product
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/hero-r3-http.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8080/ >/dev/null && curl -fsS http://127.0.0.1:8080/ru/ >/dev/null && break
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/ | grep -q 'From first impression to result — one system.'
+          curl -fsS http://127.0.0.1:8080/ru/ | grep -q 'От первого впечатления до результата — одна система.'
+
+      - name: Start and verify public TryCloudflare preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >/tmp/hero-r3-cloudflared.log 2>&1 &
+          URL=""
+          for i in $(seq 1 60); do
+            URL="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/hero-r3-cloudflared.log | head -1 || true)"
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          [ -n "$URL" ] || { cat /tmp/hero-r3-cloudflared.log; exit 1; }
+          READY=0
+          for i in $(seq 1 60); do
+            if curl -fsS --connect-timeout 5 "$URL/" >/tmp/public-en.html 2>/dev/null && curl -fsS --connect-timeout 5 "$URL/ru/" >/tmp/public-ru.html 2>/dev/null; then
+              if grep -q 'From first impression to result — one system.' /tmp/public-en.html && grep -q 'От первого впечатления до результата — одна система.' /tmp/public-ru.html; then
+                READY=1
+                break
+              fi
+            fi
+            sleep 2
+          done
+          [ "$READY" = 1 ] || { cat /tmp/hero-r3-cloudflared.log; exit 1; }
+          curl -fsS "$URL/assets/css/homepage-hero-signature-r3.css" | grep -qi '#f2f0eb'
+          echo "LIVE_INTERACTIVE_PREVIEW=$URL"
+          echo "PRODUCT_SHA=e553256a931aec4703fdb33db7cc7f7bfa4837bd"
+          echo "PUBLIC_URL_VERIFIED=PASS"
+          python3 -c 'import json,sys; print(json.dumps({"state":"success","target_url":sys.argv[1],"description":"Hero R3 owner review (~3 hours)","context":"hero-r3-owner-review-3h"}))' "$URL" >/tmp/status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -d @/tmp/status.json >/dev/null
+
+      - name: Keep preview alive for owner review
+        shell: bash
+        run: sleep 10800

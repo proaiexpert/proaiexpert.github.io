@@ -1,0 +1,34 @@
+name: ProAI Logo R3.4.1 Runtime Inspect
+on:
+  push:
+    branches:
+      - agent/proai-logo-signature-object-r2
+    paths:
+      - .github/workflows/proai-logo-r341-inspect.yml
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-logo-signature-object-r2
+          fetch-depth: 2
+      - name: Inspect patched canonical runtime
+        run: |
+          node <<'NODE'
+          const fs=require('fs');
+          const p='docs/site-evolution/brand/proai-logo-canonical-cube-r3/assets/r34-cube-runtime.js';
+          const s=fs.readFileSync(p,'utf8');
+          const tokens=['premiumHybrid','setLookDevPreset','242A31','242a31','4.35','4.85','5.2','setSignatureEuler','setSignatureFov','__PROAI_CUBE_R1_2'];
+          for(const token of tokens){
+            let pos=-1, count=0;
+            console.log('\n===== TOKEN',token,'=====');
+            while((pos=s.indexOf(token,pos+1))>=0 && count<8){
+              count++;
+              console.log('\n--',count,'@',pos,'--\n',s.slice(Math.max(0,pos-1400),Math.min(s.length,pos+2600)));
+            }
+            console.log('COUNT_SHOWN',count);
+          }
+          NODE

@@ -1,0 +1,87 @@
+name: Connected System R1 temporary owner review
+
+on:
+  push:
+    branches:
+      - agent/proai-connected-system-r1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  temporary-preview:
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 190
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Start local review server
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory docs/site-evolution/connected-system-r1 > /tmp/connected-system-http.log 2>&1 &
+          echo $! > /tmp/connected-system-http.pid
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:4173/en.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/connected-system-http.log
+          exit 1
+
+      - name: Open verified TryCloudflare preview for approximately three hours
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 4 --retry-delay 2 \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+            -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+
+          /tmp/cloudflared tunnel --url http://127.0.0.1:4173 --no-autoupdate > /tmp/cloudflared.log 2>&1 &
+          echo $! > /tmp/cloudflared.pid
+
+          LIVE_BASE=''
+          for i in {1..60}; do
+            LIVE_BASE="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/cloudflared.log | head -n 1 || true)"
+            if [ -n "$LIVE_BASE" ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [ -z "$LIVE_BASE" ]; then
+            cat /tmp/cloudflared.log
+            exit 1
+          fi
+
+          curl -fsS --retry 8 --retry-delay 2 "$LIVE_BASE/en.html" | grep -Fq 'What the system connects.'
+          curl -fsS --retry 8 --retry-delay 2 "$LIVE_BASE/ru.html" | grep -Fq 'Что объединяет система.'
+
+          EXPIRES_UTC="$(date -u -d '+3 hours' '+%Y-%m-%dT%H:%M:%SZ')"
+          cat > docs/site-evolution/connected-system-r1/LIVE_PREVIEW.txt <<EOF
+          PROAI CONNECTED SYSTEM R1 — TEMPORARY OWNER REVIEW
+          PRODUCT_SHA=58119cff2e0171ab07758f2c433a96db3f9c51d2
+          LIVE_EN=$LIVE_BASE/en.html
+          LIVE_RU=$LIVE_BASE/ru.html
+          VERIFIED=PASS
+          EXPECTED_EXPIRES_UTC=$EXPIRES_UTC
+          EOF
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/connected-system-r1/LIVE_PREVIEW.txt
+          git commit -m 'chore: record temporary Connected System review URL [skip ci]'
+          git push origin HEAD:agent/proai-connected-system-r1
+
+          echo "LIVE EN: $LIVE_BASE/en.html"
+          echo "LIVE RU: $LIVE_BASE/ru.html"
+          echo "VERIFIED: PASS"
+          echo "EXPECTED EXPIRES UTC: $EXPIRES_UTC"
+
+          sleep 10800

@@ -91,7 +91,14 @@ jobs:
           printf '%s\n' "$REVIEW_URL" > "$GITHUB_WORKSPACE/r44-owner-review-url.txt"
           echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
 
-      - name: Observe three natural opportunities, motion invariants, and pointer discovery
+      - name: Publish owner URL immediately
+        uses: actions/upload-artifact@v4
+        with:
+          name: r44-owner-review-url
+          path: r44-owner-review-url.txt
+          retention-days: 1
+
+      - name: Observe three natural peaks, motion invariants, and pointer discovery
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
@@ -106,7 +113,7 @@ jobs:
           const dist3=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
           const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
           try {
-            const ctx=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'no-preference',recordVideo:{dir:`${out}/video`,size:{width:1440,height:900}}});
+            const ctx=await browser.newContext({viewport:{width:1000,height:680},reducedMotion:'no-preference',recordVideo:{dir:`${out}/video`,size:{width:1000,height:680}}});
             const p=await ctx.newPage();
             p.on('pageerror',e=>fatal.push(`pageerror:${String(e)}`));
             p.on('console',m=>{if(m.type()==='error')fatal.push(`console:${m.text()}`)});
@@ -116,8 +123,8 @@ jobs:
             const first=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),title:document.title,canvas:!!document.querySelector('#cube-canvas')}));
             const wall0=performance.now(),sim0=first.d.presentation.simTimeMs;
             let lastSim=sim0,movingSamples=0,armed=true,current=null,lastOpportunityScene=-999;
-            while((performance.now()-wall0)<720000 && opportunities.length<3){
-              await p.waitForTimeout(160);
+            while((performance.now()-wall0)<600000 && opportunities.length<3){
+              await p.waitForTimeout(120);
               const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
               const elapsed=(performance.now()-wall0)/1000,scene=(q.d.presentation.simTimeMs-sim0)/1000;
               if(q.d.presentation.simTimeMs>lastSim)movingSamples++;
@@ -127,15 +134,17 @@ jobs:
               if(!current && armed && alignment>=0.72 && scene-lastOpportunityScene>=4){
                 current={number:opportunities.length+1,startScene:scene,peakScene:scene,peakAlignment:alignment,faceView,peakElapsed:elapsed};
                 armed=false;
+                await p.locator('#cube-canvas').screenshot({path:`${out}/opportunity-${current.number}.png`,timeout:120000});
               }
               if(current){
-                if(alignment>current.peakAlignment){current.peakAlignment=alignment;current.peakScene=scene;current.faceView=faceView;current.peakElapsed=elapsed}
+                if(alignment>current.peakAlignment){
+                  current.peakAlignment=alignment;current.peakScene=scene;current.faceView=faceView;current.peakElapsed=elapsed;
+                  await p.locator('#cube-canvas').screenshot({path:`${out}/opportunity-${current.number}.png`,timeout:120000});
+                }
                 if(alignment<=0.58){
                   current.endScene=scene;
                   current.opticalWindow=Math.max(0,current.endScene-current.startScene);
-                  const name=`opportunity-${current.number}.png`;
-                  await p.locator('#cube-canvas').screenshot({path:`${out}/${name}`,timeout:120000});
-                  current.screenshot=name;
+                  current.screenshot=`opportunity-${current.number}.png`;
                   opportunities.push(current);lastOpportunityScene=current.peakScene;current=null;armed=true;
                 }
               }
@@ -146,14 +155,15 @@ jobs:
             const box=await p.locator('#cube-canvas').boundingBox(); if(!box)throw new Error('desktop canvas missing');
             const cx=box.x+box.width*.5,cy=box.y+box.height*.5;
             let best={alignment:before.s.opticalField?.alignment??0,step:0};
-            for(let step=1;step<=18;step++){
+            await p.locator('#cube-canvas').screenshot({path:`${out}/manual-best.png`,timeout:120000});
+            for(let step=1;step<=24;step++){
               await p.mouse.move(cx,cy);await p.mouse.down();
-              await p.mouse.move(cx+42,cy+(step%2?12:-8),{steps:3});await p.mouse.up();
-              await p.waitForTimeout(120);
+              await p.mouse.move(cx+34,cy+(step%2?10:-7),{steps:3});await p.mouse.up();
+              await p.waitForTimeout(100);
               const now=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
               const a=now.s.opticalField?.alignment??0;
               if(a>best.alignment){best={alignment:a,step,state:now};await p.locator('#cube-canvas').screenshot({path:`${out}/manual-best.png`,timeout:120000});}
-              if(a>=0.90)break;
+              if(a>=0.93)break;
             }
             const after=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
             const pointerDelta=dist3(before.i.cameraPosition,after.i.cameraPosition);
@@ -184,13 +194,6 @@ jobs:
           NODE
           node r44-live-watch.mjs
           rm -f r44-live-watch.mjs
-
-      - name: Publish owner URL
-        uses: actions/upload-artifact@v4
-        with:
-          name: r44-owner-review-url
-          path: r44-owner-review-url.txt
-          retention-days: 1
 
       - name: Publish live observation
         uses: actions/upload-artifact@v4

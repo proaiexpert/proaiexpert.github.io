@@ -1,0 +1,61 @@
+name: ProAI R4.3 Capture Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  capture-diagnostic:
+    if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2adfb8d168a505e23597699cf5a71106dd0ba665
+          fetch-depth: 0
+      - name: Build exact R4.3 product
+        run: |
+          npm install --package-lock=false
+          npm run prepare-r4
+          node clock-r4.mjs
+          node material-polish-r4.mjs
+          npx vite build
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Start runtime
+        run: |
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r4-3-diag-http.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          exit 1
+      - name: Diagnose capture startup
+        run: |
+          cat >capture-diag.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          const args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'];
+          const browser=await chromium.launch({headless:true,args});
+          const context=await browser.newContext({viewport:{width:1170,height:780},reducedMotion:'no-preference'});
+          const page=await context.newPage();
+          const events=[];
+          page.on('pageerror',e=>{events.push(['pageerror',String(e)]);console.log('CAPTURE_PAGEERROR',String(e))});
+          page.on('console',m=>{events.push(['console',m.type(),m.text()]);console.log('CAPTURE_CONSOLE',m.type(),m.text())});
+          await page.goto('http://127.0.0.1:4173/?capture',{waitUntil:'domcontentloaded',timeout:120000});
+          let state=null;
+          for(let i=0;i<60;i+=1){
+            state=await page.evaluate(()=>({hasApi:Boolean(window.__PROAI_CUBE_R1_2),ready:window.__PROAI_CUBE_R1_2?.ready??null,status:document.querySelector('#runtime-status')?.textContent??null,canvas:Boolean(document.querySelector('#cube-canvas'))}));
+            if(i%5===0||state.ready) console.log('CAPTURE_STATE',i,JSON.stringify(state));
+            if(state.ready) break;
+            await page.waitForTimeout(1000);
+          }
+          console.log('CAPTURE_FINAL',JSON.stringify({state,events}));
+          await browser.close();
+          if(!state?.ready) process.exit(1);
+          NODE
+          node capture-diag.mjs

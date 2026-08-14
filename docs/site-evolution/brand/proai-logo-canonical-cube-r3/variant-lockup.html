@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>ProAI Logo R3 — Canonical Horizontal Lockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/index-Dn0Nmh8Z.css">
+  <link rel="stylesheet" href="r3.css">
+</head>
+<body data-variant="A" data-r3-mode="static">
+  <main class="logo-stage">
+    <div class="logo-lockup" data-scale="large" data-testid="logo-lockup" aria-label="ProAI Expert canonical logo">
+      <div class="cube-frame" data-testid="cube-frame" aria-hidden="true">
+        <canvas id="cube-canvas" aria-label="Canonical ProAI 3D Cube"></canvas>
+        <p id="runtime-status" class="status">Loading canonical ProAI Cube…</p>
+        <div class="review-controls r3-hidden-controls"><button id="replay-brand">Replay</button><span class="review-links"></span></div>
+      </div>
+      <div class="wordmark" data-testid="wordmark" aria-label="PROAI EXPERT"><span class="proai">PROAI</span> <span class="expert">EXPERT</span></div>
+    </div>
+  </main>
+  <script>
+    const params=new URLSearchParams(location.search);
+    const variant=['A','B','C'].includes(params.get('variant'))?params.get('variant'):'A';
+    const scale=['master','large','header'].includes(params.get('scale'))?params.get('scale'):'large';
+    const mode=params.get('mode')==='living'?'living':'static';
+    document.body.dataset.variant=variant;
+    document.body.dataset.r3Mode=mode;
+    document.querySelector('.logo-lockup').dataset.scale=scale;
+  </script>
+  <script type="module" src="r3-runtime.js"></script>
+</body>
+</html>

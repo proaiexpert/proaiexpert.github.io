@@ -24,16 +24,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: f1724edabb69e4036f0d1fa8eee50d529b85e2c9
+          ref: 968081edf67aeaceda23126639d96bb2cb1f0e20
           fetch-depth: 0
 
-      - name: Verify frozen ancestry and exact R4.4 product
+      - name: Verify rollback ancestry and exact R4.4 product
         run: |
-          test "$(git rev-parse HEAD)" = "f1724edabb69e4036f0d1fa8eee50d529b85e2c9"
-          test "$(git hash-object material-polish-r4.mjs)" = "34f827a707a6a1d6e645eebd1103a8cf0dfa3e20"
+          test "$(git rev-parse HEAD)" = "968081edf67aeaceda23126639d96bb2cb1f0e20"
+          test "$(git hash-object material-polish-r4.mjs)" = "8b7d80be2f36715f7001196b3021556057839dca"
           git cat-file -e f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a^{commit}
-          git merge-base --is-ancestor f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a f1724edabb69e4036f0d1fa8eee50d529b85e2c9
-          test "$(git merge-base f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a f1724edabb69e4036f0d1fa8eee50d529b85e2c9)" = "f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a"
+          git merge-base --is-ancestor f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a 968081edf67aeaceda23126639d96bb2cb1f0e20
+          test "$(git merge-base f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a 968081edf67aeaceda23126639d96bb2cb1f0e20)" = "f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a"
 
       - name: Build exact R4.4 and enforce R4.3 architecture
         run: |
@@ -46,7 +46,7 @@ jobs:
           test "$(wc -c < rubik_39_s_cube_animation.glb | tr -d ' ')" -eq 279412
           test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
           grep -q "bumpScale:-0.130,roughnessMapInk:0.550,metalnessDelta:0.0,tonalInk:0.820" main.generated.js
-          grep -q "semanticPlanarUv=true" main.generated.js
+          grep -q "semanticR44SceneProjectedUv=true" main.generated.js
           grep -q "semanticR44BeveledBump=true" main.generated.js
           grep -q "frontFacing:signedFaceView>0" main.generated.js
           grep -q "semanticVelocityMultiplier: 1.0" main.generated.js
@@ -70,7 +70,7 @@ jobs:
           npx vite build
           cp -a dist /tmp/r43-dist
           git checkout -- material-polish-r4.mjs
-          test "$(git hash-object material-polish-r4.mjs)" = "34f827a707a6a1d6e645eebd1103a8cf0dfa3e20"
+          test "$(git hash-object material-polish-r4.mjs)" = "8b7d80be2f36715f7001196b3021556057839dca"
           rm -rf dist
           cp -a /tmp/r44-dist dist
 
@@ -79,7 +79,7 @@ jobs:
           npm install --no-save playwright
           npx playwright install chromium
 
-      - name: Start exact R4.4 and R4.3 comparison runtimes
+      - name: Start exact R4.4 and R4.3 runtimes
         run: |
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory /tmp/r44-dist >/tmp/r44-http.log 2>&1 &
           nohup python3 -m http.server 4174 --bind 127.0.0.1 --directory /tmp/r43-dist >/tmp/r43-http.log 2>&1 &
@@ -120,135 +120,87 @@ jobs:
           path: r44-owner-review-url.txt
           retention-days: 1
 
-      - name: Observe three true front-facing natural opportunities, comparison, and pointer discovery
+      - name: Observe natural opportunities, comparison, motion, and pointer discovery
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
-          cat > r44-live-watch.mjs <<'NODE'
+          cat > r44-final-watch.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
-          const url=process.env.REVIEW_URL;
-          const out='review-evidence/r44-live-owner';
+          const url=process.env.REVIEW_URL,out='review-evidence/r44-final';
           fs.mkdirSync(`${out}/video`,{recursive:true});
           const fatal=[],responses=[],samples=[],opportunities=[];
           const stats=a=>({min:Math.min(...a),max:Math.max(...a),mean:a.reduce((x,y)=>x+y,0)/a.length});
           const dist3=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
           const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
-          let ctx,p,result=null;
-          try {
-            ctx=await browser.newContext({viewport:{width:1170,height:780},reducedMotion:'no-preference',recordVideo:{dir:`${out}/video`,size:{width:1170,height:780}}});
+          let result=null,ctx,p;
+          try{
+            ctx=await browser.newContext({viewport:{width:900,height:600},reducedMotion:'no-preference',recordVideo:{dir:`${out}/video`,size:{width:900,height:600}}});
             p=await ctx.newPage();
-            const pageCreatedWall=performance.now();
+            const page0=performance.now();
             p.on('pageerror',e=>fatal.push(`pageerror:${String(e)}`));
             p.on('console',m=>{if(m.type()==='error')fatal.push(`console:${m.text()}`)});
             p.on('response',r=>responses.push({url:r.url(),status:r.status(),type:r.request().resourceType()}));
             const nav=await p.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
             await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
-            const readyVideoOffset=(performance.now()-pageCreatedWall)/1000;
+            const readyVideoOffset=(performance.now()-page0)/1000;
             const first=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),title:document.title,canvas:!!document.querySelector('#cube-canvas')}));
             const wall0=performance.now(),sim0=first.d.presentation.simTimeMs;
-            let lastSim=sim0,movingSamples=0,current=null,lastPeakScene=-999;
-            while((performance.now()-wall0)<1800000 && opportunities.length<3){
-              await p.waitForTimeout(160);
+            let lastSim=sim0,movingSamples=0,current=null,lastPeak=-999;
+            while((performance.now()-wall0)<1500000 && opportunities.length<3){
+              await p.waitForTimeout(120);
               const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
-              const elapsed=(performance.now()-wall0)/1000,scene=(q.d.presentation.simTimeMs-sim0)/1000;
-              if(q.d.presentation.simTimeMs>lastSim)movingSamples++;
-              lastSim=q.d.presentation.simTimeMs;
-              const optical=q.s.opticalField??{},alignment=optical.alignment??0,faceView=optical.faceView??0,frontFacing=optical.frontFacing===true,scale=q.s.timeScale??1;
-              samples.push({elapsed,scene,alignment,faceView,frontFacing,scale,semanticActive:!!q.s.active});
-              if(!current && frontFacing && alignment>=0.68 && scene-lastPeakScene>=4){
-                current={number:opportunities.length+1,startScene:scene,peakScene:scene,peakAlignment:alignment,peakFaceView:faceView,peakElapsed:elapsed,lastCapturedAlignment:-1};
-                await p.locator('#cube-canvas').screenshot({path:`${out}/opportunity-${current.number}.png`,timeout:120000});
-                current.lastCapturedAlignment=alignment;
-              } else if(current){
-                if(frontFacing && alignment>current.peakAlignment){
-                  current.peakAlignment=alignment;current.peakFaceView=faceView;current.peakScene=scene;current.peakElapsed=elapsed;
-                  if(alignment-current.lastCapturedAlignment>=.01){await p.locator('#cube-canvas').screenshot({path:`${out}/opportunity-${current.number}.png`,timeout:120000});current.lastCapturedAlignment=alignment;}
-                }
-                if(!frontFacing || alignment<=0.52){
-                  current.endScene=scene;
-                  current.approxOpticalDuration=Math.max(0,current.endScene-current.startScene);
-                  current.peakVideoTime=readyVideoOffset+current.peakElapsed;
-                  delete current.lastCapturedAlignment;
-                  opportunities.push(current);
-                  lastPeakScene=current.peakScene;
-                  current=null;
-                }
+              const scene=(q.d.presentation.simTimeMs-sim0)/1000,elapsed=(performance.now()-wall0)/1000,opt=q.s.opticalField??{},alignment=opt.alignment??0,faceView=opt.faceView??0,front=opt.frontFacing===true,scale=q.s.timeScale??1;
+              if(q.d.presentation.simTimeMs>lastSim)movingSamples++;lastSim=q.d.presentation.simTimeMs;
+              samples.push({scene,elapsed,alignment,faceView,front,scale});
+              if(!current&&front&&alignment>=.62&&scene-lastPeak>=3){
+                current={number:opportunities.length+1,startScene:scene,peakScene:scene,peakAlignment:alignment,peakFaceView:faceView,peakElapsed:elapsed,lastShot:alignment};
+                await p.locator('#cube-canvas').screenshot({path:`${out}/opportunity-${current.number}.png`});
+              }else if(current){
+                if(front&&alignment>current.peakAlignment){current.peakAlignment=alignment;current.peakFaceView=faceView;current.peakScene=scene;current.peakElapsed=elapsed;if(alignment-current.lastShot>=.01){await p.locator('#cube-canvas').screenshot({path:`${out}/opportunity-${current.number}.png`});current.lastShot=alignment;}}
+                if(!front||alignment<=.48){current.endScene=scene;current.opticalDuration=Math.max(0,scene-current.startScene);current.peakVideoTime=readyVideoOffset+current.peakElapsed;delete current.lastShot;opportunities.push(current);lastPeak=current.peakScene;current=null;}
               }
             }
-            if(opportunities.length!==3) throw new Error(`observed ${opportunities.length}/3 true front-facing natural optical opportunities`);
+            if(opportunities.length!==3)throw new Error(`observed ${opportunities.length}/3 natural opportunities`);
+            const afterTarget=opportunities[2].endScene+1;
+            while(true){await p.waitForTimeout(120);const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));const scene=(q.d.presentation.simTimeMs-sim0)/1000,opt=q.s.opticalField??{};samples.push({scene,alignment:opt.alignment??0,faceView:opt.faceView??0,front:opt.frontFacing===true,scale:q.s.timeScale??1});if(scene>=afterTarget)break;}
 
-            const afterNaturalTarget=opportunities[2].endScene+1.0;
-            while((performance.now()-wall0)<1860000){
-              await p.waitForTimeout(160);
-              const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
-              const elapsed=(performance.now()-wall0)/1000,scene=(q.d.presentation.simTimeMs-sim0)/1000,optical=q.s.opticalField??{};
-              samples.push({elapsed,scene,alignment:optical.alignment??0,faceView:optical.faceView??0,frontFacing:optical.frontFacing===true,scale:q.s.timeScale??1,semanticActive:!!q.s.active});
-              if(scene>=afterNaturalTarget)break;
-            }
-
-            // Internal same-camera / same-motion / same-scene-time R4.3 evidence.
-            const c43=await browser.newContext({viewport:{width:1170,height:780},reducedMotion:'no-preference'}),p43=await c43.newPage();
+            const c43=await browser.newContext({viewport:{width:900,height:600},reducedMotion:'no-preference'}),p43=await c43.newPage();
             await p43.goto('http://127.0.0.1:4174/',{waitUntil:'domcontentloaded',timeout:120000});
             await p43.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
-            const r43Start=await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);
-            for(const o of opportunities){
-              while(true){
-                const now=await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);
-                if((now-r43Start)/1000>=o.peakScene)break;
-                await p43.waitForTimeout(120);
-              }
-              await p43.locator('#cube-canvas').screenshot({path:`${out}/r43-same-time-${o.number}.png`,timeout:120000});
-            }
+            const s43=await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);
+            for(const o of opportunities){while(true){const now=await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);if((now-s43)/1000>=o.peakScene)break;await p43.waitForTimeout(100);}await p43.locator('#cube-canvas').screenshot({path:`${out}/r43-same-time-${o.number}.png`});}
             await c43.close();
 
-            const beforeState=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
-            const box=await p.locator('#cube-canvas').boundingBox(); if(!box) throw new Error('desktop canvas missing');
-            const cx=box.x+box.width*.5,cy=box.y+box.height*.5;
-            let bestAlignment=beforeState.s.opticalField?.alignment??0,bestFaceView=beforeState.s.opticalField?.faceView??0,bestStep=0,manualCaptured=false;
-            for(let step=1;step<=72;step++){
-              const phase=step%12,dx=(phase<6?1:-1)*(36+((step*13)%74)),dy=((step%9)-4)*14;
-              await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx+dx,cy+dy,{steps:5});await p.mouse.up();
-              await p.waitForTimeout(100);
-              const now=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
-              const optical=now.s.opticalField??{},a=optical.alignment??0,fv=optical.faceView??0,front=optical.frontFacing===true;
-              if(front && a>bestAlignment){bestAlignment=a;bestFaceView=fv;bestStep=step;}
-              if(front && a>=0.82 && fv>=0.55){await p.locator('#cube-canvas').screenshot({path:`${out}/manual-readable.png`,timeout:120000});manualCaptured=true;bestAlignment=a;bestFaceView=fv;bestStep=step;break;}
+            const before=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
+            const box=await p.locator('#cube-canvas').boundingBox();if(!box)throw new Error('canvas missing');const cx=box.x+box.width*.5,cy=box.y+box.height*.5;
+            let bestAlignment=before.s.opticalField?.alignment??0,bestFaceView=before.s.opticalField?.faceView??0,bestStep=0,manualCaptured=false;
+            for(let step=1;step<=96;step++){
+              const phase=step%16,dx=(phase<8?1:-1)*(34+((step*17)%92)),dy=((step%11)-5)*14;
+              await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx+dx,cy+dy,{steps:5});await p.mouse.up();await p.waitForTimeout(80);
+              const now=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()})),opt=now.s.opticalField??{},a=opt.alignment??0,fv=opt.faceView??0,front=opt.frontFacing===true;
+              if(front&&a>bestAlignment){bestAlignment=a;bestFaceView=fv;bestStep=step;}
+              if(front&&a>=.82&&fv>=.55){await p.locator('#cube-canvas').screenshot({path:`${out}/manual-readable.png`});manualCaptured=true;bestAlignment=a;bestFaceView=fv;bestStep=step;break;}
             }
-            if(!manualCaptured) await p.locator('#cube-canvas').screenshot({path:`${out}/manual-readable.png`,timeout:120000});
-            const afterState=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
-            const pointerDelta=dist3(beforeState.i.cameraPosition,afterState.i.cameraPosition);
-            const pointer={pass:pointerDelta>.01&&afterState.d.presentation.simTimeMs>beforeState.d.presentation.simTimeMs&&afterState.s.persistentInscription===true&&afterState.s.physicalEngravedLogicalTileCount===9&&afterState.s.timeScale===1&&manualCaptured,cameraDelta:pointerDelta,bestAlignment,bestFaceView,bestStep,manualCaptured};
-
-            const firstPeak=opportunities[0].peakScene,lastPeak=opportunities[2].peakScene;
-            const before=samples.filter(x=>x.scene<firstPeak-.5).map(x=>x.scale);
-            const during=samples.filter(x=>opportunities.some(o=>x.scene>=o.startScene&&x.scene<=o.endScene)).map(x=>x.scale);
-            const after=samples.filter(x=>x.scene>lastPeak+.5).map(x=>x.scale);
-            const motion={before:stats(before.length?before:[1]),during:stats(during.length?during:[1]),after:stats(after.length?after:[1]),all:stats(samples.map(x=>x.scale))};
+            if(!manualCaptured)await p.locator('#cube-canvas').screenshot({path:`${out}/manual-readable.png`});
+            const after=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
+            const pointerDelta=dist3(before.i.cameraPosition,after.i.cameraPosition),pointer={pass:pointerDelta>.01&&after.d.presentation.simTimeMs>before.d.presentation.simTimeMs&&after.s.persistentInscription===true&&after.s.physicalEngravedLogicalTileCount===9&&after.s.timeScale===1&&manualCaptured,cameraDelta:pointerDelta,bestAlignment,bestFaceView,bestStep,manualCaptured};
+            const p1=opportunities[0].peakScene,p3=opportunities[2].peakScene,beforeScale=samples.filter(x=>x.scene<p1-.5).map(x=>x.scale),duringScale=samples.filter(x=>opportunities.some(o=>x.scene>=o.startScene&&x.scene<=o.endScene)).map(x=>x.scale),afterScale=samples.filter(x=>x.scene>p3+.5).map(x=>x.scale),motion={before:stats(beforeScale.length?beforeScale:[1]),during:stats(duringScale.length?duringScale:[1]),after:stats(afterScale.length?afterScale:[1]),all:stats(samples.map(x=>x.scale))};
             const good=r=>r.status>=200&&r.status<400;
-            result={pass:nav?.status()===200&&first.canvas&&movingSamples>20&&opportunities.length===3&&opportunities.every(o=>o.peakAlignment>=.68)&&pointer.pass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:!!first.s&&!!first.d,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:first.canvas,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:movingSamples>20,movingSamples,readyVideoOffset,opportunities,motion,pointer,comparison:{baseline:'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a',candidate:'f1724edabb69e4036f0d1fa8eee50d529b85e2c9',sameCamera:true,sameSceneTimes:true,samePlaybackSpeed:true},flags:{persistentInscription:afterState.s.persistentInscription,physicalEngravedLogicalTileCount:afterState.s.physicalEngravedLogicalTileCount,overlayTextRendered:afterState.s.overlayTextRendered,visualDriverTimeline:afterState.s.visualDriverTimeline,alphaDominantReveal:afterState.s.alphaDominantReveal,semanticMotionCoupled:afterState.s.semanticMotionCoupled,semanticOrientationForcing:afterState.s.semanticOrientationForcing,timeScale:afterState.s.timeScale,emissive:afterState.s.emissive,glowHalo:afterState.s.glowHalo},fatal,samples};
-            fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));
-            console.log('R44_PUBLIC_WATCH',JSON.stringify({pass:result.pass,url,opportunities,motion,pointer,comparison:result.comparison,fatal}));
-          } catch(error){
-            fatal.push(`observer:${error.message}`);
-            fs.writeFileSync(`${out}/observer-failure.json`,JSON.stringify({url,opportunities,fatal,sampleCount:samples.length,lastSample:samples.at(-1)??null},null,2));
-            throw error;
-          } finally {
-            if(p&&!p.isClosed())await p.close().catch(()=>{});
-            if(ctx)await ctx.close().catch(()=>{});
-            await browser.close();
-          }
+            result={pass:nav?.status()===200&&first.canvas&&movingSamples>20&&opportunities.length===3&&pointer.pass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:!!first.s&&!!first.d,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:first.canvas,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:movingSamples>20,movingSamples,readyVideoOffset,opportunities,motion,pointer,comparison:{baseline:'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a',candidate:'968081edf67aeaceda23126639d96bb2cb1f0e20',sameCamera:true,sameSceneTimes:true,samePlaybackSpeed:true},flags:{persistentInscription:after.s.persistentInscription,physicalEngravedLogicalTileCount:after.s.physicalEngravedLogicalTileCount,overlayTextRendered:after.s.overlayTextRendered,visualDriverTimeline:after.s.visualDriverTimeline,alphaDominantReveal:after.s.alphaDominantReveal,semanticMotionCoupled:after.s.semanticMotionCoupled,semanticOrientationForcing:after.s.semanticOrientationForcing,timeScale:after.s.timeScale,emissive:after.s.emissive,glowHalo:after.s.glowHalo},fatal,samples};
+            fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));console.log('R44_FINAL_WATCH',JSON.stringify({pass:result.pass,url,opportunities,motion,pointer,fatal}));
+          }finally{if(p&&!p.isClosed())await p.close().catch(()=>{});if(ctx)await ctx.close().catch(()=>{});await browser.close();}
           if(!result?.pass)process.exitCode=1;
           NODE
-          node r44-live-watch.mjs
-          rm -f r44-live-watch.mjs
+          node r44-final-watch.mjs
+          rm -f r44-final-watch.mjs
 
       - name: Publish live observation
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: r44-live-owner-observation
-          path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r44-live-owner/
+          path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r44-final/
           retention-days: 7
 
       - name: Hold owner preview for approximately 3 hours

@@ -12,15 +12,20 @@ jobs:
   preview:
     if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
     runs-on: ubuntu-latest
-    timeout-minutes: 70
+    timeout-minutes: 200
     defaults:
       run:
         working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: agent/proai-cube-semantic-brand-face-r4
+          ref: 0f9396923431594262c383327db19e471a9141b8
           fetch-depth: 0
+
+      - name: Pin exact owner-reviewed product
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "0f9396923431594262c383327db19e471a9141b8"
 
       - name: Verify frozen product scope
         run: |
@@ -29,7 +34,7 @@ jobs:
           test -z "$(git diff --name-only f4037958a3b4ae9ef544ee8a97b2bf0aea60db0e...HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2 index.html ru/index.html)"
           test "$(git diff --name-only 7ae4bc8f9aa519226aec676ab17d4c9fdafdcc15...HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/prepare-r4.mjs docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/lab.js docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/qa-r4.mjs docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/index.html docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/styles.css)" = ""
 
-      - name: Build R4 material candidate
+      - name: Build exact R4 material product
         run: |
           set -euo pipefail
           npm install --package-lock=false
@@ -94,6 +99,66 @@ jobs:
           printf '%s\n' "$REVIEW_URL" > "$GITHUB_WORKSPACE/r4-owner-review-url.txt"
           echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
 
+      - name: Verify public WebGL product render
+        env:
+          REVIEW_URL: ${{ steps.tunnel.outputs.url }}
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright
+          npx playwright install chromium
+          cat >/tmp/r4-public-verify.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          const url = process.env.REVIEW_URL;
+          const fatal = [];
+          const browser = await chromium.launch({
+            headless: true,
+            args: [
+              '--enable-webgl',
+              '--ignore-gpu-blocklist',
+              '--enable-unsafe-swiftshader',
+              '--use-gl=swiftshader',
+              '--disable-dev-shm-usage',
+            ],
+          });
+          try {
+            const context = await browser.newContext({ viewport: { width: 1170, height: 780 }, deviceScaleFactor: 2, reducedMotion: 'no-preference' });
+            const page = await context.newPage();
+            page.on('pageerror', (error) => fatal.push(String(error)));
+            page.on('console', (message) => {
+              if (message.type() === 'error' && /GLB load failed|TypeError|ReferenceError|WebGL context lost/i.test(message.text())) fatal.push(message.text());
+            });
+            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+            await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, null, { timeout: 120000 });
+            const before = await page.evaluate(() => ({
+              canvasWidth: document.querySelector('#cube-canvas')?.width || 0,
+              canvasHeight: document.querySelector('#cube-canvas')?.height || 0,
+              simTimeMs: window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs,
+            }));
+            await page.waitForTimeout(900);
+            const after = await page.evaluate(() => ({
+              simTimeMs: window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs,
+              semantic: window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),
+            }));
+            if (before.canvasWidth < 2 || before.canvasHeight < 2) throw new Error('WebGL canvas has no render size');
+            if (!(after.simTimeMs > before.simTimeMs)) throw new Error('Presentation render loop is not advancing');
+            const replay = await page.evaluate(() => window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
+            if (replay !== true) throw new Error('Semantic replay was not accepted');
+            await page.waitForFunction(() => {
+              const d = window.__PROAI_CUBE_R1_2.getSemanticDiagnostics();
+              return d.pending === true || d.active === true;
+            }, null, { timeout: 15000 });
+            const semantic = await page.evaluate(() => window.__PROAI_CUBE_R1_2.getSemanticDiagnostics());
+            if (semantic.materialModel !== 'MeshPhysicalMaterial / tone-mapped Pearl-Silver inlay') throw new Error(`Unexpected material model: ${semantic.materialModel}`);
+            if (semantic.seamAwareOcclusion !== true) throw new Error('Seam-aware occlusion missing');
+            if (semantic.surfaceOpacityMax !== 0.032) throw new Error(`Unexpected surface opacity: ${semantic.surfaceOpacityMax}`);
+            if (fatal.length) throw new Error(`Fatal browser errors: ${fatal.join(' | ')}`);
+            console.log('PUBLIC_WEBGL_PRODUCT_RENDER_PASS', JSON.stringify({ url, before, after, semantic }));
+          } finally {
+            await browser.close();
+          }
+          NODE
+          node /tmp/r4-public-verify.mjs
+
       - name: Publish owner URL artifact
         uses: actions/upload-artifact@v4
         with:
@@ -101,9 +166,10 @@ jobs:
           path: r4-owner-review-url.txt
           retention-days: 1
 
-      - name: Hold owner preview for 60 minutes
+      - name: Hold owner preview for approximately 3 hours
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
+          set -euo pipefail
           curl -fsSL --max-time 15 "$REVIEW_URL/" >/dev/null
-          sleep 3600
+          sleep 10800

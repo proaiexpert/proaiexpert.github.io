@@ -16,16 +16,19 @@ Header/favicons/16px/28px/vector reduction/light-background production adaptatio
 ## Canonical Cube provenance
 
 - Source branch: `agent/proai-cube-semantic-brand-face-r4`
-- Source SHA: `0c9cafc0d7a29879a257f11cd26a0db77bb187e6`
+- Canonical product consumed: R4.1 SHA `d4902a151b5f4cc98032c956e3d9e1d0fca94827`
+- Active R4 branch HEAD inspected before R3 work: `0c9cafc0d7a29879a257f11cd26a0db77bb187e6`
 - Physical base GLB: `docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/rubik_39_s_cube_animation.glb`
-- Current R4.2 review GLB: `docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-dist/assets/rubik_39_s_cube_animation-DvywXmYB.glb`
+- Frozen R4.1 review GLB: `docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-dist/assets/rubik_39_s_cube_animation-DvywXmYB.glb`
 - GLB Git blob: `7992019d85304c16244d0ca55a8cf15c13c26190`
 - GLB byte count: `279412`
 - GLB SHA-256 locked by R4 prepare step: `dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b`
 - Base Three.js implementation: `docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2/main.js`
 - R4 construction/semantic integration: `docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/prepare-r4.mjs`
-- Current R4.2 optical material patch: `docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r4.mjs`
-- Exact compiled R4.2 runtime consumed by Logo R3: `docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-dist/assets/index-vldOIrE-.js`
+- Exact compiled frozen R4.1 runtime consumed by Logo R3: `docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-dist/assets/index-vldOIrE-.js`
+- Current R4.2 semantic optical patch inspected but intentionally not consumed by Logo R3: `docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r4.mjs`
+
+The distinction is intentional: the active branch contains newer R4.2 semantic-face refinement work, while the public owner-review workflow explicitly pins the frozen R4.1 product. R3 needs the canonical physical Cube, not a fork of the semantic reveal. The physical GLB/runtime used here is therefore the verified R4.1 owner-review product, while R4.2 remains an inspected upstream capability.
 
 The R3 review folder copies the GLB, compiled runtime, compiled CSS and Instrument Sans webfont blobs **byte-for-byte by existing Git blob SHA**. No substitute model or approximate SVG is present.
 
@@ -35,11 +38,11 @@ The source defines the 3×3 physical language from the canonical GLB transform h
 
 The established `premiumHybrid` lookdev remains the source of truth: Graphite `#242a31`, Gunmetal `#2b323a`, Black Chrome `#181d23`, Smoked Core `#0c0f13`, with ACES Filmic tone mapping, SRGB output, procedural studio reflection cards and no postprocessing bloom.
 
-R4.2 semantic optical material capability remains in the copied runtime, but Logo R3 clears the semantic reveal for these identity states so this logo approval does not fork or depend on the still-evolving semantic face mechanism.
+The semantic material capability remains upstream, but Logo R3 clears the semantic reveal for these identity states so this logo approval does not fork or depend on the still-evolving semantic face mechanism.
 
 ## Selected canonical static home orientation
 
-R3 does not invent an angle. It locks the exact natural 3/4 pose selected by the current R4 owner-evidence workflow:
+R3 does not invent an angle. It locks the exact natural 3/4 pose selected by the frozen R4.1 owner-evidence workflow:
 
 - source presentation time: `7.0s`;
 - face: `-X`;
@@ -52,13 +55,13 @@ This is the **controlled, slightly elevated natural 3/4** portrait rather than a
 
 ## Static signature
 
-The static state uses `capture` review mode, stops slice scheduling, clears the semantic reveal, moves the exact R4 presentation rig to the locked canonical home pose and renders one stable frame. It remains completely still.
+The static state uses `capture` review mode, stops slice scheduling, clears the semantic reveal, moves the exact R4.1 presentation rig to the locked canonical home pose and renders one stable frame. It remains completely still.
 
 The wordmark uses the same Instrument Sans Variable family already consumed by the current Cube stream. Naming is exactly two-line `ProAI` / `Expert`; weight is 620 for both lines, with only a quiet Pearl value hierarchy. No cyan word, glow, custom techno lettering or alternate casing is introduced.
 
 ## Living digital signature
 
-The living state uses the same exact runtime, model, camera, materials and pose path. Slice motion is disabled. The canonical R4 presentation path is sampled at `0.10×` time, reducing normal source yaw from roughly 7–12°/s to roughly 0.7–1.2°/s and stretching the 68s presentation cycle to about 680s (11m20s). The Cube therefore moves continuously without a visible short-loop restart and begins from the exact static home orientation.
+The living state uses the same exact runtime, model, camera, materials and pose path. Slice motion is disabled. The canonical R4.1 presentation path is sampled at `0.10×` time, reducing normal source yaw from roughly 7–12°/s to roughly 0.7–1.2°/s and stretching the 68s presentation cycle to about 680s (11m20s). Short inspection segments may reach roughly 3°/s at this scale. The Cube moves continuously without a visible short-loop restart and begins from the exact static home orientation.
 
 No new animation symbol is created.
 

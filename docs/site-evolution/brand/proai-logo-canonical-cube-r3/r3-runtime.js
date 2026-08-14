@@ -2,7 +2,8 @@ import './assets/index-vldOIrE-.js';
 
 const SOURCE = Object.freeze({
   branch: 'agent/proai-cube-semantic-brand-face-r4',
-  sha: '0c9cafc0d7a29879a257f11cd26a0db77bb187e6',
+  productSha: 'd4902a151b5f4cc98032c956e3d9e1d0fca94827',
+  activeBranchHeadInspected: '0c9cafc0d7a29879a257f11cd26a0db77bb187e6',
   glbBlob: '7992019d85304c16244d0ca55a8cf15c13c26190',
   compiledRuntimeBlob: '614b2ad663b6a50fb8df6dd15e3ead6b4bb69750',
 });
@@ -31,9 +32,9 @@ function waitForApi(timeoutMs = 45000) {
 
 function resolveCanonicalHomePose(api) {
   const pose = api.getSemanticPoseAt(CANONICAL_HOME.timeSec);
-  if (!pose) throw new Error('Canonical R4 home pose is unavailable');
+  if (!pose) throw new Error('Canonical R4.1 home pose is unavailable');
   if (pose.face !== CANONICAL_HOME.face || Math.abs(pose.dot - CANONICAL_HOME.dot) > 0.02) {
-    throw new Error(`Canonical R4 home pose provenance mismatch: ${pose.face} / ${pose.dot}`);
+    throw new Error(`Canonical R4.1 home pose provenance mismatch: ${pose.face} / ${pose.dot}`);
   }
   return pose;
 }
@@ -57,7 +58,7 @@ function publishState(mode, pose, speedScale = 0) {
   const status = document.getElementById('runtime-status');
   if (status) status.textContent = mode === 'living'
     ? 'CANONICAL PROAI CUBE · LIVING SIGNATURE · 0.10× PRESENTATION TIME'
-    : 'CANONICAL PROAI CUBE · STATIC HOME POSE · R4.2 SOURCE';
+    : 'CANONICAL PROAI CUBE · STATIC HOME POSE · FROZEN R4.1 PRODUCT';
 }
 
 async function init() {

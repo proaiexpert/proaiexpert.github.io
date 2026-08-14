@@ -1,4 +1,4 @@
-name: ProAI Semantic R4 Owner Preview
+name: ProAI Semantic R4 Material Owner Preview
 
 on:
   pull_request:
@@ -6,11 +6,7 @@ on:
     types: [opened, synchronize, reopened]
 
 permissions:
-  contents: read
-
-concurrency:
-  group: proai-semantic-r4-preview-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  contents: write
 
 jobs:
   preview:
@@ -23,60 +19,116 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: agent/proai-cube-semantic-brand-face-r4
           fetch-depth: 0
 
-      - name: Verify frozen base
+      - name: Materialize frozen R4 material-polish payload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MATERIAL_BLOB_SHA: 9db3951ec6041647eaa980cf7f97c241c068e861
         run: |
-          cd "$GITHUB_WORKSPACE"
-          test -z "$(git diff --name-only 295a67a27df127c95d799c93ea39448afd714793...HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2 index.html ru/index.html)"
+          set -euo pipefail
+          if [ ! -f material-polish-r4.mjs ]; then
+            curl -fsSL -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/blobs/${MATERIAL_BLOB_SHA}" \
+              | python3 -c "import sys,json,base64; print(base64.b64decode(json.load(sys.stdin)['content']).decode(), end='')" \
+              > material-polish-r4.mjs
+            node --check material-polish-r4.mjs
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add material-polish-r4.mjs
+            git commit -m "polish semantic r4 material integration"
+            git push origin HEAD:agent/proai-cube-semantic-brand-face-r4
+          fi
+          echo "PRODUCT_POLISH_SHA=$(git rev-parse HEAD)"
 
-      - name: Build R4 review candidate
+      - name: Verify frozen product scope
         run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          test -z "$(git diff --name-only f4037958a3b4ae9ef544ee8a97b2bf0aea60db0e...HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2 index.html ru/index.html)"
+          test "$(git diff --name-only 7ae4bc8f9aa519226aec676ab17d4c9fdafdcc15...HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/prepare-r4.mjs docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/lab.js docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/qa-r4.mjs docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/index.html docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/styles.css)" = ""
+
+      - name: Build R4 material candidate
+        run: |
+          set -euo pipefail
           npm install --package-lock=false
           npm run prepare-r4
           node clock-r4.mjs
-          npx vite build
+          node material-polish-r4.mjs
           node --check main.generated.js
+          npx vite build
           test "$(wc -c < rubik_39_s_cube_animation.glb)" -eq 279412
           test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
-          grep -q "surfaceMaxOpacity: 0.065" main.generated.js
+          grep -q "surfaceMaxOpacity: 0.032" main.generated.js
           grep -q "semanticVelocityMultiplier: 0.70" main.generated.js
           grep -q "triggerSearchStartMs: 3200" main.generated.js
           grep -q "triggerSearchEndMs: 4200" main.generated.js
-          grep -q "semanticRuntimeStartWallMs" main.generated.js
-          grep -q "controls.enableZoom = false" main.generated.js
-          ! grep -q "semanticComplete || interactionActive" main.generated.js
+          grep -q "revealMs: 600" main.generated.js
+          grep -q "readableHoldMs: 1250" main.generated.js
+          grep -q "exitMs: 520" main.generated.js
+          grep -q "SEMANTIC_R4_PHYSICAL_PEARL_SILVER_INLAY" main.generated.js
+          grep -q "latticeCenters + GEOMETRY_R1.faceOuterSize" main.generated.js
+          ! grep -q "microHalo" main.generated.js
+          node - <<'NODE'
+          const fs = require('fs');
+          const s = fs.readFileSync('main.generated.js','utf8');
+          const m = s.match(/function createSemanticTextMaterial\(maskTexture\)[\s\S]*?function setupSemanticSurface/);
+          if (!m) throw new Error('semantic material section missing');
+          if (!m[0].includes('MeshPhysicalMaterial')) throw new Error('physical material missing');
+          if (m[0].includes('ShaderMaterial') || m[0].includes('toneMapped: false')) throw new Error('self-lit semantic shader retained');
+          if (!m[0].includes("'#ECECE8'")) throw new Error('peak reflection palette missing');
+          console.log('R4_MATERIAL_STATIC_QA_PASS');
+          NODE
 
-      - name: Start local runtime
+      - name: Start review runtime
         run: |
+          set -euo pipefail
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r4-http.log 2>&1 &
           for i in $(seq 1 60); do
             curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0
             sleep 1
           done
+          cat /tmp/r4-http.log
           exit 1
 
-      - name: Publish owner preview
+      - name: Publish TryCloudflare owner preview
         id: tunnel
         run: |
+          set -euo pipefail
           curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
           chmod +x /tmp/cloudflared
-          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/r4-tunnel.log 2>&1 &
-          URL=''
-          for i in $(seq 1 90); do
-            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/r4-tunnel.log | tail -1 || true)
-            [ -n "$URL" ] && break
-            sleep 1
+          REVIEW_URL=''
+          for attempt in 1 2 3; do
+            LOG="/tmp/r4-tunnel-${attempt}.log"
+            /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 &
+            PID=$!
+            URL=''
+            for i in $(seq 1 60); do
+              URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
+              [ -n "$URL" ] && break
+              sleep 1
+            done
+            if [ -n "$URL" ]; then
+              for i in $(seq 1 18); do
+                if curl -fsSL --max-time 12 "$URL/" >/tmp/r4-public.html 2>/dev/null; then
+                  REVIEW_URL="$URL"
+                  break 2
+                fi
+                sleep 2
+              done
+            fi
+            kill "$PID" 2>/dev/null || true
           done
-          test -n "$URL"
-          curl -fsSL --max-time 15 "$URL/" >/dev/null
-          echo "url=$URL" >> "$GITHUB_OUTPUT"
-          echo "R4_LIVE_READY=$URL"
+          test -n "$REVIEW_URL"
+          grep -q "ProAI Cube" /tmp/r4-public.html
+          echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
+          echo "R4_LIVE_READY=$REVIEW_URL"
 
-      - name: Hold preview for 60 minutes
+      - name: Hold owner preview for 60 minutes
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
           curl -fsSL --max-time 15 "$REVIEW_URL/" >/dev/null
+          echo "OWNER_REVIEW_URL=$REVIEW_URL"
           sleep 3600

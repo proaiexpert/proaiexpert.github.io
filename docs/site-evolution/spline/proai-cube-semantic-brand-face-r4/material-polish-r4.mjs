@@ -82,6 +82,31 @@ replaceOne(
   'signed optical diagnostics payload',
 );
 
+// Start the already-approved Presentation Motion from a later phase so the same
+// natural +Z face/light/view relationship arrives within the owner's first 2–5 s.
+// Velocity curves, presentation integration, and semantic independence are unchanged.
+replaceOne(
+  'let presentationSimTimeMs = 0;\nlet presentationYawRad = 0;\nlet presentationSignedYawDeg = 0;\nlet presentationCumulativeYawDeg = 0;',
+  `const R44_INITIAL_PRESENTATION_PHASE_MS = 7200;
+const R44_INITIAL_PRESENTATION_YAW_DEG = 110.50086114843751;
+let presentationSimTimeMs = R44_INITIAL_PRESENTATION_PHASE_MS;
+let presentationYawRad = THREE.MathUtils.degToRad(R44_INITIAL_PRESENTATION_YAW_DEG);
+let presentationSignedYawDeg = R44_INITIAL_PRESENTATION_YAW_DEG;
+let presentationCumulativeYawDeg = Math.abs(R44_INITIAL_PRESENTATION_YAW_DEG);`,
+  'early natural presentation phase',
+);
+replaceOne(
+  '    setupSemanticSurface();\n    if (captureMode) renderReviewFrame();',
+  `    setupSemanticSurface();
+    if (!captureMode && !prefersReducedMotion) {
+      presentationRig.quaternion.copy(presentationQuaternionAt(presentationSimTimeMs, presentationYawRad));
+      presentationRig.updateMatrixWorld(true);
+      lastPresentationQuaternion.copy(presentationRig.quaternion);
+    }
+    if (captureMode) renderReviewFrame();`,
+  'initialize living cube at selected presentation phase before first visible frame',
+);
+
 // The engraving is physically attached to the original nine +Z cubies. A random
 // one-way slice stream permanently scatters those letter fragments, so subsequent
 // optical peaks can no longer reveal the complete physical inscription. Preserve
@@ -171,6 +196,8 @@ for (const required of [
   'semanticR44SceneProjectedUv=true',
   'signedFaceView',
   'frontFacing:signedFaceView>0',
+  'R44_INITIAL_PRESENTATION_PHASE_MS = 7200',
+  'R44_INITIAL_PRESENTATION_YAW_DEG = 110.50086114843751',
   'await schedulerDelay(5200)',
   'const phrasePattern = [1, 2, 1, 3, 2]',
   'direction: -move.direction',
@@ -186,4 +213,5 @@ console.log('tonalInk:', '0.820');
 console.log('micro-edge:', '5px softened bevel height + 26% hard core');
 console.log('material coordinates:', 'sceneOne XY projection from actual outward +Z physical face');
 console.log('optical metric:', 'signed front-facing face/view + half-vector only');
+console.log('initial presentation phase:', '7200ms; same approved motion curve');
 console.log('living slices:', 'independent self-resolving physical phrases; first slice after 5200ms');

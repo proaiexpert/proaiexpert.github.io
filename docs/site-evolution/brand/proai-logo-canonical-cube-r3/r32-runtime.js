@@ -10,24 +10,24 @@ const SOURCE=Object.freeze({
 });
 
 const HOME=Object.freeze({
-  timeSec:42.0,
-  face:'+Z',
-  visibilityDot:0.8942451358899213,
-  integratedYawDeg:419.19315000000074,
-  normalizedYawDeg:59.19315000000074,
-  pitchDeg:-5.245536154837076,
-  rollDeg:0.04696402012914522,
+  timeSec:50.0,
+  face:'+X',
+  visibilityDot:0.750127399923412,
+  integratedYawDeg:279.12268807870436,
+  normalizedYawDeg:279.12268807870436,
+  pitchDeg:1.431618722282266,
+  rollDeg:-1.2596148649424428,
   cameraFovDeg:31,
-  character:'front-dominant premium 3/4 product portrait; side explicit; top restrained'
+  character:'front-dominant premium 3/4 product portrait; side explicit; top restrained silver catch'
 });
 
 const LIVING=Object.freeze({
   mode:'bounded recognizable presentation envelope',
-  centerTimeSec:42.0,
-  primaryAmplitudeSec:1.10,
-  secondaryAmplitudeSec:0.34,
-  primaryAngularRateRadPerSec:0.31,
-  secondaryAngularRateRadPerSec:0.17,
+  centerTimeSec:50.0,
+  primaryAmplitudeSec:0.60,
+  secondaryAmplitudeSec:0.16,
+  primaryAngularRateRadPerSec:0.25,
+  secondaryAngularRateRadPerSec:0.14,
   approximateHomeYawSpeedDegPerSec:4.2,
   sliceChoreography:false,
   semanticFace:false,
@@ -52,7 +52,7 @@ function verifyHome(api){
 
 function applyLookdev(api){
   const applied=api.setLookDevPreset?.('premiumHybrid')??false;
-  return {preset:'premiumHybrid',applied,smallScalePresentation:document.querySelector('.r32-lockup')?.dataset.scale==='header'?'CSS exposure/contrast presentation tuning only':'none'};
+  return {preset:'premiumHybrid',applied,smallScalePresentation:document.querySelector('.r32-lockup')?.dataset.scale==='header'?'same canonical render; small-scale exposure/contrast presentation tuning only':'none'};
 }
 
 function publish(mode,home,optical){

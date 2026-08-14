@@ -1,6 +1,6 @@
 # ProAI Logo R3.2 — Canonical Premium Lockup Polish
 
-R3.2 is a narrow polish pass on the accepted architecture. It does not create a new symbol or a new logo system.
+R3.2 is a narrow polish pass on the accepted architecture. It does not create a new symbol or restart Logo exploration.
 
 ## Locked architecture
 
@@ -22,23 +22,22 @@ The color system is a restrained Pearl/Silver studio response: ProAI transitions
 
 The same verified GLB is used directly. Geometry is unchanged.
 
-R3 used the `t=7.0s` presentation portrait. R3.2 performed an internal optical pose study across the frozen canonical presentation path and selected `t=42.0s`:
+R3 used the `t=7.0s` presentation portrait. R3.2 performed an internal optical pose study across the frozen canonical presentation path. An intermediate `t=42s` candidate improved front dominance but left the top-plane reflection too attention-seeking, so it was rejected. The selected final portrait is `t=50.0s`:
 
-- semantic-facing plane: `+Z`
-- visibility dot: `0.8942451358899213`
-- integrated yaw: `419.19315000000074°`
-- normalized yaw: `59.19315000000074°`
-- pitch: `-5.245536154837076°`
-- roll: `0.04696402012914522°`
+- semantic-facing plane: `+X`
+- visibility dot: `0.750127399923412`
+- integrated / normalized yaw: `279.12268807870436°`
+- pitch: `1.431618722282266°`
+- roll: `-1.2596148649424428°`
 - camera: `31°`
 
-This portrait is front-dominant while retaining an explicit side plane and a restrained top plane. It materially improves immediate Cube recognition over the R3 portrait without changing geometry.
+This portrait is front-dominant, preserves an explicit side plane, and leaves the top plane as a restrained silver catch. It materially improves immediate Cube recognition over the R3 portrait without changing geometry.
 
 The canonical `premiumHybrid` lookdev remains the master material choice after an internal comparison against the existing `gunmetal` and `blackChrome` presets. At practical Header size, `premiumHybrid` preserved the most useful plane and seam information. Header presentation receives only a small-scale display tuning of the same rendered Cube to keep dark detail from collapsing.
 
 ## Living companion
 
-The living state no longer traverses the full wide presentation path. It stays inside a bounded, recognizable orientation envelope centered on the exact static home pose. This keeps the Cube legible while preserving continuous living motion. Wordmark motion, slice choreography, and semantic face are disabled.
+The living state no longer traverses the full wide presentation path. It stays inside a bounded recognizable orientation envelope around the exact static home pose, approximately `49.24–50.76s` of canonical presentation time. This keeps the Cube legible while preserving continuous living motion. Approximate yaw speed at the home crossing is ~`4.2°/s`. Wordmark motion, slice choreography, and semantic face are disabled.
 
 ## Production safety
 

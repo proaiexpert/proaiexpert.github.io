@@ -58,7 +58,7 @@ Actual Chromium/WebGL renders were inspected at:
 - 660 / 680 / 700 typography weight study;
 - 29 / 30 / 31px Header Cube sizing study.
 
-The selected identity passes the static, Header, mobile, grayscale, reduction and business-card visual tests. The comparison board uses identical fields and the same `large` presentation scale for R3.2 and R3.3 so neither side receives a presentation advantage.
+The selected identity passes the static, Header, mobile, grayscale, reduction and business-card visual tests. The comparison board uses two identical full-width fields with the same `master` presentation scale for R3.2 and R3.3, preventing clipping and giving neither side a presentation advantage.
 
 ## Production safety
 

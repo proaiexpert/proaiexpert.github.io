@@ -1,0 +1,144 @@
+name: ProAI Header Footer R1 Build QA
+
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-footer-r1-build-qa.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-header-footer-logo-r1
+          fetch-depth: 0
+
+      - name: Verify source locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 735982473854c29a6f1eeeb4d87773abbc573b4d HEAD
+          test "$(git rev-parse 671186769f5ea88d3a36ef7ce199bddd555a0c3e:assets/css/homepage-hero-signature-r3.css)" = "$(git rev-parse HEAD:assets/css/homepage-hero-signature-r3.css)"
+          test "$(git rev-parse 671186769f5ea88d3a36ef7ce199bddd555a0c3e:assets/js/proai-hero-cube-r1/bootstrap.js)" = "$(git rev-parse HEAD:assets/js/proai-hero-cube-r1/bootstrap.js)"
+          test "$(git rev-parse 671186769f5ea88d3a36ef7ce199bddd555a0c3e:assets/js/proai-hero-cube-r1/source-materials-r1.js)" = "$(git rev-parse HEAD:assets/js/proai-hero-cube-r1/source-materials-r1.js)"
+          echo "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b  assets/models/proai-cube/rubik_39_s_cube_animation.glb" | sha256sum -c -
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+
+      - name: Complete R1 assets and review surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin agent/proai-logo-signature-object-r2 >/dev/null
+          mkdir -p assets/fonts/proai-logo-r341 assets/brand/proai-logo-r341 docs/site-evolution/brand/proai-header-footer-r1
+          git show b1500199cebec05b0ce1fc802296471a36d0c060:docs/site-evolution/brand/proai-logo-canonical-cube-r3/assets/instrument-sans-latin-wght-normal-BbzFLZTg.woff2 > assets/fonts/proai-logo-r341/instrument-sans-latin-wght-normal.woff2
+          git show b1500199cebec05b0ce1fc802296471a36d0c060:docs/site-evolution/brand/proai-logo-canonical-cube-r3/r341/proai-logo-r341-static-optical-master-2048.png > /tmp/r341-master.png
+          python3 - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageChops
+          for path in [Path('index.html'),Path('ru/index.html')]:
+              s=path.read_text()
+              css='<link rel="stylesheet" href="/assets/css/header-footer-logo-r1.css?v=20260814.1">'
+              if css not in s:
+                  s=s.replace('<link rel="stylesheet" href="/assets/css/homepage-hero-signature-r3.css?v=20260813.1">', '<link rel="stylesheet" href="/assets/css/homepage-hero-signature-r3.css?v=20260813.1">\n'+css,1)
+              js='<script src="/assets/js/header-footer-logo-r1.js?v=20260814.1" defer></script>'
+              if js not in s:
+                  s=s.replace('<script src="/assets/js/header-system-v1.js?v=20260804.1" defer></script>', '<script src="/assets/js/header-system-v1.js?v=20260804.1" defer></script>\n'+js,1)
+              path.write_text(s)
+          hp=Path('_data/header.yml'); hs=hp.read_text(); hs=hs.replace('height: 85','height: 76',1); hp.write_text(hs)
+          im=Image.open('/tmp/r341-master.png').convert('RGBA')
+          bg=Image.new('RGBA',im.size,(5,6,7,255))
+          diff=ImageChops.difference(im,bg).convert('L')
+          mask=diff.point(lambda p: 255 if p>7 else 0)
+          bbox=mask.getbbox()
+          if not bbox: raise SystemExit('static master foreground not found')
+          x0,y0,x1,y1=bbox
+          side=max(1,y1-y0)
+          pad=max(2,int(side*.035))
+          crop=im.crop((max(0,x0-pad),max(0,y0-pad),min(im.width,x0+side+pad),min(im.height,y1+pad)))
+          cw,ch=crop.size; sq=max(cw,ch); canvas=Image.new('RGBA',(sq,sq),(0,0,0,0)); canvas.alpha_composite(crop,((sq-cw)//2,(sq-ch)//2))
+          px=canvas.load()
+          for y in range(sq):
+              for x in range(sq):
+                  r,g,b,a=px[x,y]
+                  if abs(r-5)<=3 and abs(g-6)<=3 and abs(b-7)<=3: px[x,y]=(r,g,b,0)
+          canvas.resize((320,320),Image.Resampling.LANCZOS).save('assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png',optimize=True)
+          PY
+          cat > docs/site-evolution/brand/proai-header-footer-r1/spec.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ProAI Header + Footer R1 Spec</title><style>*{box-sizing:border-box}body{margin:0;background:#020304;color:#C4C8C9;font:14px/1.5 Inter,Arial,sans-serif;padding:36px}main{max-width:1240px;margin:auto}h1{color:#F1EFEA;font-size:30px;margin:0 0 28px}h2{color:#ECEAE5;font-size:16px;margin:0 0 16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.card{background:#050607;border:1px solid rgba(232,231,226,.08);border-radius:14px;padding:24px}.row{display:grid;grid-template-columns:190px 1fr;gap:18px;padding:8px 0;border-bottom:1px solid rgba(232,231,226,.05)}.row:last-child{border:0}.k{color:#858B91}.v{color:#CDD1D0}@media(max-width:820px){body{padding:20px}.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr;gap:2px}}</style></head><body><main><h1>ProAI Header + Footer R1 — Final Specification</h1><div class="grid"><section class="card"><h2>HEADER</h2><div class="row"><span class="k">Logo</span><span class="v">36px Cube · 20px ProAI Expert · 9px gap · living rigid whole-Cube</span></div><div class="row"><span class="k">Geometry</span><span class="v">76px height · 1500px shell · 50px desktop horizontal padding</span></div><div class="row"><span class="k">Top state</span><span class="v">#050607 · no visible separator · no blur</span></div><div class="row"><span class="k">Scrolled state</span><span class="v">rgba(5,6,7,.94) · 14px blur · rgba(232,231,226,.075) hairline</span></div><div class="row"><span class="k">Nav EN</span><span class="v">Home · AI Systems · Websites &amp; Branding · Case Studies · About · Insights · Contact</span></div><div class="row"><span class="k">Nav RU</span><span class="v">Главная · AI-системы · Сайты и брендинг · Кейсы · О нас · Материалы · Контакты</span></div><div class="row"><span class="k">Nav colors</span><span class="v">#AEB3B6 → #ECEAE5 hover/focus · active #D8DAD8</span></div><div class="row"><span class="k">CTA</span><span class="v">Discuss Project / Обсудить проект · #151A20 · #F1EFEA · rgba(232,231,226,.18)</span></div><div class="row"><span class="k">CTA hover</span><span class="v">#1C2229 · border .28 · -1px material lift · no glow</span></div><div class="row"><span class="k">Motion</span><span class="v">4.5°/sec yaw · ±2° pitch · ±0.35° roll</span></div><div class="row"><span class="k">Language</span><span class="v">Quiet 42×42 RU / EN text control</span></div><div class="row"><span class="k">Mobile</span><span class="v">Full Cube + ProAI Expert · locale · 3-line trigger · Obsidian full-screen menu</span></div></section><section class="card"><h2>FOOTER</h2><div class="row"><span class="k">Logo</span><span class="v">40px Cube · 22px wordmark · approved static optical Cube</span></div><div class="row"><span class="k">Behavior</span><span class="v">Static optical state by performance design; same identity/material family</span></div><div class="row"><span class="k">Background</span><span class="v">#020304</span></div><div class="row"><span class="k">Primary text</span><span class="v">#F1EFEA / #C4C8C9</span></div><div class="row"><span class="k">Secondary</span><span class="v">#858B91 / #92989D</span></div><div class="row"><span class="k">Links</span><span class="v">#AEB3B6 → #ECEAE5 hover/focus</span></div><div class="row"><span class="k">CTA</span><span class="v">Same Smoked Graphite / Black Chrome material as Header CTA</span></div><div class="row"><span class="k">Motion effects</span><span class="v">Old cyan title pulse removed</span></div><div class="row"><span class="k">Mobile</span><span class="v">36px Cube · 20px wordmark · stacked details · full-width CTA</span></div></section></div></main></body></html>
+          HTML
+          cat > docs/site-evolution/brand/proai-header-footer-r1/desktop-header.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Desktop Header Context</title><style>body{margin:0;background:#020304;color:#858B91;font:12px Arial;padding:28px}.frame{width:min(1440px,100%);height:min(900px,calc(100vh - 56px));margin:auto;border:1px solid rgba(232,231,226,.08);border-radius:14px;overflow:hidden;background:#050607}iframe{width:100%;height:100%;border:0}</style></head><body><div class="frame"><iframe src="/" title="Desktop Header Context"></iframe></div></body></html>
+          HTML
+          cat > docs/site-evolution/brand/proai-header-footer-r1/mobile-header.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mobile Header Context</title><style>body{margin:0;background:#020304;display:grid;min-height:100vh;place-items:center;padding:22px}.phone{width:390px;max-width:100%;height:844px;max-height:calc(100vh - 44px);border:1px solid rgba(232,231,226,.10);border-radius:22px;overflow:hidden;background:#050607}iframe{width:100%;height:100%;border:0}</style></head><body><div class="phone"><iframe src="/" title="Mobile Header Context"></iframe></div></body></html>
+          HTML
+          cat > docs/site-evolution/brand/proai-header-footer-r1/footer-context.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Footer Context</title><style>body{margin:0;background:#020304;padding:28px}.frame{width:min(1440px,100%);height:900px;max-height:calc(100vh - 56px);margin:auto;border:1px solid rgba(232,231,226,.08);border-radius:14px;overflow:hidden}iframe{width:100%;height:100%;border:0}</style></head><body><div class="frame"><iframe id="f" src="/" title="Footer Context"></iframe></div><script>f.addEventListener('load',()=>setTimeout(()=>f.contentWindow.scrollTo(0,f.contentDocument.documentElement.scrollHeight),700))</script></body></html>
+          HTML
+          cat > docs/site-evolution/brand/proai-header-footer-r1/scroll-state.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Header Scroll State</title><style>*{box-sizing:border-box}body{margin:0;background:#020304;color:#858B91;font:11px Arial;padding:24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.cell{position:relative;height:520px;border:1px solid rgba(232,231,226,.08);border-radius:14px;overflow:hidden}.label{position:absolute;z-index:3;top:10px;right:12px;padding:5px 8px;background:#020304aa;border-radius:5px;letter-spacing:.08em}iframe{width:100%;height:100%;border:0}@media(max-width:820px){.grid{grid-template-columns:1fr}.cell{height:430px}}</style></head><body><div class="grid"><div class="cell"><span class="label">TOP</span><iframe src="/" title="Header top state"></iframe></div><div class="cell"><span class="label">SCROLLED</span><iframe id="s" src="/" title="Header scrolled state"></iframe></div></div><script>s.addEventListener('load',()=>setTimeout(()=>s.contentWindow.scrollTo(0,650),700))</script></body></html>
+          HTML
+
+      - name: Install build and browser dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+
+      - name: Build and browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          jekyll build --source . --destination _site >/dev/null
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/hf-http.log 2>&1 &
+          HPID=$!; trap 'kill "$HPID" 2>/dev/null || true' EXIT
+          mkdir -p /tmp/hfqa
+          cat > /tmp/hfqa/qa.cjs <<'JS'
+          const p=require('puppeteer-core'),a=require('assert').strict,fs=require('fs');
+          const B='http://127.0.0.1:8080';
+          const shots=[]; const results={pass:false,viewports:{},logo:{},hero:{},fallback:{}};
+          (async()=>{const b=await p.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader']});
+          async function page(path,w,h,opts={}){const q=await b.newPage();await q.setViewport({width:w,height:h,deviceScaleFactor:1,isMobile:w<=900,hasTouch:w<=900});if(opts.reduce)await q.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);await q.goto(B+path,{waitUntil:'domcontentloaded',timeout:60000});await q.evaluate(()=>document.fonts.ready);await q.waitForSelector('.site-header');return q}
+          async function baseState(q){return q.evaluate(()=>{const H=document.querySelector('.site-header'),L=document.querySelector('.proai-logo-r341--header'),C=L.querySelector('.proai-logo-r341__cube'),W=L.querySelector('.proai-logo-r341__wordmark'),N=[...document.querySelectorAll('.site-header__nav a')],A=[...document.querySelectorAll('.proai-hero-actions>a')],F=document.querySelector('.site-footer');return{overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,headerH:H.getBoundingClientRect().height,headerBg:getComputedStyle(H).backgroundColor,headerBorder:getComputedStyle(H).borderBottomColor,cube:C.getBoundingClientRect().width,word:parseFloat(getComputedStyle(W).fontSize),wordText:W.textContent.trim(),font:getComputedStyle(W).fontFamily,nav:N.map(x=>x.textContent.trim()),navDisplay:getComputedStyle(document.querySelector('.site-header__nav')).display,cta:document.querySelector('.site-header__cta')?.textContent.trim(),ctaDisplay:getComputedStyle(document.querySelector('.site-header__cta')).display,locale:document.querySelector('.site-header__locale')?.textContent.trim(),menuDisplay:getComputedStyle(document.querySelector('.site-header__menu-toggle')).display,acts:A.map(e=>{const r=e.getBoundingClientRect();return{top:r.top,left:r.left,right:r.right}}),wrap:getComputedStyle(document.querySelector('.proai-hero-actions')).flexWrap,dir:getComputedStyle(document.querySelector('.proai-hero-actions')).flexDirection,heroMounted:document.querySelector('[data-proai-hero-object]')?.dataset.cubeMounted,footerBg:F?getComputedStyle(F).backgroundColor:null,footerAnim:F?getComputedStyle(F.querySelector('.site-footer__cta h2')).animationName:null,footerLogo:F?.querySelector('.site-footer__logo')?.textContent.replace(/\s+/g,' ').trim()}})}
+          async function check(path,label,w,h,shot){const q=await page(path,w,h);await q.waitForFunction(()=>document.querySelector('[data-proai-hero-object]')?.dataset.cubeMounted==='true',{timeout:30000});if(w>1260)await q.waitForFunction(()=>document.querySelector('[data-proai-live-logo]')?.dataset.logoState==='live',{timeout:30000});const s=await baseState(q);a.equal(s.overflow,0);a.equal(s.wordText,'ProAIExpert');a.ok(s.font.includes('Instrument Sans'));if(w>=1300){a.equal(Math.round(s.headerH),76);a.equal(Math.round(s.cube),36);a.equal(Math.round(s.word),20);a.notEqual(s.ctaDisplay,'none');a.equal(s.menuDisplay,'none')}else{a.notEqual(s.menuDisplay,'none')};a.equal(s.heroMounted,'true');results.viewports[label]=s;if(shot){await q.screenshot({path:'/tmp/hfqa/'+shot,fullPage:false});shots.push(shot)}await q.close();return s}
+          await check('/','1440',1440,900,'en-1440-top.png');await check('/','1200',1200,800,null);await check('/','1024',1024,800,null);await check('/','768',768,900,null);await check('/','390',390,844,'mobile-390.png');await check('/','360',360,800,'narrow-360.png');await check('/','844x390',844,390,'landscape-844.png');
+          const en=results.viewports['1440'];a.deepEqual(en.nav,['Home','AI Systems','Websites & Branding','Case Studies','About','Insights','Contact']);a.equal(en.cta,'Discuss Project');a.equal(en.locale,'RU');
+          const ru=await page('/ru/',1440,900);await ru.waitForFunction(()=>document.querySelector('[data-proai-hero-object]')?.dataset.cubeMounted==='true',{timeout:30000});await ru.waitForFunction(()=>document.querySelector('[data-proai-live-logo]')?.dataset.logoState==='live',{timeout:30000});let rs=await baseState(ru);a.deepEqual(rs.nav,['Главная','AI-системы','Сайты и брендинг','Кейсы','О нас','Материалы','Контакты']);a.equal(rs.cta,'Обсудить проект');a.equal(rs.locale,'EN');const lines=await ru.evaluate(()=>{const el=document.querySelector('.proai-hero-title'),node=el.firstChild,raw=node.textContent,t=[],re=/\S+/g,m;while((m=re.exec(raw))){const r=document.createRange();r.setStart(node,m.index);r.setEnd(node,m.index+m[0].length);const b=r.getBoundingClientRect();t.push({w:m[0],y:Math.round(b.top),x:Math.round(b.left)})}const rows=[];for(const x of t){let row=rows.find(r=>Math.abs(r.y-x.y)<=2);if(!row){row={y:x.y,a:[]};rows.push(row)}row.a.push(x)}return rows.sort((a,b)=>a.y-b.y).map(r=>r.a.sort((a,b)=>a.x-b.x).map(x=>x.w).join(' '))});a.equal(lines.at(-2),'результата —');a.equal(lines.at(-1),'одна система.');results.hero.ruLines=lines;await ru.screenshot({path:'/tmp/hfqa/ru-1440-top.png'});shots.push('ru-1440-top.png');await ru.close();
+          for(const [path,label,w,h] of [['/','p-en',390,844],['/ru/','p-ru',390,844],['/','l-en',844,390],['/ru/','l-ru',844,390]]){const q=await page(path,w,h);const s=await baseState(q);a.equal(s.dir,'row');a.equal(s.wrap,'nowrap');a.equal(s.acts.length,2);a.ok(Math.abs(s.acts[0].top-s.acts[1].top)<=4);a.ok(s.acts[0].right+3<=s.acts[1].left);results.hero[label]=true;await q.close()}
+          const live=await page('/',1440,900);await live.waitForFunction(()=>document.querySelector('[data-proai-live-logo]')?.dataset.logoState==='live',{timeout:30000});const frame=live.frames().find(f=>f.url().includes('/assets/brand/proai-logo-r341/live.html'));a.ok(frame);await frame.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.ready,{timeout:30000});const l1=await frame.evaluate(()=>window.__PROAI_LOGO_R341_STATE);await new Promise(r=>setTimeout(r,2200));const l2=await frame.evaluate(()=>window.__PROAI_LOGO_R341_STATE);const speed=(l2.current.yaw-l1.current.yaw)/(l2.elapsedSec-l1.elapsedSec);a.ok(Math.abs(speed-4.5)<.35);a.equal(l2.sliceChoreography,false);a.equal(l2.semanticFace,false);a.equal(l2.wordmarkAnimated,false);a.equal(l2.glbUrl,'/assets/models/proai-cube/rubik_39_s_cube_animation.glb');a.equal(l2.geometry.pass,true);results.logo={speed,state:l2};await live.evaluate(()=>scrollTo(0,700));await new Promise(r=>setTimeout(r,300));const scroll=await live.evaluate(()=>{const h=document.querySelector('.site-header'),s=getComputedStyle(h);return{class:h.classList.contains('is-scrolled'),bg:s.backgroundColor,blur:s.backdropFilter,border:s.borderBottomColor}});a.equal(scroll.class,true);a.ok(scroll.blur.includes('14px'));results.scroll=scroll;await live.screenshot({path:'/tmp/hfqa/en-1440-scroll.png'});shots.push('en-1440-scroll.png');await live.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));await new Promise(r=>setTimeout(r,400));const foot=await live.evaluate(()=>{const f=document.querySelector('.site-footer'),h=f.querySelector('.site-footer__cta h2'),logo=f.querySelector('.site-footer__logo');return{bg:getComputedStyle(f).backgroundColor,animation:getComputedStyle(h).animationName,filter:getComputedStyle(h).filter,logo:logo.textContent.replace(/\s+/g,' ').trim(),img:logo.querySelector('img').complete&&logo.querySelector('img').naturalWidth>0}});a.equal(foot.animation,'none');a.equal(foot.filter,'none');a.equal(foot.logo,'ProAI Expert');a.equal(foot.img,true);results.footer=foot;await live.screenshot({path:'/tmp/hfqa/footer.png'});shots.push('footer.png');await live.close();
+          const menu=await page('/',390,844);await menu.click('.site-header__menu-toggle');a.equal(await menu.$eval('.site-header__menu-toggle',e=>e.getAttribute('aria-expanded')),'true');a.equal(await menu.$eval('.site-header__nav',e=>e.classList.contains('is-open')),true);await menu.keyboard.press('Escape');a.equal(await menu.$eval('.site-header__menu-toggle',e=>e.getAttribute('aria-expanded')),'false');results.menu=true;await menu.close();
+          const red=await page('/',390,844,{reduce:true});const redState=await red.evaluate(()=>({src:document.querySelector('.proai-logo-r341__live').getAttribute('src'),staticOpacity:getComputedStyle(document.querySelector('.proai-logo-r341__static')).opacity}));a.ok(!redState.src);a.equal(redState.staticOpacity,'1');results.fallback.reduced=redState;await red.close();
+          const fail=await page('/',1440,900);await fail.setRequestInterception(true);fail.on('request',r=>r.url().includes('/assets/brand/proai-logo-r341/live-runtime.js')?r.abort():r.continue());await fail.reload({waitUntil:'domcontentloaded'});await new Promise(r=>setTimeout(r,1000));const fall=await fail.evaluate(()=>({live:document.querySelector('[data-proai-live-logo]').classList.contains('is-live'),staticOpacity:getComputedStyle(document.querySelector('.proai-logo-r341__static')).opacity,word:document.querySelector('.proai-logo-r341__wordmark').textContent.trim()}));a.equal(fall.live,false);a.equal(fall.staticOpacity,'1');a.equal(fall.word,'ProAIExpert');results.fallback.webgl=fall;await fail.close();
+          for(const [u,n,w,h] of [['/docs/site-evolution/brand/proai-header-footer-r1/spec.html','spec.png',1440,900],['/docs/site-evolution/brand/proai-header-footer-r1/desktop-header.html','desktop-context.png',1600,1000],['/docs/site-evolution/brand/proai-header-footer-r1/mobile-header.html','mobile-context.png',900,1000],['/docs/site-evolution/brand/proai-header-footer-r1/footer-context.html','footer-context.png',1600,1000],['/docs/site-evolution/brand/proai-header-footer-r1/scroll-state.html','scroll-board.png',1600,850]]){const q=await page(u,w,h);await new Promise(r=>setTimeout(r,1800));await q.screenshot({path:'/tmp/hfqa/'+n,fullPage:true});shots.push(n);await q.close()}
+          results.pass=true;results.shots=shots;fs.writeFileSync('/tmp/hfqa/qa.json',JSON.stringify(results,null,2));await b.close();console.log('HEADER_FOOTER_R1_QA=PASS')})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node /tmp/hfqa/qa.cjs
+
+      - name: Freeze clean product commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ProAI Builder"
+          git config user.email "proai.expert2026@gmail.com"
+          git rm .github/workflows/proai-header-footer-r1-build-qa.yml
+          git add index.html ru/index.html _data/header.yml assets/fonts/proai-logo-r341 assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png docs/site-evolution/brand/proai-header-footer-r1
+          git commit -m "feat: complete ProAI Header Footer R1 owner review"
+          git push origin HEAD:agent/proai-header-footer-logo-r1
+          git rev-parse HEAD | tee /tmp/hfqa/FINAL_SHA.txt
+          git diff --name-only 671186769f5ea88d3a36ef7ce199bddd555a0c3e...HEAD > /tmp/hfqa/FILES_CHANGED.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-footer-r1-qa
+          path: /tmp/hfqa
+          retention-days: 7

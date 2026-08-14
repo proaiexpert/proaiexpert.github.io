@@ -47,8 +47,10 @@ jobs:
             curl -fsS http://127.0.0.1:8080/ >/dev/null && curl -fsS http://127.0.0.1:8080/ru/ >/dev/null && break
             sleep 1
           done
-          curl -fsS http://127.0.0.1:8080/ | grep -q 'From first impression to result — one system.'
-          curl -fsS http://127.0.0.1:8080/ru/ | grep -q 'От первого впечатления до результата — одна система.'
+          curl -fsS http://127.0.0.1:8080/ -o /tmp/local-en.html
+          curl -fsS http://127.0.0.1:8080/ru/ -o /tmp/local-ru.html
+          grep -q 'From first impression to result — one system.' /tmp/local-en.html
+          grep -q 'От первого впечатления до результата — одна система.' /tmp/local-ru.html
 
       - name: Start and verify public TryCloudflare preview
         env:
@@ -68,7 +70,7 @@ jobs:
           [ -n "$URL" ] || { cat /tmp/hero-r3-cloudflared.log; exit 1; }
           READY=0
           for i in $(seq 1 60); do
-            if curl -fsS --connect-timeout 5 "$URL/" >/tmp/public-en.html 2>/dev/null && curl -fsS --connect-timeout 5 "$URL/ru/" >/tmp/public-ru.html 2>/dev/null; then
+            if curl -fsS --connect-timeout 5 "$URL/" -o /tmp/public-en.html 2>/dev/null && curl -fsS --connect-timeout 5 "$URL/ru/" -o /tmp/public-ru.html 2>/dev/null; then
               if grep -q 'From first impression to result — one system.' /tmp/public-en.html && grep -q 'От первого впечатления до результата — одна система.' /tmp/public-ru.html; then
                 READY=1
                 break
@@ -77,7 +79,8 @@ jobs:
             sleep 2
           done
           [ "$READY" = 1 ] || { cat /tmp/hero-r3-cloudflared.log; exit 1; }
-          curl -fsS "$URL/assets/css/homepage-hero-signature-r3.css" | grep -qi '#f2f0eb'
+          curl -fsS "$URL/assets/css/homepage-hero-signature-r3.css" -o /tmp/public-hero-r3.css
+          grep -qi '#f2f0eb' /tmp/public-hero-r3.css
           echo "LIVE_INTERACTIVE_PREVIEW=$URL"
           echo "PRODUCT_SHA=e553256a931aec4703fdb33db7cc7f7bfa4837bd"
           echo "PUBLIC_URL_VERIFIED=PASS"

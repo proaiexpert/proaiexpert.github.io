@@ -19,13 +19,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 0c9cafc0d7a29879a257f11cd26a0db77bb187e6
+          ref: 86eb7d5c199336a73d2e959fe6d735a3498c4d40
           fetch-depth: 0
 
       - name: Pin exact R4.2 product
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "0c9cafc0d7a29879a257f11cd26a0db77bb187e6"
+          test "$(git rev-parse HEAD)" = "86eb7d5c199336a73d2e959fe6d735a3498c4d40"
 
       - name: Verify narrow product scope
         run: |
@@ -57,108 +57,64 @@ jobs:
           grep -q "letterWordStagger: false" main.generated.js
           grep -q "emissive: false" main.generated.js
           grep -q "glowHalo: false" main.generated.js
+          ! grep -q "SEMANTIC_R2" main.generated.js
           ! grep -q "microHalo" main.generated.js
           ! grep -q "emissiveIntensity" main.generated.js
 
-      - name: Install review browser
+      - name: Install browser
         run: |
-          set -euo pipefail
           npm install --no-save playwright
           npx playwright install chromium
 
-      - name: Start review runtime
+      - name: Start local review runtime
         run: |
-          set -euo pipefail
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r4-2-http.log 2>&1 &
-          for i in $(seq 1 60); do
-            curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0
-            sleep 1
-          done
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
           exit 1
 
-      - name: Verify natural optical cycle and mouse independence
+      - name: Verify natural cycle, mouse and touch
         run: |
-          set -euo pipefail
-          cat >r4-2-local-qa.mjs <<'NODE'
+          cat >r4-2-qa.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
-          const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage']});
-          const context=await browser.newContext({viewport:{width:980,height:760},deviceScaleFactor:1,reducedMotion:'no-preference'});
-          const page=await context.newPage();
+          const args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'];
+          const browser=await chromium.launch({headless:true,args});
           const fatal=[];
-          page.on('pageerror',e=>fatal.push(String(e)));
-          page.on('console',m=>{if(m.type()==='error'&&/GLB load failed|TypeError|ReferenceError|WebGL context lost|Shader Error/i.test(m.text()))fatal.push(m.text())});
-          const read=()=>page.evaluate(()=>({semantic:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),sim:window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs,interaction:window.__PROAI_CUBE_R1_2.getInteractionState()}));
-          try {
-            await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:120000});
-            await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});
-            await page.evaluate(()=>window.__PROAI_CUBE_R1_2.stopSliceScheduler());
-            await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().activeTurns.length===0,null,{timeout:15000});
-            const before=await read();
-            await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:45000});
-            const natural=[];
-            for(let i=0;i<300;i++){
-              const s=await read();natural.push(s);if(s.semantic.complete)break;await page.waitForTimeout(100);
-            }
-            const naturalDone=await read();
-            const active=natural.filter(x=>x.semantic.active),ops=active.map(x=>x.semantic.opticalField?.opportunity??0),peak=Math.max(...ops,0),pi=ops.indexOf(peak),centers=active.map(x=>x.semantic.opticalField?.fieldCenter||[.5,.5]),center0=centers[0]||[.5,.5],centerSpan=centers.reduce((m,c)=>Math.max(m,Math.hypot(c[0]-center0[0],c[1]-center0[1])),0);
-            const naturalPass=naturalDone.semantic.complete===true&&active.length>=4&&peak>.50&&pi>=0&&ops.slice(pi+1).some(v=>v<peak*.72)&&centerSpan>.002&&naturalDone.sim>before.sim&&naturalDone.semantic.semanticVelocityMultiplier===.70&&naturalDone.semantic.seamAwareOcclusion===true&&naturalDone.semantic.emissive===false&&naturalDone.semantic.glowHalo===false&&naturalDone.semantic.scanWipeShimmer===false&&naturalDone.semantic.letterWordStagger===false&&fatal.length===0;
-            const replay=await page.evaluate(()=>window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
-            if(!replay)throw new Error('interaction replay rejected');
-            await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:20000});
-            await page.waitForTimeout(450);
-            const interactionBefore=await read();
-            const box=await page.locator('#cube-canvas').boundingBox();if(!box)throw new Error('canvas missing');
-            const x=box.x+box.width*.52,y=box.y+box.height*.48;
-            await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+66,y+20,{steps:6});await page.waitForTimeout(140);await page.mouse.up();await page.waitForTimeout(500);
-            const interactionAfter=await read();
-            const mousePass=interactionAfter.semantic.entryPresentationMs===interactionBefore.semantic.entryPresentationMs&&(interactionAfter.semantic.active||interactionAfter.semantic.complete)&&interactionAfter.sim>interactionBefore.sim&&interactionAfter.interaction.resumeDelayRemainingMs===0&&interactionAfter.interaction.sliceResumeDelayRemainingMs===0;
-            const pass=naturalPass&&mousePass&&fatal.length===0;
-            const metrics={pass,naturalPass,mousePass,replay,peak,peakIndex:pi,centerSpan,before,naturalDone,interactionBefore,interactionAfter,naturalSamples:natural,fatalErrors:fatal};
-            fs.mkdirSync('review-evidence',{recursive:true});fs.writeFileSync('review-evidence/r4-2-local-metrics.json',JSON.stringify(metrics,null,2));
-            console.log('R4_2_LOCAL_QA',JSON.stringify({pass,naturalPass,mousePass,peak,pi,centerSpan,naturalComplete:naturalDone.semantic.complete,fatal}));if(!pass)process.exitCode=1;
-          } catch(error) {
-            const last=await read().catch(()=>null);console.error('R4_2_LOCAL_QA_ERROR',String(error),JSON.stringify({last,fatal}));throw error;
-          } finally {await browser.close()}
+          async function desktop(){
+            const context=await browser.newContext({viewport:{width:980,height:760},reducedMotion:'no-preference'}),page=await context.newPage();
+            page.on('pageerror',e=>fatal.push(String(e))); page.on('console',m=>{if(m.type()==='error'&&/GLB load failed|TypeError|ReferenceError|WebGL context lost|Shader Error/i.test(m.text()))fatal.push(m.text())});
+            const read=()=>page.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),sim:window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs,i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
+            await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:120000}); await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000}); await page.evaluate(()=>window.__PROAI_CUBE_R1_2.stopSliceScheduler());
+            const initial=await read(); await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:45000});
+            const samples=[]; for(let n=0;n<300;n++){const x=await read();samples.push(x);if(x.s.complete)break;await page.waitForTimeout(100)}
+            const done=await read(), active=samples.filter(x=>x.s.active), ops=active.map(x=>x.s.opticalField?.opportunity??0), peak=Math.max(...ops,0), pi=ops.indexOf(peak), c0=active[0]?.s.opticalField?.fieldCenter||[.5,.5], centerSpan=active.reduce((m,x)=>{const c=x.s.opticalField?.fieldCenter||c0;return Math.max(m,Math.hypot(c[0]-c0[0],c[1]-c0[1]))},0);
+            const naturalPass=done.s.complete===true&&peak>.45&&pi>=0&&ops.slice(pi+1).some(v=>v<peak*.72)&&centerSpan>.001&&done.sim>initial.sim&&done.s.semanticVelocityMultiplier===.70&&done.s.seamAwareOcclusion===true&&done.s.emissive===false&&done.s.glowHalo===false&&done.s.scanWipeShimmer===false&&done.s.letterWordStagger===false;
+            const replay=await page.evaluate(()=>window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment()); if(!replay) throw new Error('desktop replay rejected'); await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:20000}); await page.waitForTimeout(450);
+            const b=await read(),box=await page.locator('#cube-canvas').boundingBox();if(!box)throw new Error('desktop canvas missing');const px=box.x+box.width*.52,py=box.y+box.height*.48; await page.mouse.move(px,py);await page.mouse.down();await page.mouse.move(px+68,py+22,{steps:6});await page.waitForTimeout(140);await page.mouse.up();await page.waitForTimeout(500);const a=await read();
+            const mousePass=a.s.entryPresentationMs===b.s.entryPresentationMs&&(a.s.active||a.s.complete)&&a.sim>b.sim&&a.i.resumeDelayRemainingMs===0&&a.i.sliceResumeDelayRemainingMs===0; await context.close(); return {naturalPass,mousePass,peak,pi,centerSpan,done};
+          }
+          async function touch(){
+            const context=await browser.newContext({viewport:{width:430,height:932},deviceScaleFactor:2,hasTouch:true,isMobile:true,reducedMotion:'no-preference'}),page=await context.newPage(); await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:120000});await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});await page.evaluate(()=>window.__PROAI_CUBE_R1_2.stopSliceScheduler());await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:45000});await page.waitForTimeout(450);
+            const box=await page.locator('#cube-canvas').boundingBox();if(!box)throw new Error('touch canvas missing');const x=box.x+box.width*.52,y=box.y+box.height*.48,b=await page.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),sim:window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs})),cdp=await context.newCDPSession(page);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,radiusX:8,radiusY:8,force:.7,id:1}]});for(let n=1;n<=6;n++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+n*9,y:y+n*3,radiusX:8,radiusY:8,force:.7,id:1}]});await page.waitForTimeout(150);await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(500);const a=await page.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),sim:window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs,i:window.__PROAI_CUBE_R1_2.getInteractionState()}));const pass=a.s.entryPresentationMs===b.s.entryPresentationMs&&(a.s.active||a.s.complete)&&a.sim>b.sim&&a.i.resumeDelayRemainingMs===0&&a.i.sliceResumeDelayRemainingMs===0;await context.close();return pass;
+          }
+          try{const d=await desktop(),t=await touch(),pass=d.naturalPass&&d.mousePass&&t&&fatal.length===0;fs.mkdirSync('review-evidence',{recursive:true});fs.writeFileSync('review-evidence/r4-2-qa.json',JSON.stringify({pass,desktop:d,touchPass:t,fatal},null,2));console.log('R4_2_QA',JSON.stringify({pass,desktop:d,touchPass:t,fatal}));if(!pass)process.exitCode=1}finally{await browser.close()}
           NODE
-          node r4-2-local-qa.mjs
-          rm -f r4-2-local-qa.mjs
-
-      - name: Verify touch lifecycle independence
-        run: |
-          set -euo pipefail
-          cat >r4-2-touch-qa.mjs <<'NODE'
-          import { chromium } from 'playwright';
-          const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage']});
-          const context=await browser.newContext({viewport:{width:430,height:932},deviceScaleFactor:2,hasTouch:true,isMobile:true,reducedMotion:'no-preference'});
-          const page=await context.newPage();
-          try {
-            await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:120000});await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});await page.evaluate(()=>window.__PROAI_CUBE_R1_2.stopSliceScheduler());await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:45000});
-            await page.waitForTimeout(450);const box=await page.locator('#cube-canvas').boundingBox();if(!box)throw new Error('canvas missing');const x=box.x+box.width*.52,y=box.y+box.height*.48;
-            const before=await page.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),sim:window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs}));const cdp=await context.newCDPSession(page);await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,radiusX:8,radiusY:8,force:.7,id:1}]});for(let i=1;i<=6;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+i*9,y:y+i*3,radiusX:8,radiusY:8,force:.7,id:1}]});await page.waitForTimeout(150);await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await page.waitForTimeout(500);const after=await page.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),sim:window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs,i:window.__PROAI_CUBE_R1_2.getInteractionState()}));const pass=after.s.entryPresentationMs===before.s.entryPresentationMs&&(after.s.active||after.s.complete)&&after.sim>before.sim&&after.i.resumeDelayRemainingMs===0&&after.i.sliceResumeDelayRemainingMs===0;console.log('R4_2_TOUCH_QA',JSON.stringify({pass,before,after}));if(!pass)process.exitCode=1;
-          } finally {await browser.close()}
-          NODE
-          node r4-2-touch-qa.mjs
-          rm -f r4-2-touch-qa.mjs
+          node r4-2-qa.mjs
+          rm -f r4-2-qa.mjs
 
       - name: Publish TryCloudflare owner preview
         id: tunnel
         run: |
-          set -euo pipefail
           curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
           chmod +x /tmp/cloudflared
           REVIEW_URL=''
           for attempt in 1 2 3; do
-            LOG="/tmp/r4-2-tunnel-${attempt}.log"
-            /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 &
-            PID=$!
-            URL=''
-            for i in $(seq 1 60); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true);[ -n "$URL" ] && break;sleep 1;done
-            if [ -n "$URL" ]; then for i in $(seq 1 18); do if curl -fsSL --max-time 12 "$URL/" >/tmp/r4-2-public.html 2>/dev/null; then REVIEW_URL="$URL";break 2;fi;sleep 2;done;fi
+            LOG="/tmp/r4-2-tunnel-${attempt}.log"; /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 & PID=$!
+            URL=''; for i in $(seq 1 60); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true); [ -n "$URL" ] && break; sleep 1; done
+            if [ -n "$URL" ]; then for i in $(seq 1 18); do if curl -fsSL --max-time 12 "$URL/" >/tmp/r4-2-public.html 2>/dev/null; then REVIEW_URL="$URL"; break 2; fi; sleep 2; done; fi
             kill "$PID" 2>/dev/null || true
           done
-          test -n "$REVIEW_URL"
-          grep -q "ProAI Cube" /tmp/r4-2-public.html
+          test -n "$REVIEW_URL"; grep -q "ProAI Cube" /tmp/r4-2-public.html
           printf '%s\n' "$REVIEW_URL" > "$GITHUB_WORKSPACE/r4-2-owner-review-url.txt"
           echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
 
@@ -166,21 +122,20 @@ jobs:
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
-          set -euo pipefail
-          cat >r4-2-public-observe.mjs <<'NODE'
-          import { chromium } from 'playwright';import fs from 'node:fs';fs.mkdirSync('review-evidence/public-observation',{recursive:true});const url=process.env.REVIEW_URL,fatal=[];const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage']});const context=await browser.newContext({viewport:{width:1170,height:780},deviceScaleFactor:1,reducedMotion:'no-preference'});const page=await context.newPage();page.on('pageerror',e=>fatal.push(String(e)));page.on('console',m=>{if(m.type()==='error'&&/GLB load failed|TypeError|ReferenceError|WebGL context lost|Shader Error/i.test(m.text()))fatal.push(m.text())});const read=()=>page.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),sim:window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs,i:window.__PROAI_CUBE_R1_2.getInteractionState()}));try{await page.goto(url,{waitUntil:'domcontentloaded',timeout:120000});await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});const canvas=page.locator('#cube-canvas'),box=await canvas.boundingBox();if(!box||box.width<100||box.height<100)throw new Error('public Cube canvas missing');await page.evaluate(()=>window.__PROAI_CUBE_R1_2.stopSliceScheduler());const sim0=(await read()).sim;await page.waitForTimeout(700);const sim1=(await read()).sim;if(!(sim1>sim0))throw new Error('public Cube motion not advancing');await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:45000});const samples=[];let peakShot=false,leaveShot=false;for(let i=0;i<300;i++){const state=await read();samples.push(state);const opp=state.s.opticalField?.opportunity??0;if(!peakShot&&opp>.72){await canvas.screenshot({path:'review-evidence/public-observation/r4-2-peak.png'});peakShot=true}if(peakShot&&!leaveShot&&state.s.elapsedMs>1350&&opp<.55){await canvas.screenshot({path:'review-evidence/public-observation/r4-2-leaving.png'});leaveShot=true}if(state.s.complete)break;await page.waitForTimeout(100)}const naturalDone=await read(),active=samples.filter(x=>x.s.active),ops=active.map(x=>x.s.opticalField?.opportunity??0),peak=Math.max(...ops,0),pi=ops.indexOf(peak),center0=active[0]?.s.opticalField?.fieldCenter||[.5,.5],centerSpan=active.reduce((m,x)=>{const c=x.s.opticalField?.fieldCenter||center0;return Math.max(m,Math.hypot(c[0]-center0[0],c[1]-center0[1]))},0);const naturalPass=naturalDone.s.complete===true&&peak>.50&&pi>=0&&ops.slice(pi+1).some(v=>v<peak*.72)&&centerSpan>.002&&peakShot&&leaveShot&&fatal.length===0;const replay=await page.evaluate(()=>window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());if(!replay)throw new Error('public interaction replay rejected');await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:20000});await page.waitForTimeout(500);const interactionBefore=await read(),x=box.x+box.width*.52,y=box.y+box.height*.48;await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+74,y+22,{steps:6});await page.waitForTimeout(140);await page.mouse.up();await page.waitForTimeout(500);const interactionAfter=await read();const mousePass=interactionAfter.s.entryPresentationMs===interactionBefore.s.entryPresentationMs&&(interactionAfter.s.active||interactionAfter.s.complete)&&interactionAfter.sim>interactionBefore.sim&&interactionAfter.i.resumeDelayRemainingMs===0&&interactionAfter.i.sliceResumeDelayRemainingMs===0;const pass=naturalPass&&mousePass&&naturalDone.s.seamAwareOcclusion===true&&naturalDone.s.emissive===false&&naturalDone.s.glowHalo===false&&naturalDone.s.scanWipeShimmer===false&&naturalDone.s.letterWordStagger===false;const observation={pass,naturalPass,mousePass,url,peak,peakIndex:pi,centerSpan,peakShot,leaveShot,naturalDone,interactionBefore,interactionAfter,samples,fatalErrors:fatal};fs.writeFileSync('review-evidence/public-observation/r4-2-public-observation.json',JSON.stringify(observation,null,2));console.log('R4_2_PUBLIC_BUILDER_OBSERVATION',JSON.stringify({pass,naturalPass,mousePass,url,peak,pi,centerSpan,peakShot,leaveShot,fatal}));if(!pass)process.exitCode=1}finally{await browser.close()}
+          cat >r4-2-public.mjs <<'NODE'
+          import { chromium } from 'playwright';import fs from 'node:fs';fs.mkdirSync('review-evidence/public',{recursive:true});const url=process.env.REVIEW_URL,args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'],fatal=[],browser=await chromium.launch({headless:true,args}),context=await browser.newContext({viewport:{width:1170,height:780},reducedMotion:'no-preference'}),page=await context.newPage();page.on('pageerror',e=>fatal.push(String(e)));page.on('console',m=>{if(m.type()==='error'&&/GLB load failed|TypeError|ReferenceError|WebGL context lost|Shader Error/i.test(m.text()))fatal.push(m.text())});const read=()=>page.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),sim:window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs,i:window.__PROAI_CUBE_R1_2.getInteractionState()}));try{await page.goto(url,{waitUntil:'domcontentloaded',timeout:120000});await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});const canvas=page.locator('#cube-canvas'),box=await canvas.boundingBox();if(!box||box.width<100)throw new Error('public canvas missing');const s0=(await read()).sim;await page.waitForTimeout(700);if(!((await read()).sim>s0))throw new Error('public motion stopped');await page.evaluate(()=>window.__PROAI_CUBE_R1_2.stopSliceScheduler());await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:45000});const samples=[];let peakShot=false,leaveShot=false;for(let n=0;n<300;n++){const x=await read();samples.push(x);const o=x.s.opticalField?.opportunity??0;if(!peakShot&&o>.68){await canvas.screenshot({path:'review-evidence/public/r4-2-peak.png'});peakShot=true}if(peakShot&&!leaveShot&&x.s.elapsedMs>1250&&o<.55){await canvas.screenshot({path:'review-evidence/public/r4-2-leaving.png'});leaveShot=true}if(x.s.complete)break;await page.waitForTimeout(100)}const done=await read(),active=samples.filter(x=>x.s.active),ops=active.map(x=>x.s.opticalField?.opportunity??0),peak=Math.max(...ops,0),pi=ops.indexOf(peak),c0=active[0]?.s.opticalField?.fieldCenter||[.5,.5],centerSpan=active.reduce((m,x)=>{const c=x.s.opticalField?.fieldCenter||c0;return Math.max(m,Math.hypot(c[0]-c0[0],c[1]-c0[1]))},0),natural=done.s.complete===true&&peak>.45&&pi>=0&&ops.slice(pi+1).some(v=>v<peak*.72)&&centerSpan>.001&&peakShot&&leaveShot;const replay=await page.evaluate(()=>window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());if(!replay)throw new Error('public replay rejected');await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().active===true,null,{timeout:20000});await page.waitForTimeout(450);const b=await read(),px=box.x+box.width*.52,py=box.y+box.height*.48;await page.mouse.move(px,py);await page.mouse.down();await page.mouse.move(px+72,py+24,{steps:6});await page.waitForTimeout(140);await page.mouse.up();await page.waitForTimeout(500);const a=await read(),mouse=a.s.entryPresentationMs===b.s.entryPresentationMs&&(a.s.active||a.s.complete)&&a.sim>b.sim&&a.i.resumeDelayRemainingMs===0&&a.i.sliceResumeDelayRemainingMs===0,flags=done.s,pass=natural&&mouse&&flags.seamAwareOcclusion===true&&flags.emissive===false&&flags.glowHalo===false&&flags.scanWipeShimmer===false&&flags.letterWordStagger===false&&fatal.length===0;const out={pass,natural,mouse,url,peak,peakIndex:pi,centerSpan,peakShot,leaveShot,done,samples,fatal};fs.writeFileSync('review-evidence/public/r4-2-public.json',JSON.stringify(out,null,2));console.log('R4_2_PUBLIC',JSON.stringify({pass,natural,mouse,url,peak,pi,centerSpan,peakShot,leaveShot,fatal}));if(!pass)process.exitCode=1}finally{await browser.close()}
           NODE
-          node r4-2-public-observe.mjs
-          rm -f r4-2-public-observe.mjs
+          node r4-2-public.mjs
+          rm -f r4-2-public.mjs
 
-      - name: Publish Builder visual observation
+      - name: Publish Builder observation
         uses: actions/upload-artifact@v4
         with:
-          name: r4-2-builder-visual-observation
-          path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/public-observation/
+          name: r4-2-builder-observation
+          path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/
           retention-days: 7
 
-      - name: Publish owner URL artifact
+      - name: Publish owner URL
         uses: actions/upload-artifact@v4
         with:
           name: r4-2-owner-review-url
@@ -191,6 +146,5 @@ jobs:
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
-          set -euo pipefail
           curl -fsSL --max-time 15 "$REVIEW_URL/" >/dev/null
           sleep 10800

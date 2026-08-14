@@ -58,7 +58,15 @@ function neutralizeSemanticAndSlices(api) {
   api.clearSemanticReviewState?.();
 }
 
-function publishState(mode, pose, speedScale = 0) {
+function applyVariantLookdev(api) {
+  const variant = document.body.dataset.variant || 'A';
+  const preset = variant === 'C' ? 'blackChrome' : 'premiumHybrid';
+  const applied = api.setLookDevPreset?.(preset) ?? false;
+  if (variant === 'C' && !applied) throw new Error('Variant C requires canonical blackChrome capture lookdev');
+  return { variant, preset, applied };
+}
+
+function publishState(mode, pose, opticalTreatment, speedScale = 0) {
   window.__PROAI_LOGO_R3 = Object.freeze({
     ready: true,
     mode,
@@ -67,6 +75,7 @@ function publishState(mode, pose, speedScale = 0) {
     canonicalHomePose: pose,
     living: LIVING,
     speedScale,
+    opticalTreatment,
     wordmark: 'PROAI EXPERT',
     composition: 'CUBE LEFT + WORDMARK RIGHT + ONE ROW',
     identityRule: 'same canonical ProAI Cube; no new logo geometry',
@@ -83,11 +92,12 @@ async function init() {
   const mode = document.body.dataset.r3Mode || 'static';
   const api = await waitForApi();
   neutralizeSemanticAndSlices(api);
+  const opticalTreatment = applyVariantLookdev(api);
   const home = resolveCanonicalHomePose(api);
 
   if (mode === 'living') {
     const started = performance.now();
-    publishState(mode, home, LIVING.timeScale);
+    publishState(mode, home, opticalTreatment, LIVING.timeScale);
     const tick = (now) => {
       const virtualTimeSec = home.timeSec + ((now - started) / 1000) * LIVING.timeScale;
       api.clearSemanticReviewState?.();
@@ -103,7 +113,7 @@ async function init() {
   api.setReviewPresentation(home.timeSec, 1, false);
   api.clearSemanticReviewState?.();
   api.renderReviewFrame();
-  publishState(mode, home, 0);
+  publishState(mode, home, opticalTreatment, 0);
 }
 
 init().catch((error) => {

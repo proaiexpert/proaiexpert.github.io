@@ -1,0 +1,91 @@
+name: ProAI Logo R3.4.1 Static Optical Candidates
+on:
+  push:
+    branches:
+      - agent/proai-logo-signature-object-r2
+    paths:
+      - .github/workflows/proai-logo-r341-candidates.yml
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-logo-signature-object-r2
+          fetch-depth: 4
+      - name: Verify locked base and canonical GLB
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 5c04478a5109330d2639c3d3474d28360fffab27 HEAD
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+          test "$(sha256sum docs/site-evolution/brand/proai-logo-canonical-cube-r3/assets/rubik_39_s_cube_animation-DvywXmYB.glb | cut -d' ' -f1)" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
+      - name: Build review-only optical lab
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path('docs/site-evolution/brand/proai-logo-canonical-cube-r3')
+          assets=root/'assets'; r34=root/'r34'
+          src=(assets/'r34-cube-runtime.js').read_text()
+          marker='setReviewPresentation:Gf'
+          assert src.count(marker)==1
+          hook='''getSignatureOpticalLook:()=>({exposure:rt.toneMappingExposure,lighting:{hemisphereIntensity:b3.intensity,keyIntensity:hi.intensity,keyWidth:hi.width,keyHeight:hi.height,keyPosition:hi.position.toArray(),fillIntensity:ui.intensity,fillWidth:ui.width,fillHeight:ui.height,fillPosition:ui.position.toArray(),rimIntensity:fi.intensity,rimWidth:fi.width,rimHeight:fi.height,rimPosition:fi.position.toArray()},materials:{graphite:{roughness:qr.roughness,envMapIntensity:qr.envMapIntensity},gunmetal:{roughness:y1.roughness,envMapIntensity:y1.envMapIntensity},blackChrome:{roughness:M1.roughness,envMapIntensity:M1.envMapIntensity},smokedCore:{roughness:S1.roughness,envMapIntensity:S1.envMapIntensity}}}),setSignatureOpticalLook:(i={},e=!0)=>{const l=i.lighting||{},m=i.materials||{};Number.isFinite(i.exposure)&&(rt.toneMappingExposure=i.exposure);Number.isFinite(l.hemisphereIntensity)&&(b3.intensity=l.hemisphereIntensity);Number.isFinite(l.keyIntensity)&&(hi.intensity=l.keyIntensity);Number.isFinite(l.fillIntensity)&&(ui.intensity=l.fillIntensity);Number.isFinite(l.rimIntensity)&&(fi.intensity=l.rimIntensity);Number.isFinite(l.keyWidthScale)&&(hi.width*=l.keyWidthScale);Number.isFinite(l.keyHeightScale)&&(hi.height*=l.keyHeightScale);Number.isFinite(l.fillWidthScale)&&(ui.width*=l.fillWidthScale);Number.isFinite(l.fillHeightScale)&&(ui.height*=l.fillHeightScale);Number.isFinite(l.rimWidthScale)&&(fi.width*=l.rimWidthScale);Number.isFinite(l.rimHeightScale)&&(fi.height*=l.rimHeightScale);const a=(x,o)=>{if(!o)return;Number.isFinite(o.roughness)&&(x.roughness=o.roughness);Number.isFinite(o.envMapIntensity)&&(x.envMapIntensity=o.envMapIntensity);x.needsUpdate=!0};a(qr,m.graphite),a(y1,m.gunmetal),a(M1,m.blackChrome),a(S1,m.smokedCore);return e&&Tn(),ye.getSignatureOpticalLook()},'''
+          src=src.replace(marker,hook+marker)
+          (assets/'r341-lab-cube-runtime.js').write_text(src)
+          html=(r34/'static.html').read_text().replace('r34-runtime.js','r341-lab-runtime.js').replace('R3.4 — Static Master','R3.4.1 — Static Optical Candidate')
+          (r34/'r341-lab.html').write_text(html)
+          runtime=r'''const CONFIGS={
+          baseline:{home:{yaw:292,pitch:4.2,roll:-0.6,fov:31},optics:{}},
+          c1:{home:{yaw:290,pitch:5.1,roll:-0.5,fov:31},optics:{lighting:{keyIntensity:4.95,fillIntensity:5.20,rimIntensity:4.65,keyWidthScale:1.08,keyHeightScale:1.08,fillWidthScale:1.18,fillHeightScale:1.12},materials:{graphite:{roughness:.305,envMapIntensity:1.19},gunmetal:{roughness:.275,envMapIntensity:1.25},blackChrome:{roughness:.238,envMapIntensity:1.30}}}},
+          c2:{home:{yaw:288.5,pitch:5.6,roll:-0.3,fov:31},optics:{lighting:{keyIntensity:4.85,fillIntensity:5.45,rimIntensity:4.55,keyWidthScale:1.10,keyHeightScale:1.08,fillWidthScale:1.22,fillHeightScale:1.15},materials:{graphite:{roughness:.305,envMapIntensity:1.20},gunmetal:{roughness:.278,envMapIntensity:1.26},blackChrome:{roughness:.240,envMapIntensity:1.31}}}},
+          c3:{home:{yaw:291,pitch:6.2,roll:-0.2,fov:30.5},optics:{lighting:{keyIntensity:4.75,fillIntensity:5.55,rimIntensity:4.45,keyWidthScale:1.12,keyHeightScale:1.10,fillWidthScale:1.24,fillHeightScale:1.16},materials:{graphite:{roughness:.310,envMapIntensity:1.18},gunmetal:{roughness:.280,envMapIntensity:1.25},blackChrome:{roughness:.245,envMapIntensity:1.31}}}},
+          c4:{home:{yaw:294,pitch:5.2,roll:-0.4,fov:31},optics:{lighting:{keyIntensity:4.90,fillIntensity:5.40,rimIntensity:4.60,keyWidthScale:1.08,keyHeightScale:1.08,fillWidthScale:1.22,fillHeightScale:1.14},materials:{graphite:{roughness:.305,envMapIntensity:1.19},gunmetal:{roughness:.275,envMapIntensity:1.25},blackChrome:{roughness:.238,envMapIntensity:1.30}}}},
+          c5:{home:{yaw:287,pitch:4.8,roll:-0.6,fov:31.5},optics:{lighting:{keyIntensity:4.90,fillIntensity:5.20,rimIntensity:4.75,keyWidthScale:1.08,keyHeightScale:1.06,fillWidthScale:1.18,fillHeightScale:1.12},materials:{graphite:{roughness:.300,envMapIntensity:1.20},gunmetal:{roughness:.270,envMapIntensity:1.26},blackChrome:{roughness:.235,envMapIntensity:1.31}}}},
+          c6:{home:{yaw:289.5,pitch:6.5,roll:0,fov:30},optics:{lighting:{keyIntensity:4.70,fillIntensity:5.60,rimIntensity:4.40,keyWidthScale:1.12,keyHeightScale:1.10,fillWidthScale:1.26,fillHeightScale:1.18},materials:{graphite:{roughness:.310,envMapIntensity:1.18},gunmetal:{roughness:.282,envMapIntensity:1.24},blackChrome:{roughness:.248,envMapIntensity:1.30}}}}
+          };
+          globalThis.__PROAI_R34_SIGNATURE_MODE=true;
+          await import('../assets/r341-lab-cube-runtime.js');
+          const id=new URLSearchParams(location.search).get('id')||'baseline';const cfg=CONFIGS[id]||CONFIGS.baseline;
+          function waitApi(timeout=45000){const s=performance.now();return new Promise((resolve,reject)=>{function p(){const a=window.__PROAI_CUBE_R1_2;if(a?.ready&&a?.setSignatureEuler&&a?.setSignatureFov&&a?.setSignatureOpticalLook)return resolve(a);if(performance.now()-s>timeout)return reject(new Error('lab runtime timeout'));requestAnimationFrame(p)}p()})}
+          const api=await waitApi();api.stopSliceScheduler?.();api.clearSemanticReviewState?.();api.setLookDevPreset?.('premiumHybrid');const look=api.setSignatureOpticalLook(cfg.optics,false);api.setSignatureFov(cfg.home.fov,false);api.setSignatureEuler(cfg.home.yaw,cfg.home.pitch,cfg.home.roll,true);document.documentElement.dataset.proaiLogoR341LabReady='true';window.__R341_LAB={id,cfg,look};
+          '''
+          (r34/'r341-lab-runtime.js').write_text(runtime)
+          PY
+      - name: Render candidate matrix
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+          python3 -m pip install pillow >/dev/null 2>&1
+          mkdir -p /tmp/r341-candidates
+          (cd docs/site-evolution/brand/proai-logo-canonical-cube-r3 && python3 -m http.server 4173 >/tmp/r341-http.log 2>&1) &
+          HPID=$!
+          trap 'kill "$HPID" 2>/dev/null || true' EXIT
+          node <<'JS'
+          const {chromium}=require('playwright');const fs=require('fs');
+          (async()=>{const b=await chromium.launch({headless:true});const p=await b.newPage({viewport:{width:1600,height:900},deviceScaleFactor:1});const errors=[];p.on('pageerror',e=>errors.push(String(e)));p.on('console',m=>{if(m.type()==='error')errors.push(m.text())});for(const id of ['baseline','c1','c2','c3','c4','c5','c6']){await p.goto('http://127.0.0.1:4173/r34/r341-lab.html?id='+id,{waitUntil:'networkidle'});await p.waitForFunction(()=>document.documentElement.dataset.proaiLogoR341LabReady==='true',{timeout:45000});const st=await p.evaluate(()=>window.__R341_LAB);fs.writeFileSync('/tmp/r341-candidates/'+id+'.json',JSON.stringify(st,null,2));await p.screenshot({path:'/tmp/r341-candidates/'+id+'.png',fullPage:true});await p.locator('[data-testid=r34-lockup]').screenshot({path:'/tmp/r341-candidates/'+id+'-lockup.png'});await p.setViewportSize({width:640,height:260});await p.evaluate(()=>{const l=document.querySelector('[data-testid=r34-lockup]');l.style.transform='scale(.22)';l.style.transformOrigin='center';});await p.locator('[data-testid=r34-lockup]').screenshot({path:'/tmp/r341-candidates/'+id+'-small.png'});await p.setViewportSize({width:1600,height:900});}if(errors.length)throw Error(JSON.stringify(errors));await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          python3 - <<'PY'
+          from PIL import Image,ImageDraw,ImageFont
+          from pathlib import Path
+          ids=['baseline','c1','c2','c3','c4','c5','c6']
+          tiles=[]
+          for i in ids:
+              im=Image.open('/tmp/r341-candidates/'+i+'-lockup.png').convert('RGB')
+              target=(760,320)
+              canvas=Image.new('RGB',target,(5,6,7));
+              scale=min(700/im.width,260/im.height)
+              r=im.resize((int(im.width*scale),int(im.height*scale)))
+              canvas.paste(r,((target[0]-r.width)//2,42+(260-r.height)//2))
+              d=ImageDraw.Draw(canvas);d.text((18,14),i.upper(),fill=(150,155,160))
+              tiles.append(canvas)
+          board=Image.new('RGB',(1520,1280),(2,3,4))
+          for idx,im in enumerate(tiles):board.paste(im,((idx%2)*760,(idx//2)*320))
+          board.save('/tmp/r341-candidates/contact-sheet.png')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-logo-r341-static-candidates
+          path: /tmp/r341-candidates
+          retention-days: 7

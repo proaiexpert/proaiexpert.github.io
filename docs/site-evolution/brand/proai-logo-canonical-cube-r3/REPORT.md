@@ -51,13 +51,13 @@ Master typography:
 - CSS weight target `860`;
 - tracking `-0.046em`;
 - master wordmark size `150px`;
-- master Cube `180px`;
-- master Cube → wordmark gap `74px`;
+- master Cube frame `180px`;
+- master Cube → wordmark layout gap `40px` after optical tightening against the visible rendered Cube;
 - master PROAI → EXPERT gap `0.295em`.
 
 Header validation:
-- Cube `34px`;
-- Cube → wordmark gap `15px`;
+- Cube frame `34px`;
+- Cube → wordmark layout gap `7px` after optical tightening against WebGL framing;
 - wordmark `20px`;
 - PROAI → EXPERT gap `0.28em`.
 
@@ -70,21 +70,23 @@ Header validation:
 
 ### B — Pearl / Ice-Silver Micro Response
 - PROAI `#F2F0EB`;
-- EXPERT `#CBD0D4`;
+- EXPERT `#C8CDD5`;
 - only a localized 1px Ice micro-specular on part of EXPERT and one localized 1px Cube-view Ice response;
-- estimated total visual coverage about `3%`;
+- combined cool contribution is approximately `4–5%` at large review scale;
 - no blue word, no glow, no gradient.
 
 ### C — Black-Chrome / Pearl
 - PROAI `#F2F0EB`;
 - EXPERT `#B8BEC3`;
-- exact same physical Cube with presentation-only brightness `.925`, contrast `1.075`, saturation `.86` for deeper Black-Chrome emphasis.
+- exact same physical Cube using the existing source-runtime `blackChrome` lookdev preset rather than a canvas filter;
+- source blackChrome preset face family: graphite `#111419`, gunmetal `#151A20`, black chrome `#090B0E`, with higher metalness and controlled studio reflection;
+- Obsidian background remains untouched, so the Cube does not produce a filtered rectangular field.
 
 ## Independent recommendation
 
 **A — Pearl / Silver.**
 
-The Cube already carries the memorability and proprietary physical character. A gives the cleanest and most durable premium hierarchy, preserves maximum small-scale clarity and avoids reintroducing blue-coded AI/SaaS signaling. B is a valid micro-accent experiment but less timeless; C is more severe and loses a small amount of separation at practical scale.
+The Cube already carries the memorability and proprietary physical character. A gives the cleanest and most durable premium hierarchy, preserves maximum small-scale clarity and avoids reintroducing blue-coded AI/SaaS signaling. B is a valid micro-accent experiment but less timeless; C is intentionally more severe and architectural.
 
 ## Living companion
 

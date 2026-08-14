@@ -19,19 +19,19 @@ jobs:
       - name: Checkout exact product
         uses: actions/checkout@v6
         with:
-          ref: e553256a931aec4703fdb33db7cc7f7bfa4837bd
+          ref: 735982473854c29a6f1eeeb4d87773abbc573b4d
 
-      - name: Verify exact product
+      - name: Verify exact product and frozen Cube
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "e553256a931aec4703fdb33db7cc7f7bfa4837bd"
+          test "$(git rev-parse HEAD)" = "735982473854c29a6f1eeeb4d87773abbc573b4d"
           test "$(git hash-object assets/js/proai-hero-cube-r1/bootstrap.js)" = "b46b26164efc000daef8ecb3416039008db7cd79"
           test "$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" = "bab6b00e73b20fc2a51aeb00cb7fc08f16129e72"
-          grep -q 'From first impression to result — one system.' index.html
-          grep -qi '#f2f0eb' assets/css/homepage-hero-signature-r3.css
-          ! grep -q 'letter-spacing: -.052em' assets/css/homepage-hero-signature-r3.css
-          echo "Exact product SHA verified: $(git rev-parse HEAD)"
+          test "$(stat -c%s assets/models/proai-cube/rubik_39_s_cube_animation.glb)" = 279412
+          echo "DBB7FC4156F8C9ED2481DD76443DFFB9A45ECB5493463F99BFFB34DD3B59C79B  assets/models/proai-cube/rubik_39_s_cube_animation.glb" | sha256sum -c -
+          grep -q 'max-width: clamp(455px, 34vw, 500px);' assets/css/homepage-hero-signature-r3.css
+          grep -q 'flex-flow: row nowrap;' assets/css/homepage-hero-signature-r3.css
 
       - name: Build and serve exact product
         shell: bash
@@ -47,10 +47,61 @@ jobs:
             curl -fsS http://127.0.0.1:8080/ >/dev/null && curl -fsS http://127.0.0.1:8080/ru/ >/dev/null && break
             sleep 1
           done
-          curl -fsS http://127.0.0.1:8080/ -o /tmp/local-en.html
-          curl -fsS http://127.0.0.1:8080/ru/ -o /tmp/local-ru.html
-          grep -q 'From first impression to result — one system.' /tmp/local-en.html
-          grep -q 'От первого впечатления до результата — одна система.' /tmp/local-ru.html
+          curl -fsS http://127.0.0.1:8080/ | grep -q 'From first impression to result — one system.'
+          curl -fsS http://127.0.0.1:8080/ru/ | grep -q 'От первого впечатления до результата — одна система.'
+
+      - name: Browser correction QA and owner evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+          mkdir -p /tmp/hero-r3-evidence
+          cat > /tmp/hero-r3-micro-qa.cjs <<'JS'
+          const p=require('puppeteer-core'),a=require('assert').strict;
+          const B='http://127.0.0.1:8080';
+          const wait=ms=>new Promise(r=>setTimeout(r,ms));
+          (async()=>{
+            const b=await p.launch({headless:false,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--enable-unsafe-swiftshader','--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows']});
+            const q=await b.newPage();
+            async function load(path,w,h){
+              await q.setViewport({width:w,height:h,deviceScaleFactor:1,isMobile:w<=932,hasTouch:w<=932});
+              await q.goto(B+path,{waitUntil:'domcontentloaded'});
+              await q.waitForFunction(()=>document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',{timeout:30000});
+              await wait(180);
+            }
+            async function state(){return q.evaluate(()=>{
+              const title=document.querySelector('.proai-hero-title');
+              const text=title.firstChild;
+              const raw=text.textContent;
+              const tokens=[]; let re=/\S+/g,m;
+              while((m=re.exec(raw))){const r=document.createRange();r.setStart(text,m.index);r.setEnd(text,m.index+m[0].length);const box=r.getBoundingClientRect();tokens.push({t:m[0],top:Math.round(box.top),left:Math.round(box.left)});}
+              const grouped=[]; for(const x of tokens){let row=grouped.find(g=>Math.abs(g.top-x.top)<=2);if(!row){row={top:x.top,words:[]};grouped.push(row)}row.words.push(x)}
+              const lines=grouped.sort((x,y)=>x.top-y.top).map(g=>g.words.sort((x,y)=>x.left-y.left).map(x=>x.t).join(' '));
+              const acts=[...document.querySelectorAll('.proai-hero-actions>a')].map(e=>{const r=e.getBoundingClientRect();const s=getComputedStyle(e);return{top:r.top,bottom:r.bottom,left:r.left,right:r.right,w:r.width,h:r.height,border:s.borderTopWidth,bg:s.backgroundImage,display:s.display}});
+              const v=document.querySelector('.hero-visual').getBoundingClientRect();
+              return{lines,acts,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,wrap:getComputedStyle(document.querySelector('.proai-hero-actions')).flexWrap,dir:getComputedStyle(document.querySelector('.proai-hero-actions')).flexDirection,cubeW:v.width,cubeTop:v.top};
+            })}
+            async function ruBreak(w,h,file){await load('/ru/',w,h);const s=await state();console.log('RU_BREAK',w,h,JSON.stringify(s.lines));a.equal(s.overflow,0);a.ok(s.lines.length>=4);a.equal(s.lines.at(-1),'одна система.');a.equal(s.lines.at(-2),'результата —');if(file)await q.screenshot({path:file,fullPage:false});}
+            async function row(path,label,w,h,file){await load(path,w,h);const s=await state();console.log('CTA_ROW',label,w,h,JSON.stringify(s));a.equal(s.overflow,0);a.equal(s.dir,'row');a.equal(s.wrap,'nowrap');a.equal(s.acts.length,2);a.ok(Math.abs(s.acts[0].top-s.acts[1].top)<=4);a.equal(s.acts[1].border,'0px');a.equal(s.acts[1].bg,'none');a.ok(s.acts[0].right+4<=s.acts[1].left);a.ok(s.cubeW>=Math.min(w*.48,358));if(file)await q.screenshot({path:file,fullPage:false});}
+            await ruBreak(1440,900,'/tmp/hero-r3-evidence/01-ru-1440-desktop.png');
+            await ruBreak(1200,800,'/tmp/hero-r3-evidence/02-ru-1200-laptop.png');
+            await row('/','portrait-en',390,844,'/tmp/hero-r3-evidence/03-en-390-portrait.png');
+            await row('/ru/','portrait-ru',390,844,null);
+            await row('/','landscape-en',844,390,null);
+            await row('/ru/','landscape-ru',844,390,'/tmp/hero-r3-evidence/04-ru-844x390-landscape.png');
+            console.log('MICRO_CORRECTION_QA=PASS');
+            await b.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          xvfb-run -a node /tmp/hero-r3-micro-qa.cjs | tee /tmp/hero-r3-micro-qa.log
+
+      - name: Upload owner-review screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: hero-r3-micro-correction-owner-evidence
+          path: /tmp/hero-r3-evidence/*.png
+          if-no-files-found: error
+          retention-days: 7
 
       - name: Start and verify public TryCloudflare preview
         env:
@@ -71,25 +122,19 @@ jobs:
           READY=0
           for i in $(seq 1 60); do
             if curl -fsS --connect-timeout 5 "$URL/" -o /tmp/public-en.html 2>/dev/null && curl -fsS --connect-timeout 5 "$URL/ru/" -o /tmp/public-ru.html 2>/dev/null; then
-              if grep -q 'From first impression to result — one system.' /tmp/public-en.html && grep -q 'От первого впечатления до результата — одна система.' /tmp/public-ru.html; then
-                READY=1
-                break
-              fi
+              if grep -q 'From first impression to result — one system.' /tmp/public-en.html && grep -q 'От первого впечатления до результата — одна система.' /tmp/public-ru.html; then READY=1; break; fi
             fi
             sleep 2
           done
           [ "$READY" = 1 ] || { cat /tmp/hero-r3-cloudflared.log; exit 1; }
           curl -fsS "$URL/assets/css/homepage-hero-signature-r3.css" -o /tmp/public-hero-r3.css
-          grep -qi '#f2f0eb' /tmp/public-hero-r3.css
-          echo "LIVE_INTERACTIVE_PREVIEW=$URL"
-          echo "PRODUCT_SHA=e553256a931aec4703fdb33db7cc7f7bfa4837bd"
-          echo "PUBLIC_URL_VERIFIED=PASS"
-          python3 -c 'import json,sys; print(json.dumps({"state":"success","target_url":sys.argv[1],"description":"Hero R3 owner review (~3 hours)","context":"hero-r3-owner-review-3h"}))' "$URL" >/tmp/status.json
-          curl -fsS -X POST \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
-            -d @/tmp/status.json >/dev/null
+          grep -q 'max-width: clamp(455px, 34vw, 500px);' /tmp/public-hero-r3.css
+          grep -q 'flex-flow: row nowrap;' /tmp/public-hero-r3.css
+          echo "LIVE_EN=$URL/" >> "$GITHUB_STEP_SUMMARY"
+          echo "LIVE_RU=$URL/ru/" >> "$GITHUB_STEP_SUMMARY"
+          echo "PRODUCT_SHA=735982473854c29a6f1eeeb4d87773abbc573b4d" >> "$GITHUB_STEP_SUMMARY"
+          python3 -c 'import json,sys; print(json.dumps({"state":"success","target_url":sys.argv[1],"description":"Hero R3 micro correction owner review","context":"hero-r3-micro-correction-owner"}))' "$URL" >/tmp/status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d @/tmp/status.json >/dev/null
 
       - name: Keep preview alive for owner review
         shell: bash

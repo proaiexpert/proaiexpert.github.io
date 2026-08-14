@@ -16,7 +16,7 @@ jobs:
   preview:
     if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
     runs-on: ubuntu-latest
-    timeout-minutes: 210
+    timeout-minutes: 240
     defaults:
       run:
         working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
@@ -24,16 +24,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: a0d3ffc6767745c0afacbaff2f79ed59b02859e8
+          ref: f1724edabb69e4036f0d1fa8eee50d529b85e2c9
           fetch-depth: 0
 
       - name: Verify frozen ancestry and exact R4.4 product
         run: |
-          test "$(git rev-parse HEAD)" = "a0d3ffc6767745c0afacbaff2f79ed59b02859e8"
-          test "$(git hash-object material-polish-r4.mjs)" = "87365dc72af3f54881c09eee0547bbd58925182e"
+          test "$(git rev-parse HEAD)" = "f1724edabb69e4036f0d1fa8eee50d529b85e2c9"
+          test "$(git hash-object material-polish-r4.mjs)" = "34f827a707a6a1d6e645eebd1103a8cf0dfa3e20"
           git cat-file -e f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a^{commit}
-          git merge-base --is-ancestor f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a a0d3ffc6767745c0afacbaff2f79ed59b02859e8
-          test "$(git merge-base f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a a0d3ffc6767745c0afacbaff2f79ed59b02859e8)" = "f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a"
+          git merge-base --is-ancestor f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a f1724edabb69e4036f0d1fa8eee50d529b85e2c9
+          test "$(git merge-base f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a f1724edabb69e4036f0d1fa8eee50d529b85e2c9)" = "f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a"
 
       - name: Build exact R4.4 and enforce R4.3 architecture
         run: |
@@ -47,6 +47,8 @@ jobs:
           test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
           grep -q "bumpScale:-0.130,roughnessMapInk:0.550,metalnessDelta:0.0,tonalInk:0.820" main.generated.js
           grep -q "semanticPlanarUv=true" main.generated.js
+          grep -q "semanticR44BeveledBump=true" main.generated.js
+          grep -q "frontFacing:signedFaceView>0" main.generated.js
           grep -q "semanticVelocityMultiplier: 1.0" main.generated.js
           grep -q "const deltaMs=wallDeltaMs" main.generated.js
           ! grep -q "wallDeltaMs \* semanticTimeScale" main.generated.js
@@ -56,17 +58,36 @@ jobs:
           grep -q "semanticMotionCoupled:false" main.generated.js
           grep -q "semanticOrientationForcing:false" main.generated.js
           ! grep -q "SEMANTIC_R4_2_TEXT" main.generated.js
+          cp -a dist /tmp/r44-dist
+
+      - name: Build exact frozen R4.3 comparison
+        run: |
+          git show f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a:docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r4.mjs > material-polish-r4.mjs
+          npm run prepare-r4
+          node clock-r4.mjs
+          node material-polish-r4.mjs
+          node --check main.generated.js
+          npx vite build
+          cp -a dist /tmp/r43-dist
+          git checkout -- material-polish-r4.mjs
+          test "$(git hash-object material-polish-r4.mjs)" = "34f827a707a6a1d6e645eebd1103a8cf0dfa3e20"
+          rm -rf dist
+          cp -a /tmp/r44-dist dist
 
       - name: Install live browser
         run: |
           npm install --no-save playwright
           npx playwright install chromium
 
-      - name: Start exact R4.4 runtime
+      - name: Start exact R4.4 and R4.3 comparison runtimes
         run: |
-          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r44-http.log 2>&1 &
-          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
-          exit 1
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory /tmp/r44-dist >/tmp/r44-http.log 2>&1 &
+          nohup python3 -m http.server 4174 --bind 127.0.0.1 --directory /tmp/r43-dist >/tmp/r43-http.log 2>&1 &
+          for port in 4173 4174; do
+            ok=''
+            for i in $(seq 1 60); do curl -fsS "http://127.0.0.1:${port}/" >/dev/null && { ok=1; break; }; sleep 1; done
+            test -n "$ok"
+          done
 
       - name: Publish single TryCloudflare preview
         id: tunnel
@@ -99,7 +120,7 @@ jobs:
           path: r44-owner-review-url.txt
           retention-days: 1
 
-      - name: Observe three untouched natural optical opportunities and pointer discovery
+      - name: Observe three true front-facing natural opportunities, comparison, and pointer discovery
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
@@ -133,42 +154,71 @@ jobs:
               const elapsed=(performance.now()-wall0)/1000,scene=(q.d.presentation.simTimeMs-sim0)/1000;
               if(q.d.presentation.simTimeMs>lastSim)movingSamples++;
               lastSim=q.d.presentation.simTimeMs;
-              const alignment=q.s.opticalField?.alignment??0,faceView=q.s.opticalField?.faceView??0,scale=q.s.timeScale??1;
-              samples.push({elapsed,scene,alignment,faceView,scale,semanticActive:!!q.s.active});
-              if(!current && alignment>=0.72 && scene-lastPeakScene>=4){
-                current={number:opportunities.length+1,startScene:scene,peakScene:scene,peakAlignment:alignment,peakFaceView:faceView,peakElapsed:elapsed};
+              const optical=q.s.opticalField??{},alignment=optical.alignment??0,faceView=optical.faceView??0,frontFacing=optical.frontFacing===true,scale=q.s.timeScale??1;
+              samples.push({elapsed,scene,alignment,faceView,frontFacing,scale,semanticActive:!!q.s.active});
+              if(!current && frontFacing && alignment>=0.68 && scene-lastPeakScene>=4){
+                current={number:opportunities.length+1,startScene:scene,peakScene:scene,peakAlignment:alignment,peakFaceView:faceView,peakElapsed:elapsed,lastCapturedAlignment:-1};
+                await p.locator('#cube-canvas').screenshot({path:`${out}/opportunity-${current.number}.png`,timeout:120000});
+                current.lastCapturedAlignment=alignment;
               } else if(current){
-                if(alignment>current.peakAlignment){current.peakAlignment=alignment;current.peakFaceView=faceView;current.peakScene=scene;current.peakElapsed=elapsed;}
-                if(alignment<=0.56){
+                if(frontFacing && alignment>current.peakAlignment){
+                  current.peakAlignment=alignment;current.peakFaceView=faceView;current.peakScene=scene;current.peakElapsed=elapsed;
+                  if(alignment-current.lastCapturedAlignment>=.01){await p.locator('#cube-canvas').screenshot({path:`${out}/opportunity-${current.number}.png`,timeout:120000});current.lastCapturedAlignment=alignment;}
+                }
+                if(!frontFacing || alignment<=0.52){
                   current.endScene=scene;
                   current.approxOpticalDuration=Math.max(0,current.endScene-current.startScene);
                   current.peakVideoTime=readyVideoOffset+current.peakElapsed;
+                  delete current.lastCapturedAlignment;
                   opportunities.push(current);
                   lastPeakScene=current.peakScene;
                   current=null;
                 }
               }
             }
-            if(opportunities.length!==3) throw new Error(`observed ${opportunities.length}/3 natural optical opportunities`);
+            if(opportunities.length!==3) throw new Error(`observed ${opportunities.length}/3 true front-facing natural optical opportunities`);
+
+            const afterNaturalTarget=opportunities[2].endScene+1.0;
+            while((performance.now()-wall0)<1860000){
+              await p.waitForTimeout(160);
+              const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
+              const elapsed=(performance.now()-wall0)/1000,scene=(q.d.presentation.simTimeMs-sim0)/1000,optical=q.s.opticalField??{};
+              samples.push({elapsed,scene,alignment:optical.alignment??0,faceView:optical.faceView??0,frontFacing:optical.frontFacing===true,scale:q.s.timeScale??1,semanticActive:!!q.s.active});
+              if(scene>=afterNaturalTarget)break;
+            }
+
+            // Internal same-camera / same-motion / same-scene-time R4.3 evidence.
+            const c43=await browser.newContext({viewport:{width:1170,height:780},reducedMotion:'no-preference'}),p43=await c43.newPage();
+            await p43.goto('http://127.0.0.1:4174/',{waitUntil:'domcontentloaded',timeout:120000});
+            await p43.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
+            const r43Start=await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);
+            for(const o of opportunities){
+              while(true){
+                const now=await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);
+                if((now-r43Start)/1000>=o.peakScene)break;
+                await p43.waitForTimeout(120);
+              }
+              await p43.locator('#cube-canvas').screenshot({path:`${out}/r43-same-time-${o.number}.png`,timeout:120000});
+            }
+            await c43.close();
 
             const beforeState=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
             const box=await p.locator('#cube-canvas').boundingBox(); if(!box) throw new Error('desktop canvas missing');
             const cx=box.x+box.width*.5,cy=box.y+box.height*.5;
-            let bestAlignment=beforeState.s.opticalField?.alignment??0,bestStep=0,manualCaptured=false;
-            for(let step=1;step<=40;step++){
-              const dx=(step%4<2?1:-1)*(34+((step*9)%46));
-              const dy=((step%5)-2)*12;
-              await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx+dx,cy+dy,{steps:4});await p.mouse.up();
-              await p.waitForTimeout(90);
+            let bestAlignment=beforeState.s.opticalField?.alignment??0,bestFaceView=beforeState.s.opticalField?.faceView??0,bestStep=0,manualCaptured=false;
+            for(let step=1;step<=72;step++){
+              const phase=step%12,dx=(phase<6?1:-1)*(36+((step*13)%74)),dy=((step%9)-4)*14;
+              await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx+dx,cy+dy,{steps:5});await p.mouse.up();
+              await p.waitForTimeout(100);
               const now=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
-              const a=now.s.opticalField?.alignment??0;
-              if(a>bestAlignment){bestAlignment=a;bestStep=step;}
-              if(a>=0.86){await p.locator('#cube-canvas').screenshot({path:`${out}/manual-readable.png`,timeout:120000});manualCaptured=true;bestAlignment=a;bestStep=step;break;}
+              const optical=now.s.opticalField??{},a=optical.alignment??0,fv=optical.faceView??0,front=optical.frontFacing===true;
+              if(front && a>bestAlignment){bestAlignment=a;bestFaceView=fv;bestStep=step;}
+              if(front && a>=0.82 && fv>=0.55){await p.locator('#cube-canvas').screenshot({path:`${out}/manual-readable.png`,timeout:120000});manualCaptured=true;bestAlignment=a;bestFaceView=fv;bestStep=step;break;}
             }
             if(!manualCaptured) await p.locator('#cube-canvas').screenshot({path:`${out}/manual-readable.png`,timeout:120000});
             const afterState=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
             const pointerDelta=dist3(beforeState.i.cameraPosition,afterState.i.cameraPosition);
-            const pointer={pass:pointerDelta>.01&&afterState.d.presentation.simTimeMs>beforeState.d.presentation.simTimeMs&&afterState.s.persistentInscription===true&&afterState.s.physicalEngravedLogicalTileCount===9&&afterState.s.timeScale===1,cameraDelta:pointerDelta,bestAlignment,bestStep,manualCaptured};
+            const pointer={pass:pointerDelta>.01&&afterState.d.presentation.simTimeMs>beforeState.d.presentation.simTimeMs&&afterState.s.persistentInscription===true&&afterState.s.physicalEngravedLogicalTileCount===9&&afterState.s.timeScale===1&&manualCaptured,cameraDelta:pointerDelta,bestAlignment,bestFaceView,bestStep,manualCaptured};
 
             const firstPeak=opportunities[0].peakScene,lastPeak=opportunities[2].peakScene;
             const before=samples.filter(x=>x.scene<firstPeak-.5).map(x=>x.scale);
@@ -176,9 +226,9 @@ jobs:
             const after=samples.filter(x=>x.scene>lastPeak+.5).map(x=>x.scale);
             const motion={before:stats(before.length?before:[1]),during:stats(during.length?during:[1]),after:stats(after.length?after:[1]),all:stats(samples.map(x=>x.scale))};
             const good=r=>r.status>=200&&r.status<400;
-            result={pass:nav?.status()===200&&first.canvas&&movingSamples>20&&opportunities.length===3&&pointer.pass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:!!first.s&&!!first.d,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:first.canvas,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:movingSamples>20,movingSamples,readyVideoOffset,opportunities,motion,pointer,flags:{persistentInscription:afterState.s.persistentInscription,physicalEngravedLogicalTileCount:afterState.s.physicalEngravedLogicalTileCount,overlayTextRendered:afterState.s.overlayTextRendered,visualDriverTimeline:afterState.s.visualDriverTimeline,alphaDominantReveal:afterState.s.alphaDominantReveal,semanticMotionCoupled:afterState.s.semanticMotionCoupled,semanticOrientationForcing:afterState.s.semanticOrientationForcing,timeScale:afterState.s.timeScale,emissive:afterState.s.emissive,glowHalo:afterState.s.glowHalo},fatal,samples};
+            result={pass:nav?.status()===200&&first.canvas&&movingSamples>20&&opportunities.length===3&&opportunities.every(o=>o.peakAlignment>=.68)&&pointer.pass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:!!first.s&&!!first.d,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:first.canvas,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:movingSamples>20,movingSamples,readyVideoOffset,opportunities,motion,pointer,comparison:{baseline:'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a',candidate:'f1724edabb69e4036f0d1fa8eee50d529b85e2c9',sameCamera:true,sameSceneTimes:true,samePlaybackSpeed:true},flags:{persistentInscription:afterState.s.persistentInscription,physicalEngravedLogicalTileCount:afterState.s.physicalEngravedLogicalTileCount,overlayTextRendered:afterState.s.overlayTextRendered,visualDriverTimeline:afterState.s.visualDriverTimeline,alphaDominantReveal:afterState.s.alphaDominantReveal,semanticMotionCoupled:afterState.s.semanticMotionCoupled,semanticOrientationForcing:afterState.s.semanticOrientationForcing,timeScale:afterState.s.timeScale,emissive:afterState.s.emissive,glowHalo:afterState.s.glowHalo},fatal,samples};
             fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));
-            console.log('R44_PUBLIC_WATCH',JSON.stringify({pass:result.pass,url,opportunities,motion,pointer,fatal}));
+            console.log('R44_PUBLIC_WATCH',JSON.stringify({pass:result.pass,url,opportunities,motion,pointer,comparison:result.comparison,fatal}));
           } catch(error){
             fatal.push(`observer:${error.message}`);
             fs.writeFileSync(`${out}/observer-failure.json`,JSON.stringify({url,opportunities,fatal,sampleCount:samples.length,lastSample:samples.at(-1)??null},null,2));

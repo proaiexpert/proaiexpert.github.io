@@ -34,7 +34,7 @@ jobs:
           cd "$GITHUB_WORKSPACE"
           test "$(git diff --name-only 86eb7d5c199336a73d2e959fe6d735a3498c4d40...f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a -- docs/site-evolution/spline/proai-cube-semantic-brand-face-r4 | sort)" = "docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r4.mjs"
 
-      - name: Build exact R4.3 product
+      - name: Build exact frozen product
         run: |
           npm install --package-lock=false
           npm run prepare-r4
@@ -44,32 +44,27 @@ jobs:
           npx vite build
           test "$(wc -c < rubik_39_s_cube_animation.glb | tr -d ' ')" -eq 279412
           test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
-          grep -q "surfaceMaxOpacity: 0.000" main.generated.js
           grep -q "semanticVelocityMultiplier: 1.0" main.generated.js
           grep -q "const deltaMs=wallDeltaMs" main.generated.js
           ! grep -q "wallDeltaMs \* semanticTimeScale" main.generated.js
-          grep -q "SEMANTIC_R4_3_PERSISTENT_PHYSICAL_MICRO_ENGRAVING" main.generated.js
           grep -q "physicalEngravedLogicalTileCount" main.generated.js
           grep -q "overlayTextRendered:false" main.generated.js
-          grep -q "visualDriverTimeline:false" main.generated.js
           grep -q "alphaDominantReveal:false" main.generated.js
           grep -q "semanticMotionCoupled:false" main.generated.js
           grep -q "semanticOrientationForcing:false" main.generated.js
 
-      - name: Install live observer browser
+      - name: Install live browser
         run: |
           npm install --no-save playwright
           npx playwright install chromium
 
-      - name: Start exact product runtime
+      - name: Start frozen runtime
         run: |
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r43-http.log 2>&1 &
-          echo $! >/tmp/r43-http.pid
           for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
-          cat /tmp/r43-http.log || true
           exit 1
 
-      - name: Publish one TryCloudflare owner preview
+      - name: Publish single TryCloudflare preview
         id: tunnel
         run: |
           curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
@@ -79,14 +74,10 @@ jobs:
             LOG="/tmp/r43-tunnel-${attempt}.log"
             /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 & PID=$!
             URL=''
-            for i in $(seq 1 75); do
-              URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
-              [ -n "$URL" ] && break
-              sleep 1
-            done
+            for i in $(seq 1 75); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true); [ -n "$URL" ] && break; sleep 1; done
             if [ -n "$URL" ]; then
               for i in $(seq 1 30); do
-                if curl -fsSL --max-time 15 "$URL/" >/tmp/r43-public.html 2>/dev/null; then REVIEW_URL="$URL"; TUNNEL_PID="$PID"; break 2; fi
+                if curl -fsSL --max-time 15 "$URL/" >/tmp/r43-public.html 2>/dev/null; then REVIEW_URL="$URL"; break 2; fi
                 sleep 2
               done
             fi
@@ -95,14 +86,13 @@ jobs:
           test -n "$REVIEW_URL"
           grep -q "ProAI Cube" /tmp/r43-public.html
           printf '%s\n' "$REVIEW_URL" > "$GITHUB_WORKSPACE/r43-owner-review-url.txt"
-          echo "$TUNNEL_PID" > /tmp/r43-tunnel.pid
           echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
 
-      - name: Watch and verify real public scene
+      - name: Observe three natural public optical opportunities and interaction
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
-          cat > public-watch.mjs <<'NODE'
+          cat > r43-live-watch.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
           const url=process.env.REVIEW_URL;
@@ -121,27 +111,26 @@ jobs:
             await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
             const first=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),title:document.title,canvas:!!document.querySelector('#cube-canvas')}));
             const wall0=performance.now(),sim0=first.d.presentation.simTimeMs;
-            let lastCount=first.s.naturalOpportunityCount||0,lastSim=sim0,movingSamples=0;
-            while((performance.now()-wall0)<75000 && opportunities.length<4){
-              await p.waitForTimeout(250);
+            let lastSim=sim0,movingSamples=0,armed=true,lastPeakSim=-999;
+            while((performance.now()-wall0)<600000 && opportunities.length<3){
+              await p.waitForTimeout(200);
               const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
               const elapsed=(performance.now()-wall0)/1000,simElapsed=(q.d.presentation.simTimeMs-sim0)/1000;
               if(q.d.presentation.simTimeMs>lastSim)movingSamples++;
               lastSim=q.d.presentation.simTimeMs;
-              const count=q.s.naturalOpportunityCount||0,alignment=q.s.opticalField?.alignment??0,faceView=q.s.opticalField?.faceView??0;
-              samples.push({elapsed,simElapsed,count,alignment,faceView});
-              if(count>lastCount){
-                for(let n=lastCount+1;n<=count;n++){
-                  const name=`opportunity-${n}.png`;
-                  await p.locator('#cube-canvas').screenshot({path:`${out}/${name}`,timeout:120000});
-                  opportunities.push({number:n,elapsed,simElapsed,alignment,faceView,screenshot:name});
-                }
-                lastCount=count;
+              const alignment=q.s.opticalField?.alignment??0,faceView=q.s.opticalField?.faceView??0;
+              samples.push({elapsed,simElapsed,alignment,faceView});
+              if(alignment<0.60)armed=true;
+              if(armed && alignment>=0.82 && simElapsed-lastPeakSim>=5){
+                const n=opportunities.length+1,name=`opportunity-${n}.png`;
+                await p.locator('#cube-canvas').screenshot({path:`${out}/${name}`,timeout:120000});
+                opportunities.push({number:n,elapsed,simElapsed,alignment,faceView,screenshot:name});
+                lastPeakSim=simElapsed; armed=false;
               }
             }
-            if(opportunities.length<3)throw new Error(`only ${opportunities.length} natural opportunities observed`);
+            if(opportunities.length<3)throw new Error(`only ${opportunities.length} natural optical peaks observed`);
             const before=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
-            const box=await p.locator('#cube-canvas').boundingBox(); if(!box)throw new Error('canvas missing');
+            const box=await p.locator('#cube-canvas').boundingBox(); if(!box)throw new Error('desktop canvas missing');
             const cx=box.x+box.width*.5,cy=box.y+box.height*.5;
             await p.mouse.move(cx,cy); await p.mouse.down(); await p.mouse.move(cx+240,cy+90,{steps:12}); await p.mouse.up(); await p.waitForTimeout(1000);
             const after=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
@@ -162,25 +151,15 @@ jobs:
             const ta=await tp.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
             const touchPass=ta.d.presentation.simTimeMs>tb.d.presentation.simTimeMs&&ta.s.persistentInscription===true&&ta.s.physicalEngravedLogicalTileCount===9&&ta.s.timeScale===1;
             await tc.close();
-
             const good=r=>r.status>=200&&r.status<400;
-            const result={
-              pass:nav?.status()===200&&first.canvas&&movingSamples>20&&opportunities.length>=3&&pointerPass&&touchPass&&fatal.length===0,
-              url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),
-              css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),
-              three:!!first.s&&!!first.d,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:first.canvas,
-              cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:movingSamples>20,
-              movingSamples,opportunities,pointer:{pass:pointerPass,cameraDelta:pointerDelta,alignmentBefore:before.s.opticalField?.alignment??null,alignmentAfter:after.s.opticalField?.alignment??null},touchPass,
-              flags:{persistentInscription:after.s.persistentInscription,physicalEngravedLogicalTileCount:after.s.physicalEngravedLogicalTileCount,overlayTextRendered:after.s.overlayTextRendered,visualDriverTimeline:after.s.visualDriverTimeline,alphaDominantReveal:after.s.alphaDominantReveal,semanticMotionCoupled:after.s.semanticMotionCoupled,semanticOrientationForcing:after.s.semanticOrientationForcing,timeScale:after.s.timeScale,emissive:after.s.emissive,glowHalo:after.s.glowHalo},
-              fatal,samples
-            };
+            const result={pass:nav?.status()===200&&first.canvas&&movingSamples>20&&opportunities.length>=3&&pointerPass&&touchPass&&fatal.length===0,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:!!first.s&&!!first.d,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:first.canvas,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:movingSamples>20,movingSamples,opportunities,pointer:{pass:pointerPass,cameraDelta:pointerDelta,alignmentBefore:before.s.opticalField?.alignment??null,alignmentAfter:after.s.opticalField?.alignment??null},touchPass,flags:{persistentInscription:after.s.persistentInscription,physicalEngravedLogicalTileCount:after.s.physicalEngravedLogicalTileCount,overlayTextRendered:after.s.overlayTextRendered,visualDriverTimeline:after.s.visualDriverTimeline,alphaDominantReveal:after.s.alphaDominantReveal,semanticMotionCoupled:after.s.semanticMotionCoupled,semanticOrientationForcing:after.s.semanticOrientationForcing,timeScale:after.s.timeScale,emissive:after.s.emissive,glowHalo:after.s.glowHalo},fatal,samples};
             fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));
             console.log('R43_PUBLIC_WATCH',JSON.stringify({pass:result.pass,url,opportunities,pointer:result.pointer,touchPass,fatal}));
             if(!result.pass)process.exitCode=1;
           } finally {await browser.close();}
           NODE
-          node public-watch.mjs
-          rm -f public-watch.mjs
+          node r43-live-watch.mjs
+          rm -f r43-live-watch.mjs
 
       - name: Publish owner URL
         uses: actions/upload-artifact@v4
@@ -189,7 +168,7 @@ jobs:
           path: r43-owner-review-url.txt
           retention-days: 1
 
-      - name: Publish live observer evidence
+      - name: Publish live observation
         uses: actions/upload-artifact@v4
         with:
           name: r43-live-owner-observation

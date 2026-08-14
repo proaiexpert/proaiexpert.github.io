@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   visual-qa:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
@@ -26,8 +26,8 @@ jobs:
           set -euo pipefail
           R='docs/site-evolution/brand/proai-logo-canonical-cube-r3'
           G="$R/assets/rubik_39_s_cube_animation-DvywXmYB.glb"
-          test "$(wc -c < "$G" | tr -d ' ')" -eq 279412
-          test "$(shasum -a 256 "$G" | awk '{print $1}')" = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b'
+          test "$(wc -c < "$G")" -eq 279412
+          test "$(sha256sum "$G" | awk '{print $1}')" = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b'
           test "$(git rev-parse origin/main)" = 'c945084e1952c05c686494091f7dbca0f7acdf08'
           test -z "$(git diff --name-only c945084e1952c05c686494091f7dbca0f7acdf08...HEAD -- _includes assets/css index.html ru/index.html favicon.svg favicon.ico site.webmanifest manifest.json)"
           ! grep -Eqi 'brightness\(|contrast\(|saturate\(' "$R/r33/r33.css"
@@ -55,7 +55,7 @@ jobs:
           const {chromium}=require('/tmp/r33qa/node_modules/playwright');
           const fs=require('fs');
           const assert=(v,m)=>{if(!v)throw new Error(m)};
-          const args=['--enable-webgl','--ignore-gpu-blocklist','--disable-dev-shm-usage'];
+          const args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'];
           const base='http://127.0.0.1:4173/';
           const qdist=(a,b)=>Math.sqrt(a.reduce((s,v,i)=>s+(v-b[i])**2,0));
           (async()=>{const browser=await chromium.launch({headless:true,args});try{
@@ -63,10 +63,10 @@ jobs:
             async function open(c,path,ready=true){const p=await c.newPage();await p.goto(base+path,{waitUntil:'domcontentloaded',timeout:90000});if(ready)await p.waitForFunction(()=>window.__PROAI_LOGO_R33?.ready===true,null,{timeout:90000});return p}
             const desktop=await ctx({width:1440,height:900});
             const s=await open(desktop,'r33/static.html?capture');
-            const st=await s.evaluate(()=>{const c=document.querySelector('.r33-cube-frame').getBoundingClientRect(),w=document.querySelector('.r33-wordmark').getBoundingClientRect(),cs=getComputedStyle(document.querySelector('.r33-wordmark')),can=getComputedStyle(document.querySelector('#cube-canvas')),api=window.__PROAI_CUBE_R1_2;return{text:document.querySelector('.r33-wordmark').textContent.trim().replace(/\s+/g,' '),cube:[c.x,c.y,c.width,c.height],word:[w.x,w.y,w.width,w.height],font:cs.fontFamily,weight:cs.fontWeight,filter:can.filter,overflow:document.documentElement.scrollWidth-innerWidth,diag:api.getDiagnostics(),logo:window.__PROAI_LOGO_R33,pose:api.getSemanticPoseAt(window.__PROAI_LOGO_R33.home.timeSec),sample:api.getReviewPresentationSample(window.__PROAI_LOGO_R33.home.timeSec)}});
-            assert(st.text==='ProAI Expert','exact wordmark');assert(st.font.includes('Instrument Sans'),'font');assert(st.weight==='680','weight');assert(st.filter==='none','canvas filter');assert(st.overflow<=1,'static overflow');assert(st.diag.geometry?.pass===true,'geometry');assert(st.diag.scheduler.enabled===false,'scheduler');assert(st.logo.geometryModified===false&&st.logo.newSymbol===false,'identity lock');
+            const st=await s.evaluate(()=>{const c=document.querySelector('.r33-cube-frame').getBoundingClientRect(),w=document.querySelector('.r33-wordmark').getBoundingClientRect(),cs=getComputedStyle(document.querySelector('.r33-wordmark')),can=getComputedStyle(document.querySelector('#cube-canvas')),api=window.__PROAI_CUBE_R1_2;return{text:document.querySelector('.r33-wordmark').textContent.trim().replace(/\s+/g,' '),aria:document.querySelector('.r33-wordmark').getAttribute('aria-label'),cube:[c.x,c.y,c.width,c.height],word:[w.x,w.y,w.width,w.height],font:cs.fontFamily,weight:cs.fontWeight,filter:can.filter,overflow:document.documentElement.scrollWidth-innerWidth,diag:api.getDiagnostics(),logo:window.__PROAI_LOGO_R33,pose:api.getSemanticPoseAt(window.__PROAI_LOGO_R33.home.timeSec),sample:api.getReviewPresentationSample(window.__PROAI_LOGO_R33.home.timeSec)}});
+            assert(st.text==='ProAI Expert','exact wordmark');assert(st.aria==='ProAI Expert','wordmark aria');assert(st.font.includes('Instrument Sans'),'font');assert(st.weight==='680','weight');assert(st.filter==='none','canvas filter');assert(st.overflow<=1,'static overflow');assert(st.diag.geometry?.pass===true,'geometry');assert(st.diag.scheduler.enabled===false,'scheduler');assert(st.logo.geometryModified===false&&st.logo.newSymbol===false,'identity lock');
             await s.screenshot({path:'/tmp/r33-evidence/static-1x.png',fullPage:true});
-            for(const t of [49.0,49.3,49.6,49.9,50.0,50.2]){await s.evaluate((t)=>{const api=window.__PROAI_CUBE_R1_2;api.setReviewPresentation(t,1,false);api.clearSemanticReviewState?.();api.renderReviewFrame()},t);await s.locator('.r33-lockup').screenshot({path:`/tmp/r33-evidence/pose-${String(t).replace('.','_')}.png`})}
+            for(const t of [49.0,49.3,49.6,49.9,50.2]){await s.evaluate((t)=>{const api=window.__PROAI_CUBE_R1_2;api.setReviewPresentation(t,1,false);api.clearSemanticReviewState?.();api.renderReviewFrame()},t);await s.locator('.r33-lockup').screenshot({path:`/tmp/r33-evidence/pose-${String(t).replace('.','_')}.png`})}
             await s.evaluate(()=>{const api=window.__PROAI_CUBE_R1_2;api.setReviewPresentation(window.__PROAI_LOGO_R33.home.timeSec,1,false);api.renderReviewFrame()});
             for(const w of [660,680,700]){await s.evaluate((w)=>{const e=document.querySelector('.r33-wordmark');e.style.fontWeight=String(w);e.style.fontVariationSettings=`"wght" ${w}`},w);await s.locator('.r33-lockup').screenshot({path:`/tmp/r33-evidence/weight-${w}.png`})}
             await s.evaluate(()=>{const e=document.querySelector('.r33-wordmark');e.style.fontWeight='';e.style.fontVariationSettings=''});await s.close();
@@ -87,6 +87,7 @@ jobs:
           NODE
           node /tmp/r33qa/qa.cjs
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: proai-logo-r33-visual-qa
           path: /tmp/r33-evidence/

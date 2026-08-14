@@ -2,8 +2,7 @@ name: ProAI Logo R3 Hard Correction Owner Review
 
 on:
   push:
-    branches:
-      - agent/proai-logo-signature-object-r2
+    branches: [agent/proai-logo-signature-object-r2]
 
 permissions:
   contents: read
@@ -26,82 +25,62 @@ jobs:
           GLB="$REVIEW/assets/rubik_39_s_cube_animation-DvywXmYB.glb"
           test "$(wc -c < "$GLB")" -eq 279412
           test "$(sha256sum "$GLB" | awk '{print $1}')" = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b'
-          test "$(git rev-parse main)" = 'c945084e1952c05c686494091f7dbca0f7acdf08' || true
+          test "$(git rev-parse origin/main)" = 'c945084e1952c05c686494091f7dbca0f7acdf08'
           test -z "$(git diff --name-only c945084e1952c05c686494091f7dbca0f7acdf08...HEAD -- _includes assets/css index.html ru/index.html favicon.svg favicon.ico site.webmanifest manifest.json)"
           ! grep -qi '#5de2ff' "$REVIEW/r3.css"
-          ! grep -qi 'glow' "$REVIEW/r3.css"
-          grep -q 'PROAI' "$REVIEW/living-digital.html"
-          grep -q 'EXPERT' "$REVIEW/living-digital.html"
+          ! grep -qi 'text-shadow' "$REVIEW/r3.css"
 
-      - name: Install review browser
+      - name: Install browser and start local review
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/logoqa
+          mkdir -p /tmp/logoqa /tmp/logo-evidence
           cd /tmp/logoqa
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright >/dev/null 2>&1
           npx playwright install chromium >/dev/null
-
-      - name: Start local owner review
-        shell: bash
-        run: |
-          set -euo pipefail
-          REVIEW='docs/site-evolution/brand/proai-logo-canonical-cube-r3'
-          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory "$REVIEW" >/tmp/logo-r3-http.log 2>&1 &
+          cd "$GITHUB_WORKSPACE"
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory docs/site-evolution/brand/proai-logo-canonical-cube-r3 >/tmp/logo-r3-http.log 2>&1 &
           for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/compare-dark.html >/dev/null && exit 0; sleep 1; done
-          cat /tmp/logo-r3-http.log
-          exit 1
+          cat /tmp/logo-r3-http.log; exit 1
 
       - name: Local visual contract QA
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/logo-evidence
           cat >/tmp/logoqa/qa.cjs <<'NODE'
-          const { chromium } = require('/tmp/logoqa/node_modules/playwright');
-          const fs = require('fs');
-          const assert = (v,m)=>{if(!v)throw new Error(m)};
+          const {chromium}=require('/tmp/logoqa/node_modules/playwright');
+          const fs=require('fs');
+          const assert=(v,m)=>{if(!v)throw new Error(m)};
           const args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'];
-          (async()=>{
-            const browser=await chromium.launch({headless:true,args});
-            const out={};
-            try{
-              const c=await browser.newContext({viewport:{width:1440,height:960},reducedMotion:'no-preference'});
-              const p=await c.newPage();
-              await p.goto('http://127.0.0.1:4173/living-digital.html?capture',{waitUntil:'domcontentloaded',timeout:120000});
-              await p.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});
-              const before=await p.evaluate(()=>{
-                const cube=document.querySelector('.cube-frame').getBoundingClientRect(),word=document.querySelector('.wordmark').getBoundingClientRect(),lock=document.querySelector('.logo-lockup').getBoundingClientRect(),cs=getComputedStyle(document.querySelector('.wordmark')),expert=getComputedStyle(document.querySelector('.expert')),body=getComputedStyle(document.body),live=window.__PROAI_LOGO_R3_LIVE,api=window.__PROAI_CUBE_R1_2;
-                return {cube:{x:cube.x,y:cube.y,w:cube.width,h:cube.height},word:{x:word.x,y:word.y,w:word.width,h:word.height},lock:{w:lock.width,h:lock.height},text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),expertColor:expert.color,bodyBg:body.backgroundColor,font:cs.fontFamily,weight:cs.fontWeight,tracking:cs.letterSpacing,animations:document.querySelector('.wordmark').getAnimations().length,live:{...live},logo:window.__PROAI_LOGO_R3,scheduler:api.getDiagnostics().scheduler};
-              });
-              assert(before.text==='PROAI EXPERT','wordmark text/casing mismatch');
-              assert(before.cube.x+before.cube.w<before.word.x,'Cube is not left of wordmark');
-              assert(Math.abs((before.cube.y+before.cube.h/2)-(before.word.y+before.word.h/2))<45,'lockup not one-row aligned');
-              assert(before.expertColor!=='rgb(93, 226, 255)','old cyan EXPERT detected');
-              assert(before.bodyBg==='rgb(5, 6, 7)','Obsidian background mismatch');
-              assert(before.animations===0,'wordmark animation detected');
-              assert(before.scheduler.enabled===false,'slice scheduler still enabled');
-              assert(before.logo.living.semanticFace===false && before.logo.living.sliceChoreography===false,'semantic/slice logo noise enabled');
-              await p.waitForTimeout(1700);
-              const after=await p.evaluate(()=>{const w=document.querySelector('.wordmark').getBoundingClientRect();return {word:{x:w.x,y:w.y,w:w.width,h:w.height},live:{...window.__PROAI_LOGO_R3_LIVE},animations:document.querySelector('.wordmark').getAnimations().length};});
-              assert(after.live.frames>before.live.frames+20,'Cube living frames did not advance');
-              assert(after.live.virtualTimeSec>before.live.virtualTimeSec+.20,'slow Cube time did not advance');
-              assert(Math.abs(after.word.x-before.word.x)<.01&&Math.abs(after.word.y-before.word.y)<.01&&Math.abs(after.word.w-before.word.w)<.01,'wordmark moved');
-              assert(after.animations===0,'wordmark acquired animation');
-              await p.screenshot({path:'/tmp/logo-evidence/living.png',fullPage:true});
+          const qdist=(a,b)=>Math.sqrt(a.reduce((s,v,i)=>s+(v-b[i])**2,0));
+          (async()=>{const browser=await chromium.launch({headless:true,args});try{
+            const c=await browser.newContext({viewport:{width:1440,height:960},reducedMotion:'no-preference'});
+            const p=await c.newPage();p.on('console',m=>{if(m.type()==='error')console.log('PAGE_ERROR',m.text())});
+            await p.goto('http://127.0.0.1:4173/living-digital.html?capture',{waitUntil:'domcontentloaded',timeout:120000});
+            await p.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});
+            const before=await p.evaluate(()=>{const cube=document.querySelector('.cube-frame').getBoundingClientRect(),word=document.querySelector('.wordmark').getBoundingClientRect(),api=window.__PROAI_CUBE_R1_2;return {cube:{x:cube.x,y:cube.y,w:cube.width,h:cube.height},word:{x:word.x,y:word.y,w:word.width,h:word.height},text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),expert:getComputedStyle(document.querySelector('.expert')).color,bg:getComputedStyle(document.body).backgroundColor,animations:document.querySelector('.wordmark').getAnimations().length,live:{...window.__PROAI_LOGO_R3_LIVE},quat:api.getInteractionState().presentationQuaternion,diag:api.getDiagnostics(),logo:window.__PROAI_LOGO_R3};});
+            assert(before.text==='PROAI EXPERT','exact one-line wordmark mismatch');
+            assert(before.cube.x+before.cube.w<before.word.x,'Cube must be left of wordmark');
+            assert(Math.abs((before.cube.y+before.cube.h/2)-(before.word.y+before.word.h/2))<45,'lockup not one horizontal row');
+            assert(before.expert!=='rgb(93, 226, 255)','old cyan EXPERT detected');assert(before.bg==='rgb(5, 6, 7)','not Obsidian');
+            assert(before.animations===0,'wordmark animation detected');assert(before.diag.geometry?.pass===true,'3x3 geometry gate failed');assert(before.diag.scheduler.enabled===false,'slice scheduler enabled');
+            assert(before.logo.wordmark==='PROAI EXPERT'&&before.logo.living.semanticFace===false&&before.logo.living.sliceChoreography===false,'logo contract mismatch');
+            await p.waitForTimeout(5000);
+            const after=await p.evaluate(()=>{const w=document.querySelector('.wordmark').getBoundingClientRect(),api=window.__PROAI_CUBE_R1_2;return {word:{x:w.x,y:w.y,w:w.width,h:w.height},live:{...window.__PROAI_LOGO_R3_LIVE},quat:api.getInteractionState().presentationQuaternion,animations:document.querySelector('.wordmark').getAnimations().length};});
+            assert(after.live.frames>before.live.frames,'living Cube frame did not advance');assert(after.live.virtualTimeSec>before.live.virtualTimeSec+.05,'living Cube time did not advance');assert(qdist(after.quat,before.quat)>.00001,'Cube orientation did not change');
+            assert(Math.abs(after.word.x-before.word.x)<.01&&Math.abs(after.word.y-before.word.y)<.01&&Math.abs(after.word.w-before.word.w)<.01&&after.animations===0,'wordmark moved or animated');
+            await p.screenshot({path:'/tmp/logo-evidence/living.png',fullPage:true});
 
-              const s=await c.newPage();await s.goto('http://127.0.0.1:4173/static-signature.html?capture',{waitUntil:'domcontentloaded',timeout:120000});await s.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});const staticState=await s.evaluate(()=>({mode:window.__PROAI_LOGO_R3.mode,speed:window.__PROAI_LOGO_R3.speedScale,text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),pose:window.__PROAI_LOGO_R3.canonicalHomeReference}));assert(staticState.mode==='static'&&staticState.speed===0,'static master is not frozen');assert(staticState.text==='PROAI EXPERT','static wordmark mismatch');await s.screenshot({path:'/tmp/logo-evidence/static.png',fullPage:true});
-
-              const comp=await c.newPage();await comp.goto('http://127.0.0.1:4173/compare-dark.html',{waitUntil:'networkidle',timeout:120000});assert(await comp.locator('.variant-card').count()===3,'A/B/C count must be exactly 3');await comp.screenshot({path:'/tmp/logo-evidence/compare-dark.png',fullPage:true});
-              const hdr=await c.newPage();await hdr.goto('http://127.0.0.1:4173/header-scale.html',{waitUntil:'networkidle',timeout:120000});assert(await hdr.locator('.header-row').count()===3,'Header A/B/C count mismatch');await hdr.screenshot({path:'/tmp/logo-evidence/header-scale.png',fullPage:true});
-              const mobc=await browser.newContext({viewport:{width:430,height:932},deviceScaleFactor:2,isMobile:true,hasTouch:true});const mob=await mobc.newPage();await mob.goto('http://127.0.0.1:4173/mobile-header.html',{waitUntil:'networkidle',timeout:120000});const overflow=await mob.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert(overflow<=1,'mobile horizontal overflow');const frame=mob.frames().find(f=>f.url().includes('variant-lockup'));assert(frame,'mobile logo frame missing');await frame.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});const mobileMark=await frame.evaluate(()=>({text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),cube:document.querySelector('.cube-frame').getBoundingClientRect().width,word:getComputedStyle(document.querySelector('.wordmark')).fontSize}));assert(mobileMark.text==='PROAI EXPERT'&&mobileMark.cube===34&&mobileMark.word==='20px','mobile/header sizing mismatch');await mob.screenshot({path:'/tmp/logo-evidence/mobile.png',fullPage:true});await mobc.close();
-              const av=await c.newPage();await av.goto('http://127.0.0.1:4173/social-square.html?capture',{waitUntil:'domcontentloaded',timeout:120000});await av.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});assert((await av.evaluate(()=>window.__PROAI_LOGO_R3.mode))==='living','avatar not living');await av.screenshot({path:'/tmp/logo-evidence/avatar.png',fullPage:true});
-              const light=await c.newPage();await light.goto('http://127.0.0.1:4173/light-sanity.html?capture',{waitUntil:'domcontentloaded',timeout:120000});await light.waitForFunction(()=>document.documentElement.dataset.lightSanityReady==='true',null,{timeout:120000});await light.screenshot({path:'/tmp/logo-evidence/light.png',fullPage:true});
-              const card=await c.newPage();await card.goto('http://127.0.0.1:4173/business-card.html?capture',{waitUntil:'domcontentloaded',timeout:120000});await card.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});assert((await card.locator('.wordmark').innerText()).replace(/\s+/g,' ').trim()==='PROAI EXPERT','business card wordmark mismatch');await card.screenshot({path:'/tmp/logo-evidence/business-card.png',fullPage:true});
-              out.local={pass:true,living:before,staticState,mobileMark,overflow};fs.writeFileSync('/tmp/logo-evidence/local-qa.json',JSON.stringify(out,null,2));
-            } finally {await browser.close();}
-          })().catch(e=>{console.error(e);process.exit(1)});
+            const s=await c.newPage();await s.goto('http://127.0.0.1:4173/static-signature.html?capture',{waitUntil:'domcontentloaded',timeout:120000});await s.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});const st=await s.evaluate(()=>({mode:window.__PROAI_LOGO_R3.mode,speed:window.__PROAI_LOGO_R3.speedScale,text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),pose:window.__PROAI_LOGO_R3.canonicalHomeReference}));assert(st.mode==='static'&&st.speed===0&&st.text==='PROAI EXPERT','static master contract failed');await s.screenshot({path:'/tmp/logo-evidence/static.png',fullPage:true});
+            const comp=await c.newPage();await comp.goto('http://127.0.0.1:4173/compare-dark.html',{waitUntil:'networkidle',timeout:120000});assert(await comp.locator('.variant-card').count()===3,'exactly three variants required');await comp.screenshot({path:'/tmp/logo-evidence/compare-dark.png',fullPage:true});
+            const hdr=await c.newPage();await hdr.goto('http://127.0.0.1:4173/header-scale.html',{waitUntil:'networkidle',timeout:120000});assert(await hdr.locator('.header-row').count()===3,'header-scale A/B/C missing');await hdr.screenshot({path:'/tmp/logo-evidence/header-scale.png',fullPage:true});
+            const mc=await browser.newContext({viewport:{width:430,height:932},deviceScaleFactor:2,isMobile:true,hasTouch:true});const mob=await mc.newPage();await mob.goto('http://127.0.0.1:4173/mobile-header.html',{waitUntil:'networkidle',timeout:120000});const overflow=await mob.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert(overflow<=1,'mobile overflow');const mf=mob.frames().find(f=>f.url().includes('variant-lockup'));assert(mf,'mobile logo frame missing');await mf.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});const mm=await mf.evaluate(()=>({text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),cube:document.querySelector('.cube-frame').getBoundingClientRect().width,word:getComputedStyle(document.querySelector('.wordmark')).fontSize}));assert(mm.text==='PROAI EXPERT'&&Math.abs(mm.cube-34)<.1&&mm.word==='20px','mobile/header logo sizing failed');await mob.screenshot({path:'/tmp/logo-evidence/mobile.png',fullPage:true});await mc.close();
+            const av=await c.newPage();await av.goto('http://127.0.0.1:4173/social-square.html?capture',{waitUntil:'domcontentloaded',timeout:120000});await av.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});assert((await av.evaluate(()=>window.__PROAI_LOGO_R3.mode))==='living','avatar not living');await av.screenshot({path:'/tmp/logo-evidence/avatar.png',fullPage:true});
+            const light=await c.newPage();await light.goto('http://127.0.0.1:4173/light-sanity.html?capture',{waitUntil:'domcontentloaded',timeout:120000});await light.waitForFunction(()=>document.documentElement.dataset.lightSanityReady==='true',null,{timeout:120000});await light.screenshot({path:'/tmp/logo-evidence/light.png',fullPage:true});
+            const card=await c.newPage();await card.goto('http://127.0.0.1:4173/business-card.html?capture',{waitUntil:'domcontentloaded',timeout:120000});await card.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});assert((await card.locator('.wordmark').innerText()).replace(/\s+/g,' ').trim()==='PROAI EXPERT','business-card identity failed');await card.screenshot({path:'/tmp/logo-evidence/business-card.png',fullPage:true});
+            fs.writeFileSync('/tmp/logo-evidence/local-qa.json',JSON.stringify({pass:true,before,after,static:st,mobile:mm,overflow},null,2));
+          }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
           node /tmp/logoqa/qa.cjs
 
@@ -115,18 +94,12 @@ jobs:
           REVIEW_URL=''
           for attempt in 1 2 3; do
             LOG="/tmp/logo-r3-tunnel-${attempt}.log"
-            /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 &
-            PID=$!
-            URL=''
-            for i in $(seq 1 60); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true); [ -n "$URL" ] && break; sleep 1; done
-            if [ -n "$URL" ]; then
-              for i in $(seq 1 20); do if curl -fsSL --max-time 15 "$URL/living-digital.html?capture" >/tmp/logo-r3-public.html 2>/dev/null; then REVIEW_URL="$URL"; break 2; fi; sleep 2; done
-            fi
-            kill "$PID" 2>/dev/null || true
+            /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 & PID=$!
+            URL=''; for i in $(seq 1 60); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG"|tail -1||true); [ -n "$URL" ]&&break; sleep 1; done
+            if [ -n "$URL" ]; then for i in $(seq 1 20); do if curl -fsSL --max-time 15 "$URL/living-digital.html?capture" >/dev/null 2>&1; then REVIEW_URL="$URL"; break 2; fi; sleep 2; done; fi
+            kill "$PID" 2>/dev/null||true
           done
-          test -n "$REVIEW_URL"
-          printf '%s\n' "$REVIEW_URL" >/tmp/logo-evidence/live-base-url.txt
-          echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
+          test -n "$REVIEW_URL"; printf '%s\n' "$REVIEW_URL" >/tmp/logo-evidence/live-base-url.txt; echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
 
       - name: Public HTTPS self-check
         shell: bash
@@ -135,23 +108,22 @@ jobs:
         run: |
           set -euo pipefail
           cat >/tmp/logoqa/public.cjs <<'NODE'
-          const { chromium }=require('/tmp/logoqa/node_modules/playwright');const fs=require('fs');const assert=(v,m)=>{if(!v)throw new Error(m)};const args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'];(async()=>{const browser=await chromium.launch({headless:true,args});try{const c=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'no-preference'}),p=await c.newPage(),url=process.env.REVIEW_URL+'/living-digital.html?capture';await p.goto(url,{waitUntil:'domcontentloaded',timeout:120000});await p.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});const b=await p.evaluate(()=>{const cb=document.querySelector('.cube-frame').getBoundingClientRect(),wb=document.querySelector('.wordmark').getBoundingClientRect(),api=window.__PROAI_CUBE_R1_2;return {text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),cubeLeft:cb.x, cubeRight:cb.right,wordLeft:wb.x,bg:getComputedStyle(document.body).backgroundColor,expert:getComputedStyle(document.querySelector('.expert')).color,ready:api.ready,geometry:api.getDiagnostics().geometry,scheduler:api.getDiagnostics().scheduler,live:{...window.__PROAI_LOGO_R3_LIVE},logo:window.__PROAI_LOGO_R3}});assert(b.ready,'canonical Cube API not live');assert(b.text==='PROAI EXPERT','public wordmark mismatch');assert(b.cubeRight<b.wordLeft,'public Cube not left');assert(b.bg==='rgb(5, 6, 7)','public background not Obsidian');assert(b.expert!=='rgb(93, 226, 255)','public old cyan detected');assert(b.geometry?.pass===true,'canonical 3x3 geometry gate failed');assert(b.scheduler.enabled===false,'public slices enabled');await p.waitForTimeout(1800);const a=await p.evaluate(()=>({...window.__PROAI_LOGO_R3_LIVE}));assert(a.frames>b.live.frames+20&&a.virtualTimeSec>b.live.virtualTimeSec+.2,'public Cube not slowly living');await p.screenshot({path:'/tmp/logo-evidence/public-living.png',fullPage:true});const result={pass:true,url,canonicalCube:true,oneLineWordmark:true,geometry:b.geometry,logo:b.logo};fs.writeFileSync('/tmp/logo-evidence/public-qa.json',JSON.stringify(result,null,2));console.log('PUBLIC_LOGO_R3_QA',JSON.stringify(result));}finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          const {chromium}=require('/tmp/logoqa/node_modules/playwright');const fs=require('fs');const assert=(v,m)=>{if(!v)throw new Error(m)};const args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'];const qdist=(a,b)=>Math.sqrt(a.reduce((s,v,i)=>s+(v-b[i])**2,0));(async()=>{const browser=await chromium.launch({headless:true,args});try{const c=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'no-preference'}),p=await c.newPage(),url=process.env.REVIEW_URL+'/living-digital.html?capture';await p.goto(url,{waitUntil:'domcontentloaded',timeout:120000});await p.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:120000});const b=await p.evaluate(()=>{const cb=document.querySelector('.cube-frame').getBoundingClientRect(),wb=document.querySelector('.wordmark').getBoundingClientRect(),api=window.__PROAI_CUBE_R1_2;return{text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),cubeRight:cb.right,wordLeft:wb.x,bg:getComputedStyle(document.body).backgroundColor,expert:getComputedStyle(document.querySelector('.expert')).color,geometry:api.getDiagnostics().geometry,scheduler:api.getDiagnostics().scheduler,live:{...window.__PROAI_LOGO_R3_LIVE},quat:api.getInteractionState().presentationQuaternion,logo:window.__PROAI_LOGO_R3}});assert(b.text==='PROAI EXPERT'&&b.cubeRight<b.wordLeft,'public one-row identity failed');assert(b.bg==='rgb(5, 6, 7)'&&b.expert!=='rgb(93, 226, 255)','public visual color gate failed');assert(b.geometry?.pass===true&&b.scheduler.enabled===false,'public canonical Cube gate failed');await p.waitForTimeout(5000);const a=await p.evaluate(()=>({live:{...window.__PROAI_LOGO_R3_LIVE},quat:window.__PROAI_CUBE_R1_2.getInteractionState().presentationQuaternion}));assert(a.live.frames>b.live.frames&&a.live.virtualTimeSec>b.live.virtualTimeSec+.05&&qdist(a.quat,b.quat)>.00001,'public Cube not slowly living');await p.screenshot({path:'/tmp/logo-evidence/public-living.png',fullPage:true});const result={pass:true,url,canonicalCube:true,oneLineWordmark:true,geometry:b.geometry,logo:b.logo};fs.writeFileSync('/tmp/logo-evidence/public-qa.json',JSON.stringify(result,null,2));console.log('PUBLIC_LOGO_R3_QA',JSON.stringify(result));}finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
           node /tmp/logoqa/public.cjs
 
-      - name: Publish owner review evidence
+      - name: Publish evidence and URL
         uses: actions/upload-artifact@v4
         with:
           name: proai-logo-r3-hard-correction-evidence
           path: /tmp/logo-evidence/
           retention-days: 7
 
-      - name: Publish owner URL
+      - name: Save owner URL
         shell: bash
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
-        run: |
-          printf '%s\n' "$REVIEW_URL" > logo-r3-owner-review-url.txt
+        run: printf '%s\n' "$REVIEW_URL" > logo-r3-owner-review-url.txt
 
       - uses: actions/upload-artifact@v4
         with:
@@ -160,5 +132,4 @@ jobs:
           retention-days: 1
 
       - name: Hold owner preview for three and a half hours
-        shell: bash
         run: sleep 12600

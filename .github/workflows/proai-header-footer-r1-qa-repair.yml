@@ -1,0 +1,33 @@
+name: Repair ProAI Header Footer R1 QA
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-footer-r1-qa-repair.yml]
+permissions:
+  contents: write
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-header-footer-logo-r1
+      - name: Add Pillow dependency and remove repair workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/proai-header-footer-r1-build-qa.yml')
+          s=p.read_text()
+          needle='          git show b1500199cebec05b0ce1fc802296471a36d0c060:docs/site-evolution/brand/proai-logo-canonical-cube-r3/r341/proai-logo-r341-static-optical-master-2048.png > /tmp/r341-master.png\n'
+          assert needle in s
+          s=s.replace(needle,needle+'          python3 -m pip install --quiet pillow\n',1)
+          p.write_text(s)
+          PY
+          git rm .github/workflows/proai-header-footer-r1-qa-repair.yml
+          git config user.name "ProAI Builder"
+          git config user.email "proai.expert2026@gmail.com"
+          git add .github/workflows/proai-header-footer-r1-build-qa.yml
+          git commit -m "chore: add image dependency to Header Footer QA"
+          git push origin HEAD:agent/proai-header-footer-logo-r1

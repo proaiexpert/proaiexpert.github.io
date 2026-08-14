@@ -24,4 +24,4 @@ const clear=`function clearSemanticReviewState(){if(!semanticReady)return false;
 rx(/function clearSemanticReviewState\(\) \{[\s\S]*?\n\}\n\nfunction semanticTimelineState/,`${clear}\n\nfunction semanticTimelineState`,'clear state');
 one('    textMeshCount: semanticTextMeshes.length,\n',`    textMeshCount: semanticTextMeshes.length,\n    materialModel: 'MeshPhysicalMaterial / tone-mapped Pearl-Silver inlay',\n    materialPalette: SEMANTIC_R4_MATERIAL_PALETTE,\n    seamAwareOcclusion: true,\n    seamMaskSource: semanticMaskTexture?.userData?.semanticSeamMask?.source || null,\n`,'diagnostics');
 fs.writeFileSync(file,source);
-console.log(JSON.stringify({material:'MeshPhysicalMaterial / tone-mapped Pearl-Silver inlay',surfaceMaxOpacity:.032,palette:SEMANTIC_R4_MATERIAL_PALETTE,seamAwareOcclusion:true,microHalo:false,uvSweep:false,selfLitShader:false},null,2));
+console.log(JSON.stringify({material:'MeshPhysicalMaterial / tone-mapped Pearl-Silver inlay',surfaceMaxOpacity:.032,palette:{shadowMetal:'#6F757B',midSilver:'#9EA6AC',pearlSilver:'#D6D7D3',peakReflection:'#ECECE8'},seamAwareOcclusion:true,microHalo:false,uvSweep:false,selfLitShader:false},null,2));

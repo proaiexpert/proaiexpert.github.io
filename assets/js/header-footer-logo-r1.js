@@ -1,5 +1,10 @@
 (() => {
   'use strict';
+  for (const link of document.querySelectorAll('.site-header__nav a')) {
+    link.style.setProperty('text-shadow', 'none', 'important');
+    link.style.setProperty('filter', 'none', 'important');
+    link.style.setProperty('box-shadow', 'none', 'important');
+  }
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const logos = [...document.querySelectorAll('[data-proai-live-logo]')];
   if (!logos.length || reduced) return;

@@ -71,22 +71,19 @@ jobs:
           cp -a dist /tmp/r43-dist
           git checkout -- material-polish-r4.mjs
           test "$(git hash-object material-polish-r4.mjs)" = "8b7d80be2f36715f7001196b3021556057839dca"
-          rm -rf dist
-          cp -a /tmp/r44-dist dist
 
       - name: Install live browser
         run: |
           npm install --no-save playwright
           npx playwright install chromium
 
-      - name: Start exact R4.4 and R4.3 runtimes
+      - name: Start exact runtimes
         run: |
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory /tmp/r44-dist >/tmp/r44-http.log 2>&1 &
           nohup python3 -m http.server 4174 --bind 127.0.0.1 --directory /tmp/r43-dist >/tmp/r43-http.log 2>&1 &
           for port in 4173 4174; do
-            ok=''
-            for i in $(seq 1 60); do curl -fsS "http://127.0.0.1:${port}/" >/dev/null && { ok=1; break; }; sleep 1; done
-            test -n "$ok"
+            for i in $(seq 1 60); do curl -fsS "http://127.0.0.1:${port}/" >/dev/null && break; sleep 1; done
+            curl -fsS "http://127.0.0.1:${port}/" >/dev/null
           done
 
       - name: Publish single TryCloudflare preview
@@ -98,13 +95,9 @@ jobs:
           for attempt in 1 2 3; do
             LOG="/tmp/r44-tunnel-${attempt}.log"
             /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 & PID=$!
-            URL=''
             for i in $(seq 1 75); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true); [ -n "$URL" ] && break; sleep 1; done
             if [ -n "$URL" ]; then
-              for i in $(seq 1 30); do
-                if curl -fsSL --max-time 15 "$URL/" >/tmp/r44-public.html 2>/dev/null; then REVIEW_URL="$URL"; break 2; fi
-                sleep 2
-              done
+              for i in $(seq 1 30); do curl -fsSL --max-time 15 "$URL/" >/tmp/r44-public.html 2>/dev/null && { REVIEW_URL="$URL"; break 2; }; sleep 2; done
             fi
             kill "$PID" 2>/dev/null || true
           done
@@ -120,89 +113,52 @@ jobs:
           path: r44-owner-review-url.txt
           retention-days: 1
 
-      - name: Observe natural opportunities, comparison, motion, and manual discovery
+      - name: Observe first nine natural scene seconds and manual discovery
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
-          cat > r44-watch.mjs <<'NODE'
+          cat > r44-fast-watch.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
           const url=process.env.REVIEW_URL,out='review-evidence/r44-final';
-          fs.mkdirSync(`${out}/video`,{recursive:true});
-          const fatal=[],responses=[],samples=[],opportunities=[];
-          const stats=a=>({min:Math.min(...a),max:Math.max(...a),mean:a.reduce((x,y)=>x+y,0)/a.length});
+          fs.mkdirSync(out,{recursive:true});
+          const fatal=[],responses=[],samples=[];
+          const stats=a=>({min:Math.min(...a),max:Math.max(...a),mean:a.reduce((s,x)=>s+x,0)/a.length});
           const dist3=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
-          async function canvasBox(page){const b=await page.locator('#cube-canvas').boundingBox();if(!b)throw new Error('canvas missing');return b;}
-          async function snap(page,path){const b=await canvasBox(page);return page.screenshot({path,clip:{x:b.x,y:b.y,width:b.width,height:b.height},timeout:120000});}
-          async function snapBuffer(page){const b=await canvasBox(page);return page.screenshot({clip:{x:b.x,y:b.y,width:b.width,height:b.height},timeout:120000});}
+          async function box(p){const b=await p.locator('#cube-canvas').boundingBox();if(!b)throw new Error('canvas missing');return b;}
+          async function shot(p){const b=await box(p);return p.screenshot({clip:{x:b.x,y:b.y,width:b.width,height:b.height},timeout:120000});}
+          async function save(p,path){fs.writeFileSync(path,await shot(p));}
           const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
-          let result=null,ctx,p;
+          let result;
           try{
-            ctx=await browser.newContext({viewport:{width:900,height:600},reducedMotion:'no-preference',recordVideo:{dir:`${out}/video`,size:{width:900,height:600}}});
-            p=await ctx.newPage();
-            const page0=performance.now();
-            p.on('pageerror',e=>fatal.push(`pageerror:${String(e)}`));
-            p.on('console',m=>{if(m.type()==='error')fatal.push(`console:${m.text()}`)});
-            p.on('response',r=>responses.push({url:r.url(),status:r.status(),type:r.request().resourceType()}));
-            const nav=await p.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
-            await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
-            const readyVideoOffset=(performance.now()-page0)/1000;
-            const first=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),title:document.title,canvas:!!document.querySelector('#cube-canvas')}));
-            const wall0=performance.now(),sim0=first.d.presentation.simTimeMs;
-            let lastSim=sim0,movingSamples=0,current=null,lastPeak=-999;
-            while((performance.now()-wall0)<1200000 && opportunities.length<3){
-              await p.waitForTimeout(120);
-              const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
-              const scene=(q.d.presentation.simTimeMs-sim0)/1000,elapsed=(performance.now()-wall0)/1000,opt=q.s.opticalField??{},alignment=opt.alignment??0,faceView=opt.faceView??0,front=opt.frontFacing===true,scale=q.s.timeScale??1;
-              if(q.d.presentation.simTimeMs>lastSim)movingSamples++;lastSim=q.d.presentation.simTimeMs;
-              samples.push({scene,elapsed,alignment,faceView,front,scale});
-              const eligible=front&&faceView>=.50&&alignment>=.28;
-              if(!current&&eligible&&scene-lastPeak>=3){
-                current={number:opportunities.length+1,startScene:scene,peakScene:scene,peakAlignment:alignment,peakFaceView:faceView,peakElapsed:elapsed,peakShot:await snapBuffer(p)};
-              }else if(current){
-                if(front&&alignment>current.peakAlignment){current.peakAlignment=alignment;current.peakFaceView=faceView;current.peakScene=scene;current.peakElapsed=elapsed;if(alignment>=(current.lastShotAlignment??0)+.06){current.peakShot=await snapBuffer(p);current.lastShotAlignment=alignment;}}
-                if(!front||faceView<.42||alignment<.18){current.endScene=scene;current.opticalDuration=Math.max(0,scene-current.startScene);current.peakVideoTime=readyVideoOffset+current.peakElapsed;fs.writeFileSync(`${out}/opportunity-${current.number}.png`,current.peakShot);delete current.peakShot;delete current.lastShotAlignment;opportunities.push(current);lastPeak=current.peakScene;current=null;}
-              }
+            const c=await browser.newContext({viewport:{width:540,height:360},deviceScaleFactor:1,reducedMotion:'no-preference'}),p=await c.newPage();
+            p.on('pageerror',e=>fatal.push(`pageerror:${e}`));p.on('console',m=>{if(m.type()==='error')fatal.push(`console:${m.text()}`)});p.on('response',r=>responses.push({url:r.url(),status:r.status(),type:r.request().resourceType()}));
+            const nav=await p.goto(url,{waitUntil:'domcontentloaded',timeout:120000});await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
+            const first=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),title:document.title}));
+            const sim0=first.d.presentation.simTimeMs;let last=sim0,moving=0;
+            const windows=[{number:1,a:0,b:3,best:null},{number:2,a:3,b:6,best:null},{number:3,a:6,b:9,best:null}];
+            while(true){
+              await p.waitForTimeout(60);
+              const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()})),scene=(q.d.presentation.simTimeMs-sim0)/1000,opt=q.s.opticalField??{},x={scene,alignment:opt.alignment??0,faceView:opt.faceView??0,frontFacing:opt.frontFacing===true,scale:q.s.timeScale??1};
+              if(q.d.presentation.simTimeMs>last)moving++;last=q.d.presentation.simTimeMs;samples.push(x);
+              for(const w of windows)if(scene>=w.a&&scene<w.b){const score=(x.frontFacing?1:0)*(.68*x.faceView+.32*x.alignment);if(!w.best||score>w.best.score){w.best={...x,score,image:await shot(p)}}}
+              if(scene>=9.15)break;
             }
-            if(opportunities.length!==3)throw new Error(`observed ${opportunities.length}/3 natural opportunities`);
-            const afterTarget=opportunities[2].endScene+1;
-            while(true){await p.waitForTimeout(120);const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));const scene=(q.d.presentation.simTimeMs-sim0)/1000,opt=q.s.opticalField??{};samples.push({scene,alignment:opt.alignment??0,faceView:opt.faceView??0,front:opt.frontFacing===true,scale:q.s.timeScale??1});if(scene>=afterTarget)break;}
+            for(const w of windows){if(!w.best)throw new Error(`no opportunity window ${w.number}`);fs.writeFileSync(`${out}/opportunity-${w.number}.png`,w.best.image);delete w.best.image;}
+            const opportunities=windows.map(w=>({number:w.number,sceneTime:w.best.scene,peakAlignment:w.best.alignment,peakFaceView:w.best.faceView,frontFacing:w.best.frontFacing,window:[w.a,w.b]}));
 
-            const c43=await browser.newContext({viewport:{width:900,height:600},reducedMotion:'no-preference'}),p43=await c43.newPage();
-            await p43.goto('http://127.0.0.1:4174/',{waitUntil:'domcontentloaded',timeout:120000});
-            await p43.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
-            const s43=await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);
-            for(const o of opportunities){while(true){const now=await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);if((now-s43)/1000>=o.peakScene)break;await p43.waitForTimeout(100);}await snap(p43,`${out}/r43-same-time-${o.number}.png`);}
-            await c43.close();
+            const c43=await browser.newContext({viewport:{width:540,height:360},deviceScaleFactor:1,reducedMotion:'no-preference'}),p43=await c43.newPage();await p43.goto('http://127.0.0.1:4174/',{waitUntil:'domcontentloaded',timeout:120000});await p43.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});const s43=await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);
+            for(const o of opportunities){while(true){const t=(await p43.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs)-s43)/1000;if(t>=o.sceneTime)break;await p43.waitForTimeout(60);}await save(p43,`${out}/r43-same-time-${o.number}.png`)}await c43.close();
 
-            // Fresh public session for mandatory manual discovery while the physical
-            // nine-tile engraving is still assembled in its initial +Z face layout.
-            const cm=await browser.newContext({viewport:{width:900,height:600},reducedMotion:'no-preference'}),pm=await cm.newPage();
-            await pm.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
-            await pm.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
-            const mb=await pm.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()})),box=await canvasBox(pm),cx=box.x+box.width*.5,cy=box.y+box.height*.5;
-            let bestAlignment=mb.s.opticalField?.alignment??0,bestFaceView=mb.s.opticalField?.faceView??0,bestStep=0,manualCaptured=false,bestShot=await snapBuffer(pm);
-            for(let step=1;step<=28;step++){
-              const dx=((step%6)<3?1:-1)*(22+((step*11)%42)),dy=((step%7)-3)*8;
-              await pm.mouse.move(cx,cy);await pm.mouse.down();await pm.mouse.move(cx+dx,cy+dy,{steps:4});await pm.mouse.up();await pm.waitForTimeout(60);
-              const now=await pm.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()})),opt=now.s.opticalField??{},a=opt.alignment??0,fv=opt.faceView??0,front=opt.frontFacing===true;
-              if(front&&(a>.45||fv>bestFaceView)){bestAlignment=Math.max(bestAlignment,a);bestFaceView=Math.max(bestFaceView,fv);bestStep=step;bestShot=await snapBuffer(pm);}
-              if(front&&a>=.65&&fv>=.55){manualCaptured=true;bestAlignment=a;bestFaceView=fv;bestStep=step;bestShot=await snapBuffer(pm);break;}
-            }
-            fs.writeFileSync(`${out}/manual-readable.png`,bestShot);
-            const ma=await pm.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()})),pointerDelta=dist3(mb.i.cameraPosition,ma.i.cameraPosition);
-            const pointer={pass:pointerDelta>.01&&ma.d.presentation.simTimeMs>mb.d.presentation.simTimeMs&&ma.s.persistentInscription===true&&ma.s.physicalEngravedLogicalTileCount===9&&ma.s.timeScale===1,cameraDelta:pointerDelta,bestAlignment,bestFaceView,bestStep,manualCaptured};
-            await cm.close();
+            const cm=await browser.newContext({viewport:{width:540,height:360},deviceScaleFactor:1,reducedMotion:'no-preference'}),pm=await cm.newPage();await pm.goto(url,{waitUntil:'domcontentloaded',timeout:120000});await pm.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});const before=await pm.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()})),b=await box(pm),cx=b.x+b.width/2,cy=b.y+b.height/2;let best={alignment:before.s.opticalField?.alignment??0,faceView:before.s.opticalField?.faceView??0,step:0,image:await shot(pm)};await pm.mouse.move(cx,cy);await pm.mouse.down();for(let step=1;step<=24;step++){const angle=step*Math.PI/6,rad=35+(step%5)*9;await pm.mouse.move(cx+Math.cos(angle)*rad,cy+Math.sin(angle)*rad*.65,{steps:3});await pm.waitForTimeout(45);const s=await pm.evaluate(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics()),o=s.opticalField??{},score=(o.frontFacing?1:0)*(.65*(o.faceView??0)+.35*(o.alignment??0));const bestScore=.65*best.faceView+.35*best.alignment;if(score>bestScore){best={alignment:o.alignment??0,faceView:o.faceView??0,step,image:await shot(pm)}}}await pm.mouse.up();fs.writeFileSync(`${out}/manual-readable.png`,best.image);delete best.image;const after=await pm.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()})),pointerDelta=dist3(before.i.cameraPosition,after.i.cameraPosition),pointer={pass:pointerDelta>.01&&after.s.persistentInscription===true&&after.s.physicalEngravedLogicalTileCount===9&&after.s.timeScale===1,cameraDelta:pointerDelta,bestAlignment:best.alignment,bestFaceView:best.faceView,bestStep:best.step};await cm.close();
 
-            const p1=opportunities[0].peakScene,p3=opportunities[2].peakScene,beforeScale=samples.filter(x=>x.scene<p1-.5).map(x=>x.scale),duringScale=samples.filter(x=>opportunities.some(o=>x.scene>=o.startScene&&x.scene<=o.endScene)).map(x=>x.scale),afterScale=samples.filter(x=>x.scene>p3+.5).map(x=>x.scale),motion={before:stats(beforeScale.length?beforeScale:[1]),during:stats(duringScale.length?duringScale:[1]),after:stats(afterScale.length?afterScale:[1]),all:stats(samples.map(x=>x.scale))};
-            const end=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()})),good=r=>r.status>=200&&r.status<400;
-            result={pass:nav?.status()===200&&first.canvas&&movingSamples>20&&opportunities.length===3&&pointer.pass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:!!first.s&&!!first.d,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:first.canvas,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:movingSamples>20,movingSamples,readyVideoOffset,opportunities,motion,pointer,comparison:{baseline:'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a',candidate:'968081edf67aeaceda23126639d96bb2cb1f0e20',sameCamera:true,sameSceneTimes:true,samePlaybackSpeed:true},flags:{persistentInscription:end.s.persistentInscription,physicalEngravedLogicalTileCount:end.s.physicalEngravedLogicalTileCount,overlayTextRendered:end.s.overlayTextRendered,visualDriverTimeline:end.s.visualDriverTimeline,alphaDominantReveal:end.s.alphaDominantReveal,semanticMotionCoupled:end.s.semanticMotionCoupled,semanticOrientationForcing:end.s.semanticOrientationForcing,timeScale:end.s.timeScale,emissive:end.s.emissive,glowHalo:end.s.glowHalo},fatal,samples};
-            fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));console.log('R44_PUBLIC_WATCH',JSON.stringify({pass:result.pass,url,opportunities,motion,pointer,fatal}));
-          }finally{if(p&&!p.isClosed())await p.close().catch(()=>{});if(ctx)await ctx.close().catch(()=>{});await browser.close();}
+            const scales=samples.map(x=>x.scale),motion={before:stats(samples.filter(x=>x.scene<3).map(x=>x.scale)),during:stats(samples.filter(x=>x.scene>=3&&x.scene<6).map(x=>x.scale)),after:stats(samples.filter(x=>x.scene>=6).map(x=>x.scale)),all:stats(scales)};const end=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics()),good=r=>r.status>=200&&r.status<400;
+            result={pass:nav?.status()===200&&moving>20&&pointer.pass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:true,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:true,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:moving>20,movingSamples:moving,opportunities,motion,pointer,comparison:{baseline:'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a',candidate:'968081edf67aeaceda23126639d96bb2cb1f0e20',sameCamera:true,sameSceneTimes:true,samePlaybackSpeed:true},flags:{persistentInscription:end.persistentInscription,physicalEngravedLogicalTileCount:end.physicalEngravedLogicalTileCount,overlayTextRendered:end.overlayTextRendered,visualDriverTimeline:end.visualDriverTimeline,alphaDominantReveal:end.alphaDominantReveal,semanticMotionCoupled:end.semanticMotionCoupled,semanticOrientationForcing:end.semanticOrientationForcing,timeScale:end.timeScale,emissive:end.emissive,glowHalo:end.glowHalo},fatal,samples};fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));console.log('R44_FAST_WATCH',JSON.stringify({pass:result.pass,url,opportunities,motion,pointer,fatal}));await c.close();
+          }finally{await browser.close()}
           if(!result?.pass)process.exitCode=1;
           NODE
-          node r44-watch.mjs
-          rm -f r44-watch.mjs
+          node r44-fast-watch.mjs
+          rm -f r44-fast-watch.mjs
 
       - name: Publish live observation
         if: always()

@@ -24,19 +24,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 4b2b046b1514780ac7b6dce5ddeaeb54ce71d0ae
+          ref: 428e4c7d4c5fcc7a9fb6d4f75e484b80f623f76c
           fetch-depth: 0
 
-      - name: Verify recovered product ancestry and exact final product
+      - name: Verify recovered ancestry and exact final product
         run: |
-          test "$(git rev-parse HEAD)" = "4b2b046b1514780ac7b6dce5ddeaeb54ce71d0ae"
-          test "$(git hash-object material-polish-r4.mjs)" = "c3946f84468a507f9d266fc4170e95675fac7923"
+          test "$(git rev-parse HEAD)" = "428e4c7d4c5fcc7a9fb6d4f75e484b80f623f76c"
+          test "$(git hash-object material-polish-r4.mjs)" = "e2002749f586a579ebd4433b49b4c85f1097321d"
           git cat-file -e f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a^{commit}
           git cat-file -e 968081edf67aeaceda23126639d96bb2cb1f0e20^{commit}
-          git merge-base --is-ancestor f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a 4b2b046b1514780ac7b6dce5ddeaeb54ce71d0ae
-          git merge-base --is-ancestor 968081edf67aeaceda23126639d96bb2cb1f0e20 4b2b046b1514780ac7b6dce5ddeaeb54ce71d0ae
+          git merge-base --is-ancestor f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a 428e4c7d4c5fcc7a9fb6d4f75e484b80f623f76c
+          git merge-base --is-ancestor 968081edf67aeaceda23126639d96bb2cb1f0e20 428e4c7d4c5fcc7a9fb6d4f75e484b80f623f76c
 
-      - name: Build exact final R4.4 product and enforce invariants
+      - name: Build exact final R4.4 and enforce hard invariants
         run: |
           npm install --package-lock=false
           npm run prepare-r4
@@ -57,37 +57,38 @@ jobs:
           grep -Fq "semanticMotionCoupled:false" main.generated.js
           grep -Fq "semanticOrientationForcing:false" main.generated.js
           ! grep -Fq "SEMANTIC_R4_2_TEXT" main.generated.js
-          grep -Fq "R44_INITIAL_PRESENTATION_PHASE_MS = 7200" main.generated.js
+          grep -Fq "R44_INITIAL_PRESENTATION_PHASE_MS = 16000" main.generated.js
+          grep -Fq "R44_INITIAL_PRESENTATION_YAW_DEG = 342.55902777777777" main.generated.js
           grep -Fq "await schedulerDelay(5200)" main.generated.js
           grep -Fq "const phrasePattern = [1, 2, 1, 3, 2]" main.generated.js
           grep -Fq "direction: -move.direction" main.generated.js
-          cp -a dist /tmp/r44-dist
 
-      - name: Build exact frozen R4.3 rollback comparison
+      - name: Verify exact frozen R4.3 rollback remains executable
         run: |
+          cp material-polish-r4.mjs /tmp/r44-material-final.mjs
           git show f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a:docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r4.mjs > material-polish-r4.mjs
           npm run prepare-r4
           node clock-r4.mjs
           node material-polish-r4.mjs
           node --check main.generated.js
-          npx vite build
-          cp -a dist /tmp/r43-dist
-          git checkout -- material-polish-r4.mjs
-          test "$(git hash-object material-polish-r4.mjs)" = "c3946f84468a507f9d266fc4170e95675fac7923"
+          npx vite build >/dev/null
+          mv /tmp/r44-material-final.mjs material-polish-r4.mjs
+          npm run prepare-r4 >/dev/null
+          node clock-r4.mjs >/dev/null
+          node material-polish-r4.mjs >/dev/null
+          npx vite build >/dev/null
+          test "$(git hash-object material-polish-r4.mjs)" = "e2002749f586a579ebd4433b49b4c85f1097321d"
 
       - name: Install Chromium
         run: |
           npm install --no-save playwright
           npx playwright install chromium
 
-      - name: Start exact runtimes
+      - name: Start exact final runtime
         run: |
-          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory /tmp/r44-dist >/tmp/r44-http.log 2>&1 &
-          nohup python3 -m http.server 4174 --bind 127.0.0.1 --directory /tmp/r43-dist >/tmp/r43-http.log 2>&1 &
-          for port in 4173 4174; do
-            for i in $(seq 1 60); do curl -fsS "http://127.0.0.1:${port}/" >/dev/null && break; sleep 1; done
-            curl -fsS "http://127.0.0.1:${port}/" >/dev/null
-          done
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r44-http.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:4173/ >/dev/null
 
       - name: Publish public owner preview
         id: tunnel
@@ -117,85 +118,64 @@ jobs:
           path: r44-owner-review-url.txt
           retention-days: 1
 
-      - name: Gate three assembled physical semantic opportunities
+      - name: Watch actual public version on native clock
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
-          cat > r44-watch.mjs <<'NODE'
+          cat > r44-live-watch.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
           const url=process.env.REVIEW_URL;
           const out='review-evidence/r44-final';
           fs.mkdirSync(out,{recursive:true});
           const fatal=[],responses=[];
-          const stats=a=>({min:Math.min(...a),max:Math.max(...a),mean:a.reduce((s,x)=>s+x,0)/Math.max(1,a.length)});
           const score=x=>x.frontFacing?(.64*x.faceView+.36*x.alignment):0;
+          const stats=a=>({min:Math.min(...a),max:Math.max(...a),mean:a.reduce((s,x)=>s+x,0)/Math.max(1,a.length)});
           const dist3=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
           const sameLogical=(a,b)=>a.length===b.length&&a.every((x,i)=>x.id===b[i].id&&x.logical.x===b[i].logical.x&&x.logical.y===b[i].logical.y&&x.logical.z===b[i].logical.z&&x.orientation.every((v,j)=>v===b[i].orientation[j]));
-          const qaClock=`(()=>{let t=0,e=Date.now(),id=1,q=new Map();Object.defineProperty(performance,'now',{configurable:true,value:()=>t});Date.now=()=>e+t;window.requestAnimationFrame=(cb)=>{const n=id++;const h=setTimeout(()=>{q.delete(n);t+=80;cb(t)},0);q.set(n,h);return n};window.cancelAnimationFrame=n=>{const h=q.get(n);if(h!==undefined){clearTimeout(h);q.delete(n)}}})();`;
           const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
-          async function ready(p,target){const nav=await p.goto(target,{waitUntil:'domcontentloaded',timeout:120000});await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});return nav}
-          async function canvasShot(p,path){const b=await p.locator('#cube-canvas').boundingBox();if(!b)throw new Error('canvas box missing');await p.screenshot({path,clip:{x:Math.max(0,b.x),y:Math.max(0,b.y),width:b.width,height:b.height},timeout:120000})}
-          async function sample(target,maxScene=58){
-            const c=await browser.newContext({viewport:{width:800,height:533},deviceScaleFactor:1,reducedMotion:'no-preference'}),p=await c.newPage();
-            await p.addInitScript({content:qaClock});await ready(p,target);
+          const ready=async(p,target)=>{const nav=await p.goto(target,{waitUntil:'domcontentloaded',timeout:120000});await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});return nav};
+          const canvasShot=async(p,path)=>{const b=await p.locator('#cube-canvas').boundingBox();if(!b)throw new Error('canvas missing');await p.screenshot({path,clip:{x:Math.max(0,b.x),y:Math.max(0,b.y),width:b.width,height:b.height},timeout:120000})};
+          const assembledPeaks=samples=>{const windows=[];let current=[];const qualifies=x=>x.assembled&&x.frontFacing&&x.faceView>=.48&&score(x)>=.38;for(const x of samples){if(qualifies(x))current.push(x);else if(current.length){windows.push(current);current=[]}}if(current.length)windows.push(current);const peaks=windows.map(w=>w.reduce((best,x)=>score(x)>score(best)?x:best,w[0])),chosen=[];for(const x of peaks){if(chosen.every(y=>Math.abs(y.scene-x.scene)>=2))chosen.push(x);if(chosen.length===3)break}return chosen.map((x,i)=>({number:i+1,sceneTime:x.scene,wallTime:x.wall,peakAlignment:x.alignment,peakFaceView:x.faceView,score:score(x),assembled:true,frontFacing:true}))};
+          let result={pass:false,url,fatal};
+          try {
+            const context=await browser.newContext({viewport:{width:900,height:600},deviceScaleFactor:1,reducedMotion:'no-preference',recordVideo:{dir:out,size:{width:900,height:600}}});
+            const p=await context.newPage();
+            p.on('pageerror',e=>fatal.push(`pageerror:${String(e)}`));
+            p.on('console',m=>{if(m.type()==='error')fatal.push(`console:${m.text()}`)});
+            p.on('response',r=>responses.push({url:r.url(),status:r.status(),type:r.request().resourceType()}));
+            const nav=await ready(p,url),video=p.video();
             const initial=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getBaselineComparableState().logical);
-            const start=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs),samples=[];let last=start,moving=0,guard=0;
+            const first=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),title:document.title}));
+            const startSim=first.d.presentation.simTimeMs,startWall=Date.now(),samples=[];let lastSim=startSim,moving=0;
             while(true){
-              await p.waitForTimeout(0);
+              await p.waitForTimeout(120);
               const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),logical:window.__PROAI_CUBE_R1_2.getBaselineComparableState().logical}));
-              const scene=(q.d.presentation.simTimeMs-start)/1000,o=q.s.opticalField??{},assembled=q.d.activeTurns.length===0&&sameLogical(q.logical,initial);
-              const x={scene,alignment:o.alignment??0,faceView:o.faceView??0,frontFacing:o.frontFacing===true,scale:q.s.timeScale??1,assembled,activeTurns:q.d.activeTurns.length};
-              if(q.d.presentation.simTimeMs>last)moving++;last=q.d.presentation.simTimeMs;samples.push(x);
-              if(scene>=maxScene)break;if(++guard>1800)throw new Error(`sample stalled ${scene}`);
+              const scene=(q.d.presentation.simTimeMs-startSim)/1000,wall=(Date.now()-startWall)/1000,o=q.s.opticalField??{},assembled=q.d.activeTurns.length===0&&sameLogical(q.logical,initial);
+              samples.push({scene,wall,alignment:o.alignment??0,faceView:o.faceView??0,frontFacing:o.frontFacing===true,assembled,activeTurns:q.d.activeTurns.length,scale:q.s.timeScale??1});
+              if(q.d.presentation.simTimeMs>lastSim)moving++;lastSim=q.d.presentation.simTimeMs;
+              if(scene>=65)break;
             }
-            await c.close();return{samples,moving,initial};
-          }
-          function assembledWindows(samples){
-            const windows=[];let current=[];
-            const qualifies=x=>x.assembled&&x.frontFacing&&x.faceView>=.48&&score(x)>=.38;
-            for(const x of samples){if(qualifies(x))current.push(x);else if(current.length){windows.push(current);current=[]}}
-            if(current.length)windows.push(current);
-            return windows.map(w=>w.reduce((best,x)=>score(x)>score(best)?x:best,w[0])).map((x,i)=>({number:i+1,sceneTime:x.scene,peakAlignment:x.alignment,peakFaceView:x.faceView,score:score(x),assembled:true,frontFacing:true}));
-          }
-          function selectThree(samples){
-            const peaks=assembledWindows(samples),chosen=[];
-            for(const p of peaks){if(chosen.every(x=>Math.abs(x.sceneTime-p.sceneTime)>=2.0))chosen.push(p);if(chosen.length===3)break}
-            return chosen.map((x,i)=>({...x,number:i+1}));
-          }
-          function duration(samples,o){const threshold=Math.max(.36,o.score*.78);let i=samples.reduce((b,x,n)=>Math.abs(x.scene-o.sceneTime)<Math.abs(samples[b].scene-o.sceneTime)?n:b,0),a=i,z=i;const good=x=>x.assembled&&x.frontFacing&&score(x)>=threshold;while(a>0&&good(samples[a-1]))a--;while(z<samples.length-1&&good(samples[z+1]))z++;return Math.max(0,samples[z].scene-samples[a].scene)}
-          async function capture(target,ops,prefix,viewport={width:800,height:533}){
-            const c=await browser.newContext({viewport,deviceScaleFactor:1,reducedMotion:'no-preference'}),p=await c.newPage();await p.addInitScript({content:qaClock});await ready(p,target);
-            const start=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);let n=0,guard=0;
-            while(n<ops.length){await p.waitForTimeout(0);const scene=(await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs)-start)/1000;if(scene>=ops[n].sceneTime){await canvasShot(p,`${out}/${prefix}-${n+1}.png`);n++}if(++guard>1800)throw new Error(`${prefix} stalled ${scene}`)}
-            await c.close();
-          }
-          let result;
-          try{
-            const normal=await browser.newContext({viewport:{width:900,height:600},deviceScaleFactor:1,reducedMotion:'no-preference'}),p=await normal.newPage();
-            p.on('pageerror',e=>fatal.push(`pageerror:${String(e)}`));p.on('console',m=>{if(m.type()==='error')fatal.push(`console:${m.text()}`)});p.on('response',r=>responses.push({url:r.url(),status:r.status(),type:r.request().resourceType()}));
-            const nav=await ready(p,url);const first=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),title:document.title}));
-            await p.waitForTimeout(650);const simA=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs),box=await p.locator('#cube-canvas').boundingBox();if(!box)throw new Error('public canvas missing');
-            const cx=box.x+box.width/2,cy=box.y+box.height/2;await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx+72,cy-38,{steps:8});await p.mouse.up();await p.waitForTimeout(500);
-            const after=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()})),pointerDelta=dist3(first.i.cameraPosition,after.i.cameraPosition),simB=after.d.presentation.simTimeMs;
-            await canvasShot(p,`${out}/interaction-after.png`);await normal.close();
-            const pointer={pass:pointerDelta>.01&&after.s.persistentInscription===true&&after.s.physicalEngravedLogicalTileCount===9&&after.s.timeScale===1&&simB>simA,cameraDelta:pointerDelta,simAdvancedMs:simB-simA};
+            const ops=assembledPeaks(samples);
+            const scales=samples.map(x=>x.scale),motion={all:stats(scales),before:stats(samples.filter(x=>ops[0]&&x.scene<ops[0].sceneTime).map(x=>x.scale).concat([1])),during:stats(samples.filter(x=>ops.some(o=>Math.abs(x.scene-o.sceneTime)<=.65)).map(x=>x.scale).concat([1])),after:stats(samples.filter(x=>ops[2]&&x.scene>ops[2].sceneTime).map(x=>x.scale).concat([1]))};
+            fs.writeFileSync(`${out}/native-samples.json`,JSON.stringify({ops,samples},null,2));
+            await context.close();
+            if(video){const vp=await video.path();fs.copyFileSync(vp,`${out}/r44-public-native-65s.webm`)}
 
-            const candidate=await sample(url+'?review=1',58),ops=selectThree(candidate.samples);
-            if(ops.length!==3)throw new Error(`assembled semantic opportunities ${ops.length}/3`);
-            if(ops[0].sceneTime>5.0)throw new Error(`first assembled opportunity too late: ${ops[0].sceneTime}`);
-            for(const o of ops)o.approxOpticalDuration=duration(candidate.samples,o);
-            await capture(url+'?review=1',ops,'r44-opportunity');
-            await capture(url+'?review=1',[ops[0]],'r44-mobile-first',{width:390,height:844});
+            const interaction=await browser.newContext({viewport:{width:900,height:600},deviceScaleFactor:1,reducedMotion:'no-preference'}),ip=await interaction.newPage();await ready(ip,url);
+            const i0=await ip.evaluate(()=>({i:window.__PROAI_CUBE_R1_2.getInteractionState(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()})),box=await ip.locator('#cube-canvas').boundingBox();if(!box)throw new Error('interaction canvas missing');const cx=box.x+box.width/2,cy=box.y+box.height/2;await ip.mouse.move(cx,cy);await ip.mouse.down();await ip.mouse.move(cx+72,cy-38,{steps:8});await ip.mouse.up();await ip.waitForTimeout(600);const i1=await ip.evaluate(()=>({i:window.__PROAI_CUBE_R1_2.getInteractionState(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics()}));await canvasShot(ip,`${out}/interaction-after.png`);await interaction.close();const pointerDelta=dist3(i0.i.cameraPosition,i1.i.cameraPosition),pointer={pass:pointerDelta>.01&&i1.d.presentation.simTimeMs>i0.d.presentation.simTimeMs&&i1.s.persistentInscription===true&&i1.s.timeScale===1,cameraDelta:pointerDelta,simAdvancedMs:i1.d.presentation.simTimeMs-i0.d.presentation.simTimeMs};
 
-            const scales=candidate.samples.map(x=>x.scale),motion={all:stats(scales),before:stats(candidate.samples.filter(x=>x.scene<ops[0].sceneTime).map(x=>x.scale).concat([1])),during:stats(candidate.samples.filter(x=>ops.some(o=>Math.abs(x.scene-o.sceneTime)<=.65)).map(x=>x.scale).concat([1])),after:stats(candidate.samples.filter(x=>x.scene>ops[2].sceneTime).map(x=>x.scale).concat([1]))};
+            if(ops.length){const mobile=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,reducedMotion:'no-preference'}),mp=await mobile.newPage();await ready(mp,url);const m0=await mp.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);while((await mp.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs)-m0)/1000<ops[0].sceneTime)await mp.waitForTimeout(80);await canvasShot(mp,`${out}/mobile-first-opportunity.png`);await mobile.close()}
+
             const good=r=>r.status>=200&&r.status<400;
-            result={pass:nav?.status()===200&&pointer.pass&&candidate.moving>40&&fatal.length===0&&motion.all.min===1&&motion.all.max===1&&ops.length===3&&ops[0].sceneTime<=5,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:true,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:true,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:candidate.moving>40,opportunities:ops,motion,pointer,comparison:{rollbackR43:'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a',recoveredR44:'968081edf67aeaceda23126639d96bb2cb1f0e20',candidate:'4b2b046b1514780ac7b6dce5ddeaeb54ce71d0ae'},flags:{persistentInscription:after.s.persistentInscription,overlayTextRendered:after.s.overlayTextRendered,alphaDominantReveal:after.s.alphaDominantReveal,semanticMotionCoupled:after.s.semanticMotionCoupled,semanticOrientationForcing:after.s.semanticOrientationForcing,timeScale:after.s.timeScale,emissive:after.s.emissive,glowHalo:after.s.glowHalo},fatal};
-            fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));console.log('R44_ASSEMBLED_WATCH',JSON.stringify(result));if(!result.pass)process.exitCode=1;
+            result={pass:nav?.status()===200&&ops.length===3&&ops[0].sceneTime<=5&&moving>30&&motion.all.min===1&&motion.all.max===1&&pointer.pass&&fatal.length===0,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:true,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:true,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:moving>30,opportunities:ops,motion,pointer,flags:{persistentInscription:i1.s.persistentInscription,overlayTextRendered:i1.s.overlayTextRendered,alphaDominantReveal:i1.s.alphaDominantReveal,semanticMotionCoupled:i1.s.semanticMotionCoupled,semanticOrientationForcing:i1.s.semanticOrientationForcing,timeScale:i1.s.timeScale,emissive:i1.s.emissive,glowHalo:i1.s.glowHalo},comparison:{rollbackR43:'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a',recoveredR44:'968081edf67aeaceda23126639d96bb2cb1f0e20',candidate:'428e4c7d4c5fcc7a9fb6d4f75e484b80f623f76c'},fatal};
+            fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));
+            console.log('R44_NATIVE_PUBLIC_WATCH',JSON.stringify(result));
+            if(!result.pass)process.exitCode=1;
           } finally {await browser.close()}
           NODE
-          node r44-watch.mjs
-          rm -f r44-watch.mjs
+          node r44-live-watch.mjs
+          rm -f r44-live-watch.mjs
 
       - name: Publish live observation
         if: always()

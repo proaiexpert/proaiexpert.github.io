@@ -1,0 +1,85 @@
+name: ProAI Header Footer R1 Public Owner Review R2
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-footer-r1-public2.yml]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 230
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-header-footer-logo-r1
+          fetch-depth: 0
+      - name: Verify immutable sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 671186769f5ea88d3a36ef7ce199bddd555a0c3e HEAD
+          git merge-base --is-ancestor 735982473854c29a6f1eeeb4d87773abbc573b4d HEAD
+          test "$(git rev-parse 671186769f5ea88d3a36ef7ce199bddd555a0c3e:assets/css/homepage-hero-signature-r3.css)" = "$(git rev-parse HEAD:assets/css/homepage-hero-signature-r3.css)"
+          test "$(git rev-parse 671186769f5ea88d3a36ef7ce199bddd555a0c3e:assets/js/proai-hero-cube-r1/bootstrap.js)" = "$(git rev-parse HEAD:assets/js/proai-hero-cube-r1/bootstrap.js)"
+          test "$(git rev-parse 671186769f5ea88d3a36ef7ce199bddd555a0c3e:assets/js/proai-hero-cube-r1/source-materials-r1.js)" = "$(git rev-parse HEAD:assets/js/proai-hero-cube-r1/source-materials-r1.js)"
+          echo "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b  assets/models/proai-cube/rubik_39_s_cube_animation.glb" | sha256sum -c -
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+      - name: Build review environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+          curl -fsSL --retry 4 --retry-delay 2 -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          jekyll build --source . --destination _site >/dev/null
+      - name: Public HTTPS self-check
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/hfpublic
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/hfpublic/http.log 2>&1 &
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >/tmp/hfpublic/cloudflared.log 2>&1 &
+          BASE=""
+          for i in $(seq 1 90); do BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/hfpublic/cloudflared.log | tail -1 || true)"; [ -n "$BASE" ] && break; sleep 2; done
+          test -n "$BASE"; echo "$BASE" | tee /tmp/hfpublic/PUBLIC_BASE_URL.txt
+          for i in $(seq 1 60); do if curl -fsS --max-time 12 "$BASE/" >/dev/null 2>&1; then break; fi; [ "$i" -eq 60 ] && exit 1; sleep 3; done
+          cat > /tmp/hfpublic/check.cjs <<'JS'
+          const pp=require('puppeteer-core'),a=require('assert').strict,fs=require('fs');const BASE=fs.readFileSync('/tmp/hfpublic/PUBLIC_BASE_URL.txt','utf8').trim(),R={pass:false,base:BASE,responses:{},observed:{},pages:{}};
+          (async()=>{const b=await pp.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader']});
+          async function open(path,w=1440,h=900){const q=await b.newPage();await q.setViewport({width:w,height:h,deviceScaleFactor:1,isMobile:w<=900,hasTouch:w<=900});const errors=[];q.on('pageerror',e=>errors.push(String(e)));q.on('console',m=>{if(m.type()==='error')errors.push(m.text())});q.on('response',r=>{if(r.url().startsWith(BASE))R.responses[r.url().slice(BASE.length)]=r.status()});let err;for(let i=0;i<15;i++){try{await q.goto(BASE+path,{waitUntil:'domcontentloaded',timeout:30000});err=null;break}catch(e){err=e;await new Promise(r=>setTimeout(r,2200))}}if(err)throw err;await q.evaluate(()=>document.fonts.ready);return{q,errors}}
+          const en=await open('/');await en.q.waitForFunction(()=>document.querySelector('[data-proai-hero-object]')?.dataset.cubeMounted==='true',{timeout:30000});await en.q.waitForFunction(()=>document.querySelector('[data-proai-live-logo]')?.dataset.logoState==='live',{timeout:30000});let s=await en.q.evaluate(()=>({overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,headerH:document.querySelector('.site-header').getBoundingClientRect().height,cube:document.querySelector('.proai-logo-r341__cube').getBoundingClientRect().width,word:document.querySelector('.proai-logo-r341__wordmark').textContent.trim(),cta:document.querySelector('.site-header__cta').textContent.trim(),locale:document.querySelector('.site-header__locale').textContent.trim(),hero:document.querySelector('[data-proai-hero-object]').dataset.cubeMounted}));a.equal(s.overflow,0);a.equal(Math.round(s.headerH),76);a.equal(Math.round(s.cube),36);a.equal(s.word,'ProAIExpert');a.equal(s.cta,'Discuss Project');a.equal(s.locale,'RU');a.equal(s.hero,'true');const f=en.q.frames().find(x=>x.url().includes('/assets/brand/proai-logo-r341/live.html'));a.ok(f);await f.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.ready,{timeout:30000});const l1=await f.evaluate(()=>window.__PROAI_LOGO_R341_STATE);await new Promise(r=>setTimeout(r,2200));const l2=await f.evaluate(()=>window.__PROAI_LOGO_R341_STATE);const speed=(l2.current.yaw-l1.current.yaw)/(l2.elapsedSec-l1.elapsedSec);a.ok(Math.abs(speed-4.5)<.35);a.equal(l2.geometry.pass,true);a.equal(l2.sliceChoreography,false);a.equal(l2.semanticFace,false);a.equal(l2.wordmarkAnimated,false);a.equal(l2.glbUrl,'/assets/models/proai-cube/rubik_39_s_cube_animation.glb');R.observed.logo={speed,geometryPass:true,wholeCube:true};await en.q.screenshot({path:'/tmp/hfpublic/public-en.png'});await en.q.evaluate(()=>scrollTo(0,700));await new Promise(r=>setTimeout(r,500));R.observed.scroll=await en.q.evaluate(()=>{const h=document.querySelector('.site-header'),cs=getComputedStyle(h),rule=[...document.styleSheets].flatMap(ss=>{try{return[...ss.cssRules]}catch{return[]}}).find(r=>r.selectorText==='.site-header.is-scrolled');return{active:h.classList.contains('is-scrolled'),background:cs.backgroundColor,border:cs.borderBottomColor,computedBlur:cs.backdropFilter||cs.webkitBackdropFilter||'',ruleText:rule?.cssText||''}});a.equal(R.observed.scroll.active,true);a.ok(R.observed.scroll.ruleText.includes('blur(14px)'));a.notEqual(R.observed.scroll.border,'rgba(0, 0, 0, 0)');await en.q.screenshot({path:'/tmp/hfpublic/public-scroll.png'});await en.q.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));await new Promise(r=>setTimeout(r,500));R.observed.footer=await en.q.evaluate(()=>{const x=document.querySelector('.site-footer'),h=x.querySelector('.site-footer__cta h2'),img=x.querySelector('.site-footer__logo img');return{background:getComputedStyle(x).backgroundColor,animation:getComputedStyle(h).animationName,filter:getComputedStyle(h).filter,img:img.complete&&img.naturalWidth>0}});a.equal(R.observed.footer.animation,'none');a.equal(R.observed.footer.filter,'none');a.equal(R.observed.footer.img,true);await en.q.screenshot({path:'/tmp/hfpublic/public-footer.png'});a.equal(en.errors.length,0);await en.q.close();R.observed.header=true;R.observed.livingLogo=true;R.observed.hero=true;R.observed.footerSeen=true;
+          const ru=await open('/ru/');await ru.q.waitForFunction(()=>document.querySelector('[data-proai-hero-object]')?.dataset.cubeMounted==='true',{timeout:30000});s=await ru.q.evaluate(()=>({overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,cta:document.querySelector('.site-header__cta').textContent.trim(),locale:document.querySelector('.site-header__locale').textContent.trim(),title:document.querySelector('.proai-hero-title').textContent.replace(/\s+/g,' ').trim()}));a.equal(s.overflow,0);a.equal(s.cta,'Обсудить проект');a.equal(s.locale,'EN');a.ok(s.title.includes('результата — одна система.'));a.equal(ru.errors.length,0);await ru.q.screenshot({path:'/tmp/hfpublic/public-ru.png'});await ru.q.close();
+          const mob=await open('/',390,844);await mob.q.waitForFunction(()=>document.querySelector('[data-proai-hero-object]')?.dataset.cubeMounted==='true',{timeout:30000});s=await mob.q.evaluate(()=>({overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,menu:getComputedStyle(document.querySelector('.site-header__menu-toggle')).display,acts:[...document.querySelectorAll('.proai-hero-actions>a')].map(e=>{const r=e.getBoundingClientRect();return{top:r.top,left:r.left,right:r.right}}),dir:getComputedStyle(document.querySelector('.proai-hero-actions')).flexDirection,wrap:getComputedStyle(document.querySelector('.proai-hero-actions')).flexWrap}));a.equal(s.overflow,0);a.notEqual(s.menu,'none');a.equal(s.dir,'row');a.equal(s.wrap,'nowrap');a.ok(Math.abs(s.acts[0].top-s.acts[1].top)<=4);await mob.q.click('.site-header__menu-toggle');a.equal(await mob.q.$eval('.site-header__nav',e=>e.classList.contains('is-open')),true);await mob.q.screenshot({path:'/tmp/hfpublic/public-mobile-menu.png'});await mob.q.keyboard.press('Escape');await mob.q.screenshot({path:'/tmp/hfpublic/public-mobile.png'});a.equal(mob.errors.length,0);await mob.q.close();R.observed.mobile=true;
+          const pages=[['spec','/docs/site-evolution/brand/proai-header-footer-r1/spec.html','public-spec.png',1440,900],['desktop','/docs/site-evolution/brand/proai-header-footer-r1/desktop-header.html','public-desktop-context.png',1600,1000],['mobile','/docs/site-evolution/brand/proai-header-footer-r1/mobile-header.html','public-mobile-context.png',900,1000],['footer','/docs/site-evolution/brand/proai-header-footer-r1/footer-context.html','public-footer-context.png',1600,1000],['scroll','/docs/site-evolution/brand/proai-header-footer-r1/scroll-state.html','public-scroll-board.png',1600,850]];for(const [k,p,n,w,h] of pages){const x=await open(p,w,h);await new Promise(r=>setTimeout(r,2500));a.equal(x.errors.length,0);await x.q.screenshot({path:'/tmp/hfpublic/'+n,fullPage:true});R.pages[k]=true;await x.q.close()}
+          for(const k of ['/assets/css/header-footer-logo-r1.css','/assets/js/header-footer-logo-r1.js','/assets/brand/proai-logo-r341/live-runtime.js','/assets/models/proai-cube/rubik_39_s_cube_animation.glb'])a.ok([200,304].includes(R.responses[k]),`${k}: ${R.responses[k]}`);R.pass=true;fs.writeFileSync('/tmp/hfpublic/public-qa.json',JSON.stringify(R,null,2));await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          NODE_PATH="$PWD/node_modules" node /tmp/hfpublic/check.cjs
+          cat > /tmp/hfpublic/OWNER_URLS.txt <<EOF
+          1. FULL SITE — EN
+          $BASE/
+          2. FULL SITE — RU
+          $BASE/ru/
+          3. HEADER FINAL SPEC BOARD
+          $BASE/docs/site-evolution/brand/proai-header-footer-r1/spec.html
+          4. DESKTOP HEADER CONTEXT
+          $BASE/docs/site-evolution/brand/proai-header-footer-r1/desktop-header.html
+          5. MOBILE HEADER CONTEXT
+          $BASE/docs/site-evolution/brand/proai-header-footer-r1/mobile-header.html
+          6. FOOTER CONTEXT
+          $BASE/docs/site-evolution/brand/proai-header-footer-r1/footer-context.html
+          7. HEADER SCROLL-STATE COMPARISON
+          $BASE/docs/site-evolution/brand/proai-header-footer-r1/scroll-state.html
+          EOF
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-footer-r1-public-owner-review-r2
+          path: /tmp/hfpublic
+          retention-days: 7
+      - name: Keep owner review alive
+        shell: bash
+        run: sleep 12600

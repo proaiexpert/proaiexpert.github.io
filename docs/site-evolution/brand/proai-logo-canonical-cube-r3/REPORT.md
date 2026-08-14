@@ -39,24 +39,26 @@ R4.2 semantic optical material capability remains in the copied runtime, but Log
 
 ## Selected canonical static home orientation
 
-R3 does not invent an angle. It reuses the deterministic 3/4 pose-selection logic already used by the current R4 owner-evidence workflow:
+R3 does not invent an angle. It locks the exact natural 3/4 pose selected by the current R4 owner-evidence workflow:
 
-1. sample source presentation poses from 0–18s every 0.2s;
-2. find the maximum-visibility face;
-3. retain the same face within visibility dot `0.70–0.90` where possible;
-4. select the pose nearest dot `0.82`.
+- source presentation time: `7.0s`;
+- face: `-X`;
+- visibility dot: `0.8157899686`;
+- yaw: `105.2783115°`;
+- pitch: `-1.3348996°`;
+- roll: `-1.2040612°`.
 
-This yields the intended **controlled, slightly elevated natural 3/4** portrait rather than a random paused frame. Source camera is a 31° perspective camera fit along normalized direction `[1.18, 0.86, 1.33]`.
+This is the **controlled, slightly elevated natural 3/4** portrait rather than a random paused frame. Source camera is a 31° perspective camera fit along normalized direction `[1.18, 0.86, 1.33]`. The source R4 evidence was reviewed at 1170×780 and preserves the premium 3×3 object, dark-metal face hierarchy and Pearl/Silver studio response.
 
 ## Static signature
 
-The static state uses `capture` review mode, stops slice scheduling, clears the semantic reveal, moves the exact R4 presentation rig to the canonical home pose and renders one stable frame. It remains completely still.
+The static state uses `capture` review mode, stops slice scheduling, clears the semantic reveal, moves the exact R4 presentation rig to the locked canonical home pose and renders one stable frame. It remains completely still.
 
 The wordmark uses the same Instrument Sans Variable family already consumed by the current Cube stream. Naming is exactly two-line `ProAI` / `Expert`; weight is 620 for both lines, with only a quiet Pearl value hierarchy. No cyan word, glow, custom techno lettering or alternate casing is introduced.
 
 ## Living digital signature
 
-The living state uses the same exact runtime, model, camera, materials and pose path. Slice motion is disabled. The canonical R4 presentation path is sampled at `0.10×` time, reducing normal source yaw from roughly 7–12°/s to roughly 0.7–1.2°/s and stretching the 68s presentation cycle to about 680s (11m20s). The Cube therefore moves continuously without a visible short-loop restart and repeatedly passes through the same static home-pose family.
+The living state uses the same exact runtime, model, camera, materials and pose path. Slice motion is disabled. The canonical R4 presentation path is sampled at `0.10×` time, reducing normal source yaw from roughly 7–12°/s to roughly 0.7–1.2°/s and stretching the 68s presentation cycle to about 680s (11m20s). The Cube therefore moves continuously without a visible short-loop restart and begins from the exact static home orientation.
 
 No new animation symbol is created.
 

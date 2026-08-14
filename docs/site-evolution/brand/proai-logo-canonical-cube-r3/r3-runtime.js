@@ -7,6 +7,15 @@ const SOURCE = Object.freeze({
   compiledRuntimeBlob: '614b2ad663b6a50fb8df6dd15e3ead6b4bb69750',
 });
 
+const CANONICAL_HOME = Object.freeze({
+  timeSec: 7.0,
+  face: '-X',
+  dot: 0.8157899685625494,
+  yawDeg: 105.27831152343752,
+  pitchDeg: -1.334899592494815,
+  rollDeg: -1.2040611736578124,
+});
+
 function waitForApi(timeoutMs = 45000) {
   const started = performance.now();
   return new Promise((resolve, reject) => {
@@ -20,19 +29,13 @@ function waitForApi(timeoutMs = 45000) {
   });
 }
 
-function selectCanonicalHomePose(api) {
-  const poses = [];
-  for (let t = 0; t <= 18; t += 0.2) {
-    const pose = api.getSemanticPoseAt(Number(t.toFixed(1)));
-    if (pose) poses.push(pose);
+function resolveCanonicalHomePose(api) {
+  const pose = api.getSemanticPoseAt(CANONICAL_HOME.timeSec);
+  if (!pose) throw new Error('Canonical R4 home pose is unavailable');
+  if (pose.face !== CANONICAL_HOME.face || Math.abs(pose.dot - CANONICAL_HOME.dot) > 0.02) {
+    throw new Error(`Canonical R4 home pose provenance mismatch: ${pose.face} / ${pose.dot}`);
   }
-  if (!poses.length) throw new Error('Canonical pose sampler returned no poses');
-  const front = [...poses].sort((a, b) => b.dot - a.dot)[0];
-  const sameFace = poses.filter((pose) => pose.face === front.face && pose.dot >= 0.70 && pose.dot <= 0.90);
-  const broadPool = poses.filter((pose) => pose.dot >= 0.70 && pose.dot <= 0.90);
-  const pool = sameFace.length ? sameFace : (broadPool.length ? broadPool : poses);
-  const home = pool.reduce((best, pose) => Math.abs(pose.dot - 0.82) < Math.abs(best.dot - 0.82) ? pose : best, pool[0]);
-  return { home, front };
+  return pose;
 }
 
 function neutralizeSemanticAndSlices(api) {
@@ -45,6 +48,7 @@ function publishState(mode, pose, speedScale = 0) {
     ready: true,
     mode,
     source: SOURCE,
+    canonicalHomeReference: CANONICAL_HOME,
     canonicalHomePose: pose,
     speedScale,
     identityRule: 'same canonical ProAI Cube; no new logo geometry',
@@ -60,7 +64,7 @@ async function init() {
   const mode = document.body.dataset.r3Mode || 'static';
   const api = await waitForApi();
   neutralizeSemanticAndSlices(api);
-  const { home } = selectCanonicalHomePose(api);
+  const home = resolveCanonicalHomePose(api);
 
   if (mode === 'living') {
     const speedScale = 0.10;

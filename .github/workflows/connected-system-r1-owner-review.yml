@@ -1,4 +1,4 @@
-name: Connected System R1 temporary owner review
+name: Connected System R1.1 temporary owner review
 
 on:
   push:
@@ -9,16 +9,30 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: connected-system-r1-owner-review
+  cancel-in-progress: true
+
 jobs:
   temporary-preview:
     if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]')
     runs-on: ubuntu-latest
-    timeout-minutes: 190
+    timeout-minutes: 250
     steps:
       - name: Checkout review branch
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      - name: Validate R1.1 review package
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -Fq 'Replay system motion' docs/site-evolution/connected-system-r1/en.html
+          grep -Fq 'Повторить движение системы' docs/site-evolution/connected-system-r1/ru.html
+          grep -Fq 'scheduleAmbient' docs/site-evolution/connected-system-r1/connected-system-r1.js
+          grep -Fq 'is-sequence-running' docs/site-evolution/connected-system-r1/connected-system-r1.js
+          grep -Fq 'prefers-reduced-motion:reduce' docs/site-evolution/connected-system-r1/connected-system-r1.css
 
       - name: Start local review server
         shell: bash
@@ -34,7 +48,7 @@ jobs:
           cat /tmp/connected-system-http.log
           exit 1
 
-      - name: Open verified TryCloudflare preview for approximately three hours
+      - name: Open verified TryCloudflare preview for approximately four hours
         shell: bash
         run: |
           set -euo pipefail
@@ -49,9 +63,7 @@ jobs:
           LIVE_BASE=''
           for i in {1..60}; do
             LIVE_BASE="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/cloudflared.log | head -n 1 || true)"
-            if [ -n "$LIVE_BASE" ]; then
-              break
-            fi
+            if [ -n "$LIVE_BASE" ]; then break; fi
             sleep 2
           done
 
@@ -62,21 +74,26 @@ jobs:
 
           curl -fsS --retry 8 --retry-delay 2 "$LIVE_BASE/en.html" | grep -Fq 'What the system connects.'
           curl -fsS --retry 8 --retry-delay 2 "$LIVE_BASE/ru.html" | grep -Fq 'Что объединяет система.'
+          curl -fsS --retry 8 --retry-delay 2 "$LIVE_BASE/connected-system-r1.js" | grep -Fq 'scheduleAmbient'
+          curl -fsS --retry 8 --retry-delay 2 "$LIVE_BASE/connected-system-r1.css" | grep -Fq 'cs-context-transfer'
 
-          EXPIRES_UTC="$(date -u -d '+3 hours' '+%Y-%m-%dT%H:%M:%SZ')"
+          EXPIRES_UTC="$(date -u -d '+4 hours' '+%Y-%m-%dT%H:%M:%SZ')"
           cat > docs/site-evolution/connected-system-r1/LIVE_PREVIEW.txt <<EOF
-          PROAI CONNECTED SYSTEM R1 — TEMPORARY OWNER REVIEW
-          PRODUCT_SHA=58119cff2e0171ab07758f2c433a96db3f9c51d2
+          PROAI CONNECTED SYSTEM R1.1 — TEMPORARY OWNER REVIEW
+          PRODUCT_SHA=0db1e58052fcecd594dfb8a53601324992779bfd
           LIVE_EN=$LIVE_BASE/en.html
           LIVE_RU=$LIVE_BASE/ru.html
           VERIFIED=PASS
+          ENTRY_MOTION_JS=PASS
+          AMBIENT_JS=PASS
+          REPLAY_UI=PASS
           EXPECTED_EXPIRES_UTC=$EXPIRES_UTC
           EOF
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/site-evolution/connected-system-r1/LIVE_PREVIEW.txt
-          git commit -m 'chore: record temporary Connected System review URL [skip ci]'
+          git commit -m 'chore: record R1.1 temporary owner review URL [skip ci]'
           git push origin HEAD:agent/proai-connected-system-r1
 
           echo "LIVE EN: $LIVE_BASE/en.html"
@@ -84,4 +101,4 @@ jobs:
           echo "VERIFIED: PASS"
           echo "EXPECTED EXPIRES UTC: $EXPIRES_UTC"
 
-          sleep 10800
+          sleep 14400

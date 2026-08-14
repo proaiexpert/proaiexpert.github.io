@@ -98,7 +98,7 @@ jobs:
           path: r44-owner-review-url.txt
           retention-days: 1
 
-      - name: Observe three natural peaks, motion invariants, and pointer discovery
+      - name: Observe three natural opportunities and manual discovery
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
@@ -122,30 +122,32 @@ jobs:
             await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
             const first=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),title:document.title,canvas:!!document.querySelector('#cube-canvas')}));
             const wall0=performance.now(),sim0=first.d.presentation.simTimeMs;
-            let lastSim=sim0,movingSamples=0,armed=true,current=null,lastOpportunityScene=-999;
-            while((performance.now()-wall0)<600000 && opportunities.length<3){
-              await p.waitForTimeout(120);
+            let lastSim=sim0,movingSamples=0,current=null,lastOpportunityScene=-999;
+            while((performance.now()-wall0)<540000 && opportunities.length<3){
+              await p.waitForTimeout(140);
               const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
               const elapsed=(performance.now()-wall0)/1000,scene=(q.d.presentation.simTimeMs-sim0)/1000;
               if(q.d.presentation.simTimeMs>lastSim)movingSamples++;
               lastSim=q.d.presentation.simTimeMs;
               const alignment=q.s.opticalField?.alignment??0,faceView=q.s.opticalField?.faceView??0,scale=q.s.timeScale??1;
               samples.push({elapsed,scene,alignment,faceView,scale,semanticActive:!!q.s.active});
-              if(!current && armed && alignment>=0.72 && scene-lastOpportunityScene>=4){
-                current={number:opportunities.length+1,startScene:scene,peakScene:scene,peakAlignment:alignment,faceView,peakElapsed:elapsed};
-                armed=false;
-                await p.locator('#cube-canvas').screenshot({path:`${out}/opportunity-${current.number}.png`,timeout:120000});
-              }
-              if(current){
-                if(alignment>current.peakAlignment){
-                  current.peakAlignment=alignment;current.peakScene=scene;current.faceView=faceView;current.peakElapsed=elapsed;
+              if(!current && alignment>=0.72 && scene-lastOpportunityScene>=4){
+                current={number:opportunities.length+1,startScene:scene,peakScene:scene,peakAlignment:alignment,faceView,peakElapsed:elapsed,lastAlignment:alignment,captured:false};
+              } else if(current) {
+                if(alignment>current.peakAlignment){current.peakAlignment=alignment;current.peakScene=scene;current.faceView=faceView;current.peakElapsed=elapsed;}
+                const fellFromPeak=current.peakAlignment>=0.80 && alignment < current.lastAlignment && current.lastAlignment >= current.peakAlignment-0.015;
+                if(fellFromPeak && !current.captured){
                   await p.locator('#cube-canvas').screenshot({path:`${out}/opportunity-${current.number}.png`,timeout:120000});
+                  current.captured=true;
                 }
+                current.lastAlignment=alignment;
                 if(alignment<=0.58){
+                  if(!current.captured) await p.locator('#cube-canvas').screenshot({path:`${out}/opportunity-${current.number}.png`,timeout:120000});
                   current.endScene=scene;
                   current.opticalWindow=Math.max(0,current.endScene-current.startScene);
                   current.screenshot=`opportunity-${current.number}.png`;
-                  opportunities.push(current);lastOpportunityScene=current.peakScene;current=null;armed=true;
+                  delete current.lastAlignment; delete current.captured;
+                  opportunities.push(current);lastOpportunityScene=current.peakScene;current=null;
                 }
               }
             }
@@ -154,21 +156,21 @@ jobs:
             const before=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
             const box=await p.locator('#cube-canvas').boundingBox(); if(!box)throw new Error('desktop canvas missing');
             const cx=box.x+box.width*.5,cy=box.y+box.height*.5;
-            let best={alignment:before.s.opticalField?.alignment??0,step:0};
-            await p.locator('#cube-canvas').screenshot({path:`${out}/manual-best.png`,timeout:120000});
-            for(let step=1;step<=24;step++){
-              await p.mouse.move(cx,cy);await p.mouse.down();
-              await p.mouse.move(cx+34,cy+(step%2?10:-7),{steps:3});await p.mouse.up();
-              await p.waitForTimeout(100);
-              const now=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
+            let bestAlignment=before.s.opticalField?.alignment??0,bestStep=0,manualCaptured=false;
+            for(let step=1;step<=28;step++){
+              const dx=(step%4<2?1:-1)*(28+((step*7)%24));
+              const dy=((step%3)-1)*14;
+              await p.mouse.move(cx,cy);await p.mouse.down();await p.mouse.move(cx+dx,cy+dy,{steps:3});await p.mouse.up();
+              await p.waitForTimeout(90);
+              const now=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()}));
               const a=now.s.opticalField?.alignment??0;
-              if(a>best.alignment){best={alignment:a,step,state:now};await p.locator('#cube-canvas').screenshot({path:`${out}/manual-best.png`,timeout:120000});}
-              if(a>=0.93)break;
+              if(a>bestAlignment){bestAlignment=a;bestStep=step;}
+              if(a>=0.86){await p.locator('#cube-canvas').screenshot({path:`${out}/manual-readable.png`,timeout:120000});manualCaptured=true;bestAlignment=a;bestStep=step;break;}
             }
+            if(!manualCaptured) await p.locator('#cube-canvas').screenshot({path:`${out}/manual-readable.png`,timeout:120000});
             const after=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
             const pointerDelta=dist3(before.i.cameraPosition,after.i.cameraPosition);
             const pointerPass=pointerDelta>.01&&after.d.presentation.simTimeMs>before.d.presentation.simTimeMs&&after.s.persistentInscription===true&&after.s.physicalEngravedLogicalTileCount===9&&after.s.timeScale===1;
-
             const allScales=samples.map(x=>x.scale),activeScales=samples.filter(x=>x.semanticActive).map(x=>x.scale),inactiveScales=samples.filter(x=>!x.semanticActive).map(x=>x.scale);
             const motion={all:stats(allScales),during:stats(activeScales.length?activeScales:[1]),outside:stats(inactiveScales.length?inactiveScales:[1])};
             await p.close();await ctx.close();
@@ -186,7 +188,7 @@ jobs:
             const touchPass=ta.d.presentation.simTimeMs>tb.d.presentation.simTimeMs&&ta.s.persistentInscription===true&&ta.s.physicalEngravedLogicalTileCount===9&&ta.s.timeScale===1;
             await tc.close();
             const good=r=>r.status>=200&&r.status<400;
-            const result={pass:nav?.status()===200&&first.canvas&&movingSamples>20&&opportunities.length>=3&&pointerPass&&touchPass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:!!first.s&&!!first.d,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:first.canvas,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:movingSamples>20,movingSamples,opportunities,motion,pointer:{pass:pointerPass,cameraDelta:pointerDelta,bestAlignment:best.alignment,bestStep:best.step},touchPass,flags:{persistentInscription:after.s.persistentInscription,physicalEngravedLogicalTileCount:after.s.physicalEngravedLogicalTileCount,overlayTextRendered:after.s.overlayTextRendered,visualDriverTimeline:after.s.visualDriverTimeline,alphaDominantReveal:after.s.alphaDominantReveal,semanticMotionCoupled:after.s.semanticMotionCoupled,semanticOrientationForcing:after.s.semanticOrientationForcing,timeScale:after.s.timeScale,emissive:after.s.emissive,glowHalo:after.s.glowHalo},fatal,samples};
+            const result={pass:nav?.status()===200&&first.canvas&&movingSamples>20&&opportunities.length>=3&&pointerPass&&touchPass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:!!first.s&&!!first.d,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:first.canvas,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:movingSamples>20,movingSamples,opportunities,motion,pointer:{pass:pointerPass,cameraDelta:pointerDelta,bestAlignment,bestStep,manualCaptured},touchPass,flags:{persistentInscription:after.s.persistentInscription,physicalEngravedLogicalTileCount:after.s.physicalEngravedLogicalTileCount,overlayTextRendered:after.s.overlayTextRendered,visualDriverTimeline:after.s.visualDriverTimeline,alphaDominantReveal:after.s.alphaDominantReveal,semanticMotionCoupled:after.s.semanticMotionCoupled,semanticOrientationForcing:after.s.semanticOrientationForcing,timeScale:after.s.timeScale,emissive:after.s.emissive,glowHalo:after.s.glowHalo},fatal,samples};
             fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));
             console.log('R44_PUBLIC_WATCH',JSON.stringify({pass:result.pass,url,opportunities,motion,pointer:result.pointer,touchPass,fatal}));
             if(!result.pass)process.exitCode=1;

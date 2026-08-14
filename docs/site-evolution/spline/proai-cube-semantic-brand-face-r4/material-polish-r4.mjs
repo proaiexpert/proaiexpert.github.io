@@ -10,9 +10,9 @@ const repoRoot = path.resolve(here, '../../../..');
 const baselineTemp = path.join(here, '.material-polish-r43-baseline.tmp.mjs');
 const generatedFile = path.join(here, 'main.generated.js');
 
-// R4.4 is deliberately a narrow material-only calibration over the exact frozen
+// R4.4 is deliberately a narrow descendant calibration over the exact frozen
 // R4.3 product. The rollback commit remains byte-addressable and executable while
-// this pass is forbidden from changing semantic motion, orientation, or overlays.
+// this pass is forbidden from changing semantic speed, orientation, or overlays.
 let baseline;
 try {
   baseline = execFileSync('git', ['show', `${R43_SHA}:${PRODUCT_PATH}`], {
@@ -82,6 +82,74 @@ replaceOne(
   'signed optical diagnostics payload',
 );
 
+// The engraving is physically attached to the original nine +Z cubies. A random
+// one-way slice stream permanently scatters those letter fragments, so subsequent
+// optical peaks can no longer reveal the complete physical inscription. Preserve
+// the living slice language, but make every phrase mechanically self-resolving.
+// This choreography is global and autonomous: semantic state never starts it,
+// slows it, aims it, or decides when it resolves.
+const oldSliceSchedulerLoop = `async function sliceSchedulerLoop() {
+  if (sliceSchedulerRunning) return;
+  sliceSchedulerRunning = true;
+  await schedulerDelay(420);
+  while (sliceSchedulerEnabled) {
+    if (!await waitForSliceAutonomy()) break;
+    const eventType = SLICE_R1_2.eventPattern[sliceEventSerial % SLICE_R1_2.eventPattern.length];
+    if (eventType === 'pair') await runPairedScheduledEvent();
+    else if (eventType === 'phrase') await runPhraseScheduledEvent();
+    else await runSingleScheduledEvent();
+    sliceEventSerial += 1;
+    eventsUntilBreath -= 1;
+    if (!sliceSchedulerEnabled) break;
+    if (eventsUntilBreath <= 0) {
+      await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.breathingGapRangeMs)));
+      eventsUntilBreath = seededInt(3, 4);
+    } else {
+      await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.typicalGapRangeMs)));
+    }
+  }
+  sliceSchedulerRunning = false;
+}`;
+const selfResolvingSliceSchedulerLoop = `async function sliceSchedulerLoop() {
+  if (sliceSchedulerRunning) return;
+  sliceSchedulerRunning = true;
+  // Keep the initially engraved physical face assembled through the first natural
+  // presentation alignment. Global presentation rotation continues unchanged.
+  await schedulerDelay(5200);
+  const phrasePattern = [1, 2, 1, 3, 2];
+  while (sliceSchedulerEnabled) {
+    if (!await waitForSliceAutonomy()) break;
+    const phraseLength = phrasePattern[sliceEventSerial % phrasePattern.length];
+    const executed = [];
+    for (let i = 0; i < phraseLength && sliceSchedulerEnabled; i += 1) {
+      if (!await waitForSliceAutonomy()) break;
+      const axis = AXES[(sliceEventSerial + i) % AXES.length];
+      const move = makeScheduledMove(axis);
+      const result = await turnSlice(move);
+      if (!result) break;
+      executed.push(move);
+      if (i < phraseLength - 1) await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.phraseMicroGapRangeMs)));
+    }
+    if (!executed.length) {
+      await schedulerDelay(120);
+      continue;
+    }
+    await schedulerDelay(Math.round(seededRange(260, 420)));
+    for (let i = executed.length - 1; i >= 0; i -= 1) {
+      if (!await waitForSliceAutonomy()) break;
+      const move = executed[i];
+      await turnSlice({ ...move, direction: -move.direction, durationMs: move.durationMs });
+      if (i > 0) await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.phraseMicroGapRangeMs)));
+    }
+    sliceEventSerial += executed.length;
+    eventsUntilBreath = seededInt(3, 4);
+    if (!sliceSchedulerEnabled) break;
+    await schedulerDelay(Math.round(seededRange(900, 1250)));
+  }
+  sliceSchedulerRunning = false;
+}`;
+replaceOne(oldSliceSchedulerLoop, selfResolvingSliceSchedulerLoop, 'self-resolving physical slice choreography');
+
 // Guard every R4.3 architecture invariant that R4.4 is forbidden to alter.
 const forbidden = [
   ['wallDeltaMs * semanticTimeScale', 'motion scale multiplication'],
@@ -103,6 +171,9 @@ for (const required of [
   'semanticR44SceneProjectedUv=true',
   'signedFaceView',
   'frontFacing:signedFaceView>0',
+  'await schedulerDelay(5200)',
+  'const phrasePattern = [1, 2, 1, 3, 2]',
+  'direction: -move.direction',
 ]) if (!source.includes(required)) throw new Error(`R4.4 missing invariant/calibration: ${required}`);
 
 fs.writeFileSync(generatedFile, source);
@@ -115,3 +186,4 @@ console.log('tonalInk:', '0.820');
 console.log('micro-edge:', '5px softened bevel height + 26% hard core');
 console.log('material coordinates:', 'sceneOne XY projection from actual outward +Z physical face');
 console.log('optical metric:', 'signed front-facing face/view + half-vector only');
+console.log('living slices:', 'independent self-resolving physical phrases; first slice after 5200ms');

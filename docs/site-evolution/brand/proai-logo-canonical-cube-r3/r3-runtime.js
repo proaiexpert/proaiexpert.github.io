@@ -90,9 +90,8 @@ async function init() {
     publishState(mode, home, LIVING.timeScale);
     const tick = (now) => {
       const virtualTimeSec = home.timeSec + ((now - started) / 1000) * LIVING.timeScale;
-      api.setReviewPresentation(virtualTimeSec, 1, false);
       api.clearSemanticReviewState?.();
-      api.renderReviewFrame();
+      api.setReviewPresentation(virtualTimeSec, 1, true);
       window.__PROAI_LOGO_R3_LIVE.virtualTimeSec = virtualTimeSec;
       window.__PROAI_LOGO_R3_LIVE.frames += 1;
       requestAnimationFrame(tick);

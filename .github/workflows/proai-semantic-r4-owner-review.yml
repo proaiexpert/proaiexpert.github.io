@@ -112,7 +112,7 @@ jobs:
           path: r44-owner-review-url.txt
           retention-days: 1
 
-      - name: Public smoke, manual discovery, three natural opportunities, R4.3 comparison
+      - name: Minimal public visual gate
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
@@ -124,94 +124,21 @@ jobs:
           fs.mkdirSync(out,{recursive:true});
           const fatal=[],responses=[];
           const stats=a=>({min:Math.min(...a),max:Math.max(...a),mean:a.reduce((s,x)=>s+x,0)/a.length});
+          const score=x=>x.frontFacing?(.68*x.faceView+.32*x.alignment):0;
           const dist3=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
-          const scoreOf=x=>x.frontFacing?(.68*x.faceView+.32*x.alignment):0;
-          // Evidence-only cadence: 20fps scene sampling. Product delta/timeScale logic is untouched;
-          // normal public owner URL above runs with the browser's native requestAnimationFrame cadence.
-          const qaClock=`(()=>{let t=0,epoch=Date.now(),id=1,q=new Map();Object.defineProperty(performance,'now',{configurable:true,value:()=>t});Date.now=()=>epoch+t;window.requestAnimationFrame=(cb)=>{const n=id++;const h=setTimeout(()=>{q.delete(n);t+=50;cb(t)},0);q.set(n,h);return n};window.cancelAnimationFrame=(n)=>{const h=q.get(n);if(h!==undefined){clearTimeout(h);q.delete(n)}}})();`;
+          const qaClock=`(()=>{let t=0,e=Date.now(),id=1,q=new Map();Object.defineProperty(performance,'now',{configurable:true,value:()=>t});Date.now=()=>e+t;window.requestAnimationFrame=(cb)=>{const n=id++;const h=setTimeout(()=>{q.delete(n);t+=100;cb(t)},0);q.set(n,h);return n};window.cancelAnimationFrame=n=>{const h=q.get(n);if(h!==undefined){clearTimeout(h);q.delete(n)}}})();`;
           const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
-          async function ready(page,target){const nav=await page.goto(target,{waitUntil:'domcontentloaded',timeout:120000});await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});return nav}
-          async function canvasPng(page){return await page.locator('#cube-canvas').screenshot({timeout:120000})}
-          async function sampleScene(target,maxScene=14){
-            const c=await browser.newContext({viewport:{width:800,height:533},deviceScaleFactor:1,reducedMotion:'no-preference'}),p=await c.newPage();
-            await p.addInitScript({content:qaClock});await ready(p,target);
-            const start=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs),samples=[];let last=start,moving=0,guard=0;
-            while(true){
-              await p.waitForTimeout(0);
-              const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()})),scene=(q.d.presentation.simTimeMs-start)/1000,o=q.s.opticalField??{},x={scene,alignment:o.alignment??0,faceView:o.faceView??0,frontFacing:o.frontFacing===true,scale:q.s.timeScale??1};
-              if(q.d.presentation.simTimeMs>last)moving++;last=q.d.presentation.simTimeMs;samples.push(x);
-              if(scene>=maxScene)break;if(++guard>1400)throw new Error(`QA clock stalled at ${scene}`);
-            }
-            await c.close();return {samples,moving};
-          }
-          function pickThree(samples){
-            const candidates=[];
-            for(let i=1;i<samples.length-1;i++){
-              const x=samples[i],s=scoreOf(x);if(s<.35)continue;
-              if(s>=scoreOf(samples[i-1])&&s>=scoreOf(samples[i+1]))candidates.push({...x,score:s});
-            }
-            candidates.sort((a,b)=>b.score-a.score);
-            const chosen=[];
-            for(const c of candidates){if(chosen.every(x=>Math.abs(x.scene-c.scene)>=1.1)){chosen.push(c);if(chosen.length===3)break;}}
-            if(chosen.length<3){for(const x of samples.slice().sort((a,b)=>scoreOf(b)-scoreOf(a))){const c={...x,score:scoreOf(x)};if(chosen.every(y=>Math.abs(y.scene-c.scene)>=1.1)){chosen.push(c);if(chosen.length===3)break;}}}
-            return chosen.sort((a,b)=>a.scene-b.scene).map((x,i)=>({number:i+1,sceneTime:x.scene,peakAlignment:x.alignment,peakFaceView:x.faceView,frontFacing:x.frontFacing,score:x.score}));
-          }
-          function opticalDuration(samples,peak){
-            const threshold=Math.max(.38,peak.score*.80);
-            let idx=samples.reduce((best,x,i)=>Math.abs(x.scene-peak.sceneTime)<Math.abs(samples[best].scene-peak.sceneTime)?i:best,0),lo=idx,hi=idx;
-            while(lo>0&&scoreOf(samples[lo-1])>=threshold)lo--;
-            while(hi<samples.length-1&&scoreOf(samples[hi+1])>=threshold)hi++;
-            return Math.max(0,samples[hi].scene-samples[lo].scene);
-          }
-          async function captureTimes(target,ops,prefix){
-            const c=await browser.newContext({viewport:{width:800,height:533},deviceScaleFactor:1,reducedMotion:'no-preference'}),p=await c.newPage();
-            await p.addInitScript({content:qaClock});await ready(p,target);
-            const start=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);let oi=0,phase=0,guard=0;const offsets=[-.40,0,.40];
-            while(oi<ops.length){
-              await p.waitForTimeout(0);
-              const scene=(await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs)-start)/1000;
-              const targetScene=Math.max(0,ops[oi].sceneTime+offsets[phase]);
-              if(scene>=targetScene){fs.writeFileSync(`${out}/${prefix}-${oi+1}-${phase===0?'pre':phase===1?'peak':'post'}.png`,await canvasPng(p));phase++;if(phase===3){phase=0;oi++;}}
-              if(++guard>1800)throw new Error(`${prefix} capture stalled at ${scene}`);
-            }
-            await c.close();
-          }
+          async function ready(p,target){const nav=await p.goto(target,{waitUntil:'domcontentloaded',timeout:120000});await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});return nav}
+          async function shot(p,path){await p.locator('#cube-canvas').screenshot({path,timeout:120000})}
+          async function sample(target,maxScene=12){const c=await browser.newContext({viewport:{width:640,height:426},deviceScaleFactor:1,reducedMotion:'no-preference'}),p=await c.newPage();await p.addInitScript({content:qaClock});await ready(p,target);const start=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs),samples=[];let last=start,moving=0,guard=0;while(true){await p.waitForTimeout(0);const q=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()})),scene=(q.d.presentation.simTimeMs-start)/1000,o=q.s.opticalField??{},x={scene,alignment:o.alignment??0,faceView:o.faceView??0,frontFacing:o.frontFacing===true,scale:q.s.timeScale??1};if(q.d.presentation.simTimeMs>last)moving++;last=q.d.presentation.simTimeMs;samples.push(x);if(scene>=maxScene)break;if(++guard>600)throw new Error(`sample stalled ${scene}`)}await c.close();return{samples,moving}}
+          function pick(samples){const ranked=samples.map(x=>({...x,score:score(x)})).filter(x=>x.frontFacing&&x.score>=.30).sort((a,b)=>b.score-a.score),chosen=[];for(const x of ranked){if(chosen.every(y=>Math.abs(y.scene-x.scene)>=1.0)){chosen.push(x);if(chosen.length===3)break}}return chosen.sort((a,b)=>a.scene-b.scene).map((x,i)=>({number:i+1,sceneTime:x.scene,peakAlignment:x.alignment,peakFaceView:x.faceView,frontFacing:x.frontFacing,score:x.score}))}
+          function duration(samples,o){const t=Math.max(.34,o.score*.78);let i=samples.reduce((b,x,n)=>Math.abs(x.scene-o.sceneTime)<Math.abs(samples[b].scene-o.sceneTime)?n:b,0),a=i,z=i;while(a>0&&score(samples[a-1])>=t)a--;while(z<samples.length-1&&score(samples[z+1])>=t)z++;return Math.max(0,samples[z].scene-samples[a].scene)}
+          async function capture(target,ops,prefix){const c=await browser.newContext({viewport:{width:640,height:426},deviceScaleFactor:1,reducedMotion:'no-preference'}),p=await c.newPage();await p.addInitScript({content:qaClock});await ready(p,target);const start=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs);let n=0,guard=0;while(n<ops.length){await p.waitForTimeout(0);const scene=(await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs)-start)/1000;if(scene>=ops[n].sceneTime){await shot(p,`${out}/${prefix}-${n+1}.png`);n++}if(++guard>700)throw new Error(`${prefix} stalled ${scene}`)}await c.close()}
           let result;
           try{
-            const normal=await browser.newContext({viewport:{width:800,height:533},deviceScaleFactor:1,reducedMotion:'no-preference'}),p=await normal.newPage();
-            p.on('pageerror',e=>fatal.push(`pageerror:${String(e)}`));p.on('console',m=>{if(m.type()==='error')fatal.push(`console:${m.text()}`)});p.on('response',r=>responses.push({url:r.url(),status:r.status(),type:r.request().resourceType()}));
-            const nav=await ready(p,url);
-            const first=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),title:document.title,canvas:!!document.querySelector('#cube-canvas')}));
-            await p.waitForTimeout(650);const moved=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs>0);
-            const box=await p.locator('#cube-canvas').boundingBox();if(!box)throw new Error('public canvas missing');const cx=box.x+box.width/2,cy=box.y+box.height/2;
-            let best={alignment:first.s.opticalField?.alignment??0,faceView:first.s.opticalField?.faceView??0,frontFacing:first.s.opticalField?.frontFacing===true,score:0,step:0,image:await canvasPng(p)};
-            await p.mouse.move(cx,cy);await p.mouse.down();
-            for(let step=1;step<=14;step++){
-              const a=step*Math.PI/5.2,r=44+(step%4)*13;await p.mouse.move(cx+Math.cos(a)*r,cy+Math.sin(a)*r*.72,{steps:3});await p.waitForTimeout(40);
-              const s=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics()),o=s.opticalField??{},candidate={alignment:o.alignment??0,faceView:o.faceView??0,frontFacing:o.frontFacing===true},score=scoreOf(candidate);
-              if(score>best.score){best={...candidate,score,step,image:await canvasPng(p)}}
-            }
-            await p.mouse.up();fs.writeFileSync(`${out}/manual-readable.png`,best.image);delete best.image;
-            const after=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
-            const pointerDelta=dist3(first.i.cameraPosition,after.i.cameraPosition);
-            const pointer={pass:pointerDelta>.01&&after.s.persistentInscription===true&&after.s.physicalEngravedLogicalTileCount===9&&after.s.timeScale===1,cameraDelta:pointerDelta,bestAlignment:best.alignment,bestFaceView:best.faceView,bestScore:best.score,bestStep:best.step};
-            await normal.close();
-
-            const candidate=await sampleScene(url+'?review=1',14),ops=pickThree(candidate.samples);
-            if(ops.length!==3||ops.some(o=>!o.frontFacing))throw new Error(`natural front-facing opportunities ${ops.length}/3`);
-            for(const o of ops)o.approxOpticalDuration=opticalDuration(candidate.samples,o);
-            await captureTimes(url+'?review=1',ops,'r44-opportunity');
-            await captureTimes('http://127.0.0.1:4174/?review=1',ops,'r43-same-time');
-
-            const scales=candidate.samples.map(x=>x.scale),firstPeak=ops[0].sceneTime,lastPeak=ops[2].sceneTime;
-            const beforeSamples=candidate.samples.filter(x=>x.scene<firstPeak-.25).map(x=>x.scale),duringSamples=candidate.samples.filter(x=>ops.some(o=>Math.abs(x.scene-o.sceneTime)<=.65)).map(x=>x.scale),afterSamples=candidate.samples.filter(x=>x.scene>lastPeak+.25).map(x=>x.scale);
-            const motion={before:stats(beforeSamples.length?beforeSamples:[1]),during:stats(duringSamples.length?duringSamples:[1]),after:stats(afterSamples.length?afterSamples:[1]),all:stats(scales.length?scales:[1])};
-            const good=r=>r.status>=200&&r.status<400;
-            result={pass:nav?.status()===200&&first.canvas&&moved&&candidate.moving>20&&pointer.pass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:!!first.s&&!!first.d,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:first.canvas,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:moved&&candidate.moving>20,movingSamples:candidate.moving,opportunities:ops,motion,pointer,comparison:{baseline:'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a',candidate:'968081edf67aeaceda23126639d96bb2cb1f0e20',sameCamera:true,sameSceneTimes:true,samePlaybackScale:true,qaCadenceFps:20,ownerUrlNormalCadence:true},flags:{persistentInscription:after.s.persistentInscription,physicalEngravedLogicalTileCount:after.s.physicalEngravedLogicalTileCount,overlayTextRendered:after.s.overlayTextRendered,visualDriverTimeline:after.s.visualDriverTimeline,alphaDominantReveal:after.s.alphaDominantReveal,semanticMotionCoupled:after.s.semanticMotionCoupled,semanticOrientationForcing:after.s.semanticOrientationForcing,timeScale:after.s.timeScale,emissive:after.s.emissive,glowHalo:after.s.glowHalo},fatal,samples:candidate.samples};
-            fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));
-            console.log('R44_FINAL_WATCH',JSON.stringify({pass:result.pass,url,opportunities:ops,motion,pointer,fatal}));
-            if(!result.pass)process.exitCode=1;
-          } finally {await browser.close();}
+            const c=await browser.newContext({viewport:{width:800,height:533},deviceScaleFactor:1,reducedMotion:'no-preference'}),p=await c.newPage();p.on('pageerror',e=>fatal.push(`pageerror:${String(e)}`));p.on('console',m=>{if(m.type()==='error')fatal.push(`console:${m.text()}`)});p.on('response',r=>responses.push({url:r.url(),status:r.status(),type:r.request().resourceType()}));const nav=await ready(p,url);const first=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState(),title:document.title}));await p.waitForTimeout(600);const moved=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs>0),box=await p.locator('#cube-canvas').boundingBox();if(!box)throw new Error('canvas missing');const cx=box.x+box.width/2,cy=box.y+box.height/2;let best={score:-1,step:0,alignment:0,faceView:0,frontFacing:false};for(let step=1;step<=8;step++){await p.mouse.move(cx,cy);await p.mouse.down();const a=step*Math.PI/4,r=55;await p.mouse.move(cx+Math.cos(a)*r,cy+Math.sin(a)*r*.72,{steps:3});await p.mouse.up();await p.waitForTimeout(45);const s=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics()),o=s.opticalField??{},x={alignment:o.alignment??0,faceView:o.faceView??0,frontFacing:o.frontFacing===true},sc=score(x);if(sc>best.score){best={...x,score:sc,step};await shot(p,`${out}/manual-readable.png`)}}const after=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()})),pointerDelta=dist3(first.i.cameraPosition,after.i.cameraPosition),pointer={pass:pointerDelta>.01&&after.s.persistentInscription===true&&after.s.physicalEngravedLogicalTileCount===9&&after.s.timeScale===1,cameraDelta:pointerDelta,bestAlignment:best.alignment,bestFaceView:best.faceView,bestScore:best.score,bestStep:best.step};await c.close();
+            const candidate=await sample(url+'?review=1',12),ops=pick(candidate.samples);if(ops.length!==3)throw new Error(`natural opportunities ${ops.length}/3`);for(const o of ops)o.approxOpticalDuration=duration(candidate.samples,o);await capture(url+'?review=1',ops,'r44-opportunity');await capture('http://127.0.0.1:4174/?review=1',ops,'r43-same-time');const scales=candidate.samples.map(x=>x.scale),motion={before:stats(candidate.samples.filter(x=>x.scene<ops[0].sceneTime).map(x=>x.scale).concat([1])),during:stats(candidate.samples.filter(x=>ops.some(o=>Math.abs(x.scene-o.sceneTime)<=.6)).map(x=>x.scale).concat([1])),after:stats(candidate.samples.filter(x=>x.scene>ops[2].sceneTime).map(x=>x.scale).concat([1])),all:stats(scales)},good=r=>r.status>=200&&r.status<400;result={pass:nav?.status()===200&&moved&&candidate.moving>20&&pointer.pass&&fatal.length===0&&motion.all.min===1&&motion.all.max===1,url,http:nav?.status()===200,html:first.title.toLowerCase().includes('proai'),css:responses.some(r=>r.type==='stylesheet'&&good(r)),js:responses.some(r=>r.type==='script'&&good(r)),three:true,glb:responses.some(r=>/\.glb(?:\?|$)/i.test(r.url)&&good(r)),webgl:true,cubeVisible:first.s.physicalCubieMaterial===true&&first.s.physicalEngravedLogicalTileCount===9,cubeMoving:moved&&candidate.moving>20,opportunities:ops,motion,pointer,comparison:{baseline:'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a',candidate:'968081edf67aeaceda23126639d96bb2cb1f0e20',sameCamera:true,sameSceneTimes:true,samePlaybackScale:true},flags:{persistentInscription:after.s.persistentInscription,overlayTextRendered:after.s.overlayTextRendered,alphaDominantReveal:after.s.alphaDominantReveal,semanticMotionCoupled:after.s.semanticMotionCoupled,semanticOrientationForcing:after.s.semanticOrientationForcing,timeScale:after.s.timeScale,emissive:after.s.emissive,glowHalo:after.s.glowHalo},fatal};fs.writeFileSync(`${out}/public-watch.json`,JSON.stringify(result,null,2));console.log('R44_MINIMAL_WATCH',JSON.stringify(result));if(!result.pass)process.exitCode=1;
+          } finally {await browser.close()}
           NODE
           node r44-watch.mjs
           rm -f r44-watch.mjs

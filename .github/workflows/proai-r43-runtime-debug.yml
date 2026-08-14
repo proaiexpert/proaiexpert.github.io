@@ -1,0 +1,59 @@
+name: ProAI R4.3 Runtime Debug
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2adfb8d168a505e23597699cf5a71106dd0ba665
+          fetch-depth: 0
+      - name: Build exact product
+        run: |
+          npm install --package-lock=false
+          npm run prepare-r4
+          node clock-r4.mjs
+          node material-polish-r4.mjs
+          npx vite build
+          npm install --no-save playwright
+          npx playwright install chromium
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r43-debug-http.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+      - name: Diagnose first runtime frame
+        run: |
+          cat > r43-debug.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage']});
+          const page=await browser.newPage({viewport:{width:900,height:700}});
+          const events=[];
+          page.on('pageerror',e=>{events.push({type:'pageerror',text:String(e),stack:e?.stack||''});console.log('PAGEERROR',String(e),e?.stack||'')});
+          page.on('console',m=>{events.push({type:`console:${m.type()}`,text:m.text()});console.log(`CONSOLE_${m.type().toUpperCase()}`,m.text())});
+          page.on('requestfailed',r=>console.log('REQUEST_FAILED',r.url(),r.failure()?.errorText||''));
+          try {
+            await page.goto('http://127.0.0.1:4173/?capture',{waitUntil:'domcontentloaded',timeout:120000});
+            for(let i=0;i<30;i++){
+              await page.waitForTimeout(1000);
+              const state=await page.evaluate(()=>({api:Boolean(window.__PROAI_CUBE_R1_2),ready:window.__PROAI_CUBE_R1_2?.ready??null,status:document.querySelector('#runtime-status')?.textContent||'',canvas:{w:document.querySelector('#cube-canvas')?.width||0,h:document.querySelector('#cube-canvas')?.height||0}})).catch(e=>({evalError:String(e)}));
+              console.log('STATE',i+1,JSON.stringify(state));
+              if(state.ready===true)break;
+            }
+            const state=await page.evaluate(()=>({ready:window.__PROAI_CUBE_R1_2?.ready??null,status:document.querySelector('#runtime-status')?.textContent||''})).catch(e=>({evalError:String(e)}));
+            console.log('FINAL_STATE',JSON.stringify(state));
+            console.log('EVENTS',JSON.stringify(events));
+            if(state.ready!==true)process.exitCode=1;
+          } finally {await browser.close()}
+          NODE
+          node r43-debug.mjs

@@ -24,55 +24,93 @@ jobs:
           R='docs/site-evolution/brand/proai-logo-canonical-cube-r3'
           G="$R/assets/rubik_39_s_cube_animation-DvywXmYB.glb"
           test "$(wc -c < "$G")" -eq 279412
-          test "$(sha256sum "$G"|awk '{print $1}')" = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b'
+          test "$(sha256sum "$G" | awk '{print $1}')" = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b'
           test "$(git rev-parse origin/main)" = 'c945084e1952c05c686494091f7dbca0f7acdf08'
           test -z "$(git diff --name-only c945084e1952c05c686494091f7dbca0f7acdf08...HEAD -- _includes assets/css index.html ru/index.html favicon.svg favicon.ico site.webmanifest manifest.json)"
           ! grep -qi '#5de2ff' "$R/r3.css"
           ! grep -qi 'text-shadow' "$R/r3.css"
-          test "$(grep -o 'class="variant-card' "$R/compare-dark.html"|wc -l)" -eq 3
-          test "$(grep -o 'class="header-row' "$R/header-scale.html"|wc -l)" -eq 3
+          test "$(grep -o 'class="variant-card' "$R/compare-dark.html" | wc -l)" -eq 3
+          test "$(grep -o 'class="header-row' "$R/header-scale.html" | wc -l)" -eq 3
 
       - name: Install browser and start local review
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/logoqa /tmp/logo-evidence
-          cd /tmp/logoqa; npm init -y >/dev/null 2>&1; npm install --no-save playwright >/dev/null 2>&1; npx playwright install chromium >/dev/null
+          cd /tmp/logoqa
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright >/dev/null 2>&1
+          npx playwright install chromium >/dev/null
           cd "$GITHUB_WORKSPACE"
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory docs/site-evolution/brand/proai-logo-canonical-cube-r3 >/tmp/logo-r3-http.log 2>&1 &
           for i in $(seq 1 40); do curl -fsS http://127.0.0.1:4173/variant-lockup.html >/dev/null && exit 0; sleep 1; done
-          cat /tmp/logo-r3-http.log; exit 1
+          cat /tmp/logo-r3-http.log
+          exit 1
 
-      - name: Serialized browser QA and visual evidence
+      - name: Browser QA and visual evidence
         shell: bash
         run: |
           set -euo pipefail
           cat >/tmp/logoqa/qa.cjs <<'NODE'
           const {chromium}=require('/tmp/logoqa/node_modules/playwright');
           const fs=require('fs');
-          const assert=(v,m)=>{if(!v)throw new Error(m)};
+          const assert=(v,m)=>{if(!v) throw new Error(m)};
           const args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'];
           const base='http://127.0.0.1:4173/';
           const qdist=(a,b)=>Math.sqrt(a.reduce((s,v,i)=>s+(v-b[i])**2,0));
-          (async()=>{const browser=await chromium.launch({headless:true,args});try{
-            const ctx=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'no-preference'});
-            async function open(path, ready=true){const p=await ctx.newPage();await p.goto(base+path,{waitUntil:'domcontentloaded',timeout:90000});if(ready)await p.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:90000});return p}
-            async function snapVariant(v,scale,name){const p=await open(`variant-lockup.html?variant=${v}&scale=${scale}&capture`);const x=await p.evaluate(()=>{const c=document.querySelector('.cube-frame').getBoundingClientRect(),w=document.querySelector('.wordmark').getBoundingClientRect();return{text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),cube:[c.x,c.y,c.width,c.height],word:[w.x,w.y,w.width,w.height],expert:getComputedStyle(document.querySelector('.expert')).color,bg:getComputedStyle(document.body).backgroundColor,diag:window.__PROAI_CUBE_R1_2.getDiagnostics()}});assert(x.text==='PROAI EXPERT',name+' text');assert(x.cube[0]+x.cube[2]<x.word[0],name+' order');assert(x.expert!=='rgb(93, 226, 255)',name+' cyan');assert(x.bg==='rgb(5, 6, 7)',name+' bg');assert(x.diag.geometry?.pass===true,name+' geometry');assert(x.diag.scheduler.enabled===false,name+' slices');await p.screenshot({path:`/tmp/logo-evidence/${name}.png`,fullPage:true});await p.close();return x}
-            const A=await snapVariant('A','large','variant-a'),B=await snapVariant('B','large','variant-b'),C=await snapVariant('C','large','variant-c');
-            const HA=await snapVariant('A','header','header-a'),HB=await snapVariant('B','header','header-b'),HC=await snapVariant('C','header','header-c');
-            assert(Math.abs(HA.cube[2]-34)<.2&&Math.abs(HB.cube[2]-34)<.2&&Math.abs(HC.cube[2]-34)<.2,'header Cube size');
+          (async()=>{
+            const browser=await chromium.launch({headless:true,args});
+            try{
+              const ctx=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'no-preference'});
+              async function open(path){const p=await ctx.newPage();await p.goto(base+path,{waitUntil:'domcontentloaded',timeout:90000});await p.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:90000});return p}
+              async function snap(v,scale,name){
+                const p=await open(`variant-lockup.html?variant=${v}&scale=${scale}&capture`);
+                const x=await p.evaluate(()=>{const c=document.querySelector('.cube-frame').getBoundingClientRect(),w=document.querySelector('.wordmark').getBoundingClientRect(),api=window.__PROAI_CUBE_R1_2;return{text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),cube:[c.x,c.y,c.width,c.height],word:[w.x,w.y,w.width,w.height],expert:getComputedStyle(document.querySelector('.expert')).color,bg:getComputedStyle(document.body).backgroundColor,diag:api.getDiagnostics(),logo:window.__PROAI_LOGO_R3}});
+                assert(x.text==='PROAI EXPERT',name+' text');
+                assert(x.cube[0]+x.cube[2]<x.word[0],name+' order');
+                assert(x.expert!=='rgb(93, 226, 255)',name+' old cyan');
+                assert(x.bg==='rgb(5, 6, 7)',name+' background');
+                assert(x.diag.geometry?.pass===true,name+' geometry');
+                assert(x.diag.scheduler.enabled===false,name+' slices');
+                if(v==='C') assert(x.logo.opticalTreatment?.preset==='blackChrome',name+' blackChrome preset');
+                await p.screenshot({path:`/tmp/logo-evidence/${name}.png`,fullPage:true});
+                await p.close(); return x;
+              }
+              const A=await snap('A','large','variant-a');
+              const B=await snap('B','large','variant-b');
+              const C=await snap('C','large','variant-c');
+              const HA=await snap('A','header','header-a');
+              const HB=await snap('B','header','header-b');
+              const HC=await snap('C','header','header-c');
+              assert(Math.abs(HA.cube[2]-34)<.2&&Math.abs(HB.cube[2]-34)<.2&&Math.abs(HC.cube[2]-34)<.2,'header Cube size');
 
-            const s=await open('static-signature.html?capture');const st=await s.evaluate(()=>({mode:window.__PROAI_LOGO_R3.mode,speed:window.__PROAI_LOGO_R3.speedScale,text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),pose:window.__PROAI_LOGO_R3.canonicalHomeReference}));assert(st.mode==='static'&&st.speed===0&&st.text==='PROAI EXPERT','static contract');await s.screenshot({path:'/tmp/logo-evidence/static-master.png',fullPage:true});await s.close();
+              const s=await open('static-signature.html?capture');
+              const st=await s.evaluate(()=>({mode:window.__PROAI_LOGO_R3.mode,speed:window.__PROAI_LOGO_R3.speedScale,text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),pose:window.__PROAI_LOGO_R3.canonicalHomeReference}));
+              assert(st.mode==='static'&&st.speed===0&&st.text==='PROAI EXPERT','static master contract');
+              await s.screenshot({path:'/tmp/logo-evidence/static-master.png',fullPage:true}); await s.close();
 
-            const l=await open('living-digital.html?capture');const before=await l.evaluate(()=>{const w=document.querySelector('.wordmark').getBoundingClientRect(),api=window.__PROAI_CUBE_R1_2;return{word:[w.x,w.y,w.width,w.height],animations:document.querySelector('.wordmark').getAnimations().length,live:{...window.__PROAI_LOGO_R3_LIVE},quat:api.getInteractionState().presentationQuaternion,logo:window.__PROAI_LOGO_R3,diag:api.getDiagnostics()}});assert(before.animations===0&&before.logo.living.semanticFace===false&&before.logo.living.sliceChoreography===false&&before.diag.scheduler.enabled===false,'living noise gate');await l.waitForTimeout(5000);const after=await l.evaluate(()=>{const w=document.querySelector('.wordmark').getBoundingClientRect(),api=window.__PROAI_CUBE_R1_2;return{word:[w.x,w.y,w.width,w.height],animations:document.querySelector('.wordmark').getAnimations().length,live:{...window.__PROAI_LOGO_R3_LIVE},quat:api.getInteractionState().presentationQuaternion}});assert(after.live.frames>before.live.frames&&after.live.virtualTimeSec>before.live.virtualTimeSec+.05&&qdist(after.quat,before.quat)>.00001,'Cube motion');assert(after.animations===0&&after.word.every((v,i)=>Math.abs(v-before.word[i])<.02),'wordmark moved');await l.screenshot({path:'/tmp/logo-evidence/living-master.png',fullPage:true});await l.close();
+              const l=await open('living-digital.html?capture');
+              const before=await l.evaluate(()=>{const w=document.querySelector('.wordmark').getBoundingClientRect(),api=window.__PROAI_CUBE_R1_2;return{word:[w.x,w.y,w.width,w.height],animations:document.querySelector('.wordmark').getAnimations().length,live:{...window.__PROAI_LOGO_R3_LIVE},quat:api.getInteractionState().presentationQuaternion,logo:window.__PROAI_LOGO_R3,diag:api.getDiagnostics()}});
+              assert(before.animations===0&&before.logo.living.semanticFace===false&&before.logo.living.sliceChoreography===false&&before.diag.scheduler.enabled===false,'living noise gate');
+              await l.waitForTimeout(5000);
+              const after=await l.evaluate(()=>{const w=document.querySelector('.wordmark').getBoundingClientRect(),api=window.__PROAI_CUBE_R1_2;return{word:[w.x,w.y,w.width,w.height],animations:document.querySelector('.wordmark').getAnimations().length,live:{...window.__PROAI_LOGO_R3_LIVE},quat:api.getInteractionState().presentationQuaternion}});
+              assert(after.live.frames>before.live.frames&&after.live.virtualTimeSec>before.live.virtualTimeSec+.05&&qdist(after.quat,before.quat)>.00001,'living Cube motion');
+              assert(after.animations===0&&after.word.every((v,i)=>Math.abs(v-before.word[i])<.02),'wordmark moved');
+              await l.screenshot({path:'/tmp/logo-evidence/living-master.png',fullPage:true}); await l.close();
 
-            const card=await open('business-card.html?capture');assert((await card.locator('.wordmark').innerText()).replace(/\s+/g,' ').trim()==='PROAI EXPERT','card text');await card.screenshot({path:'/tmp/logo-evidence/business-card.png',fullPage:true});await card.close();
-            const av=await open('social-square.html?capture');assert((await av.evaluate(()=>window.__PROAI_LOGO_R3.mode))==='living','avatar mode');await av.screenshot({path:'/tmp/logo-evidence/avatar.png',fullPage:true});await av.close();
-            const light=await ctx.newPage();await light.goto(base+'light-sanity.html?capture',{waitUntil:'domcontentloaded',timeout:90000});await light.waitForFunction(()=>document.documentElement.dataset.lightSanityReady==='true',null,{timeout:90000});await light.screenshot({path:'/tmp/logo-evidence/light-sanity.png',fullPage:true});await light.close();
+              const card=await open('business-card.html?capture'); await card.screenshot({path:'/tmp/logo-evidence/business-card.png',fullPage:true}); await card.close();
+              const avatar=await open('social-square.html?capture'); assert((await avatar.evaluate(()=>window.__PROAI_LOGO_R3.mode))==='living','avatar mode'); await avatar.screenshot({path:'/tmp/logo-evidence/avatar.png',fullPage:true}); await avatar.close();
+              const light=await ctx.newPage(); await light.goto(base+'light-sanity.html?capture',{waitUntil:'domcontentloaded',timeout:90000}); await light.waitForFunction(()=>document.documentElement.dataset.lightSanityReady==='true',null,{timeout:90000}); await light.screenshot({path:'/tmp/logo-evidence/light-sanity.png',fullPage:true}); await light.close();
 
-            const mc=await browser.newContext({viewport:{width:430,height:932},deviceScaleFactor:2,isMobile:true,hasTouch:true});const m=await mc.newPage();await m.goto(base+'mobile-header.html',{waitUntil:'domcontentloaded',timeout:90000});const mf=m.frames().find(f=>f.url().includes('variant-lockup'));assert(mf,'mobile iframe');await mf.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:90000});const mobile=await mf.evaluate(()=>({text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),cube:document.querySelector('.cube-frame').getBoundingClientRect().width,font:getComputedStyle(document.querySelector('.wordmark')).fontSize}));const overflow=await m.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert(mobile.text==='PROAI EXPERT'&&Math.abs(mobile.cube-34)<.2&&mobile.font==='20px'&&overflow<=1,'mobile contract');await m.screenshot({path:'/tmp/logo-evidence/mobile-header.png',fullPage:true});await mc.close();
-            fs.writeFileSync('/tmp/logo-evidence/local-qa.json',JSON.stringify({pass:true,A,B,C,HA,HB,HC,st,before,after,mobile,overflow},null,2));
-          }finally{await browser.close()}})().catch(e=>{console.error(e);process.exit(1)});
+              const mobileCtx=await browser.newContext({viewport:{width:430,height:932},deviceScaleFactor:2,isMobile:true,hasTouch:true});
+              const mobileLogo=await mobileCtx.newPage(); await mobileLogo.goto(base+'variant-lockup.html?variant=A&scale=header&capture',{waitUntil:'domcontentloaded',timeout:90000}); await mobileLogo.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:90000});
+              const mm=await mobileLogo.evaluate(()=>({text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),cube:document.querySelector('.cube-frame').getBoundingClientRect().width,font:getComputedStyle(document.querySelector('.wordmark')).fontSize,overflow:document.documentElement.scrollWidth-window.innerWidth}));
+              assert(mm.text==='PROAI EXPERT'&&Math.abs(mm.cube-34)<.2&&mm.font==='20px'&&mm.overflow<=1,'mobile logo contract'); await mobileLogo.close();
+              const mobile=await mobileCtx.newPage(); await mobile.goto(base+'mobile-header.html',{waitUntil:'networkidle',timeout:90000}); const overflow=await mobile.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth); assert(overflow<=1,'mobile preview overflow'); await mobile.screenshot({path:'/tmp/logo-evidence/mobile-header.png',fullPage:true}); await mobile.close(); await mobileCtx.close();
+
+              fs.writeFileSync('/tmp/logo-evidence/local-qa.json',JSON.stringify({pass:true,A,B,C,HA,HB,HC,st,before,after,mm,overflow},null,2));
+            } finally { await browser.close(); }
+          })().catch(e=>{console.error(e);process.exit(1)});
           NODE
           node /tmp/logoqa/qa.cjs
 
@@ -81,10 +119,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared; chmod +x /tmp/cloudflared
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
           REVIEW_URL=''
-          for attempt in 1 2 3; do LOG="/tmp/tunnel-$attempt.log"; /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 & PID=$!; URL=''; for i in $(seq 1 60); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG"|tail -1||true); [ -n "$URL" ]&&break; sleep 1; done; if [ -n "$URL" ]; then for i in $(seq 1 20); do if curl -fsSL --max-time 15 "$URL/living-digital.html?capture" >/dev/null 2>&1; then REVIEW_URL="$URL"; break 2; fi; sleep 2; done; fi; kill "$PID" 2>/dev/null||true; done
-          test -n "$REVIEW_URL"; printf '%s\n' "$REVIEW_URL" >/tmp/logo-evidence/live-base-url.txt; echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
+          for attempt in 1 2 3; do
+            LOG="/tmp/tunnel-$attempt.log"
+            /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 & PID=$!
+            URL=''; for i in $(seq 1 60); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true); [ -n "$URL" ] && break; sleep 1; done
+            if [ -n "$URL" ]; then for i in $(seq 1 20); do if curl -fsSL --max-time 15 "$URL/living-digital.html?capture" >/dev/null 2>&1; then REVIEW_URL="$URL"; break 2; fi; sleep 2; done; fi
+            kill "$PID" 2>/dev/null || true
+          done
+          test -n "$REVIEW_URL"
+          printf '%s\n' "$REVIEW_URL" >/tmp/logo-evidence/live-base-url.txt
+          echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
 
       - name: Public HTTPS self-check
         shell: bash
@@ -93,7 +140,8 @@ jobs:
         run: |
           set -euo pipefail
           cat >/tmp/logoqa/public.cjs <<'NODE'
-          const {chromium}=require('/tmp/logoqa/node_modules/playwright');const fs=require('fs');const A=(v,m)=>{if(!v)throw new Error(m)},args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'],qd=(a,b)=>Math.sqrt(a.reduce((s,v,i)=>s+(v-b[i])**2,0));(async()=>{const b=await chromium.launch({headless:true,args});try{const c=await b.newContext({viewport:{width:1440,height:900},reducedMotion:'no-preference'}),p=await c.newPage(),url=process.env.REVIEW_URL+'/living-digital.html?capture';await p.goto(url,{waitUntil:'domcontentloaded',timeout:90000});await p.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:90000});const x=await p.evaluate(()=>{const c=document.querySelector('.cube-frame').getBoundingClientRect(),w=document.querySelector('.wordmark').getBoundingClientRect(),a=window.__PROAI_CUBE_R1_2;return{text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),cr:c.right,wl:w.x,bg:getComputedStyle(document.body).backgroundColor,expert:getComputedStyle(document.querySelector('.expert')).color,diag:a.getDiagnostics(),live:{...window.__PROAI_LOGO_R3_LIVE},q:a.getInteractionState().presentationQuaternion,logo:window.__PROAI_LOGO_R3}});A(x.text==='PROAI EXPERT'&&x.cr<x.wl,'public lockup');A(x.bg==='rgb(5, 6, 7)'&&x.expert!=='rgb(93, 226, 255)','public colors');A(x.diag.geometry?.pass===true&&x.diag.scheduler.enabled===false,'public cube');await p.waitForTimeout(5000);const y=await p.evaluate(()=>({live:{...window.__PROAI_LOGO_R3_LIVE},q:window.__PROAI_CUBE_R1_2.getInteractionState().presentationQuaternion}));A(y.live.frames>x.live.frames&&y.live.virtualTimeSec>x.live.virtualTimeSec+.05&&qd(y.q,x.q)>.00001,'public motion');await p.screenshot({path:'/tmp/logo-evidence/public-living.png',fullPage:true});fs.writeFileSync('/tmp/logo-evidence/public-qa.json',JSON.stringify({pass:true,url,canonicalCube:true,oneLineWordmark:true,geometry:x.diag.geometry,logo:x.logo},null,2));}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          const {chromium}=require('/tmp/logoqa/node_modules/playwright');const fs=require('fs');const A=(v,m)=>{if(!v)throw new Error(m)},args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'],qd=(a,b)=>Math.sqrt(a.reduce((s,v,i)=>s+(v-b[i])**2,0));
+          (async()=>{const b=await chromium.launch({headless:true,args});try{const c=await b.newContext({viewport:{width:1440,height:900},reducedMotion:'no-preference'}),p=await c.newPage(),url=process.env.REVIEW_URL+'/living-digital.html?capture';await p.goto(url,{waitUntil:'domcontentloaded',timeout:90000});await p.waitForFunction(()=>window.__PROAI_LOGO_R3?.ready===true,null,{timeout:90000});const x=await p.evaluate(()=>{const cb=document.querySelector('.cube-frame').getBoundingClientRect(),w=document.querySelector('.wordmark').getBoundingClientRect(),a=window.__PROAI_CUBE_R1_2;return{text:document.querySelector('.wordmark').textContent.trim().replace(/\s+/g,' '),cr:cb.right,wl:w.x,bg:getComputedStyle(document.body).backgroundColor,expert:getComputedStyle(document.querySelector('.expert')).color,diag:a.getDiagnostics(),live:{...window.__PROAI_LOGO_R3_LIVE},q:a.getInteractionState().presentationQuaternion,logo:window.__PROAI_LOGO_R3}});A(x.text==='PROAI EXPERT'&&x.cr<x.wl,'public lockup');A(x.bg==='rgb(5, 6, 7)'&&x.expert!=='rgb(93, 226, 255)','public colors');A(x.diag.geometry?.pass===true&&x.diag.scheduler.enabled===false,'public Cube');await p.waitForTimeout(5000);const y=await p.evaluate(()=>({live:{...window.__PROAI_LOGO_R3_LIVE},q:window.__PROAI_CUBE_R1_2.getInteractionState().presentationQuaternion}));A(y.live.frames>x.live.frames&&y.live.virtualTimeSec>x.live.virtualTimeSec+.05&&qd(y.q,x.q)>.00001,'public motion');await p.screenshot({path:'/tmp/logo-evidence/public-living.png',fullPage:true});fs.writeFileSync('/tmp/logo-evidence/public-qa.json',JSON.stringify({pass:true,url,canonicalCube:true,oneLineWordmark:true,geometry:x.diag.geometry,logo:x.logo},null,2));}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
           NODE
           node /tmp/logoqa/public.cjs
 

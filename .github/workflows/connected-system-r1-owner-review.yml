@@ -40,9 +40,7 @@ jobs:
           python3 -m http.server 4173 --directory docs/site-evolution/connected-system-r1 > /tmp/connected-system-http.log 2>&1 &
           echo $! > /tmp/connected-system-http.pid
           for i in {1..20}; do
-            if curl -fsS http://127.0.0.1:4173/en.html >/dev/null; then
-              exit 0
-            fi
+            if curl -fsS http://127.0.0.1:4173/en.html >/dev/null; then exit 0; fi
             sleep 1
           done
           cat /tmp/connected-system-http.log
@@ -66,16 +64,21 @@ jobs:
             if [ -n "$LIVE_BASE" ]; then break; fi
             sleep 2
           done
+          if [ -z "$LIVE_BASE" ]; then cat /tmp/cloudflared.log; exit 1; fi
 
-          if [ -z "$LIVE_BASE" ]; then
-            cat /tmp/cloudflared.log
-            exit 1
-          fi
+          READY=0
+          for i in {1..45}; do
+            if curl -fsS --connect-timeout 4 "$LIVE_BASE/en.html" | grep -Fq 'What the system connects.'; then
+              READY=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$READY" -ne 1 ]; then cat /tmp/cloudflared.log; exit 1; fi
 
-          curl -fsS --retry 8 --retry-delay 2 "$LIVE_BASE/en.html" | grep -Fq 'What the system connects.'
-          curl -fsS --retry 8 --retry-delay 2 "$LIVE_BASE/ru.html" | grep -Fq 'Что объединяет система.'
-          curl -fsS --retry 8 --retry-delay 2 "$LIVE_BASE/connected-system-r1.js" | grep -Fq 'scheduleAmbient'
-          curl -fsS --retry 8 --retry-delay 2 "$LIVE_BASE/connected-system-r1.css" | grep -Fq 'cs-context-transfer'
+          curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/ru.html" | grep -Fq 'Что объединяет система.'
+          curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/connected-system-r1.js" | grep -Fq 'scheduleAmbient'
+          curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/connected-system-r1.css" | grep -Fq 'cs-context-transfer'
 
           EXPIRES_UTC="$(date -u -d '+4 hours' '+%Y-%m-%dT%H:%M:%SZ')"
           cat > docs/site-evolution/connected-system-r1/LIVE_PREVIEW.txt <<EOF
@@ -100,5 +103,4 @@ jobs:
           echo "LIVE RU: $LIVE_BASE/ru.html"
           echo "VERIFIED: PASS"
           echo "EXPECTED EXPIRES UTC: $EXPIRES_UTC"
-
           sleep 14400

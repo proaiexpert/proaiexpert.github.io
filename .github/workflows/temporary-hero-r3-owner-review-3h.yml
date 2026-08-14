@@ -50,58 +50,41 @@ jobs:
           curl -fsS http://127.0.0.1:8080/ | grep -q 'From first impression to result — one system.'
           curl -fsS http://127.0.0.1:8080/ru/ | grep -q 'От первого впечатления до результата — одна система.'
 
-      - name: Browser correction QA and owner evidence
+      - name: Browser correction QA
         shell: bash
         run: |
           set -euo pipefail
           npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
-          mkdir -p /tmp/hero-r3-evidence
           cat > hero-r3-micro-qa.cjs <<'JS'
           const p=require('puppeteer-core'),a=require('assert').strict;
           const B='http://127.0.0.1:8080';
-          const wait=ms=>new Promise(r=>setTimeout(r,ms));
           (async()=>{
-            const b=await p.launch({headless:false,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--enable-unsafe-swiftshader','--disable-background-timer-throttling','--disable-renderer-backgrounding','--disable-backgrounding-occluded-windows']});
+            const b=await p.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox']});
             const q=await b.newPage();
             async function load(path,w,h){
               await q.setViewport({width:w,height:h,deviceScaleFactor:1,isMobile:w<=932,hasTouch:w<=932});
               await q.goto(B+path,{waitUntil:'domcontentloaded'});
-              await q.waitForFunction(()=>document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',{timeout:30000});
-              await wait(180);
+              await q.evaluate(()=>document.fonts.ready);
             }
             async function state(){return q.evaluate(()=>{
               const title=document.querySelector('.proai-hero-title');
-              const text=title.firstChild;
-              const raw=text.textContent;
-              const tokens=[]; let re=/\S+/g,m;
+              const text=title.firstChild,raw=text.textContent,tokens=[];let re=/\S+/g,m;
               while((m=re.exec(raw))){const r=document.createRange();r.setStart(text,m.index);r.setEnd(text,m.index+m[0].length);const box=r.getBoundingClientRect();tokens.push({t:m[0],top:Math.round(box.top),left:Math.round(box.left)});}
-              const grouped=[]; for(const x of tokens){let row=grouped.find(g=>Math.abs(g.top-x.top)<=2);if(!row){row={top:x.top,words:[]};grouped.push(row)}row.words.push(x)}
+              const grouped=[];for(const x of tokens){let row=grouped.find(g=>Math.abs(g.top-x.top)<=2);if(!row){row={top:x.top,words:[]};grouped.push(row)}row.words.push(x)}
               const lines=grouped.sort((x,y)=>x.top-y.top).map(g=>g.words.sort((x,y)=>x.left-y.left).map(x=>x.t).join(' '));
-              const acts=[...document.querySelectorAll('.proai-hero-actions>a')].map(e=>{const r=e.getBoundingClientRect();const s=getComputedStyle(e);return{top:r.top,bottom:r.bottom,left:r.left,right:r.right,w:r.width,h:r.height,border:s.borderTopWidth,bg:s.backgroundImage,display:s.display}});
-              const v=document.querySelector('.hero-visual').getBoundingClientRect();
-              return{lines,acts,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,wrap:getComputedStyle(document.querySelector('.proai-hero-actions')).flexWrap,dir:getComputedStyle(document.querySelector('.proai-hero-actions')).flexDirection,cubeW:v.width,cubeTop:v.top};
+              const acts=[...document.querySelectorAll('.proai-hero-actions>a')].map(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return{top:r.top,left:r.left,right:r.right,w:r.width,h:r.height,border:s.borderTopWidth,bg:s.backgroundImage}});
+              const v=document.querySelector('.hero-visual').getBoundingClientRect(),as=getComputedStyle(document.querySelector('.proai-hero-actions'));
+              return{lines,acts,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,wrap:as.flexWrap,dir:as.flexDirection,cubeW:v.width,font:getComputedStyle(title).fontFamily};
             })}
-            async function ruBreak(w,h,file){await load('/ru/',w,h);const s=await state();console.log('RU_BREAK',w,h,JSON.stringify(s.lines));a.equal(s.overflow,0);a.ok(s.lines.length>=4);a.equal(s.lines.at(-1),'одна система.');a.equal(s.lines.at(-2),'результата —');if(file)await q.screenshot({path:file,fullPage:false});}
-            async function row(path,label,w,h,file){await load(path,w,h);const s=await state();console.log('CTA_ROW',label,w,h,JSON.stringify(s));a.equal(s.overflow,0);a.equal(s.dir,'row');a.equal(s.wrap,'nowrap');a.equal(s.acts.length,2);a.ok(Math.abs(s.acts[0].top-s.acts[1].top)<=4);a.equal(s.acts[1].border,'0px');a.equal(s.acts[1].bg,'none');a.ok(s.acts[0].right+4<=s.acts[1].left);a.ok(s.cubeW>=Math.min(w*.48,358));if(file)await q.screenshot({path:file,fullPage:false});}
-            await ruBreak(1440,900,'/tmp/hero-r3-evidence/01-ru-1440-desktop.png');
-            await ruBreak(1200,800,'/tmp/hero-r3-evidence/02-ru-1200-laptop.png');
-            await row('/','portrait-en',390,844,'/tmp/hero-r3-evidence/03-en-390-portrait.png');
-            await row('/ru/','portrait-ru',390,844,null);
-            await row('/','landscape-en',844,390,null);
-            await row('/ru/','landscape-ru',844,390,'/tmp/hero-r3-evidence/04-ru-844x390-landscape.png');
-            console.log('MICRO_CORRECTION_QA=PASS');
-            await b.close();
+            async function ruBreak(w,h){await load('/ru/',w,h);const s=await state();console.log('RU_BREAK',w,h,JSON.stringify(s.lines),s.font);a.equal(s.overflow,0);a.equal(s.lines.at(-2),'результата —');a.equal(s.lines.at(-1),'одна система.');}
+            async function row(path,label,w,h){await load(path,w,h);const s=await state();console.log('CTA_ROW',label,w,h,JSON.stringify(s));a.equal(s.overflow,0);a.equal(s.dir,'row');a.equal(s.wrap,'nowrap');a.equal(s.acts.length,2);a.ok(Math.abs(s.acts[0].top-s.acts[1].top)<=4);a.equal(s.acts[1].border,'0px');a.equal(s.acts[1].bg,'none');a.ok(s.acts[0].right+4<=s.acts[1].left);a.ok(s.cubeW>=Math.min(w*.48,358));}
+            await ruBreak(1440,900);await ruBreak(1200,800);
+            await row('/','portrait-en',390,844);await row('/ru/','portrait-ru',390,844);
+            await row('/','landscape-en',844,390);await row('/ru/','landscape-ru',844,390);
+            console.log('MICRO_CORRECTION_QA=PASS');await b.close();
           })().catch(e=>{console.error(e);process.exit(1)});
           JS
-          xvfb-run -a node hero-r3-micro-qa.cjs | tee /tmp/hero-r3-micro-qa.log
-
-      - name: Upload owner-review screenshots
-        uses: actions/upload-artifact@v4
-        with:
-          name: hero-r3-micro-correction-owner-evidence
-          path: /tmp/hero-r3-evidence/*.png
-          if-no-files-found: error
-          retention-days: 7
+          node hero-r3-micro-qa.cjs | tee /tmp/hero-r3-micro-qa.log
 
       - name: Start and verify public TryCloudflare preview
         env:

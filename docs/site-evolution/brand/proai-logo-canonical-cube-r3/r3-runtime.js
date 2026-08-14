@@ -3,7 +3,7 @@ import './assets/index-vldOIrE-.js';
 const SOURCE = Object.freeze({
   branch: 'agent/proai-cube-semantic-brand-face-r4',
   productSha: 'd4902a151b5f4cc98032c956e3d9e1d0fca94827',
-  activeBranchHeadInspected: '0c9cafc0d7a29879a257f11cd26a0db77bb187e6',
+  activeBranchHeadInspected: '79f6e9a95c8e78572039b3732d3b2673f59f8554',
   geometryFoundationSha: '73082717909b6f4225841401fe4962d6ff4bbcca',
   presentationMotionSha: '89965750e4456a6e2d54d8309809471f8dbfcc75',
   materialsLightingSha: 'd17806da42275db617d8a46b231a2d877706a179',

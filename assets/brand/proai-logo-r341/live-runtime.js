@@ -1,7 +1,7 @@
 const SOURCE_URL='/assets/js/proai-hero-cube-r1/source-materials-r1.js';
 const GLB_URL='/assets/models/proai-cube/rubik_39_s_cube_animation.glb';
 const HOME=Object.freeze({yaw:288,pitch:4.5,roll:-0.3,fov:31});
-const MOTION=Object.freeze({yawSpeed:4.5,pitchAmplitude:2,pitchRate:.19,rollAmplitude:.35,rollRate:.128});
+const MOTION=Object.freeze({yawSpeed:4.5,pitchAmplitude:2,pitchRate:.19,rollAmplitude:.35,rollRate:.128,targetFps:30});
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const params=new URLSearchParams(location.search);
 const mode=params.get('mode')||'living';
@@ -32,12 +32,14 @@ try{
   if(!api.ready)throw new Error('Logo Cube failed to become ready');
   api.stopChoreography?.();api.stopSliceScheduler?.();api.setLookDevPreset?.('premiumHybrid');api.setSignatureFov?.(HOME.fov,false);api.setSignatureEuler?.(HOME.yaw,HOME.pitch,HOME.roll,true);
   const diagnostics=api.getDiagnostics?.()||{};
-  window.__PROAI_LOGO_R341_STATE={ready:true,mode,reducedMotion:reduced,sourceUrl:SOURCE_URL,glbUrl:GLB_URL,home:HOME,motion:MOTION,geometry:diagnostics.geometry||api.geometry,sliceChoreography:false,semanticFace:false,wordmarkAnimated:false,frames:0,elapsedSec:0,current:{yaw:HOME.yaw,pitch:HOME.pitch,roll:HOME.roll}};
+  window.__PROAI_LOGO_R341_STATE={ready:true,mode,reducedMotion:reduced,sourceUrl:SOURCE_URL,glbUrl:GLB_URL,home:HOME,motion:MOTION,geometry:diagnostics.geometry||api.geometry,sliceChoreography:false,semanticFace:false,wordmarkAnimated:false,frames:0,elapsedSec:0,current:{yaw:HOME.yaw,pitch:HOME.pitch,roll:HOME.roll},lastRenderAt:performance.now()};
   document.documentElement.dataset.proaiLogoReady='true';
   notify('ready',{geometryPass:Boolean((diagnostics.geometry||api.geometry)?.pass),glbUrl:GLB_URL});
   if(mode==='living'&&!reduced){
     const t0=performance.now();
-    const tick=(now)=>{const e=(now-t0)/1000;const yaw=HOME.yaw+e*MOTION.yawSpeed;const pitch=HOME.pitch+MOTION.pitchAmplitude*Math.sin(e*MOTION.pitchRate);const roll=HOME.roll+MOTION.rollAmplitude*Math.sin(e*MOTION.rollRate);api.setSignatureEuler(yaw,pitch,roll,true);const state=window.__PROAI_LOGO_R341_STATE;state.frames+=1;state.elapsedSec=e;state.current={yaw,pitch,roll};requestAnimationFrame(tick)};
-    requestAnimationFrame(tick);
+    const intervalMs=1000/MOTION.targetFps;
+    const tick=()=>{const now=performance.now(),e=(now-t0)/1000,yaw=HOME.yaw+e*MOTION.yawSpeed,pitch=HOME.pitch+MOTION.pitchAmplitude*Math.sin(e*MOTION.pitchRate),roll=HOME.roll+MOTION.rollAmplitude*Math.sin(e*MOTION.rollRate);api.setSignatureEuler(yaw,pitch,roll,true);const state=window.__PROAI_LOGO_R341_STATE;state.frames+=1;state.elapsedSec=e;state.current={yaw,pitch,roll};state.lastRenderAt=now};
+    tick();
+    setInterval(tick,intervalMs);
   }
 }catch(error){console.error('[ProAI Logo R3.4.1]',error);document.documentElement.dataset.proaiLogoReady='error';notify('error',{message:String(error)});}finally{if(moduleUrl)setTimeout(()=>URL.revokeObjectURL(moduleUrl),0)}

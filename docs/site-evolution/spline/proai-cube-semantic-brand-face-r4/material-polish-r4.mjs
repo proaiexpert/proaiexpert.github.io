@@ -52,12 +52,12 @@ const clear = `function clearSemanticReviewState(){if(!semanticReady)return fals
 rx(/function clearSemanticReviewState\(\) \{[\s\S]*?\n\}\n\nfunction semanticTimelineState/, `${clear}\n\nfunction semanticTimelineState`, 'clear state');
 
 const timeline = `function semanticTimelineState(elapsedMs) {
-  const revealEnd=SEMANTIC_R2.revealMs,holdEnd=revealEnd+SEMANTIC_R2.readableHoldMs,exitEnd=holdEnd+SEMANTIC_R2.exitMs,accelStart=holdEnd+80,accelEnd=accelStart+SEMANTIC_R2.accelerationMs,blockRelease=holdEnd+SEMANTIC_R2.exitMs*SEMANTIC_R2.blockReleaseExitProgress,total=Math.max(exitEnd,accelEnd);
-  let timeScale=SEMANTIC_R2.semanticVelocityMultiplier;if(elapsedMs<SEMANTIC_R2.decelerationMs)timeScale=THREE.MathUtils.lerp(1,SEMANTIC_R2.semanticVelocityMultiplier,smootherstep(elapsedMs/SEMANTIC_R2.decelerationMs));else if(elapsedMs>=accelStart)timeScale=THREE.MathUtils.lerp(SEMANTIC_R2.semanticVelocityMultiplier,1,smootherstep((elapsedMs-accelStart)/SEMANTIC_R2.accelerationMs));
-  const surfaceIn=smootherstep(elapsedMs/SEMANTIC_R2.revealMs),surfaceLeave=1-smootherstep(THREE.MathUtils.clamp((elapsedMs-940)/760,0,1));let surface=surfaceIn*surfaceLeave;
-  let formation=smootherstep((elapsedMs-SEMANTIC_R2.firstTypographyMs)/Math.max(1,SEMANTIC_R2.revealMs-SEMANTIC_R2.firstTypographyMs));
-  const discoveryIn=smootherstep(THREE.MathUtils.clamp((elapsedMs-(SEMANTIC_R2.firstTypographyMs+70))/580,0,1)),discoveryOut=1-smootherstep(THREE.MathUtils.clamp((elapsedMs-900)/820,0,1));let luminance=discoveryIn*discoveryOut;
-  let exit=0;if(elapsedMs>=holdEnd){exit=smootherstep((elapsedMs-holdEnd)/SEMANTIC_R2.exitMs);formation*=1-exit;luminance*=1-smootherstep(THREE.MathUtils.clamp(exit/.62,0,1));surface*=1-exit}
+  const revealEnd=SEMANTIC_R4.revealMs,holdEnd=revealEnd+SEMANTIC_R4.readableHoldMs,exitEnd=holdEnd+SEMANTIC_R4.exitMs,accelStart=holdEnd+80,accelEnd=accelStart+SEMANTIC_R4.accelerationMs,blockRelease=holdEnd+SEMANTIC_R4.exitMs*SEMANTIC_R4.blockReleaseExitProgress,total=Math.max(exitEnd,accelEnd);
+  let timeScale=SEMANTIC_R4.semanticVelocityMultiplier;if(elapsedMs<SEMANTIC_R4.decelerationMs)timeScale=THREE.MathUtils.lerp(1,SEMANTIC_R4.semanticVelocityMultiplier,smootherstep(elapsedMs/SEMANTIC_R4.decelerationMs));else if(elapsedMs>=accelStart)timeScale=THREE.MathUtils.lerp(SEMANTIC_R4.semanticVelocityMultiplier,1,smootherstep((elapsedMs-accelStart)/SEMANTIC_R4.accelerationMs));
+  const surfaceIn=smootherstep(elapsedMs/SEMANTIC_R4.revealMs),surfaceLeave=1-smootherstep(THREE.MathUtils.clamp((elapsedMs-940)/760,0,1));let surface=surfaceIn*surfaceLeave;
+  let formation=smootherstep((elapsedMs-SEMANTIC_R4.firstTypographyMs)/Math.max(1,SEMANTIC_R4.revealMs-SEMANTIC_R4.firstTypographyMs));
+  const discoveryIn=smootherstep(THREE.MathUtils.clamp((elapsedMs-(SEMANTIC_R4.firstTypographyMs+70))/580,0,1)),discoveryOut=1-smootherstep(THREE.MathUtils.clamp((elapsedMs-900)/820,0,1));let luminance=discoveryIn*discoveryOut;
+  let exit=0;if(elapsedMs>=holdEnd){exit=smootherstep((elapsedMs-holdEnd)/SEMANTIC_R4.exitMs);formation*=1-exit;luminance*=1-smootherstep(THREE.MathUtils.clamp(exit/.62,0,1));surface*=1-exit}
   return {timeScale,surface,formation,luminance,sweep:.50,exit,holdEnd,blockRelease,total};
 }`;
 rx(/function semanticTimelineState\(elapsedMs\) \{[\s\S]*?\n\}\n\nfunction beginSemanticRuntime/, `${timeline}\n\nfunction beginSemanticRuntime`, 'optical opportunity timeline');

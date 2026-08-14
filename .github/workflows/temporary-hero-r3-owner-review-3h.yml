@@ -56,7 +56,7 @@ jobs:
           set -euo pipefail
           npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
           mkdir -p /tmp/hero-r3-evidence
-          cat > /tmp/hero-r3-micro-qa.cjs <<'JS'
+          cat > hero-r3-micro-qa.cjs <<'JS'
           const p=require('puppeteer-core'),a=require('assert').strict;
           const B='http://127.0.0.1:8080';
           const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -93,7 +93,7 @@ jobs:
             await b.close();
           })().catch(e=>{console.error(e);process.exit(1)});
           JS
-          xvfb-run -a node /tmp/hero-r3-micro-qa.cjs | tee /tmp/hero-r3-micro-qa.log
+          xvfb-run -a node hero-r3-micro-qa.cjs | tee /tmp/hero-r3-micro-qa.log
 
       - name: Upload owner-review screenshots
         uses: actions/upload-artifact@v4

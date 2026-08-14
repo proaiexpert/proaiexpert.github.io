@@ -40,7 +40,7 @@ jobs:
           python3 -m http.server 4173 --directory docs/site-evolution/connected-system-r1 > /tmp/connected-system-http.log 2>&1 &
           echo $! > /tmp/connected-system-http.pid
           for i in {1..20}; do
-            if curl -fsS http://127.0.0.1:4173/en.html >/dev/null; then exit 0; fi
+            if curl -fsS http://127.0.0.1:4173/en.html -o /tmp/local-en.html; then exit 0; fi
             sleep 1
           done
           cat /tmp/connected-system-http.log
@@ -68,7 +68,7 @@ jobs:
 
           READY=0
           for i in {1..45}; do
-            if curl -fsS --connect-timeout 4 "$LIVE_BASE/en.html" | grep -Fq 'What the system connects.'; then
+            if curl -fsS --connect-timeout 4 "$LIVE_BASE/en.html" -o /tmp/live-en.html && grep -Fq 'What the system connects.' /tmp/live-en.html; then
               READY=1
               break
             fi
@@ -76,9 +76,12 @@ jobs:
           done
           if [ "$READY" -ne 1 ]; then cat /tmp/cloudflared.log; exit 1; fi
 
-          curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/ru.html" | grep -Fq 'Что объединяет система.'
-          curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/connected-system-r1.js" | grep -Fq 'scheduleAmbient'
-          curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/connected-system-r1.css" | grep -Fq 'cs-context-transfer'
+          curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/ru.html" -o /tmp/live-ru.html
+          grep -Fq 'Что объединяет система.' /tmp/live-ru.html
+          curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/connected-system-r1.js" -o /tmp/live-js.js
+          grep -Fq 'scheduleAmbient' /tmp/live-js.js
+          curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/connected-system-r1.css" -o /tmp/live-css.css
+          grep -Fq 'cs-context-transfer' /tmp/live-css.css
 
           EXPIRES_UTC="$(date -u -d '+4 hours' '+%Y-%m-%dT%H:%M:%SZ')"
           cat > docs/site-evolution/connected-system-r1/LIVE_PREVIEW.txt <<EOF

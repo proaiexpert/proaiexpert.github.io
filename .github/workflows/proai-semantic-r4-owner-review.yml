@@ -9,27 +9,33 @@ permissions:
   contents: read
 
 concurrency:
-  group: proai-r43-owner-access-${{ github.event.pull_request.number }}
+  group: proai-r43-owner-access-windows-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
   preview:
     if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
-    runs-on: ubuntu-latest
-    timeout-minutes: 200
+    runs-on: windows-latest
+    timeout-minutes: 210
     defaults:
       run:
         working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+
     steps:
       - uses: actions/checkout@v4
         with:
           ref: f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a
           fetch-depth: 0
 
-      - name: Pin exact R4.3 product
-        run: test "$(git rev-parse HEAD)" = "f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a"
+      - name: Pin exact R4.3 product and containment
+        shell: pwsh
+        run: |
+          if ((git rev-parse HEAD).Trim() -ne 'f4f4bfa34f38eb99b2e99cff941a7f7895e82d9a') { throw 'wrong product SHA' }
+          $changed = git diff --name-only 86eb7d5c199336a73d2e959fe6d735a3498c4d40...HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+          if (($changed -join "`n").Trim() -ne 'docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r4.mjs') { throw "product containment failed: $changed" }
 
       - name: Build exact R4.3 product
+        shell: pwsh
         run: |
           npm install --package-lock=false
           npm run prepare-r4
@@ -37,86 +43,91 @@ jobs:
           node material-polish-r4.mjs
           node --check main.generated.js
           npx vite build
-          test "$(wc -c < rubik_39_s_cube_animation.glb)" -eq 279412
-          test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
-          grep -q "physicalEngravedLogicalTileCount" main.generated.js
-          grep -q "semanticMotionCoupled:false" main.generated.js
-          grep -q "effectiveGlobalMotionScale:1.0" main.generated.js
-          ! grep -q "onBeforeCompile=(shader)" main.generated.js
+          if ((Get-Item rubik_39_s_cube_animation.glb).Length -ne 279412) { throw 'GLB byte size changed' }
+          $sha=(Get-FileHash rubik_39_s_cube_animation.glb -Algorithm SHA256).Hash.ToLower()
+          if ($sha -ne 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b') { throw 'GLB SHA changed' }
+          $src=Get-Content main.generated.js -Raw
+          foreach($needle in @('surfaceMaxOpacity: 0.000','decelerationMs: 0','accelerationMs: 0','semanticVelocityMultiplier: 1.0','const deltaMs=wallDeltaMs','SEMANTIC_R4_3_PERSISTENT_PHYSICAL_MICRO_ENGRAVING','physicalEngravedLogicalTileCount','physicalCubieMaterial:true','overlayTextRendered:false','visualDriverTimeline:false','alphaDominantReveal:false','seamAwareOcclusion:true','emissive:false','glowHalo:false','scanWipeShimmer:false','letterWordStagger:false')) { if(-not $src.Contains($needle)){ throw "missing hard-lock: $needle" } }
+          foreach($forbidden in @('wallDeltaMs * semanticTimeScale','onBeforeCompile=(shader)','microHalo','emissiveIntensity')) { if($src.Contains($forbidden)){ throw "forbidden path: $forbidden" } }
 
       - name: Install public verifier browser
+        shell: pwsh
         run: |
           npm install --no-save playwright
           npx playwright install chromium
 
       - name: Start exact product runtime
+        shell: pwsh
         run: |
-          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r43-http.log 2>&1 &
-          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
-          cat /tmp/r43-http.log || true
-          exit 1
+          $p=Start-Process python -ArgumentList @('-m','http.server','4173','--bind','127.0.0.1','--directory','dist') -PassThru -WindowStyle Hidden
+          Set-Content -Path "$env:RUNNER_TEMP\r43-http.pid" -Value $p.Id
+          $ok=$false
+          for($i=0;$i -lt 60;$i++){ try { $r=Invoke-WebRequest -UseBasicParsing http://127.0.0.1:4173/ -TimeoutSec 5; if($r.StatusCode -eq 200){$ok=$true;break} } catch {}; Start-Sleep -Seconds 1 }
+          if(-not $ok){ throw 'local review runtime failed' }
 
       - name: Publish TryCloudflare owner preview
         id: tunnel
+        shell: pwsh
         run: |
-          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
-          chmod +x /tmp/cloudflared
-          REVIEW_URL=''
-          for attempt in 1 2 3; do
-            LOG="/tmp/r43-tunnel-${attempt}.log"
-            /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 & PID=$!
-            URL=''
-            for i in $(seq 1 60); do
-              URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
-              [ -n "$URL" ] && break
-              sleep 1
-            done
-            if [ -n "$URL" ]; then
-              for i in $(seq 1 25); do
-                if curl -fsSL --max-time 12 "$URL/" >/tmp/r43-public.html 2>/dev/null; then REVIEW_URL="$URL"; break 2; fi
-                sleep 2
-              done
-            fi
-            cat "$LOG" || true
-            kill "$PID" 2>/dev/null || true
-          done
-          test -n "$REVIEW_URL"
-          grep -q "ProAI Cube" /tmp/r43-public.html
-          printf '%s\n' "$REVIEW_URL" > "$GITHUB_WORKSPACE/r43-owner-review-url.txt"
-          echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
+          $cf="$env:RUNNER_TEMP\cloudflared.exe"
+          Invoke-WebRequest -UseBasicParsing 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe' -OutFile $cf
+          $review=''
+          for($attempt=1;$attempt -le 3;$attempt++){
+            $out="$env:RUNNER_TEMP\r43-tunnel-$attempt.out.log"; $err="$env:RUNNER_TEMP\r43-tunnel-$attempt.err.log"
+            $proc=Start-Process $cf -ArgumentList @('tunnel','--no-autoupdate','--url','http://127.0.0.1:4173') -RedirectStandardOutput $out -RedirectStandardError $err -PassThru -WindowStyle Hidden
+            $url=''
+            for($i=0;$i -lt 75;$i++){
+              $text=((Get-Content $out,$err -ErrorAction SilentlyContinue) -join "`n")
+              $m=[regex]::Match($text,'https://[a-z0-9-]+\.trycloudflare\.com')
+              if($m.Success){$url=$m.Value;break}
+              Start-Sleep -Seconds 1
+            }
+            if($url){
+              for($i=0;$i -lt 30;$i++){
+                try { $r=Invoke-WebRequest -UseBasicParsing "$url/" -TimeoutSec 12; if($r.StatusCode -eq 200 -and $r.Content.Contains('ProAI Cube')){$review=$url;break} } catch {}
+                Start-Sleep -Seconds 2
+              }
+            }
+            if($review){break}
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          }
+          if(-not $review){ throw 'TryCloudflare URL unavailable' }
+          Set-Content -Path "$env:GITHUB_WORKSPACE\r43-owner-review-url.txt" -Value $review
+          "url=$review" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-      - name: Verify public WebGL, pointer and touch
+      - name: Verify public WebGL, natural opportunities, pointer and touch
+        shell: pwsh
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
-          cat > r43-public.mjs <<'NODE'
+          @'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
           const url=process.env.REVIEW_URL;
-          const args=['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-gl=swiftshader','--disable-dev-shm-usage'];
-          const browser=await chromium.launch({headless:true,args});
+          const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
           const fatal=[];
           const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
           try {
             const c=await browser.newContext({viewport:{width:980,height:760},reducedMotion:'no-preference'});
-            const p=await c.newPage();
-            p.on('pageerror',e=>fatal.push(String(e))); p.on('console',m=>{if(m.type()==='error')fatal.push(m.text())});
+            const p=await c.newPage(); p.on('pageerror',e=>fatal.push(String(e))); p.on('console',m=>{if(m.type()==='error')fatal.push(m.text())});
             await p.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
             await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
             await p.evaluate(()=>window.__PROAI_CUBE_R1_2.stopSliceScheduler());
             const before=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
             await p.waitForTimeout(900);
             const moving=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
+            if(!(moving.d.presentation.simTimeMs>before.d.presentation.simTimeMs)) throw new Error('public motion stopped');
+            await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().naturalOpportunityCount>=3,null,{timeout:360000});
+            const natural=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics());
             const box=await p.locator('#cube-canvas').boundingBox(); if(!box) throw new Error('canvas missing');
             const cx=box.x+box.width*.5,cy=box.y+box.height*.5;
-            await p.mouse.move(cx,cy); await p.mouse.down(); await p.mouse.move(cx+240,cy+90,{steps:12}); await p.mouse.up(); await p.waitForTimeout(250);
-            const dragged=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
-            const pointerDelta=dist(moving.i.cameraPosition,dragged.i.cameraPosition);
-            const publicMotion=moving.d.presentation.simTimeMs>before.d.presentation.simTimeMs;
-            const flags=dragged.s;
-            const basePass=publicMotion&&pointerDelta>.01&&flags.persistentInscription===true&&flags.physicalCubieMaterial===true&&flags.physicalEngravedLogicalTileCount===9&&flags.overlayTextRendered===false&&flags.visualDriverTimeline===false&&flags.alphaDominantReveal===false&&flags.semanticMotionCoupled===false&&flags.semanticOrientationForcing===false&&flags.timeScale===1&&flags.blocksSlices===false&&flags.seamAwareOcclusion===true&&flags.emissive===false&&flags.glowHalo===false;
+            const cam0=(await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getInteractionState())).cameraPosition;
+            await p.mouse.move(cx,cy); await p.mouse.down(); await p.mouse.move(cx+240,cy+90,{steps:12}); await p.mouse.up(); await p.waitForTimeout(300);
+            const state=await p.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),i:window.__PROAI_CUBE_R1_2.getInteractionState()}));
+            const pointerDelta=dist(cam0,state.i.cameraPosition);
+            const flags=state.s;
+            const desktopPass=pointerDelta>.01&&natural.naturalOpportunityCount>=3&&flags.persistentInscription===true&&flags.physicalCubieMaterial===true&&flags.physicalEngravedLogicalTileCount===9&&flags.overlayTextRendered===false&&flags.visualDriverTimeline===false&&flags.alphaDominantReveal===false&&flags.semanticMotionCoupled===false&&flags.semanticOrientationForcing===false&&flags.timeScale===1&&flags.blocksSlices===false&&flags.seamAwareOcclusion===true&&flags.emissive===false&&flags.glowHalo===false;
             await c.close();
-
             const tc=await browser.newContext({viewport:{width:430,height:932},deviceScaleFactor:2,hasTouch:true,isMobile:true,reducedMotion:'no-preference'}),tp=await tc.newPage();
             await tp.goto(url,{waitUntil:'domcontentloaded',timeout:120000}); await tp.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:180000});
             const tb=await tp.evaluate(()=>({d:window.__PROAI_CUBE_R1_2.getDiagnostics(),s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics()}));
@@ -128,14 +139,14 @@ jobs:
             const ta=await tp.evaluate(()=>({d:window.__PROAI_CUBE_R1_2.getDiagnostics(),s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics()}));
             const touchPass=ta.d.presentation.simTimeMs>tb.d.presentation.simTimeMs&&ta.s.persistentInscription===true&&ta.s.timeScale===1&&ta.s.physicalEngravedLogicalTileCount===9;
             await tc.close();
-            const pass=basePass&&touchPass&&fatal.length===0;
-            const result={pass,url,publicMotion,pointerDelta,pointerPass:pointerDelta>.01,touchPass,logicalTiles:flags.physicalEngravedLogicalTileCount,motionScale:flags.effectiveGlobalMotionScale,fatal};
-            fs.mkdirSync('review-evidence/public',{recursive:true}); fs.writeFileSync('review-evidence/public/r43-public.json',JSON.stringify(result,null,2));
-            console.log('R43_PUBLIC',JSON.stringify(result)); if(!pass) process.exitCode=1;
-          } finally {await browser.close()}
-          NODE
+            const pass=desktopPass&&touchPass&&fatal.length===0;
+            const result={pass,url,publicMotion:true,naturalOpportunityCount:natural.naturalOpportunityCount,pointerDelta,pointerPass:pointerDelta>.01,touchPass,logicalTiles:flags.physicalEngravedLogicalTileCount,motionScale:flags.effectiveGlobalMotionScale,fatal};
+            fs.mkdirSync('review-evidence/public',{recursive:true}); fs.writeFileSync('review-evidence/public/r43-public.json',JSON.stringify(result,null,2)); console.log('R43_PUBLIC',JSON.stringify(result));
+            if(!pass) process.exitCode=1;
+          } finally { await browser.close(); }
+          '@ | Set-Content -Path r43-public.mjs -Encoding utf8
           node r43-public.mjs
-          rm -f r43-public.mjs
+          Remove-Item r43-public.mjs -Force
 
       - name: Publish owner URL
         uses: actions/upload-artifact@v4
@@ -152,4 +163,5 @@ jobs:
           retention-days: 7
 
       - name: Hold owner preview for approximately 3 hours
-        run: sleep 10800
+        shell: pwsh
+        run: Start-Sleep -Seconds 10800

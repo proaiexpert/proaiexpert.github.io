@@ -1,0 +1,93 @@
+name: ProAI Header R1.1.1 Product Build
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-r111-product-build.yml]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-header-footer-logo-r1
+          fetch-depth: 0
+      - name: Verify clean product base
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=e1159d8b6738a3daa28b20a4f95537bd62ad7b7c
+          git merge-base --is-ancestor "$BASE" HEAD
+          test -z "$(git diff --name-only "$BASE" HEAD -- _includes/header-system/header.html assets/js/header-footer-logo-r1.js assets/brand/proai-logo-r341/live-runtime.js assets/css/header-footer-logo-r1.css _includes/footer-commercial-v1.html assets/css/homepage-hero-signature-r3.css index.html ru/index.html)"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+      - name: Capture exact Header home-frame fallback
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/r111-http.log 2>&1 &
+          cat >/tmp/r111-capture.cjs <<'JS'
+          const pp=require('puppeteer-core');
+          (async()=>{const b=await pp.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader']});try{const p=await b.newPage();await p.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);await p.setViewport({width:80,height:80,deviceScaleFactor:4});await p.goto('http://127.0.0.1:8080/assets/brand/proai-logo-r341/live.html?mode=living',{waitUntil:'domcontentloaded'});await p.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.ready,{timeout:90000});const s=await p.evaluate(()=>JSON.parse(JSON.stringify(window.__PROAI_LOGO_R341_STATE)));if(s.current.yaw!==288||s.current.pitch!==4.5||s.current.roll!==-0.3||s.home.fov!==27||s.microLookDev.name!=='HEADER_MICRO_LOOKDEV')throw new Error('Unexpected Header home frame');await p.screenshot({path:'assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png',omitBackground:true});}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          NODE_PATH="$PWD/node_modules" node /tmp/r111-capture.cjs
+          file assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png | grep -q '320 x 320'
+      - name: Apply controlled startup handshake
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p=Path('_includes/header-system/header.html')
+          s=p.read_text()
+          old='data-logo-live-src="/assets/brand/proai-logo-r341/live.html?mode=living"></iframe>\n          <img class="proai-logo-r341__static" src="/assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png"'
+          new='data-logo-live-src="/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled"></iframe>\n          <img class="proai-logo-r341__static" src="/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png"'
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new))
+
+          p=Path('assets/js/header-footer-logo-r1.js')
+          s=p.read_text()
+          old="""      if (event.data.state === 'ready') {\n        logo.classList.add('is-live');\n        logo.dataset.logoState = 'live';\n      } else {"""
+          new="""      if (event.data.state === 'ready') {\n        logo.classList.add('is-live');\n        logo.dataset.logoState = 'live';\n        requestAnimationFrame(() => {\n          frame.contentWindow?.postMessage({ type: 'proai-logo-r341-control', action: 'start-motion' }, location.origin);\n        });\n      } else {"""
+          assert s.count(old)==1
+          p.write_text(s.replace(old,new))
+
+          p=Path('assets/brand/proai-logo-r341/live-runtime.js')
+          s=p.read_text()
+          s=s.replace("const qualityOverride=[2,3,4].includes(requestedQuality)?requestedQuality:null;", "const qualityOverride=[2,3,4].includes(requestedQuality)?requestedQuality:null;\nconst controlledStart=params.get('startup')==='controlled';", 1)
+          s=s.replace("let motionYawDeg=HOME.yaw;", "let motionYawDeg=HOME.yaw;\nlet motionEnabled=false;", 1)
+          anchor="document.addEventListener('visibilitychange',resetMotionClock,{passive:true});"
+          insert="""document.addEventListener('visibilitychange',resetMotionClock,{passive:true});\naddEventListener('message',event=>{\n  if(event.origin!==location.origin||event.data?.type!=='proai-logo-r341-control'||event.data?.action!=='start-motion')return;\n  if(mode!=='living'||reduced)return;\n  motionLastNow=performance.now();\n  motionEnabled=true;\n  if(window.__PROAI_LOGO_R341_STATE)window.__PROAI_LOGO_R341_STATE.motionStarted=true;\n});"""
+          assert s.count(anchor)==1
+          s=s.replace(anchor,insert,1)
+          s=s.replace("    wordmarkAnimated:false,\n    frames:0,", "    wordmarkAnimated:false,\n    controlledStart,\n    motionStarted:false,\n    frames:0,", 1)
+          old="""    globalThis.__PROAI_HEADER_LOGO_TICK=(now)=>{\n      const dt=Math.max(0,(now-motionLastNow)/1000);"""
+          new="""    motionEnabled=!controlledStart;\n    globalThis.__PROAI_HEADER_LOGO_TICK=(now)=>{\n      if(!motionEnabled){motionLastNow=now;return;}\n      const dt=Math.max(0,(now-motionLastNow)/1000);"""
+          assert s.count(old)==1
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Commit one narrow product change
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/agent/proai-header-footer-logo-r1 | cut -f1)" = "${GITHUB_SHA}"
+          git status --short
+          EXPECTED=$'_includes/header-system/header.html\nassets/brand/proai-logo-r341/live-runtime.js\nassets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png\nassets/js/header-footer-logo-r1.js'
+          ACTUAL="$(git status --short | sed -E 's/^.. //' | sort)"
+          test "$ACTUAL" = "$EXPECTED"
+          git config user.name 'ProAI Header Builder'
+          git config user.email 'proai.expert2026@gmail.com'
+          git add _includes/header-system/header.html assets/js/header-footer-logo-r1.js assets/brand/proai-logo-r341/live-runtime.js assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png
+          git commit -m 'fix: pixel-match Header Cube startup continuity'
+          git push origin HEAD:agent/proai-header-footer-logo-r1
+          git rev-parse HEAD | tee /tmp/R111_PRODUCT_SHA.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-r111-product-build
+          path: /tmp/R111_PRODUCT_SHA.txt
+          retention-days: 7

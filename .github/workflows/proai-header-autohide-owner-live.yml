@@ -53,6 +53,7 @@ jobs:
           const chrome=process.env.CHROME_BIN;
           const state=page=>page.$eval('[data-site-header]',el=>({hidden:el.classList.contains('header-hidden'),scrolled:el.classList.contains('is-scrolled'),top:el.getBoundingClientRect().top,bottom:el.getBoundingClientRect().bottom,transform:getComputedStyle(el).transform}));
           const noOverflow=page=>page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1);
+          const openPage=async(page,path)=>{await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:15000});await page.waitForSelector('[data-site-header]',{timeout:5000});await sleep(180)};
           async function scrollSteps(page,from,to,step){
             const dir=to>=from?1:-1;
             for(let y=from;dir>0?y<=to:y>=to;y+=Math.abs(step)*dir){await page.evaluate(v=>scrollTo(0,v),y);await sleep(24)}
@@ -61,8 +62,7 @@ jobs:
           async function mobile(path,width,height){
             const page=await browser.newPage();
             await page.setViewport({width,height,deviceScaleFactor:1});
-            await page.goto(base+path,{waitUntil:'networkidle0'});
-            await page.waitForSelector('[data-site-header]');
+            await openPage(page,path);
             await page.evaluate(()=>scrollTo(0,0));await sleep(150);
             let s=await state(page);assert(!s.hidden&&s.top>=-1,`${path} ${width}x${height}: header not visible at top`);
             assert(await noOverflow(page),`${path} ${width}x${height}: horizontal overflow`);
@@ -78,20 +78,20 @@ jobs:
             assert(await page.$eval('.site-header__menu-toggle',el=>el.getAttribute('aria-expanded'))==='false',`${path}: menu not closed`);
             await scrollSteps(page,390,620,28);
             s=await state(page);assert(s.hidden,`${path}: lifecycle did not resume after menu close`);
-            await page.goto(base+path,{waitUntil:'networkidle0'});await sleep(120);
+            await openPage(page,path);
             s=await state(page);assert(!s.hidden,`${path}: stale hidden state after reload`);
             await page.close();
           }
           async function languageSwitch(){
             const page=await browser.newPage();
             await page.setViewport({width:390,height:844,deviceScaleFactor:1});
-            await page.goto(base+'/',{waitUntil:'networkidle0'});
+            await openPage(page,'/');
             await page.click('.site-header__locale');
-            await page.waitForFunction(()=>location.pathname.startsWith('/ru/'));
+            await page.waitForFunction(()=>location.pathname.startsWith('/ru/'),{timeout:10000});
             await sleep(150);
             let s=await state(page);assert(!s.hidden,'EN→RU arrived hidden');
             await page.click('.site-header__locale');
-            await page.waitForFunction(()=>location.pathname==='/');
+            await page.waitForFunction(()=>location.pathname==='/',{timeout:10000});
             await sleep(150);
             s=await state(page);assert(!s.hidden,'RU→EN arrived hidden');
             await page.close();
@@ -99,7 +99,7 @@ jobs:
           async function desktop(){
             const page=await browser.newPage();
             await page.setViewport({width:1440,height:900,deviceScaleFactor:1});
-            await page.goto(base+'/',{waitUntil:'networkidle0'});
+            await openPage(page,'/');
             await scrollSteps(page,0,720,40);
             const s=await state(page);assert(!s.hidden,'desktop header auto-hide regression');
             assert(await noOverflow(page),'desktop horizontal overflow');

@@ -12,8 +12,8 @@ const replaceUnique = (find, replacement, label) => {
 
 replaceUnique(
   'candidateApproachScore:.66,candidateApproachView:.52,candidateDwellMs:320,enterScore:.76,enterView:.58,enterArea:.34,enterBrdf:.26,exitScore:.54,exitView:.50,releaseDebounceMs:90,maxReadableMs:2400,rearmScore:.50,cooldownRangeMs:[2600,5600],minAngularTravelDeg:28,minPostReleaseSlices:1,dispersalTargetMs:[350,1250]',
-  'candidateApproachScore:.62,candidateApproachView:.50,candidateDwellMs:160,enterScore:.72,enterView:.55,enterArea:.30,enterBrdf:.22,exitScore:.54,exitView:.50,releaseDebounceMs:90,maxReadableMs:2400,rearmScore:.50,cooldownRangeMs:[2400,4800],minAngularTravelDeg:22,minPostReleaseSlices:1,dispersalTargetMs:[350,1250]',
-  'candidate capture + event breathing',
+  'candidateApproachScore:.58,candidateApproachView:.46,candidateDwellMs:80,enterScore:.68,enterView:.52,enterArea:.26,enterBrdf:.18,exitScore:.54,exitView:.50,releaseDebounceMs:90,maxReadableMs:2400,rearmScore:.50,cooldownRangeMs:[2200,4200],minAngularTravelDeg:18,minPostReleaseSlices:1,dispersalTargetMs:[350,1250]',
+  'natural candidate capture + event breathing',
 );
 
 replaceUnique(
@@ -22,11 +22,21 @@ replaceUnique(
   'interruptible post-release scheduler gap',
 );
 
+replaceUnique(
+  'if(intersects){if(age<SEMANTIC_R443_CONFIG.dispersalTargetMs[0])w*=.12;else if(age<=SEMANTIC_R443_CONFIG.dispersalTargetMs[1])w*=7.5;else w*=14}else if(age>=SEMANTIC_R443_CONFIG.dispersalTargetMs[0])w*=.78',
+  'if(intersects){if(age<SEMANTIC_R443_CONFIG.dispersalTargetMs[0])return 0;else if(age<=SEMANTIC_R443_CONFIG.dispersalTargetMs[1])w*=24;else w*=32}else if(age>=SEMANTIC_R443_CONFIG.dispersalTargetMs[0])w*=.42',
+  'post-release no-early-tear + strong priority weighting',
+);
+
 for (const required of [
-  'candidateDwellMs:160',
-  'cooldownRangeMs:[2400,4800]',
-  'minAngularTravelDeg:22',
+  'candidateDwellMs:80',
+  'enterScore:.68',
+  'cooldownRangeMs:[2200,4200]',
+  'minAngularTravelDeg:18',
   'dispersalTargetMs:[350,1250]',
+  'if(age<SEMANTIC_R443_CONFIG.dispersalTargetMs[0])return 0',
+  'w*=24',
+  'w*=32',
   'semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL',
   'age>=SEMANTIC_R443_CONFIG.dispersalTargetMs[0]',
   "yawDirectionPolicy:'continuous-positive'",
@@ -35,4 +45,4 @@ for (const required of [
 ]) if (!source.includes(required)) throw new Error(`R4.4.3 choreography hotfix missing invariant: ${required}`);
 
 fs.writeFileSync(file, source);
-console.log('R4.4.3 dispersal wake + natural candidate capture applied');
+console.log('R4.4.3 no-early-tear dispersal + natural semantic breathing applied');

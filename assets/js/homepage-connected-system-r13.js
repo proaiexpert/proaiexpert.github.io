@@ -237,7 +237,7 @@
 
     ambientAnimation=ambientCatch.animate([
       {transform:`translate3d(${x}px,0,0)`,opacity:0},
-      {transform:`translate3d(${x+distance*.28}px,0,0)`,opacity:.26,offset:.34},
+      {transform:`translate3d(${x+distance*.28}px,0,0)`,opacity:.22,offset:.34},
       {transform:`translate3d(${x+distance}px,0,0)`,opacity:0}
     ],{duration,easing:'cubic-bezier(.2,.72,.18,1)'});
     ambientAnimation.onfinish=()=>{ambientAnimation=null;};
@@ -252,7 +252,7 @@
     if(mode!=='desktop'||reduceMotion.matches||!sectionVisible||sequenceRunning)return;
     if(ambientTimer)window.clearTimeout(ambientTimer);
 
-    const delay=8000+Math.random()*5000;
+    const delay=10000+Math.random()*5000;
     ambientTimer=window.setTimeout(()=>{
       ambientTimer=0;
       if(!sequenceRunning&&sectionVisible){
@@ -265,6 +265,28 @@
       }
       scheduleAmbient();
     },delay);
+  };
+
+  const consumeDesktopIntro=(balance=false)=>{
+    if(mode!=='desktop'||(!sequenceRunning&&sequencePlayed))return false;
+
+    sequenceToken+=1;
+    clearTimers();
+    cancelAnimations();
+    clearTransient();
+    entryObserver?.disconnect();
+    sequenceRunning=false;
+    sequencePlayed=true;
+    section.classList.add('cs-motion-ready','is-established');
+
+    if(balance){
+      applyBalanced();
+      if(focusWindow)focusWindow.style.opacity='.14';
+      if(lightCarriage)lightCarriage.style.opacity='.12';
+      if(sectionVisible)scheduleAmbient();
+    }
+
+    return true;
   };
 
   const runDesktopSequence=(force=false)=>{
@@ -291,11 +313,12 @@
       section.classList.add('is-established');
     },30);
 
-    const firstActive=650;
-    const stageOffset=520;
-    const transferLead=280;
-    const departureLead=60;
-    const arrivalLead=120;
+    const firstActive=760;
+    const stageOffset=1900;
+    const transferDuration=620;
+    const transferLead=610;
+    const departureLead=260;
+    const arrivalLead=190;
 
     stages.forEach((stage,index)=>{
       const activeAt=firstActive+index*stageOffset;
@@ -309,7 +332,7 @@
       }else{
         later(()=>{
           if(token!==sequenceToken)return;
-          animateOpticalTransfer(index-1,index,560,.56,.70);
+          animateOpticalTransfer(index-1,index,transferDuration,.56,.70);
         },activeAt-transferLead);
 
         later(()=>{
@@ -331,7 +354,7 @@
     });
 
     const finalActive=firstActive+(stages.length-1)*stageOffset;
-    const finalSettle=finalActive+540;
+    const finalSettle=finalActive+500;
 
     later(()=>{
       if(token!==sequenceToken)return;
@@ -349,12 +372,14 @@
   };
 
   const inspectStage=(index)=>{
-    if(mode!=='desktop'||reduceMotion.matches||sequenceRunning)return;
+    if(mode!=='desktop'||reduceMotion.matches)return;
 
+    const introConsumed=consumeDesktopIntro(false);
     if(ambientTimer){window.clearTimeout(ambientTimer);ambientTimer=0;}
     ambientAnimation?.cancel();ambientAnimation=null;
 
-    const previous=lastFocusIndex;
+    const activeIndex=stages.findIndex(stage=>stage.classList.contains('is-active'));
+    const previous=activeIndex>=0?activeIndex:lastFocusIndex;
     stages.forEach((stage,i)=>{
       stage.classList.remove('is-arriving','is-departing','is-ambient-active');
       setState(i,i===index?'settled':'settled');
@@ -362,9 +387,11 @@
 
     if(previous!==index&&stages[previous]){
       beginDeparture(previous,'settled',330);
-      animateOpticalTransfer(previous,index,420,.54,.68);
+      animateOpticalTransfer(previous,index,introConsumed?560:460,.54,.68);
       stages[index].classList.add('is-arriving');
-      later(()=>activateStage(index),85);
+      later(()=>{
+        if(mode==='desktop')activateStage(index);
+      },introConsumed?105:85);
     }else{
       activateStage(index);
       placeOptical(index,.54,.68);
@@ -485,7 +512,7 @@
       if(!entry?.isIntersecting)return;
       runDesktopSequence(false);
       entryObserver.disconnect();
-    },{threshold:.18,rootMargin:'0px 0px -4% 0px'});
+    },{threshold:.24,rootMargin:'0px 0px -6% 0px'});
 
     entryObserver.observe(section);
   };
@@ -539,13 +566,20 @@
   const initVisibility=()=>{
     visibilityObserver?.disconnect();
     visibilityObserver=new IntersectionObserver(entries=>{
-      sectionVisible=!!entries[0]?.isIntersecting;
+      const entry=entries[0];
+      sectionVisible=!!entry?.isIntersecting;
+
+      if(mode==='desktop'&&sequenceRunning&&(!entry?.isIntersecting||entry.intersectionRatio<.10)){
+        consumeDesktopIntro(true);
+        return;
+      }
+
       if(!sectionVisible&&ambientTimer){
         window.clearTimeout(ambientTimer);
         ambientTimer=0;
       }
       if(sectionVisible&&mode==='desktop'&&sequencePlayed&&!sequenceRunning)scheduleAmbient();
-    },{threshold:.04});
+    },{threshold:[0,.10,.18]});
     visibilityObserver.observe(section);
   };
 

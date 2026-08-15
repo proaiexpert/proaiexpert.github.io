@@ -38,6 +38,6 @@
     };
     frame.addEventListener('error', fail, { once: true });
     frame.src = frame.dataset.logoLiveSrc;
-    setTimeout(fail, 15000);
+    setTimeout(fail, 45000);
   }
 })();

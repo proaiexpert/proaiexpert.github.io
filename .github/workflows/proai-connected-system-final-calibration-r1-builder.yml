@@ -1,0 +1,56 @@
+name: ProAI Connected System Final Calibration Builder
+on:
+  push:
+    branches: [agent/proai-connected-system-final-calibration-r1-builder]
+    paths: [.github/workflows/proai-connected-system-final-calibration-r1-builder.yml]
+permissions:
+  contents: write
+jobs:
+  build-product:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 4e8b12e040f1024e8ece5185a8ea02e6bd8d0981
+          fetch-depth: 0
+      - name: Apply typography calibration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('assets/css/homepage-connected-system-r13.css')
+          s=p.read_text()
+          old1=".connected-system .cs-stage-copy{max-width:276px;min-height:78px;margin:20px 0 0;color:#aeb3b8;font-size:15.5px;line-height:1.51;letter-spacing:-.008em;text-wrap:pretty;transition:color 340ms ease,opacity 340ms ease,transform 420ms var(--cs-ease)}"
+          new1=".connected-system .cs-stage-copy{max-width:276px;min-block-size:6.04em;margin:20px 0 0;color:#aeb3b8;font-size:15.5px;line-height:1.51;letter-spacing:-.008em;text-wrap:pretty;transition:color 340ms ease,opacity 340ms ease,transform 420ms var(--cs-ease)}"
+          old2="  .connected-system .cs-stage-copy{min-height:68px;margin-top:15px;font-size:14.5px;line-height:1.44}"
+          new2="  .connected-system .cs-stage-copy{min-block-size:5.76em;margin-top:15px;font-size:14.5px;line-height:1.44}"
+          old3="  .connected-system .cs-stage-copy{max-width:100%;min-height:0;margin-top:14px;font-size:15px;line-height:1.49}"
+          new3="  .connected-system .cs-stage-copy{max-width:100%;min-height:0;min-block-size:0;margin-top:14px;font-size:15px;line-height:1.49}"
+          for old,new in [(old1,new1),(old2,new2),(old3,new3)]:
+              if s.count(old)!=1:
+                  raise SystemExit(f'expected exact CSS target once, found {s.count(old)}: {old}')
+              s=s.replace(old,new)
+          p.write_text(s)
+          PY
+          git diff --check
+          test "$(git diff --name-only | wc -l)" -eq 1
+          test "$(git diff --name-only)" = 'assets/css/homepage-connected-system-r13.css'
+          grep -q 'min-block-size:6.04em' assets/css/homepage-connected-system-r13.css
+          grep -q 'min-block-size:5.76em' assets/css/homepage-connected-system-r13.css
+          grep -q 'min-height:0;min-block-size:0' assets/css/homepage-connected-system-r13.css
+          git diff --quiet -- assets/js/homepage-connected-system-r13.js
+          git diff --quiet -- _includes/homepage-connected-system-en.html
+          git diff --quiet -- _includes/homepage-connected-system-ru.html
+      - name: Commit and publish product
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Ihor Horb'
+          git config user.email 'proai.expert2026@gmail.com'
+          git add assets/css/homepage-connected-system-r13.css
+          git commit -m 'polish: align Connected System desktop text rhythm'
+          test "$(git rev-parse HEAD^)" = '4e8b12e040f1024e8ece5185a8ea02e6bd8d0981'
+          git push origin HEAD:refs/heads/agent/proai-connected-system-final-calibration-r1
+          echo "PRODUCT_SHA=$(git rev-parse HEAD)"

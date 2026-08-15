@@ -17,9 +17,11 @@ replaceUnique('createSemanticR44BevelTile(maskTexture)','createSemanticR442Bevel
 replaceUnique('createSemanticR44ToneTile(maskTexture)','createSemanticR442ToneTile(maskTexture)','tone call');
 
 // R4.4.2 timing is relative to the inherited 16s presentation phase offset.
-// First discovery therefore arms 3.4s after load, not at absolute sim-time 2.6s.
+// First discovery arms 3.4s after load; the 2.48s maximum is only a safety cap,
+// never a reveal/hold timer. Optical exit + hysteresis may release sooner.
 replaceUnique("approachScore:.50,enterScore:.76,exitScore:.61,minView:.58,exitView:.50","approachScore:.58,enterScore:.76,exitScore:.54,minView:.58,exitView:.50",'optical hysteresis calibration');
 replaceUnique('reselectCooldownMs:520,recentFaceWindowMs:13000','reselectCooldownMs:900,recentFaceWindowMs:13000,rearmScore:.50','re-arm and anti-thrash calibration');
+replaceUnique('maxProtectedMs:3200','maxProtectedMs:2480','maximum physical readability safety cap');
 replaceUnique('nextEligiblePresentationMs:R44_INITIAL_PRESENTATION_PHASE_MS+2200','nextEligiblePresentationMs:R44_INITIAL_PRESENTATION_PHASE_MS+3400','first discovery relative to inherited phase');
 replaceUnique('lastReleasedFace:null,lastReleasedAtMs:-Infinity,releaseCount:0','lastReleasedFace:null,lastReleasedAtMs:-Infinity,faceRearmBlocked:{\'+Z\':false,\'+X\':false,\'-X\':false},releaseCount:0','per-face optical re-arm state');
 
@@ -40,7 +42,7 @@ const oldEnter="best.assembled&&best.rawQuality>=SEMANTIC_R442_QUALITY.enterScor
 const newEnter="best.assembled&&best.rawQuality>=SEMANTIC_R442_QUALITY.approachScore&&best.viewAlignment>=SEMANTIC_R442_QUALITY.exitView&&best.projectedAreaQuality>=.28&&best.brdfQuality>=.18";
 replaceUnique(oldEnter,newEnter,'approach protection entry');
 
-// Weighted axis debt strongly favors the least-used axis without imposing a visible sequence.
+// Weighted axis debt favors the least-used axis without imposing a visible sequence.
 const oldRecentAxis="const recentAxes=new Set(recent.slice(-4).map(r=>r.axis));if(!recentAxes.has(move.axis))w*=1.72;const recentLayers=new Set(recent.slice(-4).map(r=>r.layer));";
 const newRecentAxis="const recentAxes=new Set(recent.slice(-4).map(r=>r.axis));if(!recentAxes.has(move.axis))w*=2.10;const axisValues=Object.values(semanticR442MoveState.axisCounts),axisMin=Math.min(...axisValues);if((semanticR442MoveState.axisCounts[move.axis]||0)===axisMin)w*=1.85;const recentLayers=new Set(recent.slice(-4).map(r=>r.layer));";
 replaceUnique(oldRecentAxis,newRecentAxis,'weighted axis debt');
@@ -49,12 +51,12 @@ for(const required of[
  'function createSemanticR442PlanarFaceGeometry(','function createSemanticR442BevelTile(','function createSemanticR442ToneTile(',
  'createSemanticR442PlanarFaceGeometry(mesh,mesh.geometry,face)','createSemanticR442BevelTile(maskTexture)','createSemanticR442ToneTile(maskTexture)',
  "SEMANTIC_R442_ELIGIBLE_FACES=Object.freeze(['+Z','+X','-X'])",
- 'approachScore:.58,enterScore:.76,exitScore:.54,minView:.58,exitView:.50','nextEligiblePresentationMs:R44_INITIAL_PRESENTATION_PHASE_MS+3400','rearmScore:.50',
+ 'approachScore:.58,enterScore:.76,exitScore:.54,minView:.58,exitView:.50','maxProtectedMs:2480','nextEligiblePresentationMs:R44_INITIAL_PRESENTATION_PHASE_MS+3400','rearmScore:.50',
  'faceRearmBlocked','rearmBlocked:semanticR442State.faceRearmBlocked','w*=2.10','w*=1.85',
  'best.rawQuality>=SEMANTIC_R442_QUALITY.approachScore','semanticR442SetActiveMaterialFace(null);semanticR442State.activeMaterialFace=null;return true',
  'semanticVelocityMultiplier: 1.0','const deltaMs=wallDeltaMs','overlayTextRendered:false','alphaDominantReveal:false','semanticMotionCoupled:false','semanticOrientationForcing:false'
 ])if(!source.includes(required))throw new Error(`R4.4.2 runtime hotfix missing invariant: ${required}`);
-for(const forbidden of['createSemanticR44PlanarFaceGeometry(mesh,mesh.geometry,face)','createSemanticR44BevelTile(maskTexture)','createSemanticR44ToneTile(maskTexture)','nextEligiblePresentationMs:2600','unsafeReturnGuardMs:3000'])if(source.includes(forbidden))throw new Error(`R4.4.2 unresolved legacy dependency: ${forbidden}`);
+for(const forbidden of['createSemanticR44PlanarFaceGeometry(mesh,mesh.geometry,face)','createSemanticR44BevelTile(maskTexture)','createSemanticR44ToneTile(maskTexture)','maxProtectedMs:3200','nextEligiblePresentationMs:2600','unsafeReturnGuardMs:3000'])if(source.includes(forbidden))throw new Error(`R4.4.2 unresolved legacy dependency: ${forbidden}`);
 
 fs.writeFileSync(file,source);
-console.log('R4.4.2 optical re-arm + axis-debt multi-axis correction applied');
+console.log('R4.4.2 final 2.48s readability safety-cap + optical re-arm + axis diversity applied');

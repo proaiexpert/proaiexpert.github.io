@@ -1,0 +1,68 @@
+name: ProAI Cube R4.4.3 Deterministic QA
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proai-r443-deterministic-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deterministic-qa:
+    if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    defaults:
+      run:
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Verify exact product and main freeze
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor b5fdd9b53389c734ea85051fbd9fa16cd547e11b HEAD
+          test "$(git hash-object material-polish-r443-runtime.mjs)" = "56ba821cdacfd4558740eea7abd5be3d6bcad13f"
+          test "$(git hash-object material-polish-r443-scheduler-hotfix.mjs)" = "713b911284cb065df341665a71e2ea906f6de1ee"
+          test "$(git hash-object package.json)" = "71ebfa8c3eb64008b371c7d426d8d581b53b6e89"
+          git fetch origin main --depth=1
+          test "$(git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+      - name: Build product
+        run: |
+          set -euo pipefail
+          timeout 180s npm install --package-lock=false
+          timeout 180s npm run build-r443
+          node --check main.generated.js
+          grep -Fq "async function schedulerDelay(" main.generated.js
+          grep -Fq "PROAI_CUBE_R4.4.3" main.generated.js
+      - name: Install browser tooling
+        run: |
+          set -euo pipefail
+          timeout 120s npm install --no-save playwright
+          timeout 300s npx playwright install --with-deps chromium
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-deterministic-qa.mjs" ./r443-deterministic-qa.mjs
+      - name: Start local runtime
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-det-http.log 2>&1 &
+          for i in $(seq 1 45); do curl -fsS --max-time 3 http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/r443-det-http.log
+          exit 1
+      - name: Run deterministic 60s simulation QA
+        run: |
+          set -euo pipefail
+          timeout 180s node r443-deterministic-qa.mjs
+      - name: Upload deterministic metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r443-deterministic-qa
+          path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r443-deterministic/**
+          retention-days: 2

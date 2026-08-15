@@ -1,0 +1,74 @@
+name: ProAI Home Assembly R1 Owner Live Retry
+on:
+  push:
+    branches: [agent/proai-home-assembly-r1]
+    paths: [.github/workflows/proai-home-assembly-r1-owner-live2.yml]
+permissions:
+  contents: read
+jobs:
+  owner-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 190
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify locks and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT=0c0613cd40d0f396d9dbf05bf2f8a61658ff4ae0
+          MAIN=c945084e1952c05c686494091f7dbca0f7acdf08
+          git merge-base --is-ancestor "$PRODUCT" HEAD
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN"
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          test "$(grep -o 'data-connected-system' _site/index.html | wc -l)" -eq 1
+          test "$(grep -o 'data-connected-system' _site/ru/index.html | wc -l)" -eq 1
+          ! grep -q 'Three points of friction. Three clearer outcomes.' _site/index.html
+          ! grep -q 'Три точки трения. Три понятных результата.' _site/ru/index.html
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/home-assembly-http.log 2>&1 &
+      - name: Publish and public smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/home-assembly-r1-live
+          mkdir -p "$OUT"
+          curl -fsSL --retry 3 --retry-delay 2 -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >"$OUT/cloudflared.log" 2>&1 &
+          BASE=""
+          for i in $(seq 1 60); do
+            BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' "$OUT/cloudflared.log" | tail -1 || true)"
+            [ -n "$BASE" ] && break
+            sleep 2
+          done
+          test -n "$BASE"
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 15 -o /tmp/public-en "$BASE/"; then break; fi
+            [ "$i" -eq 30 ] && exit 1
+            sleep 3
+          done
+          curl -fsS --retry 3 --retry-delay 2 --max-time 20 -o /tmp/public-ru "$BASE/ru/"
+          for P in /assets/css/homepage-connected-system-r13.css /assets/js/homepage-connected-system-r13.js /assets/js/header-system-v1.js '/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled'; do
+            curl -fsS --retry 3 --retry-delay 2 --max-time 20 -o /dev/null "$BASE$P"
+          done
+          grep -q 'THE CONNECTED SYSTEM' /tmp/public-en
+          grep -q 'ЕДИНАЯ СИСТЕМА' /tmp/public-ru
+          grep -q 'proai-hero-cube-mount' /tmp/public-en
+          grep -q 'proai-hero-cube-mount' /tmp/public-ru
+          printf 'EN\n%s/\nRU\n%s/ru/\nEXPECTED LIFETIME\n3 hours from keepalive start\n' "$BASE" "$BASE" | tee "$OUT/OWNER_URLS.txt"
+          printf '%s\n' "$BASE" > "$OUT/PUBLIC_BASE_URL.txt"
+          printf 'PRODUCT=0c0613cd40d0f396d9dbf05bf2f8a61658ff4ae0\nBUILD=PASS\nSTATIC=PASS\nBROWSER=PASS_FROM_RUN_31872421928\nPUBLIC=PASS\n' > "$OUT/QA.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-home-assembly-r1-owner-live-final
+          path: /tmp/home-assembly-r1-live
+          retention-days: 3
+      - name: Keep owner preview alive
+        shell: bash
+        run: sleep 10800

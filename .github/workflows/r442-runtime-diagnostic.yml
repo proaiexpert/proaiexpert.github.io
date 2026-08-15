@@ -28,7 +28,7 @@ jobs:
       - run: |
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/http.log 2>&1 &
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
-          cat > /tmp/diag.mjs <<'NODE'
+          cat > diag.mjs <<'NODE'
           import { chromium } from 'playwright';
           const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
           const p=await browser.newPage({viewport:{width:800,height:540}});
@@ -38,4 +38,4 @@ jobs:
           for(let i=0;i<40;i++){await p.waitForTimeout(500);const s=await p.evaluate(()=>({ready:window.__PROAI_CUBE_R1_2?.ready,status:document.querySelector('#status')?.textContent||document.body.innerText.slice(-200)}));console.log('STATE',i,s);if(s.ready)break}
           await browser.close();
           NODE
-          node /tmp/diag.mjs
+          node diag.mjs

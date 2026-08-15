@@ -76,6 +76,14 @@ jobs:
           test -f "$SCREENSHOT_DIR/en-1200x800-final-balanced.png"
           test -f "$SCREENSHOT_DIR/qa-report.json"
 
+      - name: Upload real Chromium screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: connected-system-r131-desktop-screenshots
+          path: docs/site-evolution/connected-system-r1/review-r131/
+          retention-days: 1
+          if-no-files-found: error
+
       - name: Commit real Chromium screenshots
         shell: bash
         run: |

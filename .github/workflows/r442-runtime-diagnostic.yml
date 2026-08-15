@@ -1,0 +1,41 @@
+name: R442 Runtime Diagnostic
+on:
+  push:
+    branches: [agent/proai-r442-runtime-diag-temp-6]
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 06da6ddc249d41d16b5a852bbf3625c0c10c1003
+          fetch-depth: 0
+      - run: |
+          npm install --package-lock=false
+          npm run prepare-r4
+          node clock-r4.mjs
+          node material-polish-r4.mjs
+          node --check main.generated.js
+          npx vite build
+          npm install --no-save playwright
+          npx playwright install chromium
+      - run: |
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/http.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          cat > /tmp/diag.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
+          const p=await browser.newPage({viewport:{width:800,height:540}});
+          p.on('pageerror',e=>console.log('PAGEERROR',String(e),e?.stack||''));
+          p.on('console',m=>console.log('CONSOLE',m.type(),m.text()));
+          await p.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:60000});
+          for(let i=0;i<40;i++){await p.waitForTimeout(500);const s=await p.evaluate(()=>({ready:window.__PROAI_CUBE_R1_2?.ready,status:document.querySelector('#status')?.textContent||document.body.innerText.slice(-200)}));console.log('STATE',i,s);if(s.ready)break}
+          await browser.close();
+          NODE
+          node /tmp/diag.mjs

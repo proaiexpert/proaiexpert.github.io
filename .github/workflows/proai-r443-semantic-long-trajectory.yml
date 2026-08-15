@@ -1,0 +1,105 @@
+name: ProAI Cube R4.4.3 Semantic Long Trajectory
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-semantic-staging-review]
+    paths: [.github/workflows/proai-r443-semantic-long-trajectory.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  long-trajectory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PRODUCT_SHA: ff1f6063f19a7076fb0f71b902bff615e7318600
+      PRODUCT_BRANCH: agent/proai-cube-r443-closed-phrase-architecture
+      OLD_BRANCH: agent/proai-cube-semantic-brand-face-r4
+      OLD_SHA: fce017a1a4c83fa4dfeb1d9bd97021f6f92a23ad
+      MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+      PRODUCT_DIR: /tmp/proai-r443-semantic-long
+      WALL_LIMIT_MS: '95000'
+      TARGET_PRESENTATION_MS: '76000'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify frozen refs
+        run: |
+          set -euo pipefail
+          git fetch origin "$PRODUCT_BRANCH" "$OLD_BRANCH" main
+          test "$(git rev-parse "origin/$PRODUCT_BRANCH")" = "$PRODUCT_SHA"
+          test "$(git rev-parse "origin/$OLD_BRANCH")" = "$OLD_SHA"
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+
+      - name: Build exact product, instrument, and disable raster draw in review copy only
+        run: |
+          set -euo pipefail
+          rm -rf "$PRODUCT_DIR"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          npm install --package-lock=false >/dev/null
+          npm run validate-closed-phrases >/tmp/r443-long-library.txt
+          npm run build-r443 >/tmp/r443-long-build.txt
+          node --check main.generated.js
+          node "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-semantic-forensic-inject.mjs" main.generated.js
+          node <<'NODE'
+          const fs=require('fs');
+          const file='main.generated.js';
+          let s=fs.readFileSync(file,'utf8');
+          const old='renderer.render(scene, camera);';
+          const count=s.split(old).length-1;
+          if(count!==2)throw new Error('expected exactly two render calls, got '+count);
+          s=s.split(old).join('scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);');
+          fs.writeFileSync(file,s);
+          console.log('QA_ONLY_RASTER_DRAW_DISABLED count='+count);
+          NODE
+          node --check main.generated.js
+          grep -Fq 'scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);' main.generated.js
+          grep -Fq 'function semanticR443ChooseNormalPhrase(){' main.generated.js
+          grep -Fq "SEMANTIC_R442_ELIGIBLE_FACES=Object.freeze(['+Z','+X','-X'])" main.generated.js
+          grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
+          grep -Fq "yawDirectionPolicy:'continuous-positive'" main.generated.js
+          grep -Fq "semanticR443Unstage('impending-intersecting-turn')" main.generated.js
+          npx vite build >/tmp/r443-long-vite.txt
+
+      - name: Install lightweight browser probe
+        working-directory: /tmp/proai-r443-semantic-long/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright-core >/dev/null
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-semantic-forensic-qa.mjs" ./r443-semantic-forensic-qa.mjs
+
+      - name: Start review-only no-raster runtime
+        working-directory: /tmp/proai-r443-semantic-long/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-long-http.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -fsS --max-time 3 http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/r443-long-http.log
+          exit 1
+
+      - name: Run 60s-presentation semantic trajectory
+        working-directory: /tmp/proai-r443-semantic-long/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        env:
+          QA_URL: http://127.0.0.1:4173/
+          QA_OUT: review-evidence/r443-semantic-long-trajectory
+        run: |
+          set -euo pipefail
+          timeout 130s node r443-semantic-forensic-qa.mjs
+
+      - name: Upload long trajectory evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r443-semantic-long-trajectory
+          path: /tmp/proai-r443-semantic-long/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r443-semantic-long-trajectory/**
+          retention-days: 2

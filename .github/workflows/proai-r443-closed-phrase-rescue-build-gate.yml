@@ -1,0 +1,86 @@
+name: ProAI Cube R4.4.3 Closed Phrase Rescue Build Gate
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-closed-phrase-rescue-review]
+    paths: [.github/workflows/proai-r443-closed-phrase-rescue-build-gate.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  build-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PRODUCT_SHA: f33c27733ca9f4272ca724e3d6ee7a44fbfe37b8
+      START_SHA: f616a6b620228c10322bb695b39c6cb3fb07be4a
+      BASE_SHA: a4e93f645188fa92087121da4aa8c5bb839a3719
+      MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+      OLD_SHA: fce017a1a4c83fa4dfeb1d9bd97021f6f92a23ad
+      PRODUCT_DIR: /tmp/proai-r443-rescue-product
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Materialize exact product and verify history safety
+        run: |
+          set -euo pipefail
+          git fetch origin main agent/proai-cube-semantic-brand-face-r4 agent/proai-cube-r443-closed-phrase-architecture --depth=10
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          test "$(git rev-parse origin/agent/proai-cube-semantic-brand-face-r4)" = "$OLD_SHA"
+          test "$(git rev-parse origin/agent/proai-cube-r443-closed-phrase-architecture)" = "$PRODUCT_SHA"
+          test "$(git rev-parse "$PRODUCT_SHA^")" = "$START_SHA"
+          git merge-base --is-ancestor "$BASE_SHA" "$PRODUCT_SHA"
+          rm -rf "$PRODUCT_DIR"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          cd "$PRODUCT_DIR"
+          test "$(git diff --name-only "$START_SHA" HEAD)" = 'docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs'
+          git diff --quiet "$BASE_SHA" HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r4.mjs
+          git diff --quiet "$BASE_SHA" HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r442-runtime.mjs
+          git diff --quiet "$BASE_SHA" HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-runtime.mjs
+          git diff --quiet "$BASE_SHA" HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-sequence-hotfix.mjs
+      - name: Validate library and exact product build
+        working-directory: /tmp/proai-r443-rescue-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          timeout 180s npm install --package-lock=false
+          timeout 30s npm run validate-closed-phrases | tee /tmp/closed-library.txt
+          grep -Fq '"coreArchetypeCount": 12' /tmp/closed-library.txt
+          grep -Fq '"generatedValidatedPhraseVariants": 30' /tmp/closed-library.txt
+          grep -Fq '"macroStateCount": 10' /tmp/closed-library.txt
+          grep -Fq '"phraseHistoryDepth": 3' /tmp/closed-library.txt
+          timeout 180s npm run build-r443
+          node --check main.generated.js
+      - name: Structural runtime source gates
+        working-directory: /tmp/proai-r443-rescue-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          grep -Fq "SEMANTIC_R443_PHASE=Object.freeze({NORMAL:'NORMAL',CANDIDATE:'CANDIDATE',READABLE:'READABLE',RELEASE:'RELEASE'})" main.generated.js
+          grep -Fq 'const SEMANTIC_R443_CLOSED_ARCHETYPES=Object.freeze(' main.generated.js
+          grep -Fq 'function semanticR443ChooseNormalPhrase(){' main.generated.js
+          grep -Fq 'function semanticR443ClosedMetrics(){' main.generated.js
+          grep -Fq 'async function sliceSchedulerLoop(){' main.generated.js
+          grep -Fq "SEMANTIC_R442_ELIGIBLE_FACES=Object.freeze(['+Z','+X','-X'])" main.generated.js
+          grep -Fq 'bumpScale:-0.130,roughnessMapInk:0.550,metalnessDelta:0.0,tonalInk:0.820' main.generated.js
+          grep -Fq 'edgeRoughnessInk:.095' main.generated.js
+          grep -Fq 'r441HorizontalReductionPct:12.5' main.generated.js
+          grep -Fq 'r441VerticalReductionPct:10' main.generated.js
+          grep -Fq "yawDirectionPolicy:'continuous-positive'" main.generated.js
+          grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
+          grep -Fq 'const deltaMs=wallDeltaMs' main.generated.js
+          grep -Fq 'semanticOrientationForcing:false' main.generated.js
+          ! grep -Fq 'semanticR443PendingResolutionCount' main.generated.js
+          ! grep -Fq "semanticR442RecordMove(inverse,'resolve')" main.generated.js
+          ! grep -Fq 'SEMANTIC_R443_PHASE.DISPERSAL' main.generated.js
+          ! grep -Fq 'SEMANTIC_R443_PHASE.COOLDOWN' main.generated.js
+          ! grep -Fq 'SEMANTIC_R443_PHASE.READABLE_LOCK' main.generated.js
+          ! grep -Fq 'axisDebtBoost' main.generated.js
+          ! grep -Fq 'layerDebtBoost' main.generated.js
+          ! grep -Fq 'w*=24' main.generated.js
+          ! grep -Fq 'w*=32' main.generated.js
+          ! grep -Fq 'w*=14' main.generated.js
+          ! grep -Fq 'w*=7.5' main.generated.js
+          ! grep -Fq 'bridge-before-inverse' main.generated.js
+          ! grep -Fq 'emissiveIntensity' main.generated.js
+          echo BUILD_GATE_PASS

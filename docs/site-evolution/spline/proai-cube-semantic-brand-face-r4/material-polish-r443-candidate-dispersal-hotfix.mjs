@@ -10,22 +10,22 @@ const replaceUnique = (find, replacement, label) => {
   source = source.slice(0, at) + replacement + source.slice(at + find.length);
 };
 
-// CANDIDATE is a local semantic constraint, not a global slice stop.
-// Safe autonomous slices may continue; only moves intersecting the candidate face
-// are removed from the scheduler vocabulary during the short candidate dwell.
+// CANDIDATE remains passive: it does not remove any autonomous slice from the
+// vocabulary. An intersecting turn may invalidate the candidate naturally.
+// DISPERSAL alone gets a short 350 ms optical-clearance floor after release.
 replaceUnique(
   "function semanticR442SelectMove(){let candidates=semanticR442AllMoveCandidates();if(semanticR442State.protected)candidates=candidates.filter(m=>semanticR442MoveIntersection(m).count===0);if(!candidates.length){semanticR442MoveState.skipped++;return null}const weighted=candidates.map(move=>({move,weight:semanticR442RecentWeight(move)})),total=weighted.reduce((s,x)=>s+x.weight,0);let pick=seededUnit()*total;for(const item of weighted){pick-=item.weight;if(pick<=0)return item.move}return weighted.at(-1).move}",
-  "function semanticR442SelectMove(){let candidates=semanticR442AllMoveCandidates();if(semanticR442State.protected)candidates=candidates.filter(m=>semanticR442MoveIntersection(m).count===0);else if(semanticR443State.phase===SEMANTIC_R443_PHASE.CANDIDATE&&semanticR443State.candidateFace)candidates=candidates.filter(m=>semanticR442MoveIntersection(m,semanticR443State.candidateFace).count===0);if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL&&semanticR443State.lastReleaseFace&&presentationSimTimeMs-semanticR443State.lastReleaseMs<SEMANTIC_R443_CONFIG.dispersalTargetMs[0])candidates=candidates.filter(m=>semanticR442MoveIntersection(m,semanticR443State.lastReleaseFace).count===0);if(!candidates.length){semanticR442MoveState.skipped++;return null}const weighted=candidates.map(move=>({move,weight:semanticR442RecentWeight(move)})),total=weighted.reduce((s,x)=>s+x.weight,0);let pick=seededUnit()*total;for(const item of weighted){pick-=item.weight;if(pick<=0)return item.move}return weighted.at(-1).move}",
-  'candidate-local move vocabulary + early dispersal guard',
+  "function semanticR442SelectMove(){let candidates=semanticR442AllMoveCandidates();if(semanticR442State.protected)candidates=candidates.filter(m=>semanticR442MoveIntersection(m).count===0);if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL&&semanticR443State.lastReleaseFace&&presentationSimTimeMs-semanticR443State.lastReleaseMs<SEMANTIC_R443_CONFIG.dispersalTargetMs[0])candidates=candidates.filter(m=>semanticR442MoveIntersection(m,semanticR443State.lastReleaseFace).count===0);if(!candidates.length){semanticR442MoveState.skipped++;return null}const weighted=candidates.map(move=>({move,weight:semanticR442RecentWeight(move)})),total=weighted.reduce((s,x)=>s+x.weight,0);let pick=seededUnit()*total;for(const item of weighted){pick-=item.weight;if(pick<=0)return item.move}return weighted.at(-1).move}",
+  'passive candidate + early dispersal guard',
 );
 
 // Do not throw away a naturally developing candidate merely because another
-// non-intersecting slice is active. Once the active turn ends we re-evaluate the
-// exact face assembly/optics; an intersecting manual turn naturally fails that test.
+// slice is active. No material is readable in CANDIDATE. Once the turn ends,
+// exact face assembly/optics are re-evaluated; an intersecting turn invalidates it.
 replaceUnique(
   "if(activeTurns.size>0){if(semanticR443State.phase===SEMANTIC_R443_PHASE.CANDIDATE)semanticR443ResetCandidate('active-slice');return}",
   "if(activeTurns.size>0)return",
-  'safe active slice candidate continuity',
+  'active-turn candidate re-evaluation continuity',
 );
 
 // A resolve turn is physically visible choreography too. Count the first actual
@@ -48,8 +48,7 @@ replaceUnique(
 );
 
 for (const required of [
-  "SEMANTIC_R443_PHASE.CANDIDATE&&semanticR443State.candidateFace",
-  "semanticR442MoveIntersection(m,semanticR443State.candidateFace).count===0",
+  "SEMANTIC_R443_PHASE.DISPERSAL&&semanticR443State.lastReleaseFace",
   "if(activeTurns.size>0)return",
   "phase,axis:move.axis,layer:move.layer,direction:move.direction",
   "dispersalTargetMs[0]-(presentationSimTimeMs-semanticR443State.lastReleaseMs)",
@@ -60,10 +59,11 @@ for (const required of [
 
 for (const forbidden of [
   "semanticR443ResetCandidate('active-slice')",
+  "SEMANTIC_R443_PHASE.CANDIDATE&&semanticR443State.candidateFace",
   'wallDeltaMs * semanticTimeScale',
   'SEMANTIC_R4_2_TEXT',
   'emissiveIntensity',
 ]) if (source.includes(forbidden)) throw new Error(`R4.4.3 candidate/dispersal forbidden regression: ${forbidden}`);
 
 fs.writeFileSync(file, source);
-console.log('R4.4.3 safe-candidate continuity + resolve-aware bounded dispersal applied');
+console.log('R4.4.3 passive candidate + resolve-aware bounded dispersal applied');

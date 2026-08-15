@@ -1,0 +1,118 @@
+name: ProAI Header R1.1.1 Moving Owner Evidence Final
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-r111-owner-evidence-final.yml]
+permissions:
+  contents: read
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 230
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify locked product and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT=29b06daed210442171093ba7601cf183d02706e0
+          git merge-base --is-ancestor "$PRODUCT" HEAD
+          git diff --exit-code "$PRODUCT" HEAD -- _includes/header-system/header.html assets/brand/proai-logo-r341/live-runtime.js assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png assets/js/header-footer-logo-r1.js
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+          echo "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b  assets/models/proai-cube/rubik_39_s_cube_animation.glb" | sha256sum -c -
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg >/dev/null
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          rm -rf /tmp/r111npm && mkdir -p /tmp/r111npm && cd /tmp/r111npm
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 pngjs@7.0.0 >/dev/null
+          cd "$GITHUB_WORKSPACE"
+          curl -fsSL --retry 4 --retry-delay 2 -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          jekyll build --source . --destination _site >/dev/null
+          mkdir -p _site/review-r111 /tmp/r111moving
+          cat >_site/review-r111/proxy-base.css <<'CSS'
+          @font-face{font-family:InstrumentSans;src:url('/assets/fonts/proai-logo-r341/instrument-sans-latin-wght-normal.woff2') format('woff2');font-weight:100 900}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050607;color:#d4d7d6}body{font-family:InstrumentSans,Arial,sans-serif}.bar{height:100%;display:flex;align-items:flex-start;padding:24px 48px;position:relative}.brand{display:flex;align-items:center}.cube{position:relative;width:40px;height:40px;flex:0 0 40px}.source{position:absolute;inset:0;width:40px;height:40px;border:0;opacity:.001;z-index:0}.fallback,.proxy{position:absolute;inset:0;width:40px;height:40px;display:block;transition:opacity 180ms ease}.fallback{object-fit:contain;opacity:1;z-index:2}.proxy{width:40px;height:40px;opacity:0;z-index:3}.cube.is-live .fallback{opacity:0}.cube.is-live .proxy{opacity:1}.word{font-size:20px;font-weight:680;line-height:1;margin-left:9px;display:flex;align-items:baseline}.proai{color:#f1efea;letter-spacing:-.016em}.expert{color:#cdd1d0;letter-spacing:-.010em;margin-left:.22em}.caption{position:absolute;left:48px;top:92px;color:#747c81;font:11px/1.4 Arial,sans-serif;letter-spacing:.1em;text-transform:uppercase}.locale{position:absolute;right:48px;top:34px;color:#d4d7d6;font:700 14px/1 Arial,sans-serif;text-decoration:none}
+          CSS
+          cat >_site/review-r111/startup-proof.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R1.1.1 Startup Proof</title><link rel="stylesheet" href="/review-r111/proxy-base.css"></head><body><div class="bar"><div class="brand"><span class="cube" id="cube"><iframe class="source" id="source" src="/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled"></iframe><img class="fallback" src="/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png" alt=""><canvas class="proxy" id="proxy" width="120" height="120"></canvas></span><span class="word"><span class="proai">ProAI</span><span class="expert">Expert</span></span></div><div class="caption">R1.1.1 · exact fallback → exact first WebGL frame → living motion</div></div><script>const cube=document.getElementById('cube'),frame=document.getElementById('source'),proxy=document.getElementById('proxy'),ctx=proxy.getContext('2d');let sourceCanvas=null,copying=false;function copy(){if(sourceCanvas){ctx.clearRect(0,0,120,120);ctx.drawImage(sourceCanvas,0,0,120,120)}if(copying)requestAnimationFrame(copy)}addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==frame.contentWindow||e.data?.type!=='proai-logo-r341'||e.data?.state!=='ready')return;sourceCanvas=frame.contentDocument.getElementById('cube-canvas');frame.contentWindow.__PROAI_CUBE_R1_2?.renderReviewFrame?.();requestAnimationFrame(()=>{copying=true;copy();requestAnimationFrame(()=>{cube.classList.add('is-live');requestAnimationFrame(()=>frame.contentWindow.postMessage({type:'proai-logo-r341-control',action:'start-motion'},location.origin))})})})</script></body></html>
+          HTML
+          cat >_site/review-r111/language-proof-en.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EN → RU Proof</title><link rel="stylesheet" href="/review-r111/proxy-base.css"></head><body><div class="bar"><div class="brand"><span class="cube" id="cube"><iframe class="source" id="source" src="/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled"></iframe><img class="fallback" src="/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png" alt=""><canvas class="proxy" id="proxy" width="120" height="120"></canvas></span><span class="word"><span class="proai">ProAI</span><span class="expert">Expert</span></span></div><a id="locale" class="locale" href="/review-r111/language-proof-ru.html">RU</a><div class="caption">EN → RU · same startup continuity on navigation</div></div><script>const cube=document.getElementById('cube'),frame=document.getElementById('source'),proxy=document.getElementById('proxy'),ctx=proxy.getContext('2d');let sourceCanvas=null,copying=false;function copy(){if(sourceCanvas){ctx.clearRect(0,0,120,120);ctx.drawImage(sourceCanvas,0,0,120,120)}if(copying)requestAnimationFrame(copy)}addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==frame.contentWindow||e.data?.type!=='proai-logo-r341'||e.data?.state!=='ready')return;sourceCanvas=frame.contentDocument.getElementById('cube-canvas');frame.contentWindow.__PROAI_CUBE_R1_2?.renderReviewFrame?.();requestAnimationFrame(()=>{copying=true;copy();requestAnimationFrame(()=>{cube.classList.add('is-live');requestAnimationFrame(()=>frame.contentWindow.postMessage({type:'proai-logo-r341-control',action:'start-motion'},location.origin))})})})</script></body></html>
+          HTML
+          sed 's/EN → RU Proof/RU startup proof/g;s/href="\/review-r111\/language-proof-ru.html">RU/href="\/review-r111\/language-proof-en.html">EN/g;s/EN → RU · same startup continuity on navigation/RU · arrived from EN · same startup continuity/g' _site/review-r111/language-proof-en.html > _site/review-r111/language-proof-ru.html
+          cat >_site/review-r111/laptop.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R1.1.1 Laptop Review</title><style>*{box-sizing:border-box}html,body{margin:0;background:#020304;color:#858b91;font:11px Arial,sans-serif}body{padding:20px}.meta{width:1200px;max-width:100%;margin:0 auto 10px;letter-spacing:.08em;text-transform:uppercase}.stage{width:1200px;height:800px;margin:auto;overflow:hidden;background:#050607;border:1px solid #191c1e}.stage iframe{width:1200px;height:800px;border:0;display:block;transform-origin:top left}@media(max-width:1240px){body{padding:10px}.stage{transform-origin:top left}}</style></head><body><div class="meta">R1.1.1 · exact 1200×800 startup continuity review</div><div class="stage" id="stage"><iframe src="/"></iframe></div><script>function fit(){const s=document.getElementById('stage'),z=Math.min(1,(innerWidth-20)/1200);s.style.transform=`scale(${z})`;s.style.marginBottom=`${800*(z-1)}px`}addEventListener('resize',fit);fit()</script></body></html>
+          HTML
+          cat >_site/review-r111/mobile.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R1.1.1 Mobile Review</title><style>*{box-sizing:border-box}html,body{margin:0;background:#020304;color:#858b91;font:11px Arial,sans-serif}body{padding:14px}.meta{width:390px;max-width:100%;margin:0 auto 10px;letter-spacing:.08em;text-transform:uppercase}.phone{width:390px;height:844px;max-width:100%;margin:auto;overflow:hidden;background:#050607;border:1px solid #191c1e;border-radius:20px}.phone iframe{display:block;width:390px;height:844px;border:0;transform-origin:top left}</style></head><body><div class="meta">R1.1.1 · 390×844 · DPR3-class target</div><div class="phone"><iframe src="/"></iframe></div></body></html>
+          HTML
+          cat >_site/review-r111/compare.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R1.1 → R1.1.1 Startup Comparison</title><style>@font-face{font-family:InstrumentSans;src:url('/assets/fonts/proai-logo-r341/instrument-sans-latin-wght-normal.woff2') format('woff2');font-weight:100 900}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#020304;color:#92989c;font:12px/1.4 Arial,sans-serif}body{padding:26px}.board{max-width:1160px;margin:auto}.title{color:#cfd2d1;letter-spacing:.11em;text-transform:uppercase;margin:0 0 18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{border:1px solid rgba(232,231,226,.09);background:#050607;padding:18px}.label{display:flex;justify-content:space-between;gap:12px;margin-bottom:18px;letter-spacing:.08em;text-transform:uppercase}.mock{height:76px;display:flex;align-items:center;padding:0 28px;border:1px solid rgba(232,231,226,.06)}.brand{display:flex;align-items:center}.cube{position:relative;width:40px;height:40px;flex:0 0 40px}.cube img,.cube iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;pointer-events:none;transition:opacity 180ms ease}.cube img{object-fit:contain;opacity:1}.cube iframe{opacity:0}.cube.live img{opacity:0}.cube.live iframe{opacity:1}.word{font-family:InstrumentSans,Arial,sans-serif;font-size:20px;font-weight:680;line-height:1;margin-left:9px;white-space:nowrap}.word b{color:#f1efea;font-weight:inherit}.word span{color:#cdd1d0;margin-left:.22em}.controls{margin-top:18px;display:flex;gap:12px;align-items:center}.controls button{appearance:none;border:1px solid rgba(232,231,226,.18);background:#0c0f12;color:#d6d8d7;padding:9px 13px;border-radius:999px;cursor:pointer}.note{color:#747b80}@media(max-width:800px){body{padding:12px}.grid{grid-template-columns:1fr}.mock{padding:0 18px}}</style></head><body><main class="board"><h1 class="title">Same 40px Cube · same 20px wordmark · same 9px gap · same 180ms swap</h1><div class="grid"><section class="panel"><div class="label"><span>R1.1 CURRENT / BEFORE</span><span>generic static → auto-running live</span></div><div class="mock"><div class="brand"><span class="cube before" id="before"><iframe title="R1.1 live"></iframe><img src="/assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png" alt=""></span><span class="word"><b>ProAI</b><span>Expert</span></span></div></div></section><section class="panel"><div class="label"><span>R1.1.1 FIXED</span><span>pixel-matched home → controlled live</span></div><div class="mock"><div class="brand"><span class="cube after" id="after"><iframe title="R1.1.1 live"></iframe><img src="/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png" alt=""></span><span class="word"><b>ProAI</b><span>Expert</span></span></div></div></section></div><div class="controls"><button id="replay">Replay startup</button><span class="note">Watch only the Cube source swap. Page framing and Header geometry are locked.</span></div></main><script>const B=document.getElementById('before'),A=document.getElementById('after'),bf=B.querySelector('iframe'),af=A.querySelector('iframe');function start(){B.classList.remove('live');A.classList.remove('live');bf.src='about:blank';af.src='about:blank';setTimeout(()=>{bf.src='/assets/brand/proai-logo-r341/live.html?mode=living';af.src='/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled'},180)}addEventListener('message',e=>{if(e.origin!==location.origin||e.data?.type!=='proai-logo-r341'||e.data?.state!=='ready')return;if(e.source===bf.contentWindow)B.classList.add('live');if(e.source===af.contentWindow){A.classList.add('live');requestAnimationFrame(()=>af.contentWindow.postMessage({type:'proai-logo-r341-control',action:'start-motion'},location.origin))}});document.getElementById('replay').onclick=start;start()</script></body></html>
+          HTML
+          cat >_site/review-r111/index.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R1.1.1 Owner Review</title><style>html,body{background:#050607;color:#d3d6d5;font:16px Arial,sans-serif}main{max-width:720px;margin:60px auto;padding:20px}a{color:#d3d6d5;display:block;padding:10px 0}</style></head><body><main><h1>Header Cube R1.1.1 — Startup Continuity</h1><a href="/">Full Site EN</a><a href="/ru/">Full Site RU</a><a href="./mobile.html">Mobile 390×844</a><a href="./laptop.html">Laptop 1200×800</a><a href="./compare.html">R1.1 → R1.1.1 comparison</a><a href="./startup-continuity.mp4">Startup continuity video</a><a href="./language-switch.mp4">EN → RU language switch video</a></main></body></html>
+          HTML
+      - name: Start local review and capture moving evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/r111moving
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >"$OUT/http.log" 2>&1 &
+          cat >"$OUT/capture.cjs" <<'JS'
+          const pp=require('/tmp/r111npm/node_modules/puppeteer-core'),fs=require('fs'),{execFileSync}=require('child_process'),{PNG}=require('/tmp/r111npm/node_modules/pngjs');const B='http://127.0.0.1:8080',OUT='/tmp/r111moving',sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          function encode(frames,out){let list='';for(let i=0;i<frames.length-1;i++){const d=Math.max(.02,(frames[i+1].t-frames[i].t)/1000);list+=`file '${frames[i].f}'\nduration ${d.toFixed(4)}\n`}list+=`file '${frames.at(-1).f}'\nduration 0.08\nfile '${frames.at(-1).f}'\n`;const p=out+'.txt';fs.writeFileSync(p,list);execFileSync('ffmpeg',['-y','-loglevel','error','-f','concat','-safe','0','-i',p,'-c:v','libx264','-pix_fmt','yuv420p','-movflags','+faststart',out])}
+          async function record(page,dir,ms,action){fs.mkdirSync(dir,{recursive:true});const frames=[],t0=Date.now();let n=0;const work=action?.();while(Date.now()-t0<ms){const start=Date.now(),f=`${dir}/f-${String(n++).padStart(4,'0')}.png`;await page.screenshot({path:f,type:'png'});frames.push({f,t:start-t0});const left=90-(Date.now()-start);if(left>0)await sleep(left)}if(work)await work;return frames}
+          function diff(f1,f2){const a=PNG.sync.read(fs.readFileSync(f1)),b=PNG.sync.read(fs.readFileSync(f2));let sum=0,n=0,changed=0;for(let y=18;y<70;y++)for(let x=40;x<95;x++){const i=(y*a.width+x)*4;for(let c=0;c<3;c++){const d=Math.abs(a.data[i+c]-b.data[i+c]);sum+=d;n++;if(d>3)changed++}}return{mean:sum/n,changedRatio:changed/n}}
+          async function ready(p){await p.waitForFunction(()=>document.getElementById('cube')?.classList.contains('is-live'),{timeout:90000});const f=p.frames().find(x=>x.url().includes('/assets/brand/proai-logo-r341/live.html'));if(!f)throw new Error('live iframe missing');await f.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.motionStarted===true,{timeout:10000});return f}
+          (async()=>{const br=await pp.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader']});try{
+            const p=await br.newPage();await p.setViewport({width:1200,height:220,deviceScaleFactor:1});await p.goto(B+'/review-r111/startup-proof.html?x='+Date.now(),{waitUntil:'domcontentloaded'});const rp=ready(p);const sf=await record(p,OUT+'/startup-frames',5200,async()=>await rp);encode(sf,OUT+'/startup-continuity.mp4');const sd=diff(sf[Math.min(1,sf.length-1)].f,sf.at(-1).f);if(sf.length<10||sd.mean<.04||sd.changedRatio<.0015)throw new Error('startup capture not moving '+JSON.stringify({frames:sf.length,sd}));
+            const q=await br.newPage();await q.setViewport({width:1200,height:220,deviceScaleFactor:1});await q.goto(B+'/review-r111/language-proof-en.html',{waitUntil:'domcontentloaded'});await ready(q);let switched=false;const lf=await record(q,OUT+'/language-frames',6000,async()=>{await sleep(650);await Promise.all([q.waitForNavigation({waitUntil:'domcontentloaded',timeout:30000}),q.click('#locale')]);switched=true;await ready(q)});encode(lf,OUT+'/language-switch.mp4');if(!switched||!q.url().includes('language-proof-ru'))throw new Error('language navigation failed');const ld=diff(lf[0].f,lf.at(-1).f);if(lf.length<10||ld.mean<.02)throw new Error('language capture not moving '+JSON.stringify({frames:lf.length,ld}));fs.writeFileSync(OUT+'/video-evidence.json',JSON.stringify({startup:{frames:sf.length,diff:sd},language:{frames:lf.length,diff:ld,final:q.url()}},null,2));
+          }finally{await br.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node "$OUT/capture.cjs"
+          for V in startup-continuity language-switch; do test -s "$OUT/$V.mp4"; ffprobe -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,avg_frame_rate -show_entries format=duration -of json "$OUT/$V.mp4" > "$OUT/$V-ffprobe.json"; cp "$OUT/$V.mp4" "_site/review-r111/$V.mp4"; done
+      - name: Start public owner review and self-check
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/r111moving
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >"$OUT/cloudflared.log" 2>&1 &
+          BASE=""; for i in $(seq 1 90); do BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' "$OUT/cloudflared.log" | tail -1 || true)"; [ -n "$BASE" ] && break; sleep 2; done
+          test -n "$BASE"; echo "$BASE" | tee "$OUT/PUBLIC_BASE_URL.txt"
+          for i in $(seq 1 60); do if curl -fsS --max-time 15 "$BASE/" >/dev/null 2>&1; then break; fi; [ "$i" -eq 60 ] && exit 1; sleep 3; done
+          for P in / /ru/ /review-r111/ /review-r111/mobile.html /review-r111/laptop.html /review-r111/compare.html /review-r111/startup-continuity.mp4 /review-r111/language-switch.mp4; do curl -fsS --retry 5 --retry-delay 2 --max-time 25 "$BASE$P" >/dev/null; done
+          cat >"$OUT/smoke.cjs" <<'JS'
+          const pp=require('/tmp/r111npm/node_modules/puppeteer-core'),a=require('assert').strict,fs=require('fs'),B=fs.readFileSync('/tmp/r111moving/PUBLIC_BASE_URL.txt','utf8').trim();(async()=>{const b=await pp.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader']});try{for(const [w,h,dpr] of [[1200,800,2],[390,844,3]]){const p=await b.newPage();await p.setViewport({width:w,height:h,deviceScaleFactor:dpr,isMobile:w<900,hasTouch:w<900});await p.goto(B+'/?s='+Date.now(),{waitUntil:'domcontentloaded',timeout:120000});await p.waitForFunction(()=>document.querySelector('[data-proai-live-logo]')?.dataset.logoState==='live',{timeout:120000});const q=await p.evaluate(()=>{const l=document.querySelector('.proai-logo-r341--header'),c=l.querySelector('.proai-logo-r341__cube'),w=l.querySelector('.proai-logo-r341__wordmark'),f=l.querySelector('iframe');return{cube:c.getBoundingClientRect().width,word:parseFloat(getComputedStyle(w).fontSize),gap:parseFloat(getComputedStyle(w).marginLeft),src:f.src,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth}});a.equal(Math.round(q.cube),40);a.equal(Math.round(q.word),20);a.equal(Math.round(q.gap),9);a.equal(q.overflow,0);a.ok(q.src.includes('startup=controlled'));const fr=p.frames().find(x=>x.url().includes('/assets/brand/proai-logo-r341/live.html'));a.ok(fr);const s=await fr.evaluate(()=>JSON.parse(JSON.stringify(window.__PROAI_LOGO_R341_STATE)));a.equal(s.renderer.effectivePixelRatio,3);a.equal(s.renderer.backingWidth,120);a.equal(s.captureMode,false);await p.close()}fs.writeFileSync('/tmp/r111moving/public-smoke.json',JSON.stringify({pass:true,base:B},null,2));}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node "$OUT/smoke.cjs"
+          cat >"$OUT/OWNER_URLS.txt" <<EOF
+          FULL SITE EN
+          $BASE/
+          FULL SITE RU
+          $BASE/ru/
+          MOBILE
+          $BASE/review-r111/mobile.html
+          LAPTOP
+          $BASE/review-r111/laptop.html
+          R1.1 -> R1.1.1 STARTUP COMPARISON
+          $BASE/review-r111/compare.html
+          STARTUP CONTINUITY VIDEO
+          $BASE/review-r111/startup-continuity.mp4
+          EN -> RU LANGUAGE SWITCH VIDEO
+          $BASE/review-r111/language-switch.mp4
+          EOF
+          cat "$OUT/OWNER_URLS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-r111-owner-evidence-final
+          path: /tmp/r111moving
+          retention-days: 7
+      - name: Keep owner review alive
+        shell: bash
+        run: sleep 12600

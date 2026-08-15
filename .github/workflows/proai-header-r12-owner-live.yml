@@ -1,0 +1,67 @@
+name: ProAI Header R1.2 Owner Live
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-r12-owner-live.yml]
+permissions:
+  contents: read
+jobs:
+  owner-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 225
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify product and production locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT=5279084dde5f17c0193bc533f9dc67b45893ee8d
+          git merge-base --is-ancestor "$PRODUCT" HEAD
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+          test "$(git diff --name-only "$PRODUCT" HEAD)" = ".github/workflows/proai-header-r12-owner-live.yml"
+      - name: Build and publish owner preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          OUT=/tmp/header-r12-live
+          mkdir -p "$OUT"
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >"$OUT/http.log" 2>&1 &
+          curl -fsSL --retry 3 --retry-delay 2 -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >"$OUT/cloudflared.log" 2>&1 &
+          BASE=""
+          for i in $(seq 1 60); do
+            BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' "$OUT/cloudflared.log" | tail -1 || true)"
+            [ -n "$BASE" ] && break
+            sleep 2
+          done
+          test -n "$BASE"
+          for i in $(seq 1 40); do
+            if curl -fsS --max-time 15 "$BASE/" >/dev/null 2>&1; then break; fi
+            [ "$i" -eq 40 ] && exit 1
+            sleep 3
+          done
+          for P in / /ru/ /assets/css/header-footer-logo-r1.css /assets/js/header-system-v1.js '/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled' /contact/ /ru/contact/; do
+            curl -fsS --retry 3 --retry-delay 2 --max-time 20 "$BASE$P" >/dev/null
+          done
+          grep -q 'site-header__mobile-cta' _site/index.html
+          grep -q 'Discuss Project' _site/index.html
+          grep -q 'Обсудить проект' _site/ru/index.html
+          printf 'EN\n%s/\nRU\n%s/ru/\nEXPECTED LIFETIME\n3.5 hours from keepalive start\n' "$BASE" "$BASE" | tee "$OUT/OWNER_URLS.txt"
+          printf '%s\n' "$BASE" > "$OUT/PUBLIC_BASE_URL.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-r12-owner-live
+          path: /tmp/header-r12-live
+          retention-days: 3
+      - name: Keep owner preview alive
+        shell: bash
+        run: sleep 12600

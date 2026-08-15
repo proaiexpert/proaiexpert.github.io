@@ -1,24 +1,8 @@
-name: ProAI Semantic Face R4 Legacy Review
-
+name: ProAI Semantic R2 Owner Review
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: read
-
-concurrency:
-  group: proai-semantic-face-r4-legacy-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
-
+  workflow_dispatch:
 jobs:
-  review:
-    if: >-
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
-    runs-on: ubuntu-slim
-    timeout-minutes: 2
+  disabled:
+    runs-on: ubuntu-latest
     steps:
-      - name: Release obsolete R4.2 review slot
-        run: echo "R4.2 legacy review superseded by R4.3; cleanup run only"
+      - run: echo 'Disabled during live-owner-review-only window.'

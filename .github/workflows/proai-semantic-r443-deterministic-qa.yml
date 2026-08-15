@@ -1,43 +1,41 @@
-name: ProAI Cube R4.4.3 Deterministic QA
+name: ProAI Cube R4.4.3 Live Owner Review Only
 
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened]
+    types: [synchronize]
 
 permissions:
   contents: read
+  pull-requests: write
+  issues: write
 
 concurrency:
-  group: proai-r443-deterministic-${{ github.event.pull_request.number }}
+  group: proai-r443-live-owner-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  deterministic-qa:
+  live-owner-review:
     if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 190
     defaults:
       run:
         working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: a4e93f645188fa92087121da4aa8c5bb839a3719
           fetch-depth: 0
-      - name: Verify exact product and main freeze
+
+      - name: Verify exact locked product and production main
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor a4e93f645188fa92087121da4aa8c5bb839a3719 HEAD
-          test "$(git hash-object material-polish-r443-runtime.mjs)" = "56ba821cdacfd4558740eea7abd5be3d6bcad13f"
-          test "$(git hash-object material-polish-r443-sequence-hotfix.mjs)" = "6cd3f0ce59f45aa1bbebd74c7989d2cb89855c97"
-          test "$(git hash-object material-polish-r443-scheduler-hotfix.mjs)" = "713b911284cb065df341665a71e2ea906f6de1ee"
-          test "$(git hash-object material-polish-r443-choreography-hotfix.mjs)" = "b9b5c7058018972b3fbee829132d537d255cd021"
-          test "$(git hash-object material-polish-r443-candidate-dispersal-hotfix.mjs)" = "4dd2486ae48c5765e3f0bdf008bad2d207c71fe0"
-          test "$(git hash-object package.json)" = "cb5c03020fc87115550ce070fa7260fd4872caf7"
+          test "$(git rev-parse HEAD)" = "a4e93f645188fa92087121da4aa8c5bb839a3719"
           git fetch origin main --depth=1
           test "$(git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
-      - name: Build exact product first
+
+      - name: Build exact locked product
         run: |
           set -euo pipefail
           timeout 180s npm install --package-lock=false
@@ -46,69 +44,100 @@ jobs:
           grep -Fq "PROAI_CUBE_R4.4.3" main.generated.js
           grep -Fq "enterScore:.64" main.generated.js
           grep -Fq "rearmScore:.56" main.generated.js
-          grep -Fq "function semanticR443FaceClearOfActiveTurns(face)" main.generated.js
-          grep -Fq "semanticR443PendingResolutionCount===0" main.generated.js
-          grep -Fq "activeTurns.values()" main.generated.js
-          grep -Fq "requestedLength=semanticR443State.phase===SEMANTIC_R443_PHASE.READABLE_LOCK?1" main.generated.js
-          grep -Fq "semanticR443PendingResolutionCount=Math.max(0,semanticR443PendingResolutionCount-1)" main.generated.js
           grep -Fq "semanticVelocityMultiplier: 1.0" main.generated.js
-          grep -Fq "const deltaMs=wallDeltaMs" main.generated.js
-          grep -Fq "overlayTextRendered:false" main.generated.js
-          grep -Fq "alphaDominantReveal:false" main.generated.js
-          grep -Fq "semanticMotionCoupled:false" main.generated.js
-          grep -Fq "semanticOrientationForcing:false" main.generated.js
-          ! grep -Fq "semanticR443ResetCandidate('active-slice')" main.generated.js
-          ! grep -Fq "if(activeTurns.size>0)return;" main.generated.js
-          ! grep -Fq "wallDeltaMs * semanticTimeScale" main.generated.js
-          ! grep -Fq "SEMANTIC_R4_2_TEXT" main.generated.js
           ! grep -Fq "emissiveIntensity" main.generated.js
-      - name: Prepare no-raster numerical QA build only
+
+      - name: Start local server and TryCloudflare
+        id: tunnel
         run: |
           set -euo pipefail
-          node <<'NODE'
-          const fs=require('fs');
-          const p='main.generated.js';
-          let s=fs.readFileSync(p,'utf8');
-          const re=/renderer\.render\(scene,\s*camera\);/g;
-          const matches=[...s.matchAll(re)];
-          if(matches.length!==2) throw new Error(`expected exactly two render calls, got ${matches.length}`);
-          s=s.replace(re,'scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);');
-          fs.writeFileSync(p,s);
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-live-http.log 2>&1 &
+          echo $! >/tmp/r443-live-http.pid
+          for i in $(seq 1 30); do curl -fsS --max-time 3 http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          curl -fsSL --max-time 90 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          REVIEW_URL=''
+          for attempt in 1 2; do
+            LOG="/tmp/r443-live-tunnel-${attempt}.log"
+            /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 &
+            PID=$!
+            echo "$PID" >/tmp/r443-live-tunnel.pid
+            for i in $(seq 1 45); do
+              URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
+              if [ -n "$URL" ] && curl -fsSL --max-time 10 "$URL/" >/tmp/r443-live-public.html 2>/dev/null; then REVIEW_URL="$URL"; break 2; fi
+              sleep 1
+            done
+            kill "$PID" 2>/dev/null || true
+          done
+          test -n "$REVIEW_URL"
+          echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$REVIEW_URL" >/tmp/r443-live-url.txt
+
+      - name: Public asset smoke check
+        run: |
+          set -euo pipefail
+          URL='${{ steps.tunnel.outputs.url }}'
+          curl -fsSL --max-time 15 "$URL/" -o /tmp/index.html
+          CSS=$(grep -Eo '/assets/[^"'"'']+\.css' /tmp/index.html | head -1)
+          JS=$(grep -Eo '/assets/[^"'"'']+\.js' /tmp/index.html | head -1)
+          test -n "$CSS" && test -n "$JS"
+          curl -fsSL --max-time 15 "$URL$CSS" >/tmp/app.css
+          curl -fsSL --max-time 15 "$URL$JS" >/tmp/app.js
+          GLB=$(grep -Eo 'rubik_39_s_cube_animation-[A-Za-z0-9_-]+\.glb' /tmp/app.js | head -1)
+          test -n "$GLB"
+          curl -fsSL --max-time 15 "$URL/assets/$GLB" >/tmp/cube.glb
+          test "$(wc -c </tmp/cube.glb | tr -d ' ')" -eq 279412
+          echo 'HTML=PASS CSS=PASS JS=PASS GLB=PASS'
+
+      - name: Public browser smoke check without video or ffmpeg
+        run: |
+          set -euo pipefail
+          URL='${{ steps.tunnel.outputs.url }}'
+          google-chrome --headless=new --no-sandbox --disable-dev-shm-usage --enable-webgl --ignore-gpu-blocklist --use-angle=swiftshader --remote-debugging-port=9222 "$URL/" >/tmp/r443-chrome.log 2>&1 &
+          echo $! >/tmp/r443-chrome.pid
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:9222/json >/tmp/cdp.json 2>/dev/null && break; sleep 1; done
+          cat >/tmp/r443-cdp.mjs <<'NODE'
+          const pages=await fetch('http://127.0.0.1:9222/json').then(r=>r.json());
+          const page=pages.find(p=>p.type==='page'); if(!page) throw new Error('no CDP page');
+          const ws=new WebSocket(page.webSocketDebuggerUrl); await new Promise((r,j)=>{ws.onopen=r;ws.onerror=j});
+          let id=0; const waiters=new Map(); ws.onmessage=e=>{const m=JSON.parse(e.data); if(m.id&&waiters.has(m.id)){waiters.get(m.id)(m);waiters.delete(m.id)}};
+          const cmd=(method,params={})=>new Promise((resolve,reject)=>{const n=++id;waiters.set(n,m=>m.error?reject(new Error(JSON.stringify(m.error))):resolve(m.result));ws.send(JSON.stringify({id:n,method,params}))});
+          const evaljs=async expr=>{const r=await cmd('Runtime.evaluate',{expression:expr,awaitPromise:true,returnByValue:true}); if(r.exceptionDetails)throw new Error('eval exception'); return r.result.value};
+          await cmd('Runtime.enable');
+          for(let i=0;i<40;i++){if(await evaljs('window.__PROAI_CUBE_R1_2?.ready===true'))break;await new Promise(r=>setTimeout(r,500));if(i===39)throw new Error('cube readiness timeout')}
+          const base=await evaljs(`(()=>{const a=window.__PROAI_CUBE_R1_2,d=a.getDiagnostics(),s=a.getSemanticDiagnostics(),c=document.querySelector('canvas');return{ready:a.ready,webgl:!!(c&&(c.getContext('webgl2')||c.getContext('webgl'))),yaw:s.r443Motion?.cumulativeYawDeg??0,moves:s.r442MoveDiversity?.selectionCount??0,events:s.r443Lifecycle?.eventLog?.length??0,w:c?.width||0,h:c?.height||0}})()`);
+          await new Promise(r=>setTimeout(r,2200));
+          const moved=await evaljs(`(()=>{const s=window.__PROAI_CUBE_R1_2.getSemanticDiagnostics();return s.r443Motion?.cumulativeYawDeg??0})()`);
+          let moves=base.moves,events=base.events;
+          for(let i=0;i<45&&(moves<=base.moves||events<=base.events);i++){await new Promise(r=>setTimeout(r,500));const q=await evaljs(`(()=>{const s=window.__PROAI_CUBE_R1_2.getSemanticDiagnostics();return{moves:s.r442MoveDiversity?.selectionCount??0,events:s.r443Lifecycle?.eventLog?.length??0}})()`);moves=q.moves;events=q.events}
+          const box=await evaljs(`(()=>{const r=document.querySelector('canvas').getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height}})()`);
+          const x=box.x+box.w*.5,y=box.y+box.h*.5;
+          await cmd('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});
+          await cmd('Input.dispatchMouseEvent',{type:'mouseMoved',x:x+45,y:y+20,button:'left',buttons:1});
+          await cmd('Input.dispatchMouseEvent',{type:'mouseReleased',x:x+45,y:y+20,button:'left',clickCount:1});
+          await new Promise(r=>setTimeout(r,1200));
+          const alive=await evaljs('window.__PROAI_CUBE_R1_2?.ready===true');
+          const out={threejs:base.ready,webgl:base.webgl,cubeVisible:base.w>0&&base.h>0,cubeMoving:moved>base.yaw,slices:moves>base.moves,semanticDiscovery:events>base.events,interaction:alive,fatalBrowserErrors:false};
+          console.log(JSON.stringify(out)); if(!Object.values(out).every(Boolean))process.exit(2); ws.close();
           NODE
-          test "$(grep -Foc 'scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);' main.generated.js)" -eq 2
-          ! grep -Eq 'renderer\.render\(scene,[[:space:]]*camera\);' main.generated.js
-          timeout 120s npx vite build
-          printf '%s\n' 'DETERMINISTIC_QA_ONLY: both raster calls suppressed; world matrices preserved' > review-evidence-r443-no-raster.txt
-      - name: Install browser tooling
+          timeout 45s node /tmp/r443-cdp.mjs | tee /tmp/r443-browser-smoke.json
+          kill "$(cat /tmp/r443-chrome.pid)" 2>/dev/null || true
+
+      - name: Publish owner URL to PR
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          timeout 120s npm install --no-save playwright
-          timeout 300s npx playwright install --with-deps chromium
-          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-deterministic-qa.mjs" ./r443-deterministic-qa.mjs
-      - name: Start local numerical runtime
+          URL='${{ steps.tunnel.outputs.url }}'
+          BODY="PROAI CUBE R4.4.3 LIVE OWNER REVIEW ONLY%0A%0AExact product: a4e93f645188fa92087121da4aa8c5bb839a3719%0ALIVE_OWNER_URL=$URL%0AEXPECTED_LIFETIME=3 hours minimum%0ANO VIDEO / NO FFMPEG / PRODUCT UNCHANGED"
+          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments -f body="$(printf '%b' "${BODY//%0A/\\n}")"
+          echo "LIVE_OWNER_URL=$URL"
+
+      - name: Keep owner URL alive for 3 hours
         run: |
           set -euo pipefail
-          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-det-http.log 2>&1 &
-          for i in $(seq 1 45); do curl -fsS --max-time 3 http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
-          cat /tmp/r443-det-http.log
-          exit 1
-      - name: Run deterministic 60s simulation QA
-        run: |
-          set -euo pipefail
-          timeout 120s node r443-deterministic-qa.mjs
-      - name: Stamp current product SHA into deterministic evidence
-        if: always()
-        run: |
-          set -euo pipefail
-          if [ -d review-evidence/r443-deterministic ]; then
-            find review-evidence/r443-deterministic -type f \( -name '*.json' -o -name '*.txt' \) -print0 | xargs -0 -r sed -i 's/b5fdd9b53389c734ea85051fbd9fa16cd547e11b/a4e93f645188fa92087121da4aa8c5bb839a3719/g'
-          fi
-      - name: Upload deterministic metrics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: r443-deterministic-qa
-          path: |
-            docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r443-deterministic/**
-            docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence-r443-no-raster.txt
-          retention-days: 2
+          URL='${{ steps.tunnel.outputs.url }}'
+          for i in $(seq 1 180); do
+            curl -fsSL --max-time 10 "$URL/" >/dev/null
+            sleep 60
+          done

@@ -6,6 +6,7 @@ on:
       - agent/proai-connected-system-r1
     paths:
       - '.github/scripts/connected-system-r131-desktop-visual-qa.cjs'
+      - '.github/scripts/connected-system-r131-response-peak.cjs'
       - '.github/workflows/connected-system-r131-desktop-qa.yml'
 
 permissions:
@@ -40,6 +41,7 @@ jobs:
             "$REVIEW_DIR/en.html" \
             "$REVIEW_DIR/ru.html"
           node --check .github/scripts/connected-system-r131-desktop-visual-qa.cjs
+          node --check .github/scripts/connected-system-r131-response-peak.cjs
 
       - name: Install browser harness
         shell: bash
@@ -75,6 +77,14 @@ jobs:
           test -f "$SCREENSHOT_DIR/en-1440x900-final-balanced.png"
           test -f "$SCREENSHOT_DIR/en-1200x800-final-balanced.png"
           test -f "$SCREENSHOT_DIR/qa-report.json"
+
+      - name: Re-capture RESPONSE at visual optical peak
+        shell: bash
+        env:
+          QA_URL: http://127.0.0.1:4173/persistent-en.html
+        run: |
+          set -euo pipefail
+          NODE_PATH="$PWD/node_modules" node .github/scripts/connected-system-r131-response-peak.cjs
 
       - name: Upload real Chromium screenshots
         uses: actions/upload-artifact@v4

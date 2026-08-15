@@ -41,41 +41,31 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-
-          p=Path('_includes/header-system/header.html')
-          s=p.read_text()
+          p=Path('_includes/header-system/header.html'); s=p.read_text()
           old='data-logo-live-src="/assets/brand/proai-logo-r341/live.html?mode=living"></iframe>\n          <img class="proai-logo-r341__static" src="/assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png"'
           new='data-logo-live-src="/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled"></iframe>\n          <img class="proai-logo-r341__static" src="/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png"'
-          assert s.count(old)==1
-          p.write_text(s.replace(old,new))
-
-          p=Path('assets/js/header-footer-logo-r1.js')
-          s=p.read_text()
+          assert s.count(old)==1; p.write_text(s.replace(old,new))
+          p=Path('assets/js/header-footer-logo-r1.js'); s=p.read_text()
           old="""      if (event.data.state === 'ready') {\n        logo.classList.add('is-live');\n        logo.dataset.logoState = 'live';\n      } else {"""
           new="""      if (event.data.state === 'ready') {\n        logo.classList.add('is-live');\n        logo.dataset.logoState = 'live';\n        requestAnimationFrame(() => {\n          frame.contentWindow?.postMessage({ type: 'proai-logo-r341-control', action: 'start-motion' }, location.origin);\n        });\n      } else {"""
-          assert s.count(old)==1
-          p.write_text(s.replace(old,new))
-
-          p=Path('assets/brand/proai-logo-r341/live-runtime.js')
-          s=p.read_text()
+          assert s.count(old)==1; p.write_text(s.replace(old,new))
+          p=Path('assets/brand/proai-logo-r341/live-runtime.js'); s=p.read_text()
           s=s.replace("const qualityOverride=[2,3,4].includes(requestedQuality)?requestedQuality:null;", "const qualityOverride=[2,3,4].includes(requestedQuality)?requestedQuality:null;\nconst controlledStart=params.get('startup')==='controlled';", 1)
           s=s.replace("let motionYawDeg=HOME.yaw;", "let motionYawDeg=HOME.yaw;\nlet motionEnabled=false;", 1)
           anchor="document.addEventListener('visibilitychange',resetMotionClock,{passive:true});"
           insert="""document.addEventListener('visibilitychange',resetMotionClock,{passive:true});\naddEventListener('message',event=>{\n  if(event.origin!==location.origin||event.data?.type!=='proai-logo-r341-control'||event.data?.action!=='start-motion')return;\n  if(mode!=='living'||reduced)return;\n  motionLastNow=performance.now();\n  motionEnabled=true;\n  if(window.__PROAI_LOGO_R341_STATE)window.__PROAI_LOGO_R341_STATE.motionStarted=true;\n});"""
-          assert s.count(anchor)==1
-          s=s.replace(anchor,insert,1)
+          assert s.count(anchor)==1; s=s.replace(anchor,insert,1)
           s=s.replace("    wordmarkAnimated:false,\n    frames:0,", "    wordmarkAnimated:false,\n    controlledStart,\n    motionStarted:false,\n    frames:0,", 1)
           old="""    globalThis.__PROAI_HEADER_LOGO_TICK=(now)=>{\n      const dt=Math.max(0,(now-motionLastNow)/1000);"""
           new="""    motionEnabled=!controlledStart;\n    globalThis.__PROAI_HEADER_LOGO_TICK=(now)=>{\n      if(!motionEnabled){motionLastNow=now;return;}\n      const dt=Math.max(0,(now-motionLastNow)/1000);"""
-          assert s.count(old)==1
-          s=s.replace(old,new,1)
-          p.write_text(s)
+          assert s.count(old)==1; s=s.replace(old,new,1); p.write_text(s)
           PY
       - name: Commit one narrow product change
         shell: bash
         run: |
           set -euo pipefail
           test "$(git ls-remote origin refs/heads/agent/proai-header-footer-logo-r1 | cut -f1)" = "${GITHUB_SHA}"
+          rm -rf node_modules package.json package-lock.json
           git status --short
           EXPECTED=$'_includes/header-system/header.html\nassets/brand/proai-logo-r341/live-runtime.js\nassets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png\nassets/js/header-footer-logo-r1.js'
           ACTUAL="$(git status --short | sed -E 's/^.. //' | sort)"

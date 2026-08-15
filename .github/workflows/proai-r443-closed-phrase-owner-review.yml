@@ -1,0 +1,190 @@
+name: ProAI Cube R4.4.3 Closed Phrase Owner Review
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-r443-closed-phrase-review
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proai-r443-closed-phrase-owner-review
+  cancel-in-progress: true
+
+env:
+  PRODUCT_SHA: 60bc3d34c251d0fba7e4dbf381d1cfb573aa0efc
+  MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+  PRODUCT_DIR: /tmp/proai-r443-closed-product
+
+jobs:
+  bounded-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Materialize exact product
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth=1
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          rm -rf "$PRODUCT_DIR"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          test "$(git -C "$PRODUCT_DIR" rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git -C "$PRODUCT_DIR" rev-parse HEAD^)" = "a4e93f645188fa92087121da4aa8c5bb839a3719"
+      - name: Validate closed phrase library and build exact product
+        working-directory: /tmp/proai-r443-closed-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          timeout 180s npm install --package-lock=false
+          timeout 30s npm run validate-closed-phrases | tee /tmp/closed-library.txt
+          grep -Fq '"coreArchetypeCount": 12' /tmp/closed-library.txt
+          grep -Fq '"generatedValidatedPhraseVariants": 30' /tmp/closed-library.txt
+          grep -Fq '"macroStateCount": 10' /tmp/closed-library.txt
+          grep -Fq '"phraseHistoryDepth": 3' /tmp/closed-library.txt
+          timeout 180s npm run build-r443
+          node --check main.generated.js
+          grep -Fq "architecture:'CURATED_CLOSED_PHRASE'" main.generated.js
+          grep -Fq 'bumpScale:-0.130,roughnessMapInk:0.550,metalnessDelta:0.0,tonalInk:0.820' main.generated.js
+          grep -Fq 'edgeRoughnessInk:.095' main.generated.js
+          grep -Fq "yawDirectionPolicy:'continuous-positive'" main.generated.js
+          grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
+          grep -Fq 'const deltaMs=wallDeltaMs' main.generated.js
+          grep -Fq 'overlayTextRendered:false' main.generated.js
+          grep -Fq 'alphaDominantReveal:false' main.generated.js
+          grep -Fq 'semanticOrientationForcing:false' main.generated.js
+          ! grep -Fq 'semanticR443PendingResolutionCount' main.generated.js
+          ! grep -Fq 'SEMANTIC_R443_PHASE.DISPERSAL' main.generated.js
+          ! grep -Fq 'SEMANTIC_R443_PHASE.COOLDOWN' main.generated.js
+          ! grep -Fq 'SEMANTIC_R443_PHASE.READABLE_LOCK' main.generated.js
+          ! grep -Fq 'axisDebtBoost' main.generated.js
+          ! grep -Fq 'layerDebtBoost' main.generated.js
+          ! grep -Fq 'w*=24' main.generated.js
+          ! grep -Fq 'w*=32' main.generated.js
+          ! grep -Fq 'w*=14' main.generated.js
+          ! grep -Fq 'w*=7.5' main.generated.js
+          ! grep -Fq "semanticR442RecordMove(inverse,'resolve')" main.generated.js
+          ! grep -Fq 'emissiveIntensity' main.generated.js
+      - name: Prepare bounded numerical runtime
+        working-directory: /tmp/proai-r443-closed-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const p='main.generated.js';
+          let s=fs.readFileSync(p,'utf8');
+          const re=/renderer\.render\(scene,\s*camera\);/g;
+          const count=[...s.matchAll(re)].length;
+          if(count<1) throw new Error('expected renderer calls for numerical suppression');
+          s=s.replace(re,'scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);');
+          fs.writeFileSync(p,s);
+          NODE
+          timeout 120s npx vite build
+      - name: Install bounded browser tooling
+        working-directory: /tmp/proai-r443-closed-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          timeout 120s npm install --no-save playwright
+          timeout 300s npx playwright install --with-deps chromium
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-closed-phrase-qa.mjs" ./r443-closed-qa.mjs
+      - name: Start local numerical runtime
+        working-directory: /tmp/proai-r443-closed-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-closed-http.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS --max-time 3 http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/r443-closed-http.log
+          exit 1
+      - name: Run bounded 60s deterministic sample
+        working-directory: /tmp/proai-r443-closed-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        env:
+          PRODUCT_SHA: ${{ env.PRODUCT_SHA }}
+        run: |
+          set -euo pipefail
+          timeout 120s node r443-closed-qa.mjs
+      - name: Upload bounded metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r443-closed-phrase-bounded-qa
+          path: /tmp/proai-r443-closed-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r443-closed-phrase/**
+          retention-days: 2
+
+  live-owner:
+    needs: bounded-qa
+    runs-on: ubuntu-latest
+    timeout-minutes: 190
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build exact product for owner review
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth=1
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          rm -rf "$PRODUCT_DIR"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          test "$(git -C "$PRODUCT_DIR" rev-parse HEAD)" = "$PRODUCT_SHA"
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          timeout 180s npm install --package-lock=false
+          timeout 30s npm run validate-closed-phrases >/tmp/r443-closed-library-live.txt
+          timeout 180s npm run build-r443
+          node --check main.generated.js
+          grep -Fq "architecture:'CURATED_CLOSED_PHRASE'" main.generated.js
+          grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
+          ! grep -Fq 'semanticR443PendingResolutionCount' main.generated.js
+          ! grep -Fq 'emissiveIntensity' main.generated.js
+      - name: Start owner HTTPS tunnel and static-check public build
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-closed-live-http.log 2>&1 &
+          echo $! >/tmp/r443-closed-http.pid
+          for i in $(seq 1 30); do curl -fsS --max-time 3 http://127.0.0.1:4173/ >/dev/null && break; sleep 1; test "$i" -lt 30; done
+          curl -fsSL --max-time 90 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          REVIEW_URL=''
+          for attempt in 1 2; do
+            LOG="/tmp/r443-closed-cloudflare-${attempt}.log"
+            /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 &
+            PID=$!
+            echo "$PID" >/tmp/r443-closed-tunnel.pid
+            for i in $(seq 1 45); do
+              URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
+              if [ -n "$URL" ] && curl -fsSL --max-time 10 "$URL/" >/tmp/r443-closed-public.html 2>/dev/null; then REVIEW_URL="$URL"; break 2; fi
+              sleep 1
+            done
+            kill "$PID" 2>/dev/null || true
+          done
+          test -n "$REVIEW_URL"
+          HTTP_CODE=$(curl -sS -L -o /tmp/r443-closed-index.html -w '%{http_code}' --max-time 15 "$REVIEW_URL/")
+          test "$HTTP_CODE" = '200'
+          CSS=$(sed -n 's/.*href="\([^"]*\.css\)".*/\1/p' /tmp/r443-closed-index.html | head -1)
+          JS=$(sed -n 's/.*src="\([^"]*\.js\)".*/\1/p' /tmp/r443-closed-index.html | head -1)
+          test -n "$CSS"; test -n "$JS"
+          curl -fsSL --max-time 15 "$REVIEW_URL$CSS" -o /tmp/r443-closed-app.css
+          curl -fsSL --max-time 15 "$REVIEW_URL$JS" -o /tmp/r443-closed-app.js
+          test -s /tmp/r443-closed-app.css; test -s /tmp/r443-closed-app.js
+          GLB=$(grep -Eo 'rubik_39_s_cube_animation-[A-Za-z0-9_-]+\.glb' /tmp/r443-closed-app.js | head -1)
+          test -n "$GLB"
+          curl -fsSL --max-time 15 "$REVIEW_URL/assets/$GLB" -o /tmp/r443-closed-cube.glb
+          test "$(wc -c </tmp/r443-closed-cube.glb | tr -d ' ')" -eq 279412
+          mkdir -p /tmp/r443-closed-live-artifact
+          printf '%s\n' "$REVIEW_URL" >/tmp/r443-closed-live-artifact/live-url.txt
+          printf '%s\n' "PRODUCT_SHA=$PRODUCT_SHA" "MAIN_SHA=$MAIN_SHA" "STATIC_CHECK=HTTP PASS / HTML PASS / CSS PASS / JS PASS / Three.js PASS / GLB PASS" >/tmp/r443-closed-live-artifact/static-check.txt
+          echo "LIVE_OWNER_URL=$REVIEW_URL"
+          echo "LIVE_OWNER_URL=$REVIEW_URL" >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload live owner URL
+        uses: actions/upload-artifact@v4
+        with:
+          name: r443-closed-phrase-live-url
+          path: /tmp/r443-closed-live-artifact/**
+          retention-days: 1
+      - name: Keep owner tunnel alive
+        run: |
+          set -euo pipefail
+          REVIEW_URL=$(cat /tmp/r443-closed-live-artifact/live-url.txt)
+          for i in $(seq 1 180); do curl -fsSL --max-time 10 "$REVIEW_URL/" >/dev/null; sleep 60; done

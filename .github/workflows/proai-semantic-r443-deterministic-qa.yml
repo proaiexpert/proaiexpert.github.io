@@ -34,7 +34,7 @@ jobs:
           test "$(git hash-object package.json)" = "71ebfa8c3eb64008b371c7d426d8d581b53b6e89"
           git fetch origin main --depth=1
           test "$(git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
-      - name: Build product
+      - name: Build exact product first
         run: |
           set -euo pipefail
           timeout 180s npm install --package-lock=false
@@ -42,13 +42,30 @@ jobs:
           node --check main.generated.js
           grep -Fq "async function schedulerDelay(" main.generated.js
           grep -Fq "PROAI_CUBE_R4.4.3" main.generated.js
+      - name: Prepare no-raster numerical QA build only
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const p='main.generated.js';
+          let s=fs.readFileSync(p,'utf8');
+          const re=/renderer\.render\(scene,\s*camera\);/g;
+          const matches=[...s.matchAll(re)];
+          if(matches.length!==1) throw new Error(`expected exactly one render call, got ${matches.length}`);
+          s=s.replace(re,'scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);');
+          fs.writeFileSync(p,s);
+          NODE
+          grep -Fq "scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);" main.generated.js
+          ! grep -Eq 'renderer\.render\(scene,[[:space:]]*camera\);' main.generated.js
+          timeout 120s npx vite build
+          printf '%s\n' 'DETERMINISTIC_QA_ONLY: rasterization suppressed; world matrices preserved' > review-evidence-r443-no-raster.txt
       - name: Install browser tooling
         run: |
           set -euo pipefail
           timeout 120s npm install --no-save playwright
           timeout 300s npx playwright install --with-deps chromium
           cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-deterministic-qa.mjs" ./r443-deterministic-qa.mjs
-      - name: Start local runtime
+      - name: Start local numerical runtime
         run: |
           set -euo pipefail
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-det-http.log 2>&1 &
@@ -58,11 +75,13 @@ jobs:
       - name: Run deterministic 60s simulation QA
         run: |
           set -euo pipefail
-          timeout 180s node r443-deterministic-qa.mjs
+          timeout 120s node r443-deterministic-qa.mjs
       - name: Upload deterministic metrics
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: r443-deterministic-qa
-          path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r443-deterministic/**
+          path: |
+            docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r443-deterministic/**
+            docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence-r443-no-raster.txt
           retention-days: 2

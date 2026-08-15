@@ -1,0 +1,47 @@
+name: ProAI Header R1.1.1 Owner Delivery Final
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-r111-owner-delivery-final.yml]
+permissions:
+  contents: read
+jobs:
+  delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 230
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Run immutable delivery with normal ffmpeg SIGINT handling
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user --quiet pyyaml
+          python3 - <<'PY'
+          import os, subprocess, yaml
+          data=yaml.safe_load(open('.github/workflows/proai-header-r111-owner-delivery.yml',encoding='utf-8'))
+          steps={s.get('name'):s for s in data['jobs']['delivery']['steps'] if isinstance(s,dict) and s.get('name')}
+          for name in ['Verify locked product','Build owner snapshot and video environment']:
+              print(f'=== {name} ===',flush=True)
+              subprocess.run(steps[name]['run'],shell=True,executable='/bin/bash',check=True,env=os.environ.copy())
+          run=steps['Capture uninterrupted real-time videos']['run']
+          old="c=>c===0?res():rej(new Error('ffmpeg '+c+' '+err))"
+          new="c=>([0,255].includes(c)&&fs.existsSync(path)&&fs.statSync(path).size>0)?res():rej(new Error('ffmpeg '+c+' '+err))"
+          assert old in run
+          run=run.replace(old,new,1)
+          print('=== Capture uninterrupted real-time videos ===',flush=True)
+          env=os.environ.copy(); env['DISPLAY']=':99'
+          subprocess.run(run,shell=True,executable='/bin/bash',check=True,env=env)
+          print('=== Start public owner review and smoke-check ===',flush=True)
+          subprocess.run(steps['Start public owner review and smoke-check']['run'],shell=True,executable='/bin/bash',check=True,env=os.environ.copy())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-r111-owner-delivery-final
+          path: /tmp/r111delivery
+          retention-days: 7
+      - name: Keep owner review alive
+        shell: bash
+        run: sleep 12600

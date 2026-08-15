@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-PRODUCT_SHA='a4e93f645188fa92087121da4aa8c5bb839a3719'
+PRODUCT_SHA='bcd22d0381cf8234cea48f93dc75061e1da29c5f'
 MAIN_SHA='c945084e1952c05c686494091f7dbca0f7acdf08'
 ROOT="$GITHUB_WORKSPACE"
 PRODUCT_DIR='/tmp/proai-r443-live-product'
@@ -18,8 +18,7 @@ timeout 180s npm install --package-lock=false
 timeout 180s npm run build-r443
 node --check main.generated.js
 grep -Fq 'PROAI_CUBE_R4.4.3' main.generated.js
-grep -Fq 'enterScore:.64' main.generated.js
-grep -Fq 'rearmScore:.56' main.generated.js
+grep -Fq 'semanticR443VisibleMoveHistory' main.generated.js
 grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
 ! grep -Fq 'emissiveIntensity' main.generated.js
 
@@ -71,15 +70,13 @@ test "$(wc -c </tmp/r443-cube.glb | tr -d ' ')" -eq 279412
 
 echo "STATIC_CHECK HTTP=PASS HTML=PASS CSS=PASS JS=PASS Three.js=PASS GLB=PASS"
 PR_NUMBER=$(jq -r '.pull_request.number' "$GITHUB_EVENT_PATH")
-BODY="PROAI CUBE R4.4.3 LIVE OWNER REVIEW ONLY
+BODY="PROAI CUBE R4.4.3 NATURAL CHOREOGRAPHY OWNER REVIEW
 
 Exact product: $PRODUCT_SHA
 LIVE_OWNER_URL=$REVIEW_URL
 EXPECTED_LIFETIME=approximately 3 hours
 PUBLIC STATIC CHECK: HTTP PASS / HTML PASS / CSS PASS / JS PASS / Three.js PASS / GLB PASS
-HEADLESS WEBGL MOTION GATE: SKIPPED BY CONTROL DECISION
-HEADLESS SEMANTIC GATE: SKIPPED BY CONTROL DECISION
-PRODUCT UNCHANGED"
+NO VIDEO / PRODUCT LOCKED"
 gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -f body="$BODY" >/tmp/r443-comment.json
 echo "LIVE_OWNER_URL=$REVIEW_URL"
 

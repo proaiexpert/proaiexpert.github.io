@@ -1,0 +1,87 @@
+name: Connected System R1.3.1 desktop visual QA
+
+on:
+  push:
+    branches:
+      - agent/proai-connected-system-r1
+    paths:
+      - '.github/scripts/connected-system-r13-browser-qa.cjs'
+      - '.github/workflows/connected-system-r131-desktop-qa.yml'
+      - '.github/workflows/connected-system-r1-owner-review.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: connected-system-r131-desktop-qa
+  cancel-in-progress: true
+
+env:
+  PRODUCT_SHA: 2183da3471eeedeea9500ba721294a7f590248ff
+  REVIEW_DIR: docs/site-evolution/connected-system-r1
+  SCREENSHOT_DIR: docs/site-evolution/connected-system-r1/review-r131
+
+jobs:
+  desktop-visual-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Confirm R1.3 product authority is unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code "$PRODUCT_SHA" --             "$REVIEW_DIR/README.md"             "$REVIEW_DIR/connected-system-r1.js"             "$REVIEW_DIR/connected-system-r13.css"             "$REVIEW_DIR/en.html"             "$REVIEW_DIR/ru.html"
+          node --check .github/scripts/connected-system-r13-browser-qa.cjs
+
+      - name: Install browser harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock playwright-core@1.55.0 >/dev/null
+          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+
+      - name: Start review server
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory "$REVIEW_DIR" >/tmp/r131-http.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/en.html -o /tmp/r131-en.html; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/r131-http.log
+          exit 1
+
+      - name: Render and verify all desktop/laptop targets
+        shell: bash
+        env:
+          QA_URL: http://127.0.0.1:4173/en.html
+        run: |
+          set -euo pipefail
+          NODE_PATH="$PWD/node_modules" node .github/scripts/connected-system-r13-browser-qa.cjs
+          test -f "$SCREENSHOT_DIR/en-1440x900-response-active.png"
+          test -f "$SCREENSHOT_DIR/en-1366x768-response-active.png"
+          test -f "$SCREENSHOT_DIR/en-1280x800-response-active.png"
+          test -f "$SCREENSHOT_DIR/en-1200x800-response-active.png"
+          test -f "$SCREENSHOT_DIR/en-1440x900-final-balanced.png"
+          test -f "$SCREENSHOT_DIR/en-1200x800-final-balanced.png"
+          test -f "$SCREENSHOT_DIR/qa-report.json"
+
+      - name: Commit real Chromium screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$SCREENSHOT_DIR"
+          if git diff --cached --quiet; then
+            echo 'No screenshot changes to commit.'
+            exit 0
+          fi
+          git commit -m 'chore: record R1.3.1 desktop visual QA [skip ci]'
+          git push origin HEAD:agent/proai-connected-system-r1

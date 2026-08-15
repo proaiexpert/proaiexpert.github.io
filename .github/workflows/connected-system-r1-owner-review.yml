@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - agent/proai-connected-system-r1
+    paths-ignore:
+      - '.github/scripts/connected-system-r13-browser-qa.cjs'
+      - '.github/workflows/connected-system-r131-desktop-qa.yml'
+      - '.github/workflows/connected-system-r1-owner-review.yml'
+      - 'docs/site-evolution/connected-system-r1/review-r131/**'
   workflow_dispatch:
 
 permissions:
@@ -36,112 +41,6 @@ jobs:
           grep -Fq 'hideAfter=shortLandscape?90:120' "$REVIEW_DIR/connected-system-r1.js"
           grep -Fq 'What the system connects.' "$REVIEW_DIR/persistent-en.html"
           grep -Fq 'Ð§Ñ‚Ð¾ Ð¾Ð±ÑŠÐµÐ´Ð¸Ð½ÑÐµÑ‚ ÑÐ¸ÑÑ‚ÐµÐ¼Ð°.' "$REVIEW_DIR/persistent-ru.html"
-          ! grep -Fq 'proai-hero-cube-r1/bootstrap.js' "$REVIEW_DIR/persistent-en.html"
-          ! grep -Fq 'proai-hero-cube-r1/bootstrap.js' "$REVIEW_DIR/persistent-ru.html"
-
-      - name: Start local review server
-        shell: bash
-        run: |
-          python3 -m http.server 4173 --directory "$REVIEW_DIR" >/tmp/cs-http.log 2>&1 &
-          for i in {1..20}; do curl -fsS http://127.0.0.1:4173/en.html -o /tmp/local.html && exit 0; sleep 1; done
-          cat /tmp/cs-http.log; exit 1
-
-      - name: Open fresh TryCloudflare tunnel
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fL --retry 4 --retry-delay 2 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
-          chmod +x /tmp/cloudflared
-          /tmp/cloudflared tunnel --url http://127.0.0.1:4173 --no-autoupdate >/tmp/cloudflared.log 2>&1 &
-          LIVE_BASE=''
-          for i in {1..60}; do
-            LIVE_BASE="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/cloudflared.log | head -n1 || true)"
-            [ -n "$LIVE_BASE" ] && break
-            sleep 2
-          done
-          [ -n "$LIVE_BASE" ] || { cat /tmp/cloudflared.log; exit 1; }
-          for i in {1..60}; do
-            if curl -fsS --connect-timeout 4 "$LIVE_BASE/en.html" -o /tmp/live-en.html && grep -Fq 'What the system connects.' /tmp/live-en.html; then break; fi
-            sleep 2
-          done
-          grep -Fq 'What the system connects.' /tmp/live-en.html
-          echo "LIVE_BASE=$LIVE_BASE" >> "$GITHUB_ENV"
-          echo "PERSISTENT_EN=https://raw.githack.com/proaiexpert/proaiexpert.github.io/${GITHUB_SHA}/docs/site-evolution/connected-system-r1/persistent-en.html" >> "$GITHUB_ENV"
-          echo "PERSISTENT_RU=https://raw.githack.com/proaiexpert/proaiexpert.github.io/${GITHUB_SHA}/docs/site-evolution/connected-system-r1/persistent-ru.html" >> "$GITHUB_ENV"
-
-      - name: Verify temporary and persistent bytes
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$LIVE_BASE/ru.html" -o /tmp/temp-ru.html
-          grep -Fq 'Ð§Ñ‚Ð¾ Ð¾Ð±ÑŠÐµÐ´Ð¸Ð½ÑÐµÑ‚ ÑÐ¸ÑÑ‚ÐµÐ¼Ð°.' /tmp/temp-ru.html
-          curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$PERSISTENT_EN" -o /tmp/p-en.html
-          curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$PERSISTENT_RU" -o /tmp/p-ru.html
-          grep -Fq 'What the system connects.' /tmp/p-en.html
-          grep -Fq 'Ð§Ñ‚Ð¾ Ð¾Ð±ÑŠÐµÐ´Ð¸Ð½ÑÐµÑ‚ ÑÐ¸ÑÑ‚ÐµÐ¼Ð°.' /tmp/p-ru.html
-          PBASE="${PERSISTENT_EN%/persistent-en.html}"
-          curl -fsS "$PBASE/connected-system-r13.css" -o /tmp/p.css
-          curl -fsS "$PBASE/connected-system-r1.js" -o /tmp/p.js
-          grep -Fq 'cs-light-carriage' /tmp/p.css
-          grep -Fq 'hideAfter=shortLandscape?90:120' /tmp/p.js
-
-      - name: Browser-verify persistent fallback interaction
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm install --no-save --no-package-lock playwright-core@1.55.0 >/dev/null
-          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
-          cat >/tmp/r13-fallback-qa.cjs <<'NODE'
-          const {chromium}=require('playwright-core');
-          const en=process.env.PERSISTENT_EN, ru=process.env.PERSISTENT_RU, chrome=process.env.CHROME_BIN;
-          const cookie={name:'__Http-phish',value:'1',url:'https://raw.githack.com/',secure:true,httpOnly:true};
-          const assert=(v,m)=>{if(!v)throw new Error(m)};
-          async function open(browser,url,viewport){const c=await browser.newContext({viewport});await c.addCookies([cookie]);const p=await c.newPage();await p.goto(url,{waitUntil:'domcontentloaded',timeout:60000});await p.waitForSelector('[data-connected-system]',{timeout:20000});return{c,p}}
-          async function desktop(browser){const{c,p}=await open(browser,en,{width:1440,height:900});await p.evaluate(()=>document.querySelector('[data-connected-system]').scrollIntoView());await p.waitForTimeout(150);await p.locator('[data-replay-system]').click();const seen=await p.evaluate(async()=>{const s=new Set();const t=performance.now();while(performance.now()-t<4200){document.querySelectorAll('[data-system-stage]').forEach((n,i)=>n.classList.contains('is-active')&&s.add(i));await new Promise(r=>setTimeout(r,45));}return[...s]});assert([0,1,2,3].every(i=>seen.includes(i)),'desktop sequence did not expose all four active states: '+seen);assert(await p.locator('.cs-light-carriage').count()===1,'light carriage missing');await c.close()}
-          async function mobile(browser,url,label){const{c,p}=await open(browser,url,{width:390,height:844});await p.evaluate(()=>scrollTo(0,0));await p.waitForTimeout(120);await p.evaluate(()=>scrollTo(0,340));await p.waitForTimeout(160);await p.evaluate(()=>scrollBy(0,120));await p.waitForTimeout(320);assert(await p.locator('[data-site-header]').evaluate(n=>n.classList.contains('header-hidden')),label+' header did not hide on explicit down scroll');await p.evaluate(()=>scrollBy(0,-100));await p.waitForTimeout(320);assert(!(await p.locator('[data-site-header]').evaluate(n=>n.classList.contains('header-hidden'))),label+' header did not show on explicit up scroll');const stage=async i=>{await p.locator('[data-system-stage]').nth(i).evaluate(el=>el.scrollIntoView({block:'center',behavior:'instant'}));await p.waitForTimeout(950)};await stage(2);assert(await p.locator('[data-system-stage]').nth(2).evaluate(n=>n.classList.contains('is-active')),label+' response not active');await stage(1);assert(await p.locator('[data-system-stage]').nth(1).evaluate(n=>n.classList.contains('is-active')),label+' reverse focus failed');const y=await p.evaluate(()=>scrollY);await p.locator('[data-replay-system]').click();await p.waitForTimeout(260);assert(Math.abs((await p.evaluate(()=>scrollY))-y)<2,label+' replay moved scroll');await p.locator('.site-header__menu-toggle').evaluate(el=>el.click());await p.waitForTimeout(80);assert(await p.evaluate(()=>document.body.classList.contains('menu-open')),label+' menu did not open');assert(!(await p.locator('[data-site-header]').evaluate(n=>n.classList.contains('header-hidden'))),label+' menu did not lock header');await p.keyboard.press('Escape');await p.setViewportSize({width:844,height:390});await p.waitForTimeout(260);assert(!(await p.locator('[data-site-header]').evaluate(n=>n.classList.contains('header-hidden'))),label+' landscape reset failed');await p.setViewportSize({width:390,height:844});await p.waitForTimeout(260);assert(await p.locator('[data-system-stage].is-active').count()<=1,label+' duplicate active state');await c.close()}
-          (async()=>{const b=await chromium.launch({executablePath:chrome,headless:true,args:['--no-sandbox']});try{await desktop(b);await mobile(b,en,'EN');await mobile(b,ru,'RU')}finally{await b.close()}console.log('PERSISTENT_FALLBACK_BROWSER_QA=PASS')})().catch(e=>{console.error(e);process.exit(1)});
-          NODE
-          NODE_PATH="$PWD/node_modules" CHROME_BIN="$CHROME_BIN" node /tmp/r13-fallback-qa.cjs
-          echo 'PERSISTENT_EN_VERIFIED=PASS' >> "$GITHUB_ENV"
-          echo 'PERSISTENT_RU_VERIFIED=PASS' >> "$GITHUB_ENV"
-          echo 'OWNER_REPLAY=PASS' >> "$GITHUB_ENV"
-          echo 'HEADER_AUTOHIDE=PASS' >> "$GITHUB_ENV"
-          echo 'MOBILE_FOCUS=PASS' >> "$GITHUB_ENV"
-
-      - name: Record verified owner-review URLs
-        shell: bash
-        run: |
-          set -euo pipefail
-          EXPIRES_UTC="$(date -u -d '+4 hours' '+%Y-%m-%dT%H:%M:%SZ')"
-          cat > "$REVIEW_DIR/LIVE_PREVIEW.txt" <<EOF
-          PROAI CONNECTED SYSTEM R1.3 â€” OWNER REVIEW
-          PRODUCT_SHA=$PRODUCT_SHA
-          TEMPORARY_EN=$LIVE_BASE/en.html
-          TEMPORARY_RU=$LIVE_BASE/ru.html
-          PERSISTENT_EN=$PERSISTENT_EN
-          PERSISTENT_RU=$PERSISTENT_RU
-          TEMPORARY_VERIFIED=PASS
-          PERSISTENT_EN_VERIFIED=$PERSISTENT_EN_VERIFIED
-          PERSISTENT_RU_VERIFIED=$PERSISTENT_RU_VERIFIED
-          HERO_CUBE_PERSISTENT=NOT_AVAILABLE
-          HEADER_AUTOHIDE=$HEADER_AUTOHIDE
-          MOBILE_FOCUS=$MOBILE_FOCUS
-          OWNER_REPLAY=$OWNER_REPLAY
-          EXPECTED_TEMP_EXPIRES_UTC=$EXPIRES_UTC
-          EOF
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add "$REVIEW_DIR/LIVE_PREVIEW.txt"
-          git commit -m 'chore: record R1.3 owner review URLs [skip ci]'
-          git push origin HEAD:agent/proai-connected-system-r1
-          echo "EXPECTED_TEMP_EXPIRES_UTC=$EXPIRES_UTC" >> "$GITHUB_ENV"
-
-      - name: Keep temporary tunnel alive for four hours
-        shell: bash
-        run: |
-          echo "Temporary EN: $LIVE_BASE/en.html"
-          echo "Temporary RU: $LIVE_BASE/ru.html"
-          echo "Persistent EN: $PERSISTENT_EN"
-          echo "Persistent RU: $PERSISTENT_RU"
-          echo "Expected temporary expiry: $EXPECTED_TEMP_EXPIRES_UTC"
-          sleep 14400
+          ! grep -Fq 'proai-hero-cube-r1/bootstrap.js' "$REVIE]}%H½Á•ÉÍ¥ÍÑ•¹Ðµ•¸¹¡Ñµ°ˆ(€€€€€€€€€€„É•À€µÄ€ÁÉ½…¤µ¡•É¼µÕ‰”µÈÄ½‰½½ÑÍÑÉ…À¹©Ìœ€ˆ‘IY%uôD•"÷W'6—7FVçB×'Ræ‡FÖÂ  ¢ÒæÖS¢7F'BÆö6Â&Wf–Wr6W'fW ¢6†VÆÃ¢&6€¢'Vã¢À¢—F†öã2ÖÒ‡GGç6W'fW"Cs2ÒÖF—&V7F÷'’"E$Ud”UuôD•""â÷F×ö72Ö‡GGæÆör#âc`¢f÷"’–â³âã#Ó²Fò7W&ÂÖg52‡GG¢òó#rããã£Cs2öVâæ‡FÖÂÖò÷F×öÆö6Âæ‡FÖÂbbW†—B²6ÆVW²FöæP¢6B÷F×ö72Ö‡GGæÆös²W†—B ¢ÒæÖS¢÷Vâg&W6‚G'”6Æ÷VFfÆ&RGVææVÀ¢6†VÆÃ¢&6€¢'Vã¢À¢6WBÖWVò—Vf–À¢7W&ÂÖdÂÒ×&WG'’BÒ×&WG'’ÖFVÆ’"‡GG3¢òöv—F‡V"æ6öÒö6Æ÷VFfÆ&Rö6Æ÷VFfÆ&VB÷&VÆV6W2öÆFW7BöF÷væÆöBö6Æ÷VFfÆ&VBÖÆ–çW‚ÖÖCcBÖò÷F×ö6Æ÷VFfÆ&V@¢6†ÖöB·‚÷F×ö6Æ÷VFfÆ&V@¢÷F×ö6Æ÷VFfÆ&VBGVææVÂÒ×W&Â‡GG¢òó#rããã£Cs2ÒÖæòÖWF÷WFFRâ÷F×ö6Æ÷VFfÆ&VBæÆör#âc`¢Ä•dUô$4SÒrp¢f÷"’–â³âãcÓ²Fð¢Ä•dUô$4SÒ"B†w&WÔVòv‡GG3¢òõ²Ö×¥Òµ³Ó•Ò¥ÂçG'–6Æ÷VFfÆ&UÂæ6öÒr÷F×ö6Æ÷VFfÆ&VBæÆörÂ†VBÖãÇÂG'VR’ ¢²Öâ"DÄ•dUô$4R"Òbb'&V°¢6ÆVW ¢FöæP¢²Öâ"DÄ•dUô$4R"ÒÇÂ²6B÷F×ö6Æ÷VFfÆ&VBæÆös²W†—B²Ð¢f÷"’–â³âãcÓ²Fð¢–b7W&ÂÖg52ÒÖ6öææV7B×F–ÖV÷WBB"DÄ•dUô$4RöVâæ‡FÖÂ"Öò÷F×öÆ—fRÖVâæ‡FÖÂbbw&WÔguv†BF†R7—7FVÒ6öææV7G2âr÷F×öÆ—fRÖVâæ‡FÖÃ²F†Vâ'&V³²f¢6ÆVW ¢FöæP¢w&WÔguv†BF†R7—7FVÒ6öææV7G2âr÷F×öÆ—fRÖVâæ‡FÖÀ¢V6†ò$Ä•dUô$4SÒDÄ•dUô$4R"ãâ"Dt•D…T%ôTåb ¢V6†ò%U%4•5DTåEôTãÖ‡GG3¢ò÷&ræv—F†6²æ6öÒ÷&ö–W‡W'B÷&ö–W‡W'Bæv—F‡V"æ–òòG´t•D…T%õ4„ÒöFö72÷6—FRÖWföÇWF–öâö6öææV7FVB×7—7FVÒ×#÷W'6—7FVçBÖVâæ‡FÖÂ"ãâ"Dt•D…T%ôTåb ¢V6†ò%U%4•5DTåEõ%SÖ‡GG3¢ò÷&ræv—F†6²æ6öÒ÷&ö–W‡W'B÷&ö–W‡W'Bæv—F‡V"æ–òòG´t•D…T%õ4„ÒöFö72÷6—FRÖWföÇWF–öâö6öææV7FVB×7—7FVÒ×#÷W'6—7FVçB×'Ræ‡FÖÂ"ãâ"Dt•D…T%ôTåb  ¢ÒæÖS¢fW&–g’FV×÷&'’æBW'6—7FVçB'—FW0¢6†VÆÃ¢&6€¢'Vã¢À¢6WBÖWVò—Vf–À¢7W&ÂÖg52Ò×&WG'’Ò×&WG'’ÖÆÂÖW'&÷'2Ò×&WG'’ÖFVÆ’""DÄ•dUô$4R÷'Ræ‡FÖÂ"Öò÷F×÷FV××'Ræ‡FÖÀ¢w&WÔg}
+}-âí­]MÝý]"-]Íâr÷F×÷FV××'Ræ‡FÖÀ¢7W&ÂÖg52Ò×&WG'’Ò×&WG'’ÖÆÂÖW'&÷'2Ò×&WG'’ÖFVÆ’""EU%4•5DTåEôTâ"Öò÷F×÷ÖVâæ‡FÖÀ¢7W&ÂÖg52Ò×&WG'’Ò×&WG'’ÖÆÂÖW'&÷'2Ò×&WG'’ÖFVÆ’""EU%4•5DTåEõ%R"Öò÷F×÷×'Ræ‡FÖÀ¢w&WÔguv†BF†R7—7FVÒ6öææV7G2âr÷F×÷ÖVâæ‡FÖÀ¢w&WÔg}
+}-âí­]MÝý]"-]Íâr÷F×÷×'Ræ‡FÖÀ¢$4SÒ"GµU%4•5DTåEôTâÒR÷W'6—7FVçBÖVâæ‡FÖÇÒ ¢7W&ÂÖg52"E$4Rö6öææV7FVB×7—7FVÒ×#2æ772"Öò÷F×÷æ770¢7W&ÂÖg52"E$4Rö6öææV7FVB×7—7FVÒ×#æ§2"Öò÷F×÷æ§0¢w&WÔgv72ÖÆ–v‡BÖ6'&–vRr÷F×÷æ770¢w&WÔgv†–FTgFW#×6†÷'DÆæG66Só“£#r÷F×÷æ§0 ¢ÒæÖS¢'&÷w6W"×fW&–g’W'6—7FVçBfÆÆ&6²–çFW&7F–öà¢6†VÆÃ¢&6€¢'Vã¢À¢6WBÖWVò—Vf–À¢çÒ–ç7FÆÂÒÖæò×6fRÒÖæò×6¶vRÖÆö6²Æ—w&–v‡BÖ6÷&TãSRãâöFWböçVÆÀ¢4…$ôÔUô$”ãÒ"B†6öÖÖæB×bvöövÆRÖ6‡&öÖRÇÂ6öÖÖæB×bvöövÆRÖ6‡&öÖR×7F&ÆRÇÂ6öÖÖæB×b6‡&öÖ—VÒ’ ¢6Bâ÷F×÷#2ÖfÆÆ&6²×æ6§2ÃÂtäôDRp¢6öç7B¶6‡&öÖ—V×Ó×&WV—&R‚wÆ—w&–v‡BÖ6÷&Rr“°¢6öç7BVã×&ö6W72æVçbåU%4•5DTåEôTâÇ'S×&ö6W72æVçbåU%4•5DTåEõ%RÆ6‡&öÖS×&ö6W72æVçbä4…$ôÔUô$”ã°¢6öç7B6öö¶–S×¶æÖS¢uõô‡GG×†—6‚rÇfÇVS¢srÇW&Ã¢v‡GG3¢ò÷&ræv—F†6²æ6öÒòrÇ6V7W&S§G'VRÆ‡GGöæÇ“§G'VWÓ°¢6öç7B76W'CÒ‡bÆÒ“Óç¶–b‚b—F‡&÷ræWrW'&÷"†Ò—Ó°¢7–æ2gVæ7F–öâ÷Vâ†'&÷w6W"ÇW&ÂÇf–Ww÷'B—¶6öç7B3Öv—B'&÷w6W"ææWt6öçFW‡B‡·f–Ww÷'GÒ“¶v—B2æFD6öö¶–W2…¶6öö¶–UÒ“¶6öç7BÖv—B2ææWuvR‚“¶v—Bæv÷Fò‡W&ÂÇ·v—EVçF–Ã¢vFöÖ6öçFVçFÆöFVBrÇF–ÖV÷WC£cÒ“¶v—Bçv—Df÷%6VÆV7F÷"‚u¶FFÖ6öææV7FVB×7—7FVÕÒrÇ·F–ÖV÷WC£#Ò“·&WGW&ç¶2Ç×Ð¢7–æ2gVæ7F–öâFW6·F÷†'&÷w6W—¶6öç7G¶2ÇÓÖv—B÷Vâ†'&÷w6W"ÆVâÇ·v–GFƒ£CCÆ†V–v‡C£“Ò“¶v—BæWfÇVFR‚‚“ÓæFö7VÖVçBçVW'•6VÆV7F÷"‚u¶FFÖ6öææV7FVB×7—7FVÕÒr’ç67&öÆÄ–çFõf–Wr‚’“¶v—Bçv—Df÷%F–ÖV÷WBƒS“¶v—BæÆö6F÷"‚u¶FF×&WÆ’×7—7FVÕÒr’æ6Æ–6²‚“¶6öç7B6VVãÖv—BæWfÇVFR†7–æ2‚“Óç¶6öç7B3ÖæWr6WB‚“¶6öç7BC×W&f÷&Öæ6Rææ÷r‚“·v†–ÆR‡W&f÷&Öæ6Rææ÷r‚’×CÃC#—¶Fö7VÖVçBçVW'•6VÆV7F÷$ÆÂ‚u¶FF×7—7FVÒ×7FvUÒr’æf÷$V6‚‚†âÆ’“Óæâæ6Æ74Æ—7Bæ6öçF–ç2‚v—2Ö7F—fRr’bg2æFB†’’“¶v—BæWr&öÖ—6R‡#Óç6WEF–ÖV÷WB‡"ÃCR’“·×&WGW&å²ââç5×Ò“¶76W'B…³ÃÃ"Ã5ÒæWfW'’†“Óç6VVâæ–æ6ÇVFW2†’’’ÂvFW6·F÷6WVVæ6RF–Bæ÷BW‡÷6RÆÂf÷W"7F—fR7FFW3¢r·6VVâ“¶76W'B†v—BæÆö6F÷"‚ræ72ÖÆ–v‡BÖ6'&–vRr’æ6÷VçB‚“ÓÓÓÂvÆ–v‡B6'&–vRÖ—76–ærr“¶v—B2æ6Æ÷6R‚—Ð¢7–æ2gVæ7F–öâÖö&–ÆR†'&÷w6W"ÇW&ÂÆÆ&VÂ—¶6öç7G¶2ÇÓÖv—B÷Vâ†'&÷w6W"ÇW&ÂÇ·v–GFƒ£3“Æ†V–v‡C£ƒCGÒ“¶v—BæWfÇVFR‚‚“Óç67&öÆÅFòƒÃ’“¶v—Bçv—Df÷%F–ÖV÷WBƒ#“¶v—BæWfÇVFR‚‚“Óç67&öÆÅFòƒÃ3C’“¶v—Bçv—Df÷%F–ÖV÷WBƒc“¶v—BæWfÇVFR‚‚“Óç67&öÆÄ'’ƒÃ#’“¶v—Bçv—Df÷%F–ÖV÷WBƒ3#“¶76W'B†v—BæÆö6F÷"‚u¶FF×6—FRÖ†VFW%Òr’æWfÇVFR†ãÓæâæ6Æ74Æ—7Bæ6öçF–ç2‚v†VFW"Ö†–FFVâr’’ÆÆ&VÂ²r†VFW"F–Bæ÷B†–FRöâW‡Æ–6—BF÷vâ67&öÆÂr“¶v—BæWfÇVFR‚‚“Óç67&öÆÄ'’ƒÂÓ’“¶v—Bçv—Df÷%F–ÖV÷WBƒ3#“¶76W'B‚†v—BæÆö6F÷"‚u¶FF×6—FRÖ†VFW%Òr’æWfÇVFR†ãÓæâæ6Æ74Æ—7Bæ6öçF–ç2‚v†VFW"Ö†–FFVâr’’’ÆÆ&VÂ²r†VFW"F–Bæ÷B6†÷röâW‡Æ–6—BW67&öÆÂr“¶6öç7B7FvSÖ7–æ2“Óç¶v—BæÆö6F÷"‚u¶FF×7—7FVÒ×7FvUÒr’æçF‚†’’æWfÇVFR†VÃÓæVÂç67&öÆÄ–çFõf–Wr‡¶&Æö6³¢v6VçFW"rÆ&V†f–÷#¢v–ç7FçBwÒ’“¶v—Bçv—Df÷%F–ÖV÷WBƒ“S—Ó¶v—B7FvRƒ"“¶76W'B†v—BæÆö6F÷"‚u¶FF×7—7FVÒ×7FvUÒr’æçF‚ƒ"’æWfÇVFR†ãÓæâæ6Æ74Æ—7Bæ6öçF–ç2‚v—2Ö7F—fRr’’ÆÆ&VÂ²r&W7öç6Ræ÷B7F—fRr“¶v—B7FvRƒ“¶76W'B†v—BæÆö6F÷"‚u¶FF×7—7FVÒ×7FvUÒr’æçF‚ƒ’æWfÇVFR†ãÓæâæ6Æ74Æ—7Bæ6öçF–ç2‚v—2Ö7F—fRr’’ÆÆ&VÂ²r&WfW'6Rfö7W2f–ÆVBr“¶6öç7B“Öv—BæWfÇVFR‚‚“Óç67&öÆÅ’“¶v—BæÆö6F÷"‚u¶FF×&WÆ’×7—7FVÕÒr’æ6Æ–6²‚“¶v—Bçv—Df÷%F–ÖV÷WBƒ#c“¶76W'B„ÖF‚æ'2‚†v—BæWfÇVFR‚‚“Óç67&öÆÅ’’’×’“Ã"ÆÆ&VÂ²r&WÆ’Ö÷fVB67&öÆÂr“¶v—BæÆö6F÷"‚rç6—FRÖ†VFW%õöÖVçR×FövvÆRr’æWfÇVVR†VÃÓæVÂæ6Æ–6²‚’“¶v—Bçv—Df÷%F–ÖV÷WBƒƒ“¶76W'B†v—BæWfÇVFR‚‚“ÓæFö7VÖVçBæ&öG’æ6Æ74Æ—7Bæ6öçF–ç2‚vÖVçRÖ÷Vâr’’ÆÆ&VÂ²rÖVçRF–Bæ÷B÷Vâr“¶76W'B‚†v—BæÆö6F÷"‚u¶FF×6—FRÖ†VFW%Òr’æWfÇVFR†ãÓæâæ6Æ74Æ—7Bæ6öçF–ç2‚v†VFW"Ö†–FFVâr’’’ÆÆ&VÂ²rÖVçRF–Bæ÷BÆö6²†VFW"r“¶v—Bæ¶W–&ö&Bç&W72‚tW66Rr“¶v—Bç6WEf–Ww÷'E6—¦R‡·v–GFƒ£ƒCBÆ†V–v‡C£3“Ò“¶v—Bçv—Df÷%F–ÖV÷WBƒ#c“¶76W'B‚†v—BæÆö6F÷"‚u¶FF×6—FRÖ†VFW%Òr’æWfÇVFR†ãÓæâæ6Æ74Æ—7Bæ6öçF–ç2‚v†VFW"Ö†–FFVâr’’’ÆÆ&VÂ²rÆæG66R&W6WBf–ÆVBr“¶v—Bç6WEf–Ww÷'E6—¦R‡·v–GFƒ£3“Æ†V–v‡C£ƒCGÒ“¶v—Bçv—Df÷%F–ÖV÷WBƒ#c“¶76W'B†v—BæÆö6F÷"‚u¶FF×7—7FVÒ×7FvUÒæ—2Ö7F—fRr’æ6÷VçB‚“ÃÓÆÆ&VÂ²rGWÆ–6FR7F—fR7FFRr“¶v—B2æ6Æ÷6R‚—Ð¢†7–æ2‚“Óç¶6öç7B#Öv—B6‡&öÖ—VÒæÆVæ6‚‡¶W†V7WF&ÆUFƒ¦6‡&öÖRÆ†VFÆW73§G'VRÆ&w3¥²rÒÖæò×6æF&÷‚u×Ò“·G'—¶v—BFW6·F÷†"“¶v—BÖö&–ÆR†"ÆVâÂtTâr“¶v—BÖö&–ÆR†"Ç'RÂu%Rr—Öf–æÆÇ—¶v—B"æ6Æ÷6R‚—Ö6öç6öÆRæÆör‚uU%4•5DTåEôdÄÄ$4µô%$õu4U%õÕ52r—Ò’‚’æ6F6‚†SÓç¶6öç6öÆRæW'&÷"†R“·&ö6W72æW†—Bƒ—Ò“°¢äôDP¢äôDUõDƒÒ"EtBöæöFUöÖöGVÆW2"4…$ôÔUô$”ãÒ"D4…$ôÔUô$”â"æöFR÷F×÷#2ÖfÆÆ&6²×æ6§0¢V6†òuU%4•5DTåEôTåõdU$”d”TCÕ52rãâ"Dt•D…T%ôTåb ¢V6†òuU%4•5DTåEõ%UõdU$”d”TCÕ52rãâ"Dt•D…T%ôTåb ¢V6†òtõtäU%õ$UÄ“Õ52rãâ"Dt•D…T%ôTåb ¢V6†òt„TDU%ôUDô„”DSÕ52rãâ"Dt•D…T%ôTåb ¢V6†òtÔô$”ÄUôdô5U3Õ52rãâ"Dt•D…T%ôTåb  ¢ÒæÖS¢&V6÷&BfW&–f–VB÷væW"×&Wf–WrU$Ç0¢6†VÆÃ¢&6€¢'Vã¢À¢6WBÖWVò—Vf–À¢U…•$U5õUD3Ò"B†FFR×RÖBr³B†÷W'2rr²U’ÒVÒÒVEBTƒ¢TÓ¢U5¢r’ ¢6Bâ"E$Ud”UuôD•"ôÄ•dUõ$Ud”UrçG‡B"ÃÄTô`¢$ô’4ôääT5DTB5•5DTÒ#ã2(	BõtäU"$Ud”Up¢$ôET5Eõ4„ÒE$ôET5Eõ4„¢DTÕõ$%•ôTãÒDÄ•dUô$4RöVâæ‡FÖÀ¢DTÕõ$%•õ%SÒDÄ•dUô$4R÷'Ræ‡FÖÀ¢U%4•5DTåEôTãÒEU%4•5DTåEôTà¢U%4•5DTåEõ%SÒEU%4•5DTåEõ%P¢DTÕõ$%•õdU$”d”TCÕ50¢U%4•5DTåEôTåõdU$”d”TCÒEU%4•5DTåEôTåõdU$”d”T@¢U%4•5DTåEõ%UõdU$”d”TCÒEU%4•5DTåEõ%UõdU$”d”T@¢„U$õô5T$UõU%4•5DTåCÔäõEôd”Ä$ÄP¢„TDU%ôUDô„”DSÒD„TDU%ôUDô„”DP¢Ôô$”ÄUôdô5U3ÒDÔô$”ÄUôdô5U0¢õtäU%õ$UÄ“ÒDõtäU%õ$UÄ¢U…T5DTEõDTÕôU…•$U5õUD3ÒDU…•$U5õUD0¢Tô`¢v—B6öæf–rW6W"ææÖRvv—F‡V"Ö7F–öç5¶&÷EÒp¢v—B6öæf–rW6W"æVÖ–ÂsCƒ“ƒ#ƒ"¶v—F‡V"Ö7F–öç5¶&÷EÔW6W'2ææ÷&WÇ’æv—F‡V"æ6öÒp¢v—BFB"E$Ud”UuôD•"ôÄ•dUõ$Ud”UrçG‡B ¢v—B6öÖÖ—BÖÒv6†÷&S¢&V6÷&B#ã2÷væW"&Wf–WrU$Ç2·6¶—6•Òp¢v—BW6‚÷&–v–â„TC¦vVçB÷&ö’Ö6öææV7FVB×7—7FVÒ×#¢V6†ò$U…T5DTEõDTÕôU…•$U5õUD3ÒDU…•$U5õUD2"ãâ"Dt•D…T%ôTåb  ¢ÒæÖS¢¶VWFV×÷&'’GVææVÂÆ—fRf÷"f÷W"†÷W'0¢6†VÆÃ¢&6€¢'Vã¢À¢V6†ò%FV×÷&'’Tã¢DÄ•dUô$4RöVâæ‡FÖÂ ¢V6†ò%FV×÷&'’%S¢DÄ•dUô$4R÷'Ræ‡FÖÂ ¢V6†ò%W'6—7FVçBTã¢EU%4•5DTåEôTâ ¢V6†ò%W'6—7FVçB%S¢EU%4•5DTåEõ%R ¢V6†ò$W‡V7FVBFV×÷&'’W‡—'“¢DU…T5DTEõDTÕôU…•$U5õUD2 ¢6ÆVWCC 

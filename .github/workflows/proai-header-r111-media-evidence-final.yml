@@ -1,0 +1,81 @@
+name: ProAI Header R1.1.1 Media Evidence Final
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-r111-media-evidence-final.yml]
+permissions:
+  contents: read
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 230
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Build locked review snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user --quiet pyyaml
+          python3 - <<'PY'
+          import os,subprocess,yaml
+          d=yaml.safe_load(open('.github/workflows/proai-header-r111-media-evidence.yml',encoding='utf-8'))
+          s=next(x for x in d['jobs']['evidence']['steps'] if isinstance(x,dict) and x.get('name')=='Verify locked product and build recorder')
+          subprocess.run(s['run'],shell=True,executable='/bin/bash',check=True,env=os.environ.copy())
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('_site/review-r111/recorder.html'); s=p.read_text()
+          old="async function record(duration,work){await assets();const stream=out.captureStream(30),chunks=[],rec=new MediaRecorder(stream,{mimeType:chooseMime(),videoBitsPerSecond:2200000});rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};const done=new Promise((res,rej)=>{rec.onerror=e=>rej(e.error||e);rec.onstop=async()=>{const blob=new Blob(chunks,{type:rec.mimeType});const ab=await blob.arrayBuffer();let bin='';const u=new Uint8Array(ab),step=0x8000;for(let i=0;i<u.length;i+=step)bin+=String.fromCharCode(...u.subarray(i,i+step));res({mime:rec.mimeType,b64:btoa(bin),bytes:u.length})}});rec.start(100);await work();await sleep(Math.max(0,duration));rec.stop();return done}"
+          new="async function record(duration,work){await assets();const stream=out.captureStream(30),chunks=[],rec=new MediaRecorder(stream,{mimeType:chooseMime(),videoBitsPerSecond:2200000});rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};const done=new Promise((res,rej)=>{rec.onerror=e=>rej(e.error||e);rec.onstop=async()=>{const blob=new Blob(chunks,{type:rec.mimeType});const ab=await blob.arrayBuffer();let bin='';const u=new Uint8Array(ab),step=0x8000;for(let i=0;i<u.length;i+=step)bin+=String.fromCharCode(...u.subarray(i,i+step));res({mime:rec.mimeType,b64:btoa(bin),bytes:u.length})}});const started=performance.now();rec.start(100);await work();await sleep(Math.max(0,duration-(performance.now()-started)));rec.stop();return done}"
+          assert old in s; s=s.replace(old,new,1)
+          old="window.recordLanguage=async()=>{language='EN';await loadLive();await sleep(300);const result=await record(5600,async()=>{await sleep(700);language='RU';await loadLive();await sleep(1500)});return result};"
+          new="window.recordLanguage=async()=>{language='EN';await loadLive();await sleep(300);return record(5600,async()=>{await sleep(900);language='RU';await loadLive();await sleep(1200)})};"
+          assert old in s; s=s.replace(old,new,1); p.write_text(s)
+          PY
+      - name: Record and validate startup and EN to RU videos
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/r111media
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >"$OUT/http.log" 2>&1 &
+          cat >"$OUT/record-final.cjs" <<'JS'
+          const pp=require('/tmp/r111npm/node_modules/puppeteer-core'),fs=require('fs'),{execFileSync}=require('child_process'),{PNG}=require('/tmp/r111npm/node_modules/pngjs');
+          const B='http://127.0.0.1:8080',OUT='/tmp/r111media';
+          async function save(page,fn,name){const r=await page.evaluate(fn);fs.writeFileSync(`${OUT}/${name}.webm`,Buffer.from(r.b64,'base64'));fs.writeFileSync(`${OUT}/${name}-record.json`,JSON.stringify({mime:r.mime,bytes:r.bytes},null,2));execFileSync('ffmpeg',['-y','-loglevel','error','-i',`${OUT}/${name}.webm`,'-c:v','libx264','-pix_fmt','yuv420p','-movflags','+faststart',`${OUT}/${name}.mp4`]);}
+          function frame(video,t,out){execFileSync('ffmpeg',['-y','-loglevel','error','-ss',String(t),'-i',video,'-frames:v','1',out])}
+          function diff(aPath,bPath,box){const a=PNG.sync.read(fs.readFileSync(aPath)),b=PNG.sync.read(fs.readFileSync(bPath));let sum=0,n=0,changed=0;const [x0,y0,x1,y1]=box;for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){const i=(y*a.width+x)*4;for(let c=0;c<3;c++){const d=Math.abs(a.data[i+c]-b.data[i+c]);sum+=d;n++;if(d>3)changed++}}return{mean:sum/n,changedRatio:changed/n}}
+          function duration(path){return Number(execFileSync('ffprobe',['-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',path],{encoding:'utf8'}).trim())}
+          (async()=>{const br=await pp.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader','--autoplay-policy=no-user-gesture-required']});try{
+            const p=await br.newPage();await p.setViewport({width:600,height:180,deviceScaleFactor:1});await p.goto(B+'/review-r111/recorder.html',{waitUntil:'domcontentloaded'});
+            await save(p,()=>window.recordStartup(),'startup-continuity');
+            await save(p,()=>window.recordLanguage(),'language-switch');
+            const evidence={};
+            for(const [name,times] of [['startup-continuity',[.5,1.5,3.0,4.7]],['language-switch',[.5,1.4,3.2,5.0]]]){const video=`${OUT}/${name}.mp4`,dur=duration(video);if(dur<4||dur>7)throw new Error(`${name} duration ${dur}`);const imgs=[];for(let i=0;i<times.length;i++){const f=`${OUT}/${name}-${i}.png`;frame(video,Math.min(times[i],dur-.15),f);imgs.push(f)}let maxCube={mean:0,changedRatio:0},maxFull={mean:0,changedRatio:0};for(let i=0;i<imgs.length;i++)for(let j=i+1;j<imgs.length;j++){const c=diff(imgs[i],imgs[j],[38,18,94,72]),f=diff(imgs[i],imgs[j],[35,18,565,125]);if(c.mean>maxCube.mean)maxCube=c;if(f.mean>maxFull.mean)maxFull=f}if(maxCube.mean<.03||maxCube.changedRatio<.001)throw new Error(`${name} cube frozen ${JSON.stringify(maxCube)}`);if(maxFull.mean<.03)throw new Error(`${name} surface frozen ${JSON.stringify(maxFull)}`);evidence[name]={duration:dur,maxCube,maxFull};}
+            const l0=`${OUT}/language-switch-0.png`,l2=`${OUT}/language-switch-2.png`;const label=diff(l0,l2,[480,18,570,60]);if(label.mean<.05)throw new Error('EN/RU indicator did not change');evidence.languageIndicator=label;fs.writeFileSync(`${OUT}/video-evidence.json`,JSON.stringify(evidence,null,2));
+          }finally{await br.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node "$OUT/record-final.cjs"
+          for V in startup-continuity language-switch; do test -s "$OUT/$V.mp4"; ffprobe -v error -select_streams v:0 -show_entries stream=width,height,pix_fmt,avg_frame_rate -show_entries format=duration -of json "$OUT/$V.mp4" > "$OUT/$V-ffprobe.json"; cp "$OUT/$V.mp4" "_site/review-r111/$V.mp4"; done
+      - name: Start public owner review and smoke-check
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,subprocess,yaml
+          d=yaml.safe_load(open('.github/workflows/proai-header-r111-media-evidence.yml',encoding='utf-8'))
+          s=next(x for x in d['jobs']['evidence']['steps'] if isinstance(x,dict) and x.get('name')=='Start public review and smoke-check')
+          subprocess.run(s['run'],shell=True,executable='/bin/bash',check=True,env=os.environ.copy())
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proai-header-r111-media-evidence-final
+          path: /tmp/r111media
+          retention-days: 7
+      - name: Keep owner review alive
+        if: success()
+        shell: bash
+        run: sleep 12600

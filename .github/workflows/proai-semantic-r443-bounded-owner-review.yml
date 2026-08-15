@@ -30,12 +30,13 @@ jobs:
       - name: Verify product isolation and production freeze
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor 731f435c3ee895300d053a83153832cabe65f2ca HEAD
+          git merge-base --is-ancestor b5fdd9b53389c734ea85051fbd9fa16cd547e11b HEAD
           test "$(git hash-object material-polish-r4.mjs)" = "a5977cccb87056c000f0a60020529bff383f13e4"
           test "$(git hash-object material-polish-r442-runtime.mjs)" = "377b2d3a6aef08ba4bc47981fb31893709c0a1f1"
           test "$(git hash-object material-polish-r443-runtime.mjs)" = "56ba821cdacfd4558740eea7abd5be3d6bcad13f"
-          test "$(git hash-object package.json)" = "5038bf3aaa089f9ff001b93ede0df72f9890e89d"
-          git diff --exit-code 731f435c3ee895300d053a83153832cabe65f2ca -- material-polish-r4.mjs material-polish-r442-runtime.mjs material-polish-r443-runtime.mjs package.json
+          test "$(git hash-object material-polish-r443-scheduler-hotfix.mjs)" = "713b911284cb065df341665a71e2ea906f6de1ee"
+          test "$(git hash-object package.json)" = "71ebfa8c3eb64008b371c7d426d8d581b53b6e89"
+          git diff --exit-code b5fdd9b53389c734ea85051fbd9fa16cd547e11b -- material-polish-r4.mjs material-polish-r442-runtime.mjs material-polish-r443-runtime.mjs material-polish-r443-scheduler-hotfix.mjs package.json
           git fetch origin main --depth=1
           test "$(git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
 
@@ -49,6 +50,8 @@ jobs:
           grep -Fq "SEMANTIC_R443_SEQUENCE=Object.freeze(['ProAI Expert','TRUST','INQUIRY','RESPONSE','RESULT'])" main.generated.js
           grep -Fq "dispersalTargetMs:[350,1250]" main.generated.js
           grep -Fq "yawDirectionPolicy:'continuous-positive'" main.generated.js
+          grep -Fq "async function waitForSliceAutonomy(" main.generated.js
+          grep -Fq "async function schedulerDelay(" main.generated.js
           grep -Fq "semanticVelocityMultiplier: 1.0" main.generated.js
           grep -Fq "overlayTextRendered:false" main.generated.js
           grep -Fq "alphaDominantReveal:false" main.generated.js
@@ -61,7 +64,8 @@ jobs:
           set -euo pipefail
           timeout 120s npm install --no-save playwright
           timeout 300s npx playwright install --with-deps chromium
-          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-review-v2.mjs" ./r443-owner-review.mjs
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-review-v2.mjs" ./r443-owner-review-v2.mjs
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-review-v3.mjs" ./r443-owner-review.mjs
 
       - name: Start local runtime and bounded public tunnel
         id: tunnel

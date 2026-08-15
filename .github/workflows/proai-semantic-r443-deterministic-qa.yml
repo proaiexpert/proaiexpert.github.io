@@ -23,12 +23,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: a5646b387ca8bfbf09f8b652139e4078e2283b89
+          ref: bcd22d0381cf8234cea48f93dc75061e1da29c5f
           fetch-depth: 0
       - name: Verify exact product and main
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "a5646b387ca8bfbf09f8b652139e4078e2283b89"
+          test "$(git rev-parse HEAD)" = "bcd22d0381cf8234cea48f93dc75061e1da29c5f"
           git merge-base --is-ancestor a4e93f645188fa92087121da4aa8c5bb839a3719 HEAD
           git fetch origin main --depth=1
           test "$(git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
@@ -40,6 +40,8 @@ jobs:
           node --check main.generated.js
           grep -Fq 'semanticR443VisibleMoveHistory' main.generated.js
           grep -Fq 'semanticR443ChooseBridge' main.generated.js
+          grep -Fq 'phraseStartedReadable' main.generated.js
+          grep -Fq 'safety-resolve' main.generated.js
           grep -Fq 'w*=8' main.generated.js
           grep -Fq 'w*=12' main.generated.js
           ! grep -Fq 'w*=24' main.generated.js
@@ -70,6 +72,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: r443-natural-choreography-qa
+          name: r443-natural-choreography-qa-final
           path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r443-natural-choreography/**
           retention-days: 2

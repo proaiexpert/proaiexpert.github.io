@@ -1,0 +1,48 @@
+name: ProAI Header R1.1.1 Owner Review Final
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-r111-owner-review-rescue.yml]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 230
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Prepare exact review environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg >/dev/null
+          python3 -m pip install --user --quiet pyyaml
+          ffmpeg -version | head -1
+      - name: Run immutable continuity review logic
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, subprocess, yaml
+          path='.github/workflows/proai-header-r111-owner-review.yml'
+          data=yaml.safe_load(open(path,encoding='utf-8'))
+          wanted=['Verify product and locked scope','Build review snapshot','Start HTTPS review and run continuity QA']
+          steps=data['jobs']['review']['steps']
+          by_name={s.get('name'):s for s in steps if isinstance(s,dict) and s.get('name')}
+          for name in wanted:
+              step=by_name[name]
+              print(f'=== {name} ===',flush=True)
+              subprocess.run(step['run'],shell=True,executable='/bin/bash',check=True,env=os.environ.copy())
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-r111-owner-review-final
+          path: /tmp/r111owner
+          retention-days: 7
+      - name: Keep owner review alive
+        shell: bash
+        run: sleep 12600

@@ -14,14 +14,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 09ecbc3955676d3e6570fde3cd502878a616c209
+          ref: 5f3d8d4f410070c1d7d1beee44e1e2cd45f1702b
           fetch-depth: 0
       - run: |
           npm install --package-lock=false
           npm run build-r442
           node --check main.generated.js
-          grep -Fq "maxProtectedMs:2480" main.generated.js
-          ! grep -Fq "maxProtectedMs:3200" main.generated.js
+          grep -Fq "maxProtectedMs:2400" main.generated.js
+          ! grep -Fq "maxProtectedMs:2480" main.generated.js
           npm install --no-save playwright
           npx playwright install chromium
       - run: |

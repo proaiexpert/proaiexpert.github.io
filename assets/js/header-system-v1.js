@@ -7,6 +7,7 @@
   if (!toggle || !nav) return;
   const openLabel = toggle.dataset.openLabel || 'Open menu';
   const closeLabel = toggle.dataset.closeLabel || 'Close menu';
+  const mobileQuery = window.matchMedia('(max-width: 1080px)');
   const setOpen = (open) => {
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', open ? closeLabel : openLabel);
@@ -28,6 +29,6 @@
   syncScrollState();
   window.addEventListener('scroll', syncScrollState, { passive: true });
   window.addEventListener('resize', () => {
-    if (!window.matchMedia('(max-width: 1260px)').matches) setOpen(false);
+    if (!mobileQuery.matches) setOpen(false);
   }, { passive: true });
 })();

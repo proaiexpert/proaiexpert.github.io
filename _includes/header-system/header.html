@@ -31,8 +31,9 @@
 
     <nav class="site-header__nav" aria-label="{{ header_nav.aria_label }}" id="site-header-navigation-{{ header_lang }}">
       {% for item in header_nav.items %}
-      <a href="{{ item.url }}"{% if item.key == header_current %} class="is-active" aria-current="page"{% endif %}>{{ item.label }}</a>
+      <a class="site-header__nav-link{% if item.mobile_only %} site-header__nav-link--mobile-only{% endif %}{% if item.key == header_current %} is-active{% endif %}" href="{{ item.url }}"{% if item.key == header_current %} aria-current="page"{% endif %}>{{ item.label }}</a>
       {% endfor %}
+      <a class="site-header__mobile-cta" href="{{ header_cta.url }}">{{ header_cta.label }}</a>
     </nav>
 
     <div class="site-header__actions">

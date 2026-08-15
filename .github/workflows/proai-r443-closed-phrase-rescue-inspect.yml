@@ -41,39 +41,41 @@ jobs:
           node material-polish-r443-runtime.mjs
           node material-polish-r443-sequence-hotfix.mjs
           node --check main.generated.js
-      - name: Prove actual scheduler and diagnostics boundaries
+      - name: Prove actual lifecycle replacement boundary
         working-directory: /tmp/proai-r443-rescue-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs=require('fs');
           const s=fs.readFileSync('main.generated.js','utf8');
-          const tokens=[
-            'async function sliceSchedulerLoop(){',
-            'sliceSchedulerRunning=false}',
-            'sliceSchedulerRunning = false;',
-            'function getSemanticDiagnostics() {',
-            'r442Cadence:SEMANTIC_R442_CADENCE,',
-            'r443Lifecycle:',
-            'r443Motion:',
-            'function cubicBezierEase('
-          ];
-          for(const token of tokens){
+          const keys={
+            lifecycleStart:'const SEMANTIC_R443_PHASE=Object.freeze(',
+            lifecycleEnd:'function semanticR442ReleaseProtection(',
+            protectionUpdate:'function semanticR442UpdateProtectionState(){',
+            moveIntersection:'function semanticR442MoveIntersection(',
+            diagnostics:'function getSemanticDiagnostics() {',
+            r443Lifecycle:'r443Lifecycle:',
+            r443Motion:'r443Motion:',
+            recentWeight:'function semanticR442RecentWeight(move){',
+            recordMove:"function semanticR442RecordMove(move,phase='forward'){",
+            scheduler:'async function sliceSchedulerLoop(){'
+          };
+          const pos={};
+          for(const [name,token] of Object.entries(keys)){
             const hits=[];let p=-1;while((p=s.indexOf(token,p+1))>=0)hits.push(p);
-            console.log(`BOUNDARY ${JSON.stringify(token)} COUNT=${hits.length} POS=${hits.join(',')||'NONE'}`);
+            pos[name]=hits[0]??-1;
+            console.log(`STRUCT ${name} COUNT=${hits.length} POS=${hits.join(',')||'NONE'}`);
           }
-          const ss=s.indexOf('async function sliceSchedulerLoop(){');
-          const legacyEnd=s.indexOf('sliceSchedulerRunning=false}',ss);
-          const spacedEnd=s.indexOf('sliceSchedulerRunning = false;',ss);
-          const diag=s.indexOf('r443Motion:');
-          const getSem=s.indexOf('function getSemanticDiagnostics() {');
-          console.log(`COMPARISON schedulerStart=${ss} legacyEnd=${legacyEnd} spacedEnd=${spacedEnd} getSemanticDiagnostics=${getSem} r443Motion=${diag}`);
-          for(const [name,pos] of [['schedulerStart',ss],['legacyEnd',legacyEnd],['spacedEnd',spacedEnd],['getSemanticDiagnostics',getSem],['r443Motion',diag]]){
-            if(pos<0)continue;
+          console.log('ORDER '+JSON.stringify(pos));
+          const crossesDiagnostics=pos.lifecycleStart>=0&&pos.lifecycleEnd>pos.r443Motion&&pos.lifecycleStart<pos.diagnostics;
+          console.log('LIFECYCLE_RANGE_CROSSES_DIAGNOSTICS='+crossesDiagnostics);
+          for(const name of ['lifecycleStart','diagnostics','r443Motion','lifecycleEnd','protectionUpdate']){
+            const p=pos[name];if(p<0)continue;
             console.log(`SNIP ${name} START`);
-            console.log(s.slice(Math.max(0,pos-350),Math.min(s.length,pos+950)));
+            console.log(s.slice(Math.max(0,p-300),Math.min(s.length,p+1000)));
             console.log(`SNIP ${name} END`);
           }
-          if(ss<0||diag<0)throw new Error('required actual source structure missing');
-          console.log('BOUNDARY_INSPECT_PASS');
+          if(Object.values(pos).some(p=>p<0))throw new Error('required lifecycle inspection token missing');
+          if(!crossesDiagnostics)throw new Error('observed lifecycle range did not prove expected crossing');
+          console.log('LIFECYCLE_BOUNDARY_PROOF_PASS');
           NODE

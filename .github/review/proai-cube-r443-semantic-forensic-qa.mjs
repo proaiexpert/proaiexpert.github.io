@@ -23,7 +23,27 @@ for(let i=0;i<400;i++){
 }
 const initial=await page.evaluate(()=>window.__R443_FORENSIC__.get());
 const wallStart=Date.now();
-await page.evaluate(()=>{window.__R443_FORENSIC_TIMER=setInterval(()=>window.__R443_FORENSIC__.probe(),500)});
+await page.evaluate(()=>{
+  window.__R443_FORENSIC_TRACE=[];
+  window.__R443_FORENSIC_TIMER=setInterval(()=>{
+    const s=window.__R443_FORENSIC__.probe();
+    window.__R443_FORENSIC_TRACE.push({
+      presentationMs:s.presentationSimTimeMs,
+      nextEligiblePresentationMs:s.nextEligiblePresentationMs,
+      phase:s.phase,
+      stagedFace:s.stagedFace,
+      phraseActive:s.closed?.phraseActive===true,
+      cycle:s.closed?.cycle||null,
+      step:s.closed?.step??null,
+      faces:(s.faces||[]).map(f=>({
+        face:f.face,exists:f.exists,assembled:f.assembled,faceArmed:f.faceArmed,activeTurnClear:f.activeTurnClear,
+        rawQuality:f.rawQuality,viewAlignment:f.viewAlignment,projectedAreaQuality:f.projectedAreaQuality,brdfQuality:f.brdfQuality,
+        stageScoreMinPass:f.stageScoreMinPass,stageScoreMaxPass:f.stageScoreMaxPass,stageViewMinPass:f.stageViewMinPass,stageAreaMinPass:f.stageAreaMinPass,stageBrdfMinPass:f.stageBrdfMinPass,
+      })),
+    });
+    if(window.__R443_FORENSIC_TRACE.length>512)window.__R443_FORENSIC_TRACE.shift();
+  },200);
+});
 let firstReadableCaptured=false;
 let last=initial;
 while(Date.now()-wallStart<wallLimitMs){
@@ -40,7 +60,7 @@ while(Date.now()-wallStart<wallLimitMs){
   }
   if(last.presentationSimTimeMs>=targetPresentationMs&&last.eventLog?.length>=1)break;
 }
-await page.evaluate(()=>clearInterval(window.__R443_FORENSIC_TIMER));
+const trace=await page.evaluate(()=>{clearInterval(window.__R443_FORENSIC_TIMER);return window.__R443_FORENSIC_TRACE||[]});
 const end=await page.evaluate(()=>window.__R443_FORENSIC__.get());
 await context.close();await browser.close();
 const wallSec=(Date.now()-wallStart)/1000;
@@ -78,6 +98,7 @@ const result={
   finalState:{phase:end.phase,stagedFace:end.stagedFace,stagedMessageIndex:end.stagedMessageIndex,activeMaterialFace:end.activeMaterialFace,stateActiveMaterialFace:end.stateActiveMaterialFace,nextMessageIndex:end.nextMessageIndex,stageCount:end.stageCount,stageCancelCount:end.stageCancelCount,closed:end.closed},
   physicalFirstStage:physical,
   lifecycleLog:end.lifecycleLog,candidateLog:end.candidateLog,eventLog:end.eventLog,readableDurationsMs:end.readableDurationsMs,nextEligibleHistory:end.nextEligibleHistory,phaseHistory:end.phaseHistory,
+  trace,
   fatal,
 };
 fs.writeFileSync(out+'/forensic.json',JSON.stringify(result,null,2));
@@ -92,6 +113,7 @@ const summary=[
   `inheritedNextEligiblePresentationMs=${result.inheritedNextEligiblePresentationMs}`,
   `reachedInitialEligibility=${result.reachedInitialEligibility}`,
   `eligibleUpdateCalls=${result.eligibleUpdateCalls}`,
+  `traceSamples=${trace.length}`,
   `callPath=${JSON.stringify(callPath)}`,
   `counts=${JSON.stringify(result.counts)}`,
   `actualGateAggregate=${JSON.stringify(actualAgg)}`,

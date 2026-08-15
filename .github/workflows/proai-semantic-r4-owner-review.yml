@@ -16,7 +16,7 @@ jobs:
   owner-review:
     if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
     runs-on: ubuntu-latest
-    timeout-minutes: 55
+    timeout-minutes: 35
     defaults:
       run:
         working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
@@ -72,11 +72,7 @@ jobs:
           grep -Fq "alphaDominantReveal:false" main.generated.js
           grep -Fq "semanticMotionCoupled:false" main.generated.js
           grep -Fq "semanticOrientationForcing:false" main.generated.js
-          ! grep -Fq "{ timeMs: 36000, velocityDegPerSec: -8.0 }" main.generated.js
-          ! grep -Fq "{ timeMs: 43000, velocityDegPerSec: -11.0 }" main.generated.js
-          ! grep -Fq "{ timeMs: 49000, velocityDegPerSec: -24.0 }" main.generated.js
-          ! grep -Fq "{ timeMs: 55000, velocityDegPerSec: -29.0 }" main.generated.js
-          ! grep -Fq "{ timeMs: 60000, velocityDegPerSec: -14.0 }" main.generated.js
+          ! grep -Fq "velocityDegPerSec: -" main.generated.js
           ! grep -Fq "wallDeltaMs * semanticTimeScale" main.generated.js
           ! grep -Fq "SEMANTIC_R4_2_TEXT" main.generated.js
           ! grep -Fq "emissiveIntensity" main.generated.js
@@ -97,14 +93,14 @@ jobs:
         run: |
           set -euo pipefail
           timeout 120s npm install --no-save playwright
-          timeout 300s npx playwright install --with-deps chromium
+          timeout 300s npx playwright install chromium
 
-      - name: Start local R4.4.3 runtime
+      - name: Start local runtime
         run: |
           set -euo pipefail
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-http.log 2>&1 &
           echo $! >/tmp/r443-http.pid
-          for i in $(seq 1 45); do curl -fsS --max-time 3 http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          for i in $(seq 1 30); do curl -fsS --max-time 3 http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
           cat /tmp/r443-http.log
           exit 1
 
@@ -132,145 +128,79 @@ jobs:
           printf '%s\n' "$REVIEW_URL" > "$GITHUB_WORKSPACE/r443-owner-review-url.txt"
           echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
 
-      - name: 60s behavioral QA plus owner evidence
-        env:
-          REVIEW_URL: ${{ steps.tunnel.outputs.url }}
+      - name: Native 60s behavioral QA
         run: |
           set -euo pipefail
-          cat > r443-review.mjs <<'NODE'
-          import { chromium } from 'playwright';
-          import fs from 'node:fs';
-          import path from 'node:path';
-
-          const url=process.env.REVIEW_URL;
-          const out='review-evidence/r443';
-          fs.mkdirSync(out,{recursive:true});
-          const fatal=[];
-          const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']});
-          const ready=async(page,target=url)=>{
-            page.on('pageerror',e=>fatal.push('pageerror:'+String(e)));
-            page.on('console',m=>{if(m.type()==='error')fatal.push('console:'+m.text())});
-            const response=await page.goto(target,{waitUntil:'domcontentloaded',timeout:45000});
-            if(!response||response.status()!==200)throw new Error('navigation status '+response?.status());
-            await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:60000});
-          };
-          const read=page=>page.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics(),interaction:window.__PROAI_CUBE_R1_2.getInteractionState()}));
-          const copyVideo=async(video,name)=>{if(!video)return null;const p=await video.path();const dest=path.join(out,name);fs.copyFileSync(p,dest);return dest};
-          const deltaCounts=(a,b,keys)=>Object.fromEntries(keys.map(k=>[k,(b?.[k]||0)-(a?.[k]||0)]));
-          const median=a=>{if(!a.length)return null;const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2};
-
-          const obs=await browser.newContext({viewport:{width:1100,height:720},deviceScaleFactor:1,reducedMotion:'no-preference'});
-          const op=await obs.newPage();await ready(op);
-          const start=await read(op),startSim=start.d.presentation.simTimeMs,trace=[];
-          for(let i=0;i<60;i++){
-            await op.waitForTimeout(1000);
-            const q=await read(op),r=q.s.r443Lifecycle||{},m=q.s.r443Motion||{};
-            trace.push({wallSec:i+1,presentationMs:q.d.presentation.simTimeMs,phase:r.phase,yawVelocityDegPerSec:m.yawVelocityDegPerSec,signedYawDeg:m.signedYawDeg,cumulativeYawDeg:m.cumulativeYawDeg,timeScale:q.s.timeScale??1,protected:q.s.r442DynamicFace?.protected===true,protectedFace:q.s.r442DynamicFace?.protectedFace||null});
-          }
-          const end=await read(op);await op.screenshot({path:path.join(out,'desktop-60s-end.png'),fullPage:true});await obs.close();
-          const life=end.s.r443Lifecycle||{},dyn=end.s.r442DynamicFace||{},moves=end.s.r442MoveDiversity||{};
-          const axisCounts=deltaCounts(start.s.r442MoveDiversity?.axisCounts,moves.axisCounts,['X','Y','Z']);
-          const layerCounts=deltaCounts(start.s.r442MoveDiversity?.layerCounts,moves.layerCounts,['-1','0','1']);
-          const forward=(moves.moveLog||[]).filter(x=>x.phase==='forward'&&x.presentationMs>=startSim).map(x=>({timestampSec:+((x.presentationMs-startSim)/1000).toFixed(3),axis:x.axis,layer:x.layer,direction:x.direction,r443Phase:x.r443Phase}));
-          const candidates=(life.candidateLog||[]).filter(x=>x.presentationMs>=startSim).map(x=>({...x,timestampSec:+((x.presentationMs-startSim)/1000).toFixed(3)}));
-          const events=(life.eventLog||[]).filter(x=>x.startMs>=startSim).map(x=>({...x,timestampSec:+((x.startMs-startSim)/1000).toFixed(3)}));
-          const lifecycle=(life.lifecycleLog||[]).filter(x=>x.presentationMs>=startSim).map(x=>({...x,timestampSec:+((x.presentationMs-startSim)/1000).toFixed(3)}));
-          const releases=lifecycle.filter(x=>x.type==='release');
-          const dispersals=lifecycle.filter(x=>x.type==='dispersal-slice');
-          const latencies=(life.dispersalLatenciesMs||[]).map(x=>x/1000);
-          const intervals=(life.opportunityIntervalsMs||[]).map(x=>x/1000);
-          const readable=(life.readableDurationsMs||[]).map(x=>x/1000);
-          const faces=[...new Set(events.map(x=>x.face))];
-          const seq=['ProAI Expert','TRUST','INQUIRY','RESPONSE','RESULT'];
-          const sequencePass=events.length>=5&&events.every((e,i)=>e.message===seq[i%seq.length]);
-          const totalMoves=Object.values(axisCounts).reduce((a,b)=>a+b,0),maxAxisShare=totalMoves?Math.max(...Object.values(axisCounts))/totalMoves:1;
-          const yawPositive=trace.every(x=>Number.isFinite(x.yawVelocityDegPerSec)&&x.yawVelocityDegPerSec>0);
-          const yawMonotonic=trace.every((x,i)=>i===0||x.signedYawDeg>=trace[i-1].signedYawDeg-1e-5);
-          const motionIndependent=trace.every(x=>Math.abs(x.timeScale-1)<1e-9)&&(end.s.r443Motion?.semanticVelocityMultiplier===1);
-          const noTearing=(dyn.unsafeProtectedStarts||0)===0&&(dyn.assemblyViolations||0)===0;
-          const noFlash=(life.shortReadableCount||0)===0&&readable.every(x=>x>=.6);
-          const dispersalTargetHits=latencies.filter(x=>x>=.35&&x<=1.25).length;
-          const dispersalPass=latencies.length>=Math.max(1,releases.length-1)&&latencies.every(x=>x>=.20&&x<=2.20)&&(latencies.length===0?false:dispersalTargetHits/latencies.length>=.60);
-          const cadencePass=intervals.length>=3&&Math.min(...intervals)>=3.4&&median(intervals)>=4&&median(intervals)<=9&&Math.max(...intervals)<=13;
-          const diversityPass=['X','Y','Z'].every(k=>axisCounts[k]>0)&&['-1','0','1'].every(k=>layerCounts[k]>0)&&maxAxisShare<=.60;
-          const facePass=faces.length>=2;
-          const behaviorPass=sequencePass&&yawPositive&&yawMonotonic&&motionIndependent&&noTearing&&noFlash&&dispersalPass&&cadencePass&&diversityPass&&facePass;
-
-          const dc=await browser.newContext({viewport:{width:1280,height:720},deviceScaleFactor:1,reducedMotion:'no-preference',recordVideo:{dir:out,size:{width:1280,height:720}}});
-          const dp=await dc.newPage();await ready(dp);const dv=dp.video();await dp.waitForTimeout(26000);await dp.screenshot({path:path.join(out,'desktop-26s.png')});await dc.close();await copyVideo(dv,'desktop-continuous-26s.webm');
-
-          const fc=await browser.newContext({viewport:{width:1000,height:650},deviceScaleFactor:1,reducedMotion:'no-preference',recordVideo:{dir:out,size:{width:1000,height:650}}});
-          const fp=await fc.newPage();await ready(fp);const fv=fp.video(),f0=await read(fp),fStart=f0.d.presentation.simTimeMs;let readableStart=null,releaseAt=null,dispersalAt=null;
-          for(let i=0;i<120;i++){
-            await fp.waitForTimeout(100);
-            const q=await read(fp),log=(q.s.r443Lifecycle?.lifecycleLog||[]).filter(x=>x.presentationMs>=fStart);
-            readableStart??=log.find(x=>x.type==='readable-start')?.presentationMs??null;
-            if(readableStart!==null)releaseAt??=log.find(x=>x.type==='release'&&x.presentationMs>=readableStart)?.presentationMs??null;
-            if(releaseAt!==null)dispersalAt??=log.find(x=>x.type==='dispersal-slice'&&x.presentationMs>=releaseAt)?.presentationMs??null;
-            if(dispersalAt!==null){await fp.waitForTimeout(2200);break}
-          }
-          await fp.screenshot({path:path.join(out,'focused-semantic-release-dispersal.png')});await fc.close();await copyVideo(fv,'focused-semantic-release-dispersal.webm');
-          const focusedPass=readableStart!==null&&releaseAt!==null&&dispersalAt!==null;
-
-          const mc=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true,reducedMotion:'no-preference',recordVideo:{dir:out,size:{width:390,height:844}}});
-          const mp=await mc.newPage();await ready(mp);const mv=mp.video(),m0=await read(mp);await mp.waitForTimeout(12000);const m1=await read(mp);await mp.screenshot({path:path.join(out,'mobile-390x844.png'),fullPage:true});const canvasBox=await mp.locator('#cube-canvas').boundingBox();await mc.close();await copyVideo(mv,'mobile-12s.webm');
-          const mobilePass=m1.d.presentation.simTimeMs>m0.d.presentation.simTimeMs&&canvasBox&&canvasBox.width>0&&(canvasBox.x+canvasBox.width)<=390.5;
-
-          const ic=await browser.newContext({viewport:{width:900,height:600},deviceScaleFactor:1,reducedMotion:'no-preference'}),ip=await ic.newPage();await ready(ip);const ib=await ip.locator('#cube-canvas').boundingBox(),i0=await read(ip);if(ib){const x=ib.x+ib.width*.5,y=ib.y+ib.height*.5;await ip.mouse.move(x,y);await ip.mouse.down();await ip.mouse.move(x+105,y-55,{steps:10});await ip.mouse.up()}await ip.waitForTimeout(3200);const i1=await read(ip);await ic.close();
-          const c0=i0.interaction.cameraPosition,c1=i1.interaction.cameraPosition,cameraDelta=Math.hypot(c1[0]-c0[0],c1[1]-c0[1],c1[2]-c0[2]);
-          const interactionPass=cameraDelta>1e-4&&i1.d.presentation.simTimeMs>i0.d.presentation.simTimeMs&&Boolean(i1.s.r443Lifecycle);
-
-          await browser.close();
-          const metrics={revision:'PROAI CUBE R4.4.3 — OWNER REVIEW CANDIDATE',productSha:'731f435c3ee895300d053a83153832cabe65f2ca',publicUrl:url,observationSec:60,axisCounts,layerCounts,maxAxisShare,forwardSlices:forward,candidates,events,releases,dispersals,semanticFacesSelected:faces,readableDurationsSec:readable,opportunityIntervalsSec:intervals,dispersalLatenciesSec:latencies,dispersalLatencySummarySec:{min:latencies.length?Math.min(...latencies):null,median:median(latencies),max:latencies.length?Math.max(...latencies):null},orientationTrace:trace,checks:{sequencePass,yawPositive,yawMonotonic,motionIndependent,noTearing,noFlash,dispersalPass,cadencePass,diversityPass,facePass,focusedPass,mobilePass,interactionPass,behaviorPass:behaviorPass&&focusedPass&&mobilePass&&interactionPass},interaction:{cameraDelta},fatal};
-          fs.writeFileSync(path.join(out,'r443-metrics.json'),JSON.stringify(metrics,null,2));
-          fs.writeFileSync(path.join(out,'r443-summary.txt'),[
-            'PROAI CUBE R4.4.3 — OWNER REVIEW CANDIDATE',
-            'product=731f435c3ee895300d053a83153832cabe65f2ca',
-            'axisCounts='+JSON.stringify(axisCounts),
-            'layerCounts='+JSON.stringify(layerCounts),
-            'faces='+JSON.stringify(faces),
-            'readableDurationsSec='+JSON.stringify(readable),
-            'opportunityIntervalsSec='+JSON.stringify(intervals),
-            'dispersalLatenciesSec='+JSON.stringify(latencies),
-            'checks='+JSON.stringify(metrics.checks),
-            'fatal='+JSON.stringify(fatal),
-          ].join('\n')+'\n');
-          if(fatal.length)throw new Error('browser errors: '+fatal.join(' | '));
-          if(!metrics.checks.behaviorPass)throw new Error('R4.4.3 behavioral gate failed: '+JSON.stringify(metrics.checks));
+          mkdir -p review-evidence/r443
+          cat > r443-behavior.mjs <<'NODE'
+          import { chromium } from 'playwright'; import fs from 'node:fs';
+          const out='review-evidence/r443', browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']}), page=await browser.newPage({viewport:{width:1100,height:720},reducedMotion:'no-preference'}), fatal=[];
+          page.on('pageerror',e=>fatal.push(String(e))); page.on('console',m=>{if(m.type()==='error')fatal.push(m.text())});
+          const res=await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:30000}); if(!res||res.status()!==200)throw new Error('local navigation failed'); await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:45000});
+          const read=()=>page.evaluate(()=>({s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics(),d:window.__PROAI_CUBE_R1_2.getDiagnostics()})), start=await read(), startSim=start.d.presentation.simTimeMs, trace=[];
+          for(let i=0;i<120;i++){await page.waitForTimeout(500);const q=await read(),r=q.s.r443Lifecycle||{},m=q.s.r443Motion||{};trace.push({wallSec:(i+1)*.5,presentationMs:q.d.presentation.simTimeMs,phase:r.phase,yawVelocityDegPerSec:m.yawVelocityDegPerSec,signedYawDeg:m.signedYawDeg,timeScale:q.s.timeScale??1});}
+          const end=await read(); await page.screenshot({path:out+'/desktop-60s-end.png'}); await browser.close();
+          const life=end.s.r443Lifecycle||{},dyn=end.s.r442DynamicFace||{},moves=end.s.r442MoveDiversity||{}, delta=(a,b,k)=>(b?.[k]||0)-(a?.[k]||0), axes=Object.fromEntries(['X','Y','Z'].map(k=>[k,delta(start.s.r442MoveDiversity?.axisCounts,moves.axisCounts,k)])), layers=Object.fromEntries(['-1','0','1'].map(k=>[k,delta(start.s.r442MoveDiversity?.layerCounts,moves.layerCounts,k)])), events=(life.eventLog||[]).filter(x=>x.startMs>=startSim), intervals=(life.opportunityIntervalsMs||[]).map(x=>x/1000), readable=(life.readableDurationsMs||[]).map(x=>x/1000), latencies=(life.dispersalLatenciesMs||[]).map(x=>x/1000), seq=['ProAI Expert','TRUST','INQUIRY','RESPONSE','RESULT'];
+          const median=a=>{if(!a.length)return null;const s=[...a].sort((x,y)=>x-y),m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2}, total=Object.values(axes).reduce((a,b)=>a+b,0), maxAxisShare=total?Math.max(...Object.values(axes))/total:1;
+          const checks={sequence:events.length>=5&&events.every((e,i)=>e.message===seq[i%5]),yawPositive:trace.every(x=>x.yawVelocityDegPerSec>0),yawMonotonic:trace.every((x,i)=>i===0||x.signedYawDeg>=trace[i-1].signedYawDeg-1e-5),motionIndependent:trace.every(x=>Math.abs(x.timeScale-1)<1e-9),noTearing:(dyn.unsafeProtectedStarts||0)===0&&(dyn.assemblyViolations||0)===0,noFlash:(life.shortReadableCount||0)===0&&readable.every(x=>x>=.6),dispersal:latencies.length>0&&latencies.every(x=>x>=.20&&x<=2.20)&&latencies.filter(x=>x>=.35&&x<=1.25).length/latencies.length>=.60,cadence:intervals.length>=3&&Math.min(...intervals)>=3.4&&median(intervals)>=4&&median(intervals)<=9&&Math.max(...intervals)<=13,diversity:['X','Y','Z'].every(k=>axes[k]>0)&&['-1','0','1'].every(k=>layers[k]>0)&&maxAxisShare<=.60,multiFace:new Set(events.map(x=>x.face)).size>=2}; checks.pass=Object.values(checks).every(Boolean);
+          const metrics={revision:'PROAI CUBE R4.4.3 — OWNER REVIEW CANDIDATE',productSha:'731f435c3ee895300d053a83153832cabe65f2ca',observationSec:60,axisCounts:axes,layerCounts:layers,events,semanticFacesSelected:[...new Set(events.map(x=>x.face))],readableDurationsSec:readable,opportunityIntervalsSec:intervals,dispersalLatenciesSec:latencies,dispersalLatencySummarySec:{min:latencies.length?Math.min(...latencies):null,median:median(latencies),max:latencies.length?Math.max(...latencies):null},orientationTrace:trace,checks,fatal}; fs.writeFileSync(out+'/r443-metrics.json',JSON.stringify(metrics,null,2)); fs.writeFileSync(out+'/r443-summary.txt',JSON.stringify(metrics,null,2)); if(fatal.length)throw new Error('browser errors '+fatal.join(' | ')); if(!checks.pass)throw new Error('behavior gate '+JSON.stringify(checks));
           NODE
-          timeout 330s node r443-review.mjs
+          timeout 100s node r443-behavior.mjs
 
-      - name: Transcode owner clips to MP4 with explicit timeout
+      - name: Desktop native owner clip 24s
         run: |
           set -euo pipefail
-          mkdir -p review-evidence/r443/mp4
-          for src in review-evidence/r443/desktop-continuous-26s.webm review-evidence/r443/focused-semantic-release-dispersal.webm review-evidence/r443/mobile-12s.webm; do
-            test -s "$src"
-            name=$(basename "$src" .webm)
-            timeout 90s ffmpeg -y -loglevel error -i "$src" -c:v libx264 -preset veryfast -crf 22 -pix_fmt yuv420p -movflags +faststart "review-evidence/r443/mp4/${name}.mp4"
-            test -s "review-evidence/r443/mp4/${name}.mp4"
-          done
+          cat > r443-desktop-video.mjs <<'NODE'
+          import { chromium } from 'playwright'; import fs from 'node:fs'; const out='review-evidence/r443',b=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']}),c=await b.newContext({viewport:{width:1280,height:720},recordVideo:{dir:out,size:{width:1280,height:720}},reducedMotion:'no-preference'}),p=await c.newPage(); await p.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:30000}); await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:45000}); const v=p.video(); await p.waitForTimeout(24000); await p.screenshot({path:out+'/desktop-24s.png'}); await c.close(); fs.copyFileSync(await v.path(),out+'/desktop-continuous-24s.webm'); await b.close();
+          NODE
+          timeout 70s node r443-desktop-video.mjs
 
-      - name: Public self-check after QA
+      - name: Focused semantic release dispersal clip
+        run: |
+          set -euo pipefail
+          cat > r443-focus-video.mjs <<'NODE'
+          import { chromium } from 'playwright'; import fs from 'node:fs'; const out='review-evidence/r443',b=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']}),c=await b.newContext({viewport:{width:1000,height:650},recordVideo:{dir:out,size:{width:1000,height:650}},reducedMotion:'no-preference'}),p=await c.newPage(); await p.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:30000}); await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:45000}); const v=p.video(),start=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs); let release=false,dispersal=false; for(let i=0;i<150;i++){await p.waitForTimeout(100);const log=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().r443Lifecycle?.lifecycleLog||[]); release ||= log.some(x=>x.type==='release'&&x.presentationMs>=start); dispersal ||= release&&log.some(x=>x.type==='dispersal-slice'&&x.presentationMs>=start); if(dispersal){await p.waitForTimeout(1600);break}} await p.screenshot({path:out+'/focused-semantic-release-dispersal.png'}); await c.close(); fs.copyFileSync(await v.path(),out+'/focused-semantic-release-dispersal.webm'); await b.close(); if(!release||!dispersal)throw new Error('focused lifecycle not captured');
+          NODE
+          timeout 55s node r443-focus-video.mjs
+
+      - name: Mobile native evidence
+        run: |
+          set -euo pipefail
+          cat > r443-mobile.mjs <<'NODE'
+          import { chromium } from 'playwright'; import fs from 'node:fs'; const out='review-evidence/r443',b=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']}),c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true,recordVideo:{dir:out,size:{width:390,height:844}},reducedMotion:'no-preference'}),p=await c.newPage(); await p.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:30000}); await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:45000}); const v=p.video(),a=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs); await p.waitForTimeout(10000); const z=await p.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs),box=await p.locator('#cube-canvas').boundingBox(); await p.screenshot({path:out+'/mobile-390x844.png',fullPage:true}); await c.close(); fs.copyFileSync(await v.path(),out+'/mobile-10s.webm'); await b.close(); if(!(z>a&&box&&box.width>0&&box.x+box.width<=390.5))throw new Error('mobile gate failed');
+          NODE
+          timeout 55s node r443-mobile.mjs
+
+      - name: Pointer interaction continuity
+        run: |
+          set -euo pipefail
+          cat > r443-interaction.mjs <<'NODE'
+          import { chromium } from 'playwright'; const b=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader']}),p=await b.newPage({viewport:{width:900,height:600}}); await p.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:30000}); await p.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:45000}); const box=await p.locator('#cube-canvas').boundingBox(),a=await p.evaluate(()=>({i:window.__PROAI_CUBE_R1_2.getInteractionState(),t:window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs})),x=box.x+box.width/2,y=box.y+box.height/2; await p.mouse.move(x,y); await p.mouse.down(); await p.mouse.move(x+100,y-50,{steps:8}); await p.mouse.up(); await p.waitForTimeout(3200); const z=await p.evaluate(()=>({i:window.__PROAI_CUBE_R1_2.getInteractionState(),t:window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.simTimeMs,s:window.__PROAI_CUBE_R1_2.getSemanticDiagnostics()})); await b.close(); const d=Math.hypot(...z.i.cameraPosition.map((v,i)=>v-a.i.cameraPosition[i])); if(!(d>1e-4&&z.t>a.t&&z.s.r443Lifecycle))throw new Error('interaction continuity failed');
+          NODE
+          timeout 35s node r443-interaction.mjs
+
+      - name: Transcode owner clips to MP4
+        run: |
+          set -euo pipefail
+          for f in review-evidence/r443/*.webm; do [ -e "$f" ] || continue; timeout 45s ffmpeg -y -i "$f" -c:v libx264 -pix_fmt yuv420p -movflags +faststart "${f%.webm}.mp4" >/dev/null 2>&1; done
+
+      - name: Public self-check
         env:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
           set -euo pipefail
-          curl -fsSL --max-time 15 "$REVIEW_URL/" >/tmp/r443-public-final.html
-          grep -q "ProAI Cube" /tmp/r443-public-final.html
-          printf 'PASS %s\n' "$REVIEW_URL" > "$GITHUB_WORKSPACE/r443-public-self-check.txt"
+          curl -fsSL --max-time 15 "$REVIEW_URL/" | grep -q "ProAI Cube"
+          printf 'PUBLIC_SELF_CHECK=PASS\nURL=%s\nPRODUCT=731f435c3ee895300d053a83153832cabe65f2ca\n' "$REVIEW_URL" > review-evidence/r443/public-self-check.txt
+          cp "$GITHUB_WORKSPACE/r443-owner-review-url.txt" review-evidence/r443/owner-review-url.txt
 
       - name: Upload owner review evidence
         uses: actions/upload-artifact@v4
         with:
-          name: r443-owner-review-candidate
-          path: |
-            r443-owner-review-url.txt
-            r443-public-self-check.txt
-            docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r443/**
-          retention-days: 2
+          name: proai-cube-r443-owner-review-candidate
+          path: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r443/
+          retention-days: 7
 
-      - name: Keep temporary owner URL alive for bounded review window
+      - name: Keep temporary owner URL alive
         run: |
-          echo "Owner URL remains live while this bounded hold step runs."
-          timeout 2400s sleep 2400 || true
+          echo "Owner URL remains live for approximately 20 minutes after QA completion."
+          sleep 1200

@@ -1,0 +1,109 @@
+name: ProAI Cube R4.4.3 Closed Phrase Rescue Live Owner
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-closed-phrase-rescue-review]
+    paths: [.github/workflows/proai-r443-closed-phrase-rescue-live-owner.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  live-owner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 190
+    env:
+      PRODUCT_SHA: f33c27733ca9f4272ca724e3d6ee7a44fbfe37b8
+      PRODUCT_DIR: /tmp/proai-r443-rescue-live
+      PORT: '4173'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build exact structurally-passed product
+        run: |
+          set -euo pipefail
+          rm -rf "$PRODUCT_DIR"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          test "$(git -C "$PRODUCT_DIR" rev-parse HEAD)" = "$PRODUCT_SHA"
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          timeout 180s npm install --package-lock=false
+          timeout 30s npm run validate-closed-phrases >/tmp/r443-rescue-live-library.txt
+          timeout 180s npm run build-r443
+          node --check main.generated.js
+          npm ls three --depth=0 >/tmp/r443-rescue-three.txt
+          grep -Fq 'function semanticR443ChooseNormalPhrase(){' main.generated.js
+          ! grep -Fq "semanticR442RecordMove(inverse,'resolve')" main.generated.js
+          ! grep -Fq 'semanticR443PendingResolutionCount' main.generated.js
+      - name: Start local exact product and temporary HTTPS tunnel
+        working-directory: /tmp/proai-r443-rescue-live/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server "$PORT" --bind 127.0.0.1 --directory dist >/tmp/r443-rescue-live-http.log 2>&1 &
+          echo $! >/tmp/r443-rescue-http.pid
+          for i in $(seq 1 40); do curl -fsS --max-time 3 "http://127.0.0.1:$PORT/" >/dev/null && break; sleep 1; test "$i" -lt 40; done
+          curl -fsSL --max-time 90 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          REVIEW_URL=''
+          for attempt in 1 2; do
+            LOG="/tmp/r443-rescue-cloudflare-${attempt}.log"
+            nohup /tmp/cloudflared tunnel --no-autoupdate --url "http://127.0.0.1:$PORT" >"$LOG" 2>&1 &
+            PID=$!
+            echo "$PID" >/tmp/r443-rescue-tunnel.pid
+            for i in $(seq 1 50); do
+              URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
+              if [ -n "$URL" ] && curl -fsSL --max-time 10 "$URL/" >/tmp/r443-rescue-public.html 2>/dev/null; then
+                REVIEW_URL="$URL"
+                break 2
+              fi
+              sleep 1
+            done
+            kill "$PID" 2>/dev/null || true
+          done
+          test -n "$REVIEW_URL"
+          echo "$REVIEW_URL" >/tmp/r443-rescue-live-url.txt
+          echo "REVIEW_URL=$REVIEW_URL" >> "$GITHUB_ENV"
+      - name: Public static validation
+        working-directory: /tmp/proai-r443-rescue-live/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          HTTP_CODE=$(curl -sS -L -o /tmp/r443-rescue-index.html -w '%{http_code}' --max-time 20 "$REVIEW_URL/")
+          test "$HTTP_CODE" = '200'
+          test -s /tmp/r443-rescue-index.html
+          CSS=$(sed -n 's/.*href="\([^"]*\.css\)".*/\1/p' /tmp/r443-rescue-index.html | head -1)
+          JS=$(sed -n 's/.*src="\([^"]*\.js\)".*/\1/p' /tmp/r443-rescue-index.html | head -1)
+          test -n "$CSS"
+          test -n "$JS"
+          curl -fsSL --max-time 20 "$REVIEW_URL$CSS" -o /tmp/r443-rescue-app.css
+          curl -fsSL --max-time 20 "$REVIEW_URL$JS" -o /tmp/r443-rescue-app.js
+          test -s /tmp/r443-rescue-app.css
+          test -s /tmp/r443-rescue-app.js
+          GLB=$(grep -Eo 'rubik_39_s_cube_animation-[A-Za-z0-9_-]+\.glb' /tmp/r443-rescue-app.js | head -1)
+          test -n "$GLB"
+          curl -fsSL --max-time 20 "$REVIEW_URL/assets/$GLB" -o /tmp/r443-rescue-cube.glb
+          test "$(wc -c </tmp/r443-rescue-cube.glb | tr -d ' ')" -eq 279412
+          printf '%s\n' \
+            "PRODUCT_SHA=$PRODUCT_SHA" \
+            "LIVE_OWNER_URL=$REVIEW_URL" \
+            'EXPECTED_LIFETIME=approximately 3 hours' \
+            'HTTP=PASS' \
+            'HTML=PASS' \
+            'CSS=PASS' \
+            'JS=PASS' \
+            'Three.js=PASS' \
+            'GLB=PASS' \
+            'VIDEO=NONE' > live-owner-url.txt
+          cat live-owner-url.txt
+      - name: Upload live Owner URL
+        uses: actions/upload-artifact@v4
+        with:
+          name: r443-closed-phrase-rescue-live-owner
+          path: /tmp/proai-r443-rescue-live/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/live-owner-url.txt
+          retention-days: 1
+      - name: Keep temporary review URL alive
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 180); do
+            curl -fsSL --max-time 10 "$REVIEW_URL/" >/dev/null
+            sleep 60
+          done

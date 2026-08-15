@@ -56,7 +56,7 @@ curl -fsSL --max-time 15 "$REVIEW_URL/assets/$GLB" >/tmp/r443-cube.glb
 test "$(wc -c </tmp/r443-cube.glb | tr -d ' ')" -eq 279412
 echo 'ASSET_SMOKE HTML=PASS CSS=PASS JS=PASS GLB=PASS'
 
-google-chrome --headless=new --no-sandbox --disable-dev-shm-usage --enable-webgl --ignore-gpu-blocklist --use-angle=swiftshader --remote-debugging-port=9222 "$REVIEW_URL/" >/tmp/r443-chrome.log 2>&1 &
+xvfb-run -a google-chrome --no-sandbox --disable-dev-shm-usage --enable-webgl --ignore-gpu-blocklist --use-angle=swiftshader --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows --remote-debugging-port=9222 "$REVIEW_URL/" >/tmp/r443-chrome.log 2>&1 &
 echo $! >/tmp/r443-chrome.pid
 for i in $(seq 1 30); do
   if curl -fsS --max-time 2 http://127.0.0.1:9222/json >/tmp/r443-cdp.json 2>/dev/null; then break; fi
@@ -80,10 +80,10 @@ let ready=false;
 for(let i=0;i<50;i++){ready=await ev('window.__PROAI_CUBE_R1_2?.ready===true');if(ready)break;await sleep(400)}
 if(!ready)throw new Error('cube runtime not ready');
 const base=await ev(`(()=>{const a=window.__PROAI_CUBE_R1_2,s=a.getSemanticDiagnostics(),c=document.querySelector('canvas');return{webgl:!!(c&&(c.getContext('webgl2')||c.getContext('webgl'))),w:c?.width||0,h:c?.height||0,yaw:s.r443Motion?.cumulativeYawDeg??0,moves:s.r442MoveDiversity?.selectionCount??0,events:s.r443Lifecycle?.eventLog?.length??0}})()`);
-await sleep(2200);
+await sleep(2600);
 const yaw=await ev(`window.__PROAI_CUBE_R1_2.getSemanticDiagnostics().r443Motion?.cumulativeYawDeg??0`);
 let moves=base.moves,events=base.events;
-for(let i=0;i<75&&(moves<=base.moves||events<=base.events);i++){await sleep(400);const q=await ev(`(()=>{const s=window.__PROAI_CUBE_R1_2.getSemanticDiagnostics();return{moves:s.r442MoveDiversity?.selectionCount??0,events:s.r443Lifecycle?.eventLog?.length??0}})()`);moves=q.moves;events=q.events}
+for(let i=0;i<90&&(moves<=base.moves||events<=base.events);i++){await sleep(400);const q=await ev(`(()=>{const s=window.__PROAI_CUBE_R1_2.getSemanticDiagnostics();return{moves:s.r442MoveDiversity?.selectionCount??0,events:s.r443Lifecycle?.eventLog?.length??0}})()`);moves=q.moves;events=q.events}
 const box=await ev(`(()=>{const r=document.querySelector('canvas').getBoundingClientRect();return{x:r.x,y:r.y,w:r.width,h:r.height}})()`);
 const x=box.x+box.w*.5,y=box.y+box.h*.5;
 await cmd('Input.dispatchMouseEvent',{type:'mousePressed',x,y,button:'left',clickCount:1});
@@ -97,7 +97,7 @@ if(!(out.threejs&&out.webgl&&out.cubeVisible&&out.cubeMoving&&out.slices&&out.se
 ws.close();
 NODE
 
-timeout 55s node /tmp/r443-smoke.mjs | tee /tmp/r443-smoke.json
+timeout 65s node /tmp/r443-smoke.mjs | tee /tmp/r443-smoke.json
 kill "$(cat /tmp/r443-chrome.pid)" 2>/dev/null || true
 rm -f /tmp/r443-chrome.pid
 

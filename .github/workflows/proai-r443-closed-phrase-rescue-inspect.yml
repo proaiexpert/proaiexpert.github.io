@@ -1,0 +1,76 @@
+name: ProAI Cube R4.4.3 Closed Phrase Rescue Inspect
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-closed-phrase-rescue-review]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-pretransform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PRODUCT_SHA: f616a6b620228c10322bb695b39c6cb3fb07be4a
+      MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+      OLD_SHA: fce017a1a4c83fa4dfeb1d9bd97021f6f92a23ad
+      PRODUCT_DIR: /tmp/proai-r443-rescue-product
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Materialize exact starting product and freeze refs
+        run: |
+          set -euo pipefail
+          git fetch origin main agent/proai-cube-semantic-brand-face-r4 --depth=1
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          test "$(git rev-parse origin/agent/proai-cube-semantic-brand-face-r4)" = "$OLD_SHA"
+          rm -rf "$PRODUCT_DIR"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          test "$(git -C "$PRODUCT_DIR" rev-parse HEAD)" = "$PRODUCT_SHA"
+
+      - name: Generate exact pre-closed-phrase stage
+        working-directory: /tmp/proai-r443-rescue-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          timeout 180s npm install --package-lock=false
+          node prepare-r4.mjs
+          node clock-r4.mjs
+          node material-polish-r4.mjs
+          node material-polish-r442-runtime.mjs
+          node material-polish-r443-runtime.mjs
+          node material-polish-r443-sequence-hotfix.mjs
+          node --check main.generated.js
+
+      - name: Inspect actual diagnostics structure and stable boundaries
+        working-directory: /tmp/proai-r443-rescue-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const s=fs.readFileSync('main.generated.js','utf8');
+          const terms=['getSemanticDiagnostics','r443Motion','r443Lifecycle','r442Cadence','getDiagnostics','__PROAI_CUBE_R1_2','semanticR443State','return {','return{'];
+          console.log('PRETRANSFORM_BYTES='+s.length);
+          for(const term of terms){
+            const hits=[]; let p=-1;
+            while((p=s.indexOf(term,p+1))>=0)hits.push(p);
+            console.log(`TERM ${term} COUNT=${hits.length} POS=${hits.join(',')||'NONE'}`);
+            for(const [i,pos] of hits.slice(0,4).entries()){
+              const a=Math.max(0,pos-500),b=Math.min(s.length,pos+1300);
+              console.log(`SNIP ${term} #${i+1} START`);
+              console.log(s.slice(a,b));
+              console.log(`SNIP ${term} #${i+1} END`);
+            }
+          }
+          const api=s.indexOf('window.__PROAI_CUBE_R1_2');
+          if(api>=0){
+            console.log('API_REGION_START');
+            console.log(s.slice(Math.max(0,api-300),Math.min(s.length,api+9000)));
+            console.log('API_REGION_END');
+          }
+          const getSem=s.indexOf('getSemanticDiagnostics');
+          if(getSem<0)throw new Error('actual generated source has no getSemanticDiagnostics token');
+          console.log('INSPECT_PASS');
+          NODE

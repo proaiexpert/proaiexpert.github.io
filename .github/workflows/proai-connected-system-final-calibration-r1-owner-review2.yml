@@ -1,0 +1,145 @@
+name: ProAI Connected System Final Calibration Owner Review 2
+on:
+  push:
+    branches: [agent/proai-connected-system-final-calibration-r1-review2]
+    paths: [.github/workflows/proai-connected-system-final-calibration-r1-owner-review2.yml]
+permissions:
+  contents: read
+jobs:
+  owner-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 190
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify final locks and product scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT=d5f2e2fd85218b2a98e774b0b19df1536240d4fb
+          BASE=4e8b12e040f1024e8ece5185a8ea02e6bd8d0981
+          PREVIOUS_HEAD=1017b4d1655bc545882055ed4bcd4227cea20786
+          ASSEMBLY=291663b21437b154d8c2f62f72cc05ab62728c07
+          MAIN=c945084e1952c05c686494091f7dbca0f7acdf08
+          test "$(git rev-parse ${PRODUCT}^)" = "$BASE"
+          test "$(git diff --name-only "$BASE" "$PRODUCT" | wc -l)" -eq 1
+          test "$(git diff --name-only "$BASE" "$PRODUCT")" = 'assets/css/homepage-connected-system-r13.css'
+          test "$(git ls-remote origin refs/heads/agent/proai-connected-system-final-calibration-r1 | cut -f1)" = "$PRODUCT"
+          test "$(git ls-remote origin refs/heads/agent/proai-connected-system-premium-polish-r1 | cut -f1)" = "$PREVIOUS_HEAD"
+          test "$(git ls-remote origin refs/heads/agent/proai-home-assembly-r1 | cut -f1)" = "$ASSEMBLY"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN"
+          if git diff --name-only "$PRODUCT" HEAD | grep -Ev '^\.github/workflows/proai-connected-system-final-calibration-r1-owner-review2\.yml$' | grep -q .; then exit 1; fi
+          git diff --quiet "$BASE" "$PRODUCT" -- assets/js/homepage-connected-system-r13.js
+          git diff --quiet "$BASE" "$PRODUCT" -- _includes/homepage-connected-system-en.html
+          git diff --quiet "$BASE" "$PRODUCT" -- _includes/homepage-connected-system-ru.html
+          git diff --quiet "$BASE" "$PRODUCT" -- assets/js/header-system-v1.js
+          git diff --quiet "$BASE" "$PRODUCT" -- assets/css/header-footer-logo-r1.css
+          git diff --quiet "$BASE" "$PRODUCT" -- assets/css/homepage-hero-signature-r3.css
+          test "$(git rev-parse "$BASE:assets/js/homepage-connected-system-r13.js")" = "$(git rev-parse "$PRODUCT:assets/js/homepage-connected-system-r13.js")"
+          grep -q 'min-block-size:6.04em' assets/css/homepage-connected-system-r13.css
+          grep -q 'min-block-size:5.76em' assets/css/homepage-connected-system-r13.css
+          grep -q '@media (min-width:761px) and (max-width:1100px)' assets/css/homepage-connected-system-r13.css
+          grep -q 'min-block-size:7.2em' assets/css/homepage-connected-system-r13.css
+          grep -q 'min-height:0;min-block-size:0' assets/css/homepage-connected-system-r13.css
+          grep -q 'const firstActive=760;' assets/js/homepage-connected-system-r13.js
+          grep -q 'const stageOffset=1900;' assets/js/homepage-connected-system-r13.js
+          grep -q 'const transferDuration=620;' assets/js/homepage-connected-system-r13.js
+          ! grep -q "addEventListener('wheel'" assets/js/homepage-connected-system-r13.js
+          ! grep -q 'mousewheel' assets/js/homepage-connected-system-r13.js
+          node --check assets/js/homepage-connected-system-r13.js
+
+      - name: Build assembled site
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          test "$(grep -o 'data-connected-system' _site/index.html | wc -l)" -eq 1
+          test "$(grep -o 'data-connected-system' _site/ru/index.html | wc -l)" -eq 1
+          grep -q 'proai-hero-cube-mount' _site/index.html
+          grep -q 'proai-hero-cube-mount' _site/ru/index.html
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/cs-final2-http.log 2>&1 &
+
+      - name: Final bounded layout and behavior QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          OUT=/tmp/cs-final2-review
+          WORK=/tmp/cs-final2-browser
+          mkdir -p "$OUT" "$WORK"
+          cd "$WORK"
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core@24 --silent
+          cat > qa.cjs <<'NODE'
+          const fs=require('fs');
+          const puppeteer=require('puppeteer-core');
+          const base='http://127.0.0.1:8080';
+          const out='/tmp/cs-final2-review';
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          const results={desktop:{ru:{},en:{}},mobile:{},wheel:null,reducedMotion:null,accessibility:null,failures:[]};
+          let browser;
+          async function pageAt(path,w,h,{reduced=true}={}){
+            const p=await browser.newPage();await p.setViewport({width:w,height:h,deviceScaleFactor:1});
+            if(reduced)await p.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
+            await p.setRequestInterception(true);p.on('request',req=>{const u=req.url();if(u.includes('/assets/models/')||u.includes('/assets/vendor/three-r180/')||u.includes('/assets/js/proai-hero-cube-r1/')||u.includes('/assets/brand/proai-logo-r341/live.html'))req.abort();else req.continue();});
+            await p.goto(base+path,{waitUntil:'domcontentloaded',timeout:12000});await p.waitForSelector('[data-connected-system]',{timeout:5000});await p.evaluate(async()=>{if(document.fonts?.ready)await document.fonts.ready;});await sleep(80);return p;
+          }
+          async function desktopCase(lang,path,w,h){
+            const label=`${w}x${h}`,p=await pageAt(path,w,h,{reduced:true});
+            const r=await p.evaluate(()=>{
+              const rect=e=>{const x=e.getBoundingClientRect();return{left:x.left,right:x.right,top:x.top,bottom:x.bottom,width:x.width,height:x.height}};
+              const textLines=e=>{const q=document.createRange();q.selectNodeContents(e);return[...q.getClientRects()].filter(x=>x.width>.5&&x.height>.5).length};
+              const stages=[...document.querySelectorAll('[data-system-stage]')].map((s,i)=>{const h=s.querySelector('.cs-stage-name'),c=s.querySelector('.cs-stage-copy'),m=s.querySelector('.cs-components'),sr=rect(s),hr=rect(h),cr=rect(c),mr=rect(m);return{i,stage:sr,headingTop:hr.top,copyTop:cr.top,copyHeight:cr.height,copyLines:textLines(c),componentsTop:mr.top,componentsHeight:mr.height,componentsBottom:mr.bottom,componentsLines:textLines(m),copyMinBlock:getComputedStyle(c).minBlockSize,copyOverflow:getComputedStyle(c).overflowY,headingRight:hr.right};});
+              const spread=k=>Math.max(...stages.map(x=>x[k]))-Math.min(...stages.map(x=>x[k]));
+              return{stages,headingTopSpread:spread('headingTop'),copyTopSpread:spread('copyTop'),componentsTopSpread:spread('componentsTop'),componentsBottomSpread:spread('componentsBottom'),overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,noClip:stages.every(x=>x.copyOverflow!=='hidden'&&x.copyOverflow!=='clip'),inBounds:stages.every(x=>x.stage.left>=-4&&x.stage.right<=innerWidth+4&&x.headingRight<=x.stage.right+4)};
+            });
+            r.pass=r.headingTopSpread<=2&&r.copyTopSpread<=2&&r.componentsTopSpread<=2&&r.overflow<=1&&r.noClip&&r.inBounds;results.desktop[lang][label]=r;if(!r.pass)results.failures.push(`desktop-${lang}-${label}`);
+            if((w===1440&&h===900)||(w===1100&&h===800)||(w===1024&&h===768)){await p.$eval('[data-connected-system]',e=>e.scrollIntoView({block:'center'}));await sleep(80);await p.screenshot({path:`${out}/${lang}-${label}.png`,fullPage:false});}
+            await p.close();
+          }
+          async function mobileCase(w,h,label,seq){
+            const p=await pageAt('/',w,h,{reduced:false});
+            const natural=await p.evaluate(()=>[...document.querySelectorAll('.cs-stage-copy')].map(e=>({minBlock:getComputedStyle(e).minBlockSize,minHeight:getComputedStyle(e).minHeight,height:e.getBoundingClientRect().height})));
+            const active=[];for(const i of seq){await p.evaluate(i=>{const s=document.querySelectorAll('[data-system-stage]')[i],r=s.getBoundingClientRect();scrollTo(0,scrollY+r.top+r.height/2-innerHeight*.565);},i);await sleep(720);active.push(await p.evaluate(()=>[...document.querySelectorAll('[data-system-stage]')].findIndex(s=>s.classList.contains('is-active'))));}
+            const overflow=await p.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);const pass=natural.every(x=>parseFloat(x.minBlock)===0&&parseFloat(x.minHeight)===0)&&active.join(',')===seq.join(',')&&overflow<=1;results.mobile[label]={natural,seq,active,overflow,pass};if(!pass)results.failures.push(`mobile-${label}`);await p.close();
+          }
+          async function wheel(){const p=await pageAt('/',1366,768,{reduced:false});await p.$eval('[data-connected-system]',e=>e.scrollIntoView({block:'center'}));await sleep(200);const y0=await p.evaluate(()=>scrollY);await p.mouse.wheel({deltaY:420});await sleep(250);const y1=await p.evaluate(()=>scrollY);const pass=y1-y0>120;results.wheel={scrollDelta:y1-y0,pass};if(!pass)results.failures.push('wheel');await p.close();}
+          async function reduced(){const p=await pageAt('/',1366,768,{reduced:true});await p.$eval('[data-connected-system]',e=>e.scrollIntoView({block:'center'}));await sleep(500);const r=await p.evaluate(()=>({balanced:[...document.querySelectorAll('[data-system-stage]')].every(s=>s.classList.contains('is-balanced')),active:[...document.querySelectorAll('[data-system-stage]')].some(s=>s.classList.contains('is-active')),animations:[...document.querySelectorAll('.cs-spine-catch,.cs-light-carriage,.cs-ambient-catch')].reduce((n,e)=>n+e.getAnimations().length,0)}));r.pass=r.balanced&&!r.active&&r.animations===0;results.reducedMotion=r;if(!r.pass)results.failures.push('reduced');await p.close();}
+          async function a11y(){const p=await pageAt('/',1366,768,{reduced:true});const r=await p.evaluate(()=>({focusable:[...document.querySelectorAll('[data-system-stage]')].every(e=>e.tabIndex===0),specular:[...document.querySelectorAll('.cs-type-specular')].length,specularHidden:[...document.querySelectorAll('.cs-type-specular')].every(e=>e.getAttribute('aria-hidden')==='true')}));r.pass=r.focusable&&r.specular===4&&r.specularHidden;results.accessibility=r;if(!r.pass)results.failures.push('accessibility');await p.close();}
+          (async()=>{browser=await puppeteer.launch({headless:true,executablePath:process.env.CHROME_BIN,args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-timer-throttling','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding']});const widths=[[1440,900],[1366,768],[1280,800],[1150,800],[1100,800],[1024,768]];for(const [w,h] of widths)await desktopCase('ru','/ru/',w,h);for(const [w,h] of widths)await desktopCase('en','/',w,h);await mobileCase(430,932,'430x932',[0,1,2,3]);await mobileCase(390,844,'390x844',[0,3,1]);await mobileCase(932,430,'932x430',[0,3,1]);await wheel();await reduced();await a11y();fs.writeFileSync(`${out}/QA_RESULTS.json`,JSON.stringify(results,null,2));console.log('QA_RESULTS',JSON.stringify(results));if(results.failures.length)throw new Error('QA failures '+results.failures.join(','));console.log('CS_FINAL_CALIBRATION_QA_PASS');await browser.close();})().catch(async e=>{console.error(e);if(browser)await browser.close();process.exit(1)});
+          NODE
+          CHROME_BIN="$CHROME_BIN" timeout 150s node qa.cjs
+
+      - name: Publish live owner preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/cs-final2-review
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >/tmp/cloudflared.log 2>&1 &
+          URL=''; for i in $(seq 1 30); do URL="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/cloudflared.log | head -1 || true)"; [ -n "$URL" ] && break; sleep 1; done
+          test -n "$URL"
+          curl -fsS "$URL/" | grep -q 'data-connected-system'
+          curl -fsS "$URL/ru/" | grep -q 'data-connected-system'
+          printf 'EN=%s/\nRU=%s/ru/\n' "$URL" "$URL" | tee "$OUT/LIVE_ENDPOINTS.txt"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proai-connected-system-final-calibration-r1-owner-review2
+          path: /tmp/cs-final2-review
+          retention-days: 3
+
+      - name: Keep owner preview alive
+        if: success()
+        shell: bash
+        run: sleep 10800

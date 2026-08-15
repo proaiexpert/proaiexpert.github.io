@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      PRODUCT_SHA: f33c27733ca9f4272ca724e3d6ee7a44fbfe37b8
+      PRODUCT_SHA: ff1f6063f19a7076fb0f71b902bff615e7318600
       PRODUCT_BRANCH: agent/proai-cube-r443-closed-phrase-architecture
       OLD_BRANCH: agent/proai-cube-semantic-brand-face-r4
       OLD_SHA: fce017a1a4c83fa4dfeb1d9bd97021f6f92a23ad
@@ -54,6 +54,7 @@ jobs:
           grep -Fq "SEMANTIC_R442_ELIGIBLE_FACES=Object.freeze(['+Z','+X','-X'])" main.generated.js
           grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
           grep -Fq "yawDirectionPolicy:'continuous-positive'" main.generated.js
+          grep -Fq "semanticR443Unstage('impending-intersecting-turn')" main.generated.js
 
       - name: Install browser probe without FFmpeg or video tooling
         working-directory: /tmp/proai-r443-semantic-forensic/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4

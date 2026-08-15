@@ -1,0 +1,62 @@
+name: ProAI Cube R4.4.3 Closed Phrase Rescue Runtime QA
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-closed-phrase-rescue-review]
+    paths: [.github/workflows/proai-r443-closed-phrase-rescue-runtime-qa.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PRODUCT_SHA: f33c27733ca9f4272ca724e3d6ee7a44fbfe37b8
+      PRODUCT_DIR: /tmp/proai-r443-rescue-runtime
+      SAMPLE_MS: '60000'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build exact product
+        run: |
+          set -euo pipefail
+          rm -rf "$PRODUCT_DIR"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          timeout 180s npm install --package-lock=false
+          timeout 30s npm run validate-closed-phrases >/tmp/r443-rescue-library.txt
+          timeout 180s npm run build-r443
+          node --check main.generated.js
+          grep -Fq 'function semanticR443ChooseNormalPhrase(){' main.generated.js
+          ! grep -Fq "semanticR442RecordMove(inverse,'resolve')" main.generated.js
+          ! grep -Fq 'semanticR443PendingResolutionCount' main.generated.js
+      - name: Install bounded browser runtime
+        working-directory: /tmp/proai-r443-rescue-runtime/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          timeout 120s npm install --no-save playwright
+          timeout 300s npx playwright install --with-deps chromium
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-closed-phrase-rescue-runtime-qa.mjs" ./r443-rescue-runtime-qa.mjs
+      - name: Start exact built product
+        working-directory: /tmp/proai-r443-rescue-runtime/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-rescue-http.log 2>&1 &
+          for i in $(seq 1 45); do curl -fsS --max-time 3 http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/r443-rescue-http.log
+          exit 1
+      - name: Run real 60s browser sample and interaction sanity
+        working-directory: /tmp/proai-r443-rescue-runtime/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          timeout 150s node r443-rescue-runtime-qa.mjs
+      - name: Upload bounded runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r443-closed-phrase-rescue-runtime
+          path: /tmp/proai-r443-rescue-runtime/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/r443-closed-phrase-rescue/**
+          retention-days: 2

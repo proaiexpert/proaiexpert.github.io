@@ -146,7 +146,7 @@ jobs:
           async function desktopCheck(browser, url) {
             const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
             if (url.includes('raw.githack.com')) {
-              await context.addCookies([{ name: '__Http-phish', value: '1', domain: 'raw.githack.com', path: '/' }]);
+              await context.addCookies([{ name: '__Http-phish', value: '1', url: 'https://raw.githack.com/', secure: true, httpOnly: true }]);
             }
             const page = await context.newPage();
             await gotoReview(page, url);
@@ -173,7 +173,7 @@ jobs:
           async function mobileCheck(browser, url, lang='en') {
             const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
             if (url.includes('raw.githack.com')) {
-              await context.addCookies([{ name: '__Http-phish', value: '1', domain: 'raw.githack.com', path: '/' }]);
+              await context.addCookies([{ name: '__Http-phish', value: '1', url: 'https://raw.githack.com/', secure: true, httpOnly: true }]);
             }
             const page = await context.newPage();
             await gotoReview(page, url);

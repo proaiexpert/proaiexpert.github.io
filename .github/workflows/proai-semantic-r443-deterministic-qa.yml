@@ -28,11 +28,11 @@ jobs:
       - name: Verify exact product and main freeze
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor f3d7ea1d747240c92790f1b70dc26d237bca99dd HEAD
+          git merge-base --is-ancestor 1d94e066d327b68bc9f9d908537ff8403439c29a HEAD
           test "$(git hash-object material-polish-r443-runtime.mjs)" = "56ba821cdacfd4558740eea7abd5be3d6bcad13f"
           test "$(git hash-object material-polish-r443-sequence-hotfix.mjs)" = "6cd3f0ce59f45aa1bbebd74c7989d2cb89855c97"
           test "$(git hash-object material-polish-r443-scheduler-hotfix.mjs)" = "713b911284cb065df341665a71e2ea906f6de1ee"
-          test "$(git hash-object material-polish-r443-choreography-hotfix.mjs)" = "629ca1fdfd566354fa409473b231a8102b6e08d0"
+          test "$(git hash-object material-polish-r443-choreography-hotfix.mjs)" = "757428f5fb852403546ee44c809e158bb3dfcaed"
           test "$(git hash-object material-polish-r443-candidate-dispersal-hotfix.mjs)" = "4dd2486ae48c5765e3f0bdf008bad2d207c71fe0"
           test "$(git hash-object package.json)" = "cb5c03020fc87115550ce070fa7260fd4872caf7"
           git fetch origin main --depth=1
@@ -44,6 +44,7 @@ jobs:
           timeout 180s npm run build-r443
           node --check main.generated.js
           grep -Fq "PROAI_CUBE_R4.4.3" main.generated.js
+          grep -Fq "enterScore:.64" main.generated.js
           grep -Fq "function semanticR443FaceClearOfActiveTurns(face)" main.generated.js
           grep -Fq "semanticR443PendingResolutionCount===0" main.generated.js
           grep -Fq "activeTurns.values()" main.generated.js
@@ -99,7 +100,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -d review-evidence/r443-deterministic ]; then
-            find review-evidence/r443-deterministic -type f \( -name '*.json' -o -name '*.txt' \) -print0 | xargs -0 -r sed -i 's/b5fdd9b53389c734ea85051fbd9fa16cd547e11b/f3d7ea1d747240c92790f1b70dc26d237bca99dd/g'
+            find review-evidence/r443-deterministic -type f \( -name '*.json' -o -name '*.txt' \) -print0 | xargs -0 -r sed -i 's/b5fdd9b53389c734ea85051fbd9fa16cd547e11b/1d94e066d327b68bc9f9d908537ff8403439c29a/g'
           fi
       - name: Upload deterministic metrics
         if: always()

@@ -1,0 +1,97 @@
+name: ProAI Header R1.1.1 Owner Ready
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-r111-owner-ready.yml]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 230
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Build review package
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+          grep -q 'proai-header-r111-static-cube-320.png' _includes/header-system/header.html
+          grep -q 'startup=controlled' _includes/header-system/header.html
+          grep -q 'yawSpeed:8.5' assets/brand/proai-logo-r341/live-runtime.js
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          mkdir -p /tmp/r111npm && cd /tmp/r111npm && npm init -y >/dev/null 2>&1 && npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 pngjs@7.0.0 >/dev/null
+          cd "$GITHUB_WORKSPACE" && jekyll build --source . --destination _site >/dev/null
+          mkdir -p _site/review-r111 /tmp/r111ready
+          cat >_site/review-r111/recorder.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><style>@font-face{font-family:i;src:url('/assets/fonts/proai-logo-r341/instrument-sans-latin-wght-normal.woff2')}html,body{margin:0;background:#050607}#f{position:absolute;left:-100px;width:40px;height:40px;border:0}#img{display:none}canvas{display:block}</style></head><body><iframe id="f" src="about:blank"></iframe><img id="img" src="/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png"><canvas id="o" width="600" height="180"></canvas><script>
+          const f=document.getElementById('f'),img=document.getElementById('img'),o=document.getElementById('o'),c=o.getContext('2d'),sleep=m=>new Promise(r=>setTimeout(r,m));let lc=null,swap=null,lang='EN',resolveReady;const live='/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled';
+          function draw(t){c.fillStyle='#050607';c.fillRect(0,0,600,180);let m=swap==null?0:Math.max(0,Math.min(1,(t-swap)/180));c.globalAlpha=1-m;c.drawImage(img,48,24,40,40);if(lc){try{f.contentWindow.__PROAI_CUBE_R1_2?.renderReviewFrame?.();c.globalAlpha=m;c.drawImage(lc,48,24,40,40)}catch{}}c.globalAlpha=1;c.font='680 20px i,Arial';c.textBaseline='middle';c.fillStyle='#f1efea';c.fillText('ProAI',97,44);let w=c.measureText('ProAI').width;c.fillStyle='#cdd1d0';c.fillText('Expert',102+w,44);c.fillStyle='#d4d7d6';c.font='700 14px Arial';c.fillText(lang,520,44);c.fillStyle='#747c81';c.font='11px Arial';c.fillText(lang==='EN'?'STATIC → SAME WEBGL HOME → LIVING MOTION':'EN → RU · NEW HEADER STARTUP · SAME 40PX CUBE',48,112);requestAnimationFrame(draw)}requestAnimationFrame(draw);
+          addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==f.contentWindow||e.data?.type!=='proai-logo-r341'||e.data?.state!=='ready')return;lc=f.contentDocument.getElementById('cube-canvas');f.contentWindow.__PROAI_CUBE_R1_2?.renderReviewFrame?.();swap=performance.now();requestAnimationFrame(()=>f.contentWindow.postMessage({type:'proai-logo-r341-control',action:'start-motion'},location.origin));resolveReady?.();resolveReady=null});
+          async function load(){lc=null;swap=null;f.src='about:blank';await new Promise(r=>requestAnimationFrame(r));let p=new Promise(r=>resolveReady=r);f.src=live;await p}
+          function mime(){return ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(MediaRecorder.isTypeSupported.bind(MediaRecorder))}
+          async function rec(ms,work){await img.decode();await document.fonts.ready;let chunks=[],r=new MediaRecorder(o.captureStream(30),{mimeType:mime(),videoBitsPerSecond:2200000});r.ondataavailable=e=>e.data.size&&chunks.push(e.data);let done=new Promise((ok,fail)=>{r.onerror=e=>fail(e.error||e);r.onstop=async()=>{let b=new Blob(chunks,{type:r.mimeType}),u=new Uint8Array(await b.arrayBuffer()),s='',n=0x8000;for(let i=0;i<u.length;i+=n)s+=String.fromCharCode(...u.subarray(i,i+n));ok({b64:btoa(s),mime:r.mimeType,bytes:u.length})}});let t=performance.now();r.start(100);await work();await sleep(Math.max(0,ms-(performance.now()-t)));r.stop();return done}
+          window.startup=()=>{lang='EN';return rec(5200,async()=>{await load();await sleep(900)})};
+          window.language=async()=>{lang='EN';await load();await sleep(250);return rec(5900,async()=>{await sleep(900);lang='RU';await load();await sleep(900)})};
+          </script></body></html>
+          HTML
+          cat >_site/review-r111/mobile.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;background:#020304}body{padding:12px}.p{width:390px;height:844px;max-width:100%;margin:auto;overflow:hidden;border-radius:18px}.p iframe{width:390px;height:844px;border:0}</style></head><body><div class="p"><iframe src="/"></iframe></div></body></html>
+          HTML
+          cat >_site/review-r111/laptop.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#020304}.p{width:1200px;height:800px;margin:20px auto;overflow:hidden}.p iframe{width:1200px;height:800px;border:0}</style></head><body><div class="p"><iframe src="/"></iframe></div></body></html>
+          HTML
+          cat >_site/review-r111/compare.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;background:#020304;color:#c8cccb;font:12px Arial}main{max-width:1050px;margin:40px auto;padding:16px}.r{display:grid;grid-template-columns:1fr 1fr;gap:18px}.p{background:#050607;border:1px solid #202427;padding:18px}.h{height:76px;display:flex;align-items:center}.c{position:relative;width:40px;height:40px}.c img,.c iframe{position:absolute;inset:0;width:40px;height:40px;border:0;transition:opacity 180ms}.l{opacity:0}.live .l{opacity:1}.live img{opacity:0}.w{font:680 20px Arial;margin-left:9px}button{margin-top:18px}</style></head><body><main><h2>R1.1 CURRENT vs R1.1.1 FIXED — SAME 40PX HEADER GEOMETRY</h2><div class="r"><div class="p"><b>R1.1 BEFORE</b><div class="h"><span class="c" id="a"><iframe class="l"></iframe><img src="/assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png"></span><span class="w">ProAI Expert</span></div></div><div class="p"><b>R1.1.1 FIXED</b><div class="h"><span class="c" id="b"><iframe class="l"></iframe><img src="/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png"></span><span class="w">ProAI Expert</span></div></div></div><button onclick="go()">Replay startup</button></main><script>const a=document.getElementById('a'),b=document.getElementById('b'),af=a.querySelector('iframe'),bf=b.querySelector('iframe');function go(){a.classList.remove('live');b.classList.remove('live');af.src='about:blank';bf.src='about:blank';setTimeout(()=>{af.src='/assets/brand/proai-logo-r341/live.html?mode=living';bf.src='/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled'},150)}addEventListener('message',e=>{if(e.data?.type!=='proai-logo-r341'||e.data?.state!=='ready')return;if(e.source===af.contentWindow)a.classList.add('live');if(e.source===bf.contentWindow){b.classList.add('live');requestAnimationFrame(()=>bf.contentWindow.postMessage({type:'proai-logo-r341-control',action:'start-motion'},location.origin))}});go()</script></body></html>
+          HTML
+      - name: Record and validate videos
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/r111ready; python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >"$OUT/http.log" 2>&1 &
+          cat >"$OUT/r.cjs" <<'JS'
+          const pp=require('/tmp/r111npm/node_modules/puppeteer-core'),fs=require('fs'),{execFileSync}=require('child_process'),{PNG}=require('/tmp/r111npm/node_modules/pngjs');const O='/tmp/r111ready';
+          async function save(p,fn,n){let r=await p.evaluate(fn);fs.writeFileSync(`${O}/${n}.webm`,Buffer.from(r.b64,'base64'));execFileSync('ffmpeg',['-y','-loglevel','error','-i',`${O}/${n}.webm`,'-c:v','libx264','-pix_fmt','yuv420p','-movflags','+faststart',`${O}/${n}.mp4`])}function shot(v,t,o){execFileSync('ffmpeg',['-y','-loglevel','error','-ss',String(t),'-i',v,'-frames:v','1',o])}function d(a,b,box){a=PNG.sync.read(fs.readFileSync(a));b=PNG.sync.read(fs.readFileSync(b));let s=0,n=0;for(let y=box[1];y<box[3];y++)for(let x=box[0];x<box[2];x++){let i=(y*a.width+x)*4;for(let c=0;c<3;c++){s+=Math.abs(a.data[i+c]-b.data[i+c]);n++}}return s/n}function dur(v){return +execFileSync('ffprobe',['-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',v],{encoding:'utf8'}).trim()}
+          (async()=>{let b=await pp.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader']});try{let p=await b.newPage();await p.setViewport({width:600,height:180});await p.goto('http://127.0.0.1:8080/review-r111/recorder.html');await save(p,()=>startup(),'startup-continuity');await save(p,()=>language(),'language-switch');let ev={};for(let n of ['startup-continuity','language-switch']){let v=`${O}/${n}.mp4`,du=dur(v);if(du<4||du>7)throw Error(n+' duration '+du);let fsx=[];for(let [i,t] of [.5,1.5,3.0,Math.max(3.5,du-.5)].entries()){let q=`${O}/${n}-${i}.png`;shot(v,t,q);fsx.push(q)}let mc=0,mf=0;for(let i=0;i<fsx.length;i++)for(let j=i+1;j<fsx.length;j++){mc=Math.max(mc,d(fsx[i],fsx[j],[38,18,94,72]));mf=Math.max(mf,d(fsx[i],fsx[j],[35,18,570,125]))}if(mc<.03||mf<.03)throw Error(n+' frozen '+JSON.stringify({mc,mf}));ev[n]={duration:du,maxCubeDiff:mc,maxSurfaceDiff:mf}}let label=d(`${O}/language-switch-0.png`,`${O}/language-switch-2.png`,[490,18,565,65]);if(label<.05)throw Error('language label unchanged');ev.languageLabelDiff=label;fs.writeFileSync(`${O}/video-evidence.json`,JSON.stringify(ev,null,2));}finally{await b.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          node "$OUT/r.cjs"
+          cp "$OUT/startup-continuity.mp4" _site/review-r111/startup-continuity.mp4; cp "$OUT/language-switch.mp4" _site/review-r111/language-switch.mp4
+      - name: Publish HTTPS and smoke-check
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/r111ready; curl -fsSL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64; chmod +x /tmp/cloudflared; /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >"$OUT/cloudflared.log" 2>&1 &
+          BASE=""; for i in $(seq 1 90); do BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' "$OUT/cloudflared.log"|tail -1||true)"; [ -n "$BASE" ]&&break; sleep 2; done; test -n "$BASE"; echo "$BASE" >"$OUT/PUBLIC_BASE_URL.txt"
+          for i in $(seq 1 60); do curl -fsS --max-time 15 "$BASE/" >/dev/null 2>&1&&break; [ "$i" -eq 60 ]&&exit 1; sleep 3; done
+          for P in / /ru/ /review-r111/mobile.html /review-r111/laptop.html /review-r111/compare.html /review-r111/startup-continuity.mp4 /review-r111/language-switch.mp4; do curl -fsS --retry 4 "$BASE$P" >/dev/null; done
+          cat >"$OUT/OWNER_URLS.txt" <<EOF
+          FULL SITE EN
+          $BASE/
+          FULL SITE RU
+          $BASE/ru/
+          MOBILE
+          $BASE/review-r111/mobile.html
+          LAPTOP
+          $BASE/review-r111/laptop.html
+          R1.1 -> R1.1.1 STARTUP COMPARISON
+          $BASE/review-r111/compare.html
+          STARTUP CONTINUITY VIDEO
+          $BASE/review-r111/startup-continuity.mp4
+          EN -> RU LANGUAGE SWITCH VIDEO
+          $BASE/review-r111/language-switch.mp4
+          EOF
+          cat "$OUT/OWNER_URLS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-r111-owner-ready
+          path: /tmp/r111ready
+          retention-days: 7
+      - name: Keep owner review alive
+        shell: bash
+        run: sleep 12600

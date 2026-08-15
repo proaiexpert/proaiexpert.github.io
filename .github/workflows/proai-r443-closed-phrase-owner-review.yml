@@ -6,34 +6,78 @@ on:
       - agent/proai-cube-r443-closed-phrase-review
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: proai-r443-closed-phrase-owner-review
   cancel-in-progress: true
 
 env:
-  PRODUCT_SHA: 60bc3d34c251d0fba7e4dbf381d1cfb573aa0efc
   MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
   PRODUCT_DIR: /tmp/proai-r443-closed-product
 
 jobs:
+  attempt2_fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    outputs:
+      product_sha: ${{ steps.commit.outputs.product_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-r443-closed-phrase-architecture
+          fetch-depth: 0
+      - name: Apply the one allowed targeted Attempt 2 correction
+        id: commit
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "60bc3d34c251d0fba7e4dbf381d1cfb573aa0efc"
+          node <<'NODE'
+          const fs=require('fs');
+          const p='docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs';
+          let s=fs.readFileSync(p,'utf8');
+          const from='replaceUnique("r443Motion:{yawDirectionPolicy:\'continuous-positive\'",';
+          const to='replaceUnique("r443Motion:",';
+          const count=s.split(from).length-1;
+          if(count!==1) throw new Error(`expected one diagnostics anchor, got ${count}`);
+          s=s.replace(from,to);
+          fs.writeFileSync(p,s);
+          NODE
+          node --check docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs
+          git diff --check
+          test "$(git diff --name-only | wc -l | tr -d ' ')" = "1"
+          test "$(git diff --name-only)" = "docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs"
+          git config user.name "Ihor Horb"
+          git config user.email "proai.expert2026@gmail.com"
+          git add docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs
+          git commit -m "fix: anchor closed phrase diagnostics robustly"
+          PRODUCT_SHA=$(git rev-parse HEAD)
+          test "$(git rev-parse HEAD^)" = "60bc3d34c251d0fba7e4dbf381d1cfb573aa0efc"
+          git push origin HEAD:refs/heads/agent/proai-cube-r443-closed-phrase-architecture
+          echo "product_sha=$PRODUCT_SHA" >> "$GITHUB_OUTPUT"
+          echo "ATTEMPT2_PRODUCT_SHA=$PRODUCT_SHA"
+
   bounded-qa:
+    needs: attempt2_fix
     runs-on: ubuntu-latest
     timeout-minutes: 18
+    env:
+      PRODUCT_SHA: ${{ needs.attempt2_fix.outputs.product_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Materialize exact product
+      - name: Materialize exact Attempt 2 product
         run: |
           set -euo pipefail
           git fetch origin main --depth=1
           test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          git fetch origin agent/proai-cube-r443-closed-phrase-architecture --depth=5
           rm -rf "$PRODUCT_DIR"
           git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
           test "$(git -C "$PRODUCT_DIR" rev-parse HEAD)" = "$PRODUCT_SHA"
-          test "$(git -C "$PRODUCT_DIR" rev-parse HEAD^)" = "a4e93f645188fa92087121da4aa8c5bb839a3719"
+          test "$(git -C "$PRODUCT_DIR" rev-parse HEAD^)" = "60bc3d34c251d0fba7e4dbf381d1cfb573aa0efc"
+          git -C "$PRODUCT_DIR" merge-base --is-ancestor a4e93f645188fa92087121da4aa8c5bb839a3719 HEAD
       - name: Validate closed phrase library and build exact product
         working-directory: /tmp/proai-r443-closed-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
         run: |
@@ -99,8 +143,6 @@ jobs:
           exit 1
       - name: Run bounded 60s deterministic sample
         working-directory: /tmp/proai-r443-closed-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
-        env:
-          PRODUCT_SHA: ${{ env.PRODUCT_SHA }}
         run: |
           set -euo pipefail
           timeout 120s node r443-closed-qa.mjs
@@ -113,9 +155,11 @@ jobs:
           retention-days: 2
 
   live-owner:
-    needs: bounded-qa
+    needs: [attempt2_fix, bounded-qa]
     runs-on: ubuntu-latest
     timeout-minutes: 190
+    env:
+      PRODUCT_SHA: ${{ needs.attempt2_fix.outputs.product_sha }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -125,6 +169,7 @@ jobs:
           set -euo pipefail
           git fetch origin main --depth=1
           test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          git fetch origin agent/proai-cube-r443-closed-phrase-architecture --depth=5
           rm -rf "$PRODUCT_DIR"
           git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
           test "$(git -C "$PRODUCT_DIR" rev-parse HEAD)" = "$PRODUCT_SHA"
@@ -142,7 +187,6 @@ jobs:
           set -euo pipefail
           cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-closed-live-http.log 2>&1 &
-          echo $! >/tmp/r443-closed-http.pid
           for i in $(seq 1 30); do curl -fsS --max-time 3 http://127.0.0.1:4173/ >/dev/null && break; sleep 1; test "$i" -lt 30; done
           curl -fsSL --max-time 90 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
           chmod +x /tmp/cloudflared
@@ -151,7 +195,6 @@ jobs:
             LOG="/tmp/r443-closed-cloudflare-${attempt}.log"
             /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >"$LOG" 2>&1 &
             PID=$!
-            echo "$PID" >/tmp/r443-closed-tunnel.pid
             for i in $(seq 1 45); do
               URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
               if [ -n "$URL" ] && curl -fsSL --max-time 10 "$URL/" >/tmp/r443-closed-public.html 2>/dev/null; then REVIEW_URL="$URL"; break 2; fi

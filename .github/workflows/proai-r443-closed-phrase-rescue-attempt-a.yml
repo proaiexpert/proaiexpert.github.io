@@ -1,0 +1,78 @@
+name: ProAI Cube R4.4.3 Closed Phrase Rescue Attempt A
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-closed-phrase-rescue-review]
+    paths: [.github/workflows/proai-r443-closed-phrase-rescue-attempt-a.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-product:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      START_SHA: f616a6b620228c10322bb695b39c6cb3fb07be4a
+      PRODUCT_BRANCH: agent/proai-cube-r443-closed-phrase-architecture
+      PRODUCT_FILE: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PRODUCT_BRANCH }}
+          fetch-depth: 5
+      - name: Verify exact authorized starting head
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$START_SHA"
+      - name: Apply observed-source integration rescue only
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          p=Path('docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs')
+          s=p.read_text()
+
+          old="const lifecycleEnd='function semanticR442ReleaseProtection(';"
+          new="const lifecycleEnd='const semanticMotionTrace=[];';"
+          assert s.count(old)==1, f'lifecycle end count {s.count(old)}'
+          s=s.replace(old,new)
+
+          start='replaceUnique("r443Motion:",'
+          end=",'closed phrase diagnostics');"
+          a=s.find(start)
+          b=s.find(end,a)
+          assert a>=0 and b>=0 and s.find(start,a+1)<0, (a,b)
+          b+=len(end)
+          optional="""const r443DiagnosticsAnchor='r443Motion:';\nconst r443DiagnosticsAt=source.indexOf(r443DiagnosticsAnchor),r443DiagnosticsNext=r443DiagnosticsAt>=0?source.indexOf(r443DiagnosticsAnchor,r443DiagnosticsAt+r443DiagnosticsAnchor.length):-1;\nif(r443DiagnosticsAt>=0&&r443DiagnosticsNext<0){const extension=`r443ClosedPhrase:{architecture:'CURATED_CLOSED_PHRASE',lifoInverseStack:false,pendingResolutionGate:false,bridgeBeforeInverse:false,semanticDispersalWeighting:false,axisLayerDebt:false,phraseArchetypeCount:SEMANTIC_R443_CLOSED_VALIDATION.coreArchetypeCount,generatedValidatedPhraseVariants:SEMANTIC_R443_CLOSED_VALIDATION.generatedValidatedPhraseVariants,macroStateCount:SEMANTIC_R443_CLOSED_VALIDATION.macroStateCount,phraseHistoryDepth:SEMANTIC_R443_CLOSED_VALIDATION.phraseHistoryDepth,messageBearingFace:semanticR443State.stagedFace,stagedMessageIndex:semanticR443State.stagedMessageIndex,stagedSinceMs:semanticR443State.stagedSinceMs,semanticFlashCount:semanticR443State.semanticFlashCount,longReadableWarnings:semanticR443State.longReadableWarnings,metrics:semanticR443ClosedMetrics()},`;source=source.slice(0,r443DiagnosticsAt)+extension+source.slice(r443DiagnosticsAt)}else console.warn(`R4.4.3 closed phrase optional diagnostics unavailable: ${r443DiagnosticsAt}/${r443DiagnosticsNext}`);"""
+          s=s[:a]+optional+s[b:]
+
+          for old_req,new_req in [
+            ('  "architecture:\'CURATED_CLOSED_PHRASE\'",','  \'const SEMANTIC_R443_CLOSED_ARCHETYPES=Object.freeze(\','),
+            ("  'phraseArchetypeCount:SEMANTIC_R443_CLOSED_VALIDATION.coreArchetypeCount',","  'function semanticR443ChooseNormalPhrase(){',"),
+            ("  'macroStateCount:SEMANTIC_R443_CLOSED_VALIDATION.macroStateCount',","  'function semanticR443ClosedMetrics(){',"),
+          ]:
+            assert s.count(old_req)==1, (old_req,s.count(old_req))
+            s=s.replace(old_req,new_req)
+
+          # Hard proof: library definitions themselves are untouched by this rescue.
+          assert "id:'A_PLUS_X',preservedFace:'+X',order:4" in s
+          assert "id:'B_PLUS_Z',preservedFace:'+Z',order:4" in s
+          assert "id:'C_MINUS_X',preservedFace:'-X',order:4" in s
+          assert "phraseHistoryDepth:3" in s
+          assert "const SAFETY_PHRASES=Object.freeze" in s
+          p.write_text(s)
+          PY
+          node --check "$PRODUCT_FILE"
+          git diff --check
+          git diff -- "$PRODUCT_FILE"
+      - name: Commit exact integration rescue
+        run: |
+          set -euo pipefail
+          git config user.name 'Ihor Horb'
+          git config user.email 'proai.expert2026@gmail.com'
+          git add "$PRODUCT_FILE"
+          git diff --cached --quiet && { echo 'No product change'; exit 1; }
+          git commit -m 'fix: rescue closed phrase transform integration'
+          git push origin HEAD:"$PRODUCT_BRANCH"
+          echo "NEW_PRODUCT_SHA=$(git rev-parse HEAD)"

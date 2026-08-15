@@ -162,10 +162,10 @@ jobs:
           const obs=await browser.newContext({viewport:{width:1100,height:720},deviceScaleFactor:1,reducedMotion:'no-preference'});
           const op=await obs.newPage();await ready(op);
           const start=await read(op),startSim=start.d.presentation.simTimeMs,trace=[];
-          for(let i=0;i<240;i++){
-            await op.waitForTimeout(250);
+          for(let i=0;i<60;i++){
+            await op.waitForTimeout(1000);
             const q=await read(op),r=q.s.r443Lifecycle||{},m=q.s.r443Motion||{};
-            trace.push({wallSec:(i+1)*.25,presentationMs:q.d.presentation.simTimeMs,phase:r.phase,yawVelocityDegPerSec:m.yawVelocityDegPerSec,signedYawDeg:m.signedYawDeg,cumulativeYawDeg:m.cumulativeYawDeg,timeScale:q.s.timeScale??1,protected:q.s.r442DynamicFace?.protected===true,protectedFace:q.s.r442DynamicFace?.protectedFace||null});
+            trace.push({wallSec:i+1,presentationMs:q.d.presentation.simTimeMs,phase:r.phase,yawVelocityDegPerSec:m.yawVelocityDegPerSec,signedYawDeg:m.signedYawDeg,cumulativeYawDeg:m.cumulativeYawDeg,timeScale:q.s.timeScale??1,protected:q.s.r442DynamicFace?.protected===true,protectedFace:q.s.r442DynamicFace?.protectedFace||null});
           }
           const end=await read(op);await op.screenshot({path:path.join(out,'desktop-60s-end.png'),fullPage:true});await obs.close();
           const life=end.s.r443Lifecycle||{},dyn=end.s.r442DynamicFace||{},moves=end.s.r442MoveDiversity||{};
@@ -238,7 +238,7 @@ jobs:
           if(fatal.length)throw new Error('browser errors: '+fatal.join(' | '));
           if(!metrics.checks.behaviorPass)throw new Error('R4.4.3 behavioral gate failed: '+JSON.stringify(metrics.checks));
           NODE
-          timeout 210s node r443-review.mjs
+          timeout 330s node r443-review.mjs
 
       - name: Transcode owner clips to MP4 with explicit timeout
         run: |

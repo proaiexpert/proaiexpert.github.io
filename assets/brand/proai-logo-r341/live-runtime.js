@@ -73,7 +73,7 @@ try{
   if(!api)throw new Error('Logo Cube API unavailable');
   const started=performance.now();
   while(!api.ready&&api.motionState!=='error'){
-    if(performance.now()-started>18000)throw new Error('Logo Cube initialization timeout');
+    if(performance.now()-started>45000)throw new Error('Logo Cube initialization timeout');
     await new Promise(resolve=>setTimeout(resolve,32));
   }
   if(!api.ready)throw new Error('Logo Cube failed to become ready');

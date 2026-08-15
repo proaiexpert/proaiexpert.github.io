@@ -36,7 +36,7 @@ const params=new URLSearchParams(location.search);
 const mode=params.get('mode')||'living';
 const requestedQuality=Number(params.get('quality'));
 const qualityOverride=[2,3,4].includes(requestedQuality)?requestedQuality:null;
-const effectivePixelRatio=qualityOverride||4;
+const effectivePixelRatio=qualityOverride||Math.min(4,Math.max(3,window.devicePixelRatio||1));
 globalThis.__PROAI_HEADER_MICRO_PIXEL_RATIO=effectivePixelRatio;
 let moduleUrl=null;
 let motionLastNow=performance.now();
@@ -52,7 +52,7 @@ try{
   let source=await response.text();
   source=replaceOnce(source,"const GLB_URL = new URL('./rubik_39_s_cube_animation.glb', import.meta.url).href;",`const GLB_URL = '${GLB_URL}';`,'shared canonical GLB');
   source=replaceOnce(source,'  alpha: false,','  alpha: true,','transparent renderer');
-  source=replaceOnce(source,"renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, (captureMode || reviewMode) ? 1 : 2));","renderer.setPixelRatio(globalThis.__PROAI_HEADER_MICRO_PIXEL_RATIO || 4);",'Retina micro pixel ratio');
+  source=replaceOnce(source,"renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, (captureMode || reviewMode) ? 1 : 2));","renderer.setPixelRatio(globalThis.__PROAI_HEADER_MICRO_PIXEL_RATIO || 3);",'Retina micro pixel ratio');
   source=replaceOnce(source,'renderer.toneMappingExposure = 1.0;','renderer.toneMappingExposure = 0.92;','micro exposure');
   source=replaceOnce(source,'renderer.setClearColor(0x050607, 1);','renderer.setClearColor(0x000000, 0);','transparent clear');
   source=replaceOnce(source,'const scene = new THREE.Scene();\nscene.background = new THREE.Color(0x050607);','const scene = new THREE.Scene();\nscene.background = null;','transparent scene');

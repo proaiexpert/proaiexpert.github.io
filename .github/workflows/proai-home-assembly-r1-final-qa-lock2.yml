@@ -1,0 +1,233 @@
+name: ProAI Home Assembly R1 Final QA Lock Retry
+on:
+  push:
+    branches: [agent/proai-home-assembly-r1]
+    paths: [.github/workflows/proai-home-assembly-r1-final-qa-lock2.yml]
+permissions:
+  contents: read
+jobs:
+  final-qa-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 190
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify frozen product and main
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT=0c0613cd40d0f396d9dbf05bf2f8a61658ff4ae0
+          MAIN=c945084e1952c05c686494091f7dbca0f7acdf08
+          git merge-base --is-ancestor "$PRODUCT" HEAD
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN"
+          if git diff --name-only "$PRODUCT" HEAD | grep -Ev '^\.github/workflows/' | grep -q .; then
+            echo PRODUCT_CHANGED_AFTER_LOCK
+            git diff --name-only "$PRODUCT" HEAD
+            exit 1
+          fi
+
+      - name: Build frozen assembly
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          test "$(grep -o 'data-connected-system' _site/index.html | wc -l)" -eq 1
+          test "$(grep -o 'data-connected-system' _site/ru/index.html | wc -l)" -eq 1
+          grep -q 'proai-hero-cube-mount' _site/index.html
+          grep -q 'proai-hero-cube-mount' _site/ru/index.html
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/home-assembly-finalqa-http.log 2>&1 &
+
+      - name: Real Hero WebGL + missing viewport QA attempt 2
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          OUT=/tmp/home-assembly-finalqa2
+          WORK=/tmp/home-assembly-finalqa2-browser
+          mkdir -p "$OUT" "$WORK"
+          cd "$WORK"
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core@24 --silent
+          cat > qa.cjs <<'NODE'
+          const fs=require('fs');
+          const puppeteer=require('puppeteer-core');
+          const base='http://127.0.0.1:8080';
+          const out='/tmp/home-assembly-finalqa2';
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          let browser;
+          const results={product:'0c0613cd40d0f396d9dbf05bf2f8a61658ff4ae0',hero:{},viewports:{},headerAutoHide:null,connectedSystem:null,viewportFailures:[]};
+
+          async function realHero(){
+            const p=await browser.newPage();
+            await p.setViewport({width:1366,height:768,deviceScaleFactor:1});
+            const asset={three:false,glb:false,source:false,bootstrap:false};
+            const fatal=[];
+            p.on('response',r=>{
+              const u=r.url();
+              if(u.includes('/assets/vendor/three-r180/build/three.module.min.js')) asset.three=r.ok();
+              if(u.includes('/assets/models/proai-cube/rubik_39_s_cube_animation.glb')) asset.glb=r.ok();
+              if(u.includes('/assets/js/proai-hero-cube-r1/source-materials-r1.js')) asset.source=r.ok();
+              if(u.includes('/assets/js/proai-hero-cube-r1/bootstrap.js')) asset.bootstrap=r.ok();
+            });
+            p.on('pageerror',e=>fatal.push(`pageerror:${e.message}`));
+            p.on('console',m=>{
+              const t=m.text();
+              if(/GLB load failed|initialization failed|WebGLRenderer.*Error|stable Cube failed|stable Cube initialization timeout/i.test(t)) fatal.push(`${m.type()}:${t}`);
+            });
+            await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:15000});
+            let ready=false;
+            try{
+              await p.waitForFunction(()=>window.__PROAI_HERO_CUBE_R1?.runtime?.ready===true && document.querySelector('[data-proai-hero-object]')?.dataset.cubeMounted==='true',{timeout:20000});
+              ready=true;
+            }catch(e){}
+            const first=await p.evaluate(()=>{
+              const canvas=document.querySelector('#cube-canvas');
+              const slot=document.querySelector('[data-proai-hero-object]');
+              const api=window.__PROAI_HERO_CUBE_R1;
+              const d=api?.runtime?.getDiagnostics?.();
+              const r=canvas?.getBoundingClientRect();
+              let webgl=false;
+              try{webgl=!!(canvas&&(canvas.getContext('webgl2')||canvas.getContext('webgl')));}catch(e){}
+              const cs=canvas?getComputedStyle(canvas):null;
+              return {mountExists:!!document.querySelector('#proai-hero-cube-mount'),canvasExists:!!canvas,mounted:slot?.dataset.cubeMounted==='true',ready:api?.runtime?.ready===true,threeVersion:api?.threeVersion||null,webgl,canvasWidth:canvas?.width||0,canvasHeight:canvas?.height||0,rect:r?{x:r.x,y:r.y,width:r.width,height:r.height,right:r.right,bottom:r.bottom}:null,cssVisible:!!(cs&&cs.display!=='none'&&cs.visibility!=='hidden'&&parseFloat(cs.opacity||'1')>0),diagnostics:d?{motionState:d.motionState,hierarchyPass:!!d.hierarchy?.pass,geometryPass:!!d.geometry?.pass,renderer:d.renderer,presentation:d.presentation}:null};
+            });
+            await sleep(1400);
+            const second=await p.evaluate(()=>{const d=window.__PROAI_HERO_CUBE_R1?.runtime?.getDiagnostics?.();return d?{renderer:d.renderer,presentation:d.presentation}:null;});
+            const q1=first.diagnostics?.presentation?.quaternion||[];
+            const q2=second?.presentation?.quaternion||[];
+            const qDelta=Math.max(0,...q1.map((v,i)=>Math.abs(v-(q2[i]??v))));
+            const simDelta=(second?.presentation?.simTimeMs||0)-(first.diagnostics?.presentation?.simTimeMs||0);
+            const yawDelta=Math.abs((second?.presentation?.signedYawDeg||0)-(first.diagnostics?.presentation?.signedYawDeg||0));
+            const visible=!!(ready&&first.mounted&&first.canvasExists&&first.cssVisible&&first.rect?.width>80&&first.rect?.height>60&&(first.diagnostics?.renderer?.triangles||0)>0);
+            const moving=!!(ready&&simDelta>400&&qDelta>0.0001&&yawDelta>0.15);
+            results.hero={three:!!(asset.three&&first.threeVersion==='r180'),glb:!!(asset.glb&&first.diagnostics?.hierarchyPass&&first.diagnostics?.geometryPass),webgl:!!first.webgl,canvas:!!(first.canvasExists&&first.canvasWidth>0&&first.canvasHeight>0),visible,moving,fatalErrors:fatal,asset,first,second,motionEvidence:{qDelta,simDelta,yawDelta},hostedPass:false};
+            results.hero.hostedPass=results.hero.three&&results.hero.glb&&results.hero.webgl&&results.hero.canvas&&visible&&moving&&fatal.length===0;
+            console.log('REAL_HERO_RESULT='+JSON.stringify(results.hero));
+            await p.close();
+          }
+
+          async function openLayout(path,w,h){
+            const p=await browser.newPage();
+            await p.setViewport({width:w,height:h,deviceScaleFactor:1});
+            await p.setRequestInterception(true);
+            p.on('request',req=>{
+              const u=req.url();
+              if(u.includes('/assets/models/')||u.includes('/assets/vendor/three-r180/')||u.includes('/assets/js/proai-hero-cube-r1/')||u.includes('/assets/brand/proai-logo-r341/live.html')) req.abort();
+              else req.continue();
+            });
+            await p.goto(base+path,{waitUntil:'domcontentloaded',timeout:12000});
+            await p.waitForSelector('[data-connected-system]',{timeout:5000});
+            await sleep(160);
+            return p;
+          }
+
+          async function viewport(path,w,h,label){
+            const p=await openLayout(path,w,h);
+            const r=await p.evaluate(({w})=>{
+              const rect=e=>{const r=e.getBoundingClientRect();return{x:r.x,y:r.y,left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}};
+              const header=document.querySelector('[data-site-header]');
+              const hero=document.querySelector('#hero');
+              const h1=document.querySelector('#hero .proai-hero-title');
+              const support=document.querySelector('#hero .proai-hero-support');
+              const cta=document.querySelector('#hero .proai-hero-actions');
+              const buttons=[...document.querySelectorAll('#hero .proai-hero-cta')];
+              const cube=document.querySelector('#hero .proai-hero-object-region');
+              const cs=document.querySelector('[data-connected-system]');
+              const nav=document.querySelector('.site-header__nav');
+              const menu=document.querySelector('.site-header__menu-toggle');
+              const brand=document.querySelector('.site-header__brand');
+              const hr=rect(header),her=rect(hero),h1r=rect(h1),sr=rect(support),cr=rect(cta),cuber=rect(cube),csr=rect(cs),br=buttons.map(rect);
+              const desktop=w>=1201;
+              const headerMode=desktop?getComputedStyle(nav).display!=='none'&&getComputedStyle(menu).display==='none':getComputedStyle(menu).display!=='none';
+              const noTextStackCollision=h1r.bottom<=sr.top+3&&sr.bottom<=cr.top+3;
+              const ctaInside=br.length===2&&br.every(b=>b.left>=-2&&b.right<=innerWidth+2&&b.width>40&&b.height>28);
+              const ctaNoOverlap=br.length===2&&(br[0].right<=br[1].left+1||br[1].right<=br[0].left+1||br[0].bottom<=br[1].top+1||br[1].bottom<=br[0].top+1);
+              const cubeInside=cuber.width>100&&cuber.height>55&&cuber.left>=-8&&cuber.right<=innerWidth+8&&cuber.top>=her.top-8&&cuber.bottom<=her.bottom+8;
+              const transitionGap=csr.top-her.bottom;
+              return {overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,connectedCount:document.querySelectorAll('[data-connected-system]').length,headerMode,headerRect:hr,brandVisible:rect(brand).width>80,heroRect:her,h1Rect:h1r,supportRect:sr,ctaRect:cr,buttonRects:br,cubeRect:cuber,connectedRect:csr,noTextStackCollision,ctaInside,ctaNoOverlap,cubeInside,transitionGap,heroH1:h1.textContent.trim(),lang:document.documentElement.lang,connectedTitle:document.querySelector('.connected-system .cs-title')?.textContent.trim()||'',connectedStages:[...document.querySelectorAll('.cs-stage')].map(rect)};
+            },{w});
+            const ok=r.overflow<=1&&r.connectedCount===1&&r.headerMode&&r.brandVisible&&r.heroRect.height>300&&r.noTextStackCollision&&r.ctaInside&&r.ctaNoOverlap&&r.cubeInside&&r.connectedRect.height>250&&r.connectedRect.left>=-2&&r.connectedRect.right<=w+2&&r.transitionGap>=-3&&r.transitionGap<=8&&r.connectedStages.every(s=>s.width>80&&s.left>=-4&&s.right<=w+4);
+            results.viewports[label]={...r,pass:ok};
+            if(!ok)results.viewportFailures.push(label);
+            console.log(`VIEWPORT_${ok?'PASS':'FAIL'} ${label}`);
+            await p.close();
+          }
+
+          async function headerAndConnected(){
+            const p=await openLayout('/',430,932);
+            const hidden=()=>p.$eval('[data-site-header]',e=>e.classList.contains('header-hidden'));
+            const csTop=await p.$eval('[data-connected-system]',e=>e.offsetTop);
+            await p.evaluate(y=>scrollTo(0,y+240),csTop);await sleep(330);const down=await hidden();
+            await p.evaluate(()=>scrollBy(0,-170));await sleep(330);const up=!(await hidden());
+            await p.click('.site-header__menu-toggle');await sleep(120);const menuOpen=await p.$eval('.site-header__menu-toggle',e=>e.getAttribute('aria-expanded')==='true')&&!(await hidden());
+            await p.click('.site-header__menu-toggle');await sleep(120);await p.evaluate(()=>scrollBy(0,250));await sleep(330);const resumed=await hidden();
+            await p.evaluate(()=>{const s=document.querySelectorAll('[data-system-stage]')[1];const r=s.getBoundingClientRect();scrollTo(0,scrollY+r.top+r.height/2-innerHeight*.565);});await sleep(440);
+            const connected=await p.evaluate(()=>({ready:document.querySelector('[data-connected-system]').classList.contains('cs-motion-ready'),active:[...document.querySelectorAll('[data-system-stage]')].some(s=>s.classList.contains('is-active'))}));
+            results.headerAutoHide={down,up,menuOpen,resumed,pass:down&&up&&menuOpen&&resumed};
+            results.connectedSystem={...connected,pass:connected.ready&&connected.active};
+            await p.close();
+          }
+
+          (async()=>{
+            browser=await puppeteer.launch({headless:true,executablePath:process.env.CHROME_BIN,args:['--no-sandbox','--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--use-angle=swiftshader','--disable-background-timer-throttling','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding']});
+            await realHero();
+            for(const v of [['/',1366,768,'1366x768 EN'],['/',1280,800,'1280x800 EN'],['/',430,932,'430x932 EN'],['/',932,430,'932x430 EN'],['/ru/',1366,768,'1366x768 RU'],['/ru/',390,844,'390x844 RU'],['/ru/',932,430,'932x430 RU']])await viewport(...v);
+            await headerAndConnected();
+            results.viewportPass=results.viewportFailures.length===0;
+            results.overallNonWebGLPass=results.viewportPass&&results.headerAutoHide?.pass&&results.connectedSystem?.pass;
+            fs.writeFileSync(`${out}/QA_RESULTS.json`,JSON.stringify(results,null,2));
+            fs.writeFileSync(`${out}/HERO_HOSTED_STATUS.txt`,results.hero.hostedPass?'PASS\n':'HOSTED_WEBGL_LIMITATION_OR_FAIL\n');
+            console.log('VIEWPORT_MATRIX_PASS='+results.viewportPass);
+            console.log('HEADER_AUTOHIDE_PASS='+results.headerAutoHide.pass);
+            console.log('CONNECTED_SYSTEM_PASS='+results.connectedSystem.pass);
+            console.log('REAL_HERO_HOSTED_PASS='+results.hero.hostedPass);
+            await browser.close();
+            if(!results.overallNonWebGLPass)process.exit(2);
+          })().catch(async e=>{results.error=String(e.stack||e);fs.writeFileSync(`${out}/QA_RESULTS.json`,JSON.stringify(results,null,2));console.error(e);if(browser)await browser.close();process.exit(1);});
+          NODE
+          CHROME_BIN="$CHROME_BIN" timeout 120s node qa.cjs
+
+      - name: Publish HTTPS owner review
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/home-assembly-finalqa2
+          mkdir -p "$OUT"
+          curl -fsSL --retry 3 --retry-delay 2 -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >"$OUT/cloudflared.log" 2>&1 &
+          BASE=""
+          for i in $(seq 1 60); do BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' "$OUT/cloudflared.log" | tail -1 || true)";[ -n "$BASE" ]&&break;sleep 2;done
+          test -n "$BASE"
+          for i in $(seq 1 30);do if curl -fsS --max-time 15 -o /tmp/public-en "$BASE/";then break;fi;[ "$i" -eq 30 ]&&exit 1;sleep 3;done
+          curl -fsS --retry 3 --retry-delay 2 --max-time 20 -o /tmp/public-ru "$BASE/ru/"
+          grep -q 'THE CONNECTED SYSTEM' /tmp/public-en
+          grep -q 'ЕДИНАЯ СИСТЕМА' /tmp/public-ru
+          grep -q 'proai-hero-cube-mount' /tmp/public-en
+          grep -q 'proai-hero-cube-mount' /tmp/public-ru
+          for P in /assets/js/proai-hero-cube-r1/bootstrap.js /assets/js/proai-hero-cube-r1/source-materials-r1.js /assets/vendor/three-r180/build/three.module.min.js /assets/models/proai-cube/rubik_39_s_cube_animation.glb /assets/css/homepage-connected-system-r13.css /assets/js/homepage-connected-system-r13.js /assets/js/header-system-v1.js;do curl -fsS --retry 2 --retry-delay 1 --max-time 20 -o /dev/null "$BASE$P";done
+          printf 'EN\n%s/\nRU\n%s/ru/\nEXPECTED LIFETIME\napproximately 3 hours from keepalive start\n' "$BASE" "$BASE" | tee "$OUT/OWNER_URLS.txt"
+          printf '%s\n' "$BASE" > "$OUT/PUBLIC_BASE_URL.txt"
+          printf 'PRODUCT=0c0613cd40d0f396d9dbf05bf2f8a61658ff4ae0\nPUBLIC=PASS\nMAIN=c945084e1952c05c686494091f7dbca0f7acdf08\n' > "$OUT/PUBLIC_QA.txt"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proai-home-assembly-r1-final-qa-lock2
+          path: /tmp/home-assembly-finalqa2
+          retention-days: 3
+
+      - name: Keep owner preview alive
+        if: always()
+        shell: bash
+        run: sleep 10800

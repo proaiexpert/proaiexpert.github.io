@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Materialize exact starting product and freeze refs
+      - name: Materialize and generate exact pre-transform source
         run: |
           set -euo pipefail
           git fetch origin main agent/proai-cube-semantic-brand-face-r4 --depth=1
@@ -28,11 +28,7 @@ jobs:
           test "$(git rev-parse origin/agent/proai-cube-semantic-brand-face-r4)" = "$OLD_SHA"
           rm -rf "$PRODUCT_DIR"
           git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
-          test "$(git -C "$PRODUCT_DIR" rev-parse HEAD)" = "$PRODUCT_SHA"
-      - name: Generate exact pre-closed-phrase stage
-        working-directory: /tmp/proai-r443-rescue-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
-        run: |
-          set -euo pipefail
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
           timeout 180s npm install --package-lock=false
           node prepare-r4.mjs
           node clock-r4.mjs
@@ -41,41 +37,29 @@ jobs:
           node material-polish-r443-runtime.mjs
           node material-polish-r443-sequence-hotfix.mjs
           node --check main.generated.js
-      - name: Prove actual lifecycle replacement boundary
+      - name: Locate exact injected R443 lifecycle end and following stable token
         working-directory: /tmp/proai-r443-rescue-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs=require('fs');
           const s=fs.readFileSync('main.generated.js','utf8');
-          const keys={
-            lifecycleStart:'const SEMANTIC_R443_PHASE=Object.freeze(',
-            lifecycleEnd:'function semanticR442ReleaseProtection(',
-            protectionUpdate:'function semanticR442UpdateProtectionState(){',
-            moveIntersection:'function semanticR442MoveIntersection(',
-            diagnostics:'function getSemanticDiagnostics() {',
-            r443Lifecycle:'r443Lifecycle:',
-            r443Motion:'r443Motion:',
-            recentWeight:'function semanticR442RecentWeight(move){',
-            recordMove:"function semanticR442RecordMove(move,phase='forward'){",
-            scheduler:'async function sliceSchedulerLoop(){'
-          };
-          const pos={};
-          for(const [name,token] of Object.entries(keys)){
-            const hits=[];let p=-1;while((p=s.indexOf(token,p+1))>=0)hits.push(p);
-            pos[name]=hits[0]??-1;
-            console.log(`STRUCT ${name} COUNT=${hits.length} POS=${hits.join(',')||'NONE'}`);
-          }
-          console.log('ORDER '+JSON.stringify(pos));
-          const crossesDiagnostics=pos.lifecycleStart>=0&&pos.lifecycleEnd>pos.r443Motion&&pos.lifecycleStart<pos.diagnostics;
-          console.log('LIFECYCLE_RANGE_CROSSES_DIAGNOSTICS='+crossesDiagnostics);
-          for(const name of ['lifecycleStart','diagnostics','r443Motion','lifecycleEnd','protectionUpdate']){
-            const p=pos[name];if(p<0)continue;
-            console.log(`SNIP ${name} START`);
-            console.log(s.slice(Math.max(0,p-300),Math.min(s.length,p+1000)));
-            console.log(`SNIP ${name} END`);
-          }
-          if(Object.values(pos).some(p=>p<0))throw new Error('required lifecycle inspection token missing');
-          if(!crossesDiagnostics)throw new Error('observed lifecycle range did not prove expected crossing');
-          console.log('LIFECYCLE_BOUNDARY_PROOF_PASS');
+          const start=s.indexOf('const SEMANTIC_R443_PHASE=Object.freeze(');
+          const release=s.indexOf("function semanticR443Release(reason='optical-exit')",start);
+          if(start<0||release<0)throw new Error(`missing lifecycle start/release ${start}/${release}`);
+          console.log(`LIFECYCLE_START=${start} RELEASE_START=${release}`);
+          console.log('RELEASE_AND_FOLLOWING_START');
+          console.log(s.slice(release,Math.min(s.length,release+6000)));
+          console.log('RELEASE_AND_FOLLOWING_END');
+          const candidates=[
+            'let semanticR442ActiveMaterialFace=',
+            'const semanticR442FaceRegistry=',
+            'function semanticR442SetActiveMaterialFace(',
+            'function semanticR442EvaluateFace(',
+            'function semanticR442BestFaceCandidate(',
+            'function updateSemanticPhysicalMaterial(',
+            'function getSemanticDiagnostics() {'
+          ];
+          for(const token of candidates){const p=s.indexOf(token,release);console.log(`AFTER ${JSON.stringify(token)} POS=${p}`)}
+          console.log('LIFECYCLE_END_INSPECT_PASS');
           NODE

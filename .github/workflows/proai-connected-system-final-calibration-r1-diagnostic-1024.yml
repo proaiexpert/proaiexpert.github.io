@@ -1,0 +1,48 @@
+name: ProAI Connected System 1024 Rhythm Diagnostic
+on:
+  push:
+    branches: [agent/proai-connected-system-final-calibration-r1-review]
+    paths: [.github/workflows/proai-connected-system-final-calibration-r1-diagnostic-1024.yml]
+permissions:
+  contents: read
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 4370c30ee52ab674c379f628e42446d93ed56f96
+      - name: Build and measure 1024
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/http.log 2>&1 &
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          mkdir -p /tmp/csdiag && cd /tmp/csdiag
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core@24 --silent
+          cat > diag.cjs <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          const base='http://127.0.0.1:8080';
+          (async()=>{
+            const browser=await puppeteer.launch({headless:true,executablePath:process.env.CHROME_BIN,args:['--no-sandbox','--disable-dev-shm-usage']});
+            for(const [lang,path] of [['ru','/ru/'],['en','/']]){
+              const p=await browser.newPage();await p.setViewport({width:1024,height:768,deviceScaleFactor:1});await p.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
+              await p.goto(base+path,{waitUntil:'domcontentloaded'});await p.waitForSelector('[data-connected-system]');await p.evaluate(async()=>{if(document.fonts?.ready)await document.fonts.ready;});
+              const r=await p.evaluate(()=>{
+                const rows=[...document.querySelectorAll('[data-system-stage]')].map((s,i)=>{const c=s.querySelector('.cs-stage-copy'),m=s.querySelector('.cs-components');const range=document.createRange();range.selectNodeContents(c);const lines=[...range.getClientRects()].filter(x=>x.width>.5&&x.height>.5).length;return{i,copyLines:lines,copyHeight:c.getBoundingClientRect().height,componentsTop:m.getBoundingClientRect().top,minBlock:getComputedStyle(c).minBlockSize};});
+                const tops=rows.map(x=>x.componentsTop);return{rows,spread:Math.max(...tops)-Math.min(...tops),overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth};
+              });
+              console.log('MEASURE_1024_'+lang.toUpperCase(),JSON.stringify(r));await p.close();
+            }
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          CHROME_BIN="$CHROME_BIN" node diag.cjs

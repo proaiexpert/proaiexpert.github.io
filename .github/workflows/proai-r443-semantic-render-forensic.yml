@@ -1,0 +1,37 @@
+name: ProAI Cube R4.4.3 Semantic Render Forensic
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-semantic-staging-review]
+    paths: [.github/workflows/proai-r443-semantic-render-forensic.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PRODUCT_SHA: ff1f6063f19a7076fb0f71b902bff615e7318600
+      PRODUCT_DIR: /tmp/proai-r443-render-forensic
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build exact product and inspect animation render calls
+        run: |
+          set -euo pipefail
+          rm -rf "$PRODUCT_DIR"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          npm install --package-lock=false >/dev/null
+          npm run build-r443 >/dev/null
+          node <<'NODE'
+          const fs=require('fs');const s=fs.readFileSync('main.generated.js','utf8');
+          for(const needle of ['.render(','requestAnimationFrame(','setAnimationLoop(','renderer','function animate','function tick']){
+            console.log('\nTOKEN',needle);
+            let i=-1,n=0;while((i=s.indexOf(needle,i+1))>=0&&n<30){console.log('POS',i,JSON.stringify(s.slice(Math.max(0,i-220),Math.min(s.length,i+300))));n++}
+            console.log('COUNT>=',n);
+          }
+          NODE

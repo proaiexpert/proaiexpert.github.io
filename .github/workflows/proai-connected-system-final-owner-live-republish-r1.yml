@@ -1,0 +1,148 @@
+name: ProAI Connected System Final Owner Live Republish
+on:
+  push:
+    branches: [agent/proai-connected-system-final-owner-live-republish-r1]
+    paths: [.github/workflows/proai-connected-system-final-owner-live-republish-r1.yml]
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 200
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+
+      - name: Verify exact product and immutable scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT=d5f2e2fd85218b2a98e774b0b19df1536240d4fb
+          MAIN=c945084e1952c05c686494091f7dbca0f7acdf08
+          WORKFLOW=.github/workflows/proai-connected-system-final-owner-live-republish-r1.yml
+          test "$(git rev-parse HEAD^)" = "$PRODUCT"
+          test "$(git diff --name-only "$PRODUCT" HEAD)" = "$WORKFLOW"
+          test "$(git ls-remote origin refs/heads/agent/proai-connected-system-final-calibration-r1 | cut -f1)" = "$PRODUCT"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN"
+
+      - name: Build and static sanity
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          test -s _site/index.html
+          test -s _site/ru/index.html
+          test "$(grep -o 'data-connected-system' _site/index.html | wc -l)" -eq 1
+          test "$(grep -o 'data-connected-system' _site/ru/index.html | wc -l)" -eq 1
+          test -s _site/assets/css/homepage-connected-system-r13.css
+          test -s _site/assets/js/homepage-connected-system-r13.js
+          test -s _site/assets/js/header-system-v1.js
+          test -s _site/assets/css/homepage-hero-signature-r3.css
+          grep -q 'proai-hero-cube-mount' _site/index.html
+          grep -q 'proai-hero-cube-mount' _site/ru/index.html
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/proai-owner-live-http.log 2>&1 &
+          echo $! >/tmp/proai-owner-live-http.pid
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:8080/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8080/ | grep -q 'data-connected-system'
+          curl -fsS http://127.0.0.1:8080/ru/ | grep -q 'data-connected-system'
+
+      - name: Publish temporary HTTPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/proai-connected-final-owner-live
+          mkdir -p "$OUT"
+          LIVE_URL=''
+          LIVE_METHOD=''
+          LIVE_PID=''
+
+          public_smoke() {
+            local url="$1"
+            curl -fsS --connect-timeout 5 --max-time 12 "$url/" | grep -q 'data-connected-system' || return 1
+            curl -fsS --connect-timeout 5 --max-time 12 "$url/ru/" | grep -q 'data-connected-system' || return 1
+            curl -fsS --connect-timeout 5 --max-time 12 "$url/assets/css/homepage-connected-system-r13.css" >/dev/null || return 1
+            curl -fsS --connect-timeout 5 --max-time 12 "$url/assets/js/homepage-connected-system-r13.js" >/dev/null || return 1
+            curl -fsS --connect-timeout 5 --max-time 12 "$url/assets/js/header-system-v1.js" >/dev/null || return 1
+            curl -fsS --connect-timeout 5 --max-time 12 "$url/assets/css/homepage-hero-signature-r3.css" >/dev/null || return 1
+          }
+
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+
+          try_cloudflare() {
+            local n="$1"
+            local log="/tmp/proai-cf-${n}.log"
+            : >"$log"
+            /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >"$log" 2>&1 &
+            local pid=$!
+            local url=''
+            for i in $(seq 1 35); do
+              url="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' "$log" | head -1 || true)"
+              [ -n "$url" ] && break
+              sleep 1
+            done
+            if [ -n "$url" ]; then
+              for i in $(seq 1 30); do
+                if public_smoke "$url"; then
+                  LIVE_URL="$url"
+                  LIVE_METHOD="TryCloudflare attempt ${n}"
+                  LIVE_PID="$pid"
+                  cp "$log" "$OUT/cloudflared-attempt-${n}.log"
+                  return 0
+                fi
+                sleep 2
+              done
+            fi
+            cp "$log" "$OUT/cloudflared-attempt-${n}.log" || true
+            kill "$pid" 2>/dev/null || true
+            wait "$pid" 2>/dev/null || true
+            return 1
+          }
+
+          if ! try_cloudflare 1; then
+            if ! try_cloudflare 2; then
+              ALT_LOG=/tmp/proai-localhost-run.log
+              : >"$ALT_LOG"
+              ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -R 80:127.0.0.1:8080 nokey@localhost.run >"$ALT_LOG" 2>&1 &
+              ALT_PID=$!
+              for i in $(seq 1 35); do
+                while read -r candidate; do
+                  [ -n "$candidate" ] || continue
+                  case "$candidate" in
+                    https://localhost.run*) continue ;;
+                  esac
+                  if public_smoke "$candidate"; then
+                    LIVE_URL="$candidate"
+                    LIVE_METHOD='localhost.run alternate'
+                    LIVE_PID="$ALT_PID"
+                    break 2
+                  fi
+                done < <(grep -Eo 'https://[-A-Za-z0-9.]+' "$ALT_LOG" | sort -u || true)
+                sleep 1
+              done
+              cp "$ALT_LOG" "$OUT/localhost-run.log" || true
+            fi
+          fi
+
+          test -n "$LIVE_URL"
+          test -n "$LIVE_METHOD"
+          test -n "$LIVE_PID"
+          printf '%s\n' "$LIVE_PID" > "$OUT/tunnel.pid"
+          printf 'PRODUCT_SHA=d5f2e2fd85218b2a98e774b0b19df1536240d4fb\nMETHOD=%s\nEN=%s/\nRU=%s/ru/\nLIFETIME=approximately 3 hours from publication workflow start\n' "$LIVE_METHOD" "$LIVE_URL" "$LIVE_URL" | tee "$OUT/LIVE_ENDPOINTS.txt"
+          public_smoke "$LIVE_URL"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-connected-system-final-owner-live-republish-r1
+          path: /tmp/proai-connected-final-owner-live
+          retention-days: 3
+
+      - name: Keep owner preview alive
+        shell: bash
+        run: sleep 10800

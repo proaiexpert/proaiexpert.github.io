@@ -1,0 +1,44 @@
+name: ProAI Header R1.1.1 Owner Ready Final
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-r111-owner-ready-final.yml]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 230
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Run locked owner-ready package with corrected capture duration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user --quiet pyyaml
+          python3 - <<'PY'
+          import os,subprocess,yaml
+          d=yaml.safe_load(open('.github/workflows/proai-header-r111-owner-ready.yml',encoding='utf-8'))
+          steps={s.get('name'):s for s in d['jobs']['review']['steps'] if isinstance(s,dict) and s.get('name')}
+          subprocess.run(steps['Build review package']['run'],shell=True,executable='/bin/bash',check=True,env=os.environ.copy())
+          from pathlib import Path
+          p=Path('_site/review-r111/recorder.html'); s=p.read_text()
+          s=s.replace("rec(5200,async()=>{await load();await sleep(900)})","rec(6400,async()=>{await load();await sleep(900)})")
+          s=s.replace("rec(5900,async()=>{await sleep(900);lang='RU';await load();await sleep(900)})","rec(6200,async()=>{await sleep(900);lang='RU';await load();await sleep(900)})")
+          p.write_text(s)
+          subprocess.run(steps['Record and validate videos']['run'],shell=True,executable='/bin/bash',check=True,env=os.environ.copy())
+          subprocess.run(steps['Publish HTTPS and smoke-check']['run'],shell=True,executable='/bin/bash',check=True,env=os.environ.copy())
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proai-header-r111-owner-ready-final
+          path: /tmp/r111ready
+          retention-days: 7
+      - name: Keep owner review alive
+        if: success()
+        shell: bash
+        run: sleep 12600

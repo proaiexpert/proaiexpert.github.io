@@ -65,7 +65,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git ls-remote origin refs/heads/agent/proai-header-footer-logo-r1 | cut -f1)" = "${GITHUB_SHA}"
-          rm -rf node_modules package.json package-lock.json
+          rm -rf node_modules
+          git restore -- package.json package-lock.json
           git status --short
           EXPECTED=$'_includes/header-system/header.html\nassets/brand/proai-logo-r341/live-runtime.js\nassets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png\nassets/js/header-footer-logo-r1.js'
           ACTUAL="$(git status --short | sed -E 's/^.. //' | sort)"

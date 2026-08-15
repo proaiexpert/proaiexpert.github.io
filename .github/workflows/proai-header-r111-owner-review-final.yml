@@ -1,0 +1,61 @@
+name: ProAI Header R1.1.1 Natural Startup Owner Review
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-r111-owner-review-final.yml]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 230
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Prepare exact review environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg >/dev/null
+          python3 -m pip install --user --quiet pyyaml
+      - name: Run product locks, natural-load continuity QA, and videos
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, subprocess, yaml
+          path='.github/workflows/proai-header-r111-owner-review.yml'
+          data=yaml.safe_load(open(path,encoding='utf-8'))
+          steps={s.get('name'):s for s in data['jobs']['review']['steps'] if isinstance(s,dict) and s.get('name')}
+          for name in ['Verify product and locked scope','Build review snapshot']:
+              print(f'=== {name} ===',flush=True)
+              subprocess.run(steps[name]['run'],shell=True,executable='/bin/bash',check=True,env=os.environ.copy())
+          run=steps['Start HTTPS review and run continuity QA']['run']
+          old="const cold=await open(br,'/',1440,900,2,{cache:false,delayHeader:900});let ch=await header(cold.p);a.equal(ch.state,'loading');a.equal(ch.staticOpacity,'1');a.ok(ch.staticSrc.includes('proai-header-r111-static-cube-320.png'));"
+          new="const cold=await open(br,'/?cold='+Date.now(),1440,900,2,{cache:false});let ch=await header(cold.p);a.ok(ch.staticSrc.includes('proai-header-r111-static-cube-320.png'));if(ch.state!=='live')a.equal(ch.staticOpacity,'1');"
+          assert old in run
+          run=run.replace(old,new,1)
+          old="const vid=await open(br,'/',1440,260,1,{cache:false,delayHeader:1200});const vh0=await header(vid.p);a.equal(vh0.state,'loading');const vf=await record(vid.p,OUT+'/startup-frames',process.cwd()+'/_site/review-r111/startup-continuity.mp4',5200,async()=>{await sleep(500)});await waitLive(vid.p);R.videoStartup={frames:vf,seconds:5.2};await vid.p.close();"
+          new="const vid=await br.newPage();await vid.setViewport({width:1440,height:260,deviceScaleFactor:1});await vid.setCacheEnabled(false);const vf=await record(vid,OUT+'/startup-frames',process.cwd()+'/_site/review-r111/startup-continuity.mp4',5200,async()=>{await vid.goto(B+'/?startupVideo='+Date.now(),{waitUntil:'domcontentloaded',timeout:120000})});await waitLive(vid);R.videoStartup={frames:vf,seconds:5.2};await vid.close();"
+          assert old in run
+          run=run.replace(old,new,1)
+          old="const lv=await open(br,'/',390,300,1,{delayHeader:800});"
+          new="const lv=await open(br,'/?languageVideo='+Date.now(),390,300,1,{});"
+          assert old in run
+          run=run.replace(old,new,1)
+          print('=== Start HTTPS review and run natural-load continuity QA ===',flush=True)
+          subprocess.run(run,shell=True,executable='/bin/bash',check=True,env=os.environ.copy())
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proai-header-r111-owner-review-final
+          path: /tmp/r111owner
+          retention-days: 7
+      - name: Keep owner review alive
+        if: success()
+        shell: bash
+        run: sleep 12600

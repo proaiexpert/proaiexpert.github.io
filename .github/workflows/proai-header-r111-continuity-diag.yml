@@ -1,0 +1,39 @@
+name: ProAI Header R1.1.1 Continuity Diagnostic
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-r111-continuity-diag.yml]
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Capture static and exact live home frame
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 pngjs@7.0.0 >/dev/null
+          OUT=/tmp/r111diag
+          mkdir -p "$OUT"
+          python3 -m http.server 8080 --bind 127.0.0.1 >"$OUT/http.log" 2>&1 &
+          cat >"$OUT/diag.cjs" <<'JS'
+          const pp=require('puppeteer-core'),fs=require('fs'),{PNG}=require('pngjs');
+          const B='http://127.0.0.1:8080',O='/tmp/r111diag';
+          function metrics(buf){const p=PNG.sync.read(buf);let minX=p.width,minY=p.height,maxX=-1,maxY=-1,sw=0,sx=0,sy=0,count=0;for(let y=0;y<p.height;y++)for(let x=0;x<p.width;x++){const i=(y*p.width+x)*4,a=p.data[i+3];if(a>8){minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);count++}if(a){sw+=a;sx+=x*a;sy+=y*a}}return{image:[p.width,p.height],bounds:maxX>=0?{left:minX,top:minY,right:maxX,bottom:maxY,width:maxX-minX+1,height:maxY-minY+1}:null,centroid:sw?{x:sx/sw,y:sy/sw}:null,alphaPixels:count}}
+          (async()=>{const br=await pp.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader']});try{
+            const s=await br.newPage();await s.setViewport({width:40,height:40,deviceScaleFactor:3});await s.setContent(`<style>html,body{margin:0;width:40px;height:40px;overflow:hidden;background:transparent}img{display:block;width:40px;height:40px;object-fit:contain}</style><img src="${B}/assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png">`);await s.waitForSelector('img');await s.evaluate(()=>new Promise(r=>{const i=document.querySelector('img');i.complete?r():i.addEventListener('load',r,{once:true})}));const sb=await s.screenshot({path:O+'/static-current-40-dpr3.png',omitBackground:true});
+            const l=await br.newPage();await l.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);await l.setViewport({width:40,height:40,deviceScaleFactor:3});await l.goto(B+'/assets/brand/proai-logo-r341/live.html?mode=living',{waitUntil:'domcontentloaded'});await l.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.ready,{timeout:90000});const state=await l.evaluate(()=>JSON.parse(JSON.stringify(window.__PROAI_LOGO_R341_STATE)));const lb=await l.screenshot({path:O+'/live-home-40-dpr3.png',omitBackground:true});
+            const m=await br.newPage();await m.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);await m.setViewport({width:80,height:80,deviceScaleFactor:4});await m.goto(B+'/assets/brand/proai-logo-r341/live.html?mode=living',{waitUntil:'domcontentloaded'});await m.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.ready,{timeout:90000});await m.screenshot({path:O+'/header-static-master-320.png',omitBackground:true});
+            const sm=metrics(sb),lm=metrics(lb),d={static:sm,live:lm,delta:{width:sm.bounds.width-lm.bounds.width,height:sm.bounds.height-lm.bounds.height,centerX:sm.centroid.x-lm.centroid.x,centerY:sm.centroid.y-lm.centroid.y},liveState:{home:state.home,current:state.current,renderer:state.renderer,microLookDev:state.microLookDev.name,reducedMotion:state.reducedMotion}};fs.writeFileSync(O+'/continuity-diagnostic.json',JSON.stringify(d,null,2));console.log(JSON.stringify(d,null,2));
+          }finally{await br.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          NODE_PATH="$PWD/node_modules" node "$OUT/diag.cjs"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-r111-continuity-diagnostic
+          path: /tmp/r111diag
+          retention-days: 7

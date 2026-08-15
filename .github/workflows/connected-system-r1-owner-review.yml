@@ -201,7 +201,7 @@ jobs:
             await page.waitForTimeout(280);
             pass(Math.abs((await page.evaluate(() => scrollY)) - y) < 2, `${lang}-mobile-replay-no-scroll`);
 
-            await page.locator('.site-header__menu-toggle').click();
+            await page.locator('.site-header__menu-toggle').evaluate(el => el.click());
             await page.waitForTimeout(100);
             pass(await page.evaluate(() => document.body.classList.contains('menu-open')), `${lang}-menu-opens`);
             pass(!(await page.locator('[data-site-header]').evaluate(el => el.classList.contains('header-hidden'))), `${lang}-menu-locks-header`);

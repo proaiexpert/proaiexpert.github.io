@@ -1,0 +1,153 @@
+name: ProAI Header Auto-Hide Owner Live
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-autohide-owner-live.yml]
+permissions:
+  contents: read
+jobs:
+  owner-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 250
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify product and production locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=5279084dde5f17c0193bc533f9dc67b45893ee8d
+          PRODUCT=20a36a5246ac2fb4507c69858289fc55d0f4a977
+          MAIN=c945084e1952c05c686494091f7dbca0f7acdf08
+          git merge-base --is-ancestor "$PRODUCT" HEAD
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN"
+          test "$(git diff --name-only "$BASE" "$PRODUCT")" = "assets/js/header-system-v1.js"
+          git diff --quiet "$BASE" "$PRODUCT" -- assets/brand/proai-logo-r341 _includes/header-system/header.html assets/css/header-footer-logo-r1.css assets/js/header-footer-logo-r1.js assets/css/homepage-hero-signature-r3.css _includes/footer-commercial-v1.html
+      - name: Build site
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/header-autohide-http.log 2>&1 &
+      - name: Browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          mkdir -p /tmp/header-autohide-qa
+          cd /tmp/header-autohide-qa
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core@24 --silent
+          cat > qa.cjs <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          const assert=(condition,message)=>{if(!condition)throw new Error(message)};
+          const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+          const base='http://127.0.0.1:8080';
+          const chrome=process.env.CHROME_BIN;
+          const state=page=>page.$eval('[data-site-header]',el=>({hidden:el.classList.contains('header-hidden'),scrolled:el.classList.contains('is-scrolled'),top:el.getBoundingClientRect().top,bottom:el.getBoundingClientRect().bottom,transform:getComputedStyle(el).transform}));
+          const noOverflow=page=>page.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+1);
+          async function scrollSteps(page,from,to,step){
+            const dir=to>=from?1:-1;
+            for(let y=from;dir>0?y<=to:y>=to;y+=Math.abs(step)*dir){await page.evaluate(v=>scrollTo(0,v),y);await sleep(24)}
+            await sleep(330);
+          }
+          async function mobile(path,width,height){
+            const page=await browser.newPage();
+            await page.setViewport({width,height,deviceScaleFactor:1});
+            await page.goto(base+path,{waitUntil:'networkidle0'});
+            await page.waitForSelector('[data-site-header]');
+            await page.evaluate(()=>scrollTo(0,0));await sleep(150);
+            let s=await state(page);assert(!s.hidden&&s.top>=-1,`${path} ${width}x${height}: header not visible at top`);
+            assert(await noOverflow(page),`${path} ${width}x${height}: horizontal overflow`);
+            await scrollSteps(page,0,520,28);
+            s=await state(page);assert(s.hidden&&s.bottom<=3,`${path} ${width}x${height}: down-scroll did not hide`);
+            await scrollSteps(page,520,390,26);
+            s=await state(page);assert(!s.hidden&&s.bottom>20,`${path} ${width}x${height}: up-scroll did not reveal`);
+            const toggle=await page.$('.site-header__menu-toggle');assert(toggle,`${path}: menu toggle missing`);
+            await toggle.click();await sleep(120);
+            s=await state(page);assert(!s.hidden,`${path}: menu open allowed hidden header`);
+            assert(await page.$eval('.site-header__menu-toggle',el=>el.getAttribute('aria-expanded'))==='true',`${path}: menu not open`);
+            await toggle.click();await sleep(120);
+            assert(await page.$eval('.site-header__menu-toggle',el=>el.getAttribute('aria-expanded'))==='false',`${path}: menu not closed`);
+            await scrollSteps(page,390,620,28);
+            s=await state(page);assert(s.hidden,`${path}: lifecycle did not resume after menu close`);
+            await page.goto(base+path,{waitUntil:'networkidle0'});await sleep(120);
+            s=await state(page);assert(!s.hidden,`${path}: stale hidden state after reload`);
+            await page.close();
+          }
+          async function languageSwitch(){
+            const page=await browser.newPage();
+            await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+            await page.goto(base+'/',{waitUntil:'networkidle0'});
+            await page.click('.site-header__locale');
+            await page.waitForFunction(()=>location.pathname.startsWith('/ru/'));
+            await sleep(150);
+            let s=await state(page);assert(!s.hidden,'EN→RU arrived hidden');
+            await page.click('.site-header__locale');
+            await page.waitForFunction(()=>location.pathname==='/');
+            await sleep(150);
+            s=await state(page);assert(!s.hidden,'RU→EN arrived hidden');
+            await page.close();
+          }
+          async function desktop(){
+            const page=await browser.newPage();
+            await page.setViewport({width:1440,height:900,deviceScaleFactor:1});
+            await page.goto(base+'/',{waitUntil:'networkidle0'});
+            await scrollSteps(page,0,720,40);
+            const s=await state(page);assert(!s.hidden,'desktop header auto-hide regression');
+            assert(await noOverflow(page),'desktop horizontal overflow');
+            await page.close();
+          }
+          let browser;
+          (async()=>{
+            browser=await puppeteer.launch({headless:true,executablePath:chrome,args:['--no-sandbox','--disable-dev-shm-usage']});
+            await mobile('/',390,844);
+            await mobile('/ru/',390,844);
+            await mobile('/',350,780);
+            await mobile('/',844,390);
+            await languageSwitch();
+            await desktop();
+            console.log('HEADER_AUTOHIDE_BROWSER_QA_PASS');
+            await browser.close();
+          })().catch(async e=>{console.error(e);if(browser)await browser.close();process.exit(1)});
+          NODE
+          CHROME_BIN="$CHROME_BIN" node qa.cjs
+      - name: Publish owner preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/header-autohide-live
+          mkdir -p "$OUT"
+          curl -fsSL --retry 3 --retry-delay 2 -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >"$OUT/cloudflared.log" 2>&1 &
+          BASE=""
+          for i in $(seq 1 60); do
+            BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' "$OUT/cloudflared.log" | tail -1 || true)"
+            [ -n "$BASE" ] && break
+            sleep 2
+          done
+          test -n "$BASE"
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 15 "$BASE/" >/dev/null 2>&1; then break; fi
+            [ "$i" -eq 30 ] && exit 1
+            sleep 3
+          done
+          for P in / /ru/ /assets/js/header-system-v1.js '/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled'; do curl -fsS --retry 3 --max-time 20 "$BASE$P" >/dev/null; done
+          printf 'EN\n%s/\nRU\n%s/ru/\nEXPECTED LIFETIME\n4 hours from keepalive start\n' "$BASE" "$BASE" | tee "$OUT/OWNER_URLS.txt"
+          printf '%s\n' "$BASE" > "$OUT/PUBLIC_BASE_URL.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-autohide-owner-live
+          path: /tmp/header-autohide-live
+          retention-days: 3
+      - name: Keep owner preview alive
+        shell: bash
+        run: sleep 14400

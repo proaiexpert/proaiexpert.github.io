@@ -48,8 +48,8 @@ const checks={
   noTearing:(dyn.unsafeProtectedStarts||0)===0&&(dyn.assemblyViolations||0)===0,
   noFlash:(life.shortReadableCount||0)===0&&readable.every(x=>x>=.6),
   dispersalPass:latencies.length>=Math.max(1,releases.length-1)&&latencies.every(x=>x>=.20&&x<=2.0)&&targetHits/Math.max(1,latencies.length)>=.60,
-  cadencePass:intervals.length>=3&&Math.min(...intervals)>=3.2&&median(intervals)>=4&&median(intervals)<=9.5&&Math.max(...intervals)<=18,
-  firstDiscoveryPass:events.length>0&&events[0].timestampSec>=2.5&&events[0].timestampSec<=8.0,
+  cadencePass:intervals.length>=3&&Math.min(...intervals)>=4.0&&Math.max(...intervals)<=15.0,
+  firstDiscoveryPass:events.length>0&&events[0].timestampSec>=3.0&&events[0].timestampSec<=6.0,
   diversityPass:['X','Y','Z'].every(k=>axisCounts[k]>0)&&['-1','0','1'].every(k=>layerCounts[k]>0)&&maxAxisShare<=.62,
   facePass:faces.length>=2,
 };

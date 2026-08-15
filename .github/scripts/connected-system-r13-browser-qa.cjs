@@ -14,11 +14,34 @@ async function gotoReview(page, url) {
   await page.waitForTimeout(350);
 }
 
-async function activeIndex(page) {
-  return page.locator('[data-system-stage]').evaluateAll(nodes => nodes.findIndex(n => n.classList.contains('is-active')));
+async function installStageRecorder(page) {
+  await page.evaluate(() => {
+    window.__r13_seen = [];
+    window.__r13_obs?.disconnect?.();
+    const stages = [...document.querySelectorAll('[data-system-stage]')];
+    const record = () => {
+      stages.forEach((stage, index) => {
+        if (stage.classList.contains('is-active') && !window.__r13_seen.includes(index)) window.__r13_seen.push(index);
+      });
+    };
+    window.__r13_obs = new MutationObserver(record);
+    stages.forEach(stage => window.__r13_obs.observe(stage, { attributes: true, attributeFilter: ['class'] }));
+    record();
+  });
 }
 
-async function waitActive(page, index, name, timeout = 5000) {
+async function waitBalanced(page, name, timeout = 6500) {
+  try {
+    await page.waitForFunction(() => {
+      const stages = [...document.querySelectorAll('[data-system-stage]')];
+      return stages.length === 4 && stages.every(s => s.classList.contains('is-balanced'));
+    }, null, { timeout });
+  } catch (_) {
+    failures.push(name);
+  }
+}
+
+async function waitActive(page, index, name, timeout = 4000) {
   try {
     await page.waitForFunction(expected => {
       const nodes = [...document.querySelectorAll('[data-system-stage]')];
@@ -40,6 +63,10 @@ async function waitHeader(page, hidden, name, timeout = 2500) {
   }
 }
 
+function correctOrder(seen) {
+  return seen.length >= 4 && seen[0] === 0 && seen[1] === 1 && seen[2] === 2 && seen[3] === 3;
+}
+
 async function desktopCheck(browser, url, label) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   if (url.includes('raw.githack.com')) {
@@ -50,16 +77,19 @@ async function desktopCheck(browser, url, label) {
   pass(await page.locator('[data-system-stage]').count() === 4, `${label}-stage-count`);
   pass(await page.locator('.cs-light-carriage').count() === 1, `${label}-light-carriage`);
 
-  await page.locator('[data-connected-system]').scrollIntoViewIfNeeded();
-  await waitActive(page, 2, `${label}-entry-response-active`, 5500);
+  await installStageRecorder(page);
+  await page.locator('[data-connected-system]').evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+  await waitBalanced(page, `${label}-entry-balanced`);
+  let seen = await page.evaluate(() => window.__r13_seen || []);
+  pass(correctOrder(seen), `${label}-entry-sequence-order`);
 
   const before = page.url();
+  await installStageRecorder(page);
   await page.locator('[data-replay-system]').evaluate(el => el.click());
-  try {
-    await page.waitForFunction(() => ![...document.querySelectorAll('[data-system-stage]')].some(n => n.classList.contains('is-active')), null, { timeout: 1000 });
-  } catch (_) {}
   pass(page.url() === before, `${label}-replay-no-reload`);
-  await waitActive(page, 2, `${label}-replay-response-active`, 4500);
+  await waitBalanced(page, `${label}-replay-balanced`, 6000);
+  seen = await page.evaluate(() => window.__r13_seen || []);
+  pass(correctOrder(seen), `${label}-replay-sequence-order`);
 
   await page.evaluate(() => scrollTo(0, 0));
   await page.waitForTimeout(3500);
@@ -77,18 +107,16 @@ async function mobileCheck(browser, url, label) {
   await gotoReview(page, url);
 
   const scrollStage = async index => {
-    await page.locator('[data-system-stage]').nth(index).evaluate(el => {
-      const r = el.getBoundingClientRect();
-      scrollTo({ top: scrollY + r.top + r.height / 2 - innerHeight * .565, behavior: 'instant' });
-    });
+    await page.locator('[data-system-stage]').nth(index).evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(80);
   };
 
   await scrollStage(2);
-  await waitActive(page, 2, `${label}-response-active`, 3500);
+  await waitActive(page, 2, `${label}-response-active`, 4000);
   await waitHeader(page, true, `${label}-header-down-hidden`, 2500);
 
   await scrollStage(1);
-  await waitActive(page, 1, `${label}-reverse-inquiry`, 3500);
+  await waitActive(page, 1, `${label}-reverse-inquiry`, 4000);
   await waitHeader(page, false, `${label}-header-up-visible`, 2500);
 
   const y = await page.evaluate(() => scrollY);
@@ -111,8 +139,7 @@ async function mobileCheck(browser, url, label) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(350);
   pass(await page.locator('[data-system-stage].is-active').count() <= 1, `${label}-orientation-single-active`);
-  pass((await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)), `${label}-no-horizontal-overflow`);
-
+  pass(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `${label}-no-horizontal-overflow`);
   await context.close();
 }
 

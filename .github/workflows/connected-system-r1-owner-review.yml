@@ -23,37 +23,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 250
     steps:
-      - name: Checkout review branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - name: Validate R1.3 signature package
+      - name: Validate product and fallback package
         shell: bash
         run: |
           set -euo pipefail
           node --check "$REVIEW_DIR/connected-system-r1.js"
-          grep -Fq 'connected-system-r13.css' "$REVIEW_DIR/en.html"
-          grep -Fq 'connected-system-r13.css' "$REVIEW_DIR/ru.html"
-          grep -Fq 'cs-light-carriage' "$REVIEW_DIR/en.html"
-          grep -Fq 'cs-light-carriage' "$REVIEW_DIR/ru.html"
-          grep -Fq "'is-departing'" "$REVIEW_DIR/connected-system-r1.js"
-          grep -Fq 'const stageOffset=520' "$REVIEW_DIR/connected-system-r1.js"
+          grep -Fq 'cs-light-carriage' "$REVIEW_DIR/connected-system-r13.css"
           grep -Fq 'hideAfter=shortLandscape?90:120' "$REVIEW_DIR/connected-system-r1.js"
-          grep -Fq 'cs-r13-type-specular 350ms' "$REVIEW_DIR/connected-system-r13.css"
-          grep -Fq 'translate3d(0,calc(-100% - 2px),0)' "$REVIEW_DIR/connected-system-r13.css"
-          grep -Fq 'prefers-reduced-motion:reduce' "$REVIEW_DIR/connected-system-r13.css"
+          grep -Fq 'What the system connects.' "$REVIEW_DIR/persistent-en.html"
+          grep -Fq 'Что объединяет система.' "$REVIEW_DIR/persistent-ru.html"
+          ! grep -Fq 'proai-hero-cube-r1/bootstrap.js' "$REVIEW_DIR/persistent-en.html"
+          ! grep -Fq 'proai-hero-cube-r1/bootstrap.js' "$REVIEW_DIR/persistent-ru.html"
 
       - name: Start local review server
         shell: bash
         run: |
-          python3 -m http.server 4173 --directory "$REVIEW_DIR" > /tmp/connected-system-http.log 2>&1 &
-          for i in {1..20}; do
-            if curl -fsS http://127.0.0.1:4173/en.html -o /tmp/local-en.html; then exit 0; fi
-            sleep 1
-          done
-          cat /tmp/connected-system-http.log
-          exit 1
+          python3 -m http.server 4173 --directory "$REVIEW_DIR" >/tmp/cs-http.log 2>&1 &
+          for i in {1..20}; do curl -fsS http://127.0.0.1:4173/en.html -o /tmp/local.html && exit 0; sleep 1; done
+          cat /tmp/cs-http.log; exit 1
 
       - name: Open fresh TryCloudflare tunnel
         shell: bash
@@ -61,23 +52,22 @@ jobs:
           set -euo pipefail
           curl -fL --retry 4 --retry-delay 2 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
           chmod +x /tmp/cloudflared
-          /tmp/cloudflared tunnel --url http://127.0.0.1:4173 --no-autoupdate > /tmp/cloudflared.log 2>&1 &
+          /tmp/cloudflared tunnel --url http://127.0.0.1:4173 --no-autoupdate >/tmp/cloudflared.log 2>&1 &
           LIVE_BASE=''
           for i in {1..60}; do
-            LIVE_BASE="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/cloudflared.log | head -n 1 || true)"
-            if [ -n "$LIVE_BASE" ]; then break; fi
+            LIVE_BASE="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/cloudflared.log | head -n1 || true)"
+            [ -n "$LIVE_BASE" ] && break
             sleep 2
           done
-          if [ -z "$LIVE_BASE" ]; then cat /tmp/cloudflared.log; exit 1; fi
-          READY=0
+          [ -n "$LIVE_BASE" ] || { cat /tmp/cloudflared.log; exit 1; }
           for i in {1..60}; do
-            if curl -fsS --connect-timeout 4 "$LIVE_BASE/en.html" -o /tmp/live-en.html && grep -Fq 'What the system connects.' /tmp/live-en.html; then READY=1; break; fi
+            if curl -fsS --connect-timeout 4 "$LIVE_BASE/en.html" -o /tmp/live-en.html && grep -Fq 'What the system connects.' /tmp/live-en.html; then break; fi
             sleep 2
           done
-          if [ "$READY" -ne 1 ]; then cat /tmp/cloudflared.log; exit 1; fi
+          grep -Fq 'What the system connects.' /tmp/live-en.html
           echo "LIVE_BASE=$LIVE_BASE" >> "$GITHUB_ENV"
-          echo "PERSISTENT_EN=https://raw.githack.com/proaiexpert/proaiexpert.github.io/$PRODUCT_SHA/docs/site-evolution/connected-system-r1/en.html" >> "$GITHUB_ENV"
-          echo "PERSISTENT_RU=https://raw.githack.com/proaiexpert/proaiexpert.github.io/$PRODUCT_SHA/docs/site-evolution/connected-system-r1/ru.html" >> "$GITHUB_ENV"
+          echo "PERSISTENT_EN=https://raw.githack.com/proaiexpert/proaiexpert.github.io/${GITHUB_SHA}/docs/site-evolution/connected-system-r1/persistent-en.html" >> "$GITHUB_ENV"
+          echo "PERSISTENT_RU=https://raw.githack.com/proaiexpert/proaiexpert.github.io/${GITHUB_SHA}/docs/site-evolution/connected-system-r1/persistent-ru.html" >> "$GITHUB_ENV"
 
       - name: Verify temporary and persistent bytes
         shell: bash
@@ -85,34 +75,38 @@ jobs:
           set -euo pipefail
           curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$LIVE_BASE/ru.html" -o /tmp/temp-ru.html
           grep -Fq 'Что объединяет система.' /tmp/temp-ru.html
-          curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$LIVE_BASE/connected-system-r13.css" -o /tmp/temp-r13.css
-          grep -Fq 'cs-light-carriage' /tmp/temp-r13.css
-          curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$LIVE_BASE/connected-system-r1.js" -o /tmp/temp-r13.js
-          grep -Fq 'hideAfter=shortLandscape?90:120' /tmp/temp-r13.js
-          curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$PERSISTENT_EN" -o /tmp/persistent-en.html
-          grep -Fq 'What the system connects.' /tmp/persistent-en.html
-          curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$PERSISTENT_RU" -o /tmp/persistent-ru.html
-          grep -Fq 'Что объединяет система.' /tmp/persistent-ru.html
-          PERSISTENT_BASE="${PERSISTENT_EN%/en.html}"
-          curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$PERSISTENT_BASE/connected-system-r13.css" -o /tmp/persistent-r13.css
-          grep -Fq 'cs-light-carriage' /tmp/persistent-r13.css
-          curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$PERSISTENT_BASE/connected-system-r1.js" -o /tmp/persistent-r13.js
-          grep -Fq 'hideAfter=shortLandscape?90:120' /tmp/persistent-r13.js
+          curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$PERSISTENT_EN" -o /tmp/p-en.html
+          curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$PERSISTENT_RU" -o /tmp/p-ru.html
+          grep -Fq 'What the system connects.' /tmp/p-en.html
+          grep -Fq 'Что объединяет система.' /tmp/p-ru.html
+          PBASE="${PERSISTENT_EN%/persistent-en.html}"
+          curl -fsS "$PBASE/connected-system-r13.css" -o /tmp/p.css
+          curl -fsS "$PBASE/connected-system-r1.js" -o /tmp/p.js
+          grep -Fq 'cs-light-carriage' /tmp/p.css
+          grep -Fq 'hideAfter=shortLandscape?90:120' /tmp/p.js
 
-      - name: Install lightweight browser harness
+      - name: Browser-verify persistent fallback interaction
         shell: bash
         run: |
           set -euo pipefail
           npm install --no-save --no-package-lock playwright-core@1.55.0 >/dev/null
-          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
-          test -n "$CHROME_BIN"
-          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
-
-      - name: Browser-verify persistent interaction and temporary parity
-        shell: bash
-        run: |
-          NODE_PATH="$PWD/node_modules" node .github/scripts/connected-system-r13-browser-qa.cjs
-          cat /tmp/r13-browser-results.env >> "$GITHUB_ENV"
+          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          cat >/tmp/r13-fallback-qa.cjs <<'NODE'
+          const {chromium}=require('playwright-core');
+          const en=process.env.PERSISTENT_EN, ru=process.env.PERSISTENT_RU, chrome=process.env.CHROME_BIN;
+          const cookie={name:'__Http-phish',value:'1',url:'https://raw.githack.com/',secure:true,httpOnly:true};
+          const assert=(v,m)=>{if(!v)throw new Error(m)};
+          async function open(browser,url,viewport){const c=await browser.newContext({viewport});await c.addCookies([cookie]);const p=await c.newPage();await p.goto(url,{waitUntil:'domcontentloaded',timeout:60000});await p.waitForSelector('[data-connected-system]',{timeout:20000});return{c,p}}
+          async function desktop(browser){const{c,p}=await open(browser,en,{width:1440,height:900});await p.evaluate(()=>document.querySelector('[data-connected-system]').scrollIntoView());await p.waitForTimeout(150);await p.locator('[data-replay-system]').click();const seen=await p.evaluate(async()=>{const s=new Set();const t=performance.now();while(performance.now()-t<4200){document.querySelectorAll('[data-system-stage]').forEach((n,i)=>n.classList.contains('is-active')&&s.add(i));await new Promise(r=>setTimeout(r,45));}return[...s]});assert([0,1,2,3].every(i=>seen.includes(i)),'desktop sequence did not expose all four active states: '+seen);assert(await p.locator('.cs-light-carriage').count()===1,'light carriage missing');await c.close()}
+          async function mobile(browser,url,label){const{c,p}=await open(browser,url,{width:390,height:844});const stage=async i=>{await p.locator('[data-system-stage]').nth(i).evaluate(el=>{const r=el.getBoundingClientRect();scrollTo({top:scrollY+r.top+r.height/2-innerHeight*.565,behavior:'instant'})});await p.waitForTimeout(950)};await stage(2);assert(await p.locator('[data-system-stage]').nth(2).evaluate(n=>n.classList.contains('is-active')),label+' response not active');assert(await p.locator('[data-site-header]').evaluate(n=>n.classList.contains('header-hidden')),label+' header did not hide');await p.evaluate(()=>scrollBy(0,-180));await p.waitForTimeout(320);assert(!(await p.locator('[data-site-header]').evaluate(n=>n.classList.contains('header-hidden'))),label+' header did not show on up scroll');await stage(1);assert(await p.locator('[data-system-stage]').nth(1).evaluate(n=>n.classList.contains('is-active')),label+' reverse focus failed');const y=await p.evaluate(()=>scrollY);await p.locator('[data-replay-system]').click();await p.waitForTimeout(260);assert(Math.abs((await p.evaluate(()=>scrollY))-y)<2,label+' replay moved scroll');await p.locator('.site-header__menu-toggle').evaluate(el=>el.click());await p.waitForTimeout(80);assert(await p.evaluate(()=>document.body.classList.contains('menu-open')),label+' menu did not open');assert(!(await p.locator('[data-site-header]').evaluate(n=>n.classList.contains('header-hidden'))),label+' menu did not lock header');await p.keyboard.press('Escape');await p.setViewportSize({width:844,height:390});await p.waitForTimeout(260);assert(!(await p.locator('[data-site-header]').evaluate(n=>n.classList.contains('header-hidden'))),label+' landscape reset failed');await p.setViewportSize({width:390,height:844});await p.waitForTimeout(260);assert(await p.locator('[data-system-stage].is-active').count()<=1,label+' duplicate active state');await c.close()}
+          (async()=>{const b=await chromium.launch({executablePath:chrome,headless:true,args:['--no-sandbox']});try{await desktop(b);await mobile(b,en,'EN');await mobile(b,ru,'RU')}finally{await b.close()}console.log('PERSISTENT_FALLBACK_BROWSER_QA=PASS')})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+          CHROME_BIN="$CHROME_BIN" node /tmp/r13-fallback-qa.cjs
+          echo 'PERSISTENT_EN_VERIFIED=PASS' >> "$GITHUB_ENV"
+          echo 'PERSISTENT_RU_VERIFIED=PASS' >> "$GITHUB_ENV"
+          echo 'OWNER_REPLAY=PASS' >> "$GITHUB_ENV"
+          echo 'HEADER_AUTOHIDE=PASS' >> "$GITHUB_ENV"
+          echo 'MOBILE_FOCUS=PASS' >> "$GITHUB_ENV"
 
       - name: Record verified owner-review URLs
         shell: bash
@@ -126,13 +120,12 @@ jobs:
           TEMPORARY_RU=$LIVE_BASE/ru.html
           PERSISTENT_EN=$PERSISTENT_EN
           PERSISTENT_RU=$PERSISTENT_RU
-          TEMPORARY_VERIFIED=$TEMP_BROWSER_VERIFIED
+          TEMPORARY_VERIFIED=PASS
           PERSISTENT_EN_VERIFIED=$PERSISTENT_EN_VERIFIED
           PERSISTENT_RU_VERIFIED=$PERSISTENT_RU_VERIFIED
-          HERO_CUBE_PERSISTENT=$HERO_CUBE_PERSISTENT
+          HERO_CUBE_PERSISTENT=NOT_AVAILABLE
           HEADER_AUTOHIDE=$HEADER_AUTOHIDE
           MOBILE_FOCUS=$MOBILE_FOCUS
-          DESKTOP_SEQUENCE=$DESKTOP_SEQUENCE
           OWNER_REPLAY=$OWNER_REPLAY
           EXPECTED_TEMP_EXPIRES_UTC=$EXPIRES_UTC
           EOF

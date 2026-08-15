@@ -1,0 +1,130 @@
+name: ProAI Connected System Premium Polish R1 Owner Review Retry
+on:
+  push:
+    branches: [agent/proai-connected-system-premium-polish-r1]
+    paths: [.github/workflows/proai-connected-system-premium-polish-r1-owner-review2.yml]
+permissions:
+  contents: read
+jobs:
+  owner-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 190
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify frozen scope and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT=4e8b12e040f1024e8ece5185a8ea02e6bd8d0981
+          BASE=0c0613cd40d0f396d9dbf05bf2f8a61658ff4ae0
+          ORIGINAL_HEAD=291663b21437b154d8c2f62f72cc05ab62728c07
+          MAIN=c945084e1952c05c686494091f7dbca0f7acdf08
+          test "$(git rev-parse ${PRODUCT}^)" = "$BASE"
+          test "$(git diff --name-only "$BASE" "$PRODUCT")" = 'assets/js/homepage-connected-system-r13.js'
+          test "$(git ls-remote origin refs/heads/agent/proai-home-assembly-r1 | cut -f1)" = "$ORIGINAL_HEAD"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN"
+          if git diff --name-only "$PRODUCT" HEAD | grep -Ev '^\.github/workflows/' | grep -q .; then exit 1; fi
+          node --check assets/js/homepage-connected-system-r13.js
+          grep -q 'const firstActive=760;' assets/js/homepage-connected-system-r13.js
+          grep -q 'const stageOffset=1900;' assets/js/homepage-connected-system-r13.js
+          grep -q 'const transferDuration=620;' assets/js/homepage-connected-system-r13.js
+          ! grep -Eq "addEventListener\(['\"](wheel|mousewheel)['\"]" assets/js/homepage-connected-system-r13.js
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          test "$(grep -o 'data-connected-system' _site/index.html | wc -l)" -eq 1
+          test "$(grep -o 'data-connected-system' _site/ru/index.html | wc -l)" -eq 1
+          grep -q 'proai-hero-cube-mount' _site/index.html
+          grep -q 'proai-hero-cube-mount' _site/ru/index.html
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/cs-polish-http.log 2>&1 &
+
+      - name: Bounded browser QA attempt 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          OUT=/tmp/cs-polish-review
+          WORK=/tmp/cs-polish-browser
+          mkdir -p "$OUT" "$WORK"
+          cd "$WORK"
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core@24 --silent
+          cat > qa.cjs <<'NODE'
+          const fs=require('fs');
+          const puppeteer=require('puppeteer-core');
+          const base='http://127.0.0.1:8080', out='/tmp/cs-polish-review';
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          const fail=m=>{throw new Error(m)};
+          let browser;
+          const results={timing:null,hoverOverride:null,focusOverride:null,scrollAway:null,wheel:null,mobile:{},reducedMotion:null,responsive:{},accessibility:null,header:null};
+          async function pageAt(path='/',w=1366,h=768,{reduced=false}={}){
+            const p=await browser.newPage();
+            await p.setViewport({width:w,height:h,deviceScaleFactor:1});
+            if(reduced)await p.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);
+            await p.setRequestInterception(true);
+            p.on('request',req=>{const u=req.url();if(u.includes('/assets/models/')||u.includes('/assets/vendor/three-r180/')||u.includes('/assets/js/proai-hero-cube-r1/')||u.includes('/assets/brand/proai-logo-r341/live.html'))req.abort();else req.continue();});
+            await p.goto(base+path,{waitUntil:'domcontentloaded',timeout:12000});
+            await p.waitForSelector('[data-connected-system]',{timeout:5000}); await sleep(120); return p;
+          }
+          const center=async p=>{await p.$eval('[data-connected-system]',e=>e.scrollIntoView({block:'center'}));await sleep(80)};
+          const state=async p=>p.evaluate(()=>[...document.querySelectorAll('[data-system-stage]')].map((s,i)=>({i,active:s.classList.contains('is-active'),balanced:s.classList.contains('is-balanced')})));
+          const activeIndex=async p=>p.evaluate(()=>[...document.querySelectorAll('[data-system-stage]')].findIndex(s=>s.classList.contains('is-active')));
+
+          async function timing(){
+            const p=await pageAt(); if((await state(p)).some(s=>s.active))fail('sequence began before section entry');
+            await p.evaluate(()=>{window.__csEvents=[];const stages=[...document.querySelectorAll('[data-system-stage]')],section=document.querySelector('[data-connected-system]');window.__csStart=performance.now();const obs=new MutationObserver(()=>{const t=performance.now()-window.__csStart;stages.forEach((s,i)=>{if(s.classList.contains('is-active')&&!window.__csEvents.some(e=>e.type==='active'&&e.i===i))window.__csEvents.push({type:'active',i,t})});if(stages.every(s=>s.classList.contains('is-balanced'))&&!window.__csEvents.some(e=>e.type==='balanced'))window.__csEvents.push({type:'balanced',t})});obs.observe(section,{subtree:true,attributes:true,attributeFilter:['class']});window.__csObs=obs});
+            await center(p); await sleep(7900);
+            const events=await p.evaluate(()=>window.__csEvents), active=events.filter(e=>e.type==='active').sort((a,b)=>a.t-b.t), balanced=events.find(e=>e.type==='balanced'), gaps=active.slice(1).map((e,i)=>e.t-active[i].t);
+            const pass=active.length===4&&active.map(e=>e.i).join(',')==='0,1,2,3'&&active[0].t>=500&&active[0].t<=1150&&gaps.every(g=>g>=1650&&g<=2200)&&balanced&&balanced.t>=6800&&balanced.t<=8200;
+            results.timing={events,firstDelay:active[0]?.t||null,gaps,balancedAt:balanced?.t||null,pass}; if(!pass)fail('timing '+JSON.stringify(results.timing));
+            const n=active.length; await p.evaluate(()=>scrollTo(0,0));await sleep(250);await center(p);await sleep(2700);const after=await p.evaluate(()=>window.__csEvents.filter(e=>e.type==='active').length);if(after!==n)fail('autoplay repeated');
+            await p.evaluate(()=>window.__csObs?.disconnect()); await p.close();
+          }
+          async function hoverOverride(){const p=await pageAt();await center(p);await sleep(1100);await p.hover('[data-system-stage]:nth-child(3)');await sleep(720);const a=await activeIndex(p);await sleep(2500);const b=await activeIndex(p);await p.mouse.move(5,5);await sleep(260);const bal=(await state(p)).every(s=>s.balanced);await sleep(2300);const later=(await state(p)).every(s=>s.balanced);results.hoverOverride={active:a,still:b,balanced:bal,balancedLater:later,pass:a===2&&b===2&&bal&&later};if(!results.hoverOverride.pass)fail('hover '+JSON.stringify(results.hoverOverride));await p.close()}
+          async function focusOverride(){const p=await pageAt();await center(p);await sleep(430);await p.$eval('[data-system-stage]:nth-child(2)',e=>e.focus());await sleep(720);const a=await activeIndex(p);await p.evaluate(()=>document.activeElement?.blur());await sleep(260);const bal=(await state(p)).every(s=>s.balanced);await sleep(2300);const later=(await state(p)).every(s=>s.balanced);results.focusOverride={active:a,balanced:bal,balancedLater:later,pass:a===1&&bal&&later};if(!results.focusOverride.pass)fail('focus '+JSON.stringify(results.focusOverride));await p.close()}
+          async function scrollAway(){const p=await pageAt();await center(p);await sleep(1150);await p.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));await sleep(520);const bal=(await state(p)).every(s=>s.balanced);await center(p);await sleep(2800);const replay=(await state(p)).some(s=>s.active);results.scrollAway={offscreenBalanced:bal,replayActive:replay,pass:bal&&!replay};if(!results.scrollAway.pass)fail('scrollAway '+JSON.stringify(results.scrollAway));await p.close()}
+          async function wheel(){const p=await pageAt();await center(p);await sleep(7800);const y0=await p.evaluate(()=>scrollY),s0=await state(p);await p.mouse.wheel({deltaY:420});await sleep(260);const y1=await p.evaluate(()=>scrollY),s1=await state(p);results.wheel={scrollDelta:y1-y0,balanced0:s0.every(s=>s.balanced),balanced1:s1.every(s=>s.balanced)};results.wheel.pass=results.wheel.scrollDelta>120&&results.wheel.balanced0&&results.wheel.balanced1;if(!results.wheel.pass)fail('wheel '+JSON.stringify(results.wheel));await p.close()}
+          async function mobileCase(w,h,label,sequence){const p=await pageAt('/',w,h);const select=async i=>{await p.evaluate(i=>{const s=document.querySelectorAll('[data-system-stage]')[i],r=s.getBoundingClientRect();scrollTo(0,scrollY+r.top+r.height/2-innerHeight*.565)},i);await sleep(760);return activeIndex(p)};const seen=[];for(const i of sequence)seen.push(await select(i));const stable0=await activeIndex(p);await sleep(2300);const stable1=await activeIndex(p),overflow=await p.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);const pass=seen.join(',')===sequence.join(',')&&stable0===stable1&&overflow<=1;results.mobile[label]={seen,stable0,stable1,overflow,pass};if(!pass)fail('mobile '+label+' '+JSON.stringify(results.mobile[label]));await p.close()}
+          async function reduced(){const p=await pageAt('/',1366,768,{reduced:true});await center(p);await sleep(2500);const r=await p.evaluate(()=>({balanced:[...document.querySelectorAll('[data-system-stage]')].every(s=>s.classList.contains('is-balanced')),active:[...document.querySelectorAll('[data-system-stage]')].some(s=>s.classList.contains('is-active')),motionReady:document.querySelector('[data-connected-system]').classList.contains('cs-motion-ready'),animations:[...document.querySelectorAll('.cs-spine-catch,.cs-light-carriage,.cs-ambient-catch')].reduce((n,e)=>n+e.getAnimations().length,0)}));r.pass=r.balanced&&!r.active&&!r.motionReady&&r.animations===0;results.reducedMotion=r;if(!r.pass)fail('reduced '+JSON.stringify(r));await p.close()}
+          async function responsive(path,w,h,label){const p=await pageAt(path,w,h);const r=await p.evaluate(()=>{const rect=e=>{const x=e.getBoundingClientRect();return{left:x.left,right:x.right,top:x.top,bottom:x.bottom,width:x.width,height:x.height}};const hero=document.querySelector('#hero'),cs=document.querySelector('[data-connected-system]'),cube=document.querySelector('#hero .proai-hero-object-region'),buttons=[...document.querySelectorAll('#hero .proai-hero-cta')].map(rect),stages=[...document.querySelectorAll('[data-system-stage]')].map(rect),hr=rect(hero),cr=rect(cs);return{overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,hero:hr,cs:cr,cube:rect(cube),buttons,stages,gap:cr.top-hr.bottom,header:!!document.querySelector('[data-site-header]')}});const buttonsOk=r.buttons.length===2&&r.buttons.every(b=>b.left>=-2&&b.right<=w+2&&b.width>40),stagesOk=r.stages.length===4&&r.stages.every(s=>s.left>=-4&&s.right<=w+4&&s.width>70);r.pass=r.overflow<=1&&r.header&&r.hero.height>300&&r.cs.height>250&&r.cube.left>=-8&&r.cube.right<=w+8&&buttonsOk&&stagesOk&&r.gap>=-3&&r.gap<=8;results.responsive[label]=r;if(!r.pass)fail('responsive '+label+' '+JSON.stringify(r));await p.close()}
+          async function accessibility(){const p=await pageAt();const r=await p.evaluate(()=>({h3:document.querySelectorAll('[data-system-stage] h3').length,specular:document.querySelectorAll('.cs-type-specular').length,hidden:[...document.querySelectorAll('.cs-type-specular')].every(e=>e.getAttribute('aria-hidden')==='true'),overlay:[...document.querySelectorAll('.cs-type-specular')].every(e=>getComputedStyle(e).position==='absolute'),focusable:[...document.querySelectorAll('[data-system-stage]')].every(e=>e.tabIndex===0)}));r.pass=r.h3===4&&r.specular===4&&r.hidden&&r.overlay&&r.focusable;results.accessibility=r;if(!r.pass)fail('a11y '+JSON.stringify(r));await p.close()}
+          async function headerSanity(){const p=await pageAt('/',430,932);const hidden=()=>p.$eval('[data-site-header]',e=>e.classList.contains('header-hidden'));await center(p);await sleep(250);await p.evaluate(()=>scrollBy(0,260));await sleep(330);const down=await hidden();await p.evaluate(()=>scrollBy(0,-180));await sleep(330);const up=!(await hidden());await p.click('.site-header__menu-toggle');await sleep(120);const menu=!(await hidden())&&await p.$eval('.site-header__menu-toggle',e=>e.getAttribute('aria-expanded')==='true');results.header={down,up,menu,pass:down&&up&&menu};if(!results.header.pass)fail('header '+JSON.stringify(results.header));await p.close()}
+          (async()=>{browser=await puppeteer.launch({headless:true,executablePath:process.env.CHROME_BIN,args:['--no-sandbox','--disable-dev-shm-usage','--disable-background-timer-throttling','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding']});await timing();await hoverOverride();await focusOverride();await scrollAway();await wheel();await mobileCase(430,932,'430x932',[0,1,2,3]);await mobileCase(390,844,'390x844',[0,3,1]);await mobileCase(360,800,'360x800',[0,3,1]);await mobileCase(932,430,'932x430',[0,3,1]);await reduced();for(const v of [['/',1440,900,'1440x900'],['/',1366,768,'1366x768'],['/',1280,800,'1280x800'],['/',1024,768,'1024x768'],['/',430,932,'430x932'],['/',390,844,'390x844'],['/',932,430,'932x430']])await responsive(...v);await accessibility();await headerSanity();fs.writeFileSync(`${out}/QA_RESULTS.json`,JSON.stringify(results,null,2));console.log('CS_PREMIUM_POLISH_QA_PASS');await browser.close()})().catch(async e=>{results.error=String(e.stack||e);fs.writeFileSync(`${out}/QA_RESULTS.json`,JSON.stringify(results,null,2));console.error(e);if(browser)await browser.close();process.exit(1)});
+          NODE
+          CHROME_BIN="$CHROME_BIN" timeout 150s node qa.cjs
+
+      - name: Publish live owner preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/cs-polish-review
+          curl -fsSL --retry 3 --retry-delay 2 -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >"$OUT/cloudflared.log" 2>&1 &
+          BASE=""
+          for i in $(seq 1 60); do BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' "$OUT/cloudflared.log" | tail -1 || true)"; [ -n "$BASE" ] && break; sleep 2; done
+          test -n "$BASE"
+          for i in $(seq 1 25); do if curl -fsS --max-time 15 -o /tmp/public-en "$BASE/"; then break; fi; [ "$i" -eq 25 ] && exit 1; sleep 3; done
+          curl -fsS --retry 3 --retry-delay 2 --max-time 20 -o /tmp/public-ru "$BASE/ru/"
+          for P in /assets/css/homepage-connected-system-r13.css /assets/js/homepage-connected-system-r13.js /assets/js/header-system-v1.js /assets/js/proai-hero-cube-r1/bootstrap.js /assets/models/proai-cube/rubik_39_s_cube_animation.glb; do curl -fsS --retry 3 --retry-delay 2 --max-time 20 -o /dev/null "$BASE$P"; done
+          grep -q 'THE CONNECTED SYSTEM' /tmp/public-en
+          grep -q 'ЕДИНАЯ СИСТЕМА' /tmp/public-ru
+          printf 'EN\n%s/\nRU\n%s/ru/\nEXPECTED LIFETIME\n3 hours from keepalive start\n' "$BASE" "$BASE" | tee "$OUT/OWNER_URLS.txt"
+          printf '%s\n' "$BASE" > "$OUT/PUBLIC_BASE_URL.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-connected-system-premium-polish-r1-owner-review2
+          path: /tmp/cs-polish-review
+          retention-days: 3
+
+      - name: Keep owner preview alive
+        shell: bash
+        run: sleep 10800

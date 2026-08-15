@@ -1,0 +1,90 @@
+name: ProAI Connected System Premium Polish R1 Builder
+on:
+  push:
+    branches: [agent/proai-connected-system-premium-polish-r1-builder]
+    paths: [.github/workflows/proai-connected-system-premium-polish-r1-builder.yml]
+permissions:
+  contents: write
+jobs:
+  build-product:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 0c0613cd40d0f396d9dbf05bf2f8a61658ff4ae0
+          fetch-depth: 0
+      - name: Apply narrow Connected System JS polish
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('assets/js/homepage-connected-system-r13.js')
+          s=p.read_text()
+          def r(old,new,label):
+              global s
+              n=s.count(old)
+              if n!=1:
+                  raise SystemExit(f'{label}: expected 1 match, got {n}')
+              s=s.replace(old,new,1)
+
+          r("""    const delay=8000+Math.random()*5000;""",
+            """    const delay=10000+Math.random()*5000;""",
+            'ambient cadence')
+
+          r("""      {transform:`translate3d(${x+distance*.28}px,0,0)`,opacity:.26,offset:.34},""",
+            """      {transform:`translate3d(${x+distance*.28}px,0,0)`,opacity:.22,offset:.34},""",
+            'ambient amplitude')
+
+          anchor="""  const runDesktopSequence=(force=false)=>{"""
+          helper="""  const consumeDesktopIntro=(balance=false)=>{\n    if(mode!=='desktop'||(!sequenceRunning&&sequencePlayed))return false;\n\n    sequenceToken+=1;\n    clearTimers();\n    cancelAnimations();\n    clearTransient();\n    entryObserver?.disconnect();\n    sequenceRunning=false;\n    sequencePlayed=true;\n    section.classList.add('cs-motion-ready','is-established');\n\n    if(balance){\n      applyBalanced();\n      if(focusWindow)focusWindow.style.opacity='.14';\n      if(lightCarriage)lightCarriage.style.opacity='.12';\n      if(sectionVisible)scheduleAmbient();\n    }\n\n    return true;\n  };\n\n  const runDesktopSequence=(force=false)=>{"""
+          r(anchor,helper,'consume intro helper')
+
+          r("""    const firstActive=650;\n    const stageOffset=520;\n    const transferLead=280;\n    const departureLead=60;\n    const arrivalLead=120;""",
+            """    const firstActive=760;\n    const stageOffset=1900;\n    const transferDuration=620;\n    const transferLead=610;\n    const departureLead=260;\n    const arrivalLead=190;""",
+            'premium cadence')
+
+          r("""          animateOpticalTransfer(index-1,index,560,.56,.70);""",
+            """          animateOpticalTransfer(index-1,index,transferDuration,.56,.70);""",
+            'sequence transfer duration')
+
+          r("""    const finalSettle=finalActive+540;""",
+            """    const finalSettle=finalActive+500;""",
+            'final settle')
+
+          r("""  const inspectStage=(index)=>{\n    if(mode!=='desktop'||reduceMotion.matches||sequenceRunning)return;\n\n    if(ambientTimer){window.clearTimeout(ambientTimer);ambientTimer=0;}\n    ambientAnimation?.cancel();ambientAnimation=null;\n\n    const previous=lastFocusIndex;""",
+            """  const inspectStage=(index)=>{\n    if(mode!=='desktop'||reduceMotion.matches)return;\n\n    const introConsumed=consumeDesktopIntro(false);\n    if(ambientTimer){window.clearTimeout(ambientTimer);ambientTimer=0;}\n    ambientAnimation?.cancel();ambientAnimation=null;\n\n    const activeIndex=stages.findIndex(stage=>stage.classList.contains('is-active'));\n    const previous=activeIndex>=0?activeIndex:lastFocusIndex;""",
+            'user override guard')
+
+          r("""      animateOpticalTransfer(previous,index,420,.54,.68);\n      stages[index].classList.add('is-arriving');\n      later(()=>activateStage(index),85);""",
+            """      animateOpticalTransfer(previous,index,introConsumed?560:460,.54,.68);\n      stages[index].classList.add('is-arriving');\n      later(()=>{\n        if(mode==='desktop')activateStage(index);\n      },introConsumed?105:85);""",
+            'user transfer polish')
+
+          r("""    },{threshold:.18,rootMargin:'0px 0px -4% 0px'});""",
+            """    },{threshold:.24,rootMargin:'0px 0px -6% 0px'});""",
+            'entry trigger')
+
+          old="""    visibilityObserver=new IntersectionObserver(entries=>{\n      sectionVisible=!!entries[0]?.isIntersecting;\n      if(!sectionVisible&&ambientTimer){\n        window.clearTimeout(ambientTimer);\n        ambientTimer=0;\n      }\n      if(sectionVisible&&mode==='desktop'&&sequencePlayed&&!sequenceRunning)scheduleAmbient();\n    },{threshold:.04});"""
+          new="""    visibilityObserver=new IntersectionObserver(entries=>{\n      const entry=entries[0];\n      sectionVisible=!!entry?.isIntersecting;\n\n      if(mode==='desktop'&&sequenceRunning&&(!entry?.isIntersecting||entry.intersectionRatio<.10)){\n        consumeDesktopIntro(true);\n        return;\n      }\n\n      if(!sectionVisible&&ambientTimer){\n        window.clearTimeout(ambientTimer);\n        ambientTimer=0;\n      }\n      if(sectionVisible&&mode==='desktop'&&sequencePlayed&&!sequenceRunning)scheduleAmbient();\n    },{threshold:[0,.10,.18]});"""
+          r(old,new,'scroll-away settlement')
+
+          p.write_text(s)
+          PY
+          node --check assets/js/homepage-connected-system-r13.js
+          grep -q 'const stageOffset=1900;' assets/js/homepage-connected-system-r13.js
+          grep -q 'const transferDuration=620;' assets/js/homepage-connected-system-r13.js
+          grep -q 'threshold:.24' assets/js/homepage-connected-system-r13.js
+          ! grep -q "addEventListener('wheel'" assets/js/homepage-connected-system-r13.js
+          test "$(git diff --name-only | wc -l)" -eq 1
+          test "$(git diff --name-only)" = 'assets/js/homepage-connected-system-r13.js'
+      - name: Commit clean product and push polish branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Ihor Horb'
+          git config user.email 'proai.expert2026@gmail.com'
+          git add assets/js/homepage-connected-system-r13.js
+          git commit -m 'polish: refine Connected System narrative control'
+          git push origin HEAD:refs/heads/agent/proai-connected-system-premium-polish-r1
+          git rev-parse HEAD

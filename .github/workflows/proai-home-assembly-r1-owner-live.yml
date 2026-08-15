@@ -1,0 +1,197 @@
+name: ProAI Home Assembly R1 Owner Live
+on:
+  push:
+    branches: [agent/proai-home-assembly-r1]
+    paths: [.github/workflows/proai-home-assembly-r1-owner-live.yml]
+permissions:
+  contents: read
+jobs:
+  owner-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 195
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify product and production locks
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=20a36a5246ac2fb4507c69858289fc55d0f4a977
+          PRODUCT=0c0613cd40d0f396d9dbf05bf2f8a61658ff4ae0
+          MAIN=c945084e1952c05c686494091f7dbca0f7acdf08
+          git merge-base --is-ancestor "$PRODUCT" HEAD
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN"
+          cat > /tmp/expected-product-files <<'EOF'
+          _includes/homepage-assembly-base-en.html
+          _includes/homepage-assembly-base-ru.html
+          _includes/homepage-connected-system-en.html
+          _includes/homepage-connected-system-ru.html
+          assets/css/homepage-connected-system-r13.css
+          assets/js/homepage-connected-system-r13.js
+          index.html
+          ru/index.html
+          EOF
+          git diff --name-only "$BASE" "$PRODUCT" | sort > /tmp/actual-product-files
+          sort /tmp/expected-product-files -o /tmp/expected-product-files
+          diff -u /tmp/expected-product-files /tmp/actual-product-files
+          git diff --quiet "$BASE" "$PRODUCT" -- _data/header.yml _data/navigation.yml _includes/header-system/header.html assets/css/header-footer-logo-r1.css assets/js/header-footer-logo-r1.js assets/js/header-system-v1.js assets/brand/proai-logo-r341 assets/css/homepage-hero-signature-r3.css assets/js/proai-hero-cube-r1 _includes/footer-commercial-v1.html
+          ! grep -R -nE 'initReviewHeader|data-replay-system|cs-review-page|OWNER REVIEW|cs-next' _includes/homepage-connected-system-*.html assets/css/homepage-connected-system-r13.css assets/js/homepage-connected-system-r13.js
+          ! grep -R -n 'docs/site-evolution/connected-system-r1' index.html ru/index.html assets/css/homepage-connected-system-r13.css assets/js/homepage-connected-system-r13.js
+          node --check assets/js/homepage-connected-system-r13.js
+      - name: Build site and static assembly checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          test "$(grep -o 'data-connected-system' _site/index.html | wc -l)" -eq 1
+          test "$(grep -o 'data-connected-system' _site/ru/index.html | wc -l)" -eq 1
+          ! grep -q 'Three points of friction. Three clearer outcomes.' _site/index.html
+          ! grep -q 'Три точки трения. Три понятных результата.' _site/ru/index.html
+          ! grep -q 'id="manifest"' _site/index.html
+          ! grep -q 'id="manifest"' _site/ru/index.html
+          ! grep -q 'data-replay-system' _site/index.html
+          ! grep -q 'data-replay-system' _site/ru/index.html
+          ! grep -q 'cs-next' _site/index.html
+          ! grep -q 'cs-next' _site/ru/index.html
+          grep -q 'proai-hero-cube-mount' _site/index.html
+          grep -q 'proai-hero-cube-mount' _site/ru/index.html
+          grep -q 'homepage-connected-system-r13.css' _site/index.html
+          grep -q 'homepage-connected-system-r13.js' _site/index.html
+          grep -q 'THE CONNECTED SYSTEM' _site/index.html
+          grep -q 'ЕДИНАЯ СИСТЕМА' _site/ru/index.html
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/home-assembly-http.log 2>&1 &
+      - name: Bounded browser smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          mkdir -p /tmp/home-assembly-browser && cd /tmp/home-assembly-browser
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core@24 --silent
+          cat > smoke.cjs <<'NODE'
+          const puppeteer=require('puppeteer-core');
+          const assert=(v,m)=>{if(!v)throw new Error(m)};
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          const base='http://127.0.0.1:8080';
+          let browser;
+          async function pageFor(path,w,h){
+            const p=await browser.newPage();
+            await p.setViewport({width:w,height:h,deviceScaleFactor:1});
+            await p.setRequestInterception(true);
+            p.on('request',req=>{
+              const u=req.url();
+              if(u.includes('/assets/models/')||u.includes('/assets/vendor/three')||u.includes('/assets/js/proai-hero-cube-r1/')||u.includes('/assets/brand/proai-logo-r341/live.html')) req.abort();
+              else req.continue();
+            });
+            await p.goto(base+path,{waitUntil:'domcontentloaded',timeout:12000});
+            await p.waitForSelector('[data-connected-system]',{timeout:5000});
+            await sleep(180);
+            return p;
+          }
+          async function layout(path,w,h){
+            const p=await pageFor(path,w,h);
+            const r=await p.evaluate(()=>{
+              const cs=document.querySelectorAll('[data-connected-system]');
+              const hero=document.querySelector('#hero');
+              const first=cs[0];
+              return {count:cs.length,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,heroBefore:!!(hero&&first&&(hero.compareDocumentPosition(first)&Node.DOCUMENT_POSITION_FOLLOWING)),csHeight:first?.getBoundingClientRect().height||0,legacy:document.body.textContent.includes('Three points of friction. Three clearer outcomes.')||document.body.textContent.includes('Три точки трения. Три понятных результата.')};
+            });
+            assert(r.count===1,`${path} ${w}x${h} connected count`);
+            assert(r.overflow<=1,`${path} ${w}x${h} overflow ${r.overflow}`);
+            assert(r.heroBefore,`${path} ${w}x${h} order`);
+            assert(r.csHeight>250,`${path} ${w}x${h} connected clipped`);
+            assert(!r.legacy,`${path} ${w}x${h} legacy friction visible`);
+            await p.close();
+          }
+          async function headerMobile(path,w,h){
+            const p=await pageFor(path,w,h);
+            const hidden=()=>p.$eval('[data-site-header]',e=>e.classList.contains('header-hidden'));
+            assert(!(await hidden()),`${path} top hidden`);
+            await p.evaluate(()=>scrollTo(0,650)); await sleep(320);
+            assert(await hidden(),`${path} down did not hide`);
+            await p.evaluate(()=>scrollTo(0,500)); await sleep(320);
+            assert(!(await hidden()),`${path} up did not return`);
+            await p.click('.site-header__menu-toggle'); await sleep(120);
+            assert(!(await hidden()),`${path} menu open header hidden`);
+            assert(await p.$eval('.site-header__menu-toggle',e=>e.getAttribute('aria-expanded'))==='true',`${path} menu not open`);
+            await p.click('.site-header__menu-toggle'); await sleep(120);
+            await p.evaluate(()=>scrollTo(0,760)); await sleep(320);
+            assert(await hidden(),`${path} lifecycle did not resume`);
+            await p.close();
+          }
+          async function connectedMotion(){
+            const p=await pageFor('/',1200,800);
+            await p.evaluate(()=>{const s=document.querySelector('[data-connected-system]');scrollTo(0,s.offsetTop+40)});
+            await sleep(1050);
+            const desktop=await p.evaluate(()=>({ready:document.querySelector('[data-connected-system]').classList.contains('cs-motion-ready'),active:document.querySelectorAll('[data-system-stage].is-active,[data-system-stage].is-settled').length,carriage:parseFloat(getComputedStyle(document.querySelector('.cs-light-carriage')).opacity)||0}));
+            assert(desktop.ready&&desktop.active>0&&desktop.carriage>0,'desktop Connected System motion inactive');
+            await p.close();
+
+            const m=await pageFor('/',390,844);
+            async function focusStage(i){
+              await m.evaluate(i=>{const s=document.querySelectorAll('[data-system-stage]')[i];const r=s.getBoundingClientRect();const y=scrollY+r.top+r.height/2-innerHeight*.565;scrollTo(0,Math.max(0,y));},i);
+              await sleep(420);
+              return m.$eval('[data-connected-system]',(_,i)=>document.querySelectorAll('[data-system-stage]')[i].classList.contains('is-active'),i);
+            }
+            assert(await focusStage(0),'mobile stage 0 focus inactive');
+            assert(await focusStage(1),'mobile stage 1 focus inactive');
+            assert(await focusStage(0),'mobile reverse focus inactive');
+            await m.close();
+          }
+          (async()=>{
+            browser=await puppeteer.launch({headless:true,executablePath:process.env.CHROME_BIN,args:['--no-sandbox','--disable-dev-shm-usage']});
+            for(const [w,h] of [[1440,900],[1200,800],[1024,768],[768,900],[390,844],[350,780],[844,390]]) await layout('/',w,h);
+            await layout('/ru/',390,844);
+            await headerMobile('/',390,844);
+            await headerMobile('/ru/',390,844);
+            await headerMobile('/',844,390);
+            await connectedMotion();
+            console.log('HOME_ASSEMBLY_BROWSER_SMOKE_PASS');
+            await browser.close();
+          })().catch(async e=>{console.error(e);if(browser)await browser.close();process.exit(1)});
+          NODE
+          CHROME_BIN="$CHROME_BIN" timeout 95s node smoke.cjs
+      - name: Publish owner preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/home-assembly-r1-live
+          mkdir -p "$OUT"
+          curl -fsSL --retry 3 --retry-delay 2 -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >"$OUT/cloudflared.log" 2>&1 &
+          BASE=""
+          for i in $(seq 1 60); do
+            BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' "$OUT/cloudflared.log" | tail -1 || true)"
+            [ -n "$BASE" ] && break
+            sleep 2
+          done
+          test -n "$BASE"
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 15 "$BASE/" >/dev/null 2>&1; then break; fi
+            [ "$i" -eq 30 ] && exit 1
+            sleep 3
+          done
+          for P in / /ru/ /assets/css/homepage-connected-system-r13.css /assets/js/homepage-connected-system-r13.js /assets/js/header-system-v1.js '/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled'; do
+            curl -fsS --retry 3 --retry-delay 2 --max-time 20 "$BASE$P" >/dev/null
+          done
+          curl -fsS "$BASE/" | grep -q 'THE CONNECTED SYSTEM'
+          curl -fsS "$BASE/ru/" | grep -q 'ЕДИНАЯ СИСТЕМА'
+          printf 'EN\n%s/\nRU\n%s/ru/\nEXPECTED LIFETIME\n3 hours from keepalive start\n' "$BASE" "$BASE" | tee "$OUT/OWNER_URLS.txt"
+          printf '%s\n' "$BASE" > "$OUT/PUBLIC_BASE_URL.txt"
+          printf 'PRODUCT=0c0613cd40d0f396d9dbf05bf2f8a61658ff4ae0\nBUILD=PASS\nSTATIC=PASS\nBROWSER=PASS\nPUBLIC=PASS\n' > "$OUT/QA.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-home-assembly-r1-owner-live
+          path: /tmp/home-assembly-r1-live
+          retention-days: 3
+      - name: Keep owner preview alive
+        shell: bash
+        run: sleep 10800

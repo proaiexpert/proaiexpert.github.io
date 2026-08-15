@@ -12,7 +12,7 @@ const replaceUnique = (find, replacement, label) => {
 
 replaceUnique(
   'candidateApproachScore:.66,candidateApproachView:.52,candidateDwellMs:320,enterScore:.76,enterView:.58,enterArea:.34,enterBrdf:.26,exitScore:.54,exitView:.50,releaseDebounceMs:90,maxReadableMs:2400,rearmScore:.50,cooldownRangeMs:[2600,5600],minAngularTravelDeg:28,minPostReleaseSlices:1,dispersalTargetMs:[350,1250]',
-  'candidateApproachScore:.58,candidateApproachView:.46,candidateDwellMs:80,enterScore:.64,enterView:.52,enterArea:.26,enterBrdf:.18,exitScore:.54,exitView:.50,releaseDebounceMs:90,maxReadableMs:2400,rearmScore:.50,cooldownRangeMs:[2200,4200],minAngularTravelDeg:18,minPostReleaseSlices:1,dispersalTargetMs:[350,1250]',
+  'candidateApproachScore:.58,candidateApproachView:.46,candidateDwellMs:80,enterScore:.64,enterView:.52,enterArea:.26,enterBrdf:.18,exitScore:.54,exitView:.50,releaseDebounceMs:90,maxReadableMs:2400,rearmScore:.56,cooldownRangeMs:[2200,4200],minAngularTravelDeg:18,minPostReleaseSlices:1,dispersalTargetMs:[350,1250]',
   'natural candidate capture + event breathing',
 );
 
@@ -31,6 +31,7 @@ replaceUnique(
 for (const required of [
   'candidateDwellMs:80',
   'enterScore:.64',
+  'rearmScore:.56',
   'cooldownRangeMs:[2200,4200]',
   'minAngularTravelDeg:18',
   'dispersalTargetMs:[350,1250]',

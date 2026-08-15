@@ -55,7 +55,7 @@ jobs:
         run: |
           python3 -m http.server 4173 --directory "$REVIEW_DIR" >/tmp/r131-http.log 2>&1 &
           for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:4173/en.html -o /tmp/r131-en.html; then exit 0; fi
+            if curl -fsS http://127.0.0.1:4173/persistent-en.html -o /tmp/r131-en.html; then exit 0; fi
             sleep 1
           done
           cat /tmp/r131-http.log
@@ -64,7 +64,7 @@ jobs:
       - name: Render and verify all desktop/laptop targets
         shell: bash
         env:
-          QA_URL: http://127.0.0.1:4173/en.html
+          QA_URL: http://127.0.0.1:4173/persistent-en.html
         run: |
           set -euo pipefail
           NODE_PATH="$PWD/node_modules" node .github/scripts/connected-system-r131-desktop-visual-qa.cjs

@@ -51,14 +51,14 @@ jobs:
           let s=fs.readFileSync(p,'utf8');
           const re=/renderer\.render\(scene,\s*camera\);/g;
           const matches=[...s.matchAll(re)];
-          if(matches.length!==1) throw new Error(`expected exactly one render call, got ${matches.length}`);
+          if(matches.length!==2) throw new Error(`expected exactly two render calls, got ${matches.length}`);
           s=s.replace(re,'scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);');
           fs.writeFileSync(p,s);
           NODE
-          grep -Fq "scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);" main.generated.js
+          test "$(grep -Foc 'scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);' main.generated.js)" -eq 2
           ! grep -Eq 'renderer\.render\(scene,[[:space:]]*camera\);' main.generated.js
           timeout 120s npx vite build
-          printf '%s\n' 'DETERMINISTIC_QA_ONLY: rasterization suppressed; world matrices preserved' > review-evidence-r443-no-raster.txt
+          printf '%s\n' 'DETERMINISTIC_QA_ONLY: both raster calls suppressed; world matrices preserved' > review-evidence-r443-no-raster.txt
       - name: Install browser tooling
         run: |
           set -euo pipefail

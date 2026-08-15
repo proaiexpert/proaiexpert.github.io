@@ -1,0 +1,44 @@
+name: ProAI Header Cube R1.1 Public Diagnostic
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-cube-r11-public-diagnostic.yml]
+permissions:
+  contents: read
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-header-footer-logo-r1
+      - name: Build and diagnose public mobile
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+          curl -fsSL --retry 4 -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          jekyll build --source . --destination _site >/dev/null
+          mkdir -p /tmp/r11diag
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/r11diag/http.log 2>&1 &
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >/tmp/r11diag/cloudflared.log 2>&1 &
+          BASE=""
+          for i in $(seq 1 90); do BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/r11diag/cloudflared.log | tail -1 || true)"; [ -n "$BASE" ] && break; sleep 2; done
+          test -n "$BASE"; echo "$BASE" | tee /tmp/r11diag/base.txt
+          for i in $(seq 1 60); do curl -fsS --max-time 15 "$BASE/" >/dev/null 2>&1 && break; sleep 3; done
+          cat > /tmp/r11diag/diag.cjs <<'JS'
+          const pp=require('puppeteer-core'),fs=require('fs');const B=fs.readFileSync('/tmp/r11diag/base.txt','utf8').trim();
+          (async()=>{const b=await pp.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader']});const p=await b.newPage();await p.setViewport({width:390,height:844,deviceScaleFactor:3,isMobile:true,hasTouch:true});const events=[];p.on('pageerror',e=>events.push({type:'pageerror',text:String(e)}));p.on('console',m=>{if(m.type()==='error')events.push({type:'console.error',text:m.text()})});p.on('requestfailed',r=>events.push({type:'requestfailed',url:r.url(),text:r.failure()?.errorText||''}));await p.goto(B+'/',{waitUntil:'domcontentloaded',timeout:30000});await p.waitForFunction(()=>document.querySelector('[data-proai-live-logo]')?.dataset.logoState==='live',{timeout:120000});await p.waitForFunction(()=>document.querySelector('[data-proai-hero-object]')?.dataset.cubeMounted==='true',{timeout:120000});await new Promise(r=>setTimeout(r,2500));const state=await p.evaluate(()=>({overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,logoState:document.querySelector('[data-proai-live-logo]')?.dataset.logoState,hero:document.querySelector('[data-proai-hero-object]')?.dataset.cubeMounted}));await p.screenshot({path:'/tmp/r11diag/mobile.png',clip:{x:0,y:0,width:390,height:96}});fs.writeFileSync('/tmp/r11diag/diagnostic.json',JSON.stringify({base:B,state,events},null,2));console.log(JSON.stringify({state,events},null,2));await b.close()})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          NODE_PATH="$PWD/node_modules" node /tmp/r11diag/diag.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-cube-r11-public-diagnostic
+          path: /tmp/r11diag
+          retention-days: 7

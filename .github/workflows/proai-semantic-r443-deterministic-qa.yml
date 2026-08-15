@@ -28,12 +28,12 @@ jobs:
       - name: Verify exact product and main freeze
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor aab6c5cb2556cd3d54bb407463851520b06a269b HEAD
+          git merge-base --is-ancestor 5ccd3585720677cf93a8f50d71f3b8240290a455 HEAD
           test "$(git hash-object material-polish-r443-runtime.mjs)" = "56ba821cdacfd4558740eea7abd5be3d6bcad13f"
           test "$(git hash-object material-polish-r443-sequence-hotfix.mjs)" = "6cd3f0ce59f45aa1bbebd74c7989d2cb89855c97"
           test "$(git hash-object material-polish-r443-scheduler-hotfix.mjs)" = "713b911284cb065df341665a71e2ea906f6de1ee"
           test "$(git hash-object material-polish-r443-choreography-hotfix.mjs)" = "629ca1fdfd566354fa409473b231a8102b6e08d0"
-          test "$(git hash-object material-polish-r443-candidate-dispersal-hotfix.mjs)" = "e62ffb7975dcaa90f1db4ded71bbeebccbf1dbd3"
+          test "$(git hash-object material-polish-r443-candidate-dispersal-hotfix.mjs)" = "ee30764102e1d923a41e754f165696c51b537eac"
           test "$(git hash-object package.json)" = "cb5c03020fc87115550ce070fa7260fd4872caf7"
           git fetch origin main --depth=1
           test "$(git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
@@ -45,6 +45,8 @@ jobs:
           node --check main.generated.js
           grep -Fq "PROAI_CUBE_R4.4.3" main.generated.js
           grep -Fq "async function schedulerDelay(" main.generated.js
+          grep -Fq "SEMANTIC_R443_PHASE.CANDIDATE&&semanticR443State.candidateFace" main.generated.js
+          grep -Fq "executed.push(move);if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL)break" main.generated.js
           grep -Fq "semanticVelocityMultiplier: 1.0" main.generated.js
           grep -Fq "const deltaMs=wallDeltaMs" main.generated.js
           grep -Fq "overlayTextRendered:false" main.generated.js
@@ -93,7 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ -d review-evidence/r443-deterministic ]; then
-            find review-evidence/r443-deterministic -type f \( -name '*.json' -o -name '*.txt' \) -print0 | xargs -0 -r sed -i 's/b5fdd9b53389c734ea85051fbd9fa16cd547e11b/aab6c5cb2556cd3d54bb407463851520b06a269b/g'
+            find review-evidence/r443-deterministic -type f \( -name '*.json' -o -name '*.txt' \) -print0 | xargs -0 -r sed -i 's/b5fdd9b53389c734ea85051fbd9fa16cd547e11b/5ccd3585720677cf93a8f50d71f3b8240290a455/g'
           fi
       - name: Upload deterministic metrics
         if: always()

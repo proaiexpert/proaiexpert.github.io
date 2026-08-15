@@ -1,0 +1,149 @@
+name: ProAI Header R1.1.1 Startup Continuity Owner Review
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-r111-owner-review.yml]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 230
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify product and locked scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT=29b06daed210442171093ba7601cf183d02706e0
+          R1=d147d9675c945dbba1ec5a610f33045e2338ecae
+          git merge-base --is-ancestor "$PRODUCT" HEAD
+          PRODUCT_FILES="$(git diff-tree --no-commit-id --name-only -r "$PRODUCT" | sort)"
+          EXPECTED=$'_includes/header-system/header.html\nassets/brand/proai-logo-r341/live-runtime.js\nassets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png\nassets/js/header-footer-logo-r1.js'
+          test "$PRODUCT_FILES" = "$EXPECTED"
+          for P in _includes/footer-commercial-v1.html assets/js/header-system-v1.js assets/css/header-footer-logo-r1.css assets/css/homepage-hero-signature-r3.css assets/js/proai-hero-cube-r1/bootstrap.js assets/js/proai-hero-cube-r1/source-materials-r1.js index.html ru/index.html _data/header.yml; do
+            test "$(git rev-parse "$R1:$P")" = "$(git rev-parse "HEAD:$P")" || { echo "IMMUTABLE FILE CHANGED: $P"; exit 1; }
+          done
+          echo "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b  assets/models/proai-cube/rubik_39_s_cube_animation.glb" | sha256sum -c -
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+          grep -q 'yawSpeed:8.5' assets/brand/proai-logo-r341/live-runtime.js
+          grep -q 'pitchAmplitude:5' assets/brand/proai-logo-r341/live-runtime.js
+          grep -q 'rollAmplitude:.75' assets/brand/proai-logo-r341/live-runtime.js
+          grep -q "Math.min(4,Math.max(3,window.devicePixelRatio||1))" assets/brand/proai-logo-r341/live-runtime.js
+          grep -q 'proai-header-r111-static-cube-320.png' _includes/header-system/header.html
+          grep -q 'startup=controlled' _includes/header-system/header.html
+      - name: Build review snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          mkdir -p /tmp/r111npm
+          cd /tmp/r111npm
+          npm init -y >/dev/null 2>&1
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 pngjs@7.0.0 >/dev/null
+          cd "$GITHUB_WORKSPACE"
+          ffmpeg -version >/dev/null
+          curl -fsSL --retry 4 --retry-delay 2 -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          jekyll build --source . --destination _site >/dev/null
+          mkdir -p _site/review-r111
+          cat >_site/review-r111/laptop.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R1.1.1 Laptop Review</title><style>*{box-sizing:border-box}html,body{margin:0;background:#020304;color:#858b91;font:11px Arial,sans-serif}body{padding:20px}.meta{width:1200px;max-width:100%;margin:0 auto 10px;letter-spacing:.08em;text-transform:uppercase}.stage{width:1200px;height:800px;margin:auto;overflow:hidden;background:#050607;border:1px solid #191c1e}.stage iframe{width:1200px;height:800px;border:0;display:block;transform-origin:top left}@media(max-width:1240px){body{padding:10px}.stage{transform-origin:top left}}</style></head><body><div class="meta">R1.1.1 · exact 1200×800 startup continuity review</div><div class="stage" id="stage"><iframe src="/"></iframe></div><script>function fit(){const s=document.getElementById('stage'),z=Math.min(1,(innerWidth-20)/1200);s.style.transform=`scale(${z})`;s.style.marginBottom=`${800*(z-1)}px`}addEventListener('resize',fit);fit()</script></body></html>
+          HTML
+          cat >_site/review-r111/mobile.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R1.1.1 Mobile Review</title><style>*{box-sizing:border-box}html,body{margin:0;background:#020304;color:#858b91;font:11px Arial,sans-serif}body{padding:14px}.meta{width:390px;max-width:100%;margin:0 auto 10px;letter-spacing:.08em;text-transform:uppercase}.phone{width:390px;height:844px;max-width:100%;margin:auto;overflow:hidden;background:#050607;border:1px solid #191c1e;border-radius:20px}.phone iframe{display:block;width:390px;height:844px;border:0;transform-origin:top left}</style></head><body><div class="meta">R1.1.1 · 390×844 · DPR3-class target</div><div class="phone"><iframe src="/"></iframe></div></body></html>
+          HTML
+          cat >_site/review-r111/compare.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R1.1 → R1.1.1 Startup Comparison</title><style>@font-face{font-family:InstrumentSans;src:url('/assets/fonts/proai-logo-r341/instrument-sans-latin-wght-normal.woff2') format('woff2');font-weight:100 900}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#020304;color:#92989c;font:12px/1.4 Arial,sans-serif}body{padding:26px}.board{max-width:1160px;margin:auto}.title{color:#cfd2d1;letter-spacing:.11em;text-transform:uppercase;margin:0 0 18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{border:1px solid rgba(232,231,226,.09);background:#050607;padding:18px}.label{display:flex;justify-content:space-between;gap:12px;margin-bottom:18px;letter-spacing:.08em;text-transform:uppercase}.mock{height:76px;display:flex;align-items:center;padding:0 28px;border:1px solid rgba(232,231,226,.06)}.brand{display:flex;align-items:center}.cube{position:relative;width:40px;height:40px;flex:0 0 40px}.cube img,.cube iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;pointer-events:none;transition:opacity 180ms ease}.cube img{object-fit:contain;opacity:1}.cube iframe{opacity:0}.cube.live img{opacity:0}.cube.live iframe{opacity:1}.word{font-family:InstrumentSans,Arial,sans-serif;font-size:20px;font-weight:680;line-height:1;margin-left:9px;white-space:nowrap}.word b{color:#f1efea;font-weight:inherit}.word span{color:#cdd1d0;margin-left:.22em}.controls{margin-top:18px;display:flex;gap:12px;align-items:center}.controls button{appearance:none;border:1px solid rgba(232,231,226,.18);background:#0c0f12;color:#d6d8d7;padding:9px 13px;border-radius:999px;cursor:pointer}.note{color:#747b80}@media(max-width:800px){body{padding:12px}.grid{grid-template-columns:1fr}.mock{padding:0 18px}}</style></head><body><main class="board"><h1 class="title">Same 40px Cube · same 20px wordmark · same 9px gap · same 180ms swap</h1><div class="grid"><section class="panel"><div class="label"><span>R1.1 CURRENT / BEFORE</span><span>generic static → auto-running live</span></div><div class="mock"><div class="brand"><span class="cube before" id="before"><iframe title="R1.1 live"></iframe><img src="/assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png" alt=""></span><span class="word"><b>ProAI</b><span>Expert</span></span></div></div></section><section class="panel"><div class="label"><span>R1.1.1 FIXED</span><span>pixel-matched home → controlled live</span></div><div class="mock"><div class="brand"><span class="cube after" id="after"><iframe title="R1.1.1 live"></iframe><img src="/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png" alt=""></span><span class="word"><b>ProAI</b><span>Expert</span></span></div></div></section></div><div class="controls"><button id="replay">Replay startup</button><span class="note">Watch only the Cube source swap. Page framing and Header geometry are locked.</span></div></main><script>const B=document.getElementById('before'),A=document.getElementById('after'),bf=B.querySelector('iframe'),af=A.querySelector('iframe');function start(){B.classList.remove('live');A.classList.remove('live');bf.src='about:blank';af.src='about:blank';setTimeout(()=>{bf.src='/assets/brand/proai-logo-r341/live.html?mode=living';af.src='/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled'},180)}addEventListener('message',e=>{if(e.origin!==location.origin||e.data?.type!=='proai-logo-r341'||e.data?.state!=='ready')return;if(e.source===bf.contentWindow){B.classList.add('live')}if(e.source===af.contentWindow){A.classList.add('live');requestAnimationFrame(()=>af.contentWindow.postMessage({type:'proai-logo-r341-control',action:'start-motion'},location.origin))}});document.getElementById('replay').onclick=start;start()</script></body></html>
+          HTML
+          cat >_site/review-r111/index.html <<'HTML'
+          <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R1.1.1 Owner Review</title><style>html,body{background:#050607;color:#d3d6d5;font:16px Arial,sans-serif}main{max-width:720px;margin:60px auto;padding:20px}a{color:#d3d6d5;display:block;padding:10px 0}</style></head><body><main><h1>Header Cube R1.1.1 — Startup Continuity</h1><a href="/">Full Site EN</a><a href="/ru/">Full Site RU</a><a href="./mobile.html">Mobile 390×844</a><a href="./laptop.html">Laptop 1200×800</a><a href="./compare.html">R1.1 → R1.1.1 comparison</a><a href="./startup-continuity.mp4">Startup continuity video</a><a href="./language-switch.mp4">EN → RU language switch video</a></main></body></html>
+          HTML
+      - name: Start HTTPS review and run continuity QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT=/tmp/r111owner
+          mkdir -p "$OUT"
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >"$OUT/http.log" 2>&1 &
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >"$OUT/cloudflared.log" 2>&1 &
+          BASE=""
+          for i in $(seq 1 90); do BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' "$OUT/cloudflared.log" | tail -1 || true)"; [ -n "$BASE" ] && break; sleep 2; done
+          test -n "$BASE"
+          echo "$BASE" | tee "$OUT/PUBLIC_BASE_URL.txt"
+          for i in $(seq 1 60); do if curl -fsS --max-time 15 "$BASE/" >/dev/null 2>&1; then break; fi; [ "$i" -eq 60 ] && { cat "$OUT/cloudflared.log"; exit 1; }; sleep 3; done
+          for P in / /ru/ /assets/brand/proai-logo-r341/live.html /assets/brand/proai-logo-r341/live-runtime.js /assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png /assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png /review-r111/ /review-r111/mobile.html /review-r111/laptop.html /review-r111/compare.html; do curl -fsS --retry 5 --retry-delay 2 --max-time 25 "$BASE$P" >/dev/null; done
+          cat >"$OUT/qa.cjs" <<'JS'
+          const pp=require('/tmp/r111npm/node_modules/puppeteer-core');
+          const {PNG}=require('/tmp/r111npm/node_modules/pngjs');
+          const fs=require('fs'),a=require('assert').strict,{execFileSync}=require('child_process');
+          const OUT='/tmp/r111owner',B=fs.readFileSync(OUT+'/PUBLIC_BASE_URL.txt','utf8').trim(),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          const R={pass:false,product:'29b06daed210442171093ba7601cf183d02706e0',base:B,rootCause:{beforeStatic:{bounds:{left:3,top:3,right:115,bottom:116,width:113,height:114},centroid:{x:63.11397162595639,y:52.811723288050445}},beforeLive:{bounds:{left:4,top:14,right:104,bottom:116,width:101,height:103},centroid:{x:56.894367245182956,y:61.95816311630925}}},match:{},motion:{},reload:{desktop:[],mobile:[]},language:{},responsive:{},reducedMotion:{},failureFallback:{},footer:{},errors:[]};
+          function metrics(buf){const p=PNG.sync.read(buf);let minX=p.width,minY=p.height,maxX=-1,maxY=-1,sw=0,sx=0,sy=0,lum=0;for(let y=0;y<p.height;y++)for(let x=0;x<p.width;x++){const i=(y*p.width+x)*4,al=p.data[i+3];if(al>8){minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y)}if(al){sw+=al;sx+=x*al;sy+=y*al;lum+=(0.2126*p.data[i]+0.7152*p.data[i+1]+0.0722*p.data[i+2])*al}}return{image:[p.width,p.height],bounds:{left:minX,top:minY,right:maxX,bottom:maxY,width:maxX-minX+1,height:maxY-minY+1},centroid:{x:sx/sw,y:sy/sw},meanLum:lum/sw}}
+          async function stateFrom(page){const f=page.frames().find(x=>x.url().includes('/assets/brand/proai-logo-r341/live.html'));a.ok(f,'live frame');await f.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.ready,{timeout:90000});return{f,s:await f.evaluate(()=>JSON.parse(JSON.stringify(window.__PROAI_LOGO_R341_STATE)))}}
+          async function header(page){return page.evaluate(()=>{const l=document.querySelector('.proai-logo-r341--header'),c=l.querySelector('.proai-logo-r341__cube'),w=l.querySelector('.proai-logo-r341__wordmark'),img=l.querySelector('.proai-logo-r341__static'),fr=l.querySelector('.proai-logo-r341__live');return{cube:c.getBoundingClientRect().width,word:parseFloat(getComputedStyle(w).fontSize),gap:parseFloat(getComputedStyle(w).marginLeft),overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,state:l.dataset.logoState||'',staticSrc:img.currentSrc||img.src,liveSrc:fr.src||'',staticOpacity:getComputedStyle(img).opacity,liveOpacity:getComputedStyle(fr).opacity,staticTransform:getComputedStyle(img).transform,liveTransform:getComputedStyle(fr).transform}})}
+          async function open(br,path,w,h,dpr=1,opts={}){const p=await br.newPage();await p.setViewport({width:w,height:h,deviceScaleFactor:dpr,isMobile:w<=900,hasTouch:w<=900});if(opts.reduced)await p.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'reduce'}]);if(opts.cache===false)await p.setCacheEnabled(false);if(opts.delayHeader||opts.blockLive){await p.setRequestInterception(true);p.on('request',async q=>{const u=q.url();try{if(opts.blockLive&&u.includes('/assets/brand/proai-logo-r341/live.html'))return q.abort();if(opts.delayHeader&&u.includes('/assets/brand/proai-logo-r341/live-runtime.js'))await sleep(opts.delayHeader);await q.continue()}catch{}})}const errs=[];p.on('pageerror',e=>errs.push(String(e)));p.on('requestfailed',q=>{if(q.url().startsWith(B)&&!opts.blockLive)errs.push('request '+q.url()+' '+(q.failure()?.errorText||''))});await p.goto(B+path,{waitUntil:'domcontentloaded',timeout:120000});return{p,errs}}
+          async function waitLive(page){await page.waitForFunction(()=>document.querySelector('[data-proai-live-logo]')?.dataset.logoState==='live',{timeout:90000});const x=await stateFrom(page);await x.f.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.motionStarted===true,{timeout:5000});return x}
+          async function record(page,dir,outfile,durationMs,action){fs.mkdirSync(dir,{recursive:true});const c=await page.createCDPSession(),frames=[];let n=0;c.on('Page.screencastFrame',async e=>{const f=`${dir}/f-${String(n++).padStart(4,'0')}.jpg`;fs.writeFileSync(f,Buffer.from(e.data,'base64'));frames.push({f,t:e.metadata.timestamp});try{await c.send('Page.screencastFrameAck',{sessionId:e.sessionId})}catch{}});await c.send('Page.startScreencast',{format:'jpeg',quality:90,everyNthFrame:1});const t0=Date.now();await action();const left=durationMs-(Date.now()-t0);if(left>0)await sleep(left);await c.send('Page.stopScreencast');await sleep(350);a.ok(frames.length>8,'screencast frames');const list=`${dir}/list.txt`;let txt='';for(let i=0;i<frames.length-1;i++){let d=Math.max(.01,Math.min(.25,frames[i+1].t-frames[i].t));txt+=`file '${frames[i].f}'\nduration ${d.toFixed(4)}\n`}txt+=`file '${frames.at(-1).f}'\nduration 0.0333\nfile '${frames.at(-1).f}'\n`;fs.writeFileSync(list,txt);execFileSync('ffmpeg',['-y','-loglevel','error','-f','concat','-safe','0','-i',list,'-vsync','vfr','-c:v','libx264','-pix_fmt','yuv420p','-movflags','+faststart',outfile]);return frames.length}
+          (async()=>{const br=await pp.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader']});try{
+            // Exact fixed fallback vs controlled first WebGL home frame at 40 CSS / DPR3.
+            const sp=await br.newPage();await sp.setViewport({width:40,height:40,deviceScaleFactor:3});await sp.setContent(`<style>html,body{margin:0;width:40px;height:40px;overflow:hidden;background:transparent}img{width:40px;height:40px;display:block;object-fit:contain}</style><img src="${B}/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png">`);await sp.$eval('img',i=>i.decode());const sb=await sp.screenshot({path:OUT+'/fixed-static-dpr3.png',omitBackground:true});await sp.close();
+            const lp=await br.newPage();await lp.setViewport({width:40,height:40,deviceScaleFactor:3});await lp.goto(B+'/assets/brand/proai-logo-r341/live.html?mode=living&startup=controlled',{waitUntil:'domcontentloaded'});await lp.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.ready,{timeout:90000});const s0=await lp.evaluate(()=>JSON.parse(JSON.stringify(window.__PROAI_LOGO_R341_STATE)));a.equal(s0.controlledStart,true);a.equal(s0.motionStarted,false);a.equal(s0.elapsedSec,0);a.deepEqual(s0.current,{yaw:288,pitch:4.5,roll:-0.3});a.equal(s0.home.fov,27);a.equal(s0.microLookDev.name,'HEADER_MICRO_LOOKDEV');a.equal(s0.renderer.effectivePixelRatio,3);a.equal(s0.renderer.backingWidth,120);a.equal(s0.renderer.backingHeight,120);a.equal(s0.renderer.antialias,true);a.equal(s0.renderer.cssScaleTransform,false);a.equal(s0.captureMode,false);const lb=await lp.screenshot({path:OUT+'/fixed-live-home-dpr3.png',omitBackground:true});const sm=metrics(sb),lm=metrics(lb);const delta={width:sm.bounds.width-lm.bounds.width,height:sm.bounds.height-lm.bounds.height,centerX:sm.centroid.x-lm.centroid.x,centerY:sm.centroid.y-lm.centroid.y,lum:sm.meanLum-lm.meanLum};a.ok(Math.abs(delta.width)<=2);a.ok(Math.abs(delta.height)<=2);a.ok(Math.abs(delta.centerX)<=1.5);a.ok(Math.abs(delta.centerY)<=1.5);a.ok(Math.abs(delta.lum)<=10);R.match={static:sm,live:lm,delta,firstFrameHome:true};
+            await lp.evaluate(()=>window.postMessage({type:'proai-logo-r341-control',action:'start-motion'},location.origin));await lp.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.motionStarted===true,{timeout:3000});const ms=await lp.evaluate(()=>JSON.parse(JSON.stringify(window.__PROAI_LOGO_R341_STATE)));await sleep(1000);const m1=await lp.evaluate(()=>JSON.parse(JSON.stringify(window.__PROAI_LOGO_R341_STATE)));await sleep(1000);const m2=await lp.evaluate(()=>JSON.parse(JSON.stringify(window.__PROAI_LOGO_R341_STATE)));const dy1=m1.current.yaw-ms.current.yaw,dy2=m2.current.yaw-ms.current.yaw,sp1=dy1/(m1.elapsedSec-ms.elapsedSec),sp2=dy2/(m2.elapsedSec-ms.elapsedSec);a.ok(Math.abs(sp1-8.5)<.35);a.ok(Math.abs(sp2-8.5)<.35);a.ok(dy1>7);a.ok(dy2>15);a.equal(ms.motion.yawSpeed,8.5);a.equal(ms.motion.pitchAmplitude,5);a.equal(ms.motion.rollAmplitude,.75);R.motion={start:ms.current,oneSecond:m1.current,twoSecond:m2.current,dy1,dy2,speed1:sp1,speed2:sp2,pitchAmplitude:5,rollAmplitude:.75};await lp.close();
+            // Asset transparency/master size.
+            const raw=Buffer.from(await (await fetch(B+'/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png')).arrayBuffer()),master=PNG.sync.read(raw);a.equal(master.width,320);a.equal(master.height,320);for(const [x,y] of [[0,0],[319,0],[0,319],[319,319]])a.equal(master.data[(y*320+x)*4+3],0);R.match.master={width:320,height:320,transparent:true};
+            // Cold-ish load proves immediate fallback remains present until WebGL is ready.
+            const cold=await open(br,'/',1440,900,2,{cache:false,delayHeader:900});let ch=await header(cold.p);a.equal(ch.state,'loading');a.equal(ch.staticOpacity,'1');a.ok(ch.staticSrc.includes('proai-header-r111-static-cube-320.png'));await cold.p.screenshot({path:OUT+'/cold-static.png'});await waitLive(cold.p);await sleep(230);ch=await header(cold.p);a.equal(ch.state,'live');a.equal(ch.liveOpacity,'1');a.equal(Math.round(ch.cube),40);a.equal(Math.round(ch.word),20);a.equal(Math.round(ch.gap),9);await cold.p.screenshot({path:OUT+'/cold-live.png'});R.reload.cold={pass:true,header:ch};a.equal(cold.errs.length,0);await cold.p.close();
+            // Warm desktop: five actual reloads.
+            const desk=await open(br,'/',1200,800,2,{});await waitLive(desk.p);for(let i=0;i<5;i++){await desk.p.reload({waitUntil:'domcontentloaded',timeout:120000});const x=await waitLive(desk.p),h=await header(desk.p);a.equal(Math.round(h.cube),40);a.equal(Math.round(h.word),20);a.equal(Math.round(h.gap),9);a.equal(h.overflow,0);a.ok(h.staticSrc.includes('proai-header-r111-static-cube-320.png'));a.ok(h.liveSrc.includes('startup=controlled'));a.equal(x.s.renderer.effectivePixelRatio,3);a.equal(x.s.renderer.backingWidth,120);R.reload.desktop.push({i:i+1,header:h,renderer:x.s.renderer})}await desk.p.screenshot({path:OUT+'/laptop-1200.png'});R.responsive['1200x800']=await header(desk.p);await desk.p.setViewport({width:1440,height:900,deviceScaleFactor:2});await sleep(450);let dh=await header(desk.p);a.equal(Math.round(dh.cube),40);a.equal(dh.overflow,0);R.responsive['1440x900']=dh;await desk.p.screenshot({path:OUT+'/desktop-1440.png'});await desk.p.evaluate(()=>scrollTo(0,document.documentElement.scrollHeight));await sleep(400);const fq=await desk.p.evaluate(()=>{const f=document.querySelector('.site-footer'),l=f.querySelector('.proai-logo-r341--footer'),c=l.querySelector('.proai-logo-r341__cube'),w=l.querySelector('.proai-logo-r341__wordmark'),img=l.querySelector('img');return{iframeCount:f.querySelectorAll('iframe').length,cube:c.getBoundingClientRect().width,word:parseFloat(getComputedStyle(w).fontSize),staticNatural:img?.naturalWidth||0}});a.equal(fq.iframeCount,0);a.equal(Math.round(fq.cube),40);a.equal(Math.round(fq.word),22);a.ok(fq.staticNatural>0);R.footer=fq;await desk.p.close();
+            // Warm mobile: five reloads + narrow + landscape.
+            const mob=await open(br,'/',390,844,3,{});await waitLive(mob.p);for(let i=0;i<5;i++){await mob.p.reload({waitUntil:'domcontentloaded',timeout:120000});const x=await waitLive(mob.p),h=await header(mob.p);a.equal(Math.round(h.cube),40);a.equal(Math.round(h.word),20);a.equal(Math.round(h.gap),9);a.equal(h.overflow,0);a.equal(x.s.renderer.devicePixelRatio,3);a.equal(x.s.renderer.effectivePixelRatio,3);a.equal(x.s.renderer.backingWidth,120);R.reload.mobile.push({i:i+1,header:h,renderer:x.s.renderer})}await mob.p.screenshot({path:OUT+'/mobile-390.png'});R.responsive['390x844']=await header(mob.p);await mob.p.setViewport({width:360,height:800,deviceScaleFactor:3,isMobile:true,hasTouch:true});await sleep(450);let mh=await header(mob.p);a.equal(Math.round(mh.cube),40);a.equal(mh.overflow,0);R.responsive['360x800']=mh;await mob.p.screenshot({path:OUT+'/mobile-360.png'});await mob.p.setViewport({width:844,height:390,deviceScaleFactor:3,isMobile:true,hasTouch:true});await sleep(450);mh=await header(mob.p);a.equal(Math.round(mh.cube),40);a.equal(mh.overflow,0);R.responsive['844x390']=mh;await mob.p.screenshot({path:OUT+'/mobile-landscape.png'});await mob.p.close();
+            // EN -> RU -> EN navigation.
+            const lang=await open(br,'/',390,844,3,{});await waitLive(lang.p);const en0=await header(lang.p);await Promise.all([lang.p.waitForNavigation({waitUntil:'domcontentloaded',timeout:120000}),lang.p.click('.site-header__locale')]);await waitLive(lang.p);const ruH=await header(lang.p);a.ok(new URL(lang.p.url()).pathname.startsWith('/ru'));await Promise.all([lang.p.waitForNavigation({waitUntil:'domcontentloaded',timeout:120000}),lang.p.click('.site-header__locale')]);await waitLive(lang.p);const enH=await header(lang.p);a.equal(new URL(lang.p.url()).pathname,'/');for(const h of [en0,ruH,enH]){a.equal(Math.round(h.cube),40);a.ok(h.staticSrc.includes('proai-header-r111-static-cube-320.png'));a.ok(h.liveSrc.includes('startup=controlled'))}R.language={enToRu:true,ruToEn:true,en0,ru:ruH,en:enH,sizePop:false};await lang.p.close();
+            // Reduced motion keeps the matched static fallback; no live source assigned.
+            const red=await open(br,'/',390,844,3,{reduced:true});await sleep(600);const rh=await header(red.p);a.notEqual(rh.state,'live');a.equal(rh.staticOpacity,'1');a.ok(rh.staticSrc.includes('proai-header-r111-static-cube-320.png'));a.ok(!rh.liveSrc||rh.liveSrc==='about:blank');R.reducedMotion={pass:true,header:rh};await red.p.close();
+            // WebGL/live failure keeps fallback visible and layout stable.
+            const fail=await open(br,'/',390,844,3,{blockLive:true});await sleep(900);const fh=await header(fail.p);a.notEqual(fh.state,'live');a.equal(fh.staticOpacity,'1');a.equal(Math.round(fh.cube),40);a.equal(fh.overflow,0);R.failureFallback={pass:true,header:fh};await fail.p.close();
+            // Real-time startup video: delayed runtime makes the fallback observable, then same Cube goes live.
+            const vid=await open(br,'/',1440,260,1,{cache:false,delayHeader:1200});const vh0=await header(vid.p);a.equal(vh0.state,'loading');const vf=await record(vid.p,OUT+'/startup-frames',process.cwd()+'/_site/review-r111/startup-continuity.mp4',5200,async()=>{await sleep(500)});await waitLive(vid.p);R.videoStartup={frames:vf,seconds:5.2};await vid.p.close();
+            // Real-time EN -> RU navigation video.
+            const lv=await open(br,'/',390,300,1,{delayHeader:800});await waitLive(lv.p);const lf=await record(lv.p,OUT+'/language-frames',process.cwd()+'/_site/review-r111/language-switch.mp4',5200,async()=>{await sleep(650);await Promise.all([lv.p.waitForNavigation({waitUntil:'domcontentloaded',timeout:120000}),lv.p.click('.site-header__locale')]);await waitLive(lv.p)});R.videoLanguage={frames:lf,seconds:5.2,finalPath:new URL(lv.p.url()).pathname};a.ok(R.videoLanguage.finalPath.startsWith('/ru'));await lv.p.close();
+            R.pass=true;fs.writeFileSync(OUT+'/qa.json',JSON.stringify(R,null,2));console.log('HEADER_R111_CONTINUITY_QA=PASS');
+          }catch(e){R.errors.push(String(e?.stack||e));fs.writeFileSync(OUT+'/qa.json',JSON.stringify(R,null,2));throw e}finally{await br.close().catch(()=>{})}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          NODE_PATH=/tmp/r111npm/node_modules node "$OUT/qa.cjs"
+          test -s _site/review-r111/startup-continuity.mp4
+          test -s _site/review-r111/language-switch.mp4
+          for P in /review-r111/startup-continuity.mp4 /review-r111/language-switch.mp4; do curl -fsS --retry 5 --retry-delay 2 --max-time 25 "$BASE$P" >/dev/null; done
+          cp _site/review-r111/startup-continuity.mp4 "$OUT/startup-continuity.mp4"
+          cp _site/review-r111/language-switch.mp4 "$OUT/language-switch.mp4"
+          cat >"$OUT/OWNER_URLS.txt" <<EOF
+          FULL SITE EN
+          $BASE/
+          FULL SITE RU
+          $BASE/ru/
+          MOBILE
+          $BASE/review-r111/mobile.html
+          LAPTOP
+          $BASE/review-r111/laptop.html
+          R1.1 -> R1.1.1 STARTUP COMPARISON
+          $BASE/review-r111/compare.html
+          STARTUP CONTINUITY VIDEO
+          $BASE/review-r111/startup-continuity.mp4
+          EN -> RU LANGUAGE SWITCH VIDEO
+          $BASE/review-r111/language-switch.mp4
+          EOF
+          cat "$OUT/OWNER_URLS.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-header-r111-owner-review
+          path: /tmp/r111owner
+          retention-days: 7
+      - name: Keep owner review alive
+        shell: bash
+        run: sleep 12600

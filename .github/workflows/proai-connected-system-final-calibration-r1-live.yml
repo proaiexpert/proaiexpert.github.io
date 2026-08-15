@@ -1,0 +1,62 @@
+name: ProAI Connected System Final Calibration Live
+on:
+  push:
+    branches: [agent/proai-connected-system-final-calibration-r1-live]
+    paths: [.github/workflows/proai-connected-system-final-calibration-r1-live.yml]
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 190
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: d5f2e2fd85218b2a98e774b0b19df1536240d4fb
+          fetch-depth: 0
+      - name: Verify final product and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 'd5f2e2fd85218b2a98e774b0b19df1536240d4fb'
+          test "$(git ls-remote origin refs/heads/agent/proai-connected-system-final-calibration-r1 | cut -f1)" = 'd5f2e2fd85218b2a98e774b0b19df1536240d4fb'
+          test "$(git ls-remote origin refs/heads/agent/proai-connected-system-premium-polish-r1 | cut -f1)" = '1017b4d1655bc545882055ed4bcd4227cea20786'
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 'c945084e1952c05c686494091f7dbca0f7acdf08'
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/cs-final-live-http.log 2>&1 &
+      - name: Publish live with DNS retry
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >/tmp/cloudflared.log 2>&1 &
+          URL=''
+          for i in $(seq 1 30); do
+            URL="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/cloudflared.log | head -1 || true)"
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          test -n "$URL"
+          OK=0
+          for i in $(seq 1 30); do
+            if curl --connect-timeout 5 --max-time 10 -fsS "$URL/" | grep -q 'data-connected-system' && curl --connect-timeout 5 --max-time 10 -fsS "$URL/ru/" | grep -q 'data-connected-system'; then
+              OK=1
+              break
+            fi
+            sleep 2
+          done
+          test "$OK" -eq 1
+          printf 'EN=%s/\nRU=%s/ru/\n' "$URL" "$URL" | tee /tmp/LIVE_ENDPOINTS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-connected-system-final-calibration-r1-live
+          path: /tmp/LIVE_ENDPOINTS.txt
+          retention-days: 3
+      - name: Keep owner preview alive
+        shell: bash
+        run: sleep 10800

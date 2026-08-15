@@ -1,0 +1,43 @@
+name: ProAI Header Cube R1.1 Final 3x Gate
+on:
+  push:
+    branches: [agent/proai-header-footer-logo-r1]
+    paths: [.github/workflows/proai-header-cube-r11-qa5.yml]
+permissions:
+  contents: read
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-header-footer-logo-r1
+          fetch-depth: 0
+      - name: Verify frozen systems
+        shell: bash
+        run: |
+          set -euo pipefail
+          B=d147d9675c945dbba1ec5a610f33045e2338ecae
+          for P in _includes/footer-commercial-v1.html assets/js/header-system-v1.js assets/css/header-footer-logo-r1.css assets/css/homepage-hero-signature-r3.css assets/js/proai-hero-cube-r1/bootstrap.js assets/js/proai-hero-cube-r1/source-materials-r1.js index.html ru/index.html _data/header.yml; do test "$(git rev-parse "$B:$P")" = "$(git rev-parse "HEAD:$P")"; done
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+      - name: Build and test
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null && gem install --user-install webrick --no-document >/dev/null
+          npm init -y >/dev/null 2>&1 && npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+          jekyll build --source . --destination _site >/dev/null
+          mkdir -p /tmp/r11qa5 && python3 -m http.server 8080 --bind 127.0.0.1 --directory _site >/tmp/r11qa5/http.log 2>&1 &
+          cat > /tmp/r11qa5/qa.cjs <<'JS'
+          const pp=require('puppeteer-core'),a=require('assert').strict,fs=require('fs');const B='http://127.0.0.1:8080';let br;const R={pass:false,dpr:{},mobile:{},motion:{},errors:[]};
+          async function p(path,w,h,dpr){const x=await br.newPage();await x.setViewport({width:w,height:h,deviceScaleFactor:dpr,isMobile:w<=900,hasTouch:w<=900});const e=[];x.on('pageerror',z=>e.push(String(z)));x.on('console',m=>{if(m.type()==='error')e.push(m.text())});await x.goto(B+path,{waitUntil:'domcontentloaded',timeout:30000});return{x,e}}
+          (async()=>{br=await pp.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--use-gl=angle','--use-angle=swiftshader']});try{for(const dpr of [1,2,3]){const q=await p('/assets/brand/proai-logo-r341/live.html?mode=living',40,40,dpr);await q.x.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.ready,{timeout:70000});const s=await q.x.evaluate(()=>JSON.parse(JSON.stringify(window.__PROAI_LOGO_R341_STATE)));a.equal(s.renderer.effectivePixelRatio,3);a.equal(s.renderer.backingWidth,120);a.equal(s.renderer.backingHeight,120);a.equal(s.captureMode,false);a.equal(s.geometry.pass,true);R.dpr[dpr]=s.renderer;a.equal(q.e.length,0);await q.x.close()}const m=await p('/',390,844,3);await m.x.waitForFunction(()=>document.querySelector('[data-proai-live-logo]')?.dataset.logoState==='live',{timeout:90000});await m.x.waitForFunction(()=>document.querySelector('[data-proai-hero-object]')?.dataset.cubeMounted==='true',{timeout:90000});const f=m.x.frames().find(v=>v.url().includes('/assets/brand/proai-logo-r341/live.html'));await f.waitForFunction(()=>window.__PROAI_LOGO_R341_STATE?.ready,{timeout:70000});const s0=await f.evaluate(()=>JSON.parse(JSON.stringify(window.__PROAI_LOGO_R341_STATE))),base=s0.elapsedSec;await f.waitForFunction(b=>window.__PROAI_LOGO_R341_STATE.elapsedSec>=b+1,{},base);const s1=await f.evaluate(()=>JSON.parse(JSON.stringify(window.__PROAI_LOGO_R341_STATE)));const o=await m.x.evaluate(()=>{const l=document.querySelector('.proai-logo-r341--header'),c=l.querySelector('.proai-logo-r341__cube'),w=l.querySelector('.proai-logo-r341__wordmark'),acts=[...document.querySelectorAll('.proai-hero-actions>a')].map(e=>e.getBoundingClientRect().top);return{cube:c.getBoundingClientRect().width,word:parseFloat(getComputedStyle(w).fontSize),gap:parseFloat(getComputedStyle(w).marginLeft),overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,acts,dir:getComputedStyle(document.querySelector('.proai-hero-actions')).flexDirection,wrap:getComputedStyle(document.querySelector('.proai-hero-actions')).flexWrap}});const d=s1.current.yaw-s0.current.yaw,dt=s1.elapsedSec-s0.elapsedSec;a.equal(s1.renderer.backingWidth,120);a.ok(d>=8.3);a.ok(Math.abs(d/dt-8.5)<.05);a.equal(Math.round(o.cube),40);a.equal(Math.round(o.word),20);a.equal(Math.round(o.gap),9);a.equal(o.overflow,0);a.equal(o.dir,'row');a.equal(o.wrap,'nowrap');a.ok(Math.abs(o.acts[0]-o.acts[1])<=4);await m.x.screenshot({path:'/tmp/r11qa5/mobile-390-final-3x.png',clip:{x:0,y:0,width:390,height:96}});R.mobile={outer:o,renderer:s1.renderer};R.motion={d,dt,speed:d/dt,start:s0.current,one:s1.current};a.equal(m.e.length,0);await m.x.close();R.pass=true}catch(e){R.errors.push(String(e?.stack||e));throw e}finally{fs.writeFileSync('/tmp/r11qa5/qa.json',JSON.stringify(R,null,2));if(br)await br.close()}})().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          NODE_PATH="$PWD/node_modules" node /tmp/r11qa5/qa.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proai-header-cube-r11-qa5
+          path: /tmp/r11qa5
+          retention-days: 7

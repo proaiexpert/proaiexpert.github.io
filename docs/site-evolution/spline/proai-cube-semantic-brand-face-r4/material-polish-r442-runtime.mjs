@@ -16,30 +16,34 @@ replaceUnique('createSemanticR44PlanarFaceGeometry(mesh,mesh.geometry,face)','cr
 replaceUnique('createSemanticR44BevelTile(maskTexture)','createSemanticR442BevelTile(maskTexture)','bevel call');
 replaceUnique('createSemanticR44ToneTile(maskTexture)','createSemanticR442ToneTile(maskTexture)','tone call');
 
+// R4.4.2 timing/optical envelope: early natural discovery, protection begins on
+// physical approach, readable peak is stricter, release is below approach with debounce.
+replaceUnique("approachScore:.50,enterScore:.76,exitScore:.61,minView:.58,exitView:.50","approachScore:.58,enterScore:.76,exitScore:.46,minView:.58,exitView:.44",'optical hysteresis calibration');
+replaceUnique('nextEligiblePresentationMs:R44_INITIAL_PRESENTATION_PHASE_MS+2200','nextEligiblePresentationMs:2600','early first opportunity');
+
 // A semantic material must never remain visible after its optical protection has ended.
-// This preserves zero tearing without keeping any physical face protected outside the
-// consciously readable approach/read/exit envelope.
 const oldRelease="semanticR442State.releaseCount++;return true}";
 const newRelease="semanticR442State.releaseCount++;semanticR442SetActiveMaterialFace(null);semanticR442State.activeMaterialFace=null;return true}";
 replaceUnique(oldRelease,newRelease,'release material dormancy');
 
-// Do not pre-activate a semantic face before protection. Best-face scoring remains live,
-// but the physical engraving only becomes optically active when the strong enter gate wins.
+// Outside a protected envelope every eligible face is visually dormant. Candidate scoring
+// continues, but the actual engraving becomes active only as protection begins.
 const oldApproach="if(best.rawQuality>=SEMANTIC_R442_QUALITY.approachScore&&best.viewAlignment>=SEMANTIC_R442_QUALITY.exitView&&best.assembled){if(semanticR442ActiveMaterialFace!==best.face)semanticR442SetActiveMaterialFace(best.face);semanticR442State.activeMaterialFace=best.face}else if(semanticR442ActiveMaterialFace&&best.rawQuality<SEMANTIC_R442_QUALITY.materialDormantScore){semanticR442SetActiveMaterialFace(null);semanticR442State.activeMaterialFace=null}if(now<semanticR442State.nextEligiblePresentationMs)return;";
 replaceUnique(oldApproach,"if(!semanticR442State.protected&&semanticR442ActiveMaterialFace!==null){semanticR442SetActiveMaterialFace(null);semanticR442State.activeMaterialFace=null}if(now<semanticR442State.nextEligiblePresentationMs)return;",'pre-protection dormancy');
 
+const oldEnter="best.assembled&&best.rawQuality>=SEMANTIC_R442_QUALITY.enterScore&&best.viewAlignment>=SEMANTIC_R442_QUALITY.minView&&best.projectedAreaQuality>=SEMANTIC_R442_QUALITY.minAreaQuality&&best.brdfQuality>=SEMANTIC_R442_QUALITY.minBrdf";
+const newEnter="best.assembled&&best.rawQuality>=SEMANTIC_R442_QUALITY.approachScore&&best.viewAlignment>=SEMANTIC_R442_QUALITY.exitView&&best.projectedAreaQuality>=.28&&best.brdfQuality>=.18";
+replaceUnique(oldEnter,newEnter,'approach protection entry');
+
 for(const required of[
- 'function createSemanticR442PlanarFaceGeometry(',
- 'function createSemanticR442BevelTile(',
- 'function createSemanticR442ToneTile(',
- 'createSemanticR442PlanarFaceGeometry(mesh,mesh.geometry,face)',
- 'createSemanticR442BevelTile(maskTexture)',
- 'createSemanticR442ToneTile(maskTexture)',
+ 'function createSemanticR442PlanarFaceGeometry(','function createSemanticR442BevelTile(','function createSemanticR442ToneTile(',
+ 'createSemanticR442PlanarFaceGeometry(mesh,mesh.geometry,face)','createSemanticR442BevelTile(maskTexture)','createSemanticR442ToneTile(maskTexture)',
  "SEMANTIC_R442_ELIGIBLE_FACES=Object.freeze(['+Z','+X','-X'])",
- 'semanticR442SetActiveMaterialFace(null);semanticR442State.activeMaterialFace=null;return true',
+ 'approachScore:.58,enterScore:.76,exitScore:.46,minView:.58,exitView:.44','nextEligiblePresentationMs:2600',
+ 'best.rawQuality>=SEMANTIC_R442_QUALITY.approachScore','semanticR442SetActiveMaterialFace(null);semanticR442State.activeMaterialFace=null;return true',
  'semanticVelocityMultiplier: 1.0','const deltaMs=wallDeltaMs','overlayTextRendered:false','alphaDominantReveal:false','semanticMotionCoupled:false','semanticOrientationForcing:false'
 ])if(!source.includes(required))throw new Error(`R4.4.2 runtime hotfix missing invariant: ${required}`);
-for(const forbidden of['createSemanticR44PlanarFaceGeometry(mesh,mesh.geometry,face)','createSemanticR44BevelTile(maskTexture)','createSemanticR44ToneTile(maskTexture)'])if(source.includes(forbidden))throw new Error(`R4.4.2 unresolved R4.4 helper dependency: ${forbidden}`);
+for(const forbidden of['createSemanticR44PlanarFaceGeometry(mesh,mesh.geometry,face)','createSemanticR44BevelTile(maskTexture)','createSemanticR44ToneTile(maskTexture)','nextEligiblePresentationMs:R44_INITIAL_PRESENTATION_PHASE_MS+2200'])if(source.includes(forbidden))throw new Error(`R4.4.2 unresolved legacy dependency: ${forbidden}`);
 
 fs.writeFileSync(file,source);
-console.log('R4.4.2 self-contained physical helper scope + prompt release dormancy applied');
+console.log('R4.4.2 self-contained helpers + early optical approach protection + prompt release applied');

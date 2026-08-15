@@ -1,0 +1,85 @@
+name: ProAI Cube R4.4.3 Semantic Correction Attempt 1
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-semantic-staging-review]
+    paths: [.github/workflows/proai-r443-semantic-correction-attempt1.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  correction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PRODUCT_BRANCH: agent/proai-cube-r443-closed-phrase-architecture
+      EXPECTED_HEAD: f33c27733ca9f4272ca724e3d6ee7a44fbfe37b8
+      PRODUCT_DIR: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+      PRODUCT_FILE: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout exact product branch
+        run: |
+          set -euo pipefail
+          git fetch origin "$PRODUCT_BRANCH"
+          test "$(git rev-parse "origin/$PRODUCT_BRANCH")" = "$EXPECTED_HEAD"
+          git checkout -B "$PRODUCT_BRANCH" "origin/$PRODUCT_BRANCH"
+
+      - name: Apply one root-cause semantic wiring correction
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const file=process.env.PRODUCT_FILE;
+          let s=fs.readFileSync(file,'utf8');
+          const replaceOnce=(a,b,label)=>{
+            const first=s.indexOf(a),second=first<0?-1:s.indexOf(a,first+a.length);
+            if(first<0||second>=0)throw new Error(label+' '+first+'/'+second);
+            s=s.slice(0,first)+b+s.slice(first+a.length);
+          };
+          replaceOnce(
+            'if(semanticR443ClosedState.phraseActive)return;const best=semanticR443BestStageFace();if(best)semanticR443Stage(best)',
+            'const best=semanticR443BestStageFace();if(best)semanticR443Stage(best)',
+            'semantic staging admission anchor'
+          );
+          replaceOnce(
+            "if(liveGuard&&semanticR442MoveIntersection(spec,liveGuard).count>0){semanticR443ClosedState.unexpectedUnsafeStarts++;throw new Error('R4.4.3 closed phrase semantic intersection '+phrase.id+' '+spec.axis+spec.layer)}const move=",
+            "if(liveGuard&&semanticR442MoveIntersection(spec,liveGuard).count>0){if(semanticR443State.phase===SEMANTIC_R443_PHASE.NORMAL&&semanticR443State.stagedFace===liveGuard){semanticR443Unstage('impending-intersecting-turn')}else{while(sliceSchedulerEnabled){const semanticGuardNow=semanticR443GuardFace();if(!semanticGuardNow||semanticR442MoveIntersection(spec,semanticGuardNow).count===0)break;await sleep(40)}if(!sliceSchedulerEnabled)break;if(!await waitForSliceAutonomy())break}}const move=",
+            'semantic local protection anchor'
+          );
+          fs.writeFileSync(file,s);
+          NODE
+          git diff --check
+          git diff -- "$PRODUCT_FILE"
+
+      - name: Validate frozen architecture and build
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run validate-closed-phrases
+          npm run build-r443
+          node --check main.generated.js
+          grep -Fq 'function semanticR443ChooseNormalPhrase(){' main.generated.js
+          grep -Fq "SEMANTIC_R442_ELIGIBLE_FACES=Object.freeze(['+Z','+X','-X'])" main.generated.js
+          grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
+          grep -Fq "yawDirectionPolicy:'continuous-positive'" main.generated.js
+          grep -Fq "semanticR443Unstage('impending-intersecting-turn')" main.generated.js
+          ! grep -Fq 'semanticR443PendingResolutionCount' main.generated.js
+          ! grep -Fq "semanticR442RecordMove(inverse,'resolve')" main.generated.js
+
+      - name: Commit and push product attempt 1
+        run: |
+          set -euo pipefail
+          git config user.name 'Ihor Horb'
+          git config user.email 'proai.expert2026@gmail.com'
+          git add "$PRODUCT_FILE"
+          test "$(git diff --cached --name-only | wc -l)" -eq 1
+          git commit -m 'fix: restore closed phrase semantic staging admission'
+          git push origin "$PRODUCT_BRANCH"
+          echo "NEW_PRODUCT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "NEW_PRODUCT_SHA=$(git rev-parse HEAD)"

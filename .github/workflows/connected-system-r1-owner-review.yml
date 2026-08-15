@@ -1,4 +1,4 @@
-name: Connected System R1.1 temporary owner review
+name: Connected System R1.2 temporary owner review
 
 on:
   push:
@@ -24,14 +24,19 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Validate R1.1 review package
+      - name: Validate R1.2 focus-transfer package
         shell: bash
         run: |
           set -euo pipefail
+          node --check docs/site-evolution/connected-system-r1/connected-system-r1.js
           grep -Fq 'Replay system motion' docs/site-evolution/connected-system-r1/en.html
           grep -Fq 'Повторить движение системы' docs/site-evolution/connected-system-r1/ru.html
-          grep -Fq 'scheduleAmbient' docs/site-evolution/connected-system-r1/connected-system-r1.js
-          grep -Fq 'is-sequence-running' docs/site-evolution/connected-system-r1/connected-system-r1.js
+          grep -Fq 'const stageOffset=520' docs/site-evolution/connected-system-r1/connected-system-r1.js
+          grep -Fq 'bandTop=vh*.45,bandBottom=vh*.68' docs/site-evolution/connected-system-r1/connected-system-r1.js
+          grep -Fq "mobileStateFor" docs/site-evolution/connected-system-r1/connected-system-r1.js
+          grep -Fq "is-future','is-active','is-settled" docs/site-evolution/connected-system-r1/connected-system-r1.js
+          grep -Fq '.cs-motion-ready .cs-stage.is-active' docs/site-evolution/connected-system-r1/connected-system-r1.css
+          grep -Fq 'height:132px' docs/site-evolution/connected-system-r1/connected-system-r1.css
           grep -Fq 'prefers-reduced-motion:reduce' docs/site-evolution/connected-system-r1/connected-system-r1.css
 
       - name: Start local review server
@@ -79,19 +84,21 @@ jobs:
           curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/ru.html" -o /tmp/live-ru.html
           grep -Fq 'Что объединяет система.' /tmp/live-ru.html
           curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/connected-system-r1.js" -o /tmp/live-js.js
-          grep -Fq 'scheduleAmbient' /tmp/live-js.js
+          grep -Fq 'const stageOffset=520' /tmp/live-js.js
+          grep -Fq 'mobileStateFor' /tmp/live-js.js
           curl -fsS --retry 8 --retry-all-errors --retry-delay 2 "$LIVE_BASE/connected-system-r1.css" -o /tmp/live-css.css
-          grep -Fq 'cs-context-transfer' /tmp/live-css.css
+          grep -Fq '.cs-motion-ready .cs-stage.is-active' /tmp/live-css.css
+          grep -Fq 'height:132px' /tmp/live-css.css
 
           EXPIRES_UTC="$(date -u -d '+4 hours' '+%Y-%m-%dT%H:%M:%SZ')"
           cat > docs/site-evolution/connected-system-r1/LIVE_PREVIEW.txt <<EOF
-          PROAI CONNECTED SYSTEM R1.1 — TEMPORARY OWNER REVIEW
-          PRODUCT_SHA=0db1e58052fcecd594dfb8a53601324992779bfd
+          PROAI CONNECTED SYSTEM R1.2 — TEMPORARY OWNER REVIEW
+          PRODUCT_SHA=9d39fdb7b52bc7943bb69c54836bd787327bd20e
           LIVE_EN=$LIVE_BASE/en.html
           LIVE_RU=$LIVE_BASE/ru.html
           VERIFIED=PASS
-          ENTRY_MOTION_JS=PASS
-          AMBIENT_JS=PASS
+          DESKTOP_SEQUENCE_JS=PASS
+          MOBILE_FOCUS_JS=PASS
           REPLAY_UI=PASS
           EXPECTED_EXPIRES_UTC=$EXPIRES_UTC
           EOF
@@ -99,7 +106,7 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/site-evolution/connected-system-r1/LIVE_PREVIEW.txt
-          git commit -m 'chore: record R1.1 temporary owner review URL [skip ci]'
+          git commit -m 'chore: record R1.2 temporary owner review URL [skip ci]'
           git push origin HEAD:agent/proai-connected-system-r1
 
           echo "LIVE EN: $LIVE_BASE/en.html"

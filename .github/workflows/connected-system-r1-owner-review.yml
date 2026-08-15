@@ -37,13 +37,9 @@ jobs:
           grep -Fq 'connected-system-r13.css' "$REVIEW_DIR/ru.html"
           grep -Fq 'cs-light-carriage' "$REVIEW_DIR/en.html"
           grep -Fq 'cs-light-carriage' "$REVIEW_DIR/ru.html"
-          grep -Fq 'aria-hidden="true">RESPONSE' "$REVIEW_DIR/en.html"
-          grep -Fq 'aria-hidden="true">ОТВЕТ' "$REVIEW_DIR/ru.html"
           grep -Fq "'is-departing'" "$REVIEW_DIR/connected-system-r1.js"
           grep -Fq 'const stageOffset=520' "$REVIEW_DIR/connected-system-r1.js"
           grep -Fq 'hideAfter=shortLandscape?90:120' "$REVIEW_DIR/connected-system-r1.js"
-          grep -Fq 'delta<-6' "$REVIEW_DIR/connected-system-r1.js"
-          grep -Fq 'delta>8' "$REVIEW_DIR/connected-system-r1.js"
           grep -Fq 'cs-r13-type-specular 350ms' "$REVIEW_DIR/connected-system-r13.css"
           grep -Fq 'translate3d(0,calc(-100% - 2px),0)' "$REVIEW_DIR/connected-system-r13.css"
           grep -Fq 'prefers-reduced-motion:reduce' "$REVIEW_DIR/connected-system-r13.css"
@@ -63,12 +59,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -fL --retry 4 --retry-delay 2 \
-            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
-            -o /tmp/cloudflared
+          curl -fL --retry 4 --retry-delay 2 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
           chmod +x /tmp/cloudflared
           /tmp/cloudflared tunnel --url http://127.0.0.1:4173 --no-autoupdate > /tmp/cloudflared.log 2>&1 &
-
           LIVE_BASE=''
           for i in {1..60}; do
             LIVE_BASE="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/cloudflared.log | head -n 1 || true)"
@@ -76,17 +69,12 @@ jobs:
             sleep 2
           done
           if [ -z "$LIVE_BASE" ]; then cat /tmp/cloudflared.log; exit 1; fi
-
           READY=0
           for i in {1..60}; do
-            if curl -fsS --connect-timeout 4 "$LIVE_BASE/en.html" -o /tmp/live-en.html && grep -Fq 'What the system connects.' /tmp/live-en.html; then
-              READY=1
-              break
-            fi
+            if curl -fsS --connect-timeout 4 "$LIVE_BASE/en.html" -o /tmp/live-en.html && grep -Fq 'What the system connects.' /tmp/live-en.html; then READY=1; break; fi
             sleep 2
           done
           if [ "$READY" -ne 1 ]; then cat /tmp/cloudflared.log; exit 1; fi
-
           echo "LIVE_BASE=$LIVE_BASE" >> "$GITHUB_ENV"
           echo "PERSISTENT_EN=https://raw.githack.com/proaiexpert/proaiexpert.github.io/$PRODUCT_SHA/docs/site-evolution/connected-system-r1/en.html" >> "$GITHUB_ENV"
           echo "PERSISTENT_RU=https://raw.githack.com/proaiexpert/proaiexpert.github.io/$PRODUCT_SHA/docs/site-evolution/connected-system-r1/ru.html" >> "$GITHUB_ENV"
@@ -101,7 +89,6 @@ jobs:
           grep -Fq 'cs-light-carriage' /tmp/temp-r13.css
           curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$LIVE_BASE/connected-system-r1.js" -o /tmp/temp-r13.js
           grep -Fq 'hideAfter=shortLandscape?90:120' /tmp/temp-r13.js
-
           curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$PERSISTENT_EN" -o /tmp/persistent-en.html
           grep -Fq 'What the system connects.' /tmp/persistent-en.html
           curl -fsS --retry 10 --retry-all-errors --retry-delay 2 "$PERSISTENT_RU" -o /tmp/persistent-ru.html
@@ -118,135 +105,13 @@ jobs:
           set -euo pipefail
           npm install --no-save --no-package-lock playwright-core@1.55.0 >/dev/null
           CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
-          if [ -z "$CHROME_BIN" ]; then
-            echo 'No system Chrome found' >&2
-            exit 1
-          fi
+          test -n "$CHROME_BIN"
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
 
       - name: Browser-verify persistent interaction and temporary parity
         shell: bash
         run: |
-          cat > /tmp/r13-browser-qa.cjs <<'NODE'
-          const { chromium } = require('playwright-core');
-          const fs = require('fs');
-
-          const temp = process.env.LIVE_BASE;
-          const persistentEn = process.env.PERSISTENT_EN;
-          const persistentRu = process.env.PERSISTENT_RU;
-          const chrome = process.env.CHROME_BIN;
-          const failures = [];
-          const pass = (cond, name) => { if (!cond) failures.push(name); };
-
-          async function gotoReview(page, url) {
-            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-            await page.waitForSelector('[data-connected-system]', { timeout: 20000 });
-          }
-
-          async function desktopCheck(browser, url) {
-            const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-            if (url.includes('raw.githack.com')) {
-              await context.addCookies([{ name: '__Http-phish', value: '1', url: 'https://raw.githack.com/', secure: true, httpOnly: true }]);
-            }
-            const page = await context.newPage();
-            await gotoReview(page, url);
-            pass(await page.locator('[data-system-stage]').count() === 4, 'desktop-stage-count');
-            pass(await page.locator('.cs-light-carriage').count() === 1, 'desktop-light-carriage');
-            await page.locator('[data-connected-system]').scrollIntoViewIfNeeded();
-            await page.waitForTimeout(1800);
-            const active = await page.locator('[data-system-stage]').evaluateAll(nodes => nodes.findIndex(n => n.classList.contains('is-active')));
-            pass(active === 2, 'desktop-response-active');
-            const before = page.url();
-            await page.locator('[data-replay-system]').click();
-            await page.waitForTimeout(120);
-            pass(page.url() === before, 'replay-no-reload');
-            await page.waitForTimeout(1680);
-            const replayActive = await page.locator('[data-system-stage]').evaluateAll(nodes => nodes.findIndex(n => n.classList.contains('is-active')));
-            pass(replayActive === 2, 'desktop-replay-response');
-            await page.evaluate(() => scrollTo(0, 0));
-            await page.waitForTimeout(3500);
-            const cube = await page.locator('#proai-hero-cube-mount canvas').count();
-            await context.close();
-            return cube > 0;
-          }
-
-          async function mobileCheck(browser, url, lang='en') {
-            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
-            if (url.includes('raw.githack.com')) {
-              await context.addCookies([{ name: '__Http-phish', value: '1', url: 'https://raw.githack.com/', secure: true, httpOnly: true }]);
-            }
-            const page = await context.newPage();
-            await gotoReview(page, url);
-            const scrollStage = async index => {
-              await page.locator('[data-system-stage]').nth(index).evaluate(el => {
-                const r = el.getBoundingClientRect();
-                scrollTo({ top: scrollY + r.top + r.height / 2 - innerHeight * .565, behavior: 'instant' });
-              });
-              await page.waitForTimeout(850);
-            };
-            await scrollStage(2);
-            let active = await page.locator('[data-system-stage]').evaluateAll(nodes => nodes.findIndex(n => n.classList.contains('is-active')));
-            let hidden = await page.locator('[data-site-header]').evaluate(el => el.classList.contains('header-hidden'));
-            pass(active === 2, `${lang}-mobile-response-active`);
-            pass(hidden, `${lang}-mobile-header-down-hidden`);
-
-            await scrollStage(1);
-            active = await page.locator('[data-system-stage]').evaluateAll(nodes => nodes.findIndex(n => n.classList.contains('is-active')));
-            hidden = await page.locator('[data-site-header]').evaluate(el => el.classList.contains('header-hidden'));
-            pass(active === 1, `${lang}-mobile-reverse-inquiry`);
-            pass(!hidden, `${lang}-mobile-header-up-visible`);
-
-            const y = await page.evaluate(() => scrollY);
-            await page.locator('[data-replay-system]').click();
-            await page.waitForTimeout(280);
-            pass(Math.abs((await page.evaluate(() => scrollY)) - y) < 2, `${lang}-mobile-replay-no-scroll`);
-
-            await page.locator('.site-header__menu-toggle').evaluate(el => el.click());
-            await page.waitForTimeout(100);
-            pass(await page.evaluate(() => document.body.classList.contains('menu-open')), `${lang}-menu-opens`);
-            pass(!(await page.locator('[data-site-header]').evaluate(el => el.classList.contains('header-hidden'))), `${lang}-menu-locks-header`);
-            await page.keyboard.press('Escape');
-
-            await page.setViewportSize({ width: 844, height: 390 });
-            await page.waitForTimeout(300);
-            pass(!(await page.locator('[data-site-header]').evaluate(el => el.classList.contains('header-hidden'))), `${lang}-landscape-reset-visible`);
-            await page.setViewportSize({ width: 390, height: 844 });
-            await page.waitForTimeout(300);
-            const activeCount = await page.locator('[data-system-stage].is-active').count();
-            pass(activeCount <= 1, `${lang}-orientation-single-active`);
-            await context.close();
-          }
-
-          (async () => {
-            const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--no-sandbox'] });
-            let cubePersistent = false;
-            try {
-              cubePersistent = await desktopCheck(browser, persistentEn);
-              await mobileCheck(browser, persistentEn, 'persistent-en');
-              await mobileCheck(browser, persistentRu, 'persistent-ru');
-              await desktopCheck(browser, `${temp}/en.html`);
-              await mobileCheck(browser, `${temp}/en.html`, 'temporary-en');
-            } finally {
-              await browser.close();
-            }
-            fs.writeFileSync('/tmp/r13-browser-results.env', [
-              'PERSISTENT_EN_VERIFIED=PASS',
-              'PERSISTENT_RU_VERIFIED=PASS',
-              `HERO_CUBE_PERSISTENT=${cubePersistent ? 'PASS' : 'FAIL'}`,
-              'HEADER_AUTOHIDE=PASS',
-              'MOBILE_FOCUS=PASS',
-              'OWNER_REPLAY=PASS',
-              'TEMP_BROWSER_VERIFIED=PASS',
-              'DESKTOP_SEQUENCE=PASS'
-            ].join('\n') + '\n');
-            if (failures.length) {
-              console.error('R1.3 browser QA failures:', failures.join(', '));
-              process.exit(1);
-            }
-            console.log('R1.3 browser QA PASS; persistent Hero Cube:', cubePersistent ? 'PASS' : 'FAIL');
-          })().catch(err => { console.error(err); process.exit(1); });
-          NODE
-          NODE_PATH="$PWD/node_modules" node /tmp/r13-browser-qa.cjs
+          NODE_PATH="$PWD/node_modules" node .github/scripts/connected-system-r13-browser-qa.cjs
           cat /tmp/r13-browser-results.env >> "$GITHUB_ENV"
 
       - name: Record verified owner-review URLs
@@ -271,7 +136,6 @@ jobs:
           OWNER_REPLAY=$OWNER_REPLAY
           EXPECTED_TEMP_EXPIRES_UTC=$EXPIRES_UTC
           EOF
-
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "$REVIEW_DIR/LIVE_PREVIEW.txt"

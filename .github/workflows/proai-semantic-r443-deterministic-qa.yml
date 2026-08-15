@@ -43,27 +43,16 @@ jobs:
           timeout 180s npm install --package-lock=false
           timeout 180s npm run build-r443
           node --check main.generated.js
-          grep -Fq "async function schedulerDelay(" main.generated.js
           grep -Fq "PROAI_CUBE_R4.4.3" main.generated.js
-          grep -Fq "const SEMANTIC_R443_TYPOGRAPHY=Object.freeze({fontFamily:'Instrument Sans Variable',fontWeight:620,targetBlockWidthRatio:.722,scaleX:.875,scaleY:.900});" main.generated.js
-          grep -Fq "candidateDwellMs:80" main.generated.js
-          grep -Fq "enterScore:.68" main.generated.js
-          grep -Fq "cooldownRangeMs:[2200,4200]" main.generated.js
-          grep -Fq "minAngularTravelDeg:18" main.generated.js
-          grep -Fq "if(age<SEMANTIC_R443_CONFIG.dispersalTargetMs[0])return 0" main.generated.js
-          grep -Fq "w*=24" main.generated.js
-          grep -Fq "w*=32" main.generated.js
-          grep -Fq "if(activeTurns.size>0)return;" main.generated.js
-          grep -Fq "dispersalTargetMs[0]-(presentationSimTimeMs-semanticR443State.lastReleaseMs)" main.generated.js
-          ! grep -Fq "SEMANTIC_R443_PHASE.CANDIDATE&&semanticR443State.candidateFace" main.generated.js
-          node <<'NODE'
-          const fs=require('fs');
-          const s=fs.readFileSync('main.generated.js','utf8');
-          const a=s.indexOf('function semanticR443CreateWordMask(text){');
-          const b=s.indexOf('function semanticR443GlobalMask(index){',a);
-          if(a<0||b<0) throw new Error('word mask function range missing');
-          if(s.slice(a,b).includes('SEMANTIC_R2.')) throw new Error('legacy SEMANTIC_R2 scope remains in R4.4.3 sequence mask');
-          NODE
+          grep -Fq "semanticVelocityMultiplier: 1.0" main.generated.js
+          grep -Fq "const deltaMs=wallDeltaMs" main.generated.js
+          grep -Fq "overlayTextRendered:false" main.generated.js
+          grep -Fq "alphaDominantReveal:false" main.generated.js
+          grep -Fq "semanticMotionCoupled:false" main.generated.js
+          grep -Fq "semanticOrientationForcing:false" main.generated.js
+          ! grep -Fq "wallDeltaMs * semanticTimeScale" main.generated.js
+          ! grep -Fq "SEMANTIC_R4_2_TEXT" main.generated.js
+          ! grep -Fq "emissiveIntensity" main.generated.js
       - name: Prepare no-raster numerical QA build only
         run: |
           set -euo pipefail

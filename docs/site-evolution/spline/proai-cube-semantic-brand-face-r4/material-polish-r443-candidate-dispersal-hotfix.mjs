@@ -10,6 +10,27 @@ const replaceUnique = (find, replacement, label) => {
   source = source.slice(0, at) + replacement + source.slice(at + find.length);
 };
 
+// Track the exact self-resolving scheduler backlog. A semantic face may be
+// discovered while an unrelated active slice is moving, but it must never enter
+// READABLE_LOCK until every previously scheduled inverse is mechanically resolved.
+const stateAnchor = "const semanticR443State={phase:SEMANTIC_R443_PHASE.NORMAL";
+const stateAt = source.indexOf(stateAnchor);
+if (stateAt < 0 || source.indexOf(stateAnchor, stateAt + stateAnchor.length) >= 0) throw new Error(`R4.4.3 state insertion anchor invalid: ${stateAt}`);
+source = source.slice(0, stateAt) + "let semanticR443PendingResolutionCount=0;\n" + source.slice(stateAt);
+
+// Active-turn safety is face-local. Unrelated slices no longer suppress candidate
+// discovery; any turn whose axis/layer intersects a face still makes it ineligible.
+const activeFaceHelper = "function semanticR443FaceClearOfActiveTurns(face){if(!face)return false;for(const turn of activeTurns.values()){if(semanticR442MoveIntersection({axis:turn.axis,layer:turn.layer},face).count>0)return false}return true}\n";
+const bestAnchor = 'function semanticR443BestEligibleFace(){';
+const bestAt = source.indexOf(bestAnchor);
+if (bestAt < 0 || source.indexOf(bestAnchor, bestAt + bestAnchor.length) >= 0) throw new Error(`R4.4.3 active-face helper anchor invalid: ${bestAt}`);
+source = source.slice(0, bestAt) + activeFaceHelper + source.slice(bestAt);
+replaceUnique(
+  'const eligible=list.filter(q=>q.assembled&&q.r443Armed).sort((a,b)=>b.r443SelectionScore-a.r443SelectionScore);',
+  'const eligible=list.filter(q=>q.assembled&&q.r443Armed&&semanticR443FaceClearOfActiveTurns(q.face)).sort((a,b)=>b.r443SelectionScore-a.r443SelectionScore);',
+  'active-turn-safe best face filter',
+);
+
 // CANDIDATE is a brief local constraint, never a global motion mode. Only moves
 // intersecting the naturally discovered face are excluded during the tiny dwell.
 // DISPERSAL keeps the 350 ms optical-clearance floor before that released face
@@ -20,12 +41,19 @@ replaceUnique(
   'candidate-local vocabulary + early dispersal guard',
 );
 
-// A turn already active before discovery is allowed to finish. Candidate quality
-// and exact assembly are re-evaluated immediately afterward.
+// Replace the old global active-turn suppression with exact face-local safety.
 replaceUnique(
   "if(activeTurns.size>0){if(semanticR443State.phase===SEMANTIC_R443_PHASE.CANDIDATE)semanticR443ResetCandidate('active-slice');return}",
-  "if(activeTurns.size>0)return;",
-  'active-turn candidate continuity',
+  "if(semanticR443State.phase===SEMANTIC_R443_PHASE.CANDIDATE&&!semanticR443FaceClearOfActiveTurns(semanticR443State.candidateFace)){semanticR443ResetCandidate('active-intersection');return}",
+  'face-local active-turn candidate safety',
+);
+
+// A candidate may mature during unrelated slice motion, but zero-tearing requires
+// the inherited phrase inverse stack to be completely empty before protection.
+replaceUnique(
+  'if(dwell>=SEMANTIC_R443_CONFIG.candidateDwellMs&&stableNearPeak&&enter)semanticR443Lock(q);return',
+  'if(dwell>=SEMANTIC_R443_CONFIG.candidateDwellMs&&stableNearPeak&&enter&&semanticR443PendingResolutionCount===0&&semanticR443FaceClearOfActiveTurns(q.face))semanticR443Lock(q);return',
+  'pending-resolution lock gate',
 );
 
 // Preserve the scheduler helpers inserted by the scheduler-scope repair.
@@ -35,7 +63,7 @@ const schedulerStart = source.indexOf('\nasync function sliceSchedulerLoop(){', 
 if (recordStart < 0 || helperStart < 0 || schedulerStart < 0 || helperStart >= schedulerStart || source.indexOf("function semanticR442RecordMove(move,phase='forward'){", recordStart + 1) >= 0) {
   throw new Error(`R4.4.3 candidate/dispersal record boundary invalid: record=${recordStart} helper=${helperStart} scheduler=${schedulerStart}`);
 }
-const recordReplacement = `function semanticR442RecordMove(move,phase='forward'){const intersection=semanticR442State.protected?semanticR442MoveIntersection(move):{count:0,ids:[]};if(semanticR442State.protected&&intersection.count>0)semanticR442State.unsafeProtectedStarts++;if(phase==='forward'){semanticR442MoveState.recentMoves.push({axis:move.axis,layer:move.layer,direction:move.direction,presentationMs:presentationSimTimeMs});if(semanticR442MoveState.recentMoves.length>5)semanticR442MoveState.recentMoves.shift();semanticR442MoveState.axisCounts[move.axis]=(semanticR442MoveState.axisCounts[move.axis]||0)+1;semanticR442MoveState.layerCounts[String(move.layer)]=(semanticR442MoveState.layerCounts[String(move.layer)]||0)+1;semanticR442MoveState.selectionCount++}const released=semanticR443State.lastReleaseFace,rejoin=released?semanticR442MoveIntersection(move,released):{count:0,ids:[]};if(released&&presentationSimTimeMs-semanticR443State.lastReleaseMs<12000&&rejoin.count>0){semanticR442State.postReleaseParticipationCount++;semanticR442State.lastPostReleaseParticipation={face:released,presentationMs:presentationSimTimeMs,phase,move:{axis:move.axis,layer:move.layer,direction:move.direction}}}if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL&&released&&rejoin.count>0){const latency=Math.max(0,presentationSimTimeMs-semanticR443State.lastReleaseMs);semanticR443State.dispersalDone=true;semanticR443State.dispersalLatencyMs=latency;semanticR443State.dispersalLatenciesMs.push(latency);if(semanticR443State.dispersalLatenciesMs.length>32)semanticR443State.dispersalLatenciesMs.shift();semanticR443State.phase=SEMANTIC_R443_PHASE.COOLDOWN;semanticR443Log('dispersal-slice',{face:released,latencyMs:latency,phase,axis:move.axis,layer:move.layer,direction:move.direction})}semanticR442MoveState.moveLog.push({presentationMs:presentationSimTimeMs,phase,axis:move.axis,layer:move.layer,direction:move.direction,protected:semanticR442State.protected,protectedFace:semanticR442State.protectedFace,semanticIntersection:intersection.count,r443Phase:semanticR443State.phase});if(semanticR442MoveState.moveLog.length>160)semanticR442MoveState.moveLog.shift();return intersection}`;
+const recordReplacement = `function semanticR442RecordMove(move,phase='forward'){const intersection=semanticR442State.protected?semanticR442MoveIntersection(move):{count:0,ids:[]};if(semanticR442State.protected&&intersection.count>0)semanticR442State.unsafeProtectedStarts++;if(phase==='forward'){semanticR442MoveState.recentMoves.push({axis:move.axis,layer:move.layer,direction:move.direction,presentationMs:presentationSimTimeMs});if(semanticR442MoveState.recentMoves.length>5)semanticR442MoveState.recentMoves.shift();semanticR442MoveState.axisCounts[move.axis]=(semanticR442MoveState.axisCounts[move.axis]||0)+1;semanticR442MoveState.layerCounts[String(move.layer)]=(semanticR442MoveState.layerCounts[String(move.layer)]||0)+1;semanticR442MoveState.selectionCount++}const released=semanticR443State.lastReleaseFace,rejoin=released?semanticR442MoveIntersection(move,released):{count:0,ids:[]};if(released&&presentationSimTimeMs-semanticR443State.lastReleaseMs<12000&&rejoin.count>0){semanticR442State.postReleaseParticipationCount++;semanticR442State.lastPostReleaseParticipation={face:released,presentationMs:presentationSimTimeMs,phase,move:{axis:move.axis,layer:move.layer,direction:move.direction}}}if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL&&released&&rejoin.count>0){const latency=Math.max(0,presentationSimTimeMs-semanticR443State.lastReleaseMs);semanticR443State.dispersalDone=true;semanticR443State.dispersalLatencyMs=latency;semanticR443State.dispersalLatenciesMs.push(latency);if(semanticR443State.dispersalLatenciesMs.length>32)semanticR443State.dispersalLatenciesMs.shift();semanticR443State.phase=SEMANTIC_R443_PHASE.COOLDOWN;semanticR443Log('dispersal-slice',{face:released,latencyMs:latency,phase,axis:move.axis,layer:move.layer,direction:move.direction})}semanticR442MoveState.moveLog.push({presentationMs:presentationSimTimeMs,phase,axis:move.axis,layer:move.layer,direction:move.direction,protected:semanticR442State.protected,protectedFace:semanticR442State.protectedFace,semanticIntersection:intersection.count,r443Phase:semanticR443State.phase,pendingResolutionCount:semanticR443PendingResolutionCount});if(semanticR442MoveState.moveLog.length>160)semanticR442MoveState.moveLog.shift();return intersection}`;
 source = source.slice(0, recordStart) + recordReplacement + source.slice(helperStart);
 
 // While readable, keep safe choreography alive but do not build a long unresolved
@@ -47,12 +75,11 @@ replaceUnique(
   'bounded readable safe phrase length',
 );
 
-// If release happens during a forward turn, finish that turn but add no further
-// forward turns to the phrase. All already-executed moves MUST still resolve.
+// Exact pending-resolution accounting begins as each forward move is accepted.
 replaceUnique(
   "executed.push(move);if(i<requestedLength-1)await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.phraseMicroGapRangeMs)))",
-  "executed.push(move);if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL)break;if(i<requestedLength-1)await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.phraseMicroGapRangeMs)))",
-  'stop forward accumulation after release',
+  "executed.push(move);semanticR443PendingResolutionCount=executed.length;if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL)break;if(i<requestedLength-1)await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.phraseMicroGapRangeMs)))",
+  'pending-resolution forward accounting',
 );
 
 // During DISPERSAL, drain the exact inverse stack without cosmetic hold/micro-gaps.
@@ -62,33 +89,32 @@ replaceUnique(
   "if(semanticR443State.phase!==SEMANTIC_R443_PHASE.DISPERSAL)await schedulerDelay(Math.round(seededRange(240,410)));for(let i=executed.length-1;i>=0;i--)",
   'skip pre-resolve hold during dispersal',
 );
-
 replaceUnique(
   "semanticR442RecordMove(inverse,'resolve');await turnSlice(inverse);if(i>0)await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.phraseMicroGapRangeMs)))",
-  "if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL&&semanticR443State.lastReleaseFace&&semanticR442MoveIntersection(inverse,semanticR443State.lastReleaseFace).count>0){const remain=SEMANTIC_R443_CONFIG.dispersalTargetMs[0]-(presentationSimTimeMs-semanticR443State.lastReleaseMs);if(remain>0)await schedulerDelay(remain)}semanticR442RecordMove(inverse,'resolve');await turnSlice(inverse);if(i>0&&semanticR443State.phase!==SEMANTIC_R443_PHASE.DISPERSAL)await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.phraseMicroGapRangeMs)))",
-  'full resolve with dispersal clearance and no backlog gaps',
+  "if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL&&semanticR443State.lastReleaseFace&&semanticR442MoveIntersection(inverse,semanticR443State.lastReleaseFace).count>0){const remain=SEMANTIC_R443_CONFIG.dispersalTargetMs[0]-(presentationSimTimeMs-semanticR443State.lastReleaseMs);if(remain>0)await schedulerDelay(remain)}semanticR442RecordMove(inverse,'resolve');await turnSlice(inverse);semanticR443PendingResolutionCount=Math.max(0,semanticR443PendingResolutionCount-1);if(i>0&&semanticR443State.phase!==SEMANTIC_R443_PHASE.DISPERSAL)await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.phraseMicroGapRangeMs)))",
+  'full resolve accounting + dispersal clearance',
 );
 
-// After full mechanical resolution, if the released face still has not
-// participated, immediately start the next weighted scheduler event rather than
-// entering a normal breathing gap. The weighting—not a forced turn—chooses it.
+// After complete self-resolution, if released-face participation is still pending,
+// immediately start the next weighted event instead of entering a breathing gap.
 replaceUnique(
   "sliceEventSerial+=executed.length;eventsUntilBreath-=1;if(!sliceSchedulerEnabled)break;",
-  "sliceEventSerial+=executed.length;if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL)continue;eventsUntilBreath-=1;if(!sliceSchedulerEnabled)break;",
-  'immediate weighted post-resolution dispersal choice',
+  "semanticR443PendingResolutionCount=0;sliceEventSerial+=executed.length;if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL)continue;eventsUntilBreath-=1;if(!sliceSchedulerEnabled)break;",
+  'resolved-stack completion + immediate weighted dispersal',
 );
 
 for (const required of [
+  'let semanticR443PendingResolutionCount=0;',
+  'function semanticR443FaceClearOfActiveTurns(face)',
+  'activeTurns.values()',
+  'q.r443Armed&&semanticR443FaceClearOfActiveTurns(q.face)',
+  'semanticR443PendingResolutionCount===0&&semanticR443FaceClearOfActiveTurns(q.face)',
   "SEMANTIC_R443_PHASE.CANDIDATE&&semanticR443State.candidateFace",
-  "semanticR442MoveIntersection(m,semanticR443State.candidateFace).count===0",
   "requestedLength=semanticR443State.phase===SEMANTIC_R443_PHASE.READABLE_LOCK?1",
-  "if(activeTurns.size>0)return;",
-  'async function waitForSliceAutonomy(',
   'async function schedulerDelay(',
-  "if(semanticR443State.phase!==SEMANTIC_R443_PHASE.DISPERSAL)await schedulerDelay(Math.round(seededRange(240,410)))",
-  "if(i>0&&semanticR443State.phase!==SEMANTIC_R443_PHASE.DISPERSAL)",
-  "sliceEventSerial+=executed.length;if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL)continue",
-  "dispersalTargetMs[0]-(presentationSimTimeMs-semanticR443State.lastReleaseMs)",
+  'semanticR443PendingResolutionCount=executed.length',
+  'semanticR443PendingResolutionCount=Math.max(0,semanticR443PendingResolutionCount-1)',
+  'semanticR443PendingResolutionCount=0;sliceEventSerial+=executed.length',
   "yawDirectionPolicy:'continuous-positive'",
   'maxReadableMs:2400',
   'semanticVelocityMultiplier: 1.0',
@@ -96,6 +122,7 @@ for (const required of [
 
 for (const forbidden of [
   "semanticR443ResetCandidate('active-slice')",
+  "if(activeTurns.size>0)return;",
   "await turnSlice(inverse);if(semanticR443State.phase===SEMANTIC_R443_PHASE.DISPERSAL)break",
   'wallDeltaMs * semanticTimeScale',
   'SEMANTIC_R4_2_TEXT',
@@ -103,4 +130,4 @@ for (const forbidden of [
 ]) if (source.includes(forbidden)) throw new Error(`R4.4.3 candidate/dispersal forbidden regression: ${forbidden}`);
 
 fs.writeFileSync(file, source);
-console.log('R4.4.3 full self-resolution + bounded readable backlog + immediate weighted dispersal applied');
+console.log('R4.4.3 active-turn-safe discovery + pending-resolution zero-tearing gate + bounded dispersal applied');

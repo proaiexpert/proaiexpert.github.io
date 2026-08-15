@@ -61,7 +61,7 @@ jobs:
           set -euo pipefail
           timeout 120s npm install --no-save playwright
           timeout 300s npx playwright install --with-deps chromium
-          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-review.mjs" ./r443-owner-review.mjs
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-review-v2.mjs" ./r443-owner-review.mjs
 
       - name: Start local runtime and bounded public tunnel
         id: tunnel
@@ -93,16 +93,18 @@ jobs:
           REVIEW_URL: ${{ steps.tunnel.outputs.url }}
         run: |
           set -euo pipefail
-          timeout 220s node r443-owner-review.mjs
+          timeout 300s node r443-owner-review.mjs
 
       - name: Transcode bounded owner clips
         if: always()
         run: |
           set -euo pipefail
           mkdir -p review-evidence/r443/mp4
-          if [ -s review-evidence/r443/desktop-observation-60s.webm ]; then timeout 90s ffmpeg -y -loglevel error -i review-evidence/r443/desktop-observation-60s.webm -t 26 -c:v libx264 -preset veryfast -crf 22 -pix_fmt yuv420p -movflags +faststart review-evidence/r443/mp4/desktop-continuous-26s.mp4; fi
-          if [ -s review-evidence/r443/focused-semantic-release-dispersal.webm ]; then timeout 90s ffmpeg -y -loglevel error -i review-evidence/r443/focused-semantic-release-dispersal.webm -c:v libx264 -preset veryfast -crf 22 -pix_fmt yuv420p -movflags +faststart review-evidence/r443/mp4/focused-semantic-release-dispersal.mp4; fi
-          if [ -s review-evidence/r443/mobile-12s.webm ]; then timeout 90s ffmpeg -y -loglevel error -i review-evidence/r443/mobile-12s.webm -c:v libx264 -preset veryfast -crf 22 -pix_fmt yuv420p -movflags +faststart review-evidence/r443/mp4/mobile-12s.mp4; fi
+          FFMPEG=$(find "$HOME/.cache/ms-playwright" -type f -name ffmpeg-linux -print -quit || true)
+          if [ -z "$FFMPEG" ]; then echo "Playwright ffmpeg unavailable; WEBM evidence retained"; exit 0; fi
+          if [ -s review-evidence/r443/desktop-observation-60s.webm ]; then timeout 90s "$FFMPEG" -y -loglevel error -i review-evidence/r443/desktop-observation-60s.webm -t 26 -c:v libx264 -preset veryfast -crf 22 -pix_fmt yuv420p -movflags +faststart review-evidence/r443/mp4/desktop-continuous-26s.mp4 || true; fi
+          if [ -s review-evidence/r443/focused-semantic-release-dispersal.webm ]; then timeout 90s "$FFMPEG" -y -loglevel error -i review-evidence/r443/focused-semantic-release-dispersal.webm -c:v libx264 -preset veryfast -crf 22 -pix_fmt yuv420p -movflags +faststart review-evidence/r443/mp4/focused-semantic-release-dispersal.mp4 || true; fi
+          if [ -s review-evidence/r443/mobile-12s.webm ]; then timeout 90s "$FFMPEG" -y -loglevel error -i review-evidence/r443/mobile-12s.webm -c:v libx264 -preset veryfast -crf 22 -pix_fmt yuv420p -movflags +faststart review-evidence/r443/mp4/mobile-12s.mp4 || true; fi
 
       - name: Public self-check
         if: always()

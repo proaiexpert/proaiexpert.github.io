@@ -20,7 +20,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Materialize exact starting product and freeze refs
         run: |
           set -euo pipefail
@@ -30,7 +29,6 @@ jobs:
           rm -rf "$PRODUCT_DIR"
           git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
           test "$(git -C "$PRODUCT_DIR" rev-parse HEAD)" = "$PRODUCT_SHA"
-
       - name: Generate exact pre-closed-phrase stage
         working-directory: /tmp/proai-r443-rescue-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
         run: |
@@ -43,34 +41,39 @@ jobs:
           node material-polish-r443-runtime.mjs
           node material-polish-r443-sequence-hotfix.mjs
           node --check main.generated.js
-
-      - name: Inspect actual diagnostics structure and stable boundaries
+      - name: Prove actual scheduler and diagnostics boundaries
         working-directory: /tmp/proai-r443-rescue-product/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs=require('fs');
           const s=fs.readFileSync('main.generated.js','utf8');
-          const terms=['getSemanticDiagnostics','r443Motion','r443Lifecycle','r442Cadence','getDiagnostics','__PROAI_CUBE_R1_2','semanticR443State','return {','return{'];
-          console.log('PRETRANSFORM_BYTES='+s.length);
-          for(const term of terms){
-            const hits=[]; let p=-1;
-            while((p=s.indexOf(term,p+1))>=0)hits.push(p);
-            console.log(`TERM ${term} COUNT=${hits.length} POS=${hits.join(',')||'NONE'}`);
-            for(const [i,pos] of hits.slice(0,4).entries()){
-              const a=Math.max(0,pos-500),b=Math.min(s.length,pos+1300);
-              console.log(`SNIP ${term} #${i+1} START`);
-              console.log(s.slice(a,b));
-              console.log(`SNIP ${term} #${i+1} END`);
-            }
+          const tokens=[
+            'async function sliceSchedulerLoop(){',
+            'sliceSchedulerRunning=false}',
+            'sliceSchedulerRunning = false;',
+            'function getSemanticDiagnostics() {',
+            'r442Cadence:SEMANTIC_R442_CADENCE,',
+            'r443Lifecycle:',
+            'r443Motion:',
+            'function cubicBezierEase('
+          ];
+          for(const token of tokens){
+            const hits=[];let p=-1;while((p=s.indexOf(token,p+1))>=0)hits.push(p);
+            console.log(`BOUNDARY ${JSON.stringify(token)} COUNT=${hits.length} POS=${hits.join(',')||'NONE'}`);
           }
-          const api=s.indexOf('window.__PROAI_CUBE_R1_2');
-          if(api>=0){
-            console.log('API_REGION_START');
-            console.log(s.slice(Math.max(0,api-300),Math.min(s.length,api+9000)));
-            console.log('API_REGION_END');
+          const ss=s.indexOf('async function sliceSchedulerLoop(){');
+          const legacyEnd=s.indexOf('sliceSchedulerRunning=false}',ss);
+          const spacedEnd=s.indexOf('sliceSchedulerRunning = false;',ss);
+          const diag=s.indexOf('r443Motion:');
+          const getSem=s.indexOf('function getSemanticDiagnostics() {');
+          console.log(`COMPARISON schedulerStart=${ss} legacyEnd=${legacyEnd} spacedEnd=${spacedEnd} getSemanticDiagnostics=${getSem} r443Motion=${diag}`);
+          for(const [name,pos] of [['schedulerStart',ss],['legacyEnd',legacyEnd],['spacedEnd',spacedEnd],['getSemanticDiagnostics',getSem],['r443Motion',diag]]){
+            if(pos<0)continue;
+            console.log(`SNIP ${name} START`);
+            console.log(s.slice(Math.max(0,pos-350),Math.min(s.length,pos+950)));
+            console.log(`SNIP ${name} END`);
           }
-          const getSem=s.indexOf('getSemanticDiagnostics');
-          if(getSem<0)throw new Error('actual generated source has no getSemanticDiagnostics token');
-          console.log('INSPECT_PASS');
+          if(ss<0||diag<0)throw new Error('required actual source structure missing');
+          console.log('BOUNDARY_INSPECT_PASS');
           NODE

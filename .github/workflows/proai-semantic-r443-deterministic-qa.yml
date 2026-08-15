@@ -78,13 +78,27 @@ jobs:
           set -euo pipefail
           URL='${{ steps.tunnel.outputs.url }}'
           curl -fsSL --max-time 15 "$URL/" -o /tmp/index.html
-          CSS=$(grep -Eo '/assets/[^"'"'']+\.css' /tmp/index.html | head -1)
-          JS=$(grep -Eo '/assets/[^"'"'']+\.js' /tmp/index.html | head -1)
-          test -n "$CSS" && test -n "$JS"
+          python3 - <<'PY'
+          import re, pathlib
+          html=pathlib.Path('/tmp/index.html').read_text()
+          css=re.search(r'/assets/[^"\x27]+\.css',html)
+          js=re.search(r'/assets/[^"\x27]+\.js',html)
+          if not css or not js: raise SystemExit('asset references missing')
+          pathlib.Path('/tmp/css-path').write_text(css.group(0))
+          pathlib.Path('/tmp/js-path').write_text(js.group(0))
+          PY
+          CSS=$(cat /tmp/css-path)
+          JS=$(cat /tmp/js-path)
           curl -fsSL --max-time 15 "$URL$CSS" >/tmp/app.css
           curl -fsSL --max-time 15 "$URL$JS" >/tmp/app.js
-          GLB=$(grep -Eo 'rubik_39_s_cube_animation-[A-Za-z0-9_-]+\.glb' /tmp/app.js | head -1)
-          test -n "$GLB"
+          python3 - <<'PY'
+          import re, pathlib
+          js=pathlib.Path('/tmp/app.js').read_text(errors='ignore')
+          m=re.search(r'rubik_39_s_cube_animation-[A-Za-z0-9_-]+\.glb',js)
+          if not m: raise SystemExit('GLB reference missing')
+          pathlib.Path('/tmp/glb-name').write_text(m.group(0))
+          PY
+          GLB=$(cat /tmp/glb-name)
           curl -fsSL --max-time 15 "$URL/assets/$GLB" >/tmp/cube.glb
           test "$(wc -c </tmp/cube.glb | tr -d ' ')" -eq 279412
           echo 'HTML=PASS CSS=PASS JS=PASS GLB=PASS'
@@ -105,7 +119,7 @@ jobs:
           const evaljs=async expr=>{const r=await cmd('Runtime.evaluate',{expression:expr,awaitPromise:true,returnByValue:true}); if(r.exceptionDetails)throw new Error('eval exception'); return r.result.value};
           await cmd('Runtime.enable');
           for(let i=0;i<40;i++){if(await evaljs('window.__PROAI_CUBE_R1_2?.ready===true'))break;await new Promise(r=>setTimeout(r,500));if(i===39)throw new Error('cube readiness timeout')}
-          const base=await evaljs(`(()=>{const a=window.__PROAI_CUBE_R1_2,d=a.getDiagnostics(),s=a.getSemanticDiagnostics(),c=document.querySelector('canvas');return{ready:a.ready,webgl:!!(c&&(c.getContext('webgl2')||c.getContext('webgl'))),yaw:s.r443Motion?.cumulativeYawDeg??0,moves:s.r442MoveDiversity?.selectionCount??0,events:s.r443Lifecycle?.eventLog?.length??0,w:c?.width||0,h:c?.height||0}})()`);
+          const base=await evaljs(`(()=>{const a=window.__PROAI_CUBE_R1_2,s=a.getSemanticDiagnostics(),c=document.querySelector('canvas');return{ready:a.ready,webgl:!!(c&&(c.getContext('webgl2')||c.getContext('webgl'))),yaw:s.r443Motion?.cumulativeYawDeg??0,moves:s.r442MoveDiversity?.selectionCount??0,events:s.r443Lifecycle?.eventLog?.length??0,w:c?.width||0,h:c?.height||0}})()`);
           await new Promise(r=>setTimeout(r,2200));
           const moved=await evaljs(`(()=>{const s=window.__PROAI_CUBE_R1_2.getSemanticDiagnostics();return s.r443Motion?.cumulativeYawDeg??0})()`);
           let moves=base.moves,events=base.events;
@@ -118,7 +132,9 @@ jobs:
           await new Promise(r=>setTimeout(r,1200));
           const alive=await evaljs('window.__PROAI_CUBE_R1_2?.ready===true');
           const out={threejs:base.ready,webgl:base.webgl,cubeVisible:base.w>0&&base.h>0,cubeMoving:moved>base.yaw,slices:moves>base.moves,semanticDiscovery:events>base.events,interaction:alive,fatalBrowserErrors:false};
-          console.log(JSON.stringify(out)); if(!Object.values(out).every(Boolean))process.exit(2); ws.close();
+          console.log(JSON.stringify(out));
+          if(!(out.threejs&&out.webgl&&out.cubeVisible&&out.cubeMoving&&out.slices&&out.semanticDiscovery&&out.interaction&&!out.fatalBrowserErrors))process.exit(2);
+          ws.close();
           NODE
           timeout 45s node /tmp/r443-cdp.mjs | tee /tmp/r443-browser-smoke.json
           kill "$(cat /tmp/r443-chrome.pid)" 2>/dev/null || true
@@ -129,8 +145,12 @@ jobs:
         run: |
           set -euo pipefail
           URL='${{ steps.tunnel.outputs.url }}'
-          BODY="PROAI CUBE R4.4.3 LIVE OWNER REVIEW ONLY%0A%0AExact product: a4e93f645188fa92087121da4aa8c5bb839a3719%0ALIVE_OWNER_URL=$URL%0AEXPECTED_LIFETIME=3 hours minimum%0ANO VIDEO / NO FFMPEG / PRODUCT UNCHANGED"
-          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments -f body="$(printf '%b' "${BODY//%0A/\\n}")"
+          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments -f body="PROAI CUBE R4.4.3 LIVE OWNER REVIEW ONLY
+
+Exact product: a4e93f645188fa92087121da4aa8c5bb839a3719
+LIVE_OWNER_URL=$URL
+EXPECTED_LIFETIME=3 hours minimum
+NO VIDEO / NO FFMPEG / PRODUCT UNCHANGED"
           echo "LIVE_OWNER_URL=$URL"
 
       - name: Keep owner URL alive for 3 hours

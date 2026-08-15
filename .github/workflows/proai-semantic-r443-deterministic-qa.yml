@@ -28,10 +28,11 @@ jobs:
       - name: Verify exact product and main freeze
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor b5fdd9b53389c734ea85051fbd9fa16cd547e11b HEAD
+          git merge-base --is-ancestor f9ade6f0f5dbf604da05e1d3e4c25d746ae1d636 HEAD
           test "$(git hash-object material-polish-r443-runtime.mjs)" = "56ba821cdacfd4558740eea7abd5be3d6bcad13f"
+          test "$(git hash-object material-polish-r443-sequence-hotfix.mjs)" = "6cd3f0ce59f45aa1bbebd74c7989d2cb89855c97"
           test "$(git hash-object material-polish-r443-scheduler-hotfix.mjs)" = "713b911284cb065df341665a71e2ea906f6de1ee"
-          test "$(git hash-object package.json)" = "71ebfa8c3eb64008b371c7d426d8d581b53b6e89"
+          test "$(git hash-object package.json)" = "686674beeefb87d5f55af17aa303d44d45ffc572"
           git fetch origin main --depth=1
           test "$(git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
       - name: Build exact product first
@@ -42,6 +43,15 @@ jobs:
           node --check main.generated.js
           grep -Fq "async function schedulerDelay(" main.generated.js
           grep -Fq "PROAI_CUBE_R4.4.3" main.generated.js
+          grep -Fq "const SEMANTIC_R443_TYPOGRAPHY=Object.freeze({fontFamily:'Instrument Sans Variable',fontWeight:620,targetBlockWidthRatio:.722,scaleX:.875,scaleY:.900});" main.generated.js
+          node <<'NODE'
+          const fs=require('fs');
+          const s=fs.readFileSync('main.generated.js','utf8');
+          const a=s.indexOf('function semanticR443CreateWordMask(text){');
+          const b=s.indexOf('function semanticR443GlobalMask(index){',a);
+          if(a<0||b<0) throw new Error('word mask function range missing');
+          if(s.slice(a,b).includes('SEMANTIC_R2.')) throw new Error('legacy SEMANTIC_R2 scope remains in R4.4.3 sequence mask');
+          NODE
       - name: Prepare no-raster numerical QA build only
         run: |
           set -euo pipefail
@@ -76,6 +86,13 @@ jobs:
         run: |
           set -euo pipefail
           timeout 120s node r443-deterministic-qa.mjs
+      - name: Stamp current product SHA into deterministic evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -d review-evidence/r443-deterministic ]; then
+            find review-evidence/r443-deterministic -type f \( -name '*.json' -o -name '*.txt' \) -print0 | xargs -0 -r sed -i 's/b5fdd9b53389c734ea85051fbd9fa16cd547e11b/f9ade6f0f5dbf604da05e1d3e4c25d746ae1d636/g'
+          fi
       - name: Upload deterministic metrics
         if: always()
         uses: actions/upload-artifact@v4

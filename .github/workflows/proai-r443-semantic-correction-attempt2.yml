@@ -1,0 +1,97 @@
+name: ProAI Cube R4.4.3 Semantic Correction Attempt 2
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-semantic-staging-review]
+    paths: [.github/workflows/proai-r443-semantic-correction-attempt2.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  correction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PRODUCT_BRANCH: agent/proai-cube-r443-closed-phrase-architecture
+      EXPECTED_HEAD: ff1f6063f19a7076fb0f71b902bff615e7318600
+      PRODUCT_FILE: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs
+      PRODUCT_DIR: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout exact attempt-1 product
+        run: |
+          set -euo pipefail
+          git fetch origin "$PRODUCT_BRANCH"
+          test "$(git rev-parse "origin/$PRODUCT_BRANCH")" = "$EXPECTED_HEAD"
+          git checkout -B "$PRODUCT_BRANCH" "origin/$PRODUCT_BRANCH"
+
+      - name: Apply proven staging-only threshold correction
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const file=process.env.PRODUCT_FILE;
+          let s=fs.readFileSync(file,'utf8');
+          const replacements=[
+            ['stageScoreMin:.40','stageScoreMin:.12','stageScoreMin'],
+            ['stageBrdfMin:.10','stageBrdfMin:0','stageBrdfMin'],
+            ['stageAbortScore:.32','stageAbortScore:0','stageAbortScore'],
+            ['stageTimeoutMs:1500','stageTimeoutMs:20000','stageTimeoutMs'],
+          ];
+          for(const [from,to,label] of replacements){
+            const first=s.indexOf(from),second=first<0?-1:s.indexOf(from,first+from.length);
+            if(first<0||second>=0)throw new Error(label+' anchor '+first+'/'+second);
+            s=s.slice(0,first)+to+s.slice(first+from.length);
+          }
+          fs.writeFileSync(file,s);
+          NODE
+          git diff --check
+          git diff -- "$PRODUCT_FILE"
+
+      - name: Validate frozen architecture material and motion
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run validate-closed-phrases
+          npm run build-r443
+          node --check main.generated.js
+          grep -Fq 'stageScoreMin:.12' main.generated.js
+          grep -Fq 'stageScoreMax:.59' main.generated.js
+          grep -Fq 'stageViewMin:.36' main.generated.js
+          grep -Fq 'stageAreaMin:.20' main.generated.js
+          grep -Fq 'stageBrdfMin:0' main.generated.js
+          grep -Fq 'stageAbortScore:0' main.generated.js
+          grep -Fq 'stageTimeoutMs:20000' main.generated.js
+          grep -Fq 'candidateApproachScore:.58' main.generated.js
+          grep -Fq 'candidateApproachView:.46' main.generated.js
+          grep -Fq 'candidateDwellMs:80' main.generated.js
+          grep -Fq 'enterScore:.64' main.generated.js
+          grep -Fq 'enterView:.52' main.generated.js
+          grep -Fq 'enterArea:.26' main.generated.js
+          grep -Fq 'enterBrdf:.18' main.generated.js
+          grep -Fq "SEMANTIC_R442_ELIGIBLE_FACES=Object.freeze(['+Z','+X','-X'])" main.generated.js
+          grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
+          grep -Fq 'semanticOrientationForcing:false' main.generated.js
+          grep -Fq "yawDirectionPolicy:'continuous-positive'" main.generated.js
+          grep -Fq 'function semanticR443ChooseNormalPhrase(){' main.generated.js
+          grep -Fq "semanticR443Unstage('impending-intersecting-turn')" main.generated.js
+          ! grep -Fq 'semanticR443PendingResolutionCount' main.generated.js
+          ! grep -Fq "semanticR442RecordMove(inverse,'resolve')" main.generated.js
+          grep -Fq 'bumpScale:-.130' main.generated.js || grep -Fq 'bumpScale: -0.130' main.generated.js || grep -Fq 'bumpScale=-.130' main.generated.js
+          grep -Fq 'edgeRoughnessInk:.095' main.generated.js
+
+      - name: Commit and push product attempt 2
+        run: |
+          set -euo pipefail
+          git config user.name 'Ihor Horb'
+          git config user.email 'proai.expert2026@gmail.com'
+          git add "$PRODUCT_FILE"
+          test "$(git diff --cached --name-only | wc -l)" -eq 1
+          git commit -m 'fix: restore attainable hidden semantic staging'
+          git push origin "$PRODUCT_BRANCH"
+          echo "NEW_PRODUCT_SHA=$(git rev-parse HEAD)"

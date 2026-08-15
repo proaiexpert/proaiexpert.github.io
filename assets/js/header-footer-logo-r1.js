@@ -16,6 +16,9 @@
       if (event.data.state === 'ready') {
         logo.classList.add('is-live');
         logo.dataset.logoState = 'live';
+        requestAnimationFrame(() => {
+          frame.contentWindow?.postMessage({ type: 'proai-logo-r341-control', action: 'start-motion' }, location.origin);
+        });
       } else {
         logo.classList.remove('is-live');
         logo.dataset.logoState = 'fallback';

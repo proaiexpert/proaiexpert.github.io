@@ -36,16 +36,25 @@ const params=new URLSearchParams(location.search);
 const mode=params.get('mode')||'living';
 const requestedQuality=Number(params.get('quality'));
 const qualityOverride=[2,3,4].includes(requestedQuality)?requestedQuality:null;
+const controlledStart=params.get('startup')==='controlled';
 const effectivePixelRatio=qualityOverride||Math.min(4,Math.max(3,window.devicePixelRatio||1));
 globalThis.__PROAI_HEADER_MICRO_PIXEL_RATIO=effectivePixelRatio;
 let moduleUrl=null;
 let motionLastNow=performance.now();
 let motionElapsedSec=0;
 let motionYawDeg=HOME.yaw;
+let motionEnabled=false;
 const replaceOnce=(source,needle,replacement,label)=>{const a=source.indexOf(needle),b=a<0?-1:source.indexOf(needle,a+needle.length);if(a<0||b>=0)throw new Error(`Logo R3.4.1 source mismatch: ${label}`);return source.slice(0,a)+replacement+source.slice(a+needle.length)};
 const notify=(state,detail={})=>parent.postMessage({type:'proai-logo-r341',state,...detail},location.origin);
 const resetMotionClock=()=>{motionLastNow=performance.now()};
 document.addEventListener('visibilitychange',resetMotionClock,{passive:true});
+addEventListener('message',event=>{
+  if(event.origin!==location.origin||event.data?.type!=='proai-logo-r341-control'||event.data?.action!=='start-motion')return;
+  if(mode!=='living'||reduced)return;
+  motionLastNow=performance.now();
+  motionEnabled=true;
+  if(window.__PROAI_LOGO_R341_STATE)window.__PROAI_LOGO_R341_STATE.motionStarted=true;
+});
 try{
   const response=await fetch(SOURCE_URL,{cache:'force-cache',credentials:'same-origin'});
   if(!response.ok)throw new Error(`Logo source HTTP ${response.status}`);
@@ -111,6 +120,8 @@ try{
     sliceChoreography:false,
     semanticFace:false,
     wordmarkAnimated:false,
+    controlledStart,
+    motionStarted:false,
     frames:0,
     elapsedSec:0,
     current:{yaw:HOME.yaw,pitch:HOME.pitch,roll:HOME.roll},
@@ -121,7 +132,9 @@ try{
   motionElapsedSec=0;
   motionYawDeg=HOME.yaw;
   if(mode==='living'&&!reduced){
+    motionEnabled=!controlledStart;
     globalThis.__PROAI_HEADER_LOGO_TICK=(now)=>{
+      if(!motionEnabled){motionLastNow=now;return;}
       const dt=Math.max(0,(now-motionLastNow)/1000);
       motionLastNow=now;
       motionElapsedSec+=dt;

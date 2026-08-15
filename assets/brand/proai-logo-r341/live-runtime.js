@@ -122,7 +122,7 @@ try{
   motionYawDeg=HOME.yaw;
   if(mode==='living'&&!reduced){
     globalThis.__PROAI_HEADER_LOGO_TICK=(now)=>{
-      const dt=Math.min(.1,Math.max(0,(now-motionLastNow)/1000));
+      const dt=Math.max(0,(now-motionLastNow)/1000);
       motionLastNow=now;
       motionElapsedSec+=dt;
       motionYawDeg+=MOTION.yawSpeed*dt;

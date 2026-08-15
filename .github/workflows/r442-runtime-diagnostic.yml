@@ -35,7 +35,8 @@ jobs:
           p.on('pageerror',e=>console.log('PAGEERROR',String(e),e?.stack||''));
           p.on('console',m=>console.log('CONSOLE',m.type(),m.text()));
           await p.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:60000});
-          for(let i=0;i<40;i++){await p.waitForTimeout(500);const s=await p.evaluate(()=>({ready:window.__PROAI_CUBE_R1_2?.ready,status:document.querySelector('#status')?.textContent||document.body.innerText.slice(-200)}));console.log('STATE',i,s);if(s.ready)break}
+          await p.waitForTimeout(5000);
+          console.log('FINAL',await p.evaluate(()=>({ready:window.__PROAI_CUBE_R1_2?.ready,status:document.body.innerText.slice(-240)})));
           await browser.close();
           NODE
           node diag.mjs

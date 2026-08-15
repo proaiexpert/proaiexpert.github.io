@@ -14,11 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: c5de60f7811727849bbc398f04065c264caedd93
+          ref: 35420978ea47ef25c763093538f114bbb5d91219
           fetch-depth: 0
       - run: |
           npm install --package-lock=false
           npm run build-r442
+          node --check main.generated.js
+          grep -Fq "nextEligiblePresentationMs:R44_INITIAL_PRESENTATION_PHASE_MS+3400" main.generated.js
+          grep -Fq "rearmScore:.50" main.generated.js
+          grep -Fq "faceRearmBlocked" main.generated.js
+          grep -Fq "w*=2.10" main.generated.js
+          grep -Fq "w*=1.85" main.generated.js
           npm install --no-save playwright
           npx playwright install chromium
       - run: |

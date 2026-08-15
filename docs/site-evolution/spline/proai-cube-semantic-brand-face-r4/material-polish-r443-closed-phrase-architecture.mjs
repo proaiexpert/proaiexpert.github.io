@@ -1,0 +1,237 @@
+import fs from 'node:fs';
+
+const AXES=['X','Y','Z'];
+const LAYERS=[-1,0,1];
+const ELIGIBLE_FACES=['+Z','+X','-X'];
+const FACE_AXIS={'+Z':['Z',1],'+X':['X',1],'-X':['X',-1]};
+const PERMUTATIONS=[[0,1,2],[1,2,0],[2,0,1],[0,2,1]];
+const move=(axis,layer,direction)=>Object.freeze({axis,layer,direction});
+const inverseMove=m=>({axis:m.axis,layer:m.layer,direction:-m.direction});
+const inverseWord=word=>[...word].reverse().map(inverseMove);
+const sameMove=(a,b)=>!!a&&!!b&&a.axis===b.axis&&a.layer===b.layer&&a.direction===b.direction;
+const exactInverse=(a,b)=>!!a&&!!b&&a.axis===b.axis&&a.layer===b.layer&&a.direction===-b.direction;
+
+const CYCLE_SPECS=Object.freeze([
+  Object.freeze({
+    id:'A_PLUS_X',preservedFace:'+X',order:4,
+    prefix:Object.freeze([move('Z',-1,1)]),
+    commuting:Object.freeze([move('X',1,1),move('X',-1,1),move('X',0,1)]),
+    suffix:Object.freeze([move('Y',1,1),move('X',1,-1)]),
+  }),
+  Object.freeze({
+    id:'B_PLUS_Z',preservedFace:'+Z',order:4,
+    prefix:Object.freeze([move('Z',1,-1),move('X',-1,1)]),
+    commuting:Object.freeze([move('Z',-1,1),move('Z',0,1),move('Z',1,1)]),
+    suffix:Object.freeze([move('Y',-1,-1),move('Z',-1,1)]),
+  }),
+  Object.freeze({
+    id:'C_MINUS_X',preservedFace:'-X',order:4,
+    prefix:Object.freeze([move('Y',0,-1)]),
+    commuting:Object.freeze([move('X',1,-1),move('X',0,-1),move('X',-1,-1)]),
+    suffix:Object.freeze([move('Z',0,-1),move('X',-1,1)]),
+  }),
+]);
+
+const CORE_ARCHETYPES=Object.freeze(CYCLE_SPECS.flatMap(cycle=>PERMUTATIONS.map((perm,index)=>Object.freeze({
+  id:`${cycle.id}_V${index+1}`,
+  cycle:cycle.id,
+  preservedFace:cycle.preservedFace,
+  moves:Object.freeze([...cycle.prefix,...perm.map(i=>cycle.commuting[i]),...cycle.suffix]),
+}))));
+
+const SAFETY_PHRASES=Object.freeze({
+  '+Z':Object.freeze({axis:'Z',otherLayer:-1}),
+  '+X':Object.freeze({axis:'X',otherLayer:-1}),
+  '-X':Object.freeze({axis:'X',otherLayer:1}),
+});
+
+function identityMatrix(){return [1,0,0,0,1,0,0,0,1]}
+function matMul(a,b){const r=new Array(9).fill(0);for(let y=0;y<3;y++)for(let x=0;x<3;x++)for(let k=0;k<3;k++)r[y*3+x]+=a[y*3+k]*b[k*3+x];return r}
+function matVec(m,v){return [m[0]*v[0]+m[1]*v[1]+m[2]*v[2],m[3]*v[0]+m[4]*v[1]+m[5]*v[2],m[6]*v[0]+m[7]*v[1]+m[8]*v[2]]}
+function quarterMatrix(axis,d){if(axis==='X')return [1,0,0,0,0,-d,0,d,0];if(axis==='Y')return [0,0,d,0,1,0,-d,0,0];return [0,-d,0,d,0,0,0,0,1]}
+function coordKey(v){return v.join(',')}
+function cubeHome(){const cubies=[];for(const x of LAYERS)for(const y of LAYERS)for(const z of LAYERS)cubies.push({origin:[x,y,z],pos:[x,y,z],ori:identityMatrix()});return cubies}
+function cloneState(state){return state.map(c=>({origin:[...c.origin],pos:[...c.pos],ori:[...c.ori]}))}
+function applyAbstractMove(state,m){const idx=m.axis==='X'?0:m.axis==='Y'?1:2,R=quarterMatrix(m.axis,m.direction);for(const c of state){if(c.pos[idx]!==m.layer)continue;c.pos=matVec(R,c.pos);c.ori=matMul(R,c.ori)}return state}
+function applyAbstractWord(state,word){for(const m of word)applyAbstractMove(state,m);return state}
+function stateSignature(state){return state.map(c=>`${coordKey(c.origin)}>${coordKey(c.pos)}:${c.ori.join('')}`).join('|')}
+function abstractFaceAssembled(state,face){const [axis,sign]=FACE_AXIS[face],idx=axis==='X'?0:axis==='Y'?1:2,normal=[0,0,0];normal[idx]=sign;for(const c of state){if(c.origin[idx]!==sign)continue;if(coordKey(c.origin)!==coordKey(c.pos))return false;const n=matVec(c.ori,normal);if(coordKey(n)!==coordKey(normal))return false}return true}
+function wordHasImmediateInverse(word){for(let i=1;i<word.length;i++)if(exactInverse(word[i-1],word[i]))return true;return false}
+function moveIntersectsFaceAbstract(m,face){const [faceAxis,faceLayer]=FACE_AXIS[face];return m.axis===faceAxis?m.layer===faceLayer:true}
+function buildSafetyWord(face,direction=1){const s=SAFETY_PHRASES[face];return [move(s.axis,0,direction),move(s.axis,s.otherLayer,direction),move(s.axis,0,-direction),move(s.axis,s.otherLayer,-direction)]}
+
+function validateClosedPhraseLibrary(){
+  if(CORE_ARCHETYPES.length!==12)throw new Error(`closed phrase core archetype count ${CORE_ARCHETYPES.length}`);
+  const home=cubeHome(),homeSig=stateSignature(home),macroStates=new Map([['HOME',{id:'HOME',cycle:null,step:0,signature:homeSig,assembledFaces:[...ELIGIBLE_FACES]}]]),cycleGenerators=new Map();
+  for(const cycle of CYCLE_SPECS){
+    const variants=CORE_ARCHETYPES.filter(p=>p.cycle===cycle.id);
+    const variantSigs=variants.map(v=>stateSignature(applyAbstractWord(cloneState(home),v.moves)));
+    if(!variantSigs.every(s=>s===variantSigs[0]))throw new Error(`${cycle.id} commuting variants are not mechanically equivalent`);
+    if(variants.some(v=>wordHasImmediateInverse(v.moves)))throw new Error(`${cycle.id} contains immediate inverse`);
+    const generator=variants[0].moves;cycleGenerators.set(cycle.id,generator);
+    let state=cloneState(home);
+    for(let step=1;step<=cycle.order;step++){
+      applyAbstractWord(state,generator);
+      const sig=stateSignature(state);
+      if(step<cycle.order){
+        if(sig===homeSig)throw new Error(`${cycle.id} closes early at ${step}`);
+        const assembledFaces=ELIGIBLE_FACES.filter(face=>abstractFaceAssembled(state,face));
+        if(!assembledFaces.includes(cycle.preservedFace))throw new Error(`${cycle.id} loses preserved face ${cycle.preservedFace} at ${step}`);
+        macroStates.set(`${cycle.id}:${step}`,{id:`${cycle.id}:${step}`,cycle:cycle.id,step,signature:sig,assembledFaces});
+      }else if(sig!==homeSig)throw new Error(`${cycle.id} order ${cycle.order} does not close to HOME`);
+    }
+    for(let step=0;step<cycle.order;step++){
+      const source=step===0?home:cloneState(home);
+      if(step>0)for(let i=0;i<step;i++)applyAbstractWord(source,generator);
+      const expectedForward=(step+1)%cycle.order;
+      const expectedReverse=(step-1+cycle.order)%cycle.order;
+      const expectedForwardSig=expectedForward===0?homeSig:macroStates.get(`${cycle.id}:${expectedForward}`).signature;
+      const expectedReverseSig=expectedReverse===0?homeSig:macroStates.get(`${cycle.id}:${expectedReverse}`).signature;
+      for(const variant of variants){
+        const f=stateSignature(applyAbstractWord(cloneState(source),variant.moves));
+        const r=stateSignature(applyAbstractWord(cloneState(source),inverseWord(variant.moves)));
+        if(f!==expectedForwardSig)throw new Error(`${variant.id} invalid forward transition from ${step}`);
+        if(r!==expectedReverseSig)throw new Error(`${variant.id} invalid reverse transition from ${step}`);
+      }
+    }
+  }
+  if(macroStates.size!==10)throw new Error(`closed phrase macro state count ${macroStates.size}`);
+  for(const [face] of Object.entries(SAFETY_PHRASES)){
+    for(const d of [-1,1]){
+      const word=buildSafetyWord(face,d);
+      if(wordHasImmediateInverse(word))throw new Error(`safety phrase ${face}/${d} immediate inverse`);
+      if(word.some(m=>moveIntersectsFaceAbstract(m,face)))throw new Error(`safety phrase ${face}/${d} intersects protected face`);
+      for(const macro of macroStates.values()){
+        const source=macro.id==='HOME'?cloneState(home):(()=>{const s=cloneState(home),gen=cycleGenerators.get(macro.cycle);for(let i=0;i<macro.step;i++)applyAbstractWord(s,gen);return s})();
+        const before=stateSignature(source),after=stateSignature(applyAbstractWord(cloneState(source),word));
+        if(before!==after)throw new Error(`safety phrase ${face}/${d} does not preserve ${macro.id}`);
+      }
+    }
+  }
+  return Object.freeze({
+    coreArchetypeCount:CORE_ARCHETYPES.length,
+    generatedValidatedPhraseVariants:CORE_ARCHETYPES.length*2+Object.keys(SAFETY_PHRASES).length*2,
+    normalGeneratedVariants:CORE_ARCHETYPES.length*2,
+    safetyGeneratedVariants:Object.keys(SAFETY_PHRASES).length*2,
+    macroStateCount:macroStates.size,
+    phraseHistoryDepth:3,
+    cycles:CYCLE_SPECS.map(c=>({id:c.id,order:c.order,preservedFace:c.preservedFace,archetypes:CORE_ARCHETYPES.filter(a=>a.cycle===c.id).length})),
+    macroStates:[...macroStates.values()].map(({signature,...rest})=>rest),
+  });
+}
+
+const VALIDATION=validateClosedPhraseLibrary();
+if(process.argv.includes('--validate-library-only')){
+  console.log(JSON.stringify(VALIDATION,null,2));
+  process.exit(0);
+}
+
+const file=new URL('./main.generated.js',import.meta.url);
+let source=fs.readFileSync(file,'utf8');
+const replaceBetween=(startToken,endToken,replacement,label)=>{const start=source.indexOf(startToken),end=source.indexOf(endToken,start+startToken.length);if(start<0||end<0||source.indexOf(startToken,start+1)>=0)throw new Error(`R4.4.3 closed phrase ${label}: ${start}/${end}`);source=source.slice(0,start)+replacement+source.slice(end)};
+const replaceUnique=(find,replacement,label)=>{const at=source.indexOf(find),next=at>=0?source.indexOf(find,at+find.length):-1;if(at<0||next>=0)throw new Error(`R4.4.3 closed phrase ${label}: ${at}/${next}`);source=source.slice(0,at)+replacement+source.slice(at+find.length)};
+
+for(const required of[
+  "SEMANTIC_R442_ELIGIBLE_FACES=Object.freeze(['+Z','+X','-X'])",
+  'R4_4_2_PHYSICAL_MICRO_ENGRAVED_',
+  'bumpScale:-0.130,roughnessMapInk:0.550,metalnessDelta:0.0,tonalInk:0.820',
+  'edgeRoughnessInk:.095',
+  'r441HorizontalReductionPct:12.5',
+  'r441VerticalReductionPct:10',
+  'semanticVelocityMultiplier: 1.0',
+  'const deltaMs=wallDeltaMs',
+  "yawDirectionPolicy:'continuous-positive'",
+  'semanticOrientationForcing:false',
+  'overlayTextRendered:false',
+  'alphaDominantReveal:false',
+])if(!source.includes(required))throw new Error(`R4.4.3 closed phrase missing frozen invariant: ${required}`);
+
+const runtimeArchetypes=JSON.stringify(CORE_ARCHETYPES.map(a=>({id:a.id,cycle:a.cycle,preservedFace:a.preservedFace,moves:a.moves})));
+const runtimeValidation=JSON.stringify(VALIDATION);
+
+const lifecycle=String.raw`const SEMANTIC_R443_PHASE=Object.freeze({NORMAL:'NORMAL',CANDIDATE:'CANDIDATE',READABLE:'READABLE',RELEASE:'RELEASE'});
+const SEMANTIC_R443_SEQUENCE=Object.freeze(['ProAI Expert','TRUST','INQUIRY','RESPONSE','RESULT']);
+const SEMANTIC_R443_TYPOGRAPHY=Object.freeze({fontFamily:'Instrument Sans Variable',fontWeight:620,targetBlockWidthRatio:.722,scaleX:.875,scaleY:.900});
+const SEMANTIC_R443_CONFIG=Object.freeze({stageScoreMin:.40,stageScoreMax:.59,stageViewMin:.36,stageAreaMin:.20,stageBrdfMin:.10,stageAbortScore:.32,stageTimeoutMs:1500,candidateApproachScore:.58,candidateApproachView:.46,candidateDwellMs:80,enterScore:.64,enterView:.52,enterArea:.26,enterBrdf:.18,exitScore:.54,exitView:.50,releaseDebounceMs:90,rearmScore:.50,breathingRangeMs:[5000,7000],longGapWarningMs:24000,longReadableWarningMs:2200,recentFaceDepth:2});
+const SEMANTIC_R443_CLOSED_VALIDATION=Object.freeze(${runtimeValidation});
+const SEMANTIC_R443_CLOSED_ARCHETYPES=Object.freeze(${runtimeArchetypes});
+const semanticR443State={phase:SEMANTIC_R443_PHASE.NORMAL,stagedFace:null,stagedMessageIndex:null,stagedSinceMs:null,candidateFace:null,candidateSinceMs:null,candidatePeakScore:0,activeMessage:null,activeMessageIndex:null,nextMessageIndex:0,lastReadableStartMs:null,lastReleaseMs:-Infinity,lastReleaseFace:null,nextEligiblePresentationMs:semanticR442State.nextEligiblePresentationMs,cooldownUntilMs:semanticR442State.nextEligiblePresentationMs,opportunityIntervalsMs:[],readableDurationsMs:[],faceArmed:{'+Z':true,'+X':true,'-X':true},recentFaces:[],lifecycleLog:[],candidateLog:[],eventLog:[],semanticSeed:0x443c0de,shortReadableCount:0,semanticFlashCount:0,longReadableWarnings:0,longGapWarnings:0,dispersalDone:true,dispersalLatencyMs:null,dispersalLatenciesMs:[],overdueDispersalCount:0,stageCount:0,stageCancelCount:0};
+const semanticR443ClosedState={cycle:null,step:0,direction:0,lastCycle:null,phraseHistory:[],visibleMoves:[],phraseCount:0,normalPhraseCount:0,safetyPhraseCount:0,phraseDecisionCount:0,protectionAlterations:0,sameFamilyAdjacency:0,highSimilaritySelections:0,phraseActive:false,currentPhraseId:null,unexpectedUnsafeStarts:0,releasedFaceForcedMoves:0,breathCounter:3};
+function semanticR443Log(type,data={}){semanticR443State.lifecycleLog.push({type,presentationMs:presentationSimTimeMs,phase:semanticR443State.phase,...data});if(semanticR443State.lifecycleLog.length>192)semanticR443State.lifecycleLog.shift()}
+function semanticR443Unit(){let x=semanticR443State.semanticSeed>>>0;x^=(x<<13)>>>0;x^=x>>>17;x^=(x<<5)>>>0;semanticR443State.semanticSeed=x>>>0;return semanticR443State.semanticSeed/4294967296}
+function semanticR443Range(min,max){return min+(max-min)*semanticR443Unit()}
+function semanticR443FaceClearOfActiveTurns(face){if(!face)return false;for(const turn of activeTurns.values())if(semanticR442MoveIntersection({axis:turn.axis,layer:turn.layer},face).count>0)return false;return true}
+function semanticR443CreateWordMask(text){const size=2048,raw=document.createElement('canvas');raw.width=size;raw.height=size;const ctx=raw.getContext('2d',{alpha:true});ctx.clearRect(0,0,size,size);ctx.fillStyle='#ffffff';ctx.textAlign='center';ctx.textBaseline='alphabetic';const targetWidth=size*SEMANTIC_R443_TYPOGRAPHY.targetBlockWidthRatio;let low=120,high=900;for(let i=0;i<20;i++){const mid=(low+high)*.5;ctx.font=SEMANTIC_R443_TYPOGRAPHY.fontWeight+' '+mid+'px "'+SEMANTIC_R443_TYPOGRAPHY.fontFamily+'"';if(ctx.measureText(text).width<targetWidth)low=mid;else high=mid}const fontPx=(low+high)*.5;ctx.font=SEMANTIC_R443_TYPOGRAPHY.fontWeight+' '+fontPx+'px "'+SEMANTIC_R443_TYPOGRAPHY.fontFamily+'"';const m=ctx.measureText(text),ascent=m.actualBoundingBoxAscent||fontPx*.72,descent=m.actualBoundingBoxDescent||fontPx*.18,baseline=size*.5+(ascent-descent)*.5;ctx.fillText(text,size*.5,baseline);const scaled=document.createElement('canvas');scaled.width=size;scaled.height=size;const sc=scaled.getContext('2d',{alpha:true}),dw=size*SEMANTIC_R443_TYPOGRAPHY.scaleX,dh=size*SEMANTIC_R443_TYPOGRAPHY.scaleY;sc.clearRect(0,0,size,size);sc.drawImage(raw,(size-dw)*.5,(size-dh)*.5,dw,dh);const texture=new THREE.CanvasTexture(scaled);texture.colorSpace=THREE.NoColorSpace;texture.minFilter=THREE.LinearFilter;texture.magFilter=THREE.LinearFilter;texture.generateMipmaps=true;texture.needsUpdate=true;texture.userData.semanticR443TypographyScale={x:SEMANTIC_R443_TYPOGRAPHY.scaleX,y:SEMANTIC_R443_TYPOGRAPHY.scaleY,message:text};return createSeamAwareBrandMaskTexture(texture,semanticR443FaceSpan())}
+function semanticR443FaceSpan(){const spanY=Math.abs(latticeCenters.Y[2]-latticeCenters.Y[0])+GEOMETRY_R1.faceOuterSize,spanZ=Math.abs(latticeCenters.Z[2]-latticeCenters.Z[0])+GEOMETRY_R1.faceOuterSize;return Math.min(spanY,spanZ)*.998}
+const semanticR443GlobalMaskCache=new Map();
+function semanticR443GlobalMask(index){if(index===0)return semanticMaskTexture;if(semanticR443GlobalMaskCache.has(index))return semanticR443GlobalMaskCache.get(index);const texture=semanticR443CreateWordMask(SEMANTIC_R443_SEQUENCE[index]);semanticR443GlobalMaskCache.set(index,texture);return texture}
+function semanticR443DisposeTileResources(tile){const m=tile.material,items=[tile.mask,tile.rough,m.userData.semanticBeveledBump,m.userData.semanticToneMap],seen=new Set();for(const t of items){if(!t||seen.has(t)||t===m.userData.semanticBaseMap)continue;seen.add(t);t.dispose?.()}}
+function semanticR443ApplyMessage(face,index){const reg=semanticR442FaceRegistry.get(face);if(!reg)return false;const message=SEMANTIC_R443_SEQUENCE[index],globalMask=semanticR443GlobalMask(index);for(const tile of reg.tiles){const m=tile.material,current=m.userData.semanticR443MessageIndex;if(current===index)continue;if(current===undefined&&index===0){m.userData.semanticR443MessageIndex=0;m.userData.semanticR443Message=message;continue}semanticR443DisposeTileResources(tile);const mask=createSemanticR442TileMask(globalMask,face,tile.origin),rough=createSemanticR441PearlRoughnessTile(mask),bevel=createSemanticR442BevelTile(mask),tone=createSemanticR442ToneTile(mask);tile.mask=mask;tile.rough=rough;m.bumpMap=bevel;m.userData.semanticTileMask=mask;m.userData.semanticBeveledBump=bevel;m.userData.semanticRoughnessMap=rough;m.userData.semanticToneMap=tone;m.userData.semanticR443MessageIndex=index;m.userData.semanticR443Message=message;m.needsUpdate=true}semanticR443State.activeMessage=message;semanticR443State.activeMessageIndex=index;return true}
+function semanticR443RefreshArming(){for(const face of SEMANTIC_R442_ELIGIBLE_FACES){const q=semanticR442EvaluateFace(face,false);if(!q||q.rawQuality<=SEMANTIC_R443_CONFIG.rearmScore||q.viewAlignment<=.42)semanticR443State.faceArmed[face]=true}}
+function semanticR443RecentFaceBlocked(face){if(!semanticR443State.recentFaces.length)return false;return semanticR443State.recentFaces.at(-1)===face}
+function semanticR443BestStageFace(){let list=SEMANTIC_R442_ELIGIBLE_FACES.map(face=>semanticR442EvaluateFace(face,true)).filter(q=>q&&q.assembled&&semanticR443State.faceArmed[q.face]&&semanticR443FaceClearOfActiveTurns(q.face)&&q.rawQuality>=SEMANTIC_R443_CONFIG.stageScoreMin&&q.rawQuality<SEMANTIC_R443_CONFIG.stageScoreMax&&q.viewAlignment>=SEMANTIC_R443_CONFIG.stageViewMin&&q.projectedAreaQuality>=SEMANTIC_R443_CONFIG.stageAreaMin&&q.brdfQuality>=SEMANTIC_R443_CONFIG.stageBrdfMin).sort((a,b)=>b.selectionScore-a.selectionScore);const nonRepeat=list.filter(q=>!semanticR443RecentFaceBlocked(q.face));if(nonRepeat.length)list=nonRepeat;semanticR442State.candidateScores=list.map(q=>({...q,closedPhraseStage:true}));return list[0]||null}
+function semanticR443Unstage(reason='hidden-cancel'){const face=semanticR443State.stagedFace;if(semanticR442ActiveMaterialFace!==null){semanticR442SetActiveMaterialFace(null);semanticR442State.activeMaterialFace=null}semanticR443Log('stage-cancel',{face,reason});semanticR443State.stageCancelCount++;semanticR443State.stagedFace=null;semanticR443State.stagedMessageIndex=null;semanticR443State.stagedSinceMs=null;semanticR443State.candidateFace=null;semanticR443State.candidateSinceMs=null;semanticR443State.candidatePeakScore=0;semanticR443State.activeMessage=null;semanticR443State.activeMessageIndex=null;semanticR443State.phase=SEMANTIC_R443_PHASE.NORMAL}
+function semanticR443Stage(q){const index=semanticR443State.nextMessageIndex,message=SEMANTIC_R443_SEQUENCE[index];if(!semanticR443ApplyMessage(q.face,index))return false;semanticR442SetActiveMaterialFace(q.face);semanticR442State.activeMaterialFace=q.face;semanticR443State.stagedFace=q.face;semanticR443State.stagedMessageIndex=index;semanticR443State.stagedSinceMs=presentationSimTimeMs;semanticR443State.stageCount++;semanticR443Log('stage',{face:q.face,message,messageIndex:index,quality:q.rawQuality});return true}
+function semanticR443ResetCandidate(reason='optical-exit'){if(semanticR443State.phase===SEMANTIC_R443_PHASE.CANDIDATE)semanticR443Log('candidate-cancel',{face:semanticR443State.candidateFace,reason});semanticR443State.candidateFace=null;semanticR443State.candidateSinceMs=null;semanticR443State.candidatePeakScore=0;if(semanticR443State.phase===SEMANTIC_R443_PHASE.CANDIDATE)semanticR443State.phase=SEMANTIC_R443_PHASE.NORMAL}
+function semanticR443Lock(q){if(!semanticR443State.stagedFace||q.face!==semanticR443State.stagedFace)return false;const now=presentationSimTimeMs,index=semanticR443State.stagedMessageIndex,message=SEMANTIC_R443_SEQUENCE[index];semanticR442State.protected=true;semanticR442State.protectedFace=q.face;semanticR442State.protectedSinceMs=now;semanticR442State.belowExitSinceMs=null;semanticR442State.protectionCount++;const reg=semanticR442FaceRegistry.get(q.face);if(reg)reg.lastUsedPresentationMs=now;semanticR442State.faceSelections.push({face:q.face,presentationMs:now,quality:q.rawQuality,view:q.viewAlignment,area:q.projectedAreaQuality,brdf:q.brdfQuality,message,messageIndex:index,stagedSinceMs:semanticR443State.stagedSinceMs});if(semanticR442State.faceSelections.length>32)semanticR442State.faceSelections.shift();if(semanticR443State.lastReadableStartMs!==null)semanticR443State.opportunityIntervalsMs.push(now-semanticR443State.lastReadableStartMs);semanticR443State.lastReadableStartMs=now;semanticR443State.phase=SEMANTIC_R443_PHASE.READABLE;semanticR443State.candidateFace=null;semanticR443State.candidateSinceMs=null;semanticR443State.eventLog.push({message,messageIndex:index,face:q.face,startMs:now,stagedMs:semanticR443State.stagedSinceMs,quality:q.rawQuality});if(semanticR443State.eventLog.length>32)semanticR443State.eventLog.shift();semanticR443Log('readable-start',{face:q.face,message,messageIndex:index,quality:q.rawQuality,stagedMs:semanticR443State.stagedSinceMs});return true}
+function semanticR443Release(reason='stable-optical-exit'){if(!semanticR442State.protected)return false;const now=presentationSimTimeMs,start=semanticR442State.protectedSinceMs??now,face=semanticR442State.protectedFace,duration=Math.max(0,now-start),message=semanticR443State.activeMessage;semanticR442State.protectedIntervals.push({face,startMs:start,endMs:now,durationSec:duration/1000,reason,message});if(semanticR442State.protectedIntervals.length>32)semanticR442State.protectedIntervals.shift();semanticR443State.readableDurationsMs.push(duration);if(duration<600)semanticR443State.shortReadableCount++;if(duration<450)semanticR443State.semanticFlashCount++;semanticR442State.protected=false;semanticR442State.protectedFace=null;semanticR442State.protectedSinceMs=null;semanticR442State.belowExitSinceMs=null;semanticR442State.lastReleasedFace=face;semanticR442State.lastReleasedAtMs=now;semanticR442State.releaseCount++;semanticR443State.faceArmed[face]=false;semanticR443State.recentFaces.push(face);while(semanticR443State.recentFaces.length>SEMANTIC_R443_CONFIG.recentFaceDepth)semanticR443State.recentFaces.shift();if(semanticR442ActiveMaterialFace!==null){semanticR442SetActiveMaterialFace(null);semanticR442State.activeMaterialFace=null}semanticR443State.lastReleaseMs=now;semanticR443State.lastReleaseFace=face;semanticR443State.nextEligiblePresentationMs=now+semanticR443Range(...SEMANTIC_R443_CONFIG.breathingRangeMs);semanticR443State.cooldownUntilMs=semanticR443State.nextEligiblePresentationMs;semanticR443State.phase=SEMANTIC_R443_PHASE.RELEASE;semanticR443Log('release',{face,reason,durationMs:duration,message});semanticR443State.nextMessageIndex=(semanticR443State.nextMessageIndex+1)%SEMANTIC_R443_SEQUENCE.length;semanticR443State.stagedFace=null;semanticR443State.stagedMessageIndex=null;semanticR443State.stagedSinceMs=null;semanticR443State.activeMessage=null;semanticR443State.activeMessageIndex=null;return true}
+function semanticR443GuardFace(){return semanticR443State.stagedFace||semanticR442State.protectedFace||semanticR443State.candidateFace||null}
+`;
+
+const lifecycleStart='const SEMANTIC_R443_PHASE=Object.freeze(';
+const lifecycleEnd='function semanticR442ReleaseProtection(';
+replaceBetween(lifecycleStart,lifecycleEnd,lifecycle,'semantic lifecycle replacement');
+
+const update=String.raw`function semanticR442UpdateProtectionState(){const now=presentationSimTimeMs;semanticR443RefreshArming();if(semanticR443State.phase===SEMANTIC_R443_PHASE.READABLE){const face=semanticR442State.protectedFace,q=face?semanticR442EvaluateFace(face,false):null,elapsed=now-(semanticR442State.protectedSinceMs??now);if(!q?.assembled){semanticR442State.assemblyViolations++;semanticR443Log('tearing-violation',{face,reason:'assembly-lost-during-readable'});semanticR443Release('assembly-lost');return}if(elapsed>=SEMANTIC_R443_CONFIG.longReadableWarningMs&&!(semanticR443State.eventLog.at(-1)?.longReadableWarned)){semanticR443State.longReadableWarnings++;const e=semanticR443State.eventLog.at(-1);if(e)e.longReadableWarned=true;semanticR443Log('long-readable-warning',{face,elapsedMs:elapsed})}const readable=q.rawQuality>=SEMANTIC_R443_CONFIG.exitScore&&q.viewAlignment>=SEMANTIC_R443_CONFIG.exitView;if(readable)semanticR442State.belowExitSinceMs=null;else if(semanticR442State.belowExitSinceMs===null)semanticR442State.belowExitSinceMs=now;if(semanticR442State.belowExitSinceMs!==null&&now-semanticR442State.belowExitSinceMs>=SEMANTIC_R443_CONFIG.releaseDebounceMs){semanticR443Release('stable-optical-exit');return}semanticR43OpticalDiagnostics={...semanticR43OpticalDiagnostics,alignment:q.brdfQuality,faceView:q.viewAlignment,halfDot:q.halfDot,signedFaceView:q.signedFaceView,signedHalfDot:q.signedHalfDot,frontFacing:q.signedFaceView>0,opportunity:q.rawQuality,engravedFace:q.face};return}if(semanticR443State.phase===SEMANTIC_R443_PHASE.RELEASE){semanticR443State.phase=SEMANTIC_R443_PHASE.NORMAL;semanticR443ResetCandidate('release-complete');return}if(now<semanticR443State.nextEligiblePresentationMs){if(Number.isFinite(semanticR443State.lastReleaseMs)&&now-semanticR443State.lastReleaseMs>=SEMANTIC_R443_CONFIG.longGapWarningMs&&semanticR443State.longGapWarnings===0)semanticR443State.longGapWarnings++;return}if(semanticR443State.stagedFace){const face=semanticR443State.stagedFace,q=semanticR442EvaluateFace(face,true),age=now-(semanticR443State.stagedSinceMs??now);if(!q?.assembled){semanticR443Unstage('assembly-lost-before-readable');return}if(!semanticR443FaceClearOfActiveTurns(face))return;if(semanticR443State.phase===SEMANTIC_R443_PHASE.CANDIDATE){if(q.rawQuality<SEMANTIC_R443_CONFIG.candidateApproachScore||q.viewAlignment<SEMANTIC_R443_CONFIG.candidateApproachView){semanticR443ResetCandidate('optical-exit');if(q.rawQuality<=SEMANTIC_R443_CONFIG.stageAbortScore)semanticR443Unstage('hidden-after-candidate');return}semanticR443State.candidatePeakScore=Math.max(semanticR443State.candidatePeakScore,q.rawQuality);const dwell=now-(semanticR443State.candidateSinceMs??now),stable=q.rawQuality>=semanticR443State.candidatePeakScore-.035,enter=q.rawQuality>=SEMANTIC_R443_CONFIG.enterScore&&q.viewAlignment>=SEMANTIC_R443_CONFIG.enterView&&q.projectedAreaQuality>=SEMANTIC_R443_CONFIG.enterArea&&q.brdfQuality>=SEMANTIC_R443_CONFIG.enterBrdf;if(dwell>=SEMANTIC_R443_CONFIG.candidateDwellMs&&stable&&enter)semanticR443Lock(q);return}if(q.rawQuality>=SEMANTIC_R443_CONFIG.candidateApproachScore&&q.viewAlignment>=SEMANTIC_R443_CONFIG.candidateApproachView&&q.projectedAreaQuality>=SEMANTIC_R443_CONFIG.enterArea*.88&&q.brdfQuality>=SEMANTIC_R443_CONFIG.enterBrdf*.78){semanticR443State.phase=SEMANTIC_R443_PHASE.CANDIDATE;semanticR443State.candidateFace=face;semanticR443State.candidateSinceMs=now;semanticR443State.candidatePeakScore=q.rawQuality;semanticR443State.candidateLog.push({face,presentationMs:now,quality:q.rawQuality,view:q.viewAlignment,stagedMs:semanticR443State.stagedSinceMs});if(semanticR443State.candidateLog.length>64)semanticR443State.candidateLog.shift();semanticR443Log('candidate',{face,quality:q.rawQuality});return}if(age>=SEMANTIC_R443_CONFIG.stageTimeoutMs&&q.rawQuality<=SEMANTIC_R443_CONFIG.stageScoreMin)semanticR443Unstage('stage-timeout-hidden');return}if(semanticR443ClosedState.phraseActive)return;const best=semanticR443BestStageFace();if(best)semanticR443Stage(best)}
+`;
+replaceBetween('function semanticR442UpdateProtectionState(){','function semanticR442MoveIntersection(',update,'state machine');
+
+const neutralWeight=String.raw`function semanticR442RecentWeight(move){return 1}
+`;
+replaceBetween('function semanticR442RecentWeight(move){','function semanticR442AllMoveCandidates(){',neutralWeight,'remove move-weight controllers');
+
+const recordAndHelpers=String.raw`function semanticR442RecordMove(move,phase='closed-phrase',phraseId=null){const guard=semanticR443GuardFace(),intersection=guard?semanticR442MoveIntersection(move,guard):{count:0,ids:[]};if(guard&&intersection.count>0){semanticR442State.unsafeProtectedStarts++;semanticR443ClosedState.unexpectedUnsafeStarts++}semanticR442MoveState.recentMoves.push({axis:move.axis,layer:move.layer,direction:move.direction,presentationMs:presentationSimTimeMs,phase,phraseId});if(semanticR442MoveState.recentMoves.length>8)semanticR442MoveState.recentMoves.shift();semanticR442MoveState.axisCounts[move.axis]=(semanticR442MoveState.axisCounts[move.axis]||0)+1;semanticR442MoveState.layerCounts[String(move.layer)]=(semanticR442MoveState.layerCounts[String(move.layer)]||0)+1;semanticR442MoveState.selectionCount++;semanticR442MoveState.moveLog.push({presentationMs:presentationSimTimeMs,phase,phraseId,axis:move.axis,layer:move.layer,direction:move.direction,protected:semanticR442State.protected,protectedFace:semanticR442State.protectedFace,stagedFace:semanticR443State.stagedFace,semanticIntersection:intersection.count,r443Phase:semanticR443State.phase});if(semanticR442MoveState.moveLog.length>240)semanticR442MoveState.moveLog.shift();semanticR443ClosedState.visibleMoves.push({presentationMs:presentationSimTimeMs,phase,phraseId,axis:move.axis,layer:move.layer,direction:move.direction});if(semanticR443ClosedState.visibleMoves.length>240)semanticR443ClosedState.visibleMoves.shift();return intersection}
+async function waitForSliceAutonomy(){while(sliceSchedulerEnabled&&sliceAutonomyBlocked())await sleep(40);return sliceSchedulerEnabled}
+async function schedulerDelay(durationMs){let elapsed=0,previous=performance.now();while(elapsed<durationMs&&sliceSchedulerEnabled){await sleep(Math.min(32,Math.max(8,durationMs-elapsed)));const now=performance.now(),delta=now-previous;previous=now;if(!sliceAutonomyBlocked())elapsed+=delta}}
+function semanticR443InverseWord(word){return[...word].reverse().map(m=>({axis:m.axis,layer:m.layer,direction:-m.direction}))}
+function semanticR443ExactInverse(a,b){return!!a&&!!b&&a.axis===b.axis&&a.layer===b.layer&&a.direction===-b.direction}
+function semanticR443PhraseSimilarity(a,b){if(!a||!b)return 0;const n=Math.max(a.length,b.length),m=Math.min(a.length,b.length);if(!n)return 0;let same=0;for(let i=0;i<m;i++){const x=a[i],y=b[i];if(x.axis===y.axis&&x.layer===y.layer)same+=x.direction===y.direction?1:.72;else if(x.axis===y.axis)same+=.28}return same/n}
+function semanticR443RememberPhrase(meta){const prev=semanticR443ClosedState.phraseHistory.at(-1);if(prev?.id===meta.id)semanticR443ClosedState.sameFamilyAdjacency++;if(prev&&semanticR443PhraseSimilarity(prev.moves,meta.moves)>=.84)semanticR443ClosedState.highSimilaritySelections++;semanticR443ClosedState.phraseHistory.push(meta);if(semanticR443ClosedState.phraseHistory.length>SEMANTIC_R443_CLOSED_VALIDATION.phraseHistoryDepth)semanticR443ClosedState.phraseHistory.shift()}
+function semanticR443SafetyWord(face){const last=semanticR443ClosedState.visibleMoves.at(-1),axis=face==='+Z'?'Z':'X',other=face==='+Z'||face==='+X'?-1:1;let d=seededUnit()<.5?-1:1;if(last&&last.axis===axis&&last.layer===0&&last.direction===-d)d=-d;return[{axis,layer:0,direction:d},{axis,layer:other,direction:d},{axis,layer:0,direction:-d},{axis,layer:other,direction:-d}]}
+function semanticR443ChooseArchetype(cycle,direction){let candidates=SEMANTIC_R443_CLOSED_ARCHETYPES.filter(p=>p.cycle===cycle),recentIds=new Set(semanticR443ClosedState.phraseHistory.map(p=>p.id));const fresh=candidates.filter(p=>!recentIds.has(p.id));if(fresh.length)candidates=fresh;const last=semanticR443ClosedState.visibleMoves.at(-1);const withWords=candidates.map(p=>({p,word:direction>0?p.moves:semanticR443InverseWord(p.moves)}));const nonInverse=withWords.filter(x=>!semanticR443ExactInverse(last,x.word[0]));if(nonInverse.length)return nonInverse[Math.floor(seededUnit()*nonInverse.length)];return withWords[Math.floor(seededUnit()*withWords.length)]}
+function semanticR443ChooseNormalPhrase(){let cycle=semanticR443ClosedState.cycle,direction=semanticR443ClosedState.direction;if(!cycle){let cycles=SEMANTIC_R443_CLOSED_VALIDATION.cycles.map(c=>c.id);if(semanticR443ClosedState.lastCycle&&cycles.length>1){const alt=cycles.filter(c=>c!==semanticR443ClosedState.lastCycle);if(alt.length)cycles=alt}cycle=cycles[Math.floor(seededUnit()*cycles.length)];direction=seededUnit()<.5?-1:1;semanticR443ClosedState.cycle=cycle;semanticR443ClosedState.direction=direction}const chosen=semanticR443ChooseArchetype(cycle,direction),id=chosen.p.id+(direction>0?':F':':R');return{id,coreId:chosen.p.id,cycle,direction,moves:chosen.word,safety:false}}
+function semanticR443AdvanceMacroState(phrase){let step=(semanticR443ClosedState.step+phrase.direction+4)%4;semanticR443ClosedState.step=step;if(step===0){semanticR443ClosedState.lastCycle=semanticR443ClosedState.cycle;semanticR443ClosedState.cycle=null;semanticR443ClosedState.direction=0}}
+function semanticR443ClosedMetrics(){const moves=semanticR443ClosedState.visibleMoves,dist={1:0,2:0,3:0,'4-8':0};for(let i=0;i<moves.length;i++){for(let d=1;d<=8&&i-d>=0;d++){if(semanticR443ExactInverse(moves[i-d],moves[i])){if(d<=3)dist[d]++;else dist['4-8']++;break}}}let sameAxis=0,maxSameAxis=0,centerStreak=0,maxCenterStreak=0,center=0;for(let i=0;i<moves.length;i++){if(i&&moves[i].axis===moves[i-1].axis)sameAxis++;else sameAxis=1;maxSameAxis=Math.max(maxSameAxis,sameAxis);if(moves[i].layer===0){center++;centerStreak++}else centerStreak=0;maxCenterStreak=Math.max(maxCenterStreak,centerStreak)}return{totalVisibleMoves:moves.length,phraseCount:semanticR443ClosedState.phraseCount,normalPhraseCount:semanticR443ClosedState.normalPhraseCount,safetyPhraseCount:semanticR443ClosedState.safetyPhraseCount,inverseDistance:dist,samePhraseFamilyAdjacency:semanticR443ClosedState.sameFamilyAdjacency,recentHighSimilarityPhrases:semanticR443ClosedState.highSimilaritySelections,maxSameAxisStreak:maxSameAxis,centerOccupancy:moves.length?center/moves.length:0,maxCenterStreak,protectionFootprint:semanticR443ClosedState.phraseDecisionCount?semanticR443ClosedState.protectionAlterations/semanticR443ClosedState.phraseDecisionCount:0,releasedFaceForcedMoves:semanticR443ClosedState.releasedFaceForcedMoves,macroState:{cycle:semanticR443ClosedState.cycle,step:semanticR443ClosedState.step,direction:semanticR443ClosedState.direction,lastCycle:semanticR443ClosedState.lastCycle},validation:SEMANTIC_R443_CLOSED_VALIDATION}}
+`;
+
+const recordStart="function semanticR442RecordMove(move,phase='forward'){";
+const schedulerStart='async function sliceSchedulerLoop(){';
+replaceBetween(recordStart,schedulerStart,recordAndHelpers,'record + scheduler helper consolidation');
+
+const scheduler=String.raw`async function sliceSchedulerLoop(){if(sliceSchedulerRunning)return;sliceSchedulerRunning=true;await schedulerDelay(420);while(sliceSchedulerEnabled){if(!await waitForSliceAutonomy())break;const guardFace=semanticR443GuardFace();semanticR443ClosedState.phraseDecisionCount++;let phrase;if(guardFace){semanticR443ClosedState.protectionAlterations++;const word=semanticR443SafetyWord(guardFace);phrase={id:'SAFE_'+guardFace,coreId:'SAFE_'+guardFace,cycle:null,direction:0,moves:word,safety:true}}else phrase=semanticR443ChooseNormalPhrase();const lastVisible=semanticR443ClosedState.visibleMoves.at(-1);if(lastVisible&&semanticR443ExactInverse(lastVisible,phrase.moves[0])){semanticR443ClosedState.unexpectedUnsafeStarts++;throw new Error('R4.4.3 closed phrase immediate inverse boundary violation '+phrase.id)}semanticR443ClosedState.phraseActive=true;semanticR443ClosedState.currentPhraseId=phrase.id;semanticR443RememberPhrase({id:phrase.coreId,moves:phrase.moves,cycle:phrase.cycle,safety:phrase.safety});for(let i=0;i<phrase.moves.length&&sliceSchedulerEnabled;i++){if(!await waitForSliceAutonomy())break;const liveGuard=semanticR443GuardFace(),spec=phrase.moves[i];if(liveGuard&&semanticR442MoveIntersection(spec,liveGuard).count>0){semanticR443ClosedState.unexpectedUnsafeStarts++;throw new Error('R4.4.3 closed phrase semantic intersection '+phrase.id+' '+spec.axis+spec.layer)}const move={...spec,durationMs:Math.round(seededRange(...SLICE_R1_2.turnDurationRangeMs))};semanticR442RecordMove(move,phrase.safety?'semantic-safe':'closed-phrase',phrase.id);const next=phrase.moves[i+1],canStagger=!phrase.safety&&next&&next.axis===spec.axis&&next.layer!==spec.layer&&(!liveGuard||semanticR442MoveIntersection(next,liveGuard).count===0);if(canStagger&&seededUnit()<.58){const first=turnSlice(move);await sleep(Math.round(seededRange(...SLICE_R1_2.pairedStaggerRangeMs)));if(sliceAutonomyBlocked()){await first;continue}const secondMove={...next,durationMs:Math.round(seededRange(...SLICE_R1_2.turnDurationRangeMs))};semanticR442RecordMove(secondMove,'closed-phrase',phrase.id);const second=turnSlice(secondMove);await Promise.all([first,second]);i++;if(i<phrase.moves.length-1)await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.phraseMicroGapRangeMs)));continue}await turnSlice(move);if(i<phrase.moves.length-1)await schedulerDelay(Math.round(seededRange(...SLICE_R1_2.phraseMicroGapRangeMs)))}semanticR443ClosedState.phraseActive=false;semanticR443ClosedState.currentPhraseId=null;semanticR443ClosedState.phraseCount++;if(phrase.safety)semanticR443ClosedState.safetyPhraseCount++;else{semanticR443ClosedState.normalPhraseCount++;semanticR443AdvanceMacroState(phrase)}sliceEventSerial+=phrase.moves.length;if(!sliceSchedulerEnabled)break;if(phrase.safety){await schedulerDelay(Math.round(seededRange(240,520)));continue}semanticR443ClosedState.breathCounter--;if(semanticR443ClosedState.breathCounter<=0){await schedulerDelay(Math.round(seededRange(1350,2350)));semanticR443ClosedState.breathCounter=seededInt(2,4)}else await schedulerDelay(Math.round(seededRange(560,980)))}semanticR443ClosedState.phraseActive=false;semanticR443ClosedState.currentPhraseId=null;sliceSchedulerRunning=false}`;
+const ss=source.indexOf(schedulerStart),se=source.indexOf('sliceSchedulerRunning=false}',ss);if(ss<0||se<0||source.indexOf(schedulerStart,ss+1)>=0)throw new Error(`R4.4.3 closed phrase scheduler range ${ss}/${se}`);source=source.slice(0,ss)+scheduler+source.slice(se+'sliceSchedulerRunning=false}'.length);
+
+replaceUnique("r443Motion:{yawDirectionPolicy:'continuous-positive'",`r443ClosedPhrase:{architecture:'CURATED_CLOSED_PHRASE',lifoInverseStack:false,pendingResolutionGate:false,bridgeBeforeInverse:false,semanticDispersalWeighting:false,axisLayerDebt:false,phraseArchetypeCount:SEMANTIC_R443_CLOSED_VALIDATION.coreArchetypeCount,generatedValidatedPhraseVariants:SEMANTIC_R443_CLOSED_VALIDATION.generatedValidatedPhraseVariants,macroStateCount:SEMANTIC_R443_CLOSED_VALIDATION.macroStateCount,phraseHistoryDepth:SEMANTIC_R443_CLOSED_VALIDATION.phraseHistoryDepth,messageBearingFace:semanticR443State.stagedFace,stagedMessageIndex:semanticR443State.stagedMessageIndex,stagedSinceMs:semanticR443State.stagedSinceMs,semanticFlashCount:semanticR443State.semanticFlashCount,longReadableWarnings:semanticR443State.longReadableWarnings,metrics:semanticR443ClosedMetrics()},r443Motion:{yawDirectionPolicy:'continuous-positive'`,'closed phrase diagnostics');
+
+for(const forbidden of[
+  'semanticR443PendingResolutionCount',
+  'w*=24','w*=32','w*=14','w*=7.5',
+  'layerDebtBoost','axisDebtBoost',
+  'SEMANTIC_R443_PHASE.DISPERSAL','SEMANTIC_R443_PHASE.COOLDOWN','SEMANTIC_R443_PHASE.READABLE_LOCK',
+  "semanticR442RecordMove(inverse,'resolve')",
+  'bridge-before-inverse',
+])if(source.includes(forbidden))throw new Error(`R4.4.3 closed phrase unresolved rejected architecture: ${forbidden}`);
+for(const required of[
+  "SEMANTIC_R443_PHASE=Object.freeze({NORMAL:'NORMAL',CANDIDATE:'CANDIDATE',READABLE:'READABLE',RELEASE:'RELEASE'})",
+  "architecture:'CURATED_CLOSED_PHRASE'",
+  'phraseArchetypeCount:SEMANTIC_R443_CLOSED_VALIDATION.coreArchetypeCount',
+  'macroStateCount:SEMANTIC_R443_CLOSED_VALIDATION.macroStateCount',
+  "SEMANTIC_R442_ELIGIBLE_FACES=Object.freeze(['+Z','+X','-X'])",
+  "yawDirectionPolicy:'continuous-positive'",
+  'semanticVelocityMultiplier: 1.0',
+  'const deltaMs=wallDeltaMs',
+  'overlayTextRendered:false','alphaDominantReveal:false','semanticOrientationForcing:false',
+])if(!source.includes(required))throw new Error(`R4.4.3 closed phrase missing final invariant: ${required}`);
+
+fs.writeFileSync(file,source);
+console.log('R4.4.3 curated closed-phrase architecture applied',VALIDATION);

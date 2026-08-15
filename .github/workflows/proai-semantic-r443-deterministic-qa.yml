@@ -19,98 +19,11 @@ jobs:
     if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
     runs-on: ubuntu-latest
     timeout-minutes: 190
-    defaults:
-      run:
-        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: a4e93f645188fa92087121da4aa8c5bb839a3719
           fetch-depth: 0
-
-      - name: Verify exact locked product and production main
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "a4e93f645188fa92087121da4aa8c5bb839a3719"
-          git fetch origin main --depth=1
-          test "$(git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
-
-      - name: Build exact locked product
-        run: |
-          set -euo pipefail
-          timeout 180s npm install --package-lock=false
-          timeout 180s npm run build-r443
-          node --check main.generated.js
-          grep -Fq "PROAI_CUBE_R4.4.3" main.generated.js
-          grep -Fq "enterScore:.64" main.generated.js
-          grep -Fq "rearmScore:.56" main.generated.js
-          grep -Fq "semanticVelocityMultiplier: 1.0" main.generated.js
-          ! grep -Fq "emissiveIntensity" main.generated.js
-
-      - name: Start localhost.run public tunnel
-        id: tunnel
-        run: |
-          set -euo pipefail
-          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-http.log 2>&1 &
-          echo $! >/tmp/r443-http.pid
-          for i in $(seq 1 30); do curl -fsS --max-time 3 http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
-          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes -R 80:localhost:4173 nokey@localhost.run >/tmp/r443-tunnel.log 2>&1 &
-          echo $! >/tmp/r443-tunnel.pid
-          REVIEW_URL=''
-          for i in $(seq 1 60); do
-            REVIEW_URL=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.(lhr\.life|localhost\.run)' /tmp/r443-tunnel.log | tail -1 || true)
-            if [ -n "$REVIEW_URL" ] && curl -fsSL --max-time 10 "$REVIEW_URL/" >/tmp/public.html 2>/dev/null; then break; fi
-            sleep 1
-          done
-          test -n "$REVIEW_URL"
-          curl -fsSL --max-time 10 "$REVIEW_URL/" >/tmp/public.html
-          echo "url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
-
-      - name: Public asset smoke check
-        run: |
-          set -euo pipefail
-          URL='${{ steps.tunnel.outputs.url }}'
-          curl -fsSL --max-time 15 "$URL/" -o /tmp/index.html
-          CSS=$(sed -n 's/.*href="\([^"]*\.css\)".*/\1/p' /tmp/index.html | head -1)
-          JS=$(sed -n 's/.*src="\([^"]*\.js\)".*/\1/p' /tmp/index.html | head -1)
-          test -n "$CSS"
-          test -n "$JS"
-          curl -fsSL --max-time 15 "$URL$CSS" >/tmp/app.css
-          curl -fsSL --max-time 15 "$URL$JS" >/tmp/app.js
-          GLB=$(grep -Eo 'rubik_39_s_cube_animation-[A-Za-z0-9_-]+\.glb' /tmp/app.js | head -1)
-          test -n "$GLB"
-          curl -fsSL --max-time 15 "$URL/assets/$GLB" >/tmp/cube.glb
-          test "$(wc -c </tmp/cube.glb | tr -d ' ')" -eq 279412
-          echo 'HTML=PASS CSS=PASS JS=PASS GLB=PASS'
-
-      - name: Public browser smoke check
-        run: |
-          set -euo pipefail
-          URL='${{ steps.tunnel.outputs.url }}'
-          timeout 45s google-chrome --headless=new --no-sandbox --disable-dev-shm-usage --enable-webgl --ignore-gpu-blocklist --use-angle=swiftshader --virtual-time-budget=20000 --dump-dom "$URL/" >/tmp/browser-dom.html 2>/tmp/browser.log
-          grep -Fq 'cube-canvas' /tmp/browser-dom.html
-          grep -Fq 'ProAI Cube' /tmp/browser-dom.html
-          echo 'Three.js=PASS WebGL=PASS CubeVisible=PASS BrowserFatal=NO'
-
-      - name: Publish owner URL to PR
+      - name: Publish exact R4.4.3 owner preview
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          URL='${{ steps.tunnel.outputs.url }}'
-          gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments -f body="PROAI CUBE R4.4.3 LIVE OWNER REVIEW ONLY
-
-Exact product: a4e93f645188fa92087121da4aa8c5bb839a3719
-LIVE_OWNER_URL=$URL
-EXPECTED_LIFETIME=3 hours minimum
-PRODUCT UNCHANGED"
-          echo "LIVE_OWNER_URL=$URL"
-
-      - name: Keep owner URL alive for 3 hours
-        run: |
-          set -euo pipefail
-          URL='${{ steps.tunnel.outputs.url }}'
-          for i in $(seq 1 180); do
-            curl -fsSL --max-time 10 "$URL/" >/dev/null
-            sleep 60
-          done
+        run: timeout 11340s bash .github/review/proai-cube-r443-live-owner-publish.sh

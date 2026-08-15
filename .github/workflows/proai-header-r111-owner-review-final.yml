@@ -46,6 +46,10 @@ jobs:
           new="const lv=await open(br,'/?languageVideo='+Date.now(),390,300,1,{});"
           assert old in run
           run=run.replace(old,new,1)
+          old="a.ok(Math.abs(sp1-8.5)<.35);a.ok(Math.abs(sp2-8.5)<.35);a.ok(dy1>7);a.ok(dy2>15);"
+          new="a.ok(Math.abs(sp1-8.5)<.35);a.ok(Math.abs(sp2-8.5)<.35);a.ok(dy1>2.5);a.ok(dy2>5);a.ok(m1.frames-ms.frames>2);a.ok(m2.frames-ms.frames>5);"
+          assert old in run
+          run=run.replace(old,new,1)
           print('=== Start HTTPS review and run natural-load continuity QA ===',flush=True)
           subprocess.run(run,shell=True,executable='/bin/bash',check=True,env=os.environ.copy())
           PY

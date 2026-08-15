@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+
   const section=document.querySelector('[data-connected-system]');
   if(!section)return;
 
@@ -7,109 +8,420 @@
   const compactLayout=window.matchMedia('(max-width: 760px), (max-height: 520px) and (max-width: 1000px)');
   const stages=[...section.querySelectorAll('[data-system-stage]')];
   const rail=section.querySelector('.cs-spine');
+  const focusWindow=section.querySelector('.cs-spine-catch');
   const ambientCatch=section.querySelector('.cs-ambient-catch');
   const replay=document.querySelector('[data-replay-system]');
-  const stagePlayed=new WeakSet();
+
   const timers=new Set();
-  let established=false;
-  let sectionVisible=false;
   let ambientTimer=0;
+  let visibilityObserver=null;
+  let entryObserver=null;
+  let mode=null;
   let sequenceToken=0;
+  let sequenceRunning=false;
+  let sequencePlayed=false;
+  let sectionVisible=false;
+  let activeMobileIndex=-1;
+  let lastFocusIndex=0;
+  let scrollTick=false;
+  let focusAnimation=null;
+  let ambientAnimation=null;
+  let pointerLeaveTimer=0;
 
-  const later=(fn,ms)=>{const id=window.setTimeout(()=>{timers.delete(id);fn();},ms);timers.add(id);return id;};
-  const cancelTimers=()=>{timers.forEach(id=>window.clearTimeout(id));timers.clear();if(ambientTimer){window.clearTimeout(ambientTimer);ambientTimer=0;}};
-  const clearTransient=()=>{section.classList.remove('is-sequence-running');ambientCatch?.classList.remove('is-running');stages.forEach(s=>s.classList.remove('is-transfer-active','is-ambient-active','is-inspected','is-handoff-neighbor','is-local-active'));};
-
-  const railTravel=()=>Math.max(600,rail?.getBoundingClientRect().width||1264);
-  const scheduleAmbient=()=>{
-    if(reduceMotion.matches||!sectionVisible)return;
-    if(ambientTimer)window.clearTimeout(ambientTimer);
-    const mobile=compactLayout.matches;
-    const delay=mobile?(12000+Math.random()*6000):(8500+Math.random()*5000);
-    ambientTimer=window.setTimeout(()=>{ambientTimer=0;runAmbientEvent();scheduleAmbient();},delay);
+  const later=(fn,ms)=>{
+    const id=window.setTimeout(()=>{timers.delete(id);fn();},ms);
+    timers.add(id);
+    return id;
   };
 
-  const runAmbientEvent=()=>{
-    if(reduceMotion.matches||!sectionVisible||section.classList.contains('is-sequence-running'))return;
-    const mobile=compactLayout.matches;
-    const candidates=mobile?stages.filter(s=>stagePlayed.has(s)):stages;
-    const stage=candidates[Math.floor(Math.random()*Math.max(1,candidates.length))];
+  const clearTimers=()=>{
+    timers.forEach(id=>window.clearTimeout(id));
+    timers.clear();
+    if(ambientTimer){window.clearTimeout(ambientTimer);ambientTimer=0;}
+    if(pointerLeaveTimer){window.clearTimeout(pointerLeaveTimer);pointerLeaveTimer=0;}
+  };
+
+  const cancelAnimations=()=>{
+    focusAnimation?.cancel();focusAnimation=null;
+    ambientAnimation?.cancel();ambientAnimation=null;
+    focusWindow?.getAnimations().forEach(a=>a.cancel());
+    ambientCatch?.getAnimations().forEach(a=>a.cancel());
+  };
+
+  const cleanStageClasses=(stage)=>{
+    stage.classList.remove('is-future','is-active','is-settled','is-balanced','is-arriving','is-ambient-active');
+  };
+
+  const setState=(index,state)=>{
+    const stage=stages[index];
     if(!stage)return;
-    stage.classList.add('is-ambient-active');
-    const jointDuration=Math.round(1200+Math.random()*650);
-    stage.style.setProperty('--ambient-joint-duration',`${jointDuration}ms`);
-    later(()=>stage.classList.remove('is-ambient-active'),jointDuration+80);
-    if(!mobile&&ambientCatch){
-      const index=Math.max(0,stages.indexOf(stage));
-      const direction=Math.random()<.18?-1:1;
-      const left=Math.min(78,Math.max(4,index*25+(direction<0?10:0)+Math.random()*7));
-      const width=Math.round(108+Math.random()*56);
-      const distance=Math.round((52+Math.random()*54)*direction);
-      const duration=Math.round(1250+Math.random()*850);
-      const opacity=(.18+Math.random()*.12).toFixed(2);
-      ambientCatch.style.setProperty('--ambient-left',`${left}%`);
-      ambientCatch.style.setProperty('--ambient-width',`${width}px`);
-      ambientCatch.style.setProperty('--ambient-distance',`${distance}px`);
-      ambientCatch.style.setProperty('--ambient-duration',`${duration}ms`);
-      ambientCatch.style.setProperty('--ambient-opacity',opacity);
-      ambientCatch.classList.remove('is-running');void ambientCatch.offsetWidth;ambientCatch.classList.add('is-running');
-      later(()=>ambientCatch.classList.remove('is-running'),duration+80);
+    cleanStageClasses(stage);
+    stage.classList.add(`is-${state}`);
+  };
+
+  const setAll=(state)=>stages.forEach((_,i)=>setState(i,state));
+
+  const clearTransient=()=>{
+    stages.forEach(s=>s.classList.remove('is-arriving','is-ambient-active'));
+    if(focusWindow)focusWindow.style.opacity='0';
+    if(ambientCatch)ambientCatch.style.opacity='0';
+  };
+
+  const railPosition=(index)=>{
+    const stage=stages[index];
+    if(!stage||!rail)return 0;
+    if(mode==='mobile'){
+      const stageRect=stage.getBoundingClientRect();
+      const railRect=rail.getBoundingClientRect();
+      const jointY=stageRect.top-railRect.top+8;
+      return Math.max(-8,jointY-66);
     }
+    const field=rail.parentElement;
+    const stageRect=stage.getBoundingClientRect();
+    const fieldRect=field.getBoundingClientRect();
+    const windowWidth=focusWindow?.getBoundingClientRect().width||250;
+    const jointX=stageRect.left-fieldRect.left+9;
+    return jointX-windowWidth*.45;
   };
 
-  const playEntry=(force=false)=>{
-    if(reduceMotion.matches){section.classList.add('is-established');return;}
-    if(established&&!force)return;
-    sequenceToken+=1;const token=sequenceToken;
-    cancelTimers();clearTransient();
-    rail?.style.setProperty('--cs-rail-travel',`${railTravel()}px`);
+  const placeFocus=(index,opacity=.44)=>{
+    if(!focusWindow||index<0)return;
+    const axis=railPosition(index);
+    focusWindow.style.transform=mode==='mobile'
+      ?`translate3d(0,${axis}px,0)`
+      :`translate3d(${axis}px,0,0)`;
+    focusWindow.style.opacity=String(opacity);
+    lastFocusIndex=index;
+  };
+
+  const animateFocus=(fromIndex,toIndex,duration=540,hold=.5)=>{
+    if(!focusWindow||reduceMotion.matches)return;
+    focusAnimation?.cancel();
+    const from=railPosition(Math.max(0,fromIndex));
+    const to=railPosition(Math.max(0,toIndex));
+    const fromTransform=mode==='mobile'?`translate3d(0,${from}px,0)`:`translate3d(${from}px,0,0)`;
+    const toTransform=mode==='mobile'?`translate3d(0,${to}px,0)`:`translate3d(${to}px,0,0)`;
+    focusAnimation=focusWindow.animate([
+      {transform:fromTransform,opacity:.18,offset:0},
+      {transform:mode==='mobile'
+        ?`translate3d(0,${from+(to-from)*.72}px,0)`
+        :`translate3d(${from+(to-from)*.72}px,0,0)`,opacity:.9,offset:.68},
+      {transform:toTransform,opacity:hold,offset:1}
+    ],{duration,easing:'cubic-bezier(.2,.72,.18,1)',fill:'forwards'});
+    focusAnimation.onfinish=()=>{
+      focusWindow.style.transform=toTransform;
+      focusWindow.style.opacity=String(hold);
+      focusAnimation=null;
+    };
+    lastFocusIndex=toIndex;
+  };
+
+  const animateAmbientRail=(index)=>{
+    if(!ambientCatch||mode==='mobile'||reduceMotion.matches)return;
+    ambientAnimation?.cancel();
+    const stage=stages[index];
+    const field=rail.parentElement;
+    const s=stage.getBoundingClientRect(),f=field.getBoundingClientRect();
+    const x=Math.max(0,s.left-f.left-18);
+    const direction=Math.random()<.16?-1:1;
+    const distance=(70+Math.random()*55)*direction;
+    const duration=1300+Math.random()*650;
+    ambientAnimation=ambientCatch.animate([
+      {transform:`translate3d(${x}px,0,0)`,opacity:0},
+      {transform:`translate3d(${x+distance*.28}px,0,0)`,opacity:.34,offset:.34},
+      {transform:`translate3d(${x+distance}px,0,0)`,opacity:0}
+    ],{duration,easing:'cubic-bezier(.2,.72,.18,1)'});
+    ambientAnimation.onfinish=()=>{ambientAnimation=null;};
+  };
+
+  const applyBalanced=()=>{
+    setAll('balanced');
+    stages.forEach(s=>s.classList.remove('is-arriving'));
+  };
+
+  const scheduleAmbient=()=>{
+    if(mode!=='desktop'||reduceMotion.matches||!sectionVisible||sequenceRunning)return;
+    if(ambientTimer)window.clearTimeout(ambientTimer);
+    const delay=7000+Math.random()*5000;
+    ambientTimer=window.setTimeout(()=>{
+      ambientTimer=0;
+      if(!sequenceRunning&&sectionVisible){
+        const index=Math.floor(Math.random()*stages.length);
+        const stage=stages[index];
+        stage.classList.add('is-ambient-active');
+        stage.style.setProperty('--ambient-joint-duration',`${Math.round(1050+Math.random()*550)}ms`);
+        animateAmbientRail(index);
+        later(()=>stage.classList.remove('is-ambient-active'),1650);
+      }
+      scheduleAmbient();
+    },delay);
+  };
+
+  const runDesktopSequence=(force=false)=>{
+    if(reduceMotion.matches||mode!=='desktop'){applyBalanced();return;}
+    if(sequencePlayed&&!force)return;
+
+    sequenceToken+=1;
+    const token=sequenceToken;
+    clearTimers();cancelAnimations();clearTransient();
+    sequenceRunning=true;
+    sequencePlayed=true;
     section.classList.add('cs-motion-ready');
-    later(()=>{if(token!==sequenceToken)return;section.classList.add('is-established','is-sequence-running');},20);
-    stages.forEach((stage,index)=>{
-      const on=390+index*315;
-      later(()=>{if(token!==sequenceToken)return;stage.classList.add('is-transfer-active');},on);
-      later(()=>{if(token!==sequenceToken)return;stage.classList.remove('is-transfer-active');},on+430);
-    });
-    later(()=>{if(token!==sequenceToken)return;section.classList.remove('is-sequence-running');established=true;scheduleAmbient();},2440);
-  };
-
-  const replaySequence=()=>{
-    if(reduceMotion.matches)return;
-    sequenceToken+=1;cancelTimers();clearTransient();
     section.classList.remove('is-established');
-    later(()=>playEntry(true),320);
-  };
+    setAll('future');
+    if(focusWindow)focusWindow.style.opacity='0';
 
-  const setupVisibility=()=>{
-    const observer=new IntersectionObserver(entries=>{
-      const e=entries[0];sectionVisible=!!(e&&e.isIntersecting);
-      if(!sectionVisible&&ambientTimer){window.clearTimeout(ambientTimer);ambientTimer=0;}
-      if(sectionVisible&&established&&!ambientTimer)scheduleAmbient();
-    },{threshold:.05});observer.observe(section);
-  };
+    later(()=>{if(token!==sequenceToken)return;section.classList.add('is-established');},30);
 
-  const setupDesktop=()=>{
-    section.classList.add('cs-motion-ready');
-    if(reduceMotion.matches){section.classList.add('is-established');return;}
-    const observer=new IntersectionObserver(entries=>{const e=entries[0];if(!e||!e.isIntersecting)return;playEntry();observer.disconnect();},{threshold:.24,rootMargin:'0px 0px -6% 0px'});observer.observe(section);
+    const firstActive=650;
+    const stageOffset=520;
+    const transferLead=250;
+    const settleLead=115;
+    const arrivalLead=90;
+
     stages.forEach((stage,index)=>{
-      const enter=()=>{if(section.classList.contains('is-sequence-running'))return;stage.classList.add('is-inspected');stages[index+1]?.classList.add('is-handoff-neighbor');};
-      const leave=()=>{stage.classList.remove('is-inspected');stages[index+1]?.classList.remove('is-handoff-neighbor');};
-      stage.addEventListener('pointerenter',enter);stage.addEventListener('pointerleave',leave);stage.addEventListener('focus',enter);stage.addEventListener('blur',leave);
+      const activeAt=firstActive+index*stageOffset;
+
+      if(index===0){
+        later(()=>{
+          if(token!==sequenceToken)return;
+          stage.classList.add('is-arriving');
+          placeFocus(0,.36);
+        },activeAt-arrivalLead);
+      }else{
+        later(()=>{
+          if(token!==sequenceToken)return;
+          animateFocus(index-1,index,520,.5);
+        },activeAt-transferLead);
+        later(()=>{
+          if(token!==sequenceToken)return;
+          setState(index-1,'settled');
+        },activeAt-settleLead);
+        later(()=>{
+          if(token!==sequenceToken)return;
+          stage.classList.add('is-arriving');
+        },activeAt-arrivalLead);
+      }
+
+      later(()=>{
+        if(token!==sequenceToken)return;
+        stage.classList.remove('is-arriving');
+        setState(index,'active');
+        if(index===0)placeFocus(0,.5);
+      },activeAt);
     });
+
+    const finalSettle=firstActive+(stages.length-1)*stageOffset+540;
+    later(()=>{
+      if(token!==sequenceToken)return;
+      setState(stages.length-1,'settled');
+    },finalSettle);
+
+    later(()=>{
+      if(token!==sequenceToken)return;
+      applyBalanced();
+      if(focusWindow)focusWindow.style.opacity='.16';
+      sequenceRunning=false;
+      scheduleAmbient();
+    },finalSettle+330);
   };
 
-  const setupMobile=()=>{
-    section.classList.add('is-established');established=true;
-    if(reduceMotion.matches)return;
-    stages.forEach(stage=>{
-      const observer=new IntersectionObserver(entries=>{const e=entries[0];if(!e||!e.isIntersecting||stagePlayed.has(stage))return;const r=e.boundingClientRect,vh=innerHeight||document.documentElement.clientHeight;if(r.top>vh*.68||r.bottom<vh*.42)return;stagePlayed.add(stage);stage.classList.add('is-local-active');later(()=>stage.classList.remove('is-local-active'),820);observer.disconnect();},{threshold:.22,rootMargin:'-20% 0px -24% 0px'});observer.observe(stage);
-    });
+  const inspectStage=(index)=>{
+    if(mode!=='desktop'||reduceMotion.matches||sequenceRunning)return;
+    clearTimers();
+    if(ambientTimer){window.clearTimeout(ambientTimer);ambientTimer=0;}
+    stages.forEach((_,i)=>setState(i,i===index?'active':'settled'));
+    animateFocus(lastFocusIndex,index,360,.48);
+  };
+
+  const restoreAfterInspect=()=>{
+    if(mode!=='desktop'||reduceMotion.matches||sequenceRunning)return;
+    applyBalanced();
+    if(focusWindow)focusWindow.style.opacity='.16';
     scheduleAmbient();
   };
 
-  setupVisibility();
-  compactLayout.matches?setupMobile():setupDesktop();
-  replay?.addEventListener('click',replaySequence);
-  reduceMotion.addEventListener?.('change',()=>location.reload());
+  const mobileStateFor=(index,activeIndex)=>{
+    if(index<activeIndex)return 'settled';
+    if(index===activeIndex)return 'active';
+    return 'future';
+  };
+
+  const applyMobileStates=(activeIndex,animate=true)=>{
+    if(activeIndex<0||activeIndex>=stages.length)return;
+    const previous=activeMobileIndex;
+    if(previous===activeIndex&&animate)return;
+
+    if(previous>=0&&previous!==activeIndex){
+      setState(previous,previous<activeIndex?'settled':'future');
+    }
+    stages.forEach((_,i)=>{
+      if(i!==activeIndex&&i!==previous)setState(i,mobileStateFor(i,activeIndex));
+    });
+
+    const stage=stages[activeIndex];
+    stage.classList.add('is-arriving');
+
+    if(animate&&previous>=0&&previous!==activeIndex){
+      animateFocus(previous,activeIndex,580,.58);
+    }else{
+      placeFocus(activeIndex,.58);
+    }
+
+    later(()=>{
+      if(mode!=='mobile'||reduceMotion.matches)return;
+      stage.classList.remove('is-arriving');
+      setState(activeIndex,'active');
+    },animate?105:0);
+
+    activeMobileIndex=activeIndex;
+  };
+
+  const chooseMobileStage=()=>{
+    if(mode!=='mobile'||reduceMotion.matches)return -1;
+    const vh=window.innerHeight||document.documentElement.clientHeight;
+    const bandTop=vh*.45,bandBottom=vh*.68,target=vh*.565;
+    let best=-1,bestDistance=Infinity;
+    stages.forEach((stage,index)=>{
+      const r=stage.getBoundingClientRect();
+      if(r.bottom<bandTop||r.top>bandBottom)return;
+      const center=(r.top+r.bottom)/2;
+      const distance=Math.abs(center-target);
+      if(distance<bestDistance){bestDistance=distance;best=index;}
+    });
+    return best;
+  };
+
+  const updateMobileFocus=()=>{
+    scrollTick=false;
+    if(mode!=='mobile'||reduceMotion.matches)return;
+    const next=chooseMobileStage();
+    if(next>=0&&next!==activeMobileIndex)applyMobileStates(next,true);
+  };
+
+  const scheduleMobileFocus=()=>{
+    if(scrollTick)return;
+    scrollTick=true;
+    window.requestAnimationFrame(updateMobileFocus);
+  };
+
+  const replayMobile=()=>{
+    if(reduceMotion.matches||mode!=='mobile')return;
+    clearTimers();cancelAnimations();
+    let index=activeMobileIndex;
+    if(index<0)index=chooseMobileStage();
+    if(index<0)index=0;
+    const stage=stages[index];
+    stages.forEach((_,i)=>setState(i,mobileStateFor(i,index)));
+    setState(index,'future');
+    const target=railPosition(index);
+    const start=target-34;
+    if(focusWindow){
+      focusAnimation=focusWindow.animate([
+        {transform:`translate3d(0,${start}px,0)`,opacity:.12},
+        {transform:`translate3d(0,${target}px,0)`,opacity:.7}
+      ],{duration:560,easing:'cubic-bezier(.2,.72,.18,1)',fill:'forwards'});
+    }
+    later(()=>stage.classList.add('is-arriving'),180);
+    later(()=>{
+      stage.classList.remove('is-arriving');
+      setState(index,'active');
+      placeFocus(index,.58);
+      activeMobileIndex=index;
+    },300);
+  };
+
+  const setupEntryObserver=()=>{
+    entryObserver?.disconnect();
+    if(mode!=='desktop'||reduceMotion.matches)return;
+    entryObserver=new IntersectionObserver(entries=>{
+      const entry=entries[0];
+      if(!entry?.isIntersecting)return;
+      runDesktopSequence(false);
+      entryObserver.disconnect();
+    },{threshold:.18,rootMargin:'0px 0px -4% 0px'});
+    entryObserver.observe(section);
+  };
+
+  const setMode=(nextMode)=>{
+    if(mode===nextMode)return;
+    mode=nextMode;
+    sequenceToken+=1;
+    clearTimers();cancelAnimations();clearTransient();
+    entryObserver?.disconnect();
+    sequenceRunning=false;
+    section.classList.remove('is-established');
+    activeMobileIndex=-1;
+
+    if(reduceMotion.matches){
+      section.classList.remove('cs-motion-ready');
+      applyBalanced();
+      if(focusWindow)focusWindow.style.opacity='0';
+      return;
+    }
+
+    section.classList.add('cs-motion-ready','is-established');
+
+    if(mode==='mobile'){
+      setAll('future');
+      if(focusWindow)focusWindow.style.opacity='0';
+      later(scheduleMobileFocus,80);
+    }else{
+      setAll(sequencePlayed?'balanced':'future');
+      if(sequencePlayed){
+        if(focusWindow)focusWindow.style.opacity='.16';
+        scheduleAmbient();
+      }else{
+        section.classList.remove('is-established');
+        setupEntryObserver();
+      }
+    }
+  };
+
+  const initVisibility=()=>{
+    visibilityObserver?.disconnect();
+    visibilityObserver=new IntersectionObserver(entries=>{
+      sectionVisible=!!entries[0]?.isIntersecting;
+      if(!sectionVisible&&ambientTimer){window.clearTimeout(ambientTimer);ambientTimer=0;}
+      if(sectionVisible&&mode==='desktop'&&sequencePlayed&&!sequenceRunning)scheduleAmbient();
+    },{threshold:.04});
+    visibilityObserver.observe(section);
+  };
+
+  stages.forEach((stage,index)=>{
+    stage.addEventListener('pointerenter',()=>{
+      if(pointerLeaveTimer){window.clearTimeout(pointerLeaveTimer);pointerLeaveTimer=0;}
+      inspectStage(index);
+    });
+    stage.addEventListener('pointerleave',()=>{
+      if(mode!=='desktop'||sequenceRunning)return;
+      pointerLeaveTimer=window.setTimeout(()=>{pointerLeaveTimer=0;restoreAfterInspect();},90);
+    });
+    stage.addEventListener('focus',()=>inspectStage(index));
+    stage.addEventListener('blur',()=>restoreAfterInspect());
+  });
+
+  replay?.addEventListener('click',()=>{
+    if(reduceMotion.matches)return;
+    if(mode==='mobile')replayMobile();
+    else runDesktopSequence(true);
+  });
+
+  window.addEventListener('scroll',scheduleMobileFocus,{passive:true});
+  window.addEventListener('resize',()=>{
+    const next=compactLayout.matches?'mobile':'desktop';
+    if(next!==mode)setMode(next);
+    else if(mode==='mobile')scheduleMobileFocus();
+    else if(focusWindow&&sequencePlayed)focusWindow.style.opacity='.16';
+  },{passive:true});
+
+  compactLayout.addEventListener?.('change',()=>setMode(compactLayout.matches?'mobile':'desktop'));
+  reduceMotion.addEventListener?.('change',()=>{
+    sequenceToken+=1;
+    clearTimers();cancelAnimations();
+    setMode(compactLayout.matches?'mobile':'desktop');
+  });
+
+  initVisibility();
+  setMode(compactLayout.matches?'mobile':'desktop');
 })();

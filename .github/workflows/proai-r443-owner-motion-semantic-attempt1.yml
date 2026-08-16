@@ -1,0 +1,92 @@
+name: ProAI Cube R4.4.3 Owner Motion Semantic Attempt 1
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-semantic-staging-review]
+    paths: [.github/workflows/proai-r443-owner-motion-semantic-attempt1.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  correction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PRODUCT_BRANCH: agent/proai-cube-r443-closed-phrase-architecture
+      START_SHA: 30bd716a00aacdd416c596a016076586850d2719
+      OLD_BRANCH: agent/proai-cube-semantic-brand-face-r4
+      OLD_SHA: fce017a1a4c83fa4dfeb1d9bd97021f6f92a23ad
+      MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+      PRODUCT_FILE: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs
+      PRODUCT_DIR: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Freeze exact starting refs
+        run: |
+          set -euo pipefail
+          cp .github/review/proai-cube-r443-owner-motion-semantic-apply.mjs /tmp/proai-r443-owner-apply.mjs
+          git fetch origin "$PRODUCT_BRANCH" "$OLD_BRANCH" main
+          test "$(git rev-parse "origin/$PRODUCT_BRANCH")" = "$START_SHA"
+          test "$(git rev-parse "origin/$OLD_BRANCH")" = "$OLD_SHA"
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          git checkout -B "$PRODUCT_BRANCH" "origin/$PRODUCT_BRANCH"
+          test "$(git rev-parse HEAD)" = "$START_SHA"
+
+      - name: Apply owner motion and semantic correction
+        run: |
+          set -euo pipefail
+          node --check /tmp/proai-r443-owner-apply.mjs
+          node /tmp/proai-r443-owner-apply.mjs "$PRODUCT_FILE"
+          git diff --check
+          git diff -- "$PRODUCT_FILE"
+          test "$(git diff --name-only | wc -l)" -eq 1
+          test "$(git diff --name-only)" = "$PRODUCT_FILE"
+
+      - name: Validate visual state graph and exact build
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run validate-closed-phrases | tee /tmp/r443-owner-library.txt
+          npm run build-r443 | tee /tmp/r443-owner-build.txt
+          node --check main.generated.js
+          grep -Fq '"coreArchetypeCount": 16' /tmp/r443-owner-library.txt
+          grep -Fq '"macroStateCount": 13' /tmp/r443-owner-library.txt
+          grep -Fq '"architecture": "CURATED_VISUAL_SAFE_STATE_RING"' /tmp/r443-owner-library.txt
+          grep -Fq '"maxMasterSameAxisStreak": 1' /tmp/r443-owner-library.txt
+          grep -Fq 'firstSemanticEligibleMs:3200' main.generated.js
+          grep -Fq 'stageTimeoutMs:3800' main.generated.js
+          grep -Fq 'maxReadableHoldMs:1600' main.generated.js
+          grep -Fq "architecture:'CURATED_VISUAL_SAFE_STATE_RING'" main.generated.js
+          grep -Fq "yawDirectionPolicy:'continuous-positive'" main.generated.js
+          grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
+          grep -Fq 'semanticOrientationForcing:false' main.generated.js
+          grep -Fq 'bumpScale:-.130' main.generated.js || grep -Fq 'bumpScale: -0.130' main.generated.js || grep -Fq 'bumpScale=-.130' main.generated.js
+          grep -Fq 'roughnessMapInk:0.550' main.generated.js || grep -Fq 'roughnessMapInk: 0.550' main.generated.js
+          grep -Fq 'tonalInk:0.820' main.generated.js || grep -Fq 'tonalInk: 0.820' main.generated.js
+          grep -Fq 'edgeRoughnessInk:.095' main.generated.js
+          grep -Fq 'scaleX:.875,scaleY:.900' main.generated.js
+          grep -Fq 'overlayTextRendered:false' main.generated.js
+          grep -Fq 'alphaDominantReveal:false' main.generated.js
+          ! grep -Fq 'const CYCLE_SPECS=' main.generated.js
+          ! grep -Fq 'semanticR443SafetyWord(' main.generated.js
+          ! grep -Fq 'seededUnit()<.58' main.generated.js
+          ! grep -Fq 'semanticR443PendingResolutionCount' main.generated.js
+          ! grep -Fq "semanticR442RecordMove(inverse,'resolve')" main.generated.js
+          ! grep -Fq 'axisDebtBoost' main.generated.js
+          ! grep -Fq 'layerDebtBoost' main.generated.js
+
+      - name: Commit exact product attempt 1
+        run: |
+          set -euo pipefail
+          git config user.name 'Ihor Horb'
+          git config user.email 'proai.expert2026@gmail.com'
+          git add "$PRODUCT_FILE"
+          test "$(git diff --cached --name-only | wc -l)" -eq 1
+          git commit -m 'fix: diversify R4.4.3 motion and semantic cadence'
+          git push origin "$PRODUCT_BRANCH"
+          echo "NEW_PRODUCT_SHA=$(git rev-parse HEAD)"

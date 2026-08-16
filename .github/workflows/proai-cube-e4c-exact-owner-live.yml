@@ -6,7 +6,7 @@ on:
     paths:
       - .github/workflows/proai-cube-e4c-exact-owner-live.yml
 permissions:
-  contents: read
+  contents: write
 jobs:
   exact-owner-live:
     runs-on: ubuntu-24.04
@@ -75,27 +75,25 @@ jobs:
           echo "JS=PASS"
           echo "GLB=PASS"
           echo "HEADLESS_SEMANTIC_TIMING_USED_AS_GATE=NO"
-      - name: Publish exact E4C to TryCloudflare
+      - name: Publish exact E4C and expose owner URL
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           curl -fsSL --max-time 90 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
           chmod +x /tmp/cloudflared
+          LOG=/tmp/e4c-cloudflare.log
+          nohup /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4180 >"$LOG" 2>&1 &
+          echo $! >/tmp/e4c-tunnel.pid
           REVIEW_URL=''
-          for attempt in 1 2; do
-            LOG="/tmp/e4c-cloudflare-${attempt}.log"
-            /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4180 >"$LOG" 2>&1 &
-            PID=$!
-            echo "$PID" >/tmp/e4c-tunnel.pid
-            for i in $(seq 1 45); do
-              URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
-              if [ -n "$URL" ] && curl -fsSL --max-time 10 "$URL/" >/tmp/e4c-public-index.html 2>/dev/null; then
-                REVIEW_URL="$URL"
-                break 2
-              fi
-              sleep 1
-            done
-            kill "$PID" 2>/dev/null || true
-            rm -f /tmp/e4c-tunnel.pid
+          for i in $(seq 1 45); do
+            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
+            if [ -n "$URL" ] && curl -fsSL --max-time 10 "$URL/" >/tmp/e4c-public-index.html 2>/dev/null; then
+              REVIEW_URL="$URL"
+              break
+            fi
+            sleep 1
           done
           test -n "$REVIEW_URL"
           CSS=$(sed -n 's/.*href="\([^"]*\.css\)".*/\1/p' /tmp/e4c-public-index.html | head -1)
@@ -108,11 +106,20 @@ jobs:
           test -n "$GLB"
           curl -fsSL --max-time 15 "$REVIEW_URL/assets/$GLB" -o /tmp/e4c-public.glb
           test "$(wc -c </tmp/e4c-public.glb | tr -d ' ')" -eq 279412
+          printf '%s\n' "$REVIEW_URL" >/tmp/e4c-live-url.txt
+          echo "live_url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
+          BODY="PROAI CUBE E4C — EXACT OWNER LIVE READY\n\nExact product: $PRODUCT_SHA\nLIVE_OWNER_URL=$REVIEW_URL\nEXPECTED_LIFETIME=approximately 2 hours\nPUBLIC STATIC CHECK: HTTP PASS / HTML PASS / CSS PASS / JS PASS / GLB PASS\nHEADLESS SEMANTIC TIMING GATE: NO\nNO PRODUCT CHANGE / ATTEMPT 2 UNUSED"
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments" -f body="$BODY" >/tmp/e4c-comment.json
           echo "EXACT_PRODUCT_SHA=$PRODUCT_SHA"
           echo "PUBLIC_STATIC_CHECK=HTTP_PASS HTML_PASS CSS_PASS JS_PASS GLB_PASS"
           echo "LIVE_OWNER_URL=$REVIEW_URL"
           echo "EXPECTED_LIFETIME=approximately 2 hours"
           echo "HEADLESS_SEMANTIC_TIMING_USED_AS_GATE=NO"
+      - name: Keep owner review alive
+        run: |
+          set -euo pipefail
+          REVIEW_URL='${{ steps.publish.outputs.live_url }}'
+          test -n "$REVIEW_URL"
           for i in $(seq 1 240); do
             curl -fsSL --max-time 10 "$REVIEW_URL/" >/dev/null || true
             sleep 30

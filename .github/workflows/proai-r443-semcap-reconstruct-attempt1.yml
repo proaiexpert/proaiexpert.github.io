@@ -1,0 +1,100 @@
+name: PROAI R4.4.3 semantic-capable choreography Attempt 1
+on:
+  push:
+    branches:
+      - agent/proai-cube-r443-semantic-staging-review
+    paths:
+      - .github/workflows/proai-r443-semcap-reconstruct-attempt1.yml
+      - .github/review/proai-cube-r443-semcap-reconstruct-apply.mjs
+permissions:
+  contents: write
+jobs:
+  product-attempt-1:
+    runs-on: ubuntu-24.04
+    env:
+      START_SHA: 041756079613719f53a898e1e1751a2832d597bb
+      OLD_SHA: fce017a1a4c83fa4dfeb1d9bd97021f6f92a23ad
+      MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+      PRODUCT_BRANCH: agent/proai-cube-r443-closed-phrase-architecture
+      PRODUCT_DIR: /tmp/r443-semcap-attempt1
+      PRODUCT_FILE: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact frozen starting state
+        run: |
+          set -euo pipefail
+          git fetch origin "$PRODUCT_BRANCH" agent/proai-cube-semantic-brand-face-r4 main
+          test "$(git rev-parse origin/$PRODUCT_BRANCH)" = "$START_SHA"
+          test "$(git rev-parse origin/agent/proai-cube-semantic-brand-face-r4)" = "$OLD_SHA"
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          git worktree add -b product-attempt1 "$PRODUCT_DIR" "$START_SHA"
+      - name: Apply consolidated R4.4.3 correction
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR"
+          node "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-semcap-reconstruct-apply.mjs" "$PRODUCT_FILE"
+          test "$(git diff --name-only | wc -l)" -eq 1
+          test "$(git diff --name-only)" = "$PRODUCT_FILE"
+          ! grep -Fq 'const MASTER_WORD=' "$PRODUCT_FILE"
+          ! grep -Fq 'const MASTER_STREAM=' "$PRODUCT_FILE"
+          grep -Fq "SEMANTIC_CAPABLE_AUTHORED_SAFE_STATE_GRAPH" "$PRODUCT_FILE"
+          grep -Fq 'firstSemanticDelayMs:1600' "$PRODUCT_FILE"
+      - name: Mechanical and semantic-capability validation
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          npm install --package-lock=false
+          npm run validate-closed-phrases | tee /tmp/r443-semcap-validation.json
+          grep -Fq '"coreArchetypeCount": 15' /tmp/r443-semcap-validation.json
+          grep -Fq '"macroStateCount": 14' /tmp/r443-semcap-validation.json
+          grep -Fq '"semanticCapableStateCount": 10' /tmp/r443-semcap-validation.json
+          grep -Fq '"maxSemanticDeadConsecutiveBoundaries": 1' /tmp/r443-semcap-validation.json
+          grep -Fq '"maxDistanceToSemanticCapableState": 1' /tmp/r443-semcap-validation.json
+          grep -Fq '"+Z": 5' /tmp/r443-semcap-validation.json
+          grep -Fq '"+X": 4' /tmp/r443-semcap-validation.json
+          grep -Fq '"-X": 3' /tmp/r443-semcap-validation.json
+          npm run build-r443
+          node --check main.generated.js
+      - name: Frozen product invariants
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          grep -Fq 'firstSemanticDelayMs:1600' main.generated.js
+          grep -Fq "architecture:'SEMANTIC_CAPABLE_AUTHORED_SAFE_STATE_GRAPH'" main.generated.js
+          grep -Fq 'stageScoreMin:.12' main.generated.js
+          grep -Fq 'stageScoreMax:.59' main.generated.js
+          grep -Fq 'stageViewMin:.36' main.generated.js
+          grep -Fq 'stageAreaMin:.20' main.generated.js
+          grep -Fq 'stageBrdfMin:0' main.generated.js
+          grep -Fq 'stageTimeoutMs:3800' main.generated.js
+          grep -Fq 'maxReadableHoldMs:1600' main.generated.js
+          grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
+          grep -Fq 'semanticOrientationForcing:false' main.generated.js
+          grep -Fq "yawDirectionPolicy:'continuous-positive'" main.generated.js
+          grep -Fq 'edgeRoughnessInk:.095' main.generated.js
+          grep -Fq 'scaleX:.875,scaleY:.900' main.generated.js
+          grep -Fq 'bumpScale:-0.130,roughnessMapInk:0.550,metalnessDelta:0.0,tonalInk:0.820' main.generated.js
+          grep -Fq 'overlayTextRendered:false' main.generated.js
+          grep -Fq 'alphaDominantReveal:false' main.generated.js
+          ! grep -Fq 'semanticR443PendingResolutionCount' main.generated.js
+          ! grep -Fq "semanticR442RecordMove(inverse,'resolve')" main.generated.js
+          ! grep -Fq 'const MASTER_WORD=' "$PRODUCT_FILE"
+          ! grep -Fq 'const MASTER_STREAM=' "$PRODUCT_FILE"
+      - name: Commit and push Product Attempt 1 only after PASS
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR"
+          test "$(git diff --name-only | wc -l)" -eq 1
+          test "$(git diff --name-only)" = "$PRODUCT_FILE"
+          git config user.name 'Ihor Horb'
+          git config user.email 'proai.expert2026@gmail.com'
+          git add "$PRODUCT_FILE"
+          git commit -m 'fix: reconstruct semantic-capable authored choreography'
+          NEW_SHA="$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD^)" = "$START_SHA"
+          git fetch origin "$PRODUCT_BRANCH"
+          test "$(git rev-parse origin/$PRODUCT_BRANCH)" = "$START_SHA"
+          git push origin HEAD:"refs/heads/$PRODUCT_BRANCH"
+          echo "NEW_PRODUCT_SHA=$NEW_SHA"

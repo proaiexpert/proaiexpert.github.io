@@ -38,7 +38,6 @@ jobs:
           const reps=[
             ['const SEMANTIC_R443_CONFIG=Object.freeze({firstSemanticEligibleMs:3200','const SEMANTIC_R443_CONFIG=Object.freeze({firstSemanticDelayMs:3200'],
             ['nextEligiblePresentationMs:SEMANTIC_R443_CONFIG.firstSemanticEligibleMs,cooldownUntilMs:SEMANTIC_R443_CONFIG.firstSemanticEligibleMs','nextEligiblePresentationMs:presentationSimTimeMs+SEMANTIC_R443_CONFIG.firstSemanticDelayMs,cooldownUntilMs:presentationSimTimeMs+SEMANTIC_R443_CONFIG.firstSemanticDelayMs'],
-            ["'firstSemanticEligibleMs:3200'","'firstSemanticDelayMs:3200'"],
           ];
           for(const [a,b] of reps){const i=s.indexOf(a),j=i<0?-1:s.indexOf(a,i+a.length);if(i<0||j>=0)throw new Error('startup anchor '+a+' '+i+'/'+j);s=s.slice(0,i)+b+s.slice(i+a.length)}
           fs.writeFileSync(f,s);

@@ -10,12 +10,6 @@ const inverseWord=word=>[...word].reverse().map(inverseMove);
 const sameMove=(a,b)=>!!a&&!!b&&a.axis===b.axis&&a.layer===b.layer&&a.direction===b.direction;
 const exactInverse=(a,b)=>!!a&&!!b&&a.axis===b.axis&&a.layer===b.layer&&a.direction===-b.direction;
 
-const MASTER_WORD=Object.freeze([
-  move('Z',0,1),move('Y',0,1),move('X',1,-1),move('Y',-1,-1),move('X',1,-1),
-]);
-const MASTER_ORDER=12;
-const BASE_PHRASE_LENGTHS=Object.freeze([6,5,3,4,3,6,4,4,3,4,6,6,6]);
-const MASTER_STREAM=Object.freeze(Array.from({length:MASTER_ORDER},()=>MASTER_WORD).flat());
 function gestureMeta(id,moves){
   const axisSequence=moves.map(m=>m.axis).join('');
   const axisCounts=Object.fromEntries(AXES.map(axis=>[axis,moves.filter(m=>m.axis===axis).length]));
@@ -27,28 +21,63 @@ function gestureMeta(id,moves){
   const directionPattern=moves.map(m=>m.direction>0?'+':'-').join('');
   return Object.freeze({gestureClass:`${axisSequence}:${outerPattern}`,axisSequence,dominantAxis,centerUsage,outerPattern,directionPattern,staggerPairs:Object.freeze([])});
 }
-let phraseCursor=0;
-const BASE_ARCHETYPES=Object.freeze(BASE_PHRASE_LENGTHS.map((length,index)=>{
-  const moves=Object.freeze(MASTER_STREAM.slice(phraseCursor,phraseCursor+length));phraseCursor+=length;
-  const sourceState=`S${String(index).padStart(2,'0')}`;
-  const destinationState=index===BASE_PHRASE_LENGTHS.length-1?'S00':`S${String(index+1).padStart(2,'0')}`;
-  const id=`VISUAL_${String(index+1).padStart(2,'0')}`;
-  return Object.freeze({id,sourceState,destinationState,moves,...gestureMeta(id,moves)});
-}));
-if(phraseCursor!==MASTER_STREAM.length)throw new Error(`visual phrase segmentation ${phraseCursor}/${MASTER_STREAM.length}`);
-const skip=(id,firstIndex,secondIndex)=>{
-  const first=BASE_ARCHETYPES[firstIndex],second=BASE_ARCHETYPES[secondIndex];
-  if(first.destinationState!==second.sourceState)throw new Error(`skip ${id} discontinuity`);
-  const moves=Object.freeze([...first.moves,...second.moves]);
-  if(moves.length>7)throw new Error(`skip ${id} too long ${moves.length}`);
-  return Object.freeze({id,sourceState:first.sourceState,destinationState:second.destinationState,moves,...gestureMeta(id,moves)});
-};
+const phrase=(id,sourceState,destinationState,moves)=>Object.freeze({id,sourceState,destinationState,moves:Object.freeze(moves),...gestureMeta(id,moves)});
+
+// R4.4.3 Owner-authored semantic-capable choreography.
+// These are explicit state transitions, not slices of a repeated master word.
 const CORE_ARCHETYPES=Object.freeze([
-  ...BASE_ARCHETYPES,
-  skip('VISUAL_SKIP_03_04',2,3),
-  skip('VISUAL_SKIP_08_09',7,8),
-  skip('VISUAL_SKIP_09_10',8,9),
+  phrase('AUTH_A01','S00','A01',[
+    move('X',1,1),move('Y',-1,1),move('Y',-1,1),move('X',0,1),move('Y',-1,-1),move('Y',-1,-1),move('X',0,-1),
+  ]),
+  phrase('AUTH_A02','A01','A02',[
+    move('Y',0,1),move('X',-1,-1),move('Y',0,-1),move('X',1,-1),move('Y',-1,1),move('X',0,1),move('Y',-1,-1),
+  ]),
+  phrase('AUTH_A03','A02','A03',[
+    move('X',-1,1),move('X',0,-1),
+  ]),
+  phrase('AUTH_A04','A03','A04',[
+    move('Y',0,-1),move('X',0,-1),move('Y',0,-1),move('Z',0,-1),
+  ]),
+  phrase('AUTH_A05','A04','A05',[
+    move('Y',0,-1),move('X',0,1),move('Y',0,-1),move('Z',0,1),move('X',0,1),
+  ]),
+  phrase('AUTH_A06','A05','A06',[
+    move('X',-1,-1),move('Y',-1,1),
+  ]),
+  phrase('AUTH_A07','A06','A07',[
+    move('X',0,-1),move('Y',-1,-1),move('X',1,1),move('Y',0,1),move('X',-1,1),move('Y',0,-1),move('X',0,1),
+  ]),
+  phrase('AUTH_A08','A07','S00',[
+    move('Y',-1,1),move('Y',-1,1),move('X',0,-1),move('Y',-1,-1),move('Y',-1,-1),move('X',1,-1),
+  ]),
+
+  phrase('AUTH_B01','S00','B01',[
+    move('Y',1,1),move('Z',0,1),move('Y',-1,-1),move('X',0,-1),move('Y',1,-1),move('X',0,1),move('Y',-1,1),
+  ]),
+  phrase('AUTH_B02','B01','B02',[
+    move('X',-1,-1),move('X',-1,-1),move('Z',0,-1),move('X',-1,1),move('X',-1,1),
+  ]),
+  phrase('AUTH_B03','B02','B03',[
+    move('Z',-1,1),move('Z',0,-1),
+  ]),
+  phrase('AUTH_B04','B03','B04',[
+    move('X',0,-1),move('Y',0,-1),move('Z',0,-1),move('Y',0,-1),
+  ]),
+  phrase('AUTH_B05','B04','B05',[
+    move('X',0,1),move('Y',0,-1),move('Z',0,1),move('Y',0,-1),move('Z',0,1),
+  ]),
+  phrase('AUTH_B06','B05','B06',[
+    move('Z',-1,-1),move('X',-1,-1),move('X',-1,-1),move('Z',0,1),move('X',-1,1),move('X',-1,1),move('Y',-1,-1),
+  ]),
+  phrase('AUTH_B07','B06','S00',[
+    move('X',0,-1),move('Y',1,1),move('X',0,1),move('Y',-1,1),move('Z',0,-1),move('Y',1,-1),
+  ]),
 ]);
+const AUTHORED_CYCLES=Object.freeze([
+  Object.freeze(['AUTH_A01','AUTH_A02','AUTH_A03','AUTH_A04','AUTH_A05','AUTH_A06','AUTH_A07','AUTH_A08']),
+  Object.freeze(['AUTH_B01','AUTH_B02','AUTH_B03','AUTH_B04','AUTH_B05','AUTH_B06','AUTH_B07']),
+]);
+const ALL_AUTHORED_MOVES=Object.freeze(CORE_ARCHETYPES.flatMap(p=>p.moves));
 
 function identityMatrix(){return [1,0,0,0,1,0,0,0,1]}
 function matMul(a,b){const r=new Array(9).fill(0);for(let y=0;y<3;y++)for(let x=0;x<3;x++)for(let k=0;k<3;k++)r[y*3+x]+=a[y*3+k]*b[k*3+x];return r}
@@ -63,54 +92,50 @@ function stateSignature(state){return state.map(c=>`${coordKey(c.origin)}>${coor
 function abstractFaceAssembled(state,face){const [axis,sign]=FACE_AXIS[face],idx=axis==='X'?0:axis==='Y'?1:2,normal=[0,0,0];normal[idx]=sign;for(const c of state){if(c.origin[idx]!==sign)continue;if(coordKey(c.origin)!==coordKey(c.pos))return false;const n=matVec(c.ori,normal);if(coordKey(n)!==coordKey(normal))return false}return true}
 function wordHasImmediateInverse(word){for(let i=1;i<word.length;i++)if(exactInverse(word[i-1],word[i]))return true;return false}
 function maxSameAxis(word){let max=0,run=0,last=null;for(const m of word){run=m.axis===last?run+1:1;last=m.axis;max=Math.max(max,run)}return max}
+function maxDeadRunForCycle(ids,stateInfo){let max=0,run=0;for(const id of ids){const p=CORE_ARCHETYPES.find(x=>x.id===id),capable=stateInfo.get(p.destinationState).assembledFaces.length>0;run=capable?0:run+1;max=Math.max(max,run)}return max}
+function maxDistanceToSemantic(outgoing,stateInfo){let global=0;for(const id of stateInfo.keys()){
+  if(stateInfo.get(id).assembledFaces.length)continue;
+  const seen=new Set([id]),queue=[[id,0]];let found=null;
+  while(queue.length&&found===null){const [cur,d]=queue.shift();for(const pid of outgoing[cur]||[]){const p=CORE_ARCHETYPES.find(x=>x.id===pid),next=p.destinationState;if(seen.has(next))continue;if(stateInfo.get(next).assembledFaces.length){found=d+1;break}seen.add(next);queue.push([next,d+1])}}
+  if(found===null)throw new Error('semantic-dead state cannot reach semantic-capable state '+id);global=Math.max(global,found)
+}return global}
 function validateClosedPhraseLibrary(){
-  if(CORE_ARCHETYPES.length!==16)throw new Error(`visual phrase archetype count ${CORE_ARCHETYPES.length}`);
-  if(BASE_ARCHETYPES.length!==13)throw new Error(`visual base phrase count ${BASE_ARCHETYPES.length}`);
-  const home=cubeHome(),homeSig=stateSignature(home),safeStates=new Map([['S00',{id:'S00',signature:homeSig,assembledFaces:[...ELIGIBLE_FACES]}]]);
-  let state=cloneState(home);
-  for(let i=0;i<BASE_ARCHETYPES.length-1;i++){
-    applyAbstractWord(state,BASE_ARCHETYPES[i].moves);
-    const id=BASE_ARCHETYPES[i].destinationState,sig=stateSignature(state);
-    if(sig===homeSig)throw new Error(`visual state ${id} closes early`);
-    if(safeStates.has(id))throw new Error(`duplicate visual state ${id}`);
-    safeStates.set(id,{id,signature:sig,assembledFaces:ELIGIBLE_FACES.filter(face=>abstractFaceAssembled(state,face))});
+  if(CORE_ARCHETYPES.length!==15)throw new Error(`authored phrase archetype count ${CORE_ARCHETYPES.length}`);
+  const home=cubeHome(),homeSig=stateSignature(home);
+  const stateCubes=new Map([['S00',cloneState(home)]]),stateInfo=new Map([['S00',{id:'S00',signature:homeSig,assembledFaces:[...ELIGIBLE_FACES]}]]),signatureOwner=new Map([[homeSig,'S00']]);
+  const phraseById=new Map(CORE_ARCHETYPES.map(p=>[p.id,p]));
+  const outgoing={},incoming={};
+  for(const p of CORE_ARCHETYPES){(outgoing[p.sourceState]??=[]).push(p.id);(incoming[p.destinationState]??=[]).push(p.id)}
+  for(const ids of AUTHORED_CYCLES){
+    let expected='S00';
+    for(const pid of ids){const p=phraseById.get(pid);if(!p||p.sourceState!==expected)throw new Error(`authored cycle discontinuity ${pid} ${expected}`);const src=stateCubes.get(p.sourceState);if(!src)throw new Error('unknown authored source '+p.sourceState);const afterCube=applyAbstractWord(cloneState(src),p.moves),sig=stateSignature(afterCube);if(stateCubes.has(p.destinationState)){if(stateInfo.get(p.destinationState).signature!==sig)throw new Error(`${pid} invalid authored transition ${p.sourceState}->${p.destinationState}`)}else{const owner=signatureOwner.get(sig);if(owner)throw new Error(`duplicate physical safe state ${p.destinationState}/${owner}`);signatureOwner.set(sig,p.destinationState);stateCubes.set(p.destinationState,cloneState(afterCube));stateInfo.set(p.destinationState,{id:p.destinationState,signature:sig,assembledFaces:ELIGIBLE_FACES.filter(face=>abstractFaceAssembled(afterCube,face))})}expected=p.destinationState}
+    if(expected!=='S00')throw new Error('authored cycle does not close HOME');
   }
-  applyAbstractWord(state,BASE_ARCHETYPES.at(-1).moves);
-  if(stateSignature(state)!==homeSig)throw new Error('visual state ring does not close to HOME');
-  if(safeStates.size!==13)throw new Error(`visual safe-state count ${safeStates.size}`);
+  if(stateInfo.size!==14)throw new Error(`semantic-capable safe-state count mismatch ${stateInfo.size}`);
   for(const phrase of CORE_ARCHETYPES){
+    if(phrase.moves.length<2||phrase.moves.length>7)throw new Error(`${phrase.id} phrase length ${phrase.moves.length}`);
     if(wordHasImmediateInverse(phrase.moves))throw new Error(`${phrase.id} contains immediate inverse`);
     if(maxSameAxis(phrase.moves)>2)throw new Error(`${phrase.id} same-axis streak >2`);
-    const source=safeStates.get(phrase.sourceState),destination=safeStates.get(phrase.destinationState);
-    if(!source||!destination)throw new Error(`${phrase.id} unknown transition state`);
-    let src=cloneState(home);
-    if(phrase.sourceState!=='S00'){
-      const targetIndex=Number(phrase.sourceState.slice(1));
-      for(let i=0;i<targetIndex;i++)applyAbstractWord(src,BASE_ARCHETYPES[i].moves);
-    }
-    const after=stateSignature(applyAbstractWord(src,phrase.moves));
-    if(after!==destination.signature)throw new Error(`${phrase.id} invalid authored transition ${phrase.sourceState}->${phrase.destinationState}`);
+    const src=stateCubes.get(phrase.sourceState),dst=stateInfo.get(phrase.destinationState);if(!src||!dst)throw new Error(`${phrase.id} unknown transition state`);if(stateSignature(applyAbstractWord(cloneState(src),phrase.moves))!==dst.signature)throw new Error(`${phrase.id} transition recheck failed`)
   }
-  const axes=new Set(MASTER_STREAM.map(m=>m.axis)),layers=new Set(MASTER_STREAM.map(m=>m.layer));
-  if(axes.size!==3||layers.size!==3)throw new Error('visual master stream lacks axis/layer coverage');
-  if(maxSameAxis(MASTER_STREAM)>2)throw new Error('visual master stream same-axis streak >2');
-  for(let i=1;i<MASTER_STREAM.length;i++)if(exactInverse(MASTER_STREAM[i-1],MASTER_STREAM[i]))throw new Error(`visual master stream immediate inverse ${i}`);
-  if(exactInverse(MASTER_STREAM.at(-1),MASTER_STREAM[0]))throw new Error('visual master stream cyclic immediate inverse');
-  const outgoing={};
-  for(const p of CORE_ARCHETYPES)(outgoing[p.sourceState]??=[]).push(p.id);
+  const axes=new Set(ALL_AUTHORED_MOVES.map(m=>m.axis)),layers=new Set(ALL_AUTHORED_MOVES.map(m=>m.layer));if(axes.size!==3||layers.size!==3)throw new Error('authored graph lacks X/Y/Z or -1/0/+1 coverage');
+  if(maxSameAxis(ALL_AUTHORED_MOVES)>2)throw new Error('authored traversal concatenation same-axis streak >2');
+  // Runtime boundary selector may reject an unsafe HOME self-family restart, but every incoming state must retain a safe authored outgoing edge.
+  for(const [stateId,incomingIds] of Object.entries(incoming))for(const inId of incomingIds){const last=phraseById.get(inId).moves.at(-1),safe=(outgoing[stateId]||[]).filter(outId=>!exactInverse(last,phraseById.get(outId).moves[0]));if(!safe.length)throw new Error(`immediate-inverse boundary dead end ${inId}->${stateId}`)}
+  const semanticCapable=[...stateInfo.values()].filter(s=>s.assembledFaces.length>0);
+  const faceCoverage=Object.fromEntries(ELIGIBLE_FACES.map(face=>[face,semanticCapable.filter(s=>s.assembledFaces.includes(face)).length]));
+  const maxDead=Math.max(...AUTHORED_CYCLES.map(ids=>maxDeadRunForCycle(ids,stateInfo)));
+  const maxDistance=maxDistanceToSemantic(outgoing,stateInfo);
+  if(semanticCapable.length*2<stateInfo.size)throw new Error(`semantic-capable state density ${semanticCapable.length}/${stateInfo.size}`);
+  if(maxDead>2)throw new Error('semantic-dead boundary run '+maxDead);
+  if(maxDistance>2)throw new Error('semantic-capable distance '+maxDistance);
+  for(const face of ELIGIBLE_FACES)if(faceCoverage[face]<2)throw new Error('insufficient semantic face coverage '+face+':'+faceCoverage[face]);
+  const moveBoundaryCapabilities=[];for(const p of CORE_ARCHETYPES){let st=cloneState(stateCubes.get(p.sourceState));for(let i=0;i<p.moves.length;i++){applyAbstractMove(st,p.moves[i]);const assembledFaces=ELIGIBLE_FACES.filter(face=>abstractFaceAssembled(st,face));if(assembledFaces.length)moveBoundaryCapabilities.push({phraseId:p.id,moveIndex:i+1,assembledFaces})}}
   return Object.freeze({
-    coreArchetypeCount:CORE_ARCHETYPES.length,
-    generatedValidatedPhraseVariants:CORE_ARCHETYPES.length,
-    normalGeneratedVariants:CORE_ARCHETYPES.length,
-    safetyGeneratedVariants:0,
-    macroStateCount:safeStates.size,
-    phraseHistoryDepth:3,
-    architecture:'CURATED_VISUAL_SAFE_STATE_RING',
-    masterOrder:MASTER_ORDER,
-    masterMoveCount:MASTER_STREAM.length,
-    maxMasterSameAxisStreak:maxSameAxis(MASTER_STREAM),
-    safeStates:[...safeStates.values()].map(({signature,...rest})=>rest),
-    outgoing,
+    coreArchetypeCount:CORE_ARCHETYPES.length,generatedValidatedPhraseVariants:CORE_ARCHETYPES.length,normalGeneratedVariants:CORE_ARCHETYPES.length,safetyGeneratedVariants:0,
+    macroStateCount:stateInfo.size,phraseHistoryDepth:3,architecture:'SEMANTIC_CAPABLE_AUTHORED_SAFE_STATE_GRAPH',authoredMoveCount:ALL_AUTHORED_MOVES.length,maxAuthoredSameAxisStreak:maxSameAxis(ALL_AUTHORED_MOVES),
+    semanticCapableStateCount:semanticCapable.length,maxSemanticDeadConsecutiveBoundaries:maxDead,maxDistanceToSemanticCapableState:maxDistance,faceCoverage,semanticMoveBoundaryOpportunityCount:moveBoundaryCapabilities.length,
+    safeStates:[...stateInfo.values()].map(({signature,...rest})=>rest),outgoing,moveBoundaryCapabilities,
   });
 }
 
@@ -146,7 +171,7 @@ const runtimeValidation=JSON.stringify(VALIDATION);
 const lifecycle=String.raw`const SEMANTIC_R443_PHASE=Object.freeze({NORMAL:'NORMAL',CANDIDATE:'CANDIDATE',READABLE:'READABLE',RELEASE:'RELEASE'});
 const SEMANTIC_R443_SEQUENCE=Object.freeze(['ProAI Expert','TRUST','INQUIRY','RESPONSE','RESULT']);
 const SEMANTIC_R443_TYPOGRAPHY=Object.freeze({fontFamily:'Instrument Sans Variable',fontWeight:620,targetBlockWidthRatio:.722,scaleX:.875,scaleY:.900});
-const SEMANTIC_R443_CONFIG=Object.freeze({firstSemanticDelayMs:3200,stageScoreMin:.12,stageScoreMax:.59,stageViewMin:.36,stageAreaMin:.20,stageBrdfMin:0,stageAbortScore:0,stageTimeoutMs:3800,candidateApproachScore:.58,candidateApproachView:.46,candidateDwellMs:80,enterScore:.64,enterView:.52,enterArea:.26,enterBrdf:.18,exitScore:.54,exitView:.50,releaseDebounceMs:90,maxReadableHoldMs:1600,rearmScore:.50,breathingRangeMs:[5000,7000],longGapWarningMs:24000,longReadableWarningMs:2200,recentFaceDepth:2});
+const SEMANTIC_R443_CONFIG=Object.freeze({firstSemanticDelayMs:1600,stageScoreMin:.12,stageScoreMax:.59,stageViewMin:.36,stageAreaMin:.20,stageBrdfMin:0,stageAbortScore:0,stageTimeoutMs:3800,candidateApproachScore:.58,candidateApproachView:.46,candidateDwellMs:80,enterScore:.64,enterView:.52,enterArea:.26,enterBrdf:.18,exitScore:.54,exitView:.50,releaseDebounceMs:90,maxReadableHoldMs:1600,rearmScore:.50,breathingRangeMs:[5000,7000],longGapWarningMs:24000,longReadableWarningMs:2200,recentFaceDepth:2});
 const SEMANTIC_R443_CLOSED_VALIDATION=Object.freeze(${runtimeValidation});
 const SEMANTIC_R443_CLOSED_ARCHETYPES=Object.freeze(${runtimeArchetypes});
 const semanticR443State={phase:SEMANTIC_R443_PHASE.NORMAL,stagedFace:null,stagedMessageIndex:null,stagedSinceMs:null,candidateFace:null,candidateSinceMs:null,candidatePeakScore:0,activeMessage:null,activeMessageIndex:null,nextMessageIndex:0,lastReadableStartMs:null,lastReleaseMs:-Infinity,lastReleaseFace:null,nextEligiblePresentationMs:presentationSimTimeMs+SEMANTIC_R443_CONFIG.firstSemanticDelayMs,cooldownUntilMs:presentationSimTimeMs+SEMANTIC_R443_CONFIG.firstSemanticDelayMs,opportunityIntervalsMs:[],readableDurationsMs:[],faceArmed:{'+Z':true,'+X':true,'-X':true},recentFaces:[],lifecycleLog:[],candidateLog:[],eventLog:[],semanticSeed:0x443c0de,shortReadableCount:0,semanticFlashCount:0,longReadableWarnings:0,longGapWarnings:0,dispersalDone:true,dispersalLatencyMs:null,dispersalLatenciesMs:[],overdueDispersalCount:0,stageCount:0,stageCancelCount:0};
@@ -307,7 +332,7 @@ const ss=source.indexOf(schedulerStart),se=source.indexOf('sliceSchedulerRunning
 
 const r443DiagnosticsAnchor='r443Motion:';
 const r443DiagnosticsAt=source.indexOf(r443DiagnosticsAnchor),r443DiagnosticsNext=r443DiagnosticsAt>=0?source.indexOf(r443DiagnosticsAnchor,r443DiagnosticsAt+r443DiagnosticsAnchor.length):-1;
-if(r443DiagnosticsAt>=0&&r443DiagnosticsNext<0){const extension=`r443ClosedPhrase:{architecture:'CURATED_VISUAL_SAFE_STATE_RING',lifoInverseStack:false,pendingResolutionGate:false,bridgeBeforeInverse:false,semanticDispersalWeighting:false,axisLayerDebt:false,phraseArchetypeCount:SEMANTIC_R443_CLOSED_VALIDATION.coreArchetypeCount,generatedValidatedPhraseVariants:SEMANTIC_R443_CLOSED_VALIDATION.generatedValidatedPhraseVariants,macroStateCount:SEMANTIC_R443_CLOSED_VALIDATION.macroStateCount,phraseHistoryDepth:SEMANTIC_R443_CLOSED_VALIDATION.phraseHistoryDepth,messageBearingFace:semanticR443State.stagedFace,stagedMessageIndex:semanticR443State.stagedMessageIndex,stagedSinceMs:semanticR443State.stagedSinceMs,semanticFlashCount:semanticR443State.semanticFlashCount,longReadableWarnings:semanticR443State.longReadableWarnings,metrics:semanticR443ClosedMetrics()},`;source=source.slice(0,r443DiagnosticsAt)+extension+source.slice(r443DiagnosticsAt)}else console.warn(`R4.4.3 closed phrase optional diagnostics unavailable: ${r443DiagnosticsAt}/${r443DiagnosticsNext}`);
+if(r443DiagnosticsAt>=0&&r443DiagnosticsNext<0){const extension=`r443ClosedPhrase:{architecture:'SEMANTIC_CAPABLE_AUTHORED_SAFE_STATE_GRAPH',lifoInverseStack:false,pendingResolutionGate:false,bridgeBeforeInverse:false,semanticDispersalWeighting:false,axisLayerDebt:false,phraseArchetypeCount:SEMANTIC_R443_CLOSED_VALIDATION.coreArchetypeCount,generatedValidatedPhraseVariants:SEMANTIC_R443_CLOSED_VALIDATION.generatedValidatedPhraseVariants,macroStateCount:SEMANTIC_R443_CLOSED_VALIDATION.macroStateCount,phraseHistoryDepth:SEMANTIC_R443_CLOSED_VALIDATION.phraseHistoryDepth,messageBearingFace:semanticR443State.stagedFace,stagedMessageIndex:semanticR443State.stagedMessageIndex,stagedSinceMs:semanticR443State.stagedSinceMs,semanticFlashCount:semanticR443State.semanticFlashCount,longReadableWarnings:semanticR443State.longReadableWarnings,metrics:semanticR443ClosedMetrics()},`;source=source.slice(0,r443DiagnosticsAt)+extension+source.slice(r443DiagnosticsAt)}else console.warn(`R4.4.3 closed phrase optional diagnostics unavailable: ${r443DiagnosticsAt}/${r443DiagnosticsNext}`);
 
 for(const forbidden of[
   'semanticR443PendingResolutionCount',
@@ -330,4 +355,4 @@ for(const required of[
 ])if(!source.includes(required))throw new Error(`R4.4.3 closed phrase missing final invariant: ${required}`);
 
 fs.writeFileSync(file,source);
-console.log('R4.4.3 curated visual safe-state architecture applied',VALIDATION);
+console.log('R4.4.3 semantic-capable authored safe-state graph applied',VALIDATION);

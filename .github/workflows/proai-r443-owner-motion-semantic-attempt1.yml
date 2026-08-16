@@ -42,6 +42,17 @@ jobs:
           set -euo pipefail
           node --check /tmp/proai-r443-owner-apply.mjs
           node /tmp/proai-r443-owner-apply.mjs "$PRODUCT_FILE"
+          node <<'NODE'
+          const fs=require('fs');
+          const file=process.env.PRODUCT_FILE;
+          let s=fs.readFileSync(file,'utf8');
+          const needle='const MASTER_WORD=Object.freeze([';
+          const insert="const move=(axis,layer,direction)=>Object.freeze({axis,layer,direction});\nconst inverseMove=m=>({axis:m.axis,layer:m.layer,direction:-m.direction});\nconst inverseWord=word=>[...word].reverse().map(inverseMove);\nconst sameMove=(a,b)=>!!a&&!!b&&a.axis===b.axis&&a.layer===b.layer&&a.direction===b.direction;\nconst exactInverse=(a,b)=>!!a&&!!b&&a.axis===b.axis&&a.layer===b.layer&&a.direction===-b.direction;\n\n"+needle;
+          const at=s.indexOf(needle),next=at<0?-1:s.indexOf(needle,at+needle.length);
+          if(at<0||next>=0)throw new Error('visual helper insertion anchor '+at+'/'+next);
+          s=s.slice(0,at)+insert+s.slice(at+needle.length);
+          fs.writeFileSync(file,s);
+          NODE
           git diff --check
           git diff -- "$PRODUCT_FILE"
           test "$(git diff --name-only | wc -l)" -eq 1

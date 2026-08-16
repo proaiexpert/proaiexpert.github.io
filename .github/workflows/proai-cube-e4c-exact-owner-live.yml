@@ -1,0 +1,143 @@
+name: PROAI Cube E4C Exact Owner Live Validation
+on:
+  push:
+    branches:
+      - agent/proai-cube-r443-semantic-staging-review
+    paths:
+      - .github/workflows/proai-cube-e4c-exact-owner-live.yml
+      - .github/review/proai-cube-e4c-exact-owner-inject.mjs
+      - .github/review/proai-cube-e4c-exact-owner-qa.mjs
+permissions:
+  contents: read
+jobs:
+  exact-owner-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 145
+    env:
+      PRODUCT_SHA: e4c032cd2e6e521fe5c18109a2992523c650c059
+      PRODUCT_DIR: /tmp/proai-e4c-exact-validation
+      PUBLISH_DIR: /tmp/proai-e4c-exact-publish
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify product ref remains exact E4C
+        run: |
+          set -euo pipefail
+          git fetch origin agent/proai-cube-r443-closed-phrase-architecture main --depth=1
+          test "$(git rev-parse origin/agent/proai-cube-r443-closed-phrase-architecture)" = "$PRODUCT_SHA"
+          test "$(git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          test "$(git -C "$PRODUCT_DIR" rev-parse HEAD)" = "$PRODUCT_SHA"
+      - name: Build exact product and prove frozen invariants
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          npm install --package-lock=false
+          npm run build-r443 | tee /tmp/e4c-build.log
+          node --check main.generated.js
+          grep -Fq "architecture:'SEMANTIC_CAPABLE_AUTHORED_SAFE_STATE_GRAPH'" main.generated.js
+          grep -Fq 'firstSemanticDelayMs:1600' main.generated.js
+          grep -Fq 'candidateApproachScore:.58' main.generated.js
+          grep -Fq 'enterScore:.64' main.generated.js
+          grep -Fq 'maxReadableHoldMs:1600' main.generated.js
+          grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
+          grep -Fq 'overlayTextRendered:false' main.generated.js
+          grep -Fq 'alphaDominantReveal:false' main.generated.js
+          grep -Fq 'semanticMotionCoupled:false' main.generated.js
+          grep -Fq 'semanticOrientationForcing:false' main.generated.js
+          grep -Fq 'bumpScale:-0.130,roughnessMapInk:0.550,metalnessDelta:0.0,tonalInk:0.820' main.generated.js
+          grep -Fq 'edgeRoughnessInk:.095' main.generated.js
+          ! grep -Fq 'MASTER_WORD' main.generated.js
+          ! grep -Fq 'emissiveIntensity' main.generated.js
+          grep -Fq 'coreArchetypeCount: 15' /tmp/e4c-build.log
+          grep -Fq 'macroStateCount: 14' /tmp/e4c-build.log
+          grep -Fq 'semanticCapableStateCount: 10' /tmp/e4c-build.log
+          grep -Fq 'semanticMoveBoundaryOpportunityCount: 22' /tmp/e4c-build.log
+          grep -Fq 'maxSemanticDeadConsecutiveBoundaries: 1' /tmp/e4c-build.log
+      - name: Append passive review instrumentation only
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          node "$GITHUB_WORKSPACE/.github/review/proai-cube-e4c-exact-owner-inject.mjs" main.generated.js
+          node --check main.generated.js
+          npx vite build
+          npm install --no-save playwright-core
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-e4c-exact-owner-qa.mjs" ./e4c-owner-qa.mjs
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+      - name: Start exact runtime
+        run: |
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/e4c-http.log 2>&1 &
+          echo $! >/tmp/e4c-http.pid
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/e4c-http.log; exit 1
+      - name: One real-time exact-product acceptance run
+        env:
+          QA_OUT: review-evidence/e4c-exact
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          timeout 35s node e4c-owner-qa.mjs | tee /tmp/e4c-owner-summary.log
+      - name: Upload exact-product evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-e4c-exact-owner-validation
+          path: /tmp/proai-e4c-exact-validation/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/e4c-exact/**
+          retention-days: 3
+      - name: Build clean exact product for temporary HTTPS
+        run: |
+          set -euo pipefail
+          kill "$(cat /tmp/e4c-http.pid)" 2>/dev/null || true
+          git worktree add --detach "$PUBLISH_DIR" "$PRODUCT_SHA"
+          test "$(git -C "$PUBLISH_DIR" rev-parse HEAD)" = "$PRODUCT_SHA"
+          cd "$PUBLISH_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          npm install --package-lock=false
+          npm run build-r443 >/tmp/e4c-publish-build.log
+          node --check main.generated.js
+          grep -Fq 'firstSemanticDelayMs:1600' main.generated.js
+          ! grep -Fq '__R443_E4C_EXACT_QA__' main.generated.js
+          ! grep -Fq 'MASTER_WORD' main.generated.js
+          nohup python3 -m http.server 4180 --bind 127.0.0.1 --directory dist >/tmp/e4c-publish-http.log 2>&1 &
+          echo $! >/tmp/e4c-publish-http.pid
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4180/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/e4c-publish-http.log; exit 1
+      - name: Publish exact E4C to temporary HTTPS and keep review alive
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 90 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          REVIEW_URL=''
+          for attempt in 1 2; do
+            LOG="/tmp/e4c-cloudflare-${attempt}.log"
+            /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4180 >"$LOG" 2>&1 &
+            PID=$!
+            echo "$PID" >/tmp/e4c-tunnel.pid
+            for i in $(seq 1 45); do
+              URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
+              if [ -n "$URL" ] && curl -fsSL --max-time 10 "$URL/" >/tmp/e4c-public.html 2>/dev/null; then REVIEW_URL="$URL"; break 2; fi
+              sleep 1
+            done
+            kill "$PID" 2>/dev/null || true
+            rm -f /tmp/e4c-tunnel.pid
+          done
+          test -n "$REVIEW_URL"
+          HTTP_CODE=$(curl -sS -L -o /tmp/e4c-index.html -w '%{http_code}' --max-time 15 "$REVIEW_URL/")
+          test "$HTTP_CODE" = '200'
+          CSS=$(sed -n 's/.*href="\([^"]*\.css\)".*/\1/p' /tmp/e4c-index.html | head -1)
+          JS=$(sed -n 's/.*src="\([^"]*\.js\)".*/\1/p' /tmp/e4c-index.html | head -1)
+          test -n "$CSS"; test -n "$JS"
+          curl -fsSL --max-time 15 "$REVIEW_URL$CSS" -o /tmp/e4c-app.css
+          curl -fsSL --max-time 15 "$REVIEW_URL$JS" -o /tmp/e4c-app.js
+          test -s /tmp/e4c-app.css; test -s /tmp/e4c-app.js
+          GLB=$(grep -Eo 'rubik_39_s_cube_animation-[A-Za-z0-9_-]+\.glb' /tmp/e4c-app.js | head -1)
+          test -n "$GLB"
+          curl -fsSL --max-time 15 "$REVIEW_URL/assets/$GLB" -o /tmp/e4c-cube.glb
+          test "$(wc -c </tmp/e4c-cube.glb | tr -d ' ')" -eq 279412
+          echo "EXACT_PRODUCT_SHA=$PRODUCT_SHA"
+          echo "PUBLIC_STATIC_CHECK=HTTP_PASS HTML_PASS CSS_PASS JS_PASS GLB_PASS"
+          echo "LIVE_OWNER_URL=$REVIEW_URL"
+          for i in $(seq 1 240); do curl -fsSL --max-time 10 "$REVIEW_URL/" >/dev/null || true; sleep 30; done

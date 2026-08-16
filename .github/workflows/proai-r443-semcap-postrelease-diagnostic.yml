@@ -1,0 +1,57 @@
+name: PROAI R4.4.3 semantic-capable post-release diagnostic
+on:
+  push:
+    branches:
+      - agent/proai-cube-r443-semantic-staging-review
+    paths:
+      - .github/workflows/proai-r443-semcap-postrelease-diagnostic.yml
+      - .github/review/proai-cube-r443-semcap-postrelease-inject.mjs
+      - .github/review/proai-cube-r443-semcap-postrelease-qa.mjs
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    env:
+      PRODUCT_SHA: e4c032cd2e6e521fe5c18109a2992523c650c059
+      PRODUCT_DIR: /tmp/r443-postrelease
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build exact Attempt 1 product
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          npm install --package-lock=false
+          npm run build-r443
+          node <<'NODE'
+          const fs=require('fs');const f='main.generated.js';let s=fs.readFileSync(f,'utf8');const draw='renderer.render(scene, camera);',n=s.split(draw).length-1;if(n<1)throw new Error('no product render calls');s=s.split(draw).join('scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);');fs.writeFileSync(f,s);
+          NODE
+          node "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-semcap-postrelease-inject.mjs" main.generated.js
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-qa-inject.mjs" /tmp/seed-inject.mjs
+          sed -i "s/CURATED_VISUAL_SAFE_STATE_RING/SEMANTIC_CAPABLE_AUTHORED_SAFE_STATE_GRAPH/g" /tmp/seed-inject.mjs
+          node /tmp/seed-inject.mjs main.generated.js
+          node --check main.generated.js
+          npx vite build
+          npm install --no-save playwright-core
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-semcap-postrelease-qa.mjs" ./postrelease-qa.mjs
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"; echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+      - name: Start runtime
+        run: |
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-postrelease-http.log 2>&1 &
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/r443-postrelease-http.log; exit 1
+      - name: Measure post-release gates for 45s
+        env:
+          QA_SEED: '0x51a7c0de'
+          QA_OUT: review-evidence/postrelease
+        run: |
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          timeout 65s node postrelease-qa.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r443-semcap-postrelease-diagnostic
+          path: /tmp/r443-postrelease/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/postrelease/**
+          retention-days: 2

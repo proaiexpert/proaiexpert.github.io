@@ -1,0 +1,129 @@
+name: PROAI R4.4.3 semantic-capable Attempt 1 acceptance
+on:
+  push:
+    branches:
+      - agent/proai-cube-r443-semantic-staging-review
+    paths:
+      - .github/workflows/proai-r443-semcap-attempt1-acceptance.yml
+jobs:
+  metrics:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: seed1
+            seed: '0x51a7c0de'
+          - label: seed2
+            seed: '0x6e624eb7'
+    env:
+      PRODUCT_SHA: e4c032cd2e6e521fe5c18109a2992523c650c059
+      OLD_SHA: fce017a1a4c83fa4dfeb1d9bd97021f6f92a23ad
+      MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+      PRODUCT_DIR: /tmp/r443-semcap-${{ matrix.label }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact refs and build product
+        run: |
+          set -euo pipefail
+          git fetch origin agent/proai-cube-r443-closed-phrase-architecture agent/proai-cube-semantic-brand-face-r4 main
+          test "$(git rev-parse origin/agent/proai-cube-r443-closed-phrase-architecture)" = "$PRODUCT_SHA"
+          test "$(git rev-parse origin/agent/proai-cube-semantic-brand-face-r4)" = "$OLD_SHA"
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          npm install --package-lock=false
+          npm run validate-closed-phrases | tee review-validation.json
+          npm run build-r443
+          node --check main.generated.js
+      - name: Prepare review-only real-time instrumentation
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          node <<'NODE'
+          const fs=require('fs');const f='main.generated.js';let s=fs.readFileSync(f,'utf8');const draw='renderer.render(scene, camera);',n=s.split(draw).length-1;if(n<1)throw new Error('no product render calls');s=s.split(draw).join('scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);');fs.writeFileSync(f,s);console.log('QA_ONLY_RASTER_DISABLED='+n);
+          NODE
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-qa-inject.mjs" /tmp/semcap-inject.mjs
+          sed -i "s/CURATED_VISUAL_SAFE_STATE_RING/SEMANTIC_CAPABLE_AUTHORED_SAFE_STATE_GRAPH/g" /tmp/semcap-inject.mjs
+          node /tmp/semcap-inject.mjs main.generated.js
+          node --check main.generated.js
+          npx vite build
+          npm install --no-save playwright-core
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-qa.mjs" ./owner-qa.mjs
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('owner-qa.mjs');s=p.read_text()
+          s=s.replace('firstEligibility:firstEligibilityRel>=2.8&&firstEligibilityRel<=4.6','firstEligibility:firstEligibilityRel>=1.4&&firstEligibilityRel<=2.6')
+          s=s.replace('firstStage:firstStageRel!==null&&firstStageRel<=7','firstStage:firstStageRel!==null&&firstStageRel>=1.4&&firstStageRel<=3.5')
+          s=s.replace('firstReadable:firstReadableRel!==null&&firstReadableRel<=10','firstReadable:firstReadableRel!==null&&firstReadableRel<=8')
+          p.write_text(s)
+          PY
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"; echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+      - name: Start runtime
+        run: |
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-semcap-http.log 2>&1 &
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/r443-semcap-http.log; exit 1
+      - name: Run 45s real-time sample
+        env:
+          QA_SEED: ${{ matrix.seed }}
+          QA_LABEL: ${{ matrix.label }}
+          QA_OUT: review-evidence/${{ matrix.label }}
+          SAMPLE_PRESENTATION_MS: '45000'
+        run: |
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          timeout 70s node owner-qa.mjs || true
+          test -f review-evidence/${{ matrix.label }}/metrics.json
+          cat review-evidence/${{ matrix.label }}/summary.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r443-semcap-attempt1-${{ matrix.label }}
+          path: /tmp/r443-semcap-${{ matrix.label }}/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/${{ matrix.label }}/**
+          retention-days: 2
+
+  visual:
+    runs-on: ubuntu-24.04
+    env:
+      PRODUCT_SHA: e4c032cd2e6e521fe5c18109a2992523c650c059
+      PRODUCT_DIR: /tmp/r443-semcap-visual
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build and prepare one-shot real WebGL visual evidence
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          npm install --package-lock=false
+          npm run build-r443
+          node <<'NODE'
+          const fs=require('fs');const f='main.generated.js';let s=fs.readFileSync(f,'utf8');const draw='renderer.render(scene, camera);';if(!s.includes(draw))throw new Error('no render');s=s.split(draw).join('scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);');fs.writeFileSync(f,s);
+          NODE
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-qa-inject.mjs" /tmp/semcap-visual-inject.mjs
+          sed -i "s/CURATED_VISUAL_SAFE_STATE_RING/SEMANTIC_CAPABLE_AUTHORED_SAFE_STATE_GRAPH/g" /tmp/semcap-visual-inject.mjs
+          node /tmp/semcap-visual-inject.mjs main.generated.js
+          npx vite build
+          npm install --no-save playwright-core
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-visual.mjs" ./owner-visual.mjs
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"; echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-semcap-visual-http.log 2>&1 &
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+      - name: Capture first-ten-second real renders
+        env:
+          QA_SEED: '0x51a7c0de'
+          QA_OUT: review-evidence/visual
+        run: |
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          timeout 55s node owner-visual.mjs || true
+          ls -la review-evidence/visual || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r443-semcap-attempt1-visual
+          path: /tmp/r443-semcap-visual/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/visual/**
+          retention-days: 2

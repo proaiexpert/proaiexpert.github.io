@@ -1,0 +1,69 @@
+name: PROAI R4.4.3 semantic-capability startup diagnostic
+on:
+  push:
+    branches:
+      - agent/proai-cube-r443-semantic-staging-review
+    paths:
+      - .github/workflows/proai-r443-semcap-startup-diagnostic.yml
+      - .github/review/proai-cube-r443-semcap-startup-inject.mjs
+      - .github/review/proai-cube-r443-semcap-startup-qa.mjs
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    env:
+      PRODUCT_SHA: 041756079613719f53a898e1e1751a2832d597bb
+      OLD_SHA: fce017a1a4c83fa4dfeb1d9bd97021f6f92a23ad
+      MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+      PRODUCT_DIR: /tmp/r443-semcap-startup
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify frozen refs and build exact starting product
+        run: |
+          set -euo pipefail
+          git fetch origin agent/proai-cube-r443-closed-phrase-architecture agent/proai-cube-semantic-brand-face-r4 main
+          test "$(git rev-parse origin/agent/proai-cube-r443-closed-phrase-architecture)" = "$PRODUCT_SHA"
+          test "$(git rev-parse origin/agent/proai-cube-semantic-brand-face-r4)" = "$OLD_SHA"
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          npm install --package-lock=false
+          npm run validate-closed-phrases | tee /tmp/current-state-validation.json
+          npm run build-r443
+          node --check main.generated.js
+      - name: Prepare review-only real-time startup probe
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          node <<'NODE'
+          const fs=require('fs');const f='main.generated.js';let s=fs.readFileSync(f,'utf8');const draw='renderer.render(scene, camera);',n=s.split(draw).length-1;if(n<1)throw new Error('no product render calls');s=s.split(draw).join('scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);');fs.writeFileSync(f,s);console.log('QA_ONLY_RASTER_DISABLED='+n);
+          NODE
+          node "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-semcap-startup-inject.mjs" main.generated.js
+          node --check main.generated.js
+          npx vite build
+          npm install --no-save playwright-core
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-semcap-startup-qa.mjs" ./startup-qa.mjs
+          mkdir -p review-evidence/startup-capability
+          cp /tmp/current-state-validation.json review-evidence/startup-capability/current-state-validation.json
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+      - name: Start QA runtime
+        run: |
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-semcap-http.log 2>&1 &
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/r443-semcap-http.log
+          exit 1
+      - name: Measure S00 optics 1-4 seconds
+        env:
+          QA_OUT: review-evidence/startup-capability
+        run: |
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          timeout 30s node startup-qa.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r443-semcap-startup-diagnostic
+          path: /tmp/r443-semcap-startup/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/startup-capability/**
+          retention-days: 2

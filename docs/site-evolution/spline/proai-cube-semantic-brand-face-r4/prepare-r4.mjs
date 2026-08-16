@@ -13,6 +13,7 @@ const expectedGlbBytes = 279412;
 const expectedGlbSha = 'dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b';
 
 let source = fs.readFileSync(baseMainPath, 'utf8');
+source = source.replace(/\r\n/g, '\n');
 
 function one(find, replacement, label) {
   const at = source.indexOf(find);

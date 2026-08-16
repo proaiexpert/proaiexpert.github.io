@@ -3,7 +3,7 @@ import {chromium} from 'playwright-core';
 const chrome=process.env.CHROME_BIN;if(!chrome)throw new Error('CHROME_BIN missing');
 const out=process.env.QA_OUT||'review-evidence/e4c-exact';fs.mkdirSync(out,{recursive:true});
 const browser=await chromium.launch({headless:true,executablePath:chrome,args:['--no-sandbox','--disable-dev-shm-usage','--enable-webgl','--use-gl=swiftshader']});
-const page=await browser.newPage({viewport:{width:720,height:720},deviceScaleFactor:1});
+const page=await browser.newPage({viewport:{width:420,height:420},deviceScaleFactor:1});
 const pageErrors=[];page.on('pageerror',e=>pageErrors.push(String(e)));page.on('console',m=>{if(m.type()==='error')pageErrors.push('console:'+m.text())});
 await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded',timeout:20000});
 await page.waitForFunction(()=>window.__R443_E4C_EXACT_QA__?.get,null,{timeout:20000});
@@ -13,11 +13,9 @@ while(true){
   await page.waitForTimeout(25);
   snap=await page.evaluate(()=>window.__R443_E4C_EXACT_QA__.get());
   const p=snap.currentPresentationMs-startPresentation,w=snap.currentWallMs-startWall;
-  if(p>=12000||w>=17000)break;
+  if(p>=12000||w>=13500)break;
 }
-await page.screenshot({path:`${out}/final-12s.png`});
 const rel=v=>Number.isFinite(v)?(v-startPresentation)/1000:null;
-const wallRel=v=>Number.isFinite(v)?(v-startWall)/1000:null;
 const stage=snap.stageEvents.find(e=>e.ok)||null;
 const candidate=snap.candidateEvents[0]||null;
 const readable=snap.readableEvents[0]||null;

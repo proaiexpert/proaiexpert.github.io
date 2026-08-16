@@ -10,10 +10,10 @@ const page=await browser.newPage({viewport:{width:420,height:420}});
 await page.goto('http://127.0.0.1:4173/',{waitUntil:'domcontentloaded'});
 await page.waitForFunction(()=>window.__R443_STARTUP_CAPABILITY__?.get,{timeout:20000});
 const initial=await page.evaluate(()=>window.__R443_STARTUP_CAPABILITY__.get());
-const targets=[1000,1500,2000,2500,3000,3200,3500,4000];
+const targets=[1000,1500,2000,2500,3000,3200,3500,4000,4500,5000,5500,6000,6500,7000,8000,9000,10000];
 const samples=[];
 for(const target of targets){
-  await page.waitForFunction(t=>window.__R443_STARTUP_CAPABILITY__.get().relativeMs>=t,target,{timeout:10000,polling:16});
+  await page.waitForFunction(t=>window.__R443_STARTUP_CAPABILITY__.get().relativeMs>=t,target,{timeout:12000,polling:16});
   samples.push(await page.evaluate(()=>window.__R443_STARTUP_CAPABILITY__.get()));
 }
 const result={initial,targets,samples};

@@ -29,6 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           cp .github/review/proai-cube-r443-owner-motion-semantic-apply.mjs /tmp/proai-r443-owner-apply.mjs
+          sed -i '/semanticR443PendingResolutionCount/d;/semanticR442RecordMove(inverse/d' /tmp/proai-r443-owner-apply.mjs
           git fetch origin "$PRODUCT_BRANCH" "$OLD_BRANCH" main
           test "$(git rev-parse "origin/$PRODUCT_BRANCH")" = "$START_SHA"
           test "$(git rev-parse "origin/$OLD_BRANCH")" = "$OLD_SHA"

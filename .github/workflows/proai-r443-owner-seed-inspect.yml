@@ -1,0 +1,26 @@
+name: ProAI Cube R4.4.3 Owner Seed Inspect
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-semantic-staging-review]
+    paths: [.github/workflows/proai-r443-owner-seed-inspect.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Build exact product and inspect scheduler seed
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/r443-seed 1359cba36fe84bbda71b75eb1e339707f343c60a
+          cd /tmp/r443-seed/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+          npm install --package-lock=false >/dev/null
+          npm run build-r443 >/dev/null
+          echo '--- SEEDED DEFINITIONS ---'
+          grep -n -E 'seeded(Unit|Range|Int)|sliceSeed|schedulerSeed|0x[0-9a-fA-F]+' main.generated.js | head -60

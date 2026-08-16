@@ -1,0 +1,14 @@
+import fs from 'node:fs';
+import {chromium} from 'playwright-core';
+const chrome=process.env.CHROME_BIN;if(!chrome)throw new Error('CHROME_BIN missing');
+const out=process.env.QA_OUT||'review-evidence/postrelease';fs.mkdirSync(out,{recursive:true});
+const seed=process.env.QA_SEED||'0x51a7c0de';
+const browser=await chromium.launch({headless:true,executablePath:chrome,args:['--no-sandbox','--disable-dev-shm-usage','--use-gl=swiftshader','--enable-webgl']});
+const page=await browser.newPage({viewport:{width:420,height:420}});
+await page.goto(`http://127.0.0.1:4173/?seed=${encodeURIComponent(seed)}`,{waitUntil:'domcontentloaded'});
+await page.waitForFunction(()=>window.__R443_POSTRELEASE__?.get,{timeout:20000});
+await page.waitForFunction(()=>window.__R443_POSTRELEASE__.get().now>=45000,{timeout:60000,polling:50});
+const data=await page.evaluate(()=>window.__R443_POSTRELEASE__.get());
+fs.writeFileSync(`${out}/postrelease.json`,JSON.stringify(data,null,2));
+console.log(JSON.stringify({states:data.states,stages:data.stages,unstages:data.unstages,releases:data.releases,bestCalls:data.bestCalls,bestSelected:data.bestSelected,stateAgg:data.stateAgg},null,2));
+await browser.close();

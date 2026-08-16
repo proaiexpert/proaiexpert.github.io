@@ -1,0 +1,78 @@
+name: PROAI R4.4.3 hidden-face startup hypothesis
+on:
+  push:
+    branches:
+      - agent/proai-cube-r443-semantic-staging-review
+    paths:
+      - .github/workflows/proai-r443-semcap-hidden-face-hypothesis.yml
+jobs:
+  hidden-face:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        timeoutMs: [3800, 7000]
+    env:
+      PRODUCT_SHA: e4c032cd2e6e521fe5c18109a2992523c650c059
+      PRODUCT_DIR: /tmp/r443-hidden-${{ matrix.timeoutMs }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build exact Attempt 1 and apply QA-only hiddenest staging hypothesis
+        run: |
+          set -euo pipefail
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          npm install --package-lock=false
+          npm run build-r443
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+          p=Path('main.generated.js');s=p.read_text()
+          pairs=[
+            ('stageViewMin:.36','stageViewMin:0'),
+            ('stageTimeoutMs:3800',f"stageTimeoutMs:{os.environ['TIMEOUT_MS']}"),
+            ('.sort((a,b)=>b.selectionScore-a.selectionScore)','.sort((a,b)=>a.selectionScore-b.selectionScore)'),
+            ('await schedulerDelay(4800);','await schedulerDelay(12000);'),
+          ]
+          for a,b in pairs:
+            assert s.count(a)>=1,(a,s.count(a)); s=s.replace(a,b,1)
+          p.write_text(s)
+          PY
+          node <<'NODE'
+          const fs=require('fs');const f='main.generated.js';let s=fs.readFileSync(f,'utf8');const draw='renderer.render(scene, camera);',n=s.split(draw).length-1;if(n<1)throw new Error('no render');s=s.split(draw).join('scene.updateMatrixWorld(true); camera.updateMatrixWorld(true);');fs.writeFileSync(f,s);
+          NODE
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-qa-inject.mjs" /tmp/hidden-inject.mjs
+          sed -i "s/CURATED_VISUAL_SAFE_STATE_RING/SEMANTIC_CAPABLE_AUTHORED_SAFE_STATE_GRAPH/g" /tmp/hidden-inject.mjs
+          node /tmp/hidden-inject.mjs main.generated.js
+          node --check main.generated.js
+          npx vite build
+          npm install --no-save playwright-core
+          cp "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-owner-qa.mjs" ./owner-qa.mjs
+          CHROME_BIN="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"; echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+        env:
+          TIMEOUT_MS: ${{ matrix.timeoutMs }}
+      - name: Start runtime
+        run: |
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/r443-hidden-http.log 2>&1 &
+          for i in $(seq 1 40); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/r443-hidden-http.log; exit 1
+      - name: Run 10s real-time optics hypothesis
+        env:
+          QA_SEED: '0x51a7c0de'
+          QA_LABEL: hidden-${{ matrix.timeoutMs }}
+          QA_OUT: review-evidence/hidden-${{ matrix.timeoutMs }}
+          SAMPLE_PRESENTATION_MS: '10000'
+        run: |
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          timeout 28s node owner-qa.mjs || true
+          test -f review-evidence/hidden-${{ matrix.timeoutMs }}/metrics.json
+          cat review-evidence/hidden-${{ matrix.timeoutMs }}/summary.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: r443-hidden-${{ matrix.timeoutMs }}
+          path: /tmp/r443-hidden-${{ matrix.timeoutMs }}/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-evidence/hidden-${{ matrix.timeoutMs }}/**
+          retention-days: 2

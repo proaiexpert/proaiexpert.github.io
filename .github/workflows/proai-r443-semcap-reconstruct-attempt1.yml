@@ -6,6 +6,7 @@ on:
     paths:
       - .github/workflows/proai-r443-semcap-reconstruct-attempt1.yml
       - .github/review/proai-cube-r443-semcap-reconstruct-apply.mjs
+      - .github/review/proai-cube-r443-semcap-generated-syntax-fix.mjs
 permissions:
   contents: write
 jobs:
@@ -35,6 +36,8 @@ jobs:
           set -euo pipefail
           cd "$PRODUCT_DIR"
           node "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-semcap-reconstruct-apply.mjs" "$PRODUCT_FILE"
+          node "$GITHUB_WORKSPACE/.github/review/proai-cube-r443-semcap-generated-syntax-fix.mjs" "$PRODUCT_FILE"
+          node --check "$PRODUCT_FILE"
           test "$(git diff --name-only | wc -l)" -eq 1
           test "$(git diff --name-only)" = "$PRODUCT_FILE"
           ! grep -Fq 'const MASTER_WORD=' "$PRODUCT_FILE"

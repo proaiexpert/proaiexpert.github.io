@@ -1,0 +1,82 @@
+name: ProAI Cube R4.4.3 Owner Motion Semantic Attempt 2
+
+on:
+  push:
+    branches: [agent/proai-cube-r443-semantic-staging-review]
+    paths: [.github/workflows/proai-r443-owner-motion-semantic-attempt2.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  correction:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PRODUCT_BRANCH: agent/proai-cube-r443-closed-phrase-architecture
+      START_SHA: 1359cba36fe84bbda71b75eb1e339707f343c60a
+      PRODUCT_FILE: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/material-polish-r443-closed-phrase-architecture.mjs
+      OLD_SHA: fce017a1a4c83fa4dfeb1d9bd97021f6f92a23ad
+      MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Freeze exact refs
+        run: |
+          set -euo pipefail
+          git fetch origin "$PRODUCT_BRANCH" agent/proai-cube-semantic-brand-face-r4 main
+          test "$(git rev-parse "origin/$PRODUCT_BRANCH")" = "$START_SHA"
+          test "$(git rev-parse origin/agent/proai-cube-semantic-brand-face-r4)" = "$OLD_SHA"
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          git checkout -B "$PRODUCT_BRANCH" "origin/$PRODUCT_BRANCH"
+      - name: Correct startup eligibility relative to presentation start
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const f=process.env.PRODUCT_FILE;let s=fs.readFileSync(f,'utf8');
+          const reps=[
+            ['firstSemanticEligibleMs:3200','firstSemanticDelayMs:3200'],
+            ['nextEligiblePresentationMs:SEMANTIC_R443_CONFIG.firstSemanticEligibleMs,cooldownUntilMs:SEMANTIC_R443_CONFIG.firstSemanticEligibleMs','nextEligiblePresentationMs:presentationSimTimeMs+SEMANTIC_R443_CONFIG.firstSemanticDelayMs,cooldownUntilMs:presentationSimTimeMs+SEMANTIC_R443_CONFIG.firstSemanticDelayMs'],
+            ["'firstSemanticEligibleMs:3200'","'firstSemanticDelayMs:3200'"],
+          ];
+          for(const [a,b] of reps){const i=s.indexOf(a),j=i<0?-1:s.indexOf(a,i+a.length);if(i<0||j>=0)throw new Error('startup anchor '+a+' '+i+'/'+j);s=s.slice(0,i)+b+s.slice(i+a.length)}
+          fs.writeFileSync(f,s);
+          NODE
+          git diff --check
+          test "$(git diff --name-only | wc -l)" -eq 1
+          git diff -- "$PRODUCT_FILE"
+      - name: Validate exact build and frozen architecture
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run validate-closed-phrases | tee /tmp/r443-owner-a2-library.txt
+          npm run build-r443 | tee /tmp/r443-owner-a2-build.txt
+          node --check main.generated.js
+          grep -Fq 'firstSemanticDelayMs:3200' main.generated.js
+          grep -Fq 'nextEligiblePresentationMs:presentationSimTimeMs+SEMANTIC_R443_CONFIG.firstSemanticDelayMs' main.generated.js
+          grep -Fq '"coreArchetypeCount": 16' /tmp/r443-owner-a2-library.txt
+          grep -Fq '"macroStateCount": 13' /tmp/r443-owner-a2-library.txt
+          grep -Fq '"architecture": "CURATED_VISUAL_SAFE_STATE_RING"' /tmp/r443-owner-a2-library.txt
+          grep -Fq "yawDirectionPolicy:'continuous-positive'" main.generated.js
+          grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
+          grep -Fq 'semanticOrientationForcing:false' main.generated.js
+          grep -Fq 'stageTimeoutMs:3800' main.generated.js
+          grep -Fq 'maxReadableHoldMs:1600' main.generated.js
+          grep -Fq 'edgeRoughnessInk:.095' main.generated.js
+          grep -Fq 'scaleX:.875,scaleY:.900' main.generated.js
+          ! grep -Fq 'const CYCLE_SPECS=' main.generated.js
+          ! grep -Fq 'seededUnit()<.58' main.generated.js
+          ! grep -Fq 'semanticR443PendingResolutionCount' main.generated.js
+          ! grep -Fq "semanticR442RecordMove(inverse,'resolve')" main.generated.js
+      - name: Commit product attempt 2
+        run: |
+          set -euo pipefail
+          git config user.name 'Ihor Horb'
+          git config user.email 'proai.expert2026@gmail.com'
+          git add "$PRODUCT_FILE"
+          test "$(git diff --cached --name-only | wc -l)" -eq 1
+          git commit -m 'fix: anchor first semantic eligibility to startup phase'
+          git push origin "$PRODUCT_BRANCH"
+          echo "NEW_PRODUCT_SHA=$(git rev-parse HEAD)"

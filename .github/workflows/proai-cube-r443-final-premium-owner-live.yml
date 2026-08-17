@@ -1,0 +1,148 @@
+name: PROAI Cube R4.4.3 Final Premium Owner Live
+on:
+  push:
+    branches:
+      - agent/proai-cube-r443-semantic-staging-review
+    paths:
+      - .github/workflows/proai-cube-r443-final-premium-owner-live.yml
+permissions:
+  contents: write
+jobs:
+  final-premium-owner-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 125
+    env:
+      PRODUCT_SHA: a98d7b1fd40665a81d91e93ddfc84614eabc2535
+      START_SHA: e4c032cd2e6e521fe5c18109a2992523c650c059
+      PRODUCT_DIR: /tmp/proai-r443-final-premium
+      MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+      FORENSIC_SHA: fce017a1a4c83fa4dfeb1d9bd97021f6f92a23ad
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact refs
+        run: |
+          set -euo pipefail
+          git fetch origin agent/proai-cube-r443-closed-phrase-architecture agent/proai-cube-semantic-brand-face-r4 main --depth=4
+          test "$(git rev-parse origin/agent/proai-cube-r443-closed-phrase-architecture)" = "$PRODUCT_SHA"
+          test "$(git rev-parse origin/agent/proai-cube-semantic-brand-face-r4)" = "$FORENSIC_SHA"
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          git merge-base --is-ancestor "$START_SHA" "$PRODUCT_SHA"
+          git worktree add --detach "$PRODUCT_DIR" "$PRODUCT_SHA"
+          test "$(git -C "$PRODUCT_DIR" rev-parse HEAD)" = "$PRODUCT_SHA"
+      - name: Build exact final product and structural smoke
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          npm install --package-lock=false
+          npm run build-r443 | tee /tmp/r443-final-build.log
+          node --check main.generated.js
+          grep -Fq "architecture:'SEMANTIC_CAPABLE_AUTHORED_SAFE_STATE_GRAPH'" main.generated.js
+          grep -Fq 'firstSemanticDelayMs:1600' main.generated.js
+          grep -Fq 'stageScoreMax:.72' main.generated.js
+          grep -Fq 'candidateApproachScore:.54' main.generated.js
+          grep -Fq 'enterScore:.60' main.generated.js
+          grep -Fq 'enterBrdf:.10' main.generated.js
+          grep -Fq 'maxReadableHoldMs:1600' main.generated.js
+          grep -Fq 'await schedulerDelay(1200);' main.generated.js
+          grep -Fq "candidates.find(p=>p.id==='AUTH_B01')" main.generated.js
+          grep -Fq "function semanticR443GuardFace(){return semanticR442State.protectedFace||semanticR443State.candidateFace||null}" main.generated.js
+          grep -Fq 'bodyV=Math.round(255*.550),edgeV=Math.round(255*.095),radius=3;' main.generated.js
+          grep -Fq 'innerEdgeRadiusPx:3' main.generated.js
+          grep -Fq 'bumpScale:-0.130,roughnessMapInk:0.550,metalnessDelta:0.0,tonalInk:0.820' main.generated.js
+          grep -Fq 'edgeRoughnessInk:.095' main.generated.js
+          grep -Fq 'r441HorizontalReductionPct:12.5' main.generated.js
+          grep -Fq 'r441VerticalReductionPct:10' main.generated.js
+          grep -Fq 'semanticVelocityMultiplier: 1.0' main.generated.js
+          grep -Fq 'const deltaMs=wallDeltaMs' main.generated.js
+          grep -Fq 'overlayTextRendered:false' main.generated.js
+          grep -Fq 'alphaDominantReveal:false' main.generated.js
+          grep -Fq 'semanticMotionCoupled:false' main.generated.js
+          grep -Fq 'semanticOrientationForcing:false' main.generated.js
+          ! grep -Fq 'MASTER_WORD' main.generated.js
+          ! grep -Fq 'emissiveIntensity' main.generated.js
+          grep -Fq 'coreArchetypeCount: 15' /tmp/r443-final-build.log
+          grep -Fq 'macroStateCount: 14' /tmp/r443-final-build.log
+          grep -Fq 'semanticCapableStateCount: 10' /tmp/r443-final-build.log
+          grep -Fq 'semanticMoveBoundaryOpportunityCount: 22' /tmp/r443-final-build.log
+          echo 'BUILD=PASS'
+          echo 'MATERIAL_CONSTANTS_CHANGED=NO'
+          echo 'GLOBAL_BRIGHTNESS_CHANGED=NO'
+          echo 'OPENING_PHRASE=AUTH_B01'
+          echo 'OPENING_SLICE_START_MS=1200'
+          echo 'FIRST_SEMANTIC_ELIGIBILITY_MS=1600'
+          echo 'READABLE_MAX_MS=1600'
+          echo 'HEADLESS_SEMANTIC_GATE=NO'
+      - name: Local static HTTP and asset smoke
+        run: |
+          set -euo pipefail
+          cd "$PRODUCT_DIR/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4"
+          nohup python3 -m http.server 4180 --bind 127.0.0.1 --directory dist >/tmp/r443-final-http.log 2>&1 &
+          echo $! >/tmp/r443-final-http.pid
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 3 http://127.0.0.1:4180/ >/tmp/r443-final-index.html 2>/dev/null; then break; fi
+            sleep 1
+            test "$i" -lt 30
+          done
+          CSS=$(sed -n 's/.*href="\([^"]*\.css\)".*/\1/p' /tmp/r443-final-index.html | head -1)
+          JS=$(sed -n 's/.*src="\([^"]*\.js\)".*/\1/p' /tmp/r443-final-index.html | head -1)
+          test -n "$CSS"; test -n "$JS"
+          curl -fsS --max-time 10 "http://127.0.0.1:4180$CSS" -o /tmp/r443-final.css
+          curl -fsS --max-time 10 "http://127.0.0.1:4180$JS" -o /tmp/r443-final.js
+          test -s /tmp/r443-final.css; test -s /tmp/r443-final.js
+          GLB=$(grep -Eo 'rubik_39_s_cube_animation-[A-Za-z0-9_-]+\.glb' /tmp/r443-final.js | head -1)
+          test -n "$GLB"
+          curl -fsS --max-time 10 "http://127.0.0.1:4180/assets/$GLB" -o /tmp/r443-final.glb
+          test "$(wc -c </tmp/r443-final.glb | tr -d ' ')" -eq 279412
+          echo 'STATIC_HTTP=PASS'
+          echo 'JS=PASS'
+          echo 'GLB=PASS'
+      - name: Publish final product and expose owner URL
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 90 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          REVIEW_URL=''
+          for attempt in 1 2; do
+            LOG="/tmp/r443-final-cloudflare-${attempt}.log"
+            nohup /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4180 >"$LOG" 2>&1 &
+            PID=$!
+            echo "$PID" >/tmp/r443-final-tunnel.pid
+            for i in $(seq 1 45); do
+              URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
+              if [ -n "$URL" ] && curl -fsSL --max-time 10 "$URL/" >/tmp/r443-final-public-index.html 2>/dev/null; then
+                REVIEW_URL="$URL"
+                break 2
+              fi
+              sleep 1
+            done
+            kill "$PID" 2>/dev/null || true
+          done
+          test -n "$REVIEW_URL"
+          CSS=$(sed -n 's/.*href="\([^"]*\.css\)".*/\1/p' /tmp/r443-final-public-index.html | head -1)
+          JS=$(sed -n 's/.*src="\([^"]*\.js\)".*/\1/p' /tmp/r443-final-public-index.html | head -1)
+          test -n "$CSS"; test -n "$JS"
+          curl -fsSL --max-time 15 "$REVIEW_URL$CSS" -o /tmp/r443-final-public.css
+          curl -fsSL --max-time 15 "$REVIEW_URL$JS" -o /tmp/r443-final-public.js
+          test -s /tmp/r443-final-public.css; test -s /tmp/r443-final-public.js
+          GLB=$(grep -Eo 'rubik_39_s_cube_animation-[A-Za-z0-9_-]+\.glb' /tmp/r443-final-public.js | head -1)
+          test -n "$GLB"
+          curl -fsSL --max-time 15 "$REVIEW_URL/assets/$GLB" -o /tmp/r443-final-public.glb
+          test "$(wc -c </tmp/r443-final-public.glb | tr -d ' ')" -eq 279412
+          echo "live_url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
+          BODY="PROAI CUBE R4.4.3 — FINAL PREMIUM OWNER LIVE READY\n\nStarting product: $START_SHA\nNew product: $PRODUCT_SHA\nLIVE_OWNER_URL=$REVIEW_URL\nEXPECTED_LIFETIME=approximately 2 hours\nBUILD/STATIC/JS/GLB: PASS\nHEADLESS SEMANTIC TIMING GATE: NO\nMATERIAL CONSTANTS CHANGED: NO\nGLOBAL BRIGHTNESS CHANGED: NO\nOWNER MUST VERIFY FIRST REVEAL + READABLE DURATION LIVE"
+          gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/comments" -f body="$BODY" >/tmp/r443-final-comment.json
+          echo "LIVE_OWNER_URL=$REVIEW_URL"
+      - name: Keep owner review alive
+        run: |
+          set -euo pipefail
+          REVIEW_URL='${{ steps.publish.outputs.live_url }}'
+          test -n "$REVIEW_URL"
+          for i in $(seq 1 240); do
+            curl -fsSL --max-time 10 "$REVIEW_URL/" >/dev/null || true
+            sleep 30
+          done

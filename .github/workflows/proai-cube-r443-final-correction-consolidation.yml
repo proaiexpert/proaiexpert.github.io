@@ -1,0 +1,287 @@
+name: PROAI Cube R4.4.3 Final Correction Consolidation
+on:
+  push:
+    branches:
+      - agent/proai-cube-r443-semantic-staging-review
+    paths:
+      - .github/workflows/proai-cube-r443-final-correction-consolidation.yml
+permissions:
+  contents: write
+jobs:
+  consolidate-and-publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 135
+    env:
+      PRODUCT_BRANCH: agent/proai-cube-r443-closed-phrase-architecture
+      START_SHA: a98d7b1fd40665a81d91e93ddfc84614eabc2535
+      MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+      PRODUCT_DIR: docs/site-evolution/spline/proai-cube-semantic-brand-face-r4
+      BASE_DIR: /tmp/proai-r443-a98
+      CAND_DIR: /tmp/proai-r443-consolidated
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Verify exact starting refs
+        run: |
+          set -euo pipefail
+          git fetch origin "$PRODUCT_BRANCH" main --depth=1
+          test "$(git rev-parse origin/$PRODUCT_BRANCH)" = "$START_SHA"
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+
+      - name: Consolidate A98 behavior into authoritative architecture
+        id: consolidate
+        run: |
+          set -euo pipefail
+          REVIEW_SHA="$GITHUB_SHA"
+          git checkout -B "$PRODUCT_BRANCH" "origin/$PRODUCT_BRANCH"
+          test "$(git rev-parse HEAD)" = "$START_SHA"
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('docs/site-evolution/spline/proai-cube-semantic-brand-face-r4')
+          arch = root / 'material-polish-r443-closed-phrase-architecture.mjs'
+          pkg = root / 'package.json'
+          patch = root / 'material-polish-r443-final-premium-correction.mjs'
+
+          source = arch.read_text()
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly 1 anchor, got {count}')
+              return text.replace(old, new, 1)
+
+          source = replace_once(
+              source,
+              'stageScoreMax:.59,candidateApproachScore:.58,candidateApproachView:.46,candidateDwellMs:80,enterScore:.64,enterView:.52,enterArea:.26,enterBrdf:.18,exitScore:.54,exitView:.50',
+              'stageScoreMax:.72,candidateApproachScore:.54,candidateApproachView:.44,candidateDwellMs:80,enterScore:.60,enterView:.48,enterArea:.24,enterBrdf:.10,exitScore:.50,exitView:.46',
+              'A98 semantic thresholds',
+          )
+          source = replace_once(
+              source,
+              'await schedulerDelay(4800);',
+              'await schedulerDelay(1200);',
+              'A98 opening scheduler delay',
+          )
+          source = replace_once(
+              source,
+              'const p=candidates[Math.floor(seededUnit()*candidates.length)];',
+              "const p=semanticR443ClosedState.phraseCount===0&&semanticR443ClosedState.safeStateId==='S00'?(candidates.find(x=>x.id==='AUTH_B01')||candidates[0]):candidates[Math.floor(seededUnit()*candidates.length)];",
+              'A98 deterministic opening phrase',
+          )
+          source = replace_once(
+              source,
+              'const runtimeArchetypes=JSON.stringify',
+              "replaceUnique('innerEdgeRadiusPx:2','innerEdgeRadiusPx:3','Pearl Silver readable micro-edge width');\n\nconst runtimeArchetypes=JSON.stringify",
+              'A98 3px inscription micro-edge consolidation',
+          )
+
+          # Keep the authoritative layer self-auditing for the consolidated A98 contract.
+          final_required_anchor = "  'overlayTextRendered:false','alphaDominantReveal:false','semanticOrientationForcing:false',\n])if(!source.includes(required))throw new Error(`R4.4.3 closed phrase missing final invariant: ${required}`);"
+          final_required_replacement = "  'overlayTextRendered:false','alphaDominantReveal:false','semanticOrientationForcing:false',\n  'stageScoreMax:.72','candidateApproachScore:.54','candidateApproachView:.44','enterScore:.60','enterView:.48','enterArea:.24','enterBrdf:.10','exitScore:.50','exitView:.46',\n  'await schedulerDelay(1200);',\"candidates.find(x=>x.id==='AUTH_B01')\",'edgeRoughnessInk:.095,innerEdgeRadiusPx:3',\n])if(!source.includes(required))throw new Error(`R4.4.3 closed phrase missing final invariant: ${required}`);"
+          source = replace_once(source, final_required_anchor, final_required_replacement, 'consolidated final invariant evidence')
+          arch.write_text(source)
+
+          package_text = pkg.read_text()
+          package_text = replace_once(
+              package_text,
+              ' && node material-polish-r443-final-premium-correction.mjs',
+              '',
+              'remove final premium patch from build chain',
+          )
+          pkg.write_text(package_text)
+
+          if not patch.exists():
+              raise SystemExit('final premium patch file unexpectedly absent before consolidation')
+          PY
+          git rm "$PRODUCT_DIR/material-polish-r443-final-premium-correction.mjs"
+          git diff --check
+          mapfile -t CHANGED < <(git diff --name-only | sort)
+          EXPECTED=(
+            "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
+            "$PRODUCT_DIR/material-polish-r443-final-premium-correction.mjs"
+            "$PRODUCT_DIR/package.json"
+          )
+          mapfile -t EXPECTED_SORTED < <(printf '%s\n' "${EXPECTED[@]}" | sort)
+          test "${#CHANGED[@]}" -eq 3
+          test "$(printf '%s\n' "${CHANGED[@]}")" = "$(printf '%s\n' "${EXPECTED_SORTED[@]}")"
+          test ! -e "$PRODUCT_DIR/material-polish-r443-final-premium-correction.mjs"
+          ! grep -Fq 'material-polish-r443-final-premium-correction.mjs' "$PRODUCT_DIR/package.json"
+          grep -Fq 'stageScoreMax:.72,candidateApproachScore:.54,candidateApproachView:.44,candidateDwellMs:80,enterScore:.60,enterView:.48,enterArea:.24,enterBrdf:.10,exitScore:.50,exitView:.46' "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
+          grep -Fq 'await schedulerDelay(1200);' "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
+          grep -Fq "candidates.find(x=>x.id==='AUTH_B01')" "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
+          grep -Fq "replaceUnique('innerEdgeRadiusPx:2','innerEdgeRadiusPx:3'" "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
+          git config user.name 'Ihor Horb'
+          git config user.email 'proai.expert2026@gmail.com'
+          git add "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs" "$PRODUCT_DIR/package.json"
+          git commit -m 'refactor: consolidate final R4.4.3 correction'
+          NEW_SHA="$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD^)" = "$START_SHA"
+          git push origin "HEAD:$PRODUCT_BRANCH"
+          echo "new_sha=$NEW_SHA" >> "$GITHUB_OUTPUT"
+          echo "review_sha=$REVIEW_SHA" >> "$GITHUB_OUTPUT"
+          echo "NEW_PRODUCT_SHA=$NEW_SHA"
+
+      - name: Build exact A98 baseline and consolidated candidate
+        id: equivalence
+        run: |
+          set -euo pipefail
+          NEW_SHA='${{ steps.consolidate.outputs.new_sha }}'
+          git worktree add --detach "$BASE_DIR" "$START_SHA"
+          git worktree add --detach "$CAND_DIR" "$NEW_SHA"
+          BASE_PRODUCT="$BASE_DIR/$PRODUCT_DIR"
+          CAND_PRODUCT="$CAND_DIR/$PRODUCT_DIR"
+          (
+            cd "$BASE_PRODUCT"
+            npm install --package-lock=false
+            npm run build-r443 | tee /tmp/r443-a98-build.log
+            node --check main.generated.js
+          )
+          (
+            cd "$CAND_PRODUCT"
+            npm install --package-lock=false
+            npm run build-r443 | tee /tmp/r443-consolidated-build.log
+            node --check main.generated.js
+          )
+          cmp -s "$BASE_PRODUCT/main.generated.js" "$CAND_PRODUCT/main.generated.js" || {
+            echo 'Generated runtime differs from exact A98 baseline.' >&2
+            sha256sum "$BASE_PRODUCT/main.generated.js" "$CAND_PRODUCT/main.generated.js" >&2
+            exit 1
+          }
+          test ! -e "$CAND_PRODUCT/material-polish-r443-final-premium-correction.mjs"
+          ! grep -Fq 'material-polish-r443-final-premium-correction.mjs' "$CAND_PRODUCT/package.json"
+          grep -Fq "architecture:'SEMANTIC_CAPABLE_AUTHORED_SAFE_STATE_GRAPH'" "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'firstSemanticDelayMs:1600' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'stageScoreMin:.12' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'stageScoreMax:.72' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'stageViewMin:.36' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'stageAreaMin:.20' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'stageBrdfMin:0' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'stageAbortScore:0' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'stageTimeoutMs:3800' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'candidateApproachScore:.54' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'candidateApproachView:.44' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'candidateDwellMs:80' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'enterScore:.60' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'enterView:.48' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'enterArea:.24' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'enterBrdf:.10' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'exitScore:.50' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'exitView:.46' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'releaseDebounceMs:90' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'maxReadableHoldMs:1600' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'rearmScore:.50' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'await schedulerDelay(1200);' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq "candidates.find(x=>x.id==='AUTH_B01')" "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'edgeRoughnessInk:.095,innerEdgeRadiusPx:3' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'bumpScale:-0.130,roughnessMapInk:0.550,metalnessDelta:0.0,tonalInk:0.820' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'r441HorizontalReductionPct:12.5' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'r441VerticalReductionPct:10' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'semanticVelocityMultiplier: 1.0' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'const deltaMs=wallDeltaMs' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq "yawDirectionPolicy:'continuous-positive'" "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'overlayTextRendered:false' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'alphaDominantReveal:false' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'semanticMotionCoupled:false' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'semanticOrientationForcing:false' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq "semanticR443Unstage('impending-intersecting-turn')" "$CAND_PRODUCT/main.generated.js"
+          ! grep -Fq 'MASTER_WORD' "$CAND_PRODUCT/main.generated.js"
+          ! grep -Fq 'emissiveIntensity' "$CAND_PRODUCT/main.generated.js"
+          grep -Fq 'coreArchetypeCount: 15' /tmp/r443-consolidated-build.log
+          grep -Fq 'macroStateCount: 14' /tmp/r443-consolidated-build.log
+          grep -Fq 'semanticCapableStateCount: 10' /tmp/r443-consolidated-build.log
+          grep -Fq 'semanticMoveBoundaryOpportunityCount: 22' /tmp/r443-consolidated-build.log
+          grep -Fq 'maxSemanticDeadConsecutiveBoundaries: 1' /tmp/r443-consolidated-build.log
+          echo 'A98_BEHAVIORAL_EQUIVALENCE=PASS'
+          echo 'GENERATED_RUNTIME_BYTE_EQUIVALENT=PASS'
+          echo 'MOTION_SCALE=1.000 / 1.000 / 1.000'
+          echo 'LOCKED_MATERIAL_CONSTANTS_CHANGED=NO'
+          echo 'GLOBAL_BRIGHTNESS_CHANGED=NO'
+
+      - name: Candidate static HTTP and asset smoke
+        run: |
+          set -euo pipefail
+          CAND_PRODUCT="$CAND_DIR/$PRODUCT_DIR"
+          nohup python3 -m http.server 4180 --bind 127.0.0.1 --directory "$CAND_PRODUCT/dist" >/tmp/r443-consolidated-http.log 2>&1 &
+          echo $! >/tmp/r443-consolidated-http.pid
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 3 http://127.0.0.1:4180/ >/tmp/r443-local-index.html 2>/dev/null; then break; fi
+            sleep 1
+            test "$i" -lt 30
+          done
+          CSS=$(sed -n 's/.*href="\([^"]*\.css\)".*/\1/p' /tmp/r443-local-index.html | head -1)
+          JS=$(sed -n 's/.*src="\([^"]*\.js\)".*/\1/p' /tmp/r443-local-index.html | head -1)
+          test -n "$CSS"; test -n "$JS"
+          curl -fsS --max-time 10 "http://127.0.0.1:4180$CSS" -o /tmp/r443-local.css
+          curl -fsS --max-time 10 "http://127.0.0.1:4180$JS" -o /tmp/r443-local.js
+          test -s /tmp/r443-local.css; test -s /tmp/r443-local.js
+          GLB=$(grep -Eo 'rubik_39_s_cube_animation-[A-Za-z0-9_-]+\.glb' /tmp/r443-local.js | head -1)
+          test -n "$GLB"
+          curl -fsS --max-time 10 "http://127.0.0.1:4180/assets/$GLB" -o /tmp/r443-local.glb
+          test "$(wc -c </tmp/r443-local.glb | tr -d ' ')" -eq 279412
+          echo 'BUILD=PASS'
+          echo 'STATIC_HTTP=PASS'
+          echo 'JS=PASS'
+          echo 'GLB=PASS'
+
+      - name: Publish consolidated candidate and expose owner URL
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 90 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          REVIEW_URL=''
+          for attempt in 1 2; do
+            LOG="/tmp/r443-cloudflare-${attempt}.log"
+            nohup /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4180 >"$LOG" 2>&1 &
+            PID=$!
+            echo "$PID" >/tmp/r443-tunnel.pid
+            for i in $(seq 1 45); do
+              URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOG" | tail -1 || true)
+              if [ -n "$URL" ] && curl -fsSL --max-time 10 "$URL/" >/tmp/r443-public-index.html 2>/dev/null; then
+                REVIEW_URL="$URL"
+                break 2
+              fi
+              sleep 1
+            done
+            kill "$PID" 2>/dev/null || true
+            rm -f /tmp/r443-tunnel.pid
+          done
+          test -n "$REVIEW_URL"
+          JS=$(sed -n 's/.*src="\([^"]*\.js\)".*/\1/p' /tmp/r443-public-index.html | head -1)
+          test -n "$JS"
+          curl -fsSL --max-time 15 "$REVIEW_URL$JS" -o /tmp/r443-public.js
+          test -s /tmp/r443-public.js
+          GLB=$(grep -Eo 'rubik_39_s_cube_animation-[A-Za-z0-9_-]+\.glb' /tmp/r443-public.js | head -1)
+          test -n "$GLB"
+          curl -fsSL --max-time 15 "$REVIEW_URL/assets/$GLB" -o /tmp/r443-public.glb
+          test "$(wc -c </tmp/r443-public.glb | tr -d ' ')" -eq 279412
+          echo "live_url=$REVIEW_URL" >> "$GITHUB_OUTPUT"
+          NEW_SHA='${{ steps.consolidate.outputs.new_sha }}'
+          REVIEW_SHA='${{ steps.consolidate.outputs.review_sha }}'
+          BODY="PROAI CUBE R4.4.3 — FINAL PREMIUM CONSOLIDATED OWNER CANDIDATE\n\nSTARTING_PRODUCT=$START_SHA\nNEW_PRODUCT_SHA=$NEW_SHA\nREVIEW_SHA=$REVIEW_SHA\nA98_BEHAVIORAL_EQUIVALENCE=PASS\nGENERATED_RUNTIME_BYTE_EQUIVALENT=PASS\nFINAL_PREMIUM_PATCH_FILE_PRESENT=NO\nPACKAGE_REFERENCES_FINAL_PREMIUM_PATCH=NO\nBUILD_STATIC_JS_GLB=PASS\nLIVE_OWNER_URL=$REVIEW_URL\nPRODUCTION_MAIN=$MAIN_SHA\nNO MERGE / NO DEPLOY"
+          gh api "repos/$GITHUB_REPOSITORY/commits/$REVIEW_SHA/comments" -f body="$BODY" >/tmp/r443-consolidation-comment.json
+          echo "LIVE_OWNER_URL=$REVIEW_URL"
+
+      - name: Verify production main remained untouched
+        run: |
+          set -euo pipefail
+          git fetch origin main "$PRODUCT_BRANCH" --depth=1
+          test "$(git rev-parse origin/main)" = "$MAIN_SHA"
+          test "$(git rev-parse origin/$PRODUCT_BRANCH)" = '${{ steps.consolidate.outputs.new_sha }}'
+          echo 'MAIN_UNTOUCHED=PASS'
+
+      - name: Keep owner review alive
+        run: |
+          set -euo pipefail
+          REVIEW_URL='${{ steps.publish.outputs.live_url }}'
+          test -n "$REVIEW_URL"
+          for i in $(seq 1 240); do
+            curl -fsSL --max-time 10 "$REVIEW_URL/" >/dev/null || true
+            sleep 30
+          done

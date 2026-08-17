@@ -4,7 +4,7 @@ Recovery date: 2026-08-17
 
 - Production main / Golden Assembly base: `c945084e1952c05c686494091f7dbca0f7acdf08`
 - Recovery branch: `agent/proai-home-golden-assembly-r1`
-- Golden Assembly product SHA: `PENDING — recorded after the assembly commit`
+- Golden Assembly product SHA: `7c19ea0be79117f51a53654b358ffaa06029159c`
 
 ## Logo — OWNER APPROVED
 

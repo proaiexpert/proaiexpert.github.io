@@ -44,17 +44,16 @@
     var leaveTimer = 0;
     var semanticState = 'neutral';
     var lastActiveWorld = null;
-    var focusRatio = 55;
+    var focusRatio = 60;
     var corridorHalf = 4;
 
     function setState(next, allowCatch) {
       next = next || 'neutral';
       if (semanticState === next) return;
-      var previous = semanticState;
       semanticState = next;
       section.setAttribute('data-focus', next);
 
-      if (allowCatch && seam && previous !== 'neutral' && next !== 'neutral' && previous !== next && !reducedMotion.matches) {
+      if (allowCatch && seam && next !== 'neutral' && !reducedMotion.matches) {
         seam.classList.remove('is-handoff');
         void seam.offsetWidth;
         seam.classList.add('is-handoff');
@@ -97,8 +96,8 @@
       var splitDelta = targetSplit - currentSplit;
       var shiftDelta = targetLightShift - currentLightShift;
       var angleDelta = targetLightAngle - currentLightAngle;
-      var splitEase = reducedMotion.matches ? 1 : 0.19;
-      var lightEase = reducedMotion.matches ? 1 : 0.085;
+      var splitEase = reducedMotion.matches ? 1 : 0.095;
+      var lightEase = reducedMotion.matches ? 1 : 0.06;
 
       currentSplit += splitDelta * splitEase;
       currentLightShift += shiftDelta * lightEase;
@@ -141,8 +140,8 @@
       var y = Math.max(0, Math.min(rect.height, event.clientY - rect.top));
       var percent = x / rect.width * 100;
       updateTargetsFromPercent(percent);
-      targetLightShift = Math.max(-4.5, Math.min(4.5, (percent - 50) * 0.12));
-      targetLightAngle = 108 + (y / rect.height) * 8;
+      targetLightShift = Math.max(-3.2, Math.min(3.2, (percent - 50) * 0.085));
+      targetLightAngle = 109 + (y / rect.height) * 6;
       scheduleFrame();
     }, { passive: true });
 
@@ -154,7 +153,7 @@
     field.addEventListener('pointerleave', function () {
       if (!finePointer.matches) return;
       clearLeaveTimer();
-      leaveTimer = window.setTimeout(returnNeutral, 210);
+      leaveTimer = window.setTimeout(returnNeutral, 220);
     });
 
     section.addEventListener('focusin', function (event) {

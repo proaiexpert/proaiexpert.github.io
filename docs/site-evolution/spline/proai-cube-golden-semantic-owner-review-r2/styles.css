@@ -1,0 +1,33 @@
+:root {
+  color-scheme: dark;
+  font-family: "Instrument Sans", system-ui, sans-serif;
+  background: #050607;
+}
+* { box-sizing: border-box; }
+html, body { width: 100%; min-height: 100%; margin: 0; }
+body { overflow: hidden; background:
+  radial-gradient(ellipse at 50% 42%, rgba(44,51,59,.26) 0%, rgba(9,11,14,.08) 43%, rgba(3,4,5,.98) 82%),
+  #050607;
+}
+.stage { position: relative; width: 100vw; height: 100svh; min-height: 540px; overflow: hidden; }
+#cube-canvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.review-label {
+  position: absolute; left: clamp(18px, 3vw, 42px); top: clamp(18px, 3vw, 38px);
+  display: grid; gap: 3px; pointer-events: none; opacity: .5;
+  letter-spacing: .13em; font-size: 10px; line-height: 1.2;
+}
+.review-label strong { font-weight: 560; letter-spacing: .08em; }
+.status {
+  position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%);
+  max-width: min(720px, calc(100vw - 32px)); padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,.09); border-radius: 999px;
+  background: rgba(5,6,7,.56); backdrop-filter: blur(14px);
+  font-size: 11px; color: rgba(235,239,243,.72); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; transition: opacity .4s ease;
+}
+.status.ready { opacity: .18; }
+.status.error { color: #ffd1d1; opacity: 1; }
+@media (hover:none), (pointer:coarse) {
+  #cube-canvas { touch-action: pan-y; }
+  .review-label { opacity: .34; }
+}

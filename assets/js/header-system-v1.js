@@ -1,84 +1,41 @@
 (() => {
   'use strict';
-
   const header = document.querySelector('[data-site-header]');
   if (!header) return;
-
   const toggle = header.querySelector('.site-header__menu-toggle');
   const nav = header.querySelector('.site-header__nav');
   if (!toggle || !nav) return;
 
   const openLabel = toggle.dataset.openLabel || 'Open menu';
   const closeLabel = toggle.dataset.closeLabel || 'Close menu';
+  const mobileQuery = window.matchMedia('(max-width: 1080px)');
 
-  const installTypographyGuard = () => {
-    if (document.getElementById('site-header-typography-guard-v2')) return;
+  const styleId = 'proai-header-autohide-r1';
+  if (!document.getElementById(styleId)) {
     const style = document.createElement('style');
-    style.id = 'site-header-typography-guard-v2';
+    style.id = styleId;
     style.textContent = `
-      .site-header__wordmark,
-      .site-header__nav a,
-      .site-header__locale,
-      .site-header__cta {
-        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
-        font-synthesis: none !important;
-        font-kerning: normal !important;
-        box-sizing: border-box !important;
-      }
-      .site-header__locale {
-        width: 52px !important;
-        min-width: 52px !important;
-        max-width: 52px !important;
-        height: 44px !important;
-        min-height: 44px !important;
-        padding: 0 !important;
-        font-size: 13px !important;
-        font-weight: 900 !important;
-        line-height: 1 !important;
-        letter-spacing: .5px !important;
-        text-align: center !important;
-      }
-      .site-header__cta {
-        width: 184px !important;
-        min-width: 184px !important;
-        max-width: 184px !important;
-        height: 44px !important;
-        min-height: 44px !important;
-        padding: 0 20px !important;
-        font-size: 11px !important;
-        font-weight: 800 !important;
-        line-height: 1 !important;
-        letter-spacing: 1px !important;
-        text-transform: uppercase !important;
-      }
-      @media (max-width: 1200px) {
-        .site-header__nav a {
-          font-size: clamp(17px, 4.2vw, 23px) !important;
-          font-weight: 760 !important;
-          line-height: 1.15 !important;
-          letter-spacing: .02em !important;
-          text-transform: none !important;
-        }
-      }
-      @media (max-width: 620px) {
-        .site-header__locale {
-          width: 46px !important;
-          min-width: 46px !important;
-          max-width: 46px !important;
-        }
-        .site-header__nav a {
-          font-size: clamp(17px, 5.5vw, 21px) !important;
-        }
-      }
-      @media (max-height: 540px) and (orientation: landscape) {
-        .site-header__nav a {
-          font-size: clamp(14px, 2.4vw, 17px) !important;
-          min-height: 47px !important;
-          padding: 10px 0 !important;
-        }
-      }
-    `;
+@media (max-width:1080px){
+  .site-header{transform:translate3d(0,0,0);will-change:transform;transition:transform 260ms cubic-bezier(.22,1,.36,1),background-color 180ms var(--proai-ease),border-color 180ms var(--proai-ease),box-shadow 180ms var(--proai-ease),backdrop-filter 180ms var(--proai-ease)}
+  .site-header.header-hidden{transform:translate3d(0,calc(-100% - 2px),0)}
+  body.menu-open .site-header,body.menu-open .site-header.header-hidden{transform:translate3d(0,0,0)!important}
+}`;
     document.head.appendChild(style);
+  }
+
+  let lastScrollY = Math.max(0, window.scrollY || 0);
+  let directionStartY = lastScrollY;
+  let lastDirection = 0;
+  let scrollTick = false;
+
+  const isMenuOpen = () => toggle.getAttribute('aria-expanded') === 'true' || nav.classList.contains('is-open');
+  const revealHeader = () => header.classList.remove('header-hidden');
+
+  const resetAutoHide = ({ reveal = true } = {}) => {
+    lastScrollY = Math.max(0, window.scrollY || 0);
+    directionStartY = lastScrollY;
+    lastDirection = 0;
+    if (reveal) revealHeader();
   };
 
   const setOpen = (open) => {
@@ -86,37 +43,89 @@
     toggle.setAttribute('aria-label', open ? closeLabel : openLabel);
     nav.classList.toggle('is-open', open);
     document.body.classList.toggle('menu-open', open);
+    if (open) revealHeader();
+    resetAutoHide({ reveal: open });
   };
 
-  installTypographyGuard();
-
-  toggle.addEventListener('click', () => {
-    setOpen(toggle.getAttribute('aria-expanded') !== 'true');
-  });
-
-  nav.addEventListener('click', (event) => {
-    if (event.target.closest('a')) setOpen(false);
-  });
-
+  toggle.addEventListener('click', () => setOpen(toggle.getAttribute('aria-expanded') !== 'true'));
+  nav.addEventListener('click', (event) => { if (event.target.closest('a')) setOpen(false); });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
       setOpen(false);
       toggle.focus();
     }
   });
-
   document.addEventListener('click', (event) => {
-    if (toggle.getAttribute('aria-expanded') === 'true' && !header.contains(event.target)) {
-      setOpen(false);
-    }
+    if (toggle.getAttribute('aria-expanded') === 'true' && !header.contains(event.target)) setOpen(false);
   });
 
-  const syncScrollState = () => header.classList.toggle('is-scrolled', window.scrollY > 12);
-  syncScrollState();
-  window.addEventListener('scroll', syncScrollState, { passive: true });
+  const syncScrollState = () => {
+    scrollTick = false;
+    const currentY = Math.max(0, window.scrollY || 0);
+    header.classList.toggle('is-scrolled', currentY > 12);
 
+    if (!mobileQuery.matches) {
+      revealHeader();
+      lastScrollY = currentY;
+      directionStartY = currentY;
+      lastDirection = 0;
+      return;
+    }
+
+    const rawDelta = currentY - lastScrollY;
+    const direction = Math.abs(rawDelta) < 1 ? 0 : rawDelta > 0 ? 1 : -1;
+
+    if (direction && direction !== lastDirection) {
+      directionStartY = lastScrollY;
+      lastDirection = direction;
+    }
+
+    const directionalTravel = currentY - directionStartY;
+    const shortLandscape = window.innerHeight <= 540 && window.innerWidth > window.innerHeight;
+    const hideAfter = shortLandscape ? 90 : 120;
+
+    if (isMenuOpen() || currentY < 24) {
+      revealHeader();
+      directionStartY = currentY;
+      lastDirection = 0;
+    } else if (direction < 0 && directionalTravel <= -8) {
+      revealHeader();
+      directionStartY = currentY;
+    } else if (direction > 0 && currentY > hideAfter && directionalTravel >= 14) {
+      header.classList.add('header-hidden');
+    }
+
+    lastScrollY = currentY;
+  };
+
+  const requestScrollSync = () => {
+    if (scrollTick) return;
+    scrollTick = true;
+    window.requestAnimationFrame(syncScrollState);
+  };
+
+  const resetVisibleLifecycle = () => {
+    resetAutoHide({ reveal: true });
+    requestScrollSync();
+  };
+
+  header.addEventListener('focusin', () => {
+    revealHeader();
+    resetAutoHide({ reveal: false });
+  });
+
+  resetVisibleLifecycle();
+  window.addEventListener('scroll', requestScrollSync, { passive: true });
+  window.addEventListener('pageshow', resetVisibleLifecycle);
+  window.addEventListener('orientationchange', () => {
+    window.setTimeout(resetVisibleLifecycle, 120);
+  });
   window.addEventListener('resize', () => {
-    const mobile = window.matchMedia('(max-width: 1200px)').matches;
-    if (!mobile) setOpen(false);
+    if (!mobileQuery.matches) setOpen(false);
+    resetVisibleLifecycle();
+  }, { passive: true });
+  mobileQuery.addEventListener?.('change', () => {
+    if (!mobileQuery.matches) setOpen(false);
+    resetVisibleLifecycle();
   });
 })();

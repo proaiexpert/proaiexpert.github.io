@@ -30,6 +30,19 @@
 
   loadWorkflowEnvironment();
 
+  function loadHeroCubeR1() {
+    if (!document.getElementById('proai-hero-cube-mount')) return;
+    if (document.querySelector('script[data-proai-hero-cube-r1]')) return;
+
+    var script = document.createElement('script');
+    script.src = '/assets/js/proai-hero-cube-r1/bootstrap.js?v=20260813.1';
+    script.async = true;
+    script.setAttribute('data-proai-hero-cube-r1', 'stable-materials-r1');
+    document.head.appendChild(script);
+  }
+
+  loadHeroCubeR1();
+
   function focusMain(event) {
     if (!main) return;
     if (event) event.preventDefault();

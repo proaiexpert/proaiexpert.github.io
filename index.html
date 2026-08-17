@@ -1,200 +1,43 @@
 ---
 permalink: /
 ---
-{% capture homepage_base %}{% include homepage-current-en.html %}{% endcapture %}
+{% capture assembly_base %}{% include homepage-assembly-base-en.html %}{% endcapture %}
+{% capture assembly_frontmatter %}---
+permalink: /
+---
+{% endcapture %}
+{% assign homepage_assembled = assembly_base | replace_first: assembly_frontmatter, '' %}
 
-{% capture homepage_head_injection %}<script>(function(d,w){var r=d.documentElement;r.classList.add('homepage-js');function recover(){if(!r.classList.contains('homepage-ready'))r.classList.remove('homepage-js');}w.addEventListener('error',recover,{once:true});w.addEventListener('unhandledrejection',recover,{once:true});w.setTimeout(recover,5000);})(document,window);</script>
-<link rel="stylesheet" href="/assets/css/header-system-v1.css?v=20260804.1">
-<link rel="stylesheet" href="/assets/css/homepage-materials-editorial-v2.css?v=20260803.1">
-<link rel="stylesheet" href="/assets/css/homepage-core-hardening-v1.css?v=20260803.1">
-<link rel="stylesheet" href="/assets/css/homepage-commercial-refinement-v1.css?v=20260803.1">
-<link rel="stylesheet" href="/assets/css/footer-commercial-v1.css?v=20260803.1">
-<style id="homepage-mobile-hero-cta-hotfix-v1">@media (max-width:980px){body.scrolled .hero-left{pointer-events:auto!important}}</style>
+{% capture connected_system_head %}<link rel="stylesheet" href="/assets/css/homepage-connected-system-r13.css?v=20260815.1">
+<link rel="stylesheet" href="/assets/css/homepage-two-worlds-r2.css?v=20260817.1">
+<link rel="stylesheet" href="/assets/css/homepage-two-worlds-r21.css?v=20260817.2">
 </head>{% endcapture %}
-{% assign homepage_refined = homepage_base | replace_first: '</head>', homepage_head_injection %}
+{% assign homepage_assembled = homepage_assembled | replace_first: '</head>', connected_system_head %}
 
-{% capture old_body_start %}<div class="bg-grid"></div>{% endcapture %}
-{% capture new_body_start %}<a class="skip-link" href="#main-content">Skip to main content</a>
-<div class="bg-grid"></div>{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_body_start, new_body_start %}
+{% capture legacy_manifest_start %}<section id="manifest">{% endcapture %}
+{% capture post_manifest_marker %}<section class="split-section" id="core-split">{% endcapture %}
+{% assign homepage_before_manifest = homepage_assembled | split: legacy_manifest_start | first %}
+{% assign homepage_after_manifest = homepage_assembled | split: post_manifest_marker | last %}
+{% capture connected_system %}{% include homepage-connected-system-en.html %}{% endcapture %}
+{% assign homepage_assembled = homepage_before_manifest | append: connected_system | append: post_manifest_marker | append: homepage_after_manifest %}
 
-{% capture old_main %}<main>{% endcapture %}
-{% capture new_main %}<main id="main-content" tabindex="-1">{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_main, new_main %}
+{% capture legacy_two_worlds_start %}<section class="split-section" id="core-split">{% endcapture %}
+{% capture methodology_marker %}<div class="process-wrapper" id="methodology">{% endcapture %}
+{% assign homepage_before_two_worlds = homepage_assembled | split: legacy_two_worlds_start | first %}
+{% assign homepage_after_two_worlds = homepage_assembled | split: methodology_marker | last %}
+{% capture two_worlds_r2 %}{% include homepage-two-worlds-r2-en.html %}{% endcapture %}
+{% assign homepage_assembled = homepage_before_two_worlds | append: two_worlds_r2 | append: methodology_marker | append: homepage_after_two_worlds %}
 
-{% capture old_hero_copy %}<span class="hero-label">AI SYSTEMS · AUTOMATION · PREMIUM WEBSITES</span>
-<h1>AI systems, automation, and<br/><span class="hero-accent">premium websites for service businesses.</span></h1>
-<p>We help service businesses reduce manual work, bring more order to operations, and build an online presence that creates more trust and a clearer path to inquiry.</p>{% endcapture %}
-{% capture new_hero_copy %}<span class="hero-label">FOR U.S. SERVICE BUSINESSES</span>
-<h1 class="homepage-commercial-title">AI systems and <span class="hero-accent">premium websites built around your business.</span></h1>
-<p>ProAI Expert connects strategy, automation, website architecture, and human-reviewed AI to reduce manual work, strengthen online trust, and create a clearer path from inquiry to action.</p>{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_hero_copy, new_hero_copy %}
+{% capture legacy_technology_start %}<section id="tech-section-en">{% endcapture %}
+{% capture work_marker %}<section class="case-study-interactive" id="section-trigger">{% endcapture %}
+{% assign homepage_before_legacy_technology = homepage_assembled | split: legacy_technology_start | first %}
+{% assign homepage_after_legacy_technology = homepage_assembled | split: work_marker | last %}
+{% assign homepage_assembled = homepage_before_legacy_technology | append: work_marker | append: homepage_after_legacy_technology %}
 
-{% capture old_secondary_cta %}<a class="start-btn" href="#section-trigger" style="background:none; border-color: rgba(93,226,255,0.2);">See Example</a>{% endcapture %}
-{% capture new_secondary_cta %}<a class="start-btn" href="/case-studies/financial-stream/" style="background:none; border-color: rgba(93,226,255,0.2);">View Client Case</a>{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_secondary_cta, new_secondary_cta %}
-
-{% capture old_manifest %}<h2>AI, automation, and websites built for real business use.</h2>
-<div class="manifest-grid">
-<div class="manifest-card">
-<span class="m-tag">// PRACTICAL_SYSTEMS</span>
-<div class="m-title">Practical Systems</div>
-<div class="m-desc">We use AI and automation where they reduce manual work, save time, and improve how the business actually works.</div>
-</div>
-<div class="manifest-card">
-<span class="m-tag">// DIGITAL_TRUST</span>
-<div class="m-title">Stronger Trust Online</div>
-<div class="m-desc">The final result should feel controlled, credible, and commercially strong, because trust starts forming before the first conversation.</div>
-</div>
-<div class="manifest-card">
-<span class="m-tag">// CLEAR_STRUCTURE</span>
-<div class="m-title">Clear Structure</div>
-<div class="m-desc">We define the logic, priorities, and architecture first, then build a system where every element supports a specific business goal.</div>
-</div>
-</div>{% endcapture %}
-{% capture new_manifest %}<h2>Three points of friction. Three clearer outcomes.</h2>
-<div class="manifest-grid">
-<div class="manifest-card">
-<span class="m-tag">// MANUAL_WORK</span>
-<div class="m-title">Manual Work</div>
-<div class="m-desc">Repeated tasks, handoffs, and follow-up depend too heavily on memory and individual effort.</div>
-<div class="m-outcome">Clearer ownership. Less manual load.</div>
-</div>
-<div class="manifest-card">
-<span class="m-tag">// INQUIRY_FLOW</span>
-<div class="m-title">Disconnected Inquiry Flow</div>
-<div class="m-desc">Forms, calls, email, and notes lose context as they move between separate tools.</div>
-<div class="m-outcome">One traceable path from first signal to next action.</div>
-</div>
-<div class="manifest-card">
-<span class="m-tag">// ONLINE_CLARITY</span>
-<div class="m-title">Unclear Online Presentation</div>
-<div class="m-desc">The offer, proof, and next step exist, but the client still has to assemble the meaning.</div>
-<div class="m-outcome">Clearer positioning. Stronger trust. A more useful first step.</div>
-</div>
-</div>{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_manifest, new_manifest %}
-
-{% capture old_process_heading %}<h2 class="reveal-box"><span class="reveal-text">A practical path</span></h2>
-<h2 class="reveal-box"><span class="reveal-text highlight">from idea to launch.</span></h2>{% endcapture %}
-{% capture new_process_heading %}<h2 class="reveal-box"><span class="reveal-text">A practical path</span><span class="reveal-text highlight">from idea to launch.</span></h2>{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_process_heading, new_process_heading %}
-
-{% capture old_phase_title %}<h3 class="step-title">Launch &amp; Calibration</h3>{% endcapture %}
-{% capture new_phase_title %}<h3 class="step-title">Launch &amp; Verification</h3>{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_phase_title, new_phase_title %}
-
-{% capture old_phase_copy %}<p class="step-desc">We launch, watch how people use it, and improve the parts that affect speed, trust, and inquiries most.</p>{% endcapture %}
-{% capture new_phase_copy %}<p class="step-desc">We launch, verify the critical journeys, and define what should be measured or improved next.</p>{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_phase_copy, new_phase_copy %}
-
-{% capture old_case_section %}<section class="case-study-interactive" id="section-trigger">{% endcapture %}
-{% capture new_case_section %}<section class="case-study-interactive" id="section-trigger" aria-labelledby="financial-stream-heading">{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_case_section, new_case_section %}
-
-{% capture old_case_start %}<div class="case-info"><span class="case-label reveal">FINANCIAL STREAM CASE</span>{% endcapture %}
-{% capture new_case_start %}<div class="case-info"><h2 class="visually-hidden" id="financial-stream-heading">Financial Stream client case</h2><span class="case-label reveal">FINANCIAL STREAM CASE</span>{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_case_start, new_case_start %}
-
-{% capture old_selected_work %}<ul class="portfolio-entry-projects" aria-label="Selected case studies">
-<li class="portfolio-entry-project--financial"><a href="/case-studies/financial-stream/"><span>Financial Stream</span></a></li>
-<li class="portfolio-entry-project--alina"><a href="/case-studies/alina-horb/"><span>Alina Horb</span></a></li>
-<li class="portfolio-entry-project--local"><a href="/case-studies/local-repair-pro/"><span>Local Repair Pro</span><small>In development</small></a></li>
-</ul>{% endcapture %}
-{% capture new_selected_work %}<ul class="portfolio-entry-projects" aria-label="Selected case studies">
-<li class="portfolio-entry-project--financial homepage-project-row"><a class="homepage-project-case" href="/case-studies/financial-stream/"><span>Financial Stream</span><small>LIVE CLIENT · EN/RU</small></a><a class="homepage-project-live" href="https://financialstreamllc.com/" target="_blank" rel="noopener noreferrer">Live website <span aria-hidden="true">↗</span></a></li>
-<li class="portfolio-entry-project--alina homepage-project-row"><a class="homepage-project-case" href="/case-studies/alina-horb/"><span>Alina Horb</span><small>LIVE CLIENT · UA/RU</small></a><a class="homepage-project-live" href="https://alinahorb.com/" target="_blank" rel="noopener noreferrer">Live website <span aria-hidden="true">↗</span></a></li>
-<li class="portfolio-entry-project--local homepage-project-row"><a class="homepage-project-case" href="/case-studies/local-repair-pro/"><span>Local Repair Pro</span><small>WEBSITE CONCEPT · LIVE DEMO</small></a><a class="homepage-project-live" href="/handyman-vancouver-portland-demo/">Live demo <span aria-hidden="true">↗</span></a></li>
-</ul>{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_selected_work, new_selected_work %}
-
-{% capture homepage_header_v1 %}{% include header-system/header.html lang="en" current_page="home" locale_url="/ru/" variant="standard" %}{% endcapture %}
-{% assign homepage_header_before = homepage_refined | split: '<header' | first %}
-{% assign homepage_header_after = homepage_refined | split: '</header>' | last %}
-{% assign homepage_refined = homepage_header_before | append: homepage_header_v1 | append: homepage_header_after %}
-
-{% capture old_body_end %}</body>{% endcapture %}
-{% capture new_body_end %}<script src="/assets/js/homepage-core-hardening-v1.js?v=20260803.1" defer></script>
-<script src="/assets/js/header-system-v1.js?v=20260804.1" defer></script>
+{% capture connected_system_body_end %}<script src="/assets/js/homepage-connected-system-r13.js?v=20260815.1" defer></script>
+<script src="/assets/js/homepage-two-worlds-r2.js?v=20260817.1" defer></script>
+<script src="/assets/js/homepage-two-worlds-r21.js?v=20260817.2" defer></script>
 </body>{% endcapture %}
-{% assign homepage_refined = homepage_refined | replace_first: old_body_end, new_body_end %}
+{% assign homepage_assembled = homepage_assembled | replace_first: '</body>', connected_system_body_end %}
 
-{% capture homepage_footer_v1 %}{% include footer-commercial-v1.html lang="en" %}{% endcapture %}
-{% assign homepage_footer_before = homepage_refined | split: '<footer' | first %}
-{% assign homepage_footer_after = homepage_refined | split: '</footer>' | last %}
-{% assign homepage_refined = homepage_footer_before | append: homepage_footer_v1 | append: homepage_footer_after %}
-
-{% capture insights_marker %}<section id="insights">{% endcapture %}
-{% capture selected_work_marker %}<section class="portfolio-entry-section portfolio-entry-section--home" id="selected-work"{% endcapture %}
-{% assign homepage_before_insights = homepage_refined | split: insights_marker | first %}
-{% assign homepage_after_insights = homepage_refined | split: selected_work_marker | last %}
-{{ homepage_before_insights }}
-<section class="homepage-founder-proof" aria-labelledby="homepage-founder-title">
-  <div class="homepage-founder-shell">
-    <div class="homepage-founder-photo-wrap reveal">
-      <img class="homepage-founder-photo" src="/ru/about/ProAI_Founder_Portrait_2x3.webp" alt="Ihor Horb, founder of ProAI Expert" loading="lazy" decoding="async">
-    </div>
-    <div class="homepage-founder-copy reveal" style="--d:100ms">
-      <p class="homepage-founder-eyebrow">FOUNDER, PROAI EXPERT</p>
-      <h2 id="homepage-founder-title">Strategy, systems, and delivery stay connected.</h2>
-      <p class="homepage-founder-scope">Strategy · AI Systems · Automation · Website Architecture</p>
-      <p class="homepage-founder-body">I founded ProAI Expert to connect strategy, AI systems, automation, and website architecture into one working system for service businesses. Based in Washington, USA, I work in English, Russian, and Ukrainian.</p>
-      <div class="homepage-founder-links">
-        <a class="homepage-founder-link" href="/about/">My approach <span aria-hidden="true">→</span></a>
-        <a class="homepage-founder-link homepage-founder-link--secondary" href="https://www.linkedin.com/in/ihorhorb" target="_blank" rel="noopener noreferrer">LinkedIn <span aria-hidden="true">↗</span></a>
-      </div>
-    </div>
-  </div>
-</section>
-<section id="insights" class="materials-editorial" aria-labelledby="materials-editorial-title">
-  <div class="materials-editorial-shell">
-    <div class="materials-editorial-header">
-      <div class="materials-editorial-heading">
-        <p class="materials-editorial-eyebrow">Selected materials</p>
-        <h2 id="materials-editorial-title">Clarity before implementation.</h2>
-      </div>
-      <div class="materials-editorial-intro">
-        <p>Decision guides for service-business owners choosing websites, AI systems, automation, and the right level of digital investment.</p>
-      </div>
-      <a class="materials-editorial-archive" href="/insights/">Explore all insights <span aria-hidden="true">→</span></a>
-    </div>
-
-    <div class="materials-editorial-layout">
-      <article class="materials-editorial-card materials-editorial-card--featured reveal">
-        <span class="materials-editorial-number" aria-hidden="true">01</span>
-        <p class="materials-editorial-label">Language strategy · 12 min</p>
-        <h3>Does Your U.S. Service Business Need a Multilingual Website?</h3>
-        <p class="materials-editorial-summary">Choose between English-only, focused language support, and full multilingual coverage based on real demand, service capacity, and what the business can maintain.</p>
-        <div class="materials-editorial-diagram" aria-hidden="true">
-          <span>English only</span><span class="materials-editorial-arrow">→</span><span>Focused support</span><span class="materials-editorial-arrow">→</span><span>Full multilingual</span>
-        </div>
-        <a class="materials-editorial-link" href="/insights/does-your-service-business-need-a-multilingual-website/">Read the guide <span aria-hidden="true">→</span></a>
-      </article>
-
-      <div class="materials-editorial-secondary">
-        <article class="materials-editorial-card materials-editorial-card--secondary reveal">
-          <span class="materials-editorial-number" aria-hidden="true">02</span>
-          <p class="materials-editorial-label">Buying guide · 13 min</p>
-          <h3>How to Evaluate a Website Proposal Before You Sign</h3>
-          <p class="materials-editorial-summary">Compare scope, responsibilities, ownership, acceptance, and support before page count or price leads to the wrong decision.</p>
-          <ul class="materials-editorial-ledger" aria-label="Proposal evaluation terms">
-            <li>Scope</li><li>Ownership</li><li>Acceptance</li><li>Support</li>
-          </ul>
-          <a class="materials-editorial-link" href="/insights/how-to-evaluate-a-website-proposal/">Review the framework <span aria-hidden="true">→</span></a>
-        </article>
-
-        <article class="materials-editorial-card materials-editorial-card--secondary reveal">
-          <span class="materials-editorial-number" aria-hidden="true">03</span>
-          <p class="materials-editorial-label">Lead operations · 14 min</p>
-          <h3>What Happens After a Lead Arrives?</h3>
-          <p class="materials-editorial-summary">See how service businesses capture context, assign ownership, respond, follow up, and prevent inquiries from disappearing between disconnected tools.</p>
-          <div class="materials-editorial-diagram materials-editorial-diagram--compact" aria-hidden="true">
-            <span>Capture</span><span class="materials-editorial-arrow">→</span><span>Route</span><span class="materials-editorial-arrow">→</span><span>Respond</span><span class="materials-editorial-arrow">→</span><span>Follow up</span>
-          </div>
-          <a class="materials-editorial-link" href="/insights/what-happens-after-a-lead-arrives/">Explore the system <span aria-hidden="true">→</span></a>
-        </article>
-      </div>
-    </div>
-  </div>
-</section>
-{{ selected_work_marker }}{{ homepage_after_insights }}
+{{ homepage_assembled }}

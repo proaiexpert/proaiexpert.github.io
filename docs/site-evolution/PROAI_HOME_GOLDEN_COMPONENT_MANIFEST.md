@@ -30,7 +30,7 @@ Critical identities:
 - `_includes/header-system/header.html` — `6edc924df1df630a69379dfd746d161bab2fbe98`
 - `_data/header.yml` — `e43d76c80a833c9123e6d06a08c45a38edd61158`
 - `_data/navigation.yml` — `64a1fbe4492eebb8c5f3cacede448e5c91327318`
-- `assets/css/header-system-v1.css` — `1e7651d5014b7b2e6f3d6a662b5431a7692f71`
+- `assets/css/header-system-v1.css` — `1e7651d5014b4b7b2e6f3d6a662b5431a7692f71`
 - `assets/js/header-system-v1.js` — `bb107dd6054ba5210b4f77568e04014cdb239c55`
 
 Do not regress to pre-canonical mobile auto-hide JS or duplicate Header mounts.

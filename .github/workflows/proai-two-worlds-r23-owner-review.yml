@@ -1,0 +1,118 @@
+name: ProAI Two Worlds R2.3 Controlled Review
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-bimetal-fold-r2-r23-work
+    paths:
+      - '.github/workflows/proai-two-worlds-r23-owner-review.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          npm --silent --no-save install playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Build live review harness
+        run: |
+          node <<'NODE'
+          const fs=require('fs'), path=require('path');
+          const out='docs/site-evolution/two-worlds-bimetal-fold-r2/review';
+          fs.mkdirSync(out,{recursive:true});
+          const css=[
+            'assets/css/homepage-connected-system-r13.css',
+            'assets/css/homepage-two-worlds-r2.css',
+            'assets/css/homepage-two-worlds-r21.css',
+            'assets/css/homepage-two-worlds-r22.css',
+            'assets/css/homepage-two-worlds-r23.css'
+          ].map(p=>fs.readFileSync(p,'utf8')).join('\n');
+          const js=[
+            'assets/js/homepage-connected-system-r13.js',
+            'assets/js/homepage-two-worlds-r2.js',
+            'assets/js/homepage-two-worlds-r21.js',
+            'assets/js/homepage-two-worlds-r22.js',
+            'assets/js/homepage-two-worlds-r23.js'
+          ].map(p=>fs.readFileSync(p,'utf8')).join('\n');
+          function build(lang){
+            const ru=lang==='ru', s=ru?'ru':'en';
+            const connected=fs.readFileSync(`_includes/homepage-connected-system-${s}.html`,'utf8');
+            const two=fs.readFileSync(`_includes/homepage-two-worlds-r2-${s}.html`,'utf8');
+            return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>ProAI Two Worlds R2.3 ${lang.toUpperCase()}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"><style>html{scroll-behavior:auto;background:#050506}body{margin:0;background:#050506;color:#fff;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-x:hidden}${css}</style></head><body class="${ru?'lang-ru':'lang-en'}">${connected}<main>${two}</main><script>${js}<\/script><script>(function(){var p=new URLSearchParams(location.search),state=p.get('state')||'neutral',sec=document.querySelector('[data-tw-r2]');if(!sec)return;sec.setAttribute('data-focus',state);if(innerWidth<=980){var v={neutral:['0%','-3deg','0px','82%','72deg','-110px','105%'],ai:['0%','-3deg','0px','82%','72deg','-110px','105%'],turn:['-41%','-37.5deg','-55px','41%','37.5deg','-55px','50%'],web:['-82%','-72deg','-110px','0%','3deg','0px','-5%']}[state];sec.style.setProperty('--tw-mobile-ai-x',v[0]);sec.style.setProperty('--tw-mobile-ai-ry',v[1]);sec.style.setProperty('--tw-mobile-ai-z',v[2]);sec.style.setProperty('--tw-mobile-web-x',v[3]);sec.style.setProperty('--tw-mobile-web-ry',v[4]);sec.style.setProperty('--tw-mobile-web-z',v[5]);sec.style.setProperty('--tw-mobile-fold-x',v[6]);}requestAnimationFrame(function(){var e=sec.querySelector('[data-tw-experience]');if(e)e.scrollIntoView({block:'start'});setTimeout(function(){dispatchEvent(new Event('resize'));document.documentElement.dataset.reviewReady='true';},220);});}());<\/script></body></html>`;
+          }
+          fs.writeFileSync(path.join(out,'live.html'),build('en'));
+          fs.writeFileSync(path.join(out,'live-ru.html'),build('ru'));
+          NODE
+      - name: Start server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/r23-http.log 2>&1 &
+          sleep 2
+      - name: QA and real captures
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),path=require('path'),{chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const base='http://127.0.0.1:4173/docs/site-evolution/two-worlds-bimetal-fold-r2/review';
+            const out=path.join(process.cwd(),'docs/site-evolution/two-worlds-bimetal-fold-r2/review/captures-r23');
+            fs.mkdirSync(out,{recursive:true});
+            const errors=[],cases=[];
+            async function open(lang,w,h,state){
+              const c=await b.newContext({viewport:{width:w,height:h},deviceScaleFactor:1,reducedMotion:'no-preference'});
+              const p=await c.newPage(),ce=[];
+              p.on('console',m=>{if(m.type()==='error'||/ResizeObserver loop/i.test(m.text()))ce.push(m.type()+':'+m.text())});
+              await p.goto(`${base}/${lang==='ru'?'live-ru':'live'}.html?state=${state}`,{waitUntil:'load'});
+              await p.waitForSelector('html[data-review-ready="true"]',{timeout:15000});
+              await p.waitForTimeout(w<=980?350:800);
+              return {c,p,ce};
+            }
+            async function metric(p,state){
+              return p.evaluate(state=>{
+                const s=document.querySelector('[data-tw-r2]'),v=s.querySelector('[data-tw-viewport]'),world=state==='web'?'web':'ai';
+                const t=s.querySelector('.tw-r2__face--'+world+' .tw-r2__world-title'),sp=[...t.querySelectorAll('.tw-r2__title-line')],cta=s.querySelector('.tw-r2__face--'+world+' .tw-r2__cta');
+                const o=v.querySelector('.tw-r23-mobile-inscription[data-world="'+world+'"]'),a=getComputedStyle(s.querySelector('.tw-r2__material--'+world),'::after');
+                let ov=null;if(o){const r=o.getBoundingClientRect(),vr=v.getBoundingClientRect();ov={w:r.width,vw:vr.width,d:(r.left+r.width/2)-(vr.left+vr.width/2)}}
+                return {dpr:devicePixelRatio,z:visualViewport?visualViewport.scale:1,sw:document.documentElement.scrollWidth,iw:innerWidth,ih:innerHeight,lines:sp.length,rects:sp.map(x=>x.getClientRects().length),cta:cta?cta.getBoundingClientRect().toJSON():null,ov,ch:+a.opacity,focus:s.dataset.focus};
+              },state);
+            }
+            for(const lang of ['en','ru']){
+              for(const [w,h] of [[1440,900],[1280,800],[1728,1117]])for(const st of ['neutral','ai','web']){
+                const {c,p,ce}=await open(lang,w,h,st),m=await metric(p,st==='web'?'web':'ai');cases.push({lang,w,h,st,m,ce});
+                if(m.dpr!==1||Math.abs(m.z-1)>.001)errors.push(`${lang} ${w}x${h} ${st} scale`);
+                if(m.sw>w+1)errors.push(`${lang} ${w}x${h} ${st} overflow ${m.sw}`);
+                if(m.lines!==2||m.rects.some(n=>n!==1))errors.push(`${lang} ${w}x${h} ${st} title`);
+                if(ce.length)errors.push(`${lang} ${w}x${h} ${st} console ${ce.join('|')}`);await c.close();
+              }
+              for(const [w,h] of [[390,844],[393,852],[844,390],[932,430]])for(const st of ['neutral','ai','turn','web']){
+                const {c,p,ce}=await open(lang,w,h,st),m=await metric(p,st==='web'?'web':'ai');cases.push({lang,w,h,st,m,ce});
+                if(m.dpr!==1||Math.abs(m.z-1)>.001)errors.push(`${lang} ${w}x${h} ${st} scale`);
+                if(m.sw>w+1)errors.push(`${lang} ${w}x${h} ${st} overflow ${m.sw}`);
+                if(st==='ai'||st==='web'){if(m.lines!==2||m.rects.some(n=>n!==1))errors.push(`${lang} ${w}x${h} ${st} title`);if(!m.ov)errors.push(`${lang} ${w}x${h} ${st} macro missing`);else{const target=w>h?.70:.74,ratio=m.ov.w/m.ov.vw;if(Math.abs(m.ov.d)>1.5)errors.push(`${lang} ${w}x${h} ${st} center ${m.ov.d}`);if(Math.abs(ratio-target)>.025)errors.push(`${lang} ${w}x${h} ${st} width ${ratio}`)}if(!m.cta||m.cta.top<0||m.cta.bottom>h-18)errors.push(`${lang} ${w}x${h} ${st} CTA`);if(m.ch<.34)errors.push(`${lang} ${w}x${h} ${st} chroma ${m.ch}`)}
+                if(ce.length)errors.push(`${lang} ${w}x${h} ${st} console ${ce.join('|')}`);await c.close();
+              }
+            }
+            const shots=[];for(const lang of ['en','ru']){for(const st of ['neutral','ai','web'])shots.push({lang,w:1440,h:900,st,n:`${lang}-desktop-${st}-1440x900.jpg`});for(const st of ['ai','web'])shots.push({lang,w:390,h:844,st,n:`${lang}-portrait-${st}-390x844.jpg`});for(const st of ['ai','web'])shots.push({lang,w:844,h:390,st,n:`${lang}-landscape-${st}-844x390.jpg`})}
+            for(const s of shots){const {c,p}=await open(s.lang,s.w,s.h,s.st);await p.screenshot({path:path.join(out,s.n),type:'jpeg',quality:90,fullPage:false});await c.close()}
+            const report={status:errors.length?'FAIL':'PASS',captureZoom:'100%',deviceScaleFactor:1,errors,cases};fs.writeFileSync(path.join(out,'qa-r23.json'),JSON.stringify(report,null,2));
+            const cards=shots.map(s=>`<figure><figcaption><b>${s.lang.toUpperCase()} / ${s.st.toUpperCase()}</b><span>${s.w} × ${s.h}</span></figcaption><img src="captures-r23/${s.n}" alt="${s.lang} ${s.st} controlled R2.3 capture"></figure>`).join('');
+            fs.writeFileSync('docs/site-evolution/two-worlds-bimetal-fold-r2/review/index.html',`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R2.3 Owner Review</title><style>*{box-sizing:border-box}html,body{margin:0;background:#030405;color:#f2f0eb;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.w{width:min(100% - 24px,1500px);margin:auto;padding:34px 0 80px}.k{font:700 10px/1.4 ui-monospace,monospace;letter-spacing:.16em;color:#7f878f}h1{margin:10px 0 12px;font-size:clamp(36px,6vw,70px);line-height:.95;letter-spacing:-.05em}.m{color:#899098;margin-bottom:38px}figure{margin:0 0 44px}figcaption{display:flex;justify-content:space-between;margin-bottom:10px;color:#aeb4ba;font:700 10px/1.3 ui-monospace,monospace;letter-spacing:.08em}img{display:block;width:100%;height:auto;border:1px solid #1c2227;background:#06080a}img[src*="portrait"]{width:min(100%,390px);margin:auto}img[src*="landscape"]{width:min(100%,844px);margin:auto}.a{display:flex;gap:10px;flex-wrap:wrap}.a a{min-height:44px;display:inline-flex;align-items:center;padding:0 16px;border:1px solid #343b42;color:#fff;text-decoration:none;font-size:11px;font-weight:700}</style></head><body><main class="w"><p class="k">PROAI EXPERT / TWO WORLDS / BIMETAL FOLD R2.3</p><h1>Geometry + Chroma Integrity.</h1><p class="m">REAL Chromium captures · zoom 100% · deviceScaleFactor 1 · QA ${report.status}</p>${cards}<div class="a"><a href="live.html">LIVE EN →</a><a href="live-ru.html">LIVE RU →</a><a href="captures-r23/qa-r23.json">QA JSON →</a></div></main></body></html>`);
+            await b.close();if(errors.length){console.error(errors.join('\n'));process.exit(1)}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Commit review proof
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/site-evolution/two-worlds-bimetal-fold-r2/review
+          git commit -m "review: add Bimetal Fold R2.3 controlled captures"
+          git push origin HEAD:agent/proai-two-worlds-bimetal-fold-r2-r23-work

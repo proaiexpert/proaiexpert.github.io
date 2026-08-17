@@ -6,32 +6,146 @@ on:
       - agent/proai-home-golden-assembly-r1-owner-review
 
 permissions:
-  contents: write
+  contents: read
+  actions: read
+  statuses: write
 
 concurrency:
   group: golden-assembly-r1-owner-review
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   review:
     runs-on: ubuntu-latest
-    timeout-minutes: 150
+    timeout-minutes: 35
     env:
       GOLDEN_DOC_HEAD: 1a9acebef0c6dfee38b0b1c8371b4356d085ecfd
       GOLDEN_PRODUCT_SHA: 6968afc698fc583b4573cf8056476ad984fa52d7
       MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
-      EVIDENCE_DIR: docs/site-evolution/review/proai-home-golden-assembly-r1
+      REVIEW_BRANCH: agent/proai-home-golden-assembly-r1-owner-review
+      PROOF_DIR: review-proof
+      ATTEMPT1_SHA: 155ed9a36cfb6dd351e508dfec423d2e7a88ef67
+      ATTEMPT2_SHA: 5ff169d6d8df54b5e6cc2a4bc263fbea2cef826d
     steps:
       - name: Checkout review-only branch
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Verify Golden lock and review-only delta
+      - name: Initialize evidence files
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/proai-review
+          rm -rf "$PROOF_DIR"
+          mkdir -p "$PROOF_DIR"
+          : > "$PROOF_DIR/console-errors.txt"
+          : > "$PROOF_DIR/network-failures.txt"
+          : > "$PROOF_DIR/PIPELINE_FORENSIC.txt"
+          cat > "$PROOF_DIR/QA_RESULTS.json" <<'JSON'
+          {
+            "local_jekyll_build": false,
+            "local_en_http": false,
+            "local_ru_http": false,
+            "local_chromium_en": false,
+            "local_chromium_ru": false,
+            "pass": false
+          }
+          JSON
+
+      - name: Forensic existing review attempts
+        id: forensic
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re, urllib.request
+          from pathlib import Path
+          from urllib.parse import quote
+
+          api=os.environ['GITHUB_API_URL']
+          repo=os.environ['GITHUB_REPOSITORY']
+          branch=os.environ['REVIEW_BRANCH']
+          token=os.environ['GH_TOKEN']
+          proof=Path(os.environ['PROOF_DIR'])
+          wanted=[os.environ['ATTEMPT1_SHA'],os.environ['ATTEMPT2_SHA']]
+          headers={'Authorization':f'Bearer {token}','Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}
+
+          def get_json(url):
+              req=urllib.request.Request(url,headers=headers)
+              with urllib.request.urlopen(req,timeout=30) as r:
+                  return json.load(r)
+
+          def get_text(url):
+              req=urllib.request.Request(url,headers=headers)
+              with urllib.request.urlopen(req,timeout=30) as r:
+                  return r.read().decode('utf-8','replace')
+
+          runs=get_json(f"{api}/repos/{repo}/actions/runs?branch={quote(branch,safe='')}&per_page=100").get('workflow_runs',[])
+          runs=[r for r in runs if r.get('path')=='.github/workflows/golden-assembly-r1-owner-review.yml']
+          attempts=[]
+          lines=[]
+          for idx,sha in enumerate(wanted,1):
+              candidates=[r for r in runs if r.get('head_sha')==sha]
+              if not candidates:
+                  item={'attempt':idx,'commit_sha':sha,'run_id':None,'status':'NONE','conclusion':'NONE','job_id':None,'first_failed_step':'WORKFLOW_TRIGGER_FAILURE','exact_error_line':'No workflow run returned for this head SHA / branch / workflow path.','exit_code':None}
+              else:
+                  r=sorted(candidates,key=lambda x:x.get('created_at',''))[-1]
+                  jobs=get_json(f"{api}/repos/{repo}/actions/runs/{r['id']}/jobs?per_page=100").get('jobs',[])
+                  failed_job=next((j for j in jobs if j.get('conclusion') in ('failure','cancelled','timed_out','action_required')), jobs[0] if jobs else None)
+                  step=None
+                  if failed_job:
+                      step=next((s for s in failed_job.get('steps',[]) if s.get('conclusion') in ('failure','cancelled','timed_out','action_required')),None)
+                  error_line='NONE'
+                  exit_code=None
+                  if failed_job:
+                      try:
+                          log=get_text(f"{api}/repos/{repo}/actions/jobs/{failed_job['id']}/logs")
+                          candidates_log=[]
+                          for line in log.splitlines():
+                              plain=re.sub(r'\x1b\[[0-9;]*m','',line).strip()
+                              if not plain:
+                                  continue
+                              if '##[error]' in plain or re.search(r'Process completed with exit code \d+',plain) or re.search(r'(^|\s)(Error|ERROR|fatal|FATAL):',plain):
+                                  candidates_log.append(plain)
+                          if candidates_log:
+                              error_line=candidates_log[0]
+                          m=re.search(r'Process completed with exit code (\d+)',log)
+                          if m: exit_code=int(m.group(1))
+                      except Exception as e:
+                          error_line=f'LOG_FETCH_ERROR: {type(e).__name__}: {e}'
+                  if r.get('conclusion')=='cancelled' and not step and error_line=='NONE':
+                      error_line='RUN CANCELLED before a failing step was recorded.'
+                  item={
+                      'attempt':idx,'commit_sha':sha,'run_id':r.get('id'),'status':r.get('status'),'conclusion':r.get('conclusion'),
+                      'job_id':failed_job.get('id') if failed_job else None,
+                      'first_failed_step':step.get('name') if step else ('RUN CANCELLED' if r.get('conclusion')=='cancelled' else 'NONE'),
+                      'exact_error_line':error_line,'exit_code':exit_code,'run_url':r.get('html_url')
+                  }
+              attempts.append(item)
+              lines += [
+                  f"EXISTING REVIEW ATTEMPT {idx}",
+                  f"RUN ID: {item['run_id'] if item['run_id'] is not None else 'NONE'}",
+                  f"COMMIT SHA: {item['commit_sha']}",
+                  f"STATUS: {item['status']}",
+                  f"CONCLUSION: {item['conclusion']}",
+                  f"JOB ID: {item['job_id'] if item['job_id'] is not None else 'NONE'}",
+                  f"FIRST FAILED STEP: {item['first_failed_step']}",
+                  f"EXACT ERROR LINE: {item['exact_error_line']}",
+                  f"EXIT CODE: {item['exit_code'] if item['exit_code'] is not None else 'NONE'}",
+                  ''
+              ]
+          (proof/'FORENSIC.json').write_text(json.dumps({'attempts':attempts},indent=2),encoding='utf-8')
+          (proof/'PIPELINE_FORENSIC.txt').write_text('\n'.join(lines),encoding='utf-8')
+          print('\n'.join(lines))
+          PY
+
+      - name: Verify Golden lock and review-only delta
+        id: lock
+        shell: bash
+        run: |
+          set -euo pipefail
           git merge-base --is-ancestor "$GOLDEN_DOC_HEAD" HEAD
           test -z "$(git diff --name-only "$GOLDEN_DOC_HEAD"..HEAD | grep -v '^\.github/workflows/golden-assembly-r1-owner-review.yml$' || true)"
           test -z "$(git diff --name-only "$GOLDEN_PRODUCT_SHA".."$GOLDEN_DOC_HEAD" | grep -v '^docs/site-evolution/PROAI_HOME_GOLDEN_COMPONENT_MANIFEST.md$' || true)"
@@ -47,156 +161,320 @@ jobs:
           test "$(git hash-object _includes/homepage-connected-system-ru.html)" = "92081f9f98f43a9f794d2c5a49b7bce19aafae16"
           test "$(git hash-object assets/css/homepage-two-worlds-r22.css)" = "63e9d73d4ecad2c339ac42a61b0cdf39663894b2"
           test "$(git hash-object assets/js/homepage-two-worlds-r22.js)" = "1983ba4bef7816501a7605293a95b828d3748b06"
-          printf 'REVIEW_WORKFLOW_HEAD=%s\nGOLDEN_DOC_HEAD=%s\nGOLDEN_PRODUCT_SHA=%s\n' "$(git rev-parse HEAD)" "$GOLDEN_DOC_HEAD" "$GOLDEN_PRODUCT_SHA" > /tmp/proai-review/identity.txt
 
-      - name: Build with normal repository Jekyll path
+      - name: Build exact site with Jekyll
+        id: build
+        continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
           export PATH="$GEM_HOME/bin:$PATH"
-          gem install --user-install jekyll -v 4.3.4 --no-document
-          gem install --user-install webrick --no-document
-          jekyll build --source . --destination _site
-          test -s _site/index.html
-          test -s _site/ru/index.html
-          mkdir -p _site/__review
-          cp /tmp/proai-review/identity.txt _site/__review/identity.txt
+          {
+            gem install --user-install jekyll -v 4.3.4 --no-document &&
+            gem install --user-install webrick --no-document &&
+            jekyll build --source . --destination _site &&
+            test -s _site/index.html &&
+            test -s _site/ru/index.html
+          } > "$PROOF_DIR/jekyll-build.log" 2>&1
+          rc=$?
+          cat "$PROOF_DIR/jekyll-build.log"
+          exit $rc
 
-      - name: Start exact built site locally
+      - name: Serve exact built site locally
+        id: server
+        if: ${{ steps.build.outcome == 'success' }}
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 4000 --bind 127.0.0.1 --directory _site >/tmp/proai-review/http.log 2>&1 &
-          echo $! >/tmp/proai-review/http.pid
+          python3 -m http.server 4000 --bind 127.0.0.1 --directory _site > "$PROOF_DIR/http-server.log" 2>&1 &
+          echo $! > "$PROOF_DIR/http-server.pid"
+          en=000; ru=000
           for i in $(seq 1 30); do
-            curl -fsS http://127.0.0.1:4000/ >/dev/null 2>&1 && curl -fsS http://127.0.0.1:4000/ru/ >/dev/null 2>&1 && exit 0
+            en=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/ || true)
+            ru=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/ru/ || true)
+            if [ "$en" = "200" ] && [ "$ru" = "200" ]; then break; fi
             sleep 1
           done
-          cat /tmp/proai-review/http.log
-          exit 1
+          printf 'EN_HTTP=%s\nRU_HTTP=%s\n' "$en" "$ru" | tee "$PROOF_DIR/http-status.txt"
+          test "$en" = "200"
+          test "$ru" = "200"
 
-      - name: Install Chromium driver
+      - name: Install Chromium review driver
+        id: chrome
+        if: ${{ steps.server.outcome == 'success' }}
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
           CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME_BIN"
           echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
-          mkdir -p /tmp/proai-review/node
-          cd /tmp/proai-review/node
+          mkdir -p /tmp/proai-review-node
+          cd /tmp/proai-review-node
           npm init -y >/dev/null 2>&1
           npm install --no-save puppeteer-core@24.16.0 >/dev/null
 
-      - name: Create runtime-only browser harness
+      - name: Create local Chromium proof harness
+        id: harness
+        if: ${{ steps.chrome.outcome == 'success' }}
+        continue-on-error: true
         shell: bash
         run: |
-          cat > /tmp/proai-review/node/review.cjs <<'NODE'
+          cat > /tmp/proai-review-node/local-proof.cjs <<'NODE'
           const fs=require('fs');
+          const path=require('path');
           const puppeteer=require('puppeteer-core');
-          const base=process.argv[2].replace(/\/$/,'');
-          const mode=process.argv[3];
-          const output=process.argv[4];
+          const base='http://127.0.0.1:4000';
+          const proof=path.resolve(process.env.PROOF_DIR||'review-proof');
           const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-          const fatal=[];
           const consoleErrors=[];
-          const vps=[[1440,900],[1366,768],[1024,768],[430,932],[390,844]];
+          const networkFailures=[];
+          const fatal=[];
+          const result={boot:{en:null,ru:null},cube:null,connected:null,ruRhythm:null,pass:false};
+          const fatalConsole=/GLB load failed|initialization failed|Uncaught|TypeError|ReferenceError|SyntaxError/i;
 
-          function errors(page,label){
-            page.on('pageerror',e=>fatal.push(`${label}: pageerror: ${e.message}`));
-            page.on('console',m=>{if(m.type()==='error'){const t=`${label}: console: ${m.text()}`;consoleErrors.push(t);if(/GLB load failed|initialization failed|Uncaught|TypeError|ReferenceError|SyntaxError/i.test(t))fatal.push(t);}});
-            page.on('requestfailed',r=>{if(/\.(js|css|glb)(\?|$)/i.test(r.url()))fatal.push(`${label}: requestfailed: ${r.url()} ${r.failure()?.errorText||''}`);});
+          function attach(page,label){
+            page.on('pageerror',e=>{const t=`${label}: pageerror: ${e.message}`;fatal.push(t);consoleErrors.push(t);});
+            page.on('console',m=>{if(m.type()==='error'){const t=`${label}: console: ${m.text()}`;consoleErrors.push(t);if(fatalConsole.test(t))fatal.push(t);}});
+            page.on('requestfailed',r=>{const t=`${label}: requestfailed: ${r.url()} ${r.failure()?.errorText||''}`;networkFailures.push(t);if(/\.(js|css|glb)(\?|$)/i.test(r.url()))fatal.push(t);});
+            page.on('response',async r=>{const u=r.url();if(/\.(js|css|glb)(\?|$)/i.test(u)&&r.status()>=400){const t=`${label}: response ${r.status()} ${r.headers()['content-type']||'NO_MIME'} ${u}`;networkFailures.push(t);fatal.push(t);}});
           }
-          async function browser(){return puppeteer.launch({executablePath:process.env.CHROME_BIN,headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--ignore-gpu-blocklist','--enable-webgl','--enable-unsafe-swiftshader','--use-angle=swiftshader']});}
-          async function cubeReady(page){await page.waitForFunction(()=>document.querySelector('.proai-hero-object-slot[data-proai-hero-object]')?.dataset.cubeMounted==='true'&&window.__PROAI_HERO_CUBE_R1?.runtime?.ready===true,{timeout:25000});}
-          async function goto(page,route,w=1440,h=900,label='page'){
-            errors(page,label);await page.setViewport({width:w,height:h,deviceScaleFactor:1});await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);await page.goto(base+route,{waitUntil:'networkidle0',timeout:45000});await cubeReady(page);
-          }
-          async function state(page){return page.evaluate(()=>{
-            const vis=e=>{if(!e)return false;const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>4&&r.height>4&&s.display!=='none'&&s.visibility!=='hidden'&&Number(s.opacity||1)>0;};
-            const runtime=window.__PROAI_HERO_CUBE_R1;
-            return {header:vis(document.querySelector('[data-site-header]')),hero:vis(document.querySelector('#hero')),cube:vis(document.querySelector('#cube-canvas')),connected:vis(document.querySelector('[data-connected-system]')),twoWorlds:vis(document.querySelector('[data-tw-r2]')),cubeReady:runtime?.runtime?.ready===true,cubeGlb:runtime?.glbSha256||null,semantic:Boolean(window.__PROAI_SEMANTIC_CUBE||window.__PROAI_CUBE_SEMANTIC_R1),overflow:document.documentElement.scrollWidth>innerWidth+2,counts:{header:document.querySelectorAll('[data-site-header]').length,cube:document.querySelectorAll('#cube-canvas').length,connected:document.querySelectorAll('[data-connected-system]').length,connectedScript:[...document.scripts].filter(s=>/\/assets\/js\/homepage-connected-system-r13\.js(?:\?|$)/.test(s.src)).length,twoWorlds:document.querySelectorAll('[data-tw-r2]').length}};
-          });}
-          async function responsive(b){const out={};for(const route of ['/','/ru/']){out[route]=[];for(const [w,h] of vps){const p=await b.newPage();await goto(p,route,w,h,`responsive:${route}:${w}x${h}`);out[route].push({w,h,...await state(p)});await p.close();}}return out;}
-          async function headerAutoHide(b){const p=await b.newPage();await goto(p,'/',390,844,'header-auto-hide');await p.evaluate(()=>scrollTo(0,250));await sleep(420);const hidden=await p.$eval('[data-site-header]',e=>e.classList.contains('header-hidden'));await p.evaluate(()=>scrollBy(0,-90));await sleep(420);const shown=await p.$eval('[data-site-header]',e=>!e.classList.contains('header-hidden'));await p.close();return{hiddenOnDown:hidden,revealedOnUp:shown,pass:hidden&&shown};}
-          async function cubeMotion(b){const p=await b.newPage();await goto(p,'/',1440,900,'cube-motion');const start=await p.evaluate(()=>window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());const seen=new Map();let pair=null,negative=null,pitchRoll=null,moving=false;const until=Date.now()+46000;while(Date.now()<until){const x=await p.evaluate(()=>{const r=window.__PROAI_HERO_CUBE_R1.runtime,d=r.getDiagnostics(),q=r.getReviewPresentationSample(d.presentation.simTimeMs/1000);return{d,q,t:performance.now()};});if(x.d.presentation.cumulativeYawDeg-start.presentation.cumulativeYawDeg>1)moving=true;if(!pitchRoll&&Math.abs(x.q.pitchDeg)>.8&&Math.abs(x.q.rollDeg)>.08)pitchRoll=x.q;if(!negative&&x.d.presentation.yawVelocityDegPerSec<-1)negative={simTimeMs:x.d.presentation.simTimeMs,velocityDegPerSec:x.d.presentation.yawVelocityDegPerSec,signedYawDeg:x.d.presentation.signedYawDeg};for(const t of x.d.activeTurns)if(!seen.has(t.id))seen.set(t.id,x.t);if(!pair&&x.d.activeTurns.length===2){const[a,c]=x.d.activeTurns;if(a.axis===c.axis&&a.layer!==c.layer)pair={axis:a.axis,layers:[a.layer,c.layer],staggerMs:Math.abs((seen.get(c.id)||x.t)-(seen.get(a.id)||x.t)),turns:[a.id,c.id]};}if(moving&&negative&&pitchRoll&&pair)break;await sleep(25);}await p.screenshot({path:'_site/__review/screenshot-1-desktop-hero-en.png'});const end=await p.evaluate(()=>window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());await p.close();return{moving,signedYawObserved:!!negative,negative,pitchRollObserved:!!pitchRoll,pitchRoll,pairedStaggerObserved:!!pair,pair,startYaw:start.presentation.cumulativeYawDeg,endYaw:end.presentation.cumulativeYawDeg};}
-          async function connectedTiming(b){const p=await b.newPage();await goto(p,'/',1440,900,'connected-timing');await p.evaluate(()=>{const sec=document.querySelector('[data-connected-system]'),st=[...sec.querySelectorAll('[data-system-stage]')];window.__ct={start:performance.now(),active:[],seen:{}};st.forEach((e,i)=>new MutationObserver(()=>{if(e.classList.contains('is-active')&&!window.__ct.seen[i]){window.__ct.seen[i]=1;window.__ct.active.push({i,t:performance.now()});}}).observe(e,{attributes:true,attributeFilter:['class']}));sec.scrollIntoView({block:'center'});});await p.waitForFunction(()=>window.__ct?.active.length===4,{timeout:13000});const r=await p.evaluate(()=>{const a=window.__ct.active.map(x=>x.t-window.__ct.start);return{activeMs:a,firstActiveMs:a[0],gaps:a.slice(1).map((x,i)=>x-a[i])};});r.pass=Math.abs(r.firstActiveMs-760)<=130&&r.gaps.every(x=>Math.abs(x-1900)<=90);await p.close();return r;}
-          async function ruRhythm(b){const p=await b.newPage();await goto(p,'/ru/',1440,900,'ru-rhythm');await p.evaluate(()=>document.querySelector('[data-connected-system]').scrollIntoView({block:'center'}));await sleep(7600);const r=await p.evaluate(()=>{const m=[...document.querySelectorAll('[data-connected-system] [data-system-stage]')].map(e=>{const s=e.getBoundingClientRect(),c=e.querySelector('.cs-components').getBoundingClientRect();return{h:s.height,componentsTop:c.top-s.top,client:e.clientHeight,scroll:e.scrollHeight};});const spread=k=>Math.max(...m.map(x=>x[k]))-Math.min(...m.map(x=>x[k]));return{metrics:m,heightSpread:spread('h'),componentsTopSpread:spread('componentsTop'),noClip:m.every(x=>x.scroll<=x.client+2)};});r.pass=r.noClip&&r.heightSpread<=3&&r.componentsTopSpread<=6;await p.screenshot({path:'_site/__review/screenshot-2-desktop-connected-ru.png'});await p.close();return r;}
-          async function mobileShot(b){const p=await b.newPage();await goto(p,'/',390,844,'mobile-shot');await p.screenshot({path:'_site/__review/screenshot-3-mobile-home-en.png'});await p.close();}
-          async function publicRoute(b,route){const p=await b.newPage();await goto(p,route,1440,900,`public:${route}`);const top=await state(p);await p.evaluate(()=>document.querySelector('[data-connected-system]').scrollIntoView({block:'center'}));await sleep(350);const connectedInView=await p.evaluate(()=>{const r=document.querySelector('[data-connected-system]').getBoundingClientRect();return r.bottom>0&&r.top<innerHeight;});await p.evaluate(()=>document.querySelector('[data-tw-r2]').scrollIntoView({block:'center'}));await sleep(350);const twInView=await p.evaluate(()=>{const r=document.querySelector('[data-tw-r2]').getBoundingClientRect();return r.bottom>0&&r.top<innerHeight;});await p.close();return{...top,connectedInView,twInView};}
 
-          (async()=>{const b=await browser(),r={mode,base,consoleErrors,fatalErrors:fatal};try{if(mode==='local'){r.responsive=await responsive(b);r.headerAutoHide=await headerAutoHide(b);r.cube=await cubeMotion(b);r.connected=await connectedTiming(b);r.ruRhythm=await ruRhythm(b);await mobileShot(b);const all=[...r.responsive['/'],...r.responsive['/ru/']],ok=x=>x.header&&x.hero&&x.cube&&x.connected&&x.twoWorlds&&x.cubeReady&&!x.semantic&&!x.overflow&&x.cubeGlb==='DBB7FC4156F8C9ED2481DD76443DFFB9A45ECB5493463F99BFFB34DD3B59C79B';r.localENPass=r.responsive['/'].every(ok);r.localRUPass=r.responsive['/ru/'].every(ok);r.duplicates={header:Math.max(...all.map(x=>x.counts.header)),cube:Math.max(...all.map(x=>x.counts.cube)),connected:Math.max(...all.map(x=>x.counts.connected)),connectedScript:Math.max(...all.map(x=>x.counts.connectedScript)),twoWorlds:Math.max(...all.map(x=>x.counts.twoWorlds))};r.pass=r.localENPass&&r.localRUPass&&r.headerAutoHide.pass&&r.cube.moving&&r.cube.signedYawObserved&&r.cube.pitchRollObserved&&r.cube.pairedStaggerObserved&&r.connected.pass&&r.ruRhythm.pass&&Object.values(r.duplicates).every(x=>x===1)&&fatal.length===0;}else{r.en=await publicRoute(b,'/');r.ru=await publicRoute(b,'/ru/');const ok=x=>x.header&&x.hero&&x.cube&&x.connected&&x.twoWorlds&&x.cubeReady&&!x.semantic&&x.connectedInView&&x.twInView;r.enPass=ok(r.en);r.ruPass=ok(r.ru);r.pass=r.enPass&&r.ruPass&&fatal.length===0;}}finally{await b.close();fs.writeFileSync(output,JSON.stringify(r,null,2));}if(!r.pass)process.exit(2);})().catch(e=>{fatal.push(`harness: ${e.stack||e}`);fs.writeFileSync(output,JSON.stringify({mode,base,consoleErrors,fatalErrors:fatal,pass:false},null,2));process.exit(3);});
+          async function open(page,route,w=1440,h=900,label=route){
+            attach(page,label);
+            await page.setViewport({width:w,height:h,deviceScaleFactor:1});
+            await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
+            const response=await page.goto(base+route,{waitUntil:'domcontentloaded',timeout:45000});
+            await page.waitForFunction(()=>document.querySelector('.proai-hero-object-slot[data-proai-hero-object]')?.dataset.cubeMounted==='true'&&window.__PROAI_HERO_CUBE_R1?.runtime?.ready===true,{timeout:25000});
+            return response?.status()||0;
+          }
+
+          async function bootState(page,httpStatus){
+            return page.evaluate(httpStatus=>{
+              const visible=e=>{if(!e)return false;const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>4&&r.height>4&&s.display!=='none'&&s.visibility!=='hidden'&&Number(s.opacity||1)>0;};
+              const rt=window.__PROAI_HERO_CUBE_R1;
+              return {
+                httpStatus,
+                headerVisible:visible(document.querySelector('[data-site-header]')),
+                heroVisible:visible(document.querySelector('#hero')),
+                cubeVisible:visible(document.querySelector('#cube-canvas')),
+                cubeReady:rt?.runtime?.ready===true,
+                connectedDomVisible:visible(document.querySelector('[data-connected-system]')),
+                twoWorldsDomVisible:visible(document.querySelector('[data-tw-r2]')),
+                semanticRuntimePresent:Boolean(window.__PROAI_SEMANTIC_CUBE||window.__PROAI_CUBE_SEMANTIC_R1),
+                counts:{
+                  header:document.querySelectorAll('[data-site-header]').length,
+                  cube:document.querySelectorAll('#cube-canvas').length,
+                  connected:document.querySelectorAll('[data-connected-system]').length,
+                  connectedScript:[...document.scripts].filter(s=>/\/assets\/js\/homepage-connected-system-r13\.js(?:\?|$)/.test(s.src)).length,
+                  twoWorlds:document.querySelectorAll('[data-tw-r2]').length
+                }
+              };
+            },httpStatus);
+          }
+
+          const bootPass=x=>x&&x.httpStatus===200&&x.headerVisible&&x.heroVisible&&x.cubeVisible&&x.cubeReady&&x.connectedDomVisible&&x.twoWorldsDomVisible&&!x.semanticRuntimePresent&&x.counts.header===1&&x.counts.cube===1&&x.counts.connected===1&&x.counts.connectedScript===1&&x.counts.twoWorlds===1;
+
+          async function cubeProof(page){
+            const start=await page.evaluate(()=>window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());
+            const seen=new Map();
+            let negative=null,pitchRoll=null,pair=null,moving=false;
+            const deadline=Date.now()+50000;
+            while(Date.now()<deadline){
+              const x=await page.evaluate(()=>{const r=window.__PROAI_HERO_CUBE_R1.runtime,d=r.getDiagnostics(),q=r.getReviewPresentationSample(d.presentation.simTimeMs/1000);return{d,q,t:performance.now()};});
+              if(x.d.presentation.cumulativeYawDeg-start.presentation.cumulativeYawDeg>1)moving=true;
+              if(!negative&&x.d.presentation.yawVelocityDegPerSec<-1)negative={simTimeMs:x.d.presentation.simTimeMs,velocityDegPerSec:x.d.presentation.yawVelocityDegPerSec,signedYawDeg:x.d.presentation.signedYawDeg};
+              if(!pitchRoll&&Math.abs(x.q.pitchDeg)>.8&&Math.abs(x.q.rollDeg)>.08)pitchRoll={pitchDeg:x.q.pitchDeg,rollDeg:x.q.rollDeg,simTimeMs:x.d.presentation.simTimeMs};
+              for(const t of x.d.activeTurns)if(!seen.has(t.id))seen.set(t.id,x.t);
+              if(!pair&&x.d.activeTurns.length===2){const[a,b]=x.d.activeTurns;if(a.axis===b.axis&&a.layer!==b.layer){pair={axis:a.axis,layers:[a.layer,b.layer],staggerMs:Math.abs((seen.get(b.id)||x.t)-(seen.get(a.id)||x.t)),turns:[a.id,b.id]};}}
+              if(moving&&negative&&pitchRoll&&pair)break;
+              await sleep(25);
+            }
+            const end=await page.evaluate(()=>window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());
+            return {moving,negativeYawObserved:!!negative,negative,pitchRollObserved:!!pitchRoll,pitchRoll,trueStaggeredPairObserved:!!pair,pair,startYaw:start.presentation.cumulativeYawDeg,endYaw:end.presentation.cumulativeYawDeg,pass:moving&&!!negative&&!!pitchRoll&&!!pair};
+          }
+
+          async function connectedProof(browser){
+            const p=await browser.newPage();
+            await open(p,'/',1440,900,'connected-en');
+            await p.evaluate(()=>{
+              const sec=document.querySelector('[data-connected-system]'),st=[...sec.querySelectorAll('[data-system-stage]')];
+              window.__ct={start:performance.now(),active:[],seen:{}};
+              st.forEach((e,i)=>new MutationObserver(()=>{if(e.classList.contains('is-active')&&!window.__ct.seen[i]){window.__ct.seen[i]=1;window.__ct.active.push({i,t:performance.now()});}}).observe(e,{attributes:true,attributeFilter:['class']}));
+              sec.scrollIntoView({block:'center'});
+            });
+            await p.waitForFunction(()=>window.__ct?.active.length===4,{timeout:13000});
+            const timing=await p.evaluate(()=>{const a=window.__ct.active.map(x=>x.t-window.__ct.start);return{activeMs:a,firstActiveMs:a[0],gaps:a.slice(1).map((x,i)=>x-a[i])};});
+            timing.pass=Math.abs(timing.firstActiveMs-760)<=160&&timing.gaps.every(x=>Math.abs(x-1900)<=120);
+            await p.close();
+            return timing;
+          }
+
+          async function ruRhythmProof(browser){
+            const p=await browser.newPage();
+            await open(p,'/ru/',1440,900,'ru-connected');
+            await p.evaluate(()=>document.querySelector('[data-connected-system]').scrollIntoView({block:'center'}));
+            await sleep(7700);
+            const r=await p.evaluate(async()=>{
+              const css=await fetch('/assets/css/homepage-connected-system-r13.css').then(x=>x.text());
+              const stages=[...document.querySelectorAll('[data-connected-system] [data-system-stage]')];
+              const metrics=stages.map(e=>{const s=e.getBoundingClientRect(),c=e.querySelector('.cs-components').getBoundingClientRect();return{height:s.height,componentsTop:c.top-s.top,clientHeight:e.clientHeight,scrollHeight:e.scrollHeight};});
+              const spread=k=>Math.max(...metrics.map(x=>x[k]))-Math.min(...metrics.map(x=>x[k]));
+              return {metrics,heightSpread:spread('height'),componentsTopSpread:spread('componentsTop'),noClip:metrics.every(x=>x.scrollHeight<=x.clientHeight+2),calibration:{desktop604:css.includes('min-block-size:6.04em'),compact576:css.includes('min-block-size:5.76em'),mid72:css.includes('min-block-size:7.2em'),mobile0:css.includes('min-block-size:0')}};
+            });
+            r.pass=r.noClip&&r.heightSpread<=3&&r.componentsTopSpread<=8&&Object.values(r.calibration).every(Boolean);
+            await p.screenshot({path:path.join(proof,'screenshot-2-desktop-connected-ru.png'),fullPage:false});
+            await p.close();
+            return r;
+          }
+
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath:process.env.CHROME_BIN,headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--ignore-gpu-blocklist','--enable-webgl','--enable-unsafe-swiftshader','--use-angle=swiftshader']});
+            try{
+              const en=await browser.newPage();
+              const enStatus=await open(en,'/',1440,900,'boot-en');
+              result.boot.en=await bootState(en,enStatus);
+              await en.screenshot({path:path.join(proof,'screenshot-1-desktop-hero-en.png'),fullPage:false});
+
+              const ru=await browser.newPage();
+              const ruStatus=await open(ru,'/ru/',1440,900,'boot-ru');
+              result.boot.ru=await bootState(ru,ruStatus);
+
+              if(!bootPass(result.boot.en)||!bootPass(result.boot.ru)){
+                result.pass=false;
+                return;
+              }
+
+              result.cube=await cubeProof(en);
+              result.connected=await connectedProof(browser);
+              result.ruRhythm=await ruRhythmProof(browser);
+
+              const mobile=await browser.newPage();
+              await open(mobile,'/',390,844,'mobile');
+              await mobile.screenshot({path:path.join(proof,'screenshot-3-mobile.png'),fullPage:false});
+              await mobile.close();
+
+              result.pass=result.cube.pass&&result.connected.pass&&result.ruRhythm.pass&&fatal.length===0;
+              await ru.close();
+              await en.close();
+            }catch(e){
+              const t=`harness: ${e.stack||e}`;
+              fatal.push(t);consoleErrors.push(t);result.pass=false;
+            }finally{
+              await browser.close();
+              fs.writeFileSync(path.join(proof,'browser-results.json'),JSON.stringify({...result,fatalErrors:fatal,consoleErrors,networkFailures},null,2));
+              fs.writeFileSync(path.join(proof,'console-errors.txt'),consoleErrors.length?consoleErrors.join('\n')+'\n':'');
+              fs.writeFileSync(path.join(proof,'network-failures.txt'),networkFailures.length?networkFailures.join('\n')+'\n':'');
+            }
+            if(!result.pass)process.exit(2);
+          })();
           NODE
+          node /tmp/proai-review-node/local-proof.cjs
 
-      - name: Local Chromium gate
+      - name: Assemble QA results
+        id: qa
+        if: always()
         shell: bash
         run: |
-          set -euo pipefail
-          node /tmp/proai-review/node/review.cjs http://127.0.0.1:4000 local _site/__review/local-result.json
-
-      - name: Publish exact built site through TryCloudflare
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -L --fail --retry 3 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/proai-review/cloudflared
-          chmod +x /tmp/proai-review/cloudflared
-          /tmp/proai-review/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4000 >/tmp/proai-review/cloudflared.log 2>&1 &
-          echo $! >/tmp/proai-review/cloudflared.pid
-          PUBLIC_BASE=""
-          for i in $(seq 1 60); do
-            PUBLIC_BASE="$(grep -Eo 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' /tmp/proai-review/cloudflared.log | head -1 || true)"
-            [ -n "$PUBLIC_BASE" ] && curl -fsS "$PUBLIC_BASE/" >/dev/null 2>&1 && curl -fsS "$PUBLIC_BASE/ru/" >/dev/null 2>&1 && break
-            sleep 1
-          done
-          test -n "$PUBLIC_BASE"
-          curl -fsS "$PUBLIC_BASE/" >/dev/null
-          curl -fsS "$PUBLIC_BASE/ru/" >/dev/null
-          echo "PUBLIC_BASE=$PUBLIC_BASE" >> "$GITHUB_ENV"
-          printf '%s\n' "$PUBLIC_BASE" > _site/__review/public-base.txt
-
-      - name: Public Chromium URL gate
-        shell: bash
-        run: |
-          set -euo pipefail
-          node /tmp/proai-review/node/review.cjs "$PUBLIC_BASE" public _site/__review/public-result.json
           python3 - <<'PY'
-          import json,os
+          import json, os
           from pathlib import Path
-          local=json.loads(Path('_site/__review/local-result.json').read_text())
-          public=json.loads(Path('_site/__review/public-result.json').read_text())
-          result={'publicBase':os.environ['PUBLIC_BASE'],'local':local,'public':public,'screenshots':{
-            'screenshot1':os.environ['PUBLIC_BASE']+'/__review/screenshot-1-desktop-hero-en.png',
-            'screenshot2':os.environ['PUBLIC_BASE']+'/__review/screenshot-2-desktop-connected-ru.png',
-            'screenshot3':os.environ['PUBLIC_BASE']+'/__review/screenshot-3-mobile-home-en.png'}}
-          Path('_site/__review/review-result.json').write_text(json.dumps(result,indent=2))
+          proof=Path(os.environ['PROOF_DIR'])
+          browser={}
+          if (proof/'browser-results.json').exists():
+              browser=json.loads((proof/'browser-results.json').read_text())
+          http={}
+          if (proof/'http-status.txt').exists():
+              for line in (proof/'http-status.txt').read_text().splitlines():
+                  if '=' in line:
+                      k,v=line.split('=',1);http[k]=v
+          out={
+              'local_jekyll_build': os.environ.get('BUILD_OUTCOME')=='success',
+              'local_en_http': http.get('EN_HTTP')=='200',
+              'local_ru_http': http.get('RU_HTTP')=='200',
+              'local_chromium_en': bool(browser.get('boot',{}).get('en')) and all([
+                  browser['boot']['en'].get('headerVisible'),browser['boot']['en'].get('heroVisible'),browser['boot']['en'].get('cubeVisible'),browser['boot']['en'].get('cubeReady'),browser['boot']['en'].get('connectedDomVisible'),browser['boot']['en'].get('twoWorldsDomVisible')]),
+              'local_chromium_ru': bool(browser.get('boot',{}).get('ru')) and all([
+                  browser['boot']['ru'].get('headerVisible'),browser['boot']['ru'].get('heroVisible'),browser['boot']['ru'].get('cubeVisible'),browser['boot']['ru'].get('cubeReady'),browser['boot']['ru'].get('connectedDomVisible'),browser['boot']['ru'].get('twoWorldsDomVisible')]),
+              'browser':browser,
+              'pass': os.environ.get('BUILD_OUTCOME')=='success' and os.environ.get('SERVER_OUTCOME')=='success' and os.environ.get('CHROME_OUTCOME')=='success' and os.environ.get('HARNESS_OUTCOME')=='success' and bool(browser.get('pass'))
+          }
+          (proof/'QA_RESULTS.json').write_text(json.dumps(out,indent=2))
+          print(json.dumps(out,indent=2))
           PY
+        env:
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          SERVER_OUTCOME: ${{ steps.server.outcome }}
+          CHROME_OUTCOME: ${{ steps.chrome.outcome }}
+          HARNESS_OUTCOME: ${{ steps.harness.outcome }}
 
-      - name: Record review evidence on review-only branch
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$EVIDENCE_DIR"
-          cp _site/__review/review-result.json "$EVIDENCE_DIR/review-result.json"
-          cp _site/__review/public-base.txt "$EVIDENCE_DIR/public-base.txt"
-          cp _site/__review/screenshot-1-desktop-hero-en.png "$EVIDENCE_DIR/screenshot-1-desktop-hero-en.png"
-          cp _site/__review/screenshot-2-desktop-connected-ru.png "$EVIDENCE_DIR/screenshot-2-desktop-connected-ru.png"
-          cp _site/__review/screenshot-3-mobile-home-en.png "$EVIDENCE_DIR/screenshot-3-mobile-home-en.png"
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add "$EVIDENCE_DIR"
-          git commit -m "review: record Golden Assembly R1 owner evidence"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
-          git rev-parse HEAD > /tmp/proai-review/evidence-commit.txt
-
-      - name: Upload review evidence artifact
+      - name: Upload local proof artifact
+        id: artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: golden-assembly-r1-owner-review-evidence
+          name: proai-home-golden-assembly-r1-local-proof
           path: |
-            _site/__review/
-            /tmp/proai-review/cloudflared.log
-          if-no-files-found: error
+            review-proof/QA_RESULTS.json
+            review-proof/PIPELINE_FORENSIC.txt
+            review-proof/FORENSIC.json
+            review-proof/screenshot-1-desktop-hero-en.png
+            review-proof/screenshot-2-desktop-connected-ru.png
+            review-proof/screenshot-3-mobile.png
+            review-proof/console-errors.txt
+            review-proof/network-failures.txt
+            review-proof/jekyll-build.log
+            review-proof/http-status.txt
+            review-proof/http-server.log
+            review-proof/browser-results.json
+          if-no-files-found: warn
+          retention-days: 7
 
-      - name: Hold temporary owner review endpoint
+      - name: Publish forensic and local result as commit statuses
+        if: always()
         shell: bash
-        run: sleep 7200
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARTIFACT_OUTCOME: ${{ steps.artifact.outcome }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          from pathlib import Path
+          api=os.environ['GITHUB_API_URL'];repo=os.environ['GITHUB_REPOSITORY'];sha=os.environ['GITHUB_SHA'];token=os.environ['GH_TOKEN']
+          run_url=f"{os.environ['GITHUB_SERVER_URL']}/{repo}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+          headers={'Authorization':f'Bearer {token}','Accept':'application/vnd.github+json','Content-Type':'application/json','X-GitHub-Api-Version':'2022-11-28'}
+          def post(context,state,description,target=run_url):
+              description=description[:140]
+              body=json.dumps({'state':state,'context':context,'description':description,'target_url':target}).encode()
+              req=urllib.request.Request(f"{api}/repos/{repo}/statuses/{sha}",data=body,headers=headers,method='POST')
+              with urllib.request.urlopen(req,timeout=30) as r:r.read()
+          proof=Path(os.environ['PROOF_DIR'])
+          qa=json.loads((proof/'QA_RESULTS.json').read_text()) if (proof/'QA_RESULTS.json').exists() else {'pass':False}
+          forensic=json.loads((proof/'FORENSIC.json').read_text()) if (proof/'FORENSIC.json').exists() else {'attempts':[]}
+          for a in forensic.get('attempts',[]):
+              rid=a.get('run_id') or 'NONE'; jid=a.get('job_id') or 'NONE'; step=a.get('first_failed_step') or 'NONE'
+              target=a.get('run_url') or run_url
+              post(f"proai/forensic-attempt-{a.get('attempt')}",'success',f"run={rid} job={jid} conclusion={a.get('conclusion')} step={step}",target)
+          b=qa.get('browser',{});cube=b.get('cube') or {};con=b.get('connected') or {};ru=b.get('ruRhythm') or {}
+          post('proai/local-proof','success' if qa.get('pass') else 'failure',f"run={os.environ['GITHUB_RUN_ID']} pass={qa.get('pass')} artifact={os.environ.get('ARTIFACT_OUTCOME')}")
+          post('proai/http','success' if qa.get('local_en_http') and qa.get('local_ru_http') else 'failure',f"EN={qa.get('local_en_http')} RU={qa.get('local_ru_http')}")
+          post('proai/browser','success' if qa.get('local_chromium_en') and qa.get('local_chromium_ru') else 'failure',f"EN={qa.get('local_chromium_en')} RU={qa.get('local_chromium_ru')}")
+          post('proai/cube','success' if cube.get('pass') else 'failure',f"moving={cube.get('moving')} neg={cube.get('negativeYawObserved')} pitchroll={cube.get('pitchRollObserved')} pair={cube.get('trueStaggeredPairObserved')}")
+          post('proai/connected','success' if con.get('pass') else 'failure',f"first={con.get('firstActiveMs')} gaps={con.get('gaps')}")
+          post('proai/ru-rhythm','success' if ru.get('pass') else 'failure',f"pass={ru.get('pass')} noClip={ru.get('noClip')} topSpread={ru.get('componentsTopSpread')}")
+          shots=sum((proof/n).exists() and (proof/n).stat().st_size>10000 for n in ['screenshot-1-desktop-hero-en.png','screenshot-2-desktop-connected-ru.png','screenshot-3-mobile.png'])
+          post('proai/screenshots','success' if shots==3 else 'failure',f"screenshots={shots}/3")
+          PY
+
+      - name: Final local proof gate
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('review-proof/QA_RESULTS.json').read_text())
+          raise SystemExit(0 if q.get('pass') else 1)
+          PY

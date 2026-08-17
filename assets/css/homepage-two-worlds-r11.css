@@ -1,0 +1,133 @@
+/* Two Worlds R1.1 — Technology register correction only. */
+.tw-tech-r11 {
+  min-height: clamp(190px, 22svh, 250px);
+}
+
+.tw-tech-r11 .tw-tech-r1__shell {
+  grid-template-columns: minmax(220px, .31fr) minmax(0, .69fr);
+  gap: clamp(34px, 4.6vw, 78px);
+}
+
+.tw-tech-r11 .tw-tech-r1__marks {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(32px, auto));
+  column-gap: clamp(10px, 1.05vw, 18px);
+  row-gap: clamp(22px, 2.6svh, 30px);
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0 !important;
+  list-style: none;
+}
+
+.tw-tech-r11 .tw-tech-r1__marks li {
+  --mark-size: 26px;
+  display: flex;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0 !important;
+  background: transparent !important;
+  color: transparent;
+}
+
+.tw-tech-r11 .tw-tech-r1__marks li:nth-child(n),
+.tw-tech-r11 .tw-tech-r1__marks li:nth-child(4n),
+.tw-tech-r11 .tw-tech-r1__marks li:nth-child(5n),
+.tw-tech-r11 .tw-tech-r1__marks li:nth-child(n+6) {
+  border: 0 !important;
+}
+
+.tw-tech-r11 .tw-tech-r1__marks img {
+  display: block;
+  width: var(--mark-size);
+  height: var(--mark-size);
+  max-width: 100%;
+  object-fit: contain;
+  opacity: .56;
+  filter: none;
+  transition: opacity 220ms ease, transform 260ms var(--tw-ease), filter 220ms ease;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.tw-tech-r11 .tw-tech-r1__marks li[data-brand="openai"] { grid-column: 1 / span 2; grid-row: 1; --mark-size: 29px; }
+.tw-tech-r11 .tw-tech-r1__marks li[data-brand="claude"] { grid-column: 3 / span 2; grid-row: 1; --mark-size: 27px; }
+.tw-tech-r11 .tw-tech-r1__marks li[data-brand="gemini"] { grid-column: 5 / span 2; grid-row: 1; --mark-size: 28px; }
+.tw-tech-r11 .tw-tech-r1__marks li[data-brand="n8n"] { grid-column: 8 / span 1; grid-row: 1; --mark-size: 31px; }
+.tw-tech-r11 .tw-tech-r1__marks li[data-brand="make"] { grid-column: 10 / span 2; grid-row: 1; --mark-size: 29px; }
+.tw-tech-r11 .tw-tech-r1__marks li[data-brand="twilio"] { grid-column: 2 / span 1; grid-row: 2; --mark-size: 27px; }
+.tw-tech-r11 .tw-tech-r1__marks li[data-brand="vercel"] { grid-column: 4 / span 2; grid-row: 2; --mark-size: 27px; }
+.tw-tech-r11 .tw-tech-r1__marks li[data-brand="gmail"] { grid-column: 7 / span 1; grid-row: 2; --mark-size: 28px; }
+.tw-tech-r11 .tw-tech-r1__marks li[data-brand="zapier"] { grid-column: 9 / span 1; grid-row: 2; --mark-size: 28px; }
+.tw-tech-r11 .tw-tech-r1__marks li[data-brand="github"] { grid-column: 11 / span 2; grid-row: 2; --mark-size: 29px; }
+
+@media (hover: hover) and (pointer: fine) {
+  .tw-tech-r11 .tw-tech-r1__marks li:hover img {
+    opacity: .88;
+    transform: translateY(-1px);
+    filter: brightness(1.18);
+  }
+}
+
+@media (max-width: 980px), ((hover: none) and (pointer: coarse)) {
+  .tw-tech-r11 {
+    min-height: 0;
+    padding: 34px 0 38px;
+  }
+  .tw-tech-r11 .tw-tech-r1__shell {
+    display: block;
+    width: min(100% - 40px, 720px);
+  }
+  .tw-tech-r11 .tw-tech-r1__marks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    column-gap: 26px;
+    row-gap: 20px;
+    margin-top: 24px;
+    border: 0 !important;
+  }
+  .tw-tech-r11 .tw-tech-r1__marks li[data-brand] {
+    grid-column: auto;
+    grid-row: auto;
+    min-height: 32px;
+    justify-content: flex-start;
+  }
+  .tw-tech-r11 .tw-tech-r1__marks li:nth-child(even) { justify-content: flex-end; }
+  .tw-tech-r11 .tw-tech-r1__marks img { opacity: .62; }
+}
+
+@media (max-width: 480px) {
+  .tw-tech-r11 .tw-tech-r1__shell { width: calc(100% - 32px); }
+  .tw-tech-r11 .tw-tech-r1__marks { column-gap: 22px; row-gap: 18px; }
+}
+
+@media (orientation: landscape) and (max-height: 540px) {
+  .tw-tech-r11 { padding: 28px 0 30px; }
+  .tw-tech-r11 .tw-tech-r1__shell {
+    display: grid;
+    grid-template-columns: minmax(180px, .34fr) minmax(0, .66fr);
+    gap: 28px;
+  }
+  .tw-tech-r11 .tw-tech-r1__marks {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(30px, auto));
+    column-gap: 18px;
+    row-gap: 16px;
+    margin-top: 0;
+  }
+  .tw-tech-r11 .tw-tech-r1__marks li[data-brand] {
+    grid-column: auto;
+    grid-row: auto;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-tech-r11 .tw-tech-r1__marks img {
+    transition: none !important;
+    transform: none !important;
+  }
+}

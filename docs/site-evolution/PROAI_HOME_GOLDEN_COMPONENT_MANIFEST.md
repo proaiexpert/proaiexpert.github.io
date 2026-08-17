@@ -30,7 +30,7 @@ Critical identities:
 - `_includes/header-system/header.html` — `6edc924df1df630a69379dfd746d161bab2fbe98`
 - `_data/header.yml` — `e43d76c80a833c9123e6d06a08c45a38edd61158`
 - `_data/navigation.yml` — `64a1fbe4492eebb8c5f3cacede448e5c91327318`
-- `assets/css/header-system-v1.css` — `1e7651d5014b4b7b2e6f3d6a662b5431a7692f71`
+- `assets/css/header-system-v1.css` — `1e7651d5014b7b2e6f3d6a662b5431a7692f71`
 - `assets/js/header-system-v1.js` — `bb107dd6054ba5210b4f77568e04014cdb239c55`
 
 Do not regress to pre-canonical mobile auto-hide JS or duplicate Header mounts.
@@ -56,6 +56,23 @@ Critical identities:
 - `assets/models/proai-cube/rubik_39_s_cube_animation.glb` — Git blob `7992019d85304c16244d0ca55a8cf15c13c26190`; SHA256 `dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b`.
 
 Do not use later semantic-owned motion, continuous-positive yaw, sequential-only slicing, forced orientation, global slowdown, or turntable behavior.
+
+## Semantic Cube R1 — PRESERVED R&D / OWNER REVIEW BLOCKED
+
+Branch: `agent/proai-cube-golden-hero-semantic-r1`
+
+Product: `1f897995edd67ac52b6a69c90d9b5bfe7c65cfbf` (`fix: acquire semantic faces from current cube state`)
+
+Status: **PRESERVED R&D PRODUCT / OWNER VISUAL REVIEW BLOCKED**  
+Golden status: **NOT GOLDEN**  
+Owner approval: **NOT APPROVED**  
+Homepage assembly authorization: **NO**
+
+This checkpoint preserves the later physical Semantic Cube work, including the Dynamic Current-Face Acquisition correction. It is intentionally not used by Golden Homepage Assembly R1. The accepted Hero Cube at `735982473854c29a6f1eeeb4d87773abbc573b4d` remains the authoritative Golden Cube.
+
+Semantic Cube R1 requires a separate successful visual-review recovery before any future homepage substitution can be considered. Previous blank/fog-only standalone previews were review/runtime packaging failures and are not evidence that the Git product commit was lost, that the Golden Cube failed, or that the Semantic Cube branch may be deleted or rewritten.
+
+This branch/commit must not be deleted during cleanup until Semantic Cube disposition is explicitly decided by Owner. Later rejected Semantic Cube experiments must not become Golden motion authority. No Semantic Cube state may silently change Golden whole-cube motion, signed yaw, pitch/roll, paired staggered slice behavior, Golden scheduler, or camera/orbit behavior without a separate Owner-approved task.
 
 ## Connected System — OWNER APPROVED
 

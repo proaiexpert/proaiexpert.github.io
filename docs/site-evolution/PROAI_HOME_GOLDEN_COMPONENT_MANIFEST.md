@@ -4,7 +4,7 @@ Recovery date: 2026-08-17
 
 - Production main / Golden Assembly base: `c945084e1952c05c686494091f7dbca0f7acdf08`
 - Recovery branch: `agent/proai-home-golden-assembly-r1`
-- Golden Assembly product SHA: `7c19ea0be79117f51a53654b358ffaa06029159c`
+- Golden Assembly product SHA: `6968afc698fc583b4573cf8056476ad984fa52d7`
 
 ## Logo — OWNER APPROVED
 
@@ -79,30 +79,33 @@ Known regressed Home Assembly identities that must not be used:
 
 ## Fourth block / Two Worlds — IN PROGRESS
 
-Locked recovery snapshot: `bdbf7a3195b269186c9a61938ab56c65edc533af` (Bimetal Fold R2.1). Review capture commit: `6fed1a4c123708e063a81ac2d4fe0191ef2f66eb`.
-A later R2.2 product exists (`411937c0e1367681891ef562e02d333681984c39`) but no explicit Owner approval was found; it is not imported by this recovery.
+Latest in-progress product snapshot: `411937c0e1367681891ef562e02d333681984c39` (Bimetal Fold R2.2).
+R2.1 product parent lineage: `bdbf7a3195b269186c9a61938ab56c65edc533af`; R2.1 controlled review capture: `6fed1a4c123708e063a81ac2d4fe0191ef2f66eb`.
+No explicit Owner approval freezing R2.2 was found; it remains IN PROGRESS and is preserved without design changes.
 
-Critical R2.1 identities:
+Critical current identities:
 - `_includes/homepage-two-worlds-r2-en.html` — `9f68f8d6832cd50f400eebdfa39c4c0b1d808931`
 - `_includes/homepage-two-worlds-r2-ru.html` — `98d0b0509bba746629f12f3e22f858c7afb5e0dd`
 - `assets/css/homepage-two-worlds-r2.css` — `b223e33734d0bf1411e55a997263fafc1e32b1c9`
 - `assets/js/homepage-two-worlds-r2.js` — `b2da88b805fe07eea7fcdad491efd2c5ce6d7f82`
 - `assets/css/homepage-two-worlds-r21.css` — `f6e235807eb5c238cf5849ae222f192de1a5d09b`
 - `assets/js/homepage-two-worlds-r21.js` — `94977c8128a4a5f62eb5df4ed80ab2892a86250f`
+- `assets/css/homepage-two-worlds-r22.css` — `63e9d73d4ecad2c339ac42a61b0cdf39663894b2`
+- `assets/js/homepage-two-worlds-r22.js` — `1983ba4bef7816501a7605293a95b828d3748b06`
 
 ## Shared assembly wiring
 
-Controlled wiring source: R2.1 snapshot `bdbf7a3195b269186c9a61938ab56c65edc533af`, itself descended from Home Assembly product `0c0613cd40d0f396d9dbf05bf2f8a61658ff4ae0`.
+Controlled wiring source: latest Two Worlds R2.2 snapshot `411937c0e1367681891ef562e02d333681984c39`, descended from Home Assembly product `0c0613cd40d0f396d9dbf05bf2f8a61658ff4ae0`.
 
-Critical wiring identities before Connected replacement:
+Critical wiring identities:
 - `_includes/homepage-assembly-base-en.html` — `72a5a6e84b6bfd47753bbce8a7ccfbc9c5cffd22`
 - `_includes/homepage-assembly-base-ru.html` — `690ccf7d82368b57b29dc66031c010db2cbb8b94`
-- `index.html` — `cb52abb576c9bbc6309c712540f045a047b49070`
-- `ru/index.html` — `49c1c5f080e6c2466bdd9b47932246fc802fcb63`
+- `index.html` — `eba5f5f7c63a4519861251e894fcef4c0406c8cf`
+- `ru/index.html` — `ff91c72ba2a6cdc7fa2e1db4c57001b8152b5cea`
 - `assets/js/homepage-core-hardening-v1.js` — `4ffd9833232177f77d4189811a21b71dd28201dc`
 - `mobile-pass-v141.css` — `5bd5bf4ddcb9fe4af0979abe63d4267251c561cd`
 
-Only the four Connected System component blobs are replaced from `d5f2e2fd85218b2a98e774b0b19df1536240d4fb`; assembly wrappers and Two Worlds R2.1 remain unchanged.
+Connected System component blobs are replaced from `d5f2e2fd85218b2a98e774b0b19df1536240d4fb`; latest Two Worlds R2.2 production files/wiring remain exact to `411937c0e1367681891ef562e02d333681984c39`.
 
 ## Recovery rule
 

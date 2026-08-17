@@ -1,0 +1,245 @@
+name: Golden Assembly R1 P0 Local Proof
+
+on:
+  push:
+    branches:
+      - agent/proai-home-golden-assembly-r1-p0-local-proof
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRODUCT_SHA: 9128ce0690062755f1a5e229b44ce3ad98465d69
+      PROOF_DIR: proof
+    steps:
+      - name: Checkout exact Golden product
+        uses: actions/checkout@v6
+        with:
+          ref: 9128ce0690062755f1a5e229b44ce3ad98465d69
+          fetch-depth: 0
+
+      - name: Verify exact product and frozen blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          test "$(git hash-object _includes/header-system/header.html)" = "6edc924df1df630a69379dfd746d161bab2fbe98"
+          test "$(git hash-object assets/css/header-system-v1.css)" = "1e7651d5014b4b7b2e6f3d6a662b5431a7692f71"
+          test "$(git hash-object assets/js/header-system-v1.js)" = "bb107dd6054ba5210b4f77568e04014cdb239c55"
+          test "$(git hash-object assets/css/homepage-hero-signature-r3.css)" = "5dde833560aac0958875842a598f622942597b74"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/bootstrap.js)" = "b46b26164efc000daef8ecb3416039008db7cd79"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" = "bab6b00e73b20fc2a51aeb00cb7fc08f16129e72"
+          test "$(git hash-object assets/models/proai-cube/rubik_39_s_cube_animation.glb)" = "7992019d85304c16244d0ca55a8cf15c13c26190"
+          test "$(sha256sum assets/models/proai-cube/rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
+          test "$(git hash-object assets/js/homepage-connected-system-r13.js)" = "8fba38d49366bb69b7e06f9527dd4d07d8d05279"
+          test "$(git hash-object assets/css/homepage-connected-system-r13.css)" = "b99dfc19739070fee88d47c94c202d60feab7619"
+          test "$(git hash-object _includes/homepage-connected-system-en.html)" = "6bf4b0c236ab9063b7588faf5c59f660f64b71aa"
+          test "$(git hash-object _includes/homepage-connected-system-ru.html)" = "92081f9f98f43a9f794d2c5a49b7bce19aafae16"
+          test "$(git hash-object _includes/homepage-two-worlds-r2-en.html)" = "9f68f8d6832cd50f400eebdfa39c4c0b1d808931"
+          test "$(git hash-object _includes/homepage-two-worlds-r2-ru.html)" = "98d0b0509bba746629f12f3e22f858c7afb5e0dd"
+          test "$(git hash-object assets/css/homepage-two-worlds-r22.css)" = "63e9d73d4ecad2c339ac42a61b0cdf39663894b2"
+          test "$(git hash-object assets/js/homepage-two-worlds-r22.js)" = "1983ba4bef7816501a7605293a95b828d3748b06"
+
+      - name: Build exact Golden product with Jekyll
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$PROOF_DIR"
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site | tee "$PROOF_DIR/jekyll-build.log"
+          test -s _site/index.html
+          test -s _site/ru/index.html
+
+      - name: Structural rendered-source counts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          class C(HTMLParser):
+              def __init__(self):
+                  super().__init__(); self.c={k:0 for k in ['header','hero','cube_mount','connected','two_worlds','case']}
+              def handle_starttag(self, tag, attrs):
+                  a=dict(attrs); classes=set((a.get('class') or '').split())
+                  if tag=='header' and ('data-site-header' in a or 'global-header' in classes): self.c['header']+=1
+                  if a.get('id')=='hero': self.c['hero']+=1
+                  if a.get('id')=='proai-hero-cube-mount': self.c['cube_mount']+=1
+                  if 'data-connected-system' in a: self.c['connected']+=1
+                  if 'data-tw-r2' in a: self.c['two_worlds']+=1
+                  if tag=='section' and a.get('id')=='section-trigger' and 'case-study-interactive' in classes: self.c['case']+=1
+
+          out={}
+          for lang,p in [('en',Path('_site/index.html')),('ru',Path('_site/ru/index.html'))]:
+              x=C(); x.feed(p.read_text(encoding='utf-8')); out[lang]=x.c
+          Path('proof/structural-counts.json').write_text(json.dumps(out,indent=2),encoding='utf-8')
+          print(json.dumps(out,indent=2))
+          expected={'header':1,'hero':1,'cube_mount':1,'connected':1,'two_worlds':1,'case':1}
+          if any(out[lang]!=expected for lang in ('en','ru')): raise SystemExit(2)
+          PY
+
+      - name: Serve local built site
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4000 --bind 127.0.0.1 --directory _site > "$PROOF_DIR/http.log" 2>&1 &
+          echo $! > "$PROOF_DIR/http.pid"
+          for i in $(seq 1 30); do
+            en=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/ || true)
+            ru=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:4000/ru/ || true)
+            if [ "$en" = "200" ] && [ "$ru" = "200" ]; then
+              printf '{"en":%s,"ru":%s}\n' "$en" "$ru" > "$PROOF_DIR/http-status.json"
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$PROOF_DIR/http.log"
+          exit 1
+
+      - name: Install Chromium driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+          mkdir -p /tmp/proai-p0-proof
+          cd /tmp/proai-p0-proof
+          npm init -y >/dev/null 2>&1
+          npm install --no-save puppeteer-core@24.16.0 >/dev/null
+
+      - name: Local Chromium proof
+        shell: bash
+        run: |
+          set +e
+          cat > /tmp/proai-p0-proof/proof.cjs <<'NODE'
+          const fs=require('fs');
+          const path=require('path');
+          const puppeteer=require('puppeteer-core');
+          const base='http://127.0.0.1:4000';
+          const proof=path.resolve('proof');
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          const consoleErrors=[];
+          const networkFailures=[];
+          const fatal=[];
+          const result={boot:{},cube:{},connected:{},ruRhythm:{},mobile:{},screenshots:{},pass:false};
+          const localAsset=u=>u.startsWith(base) && /\.(js|css|glb)(\?|$)/i.test(u);
+
+          function attach(page,label){
+            page.on('pageerror',e=>{const t=`${label}: pageerror: ${e.message}`;consoleErrors.push(t);fatal.push(t);});
+            page.on('console',m=>{if(m.type()==='error'){const t=`${label}: console: ${m.text()}`;consoleErrors.push(t);if(/GLB load failed|initialization failed|Uncaught|TypeError|ReferenceError|SyntaxError/i.test(t))fatal.push(t);}});
+            page.on('requestfailed',r=>{const t=`${label}: requestfailed: ${r.url()} ${r.failure()?.errorText||''}`;networkFailures.push(t);if(localAsset(r.url())||/\.glb(?:\?|$)/i.test(r.url()))fatal.push(t);});
+            page.on('response',r=>{const u=r.url();if(r.status()>=400 && (localAsset(u)||/\.glb(?:\?|$)/i.test(u))){const t=`${label}: response ${r.status()} ${r.headers()['content-type']||'NO_MIME'} ${u}`;networkFailures.push(t);fatal.push(t);}});
+          }
+
+          async function open(browser,route,w=1440,h=900,label=route){
+            const page=await browser.newPage(); attach(page,label);
+            await page.setViewport({width:w,height:h,deviceScaleFactor:1});
+            await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
+            const response=await page.goto(base+route,{waitUntil:'domcontentloaded',timeout:45000});
+            await page.waitForFunction(()=>document.querySelector('.proai-hero-object-slot[data-proai-hero-object]')?.dataset.cubeMounted==='true' && window.__PROAI_HERO_CUBE_R1?.runtime?.ready===true,{timeout:30000});
+            return {page,httpStatus:response?.status()||0};
+          }
+
+          async function state(page,httpStatus){return page.evaluate(httpStatus=>{
+            const vis=e=>{if(!e)return false;const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>4&&r.height>4&&s.display!=='none'&&s.visibility!=='hidden'&&Number(s.opacity||1)>0;};
+            const q=s=>document.querySelector(s), qa=s=>document.querySelectorAll(s).length;
+            const headerCount=document.querySelectorAll('header[data-site-header],header.global-header').length;
+            return {httpStatus,headerVisible:vis(q('header[data-site-header],header.global-header')),heroVisible:vis(q('#hero')),cubeVisible:vis(q('#cube-canvas')),cubeReady:window.__PROAI_HERO_CUBE_R1?.runtime?.ready===true,connectedVisible:vis(q('[data-connected-system]')),twoWorldsVisible:vis(q('[data-tw-r2]')),counts:{header:headerCount,hero:qa('#hero'),cube:qa('#cube-canvas'),connected:qa('[data-connected-system]'),twoWorlds:qa('[data-tw-r2]'),case:qa('section.case-study-interactive#section-trigger')},overflow:document.documentElement.scrollWidth>innerWidth+2};
+          },httpStatus);}
+
+          const goodBoot=x=>x.httpStatus===200&&x.headerVisible&&x.heroVisible&&x.cubeVisible&&x.cubeReady&&x.connectedVisible&&x.twoWorldsVisible&&Object.values(x.counts).every(v=>v===1);
+
+          async function boot(browser,route,label){const {page,httpStatus}=await open(browser,route,1440,900,label);const s=await state(page,httpStatus);await page.close();return s;}
+
+          async function heroShot(browser){const {page}=await open(browser,'/',1440,900,'shot-en');await page.evaluate(()=>scrollTo(0,0));await sleep(300);await page.screenshot({path:path.join(proof,'screenshot-1-desktop-hero-en.png')});await page.close();}
+
+          async function cubeProof(browser){
+            const {page}=await open(browser,'/',1440,900,'cube-motion');
+            const start=await page.evaluate(()=>window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());
+            const seen=new Map(); let moving=false,negative=null,pitchRoll=null,pair=null;
+            const until=Date.now()+50000;
+            while(Date.now()<until){
+              const x=await page.evaluate(()=>{const r=window.__PROAI_HERO_CUBE_R1.runtime,d=r.getDiagnostics();let p=null;try{p=r.getReviewPresentationSample(d.presentation.simTimeMs/1000);}catch{}return{d,p,t:performance.now()};});
+              if(Math.abs(x.d.presentation.cumulativeYawDeg-start.presentation.cumulativeYawDeg)>1)moving=true;
+              if(!negative && x.d.presentation.yawVelocityDegPerSec<-1)negative={simTimeMs:x.d.presentation.simTimeMs,velocity:x.d.presentation.yawVelocityDegPerSec,signedYawDeg:x.d.presentation.signedYawDeg};
+              if(!pitchRoll && x.p && Math.abs(x.p.pitchDeg)>.8 && Math.abs(x.p.rollDeg)>.08)pitchRoll=x.p;
+              for(const t of (x.d.activeTurns||[])) if(!seen.has(t.id))seen.set(t.id,x.t);
+              if(!pair && (x.d.activeTurns||[]).length===2){const [a,b]=x.d.activeTurns;if(a.axis===b.axis&&a.layer!==b.layer){const stagger=Math.abs((seen.get(b.id)||x.t)-(seen.get(a.id)||x.t));if(stagger>=50&&stagger<=350)pair={axis:a.axis,layers:[a.layer,b.layer],staggerMs:stagger,turns:[a.id,b.id]};}}
+              if(moving&&negative&&pitchRoll&&pair)break;
+              await sleep(20);
+            }
+            const end=await page.evaluate(()=>window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());
+            await page.close();
+            return {visible:true,ready:start.ready===true,moving,negativeYawObserved:!!negative,negative,pitchRollObserved:!!pitchRoll,pitchRoll,trueStaggeredPairObserved:!!pair,pair,startYaw:start.presentation.cumulativeYawDeg,endYaw:end.presentation.cumulativeYawDeg};
+          }
+
+          async function connectedProof(browser){
+            const {page}=await open(browser,'/',1440,900,'connected-timing');
+            await page.evaluate(()=>{const sec=document.querySelector('[data-connected-system]'),st=[...sec.querySelectorAll('[data-system-stage]')];window.__ct={start:performance.now(),active:[],seen:{}};st.forEach((e,i)=>new MutationObserver(()=>{if(e.classList.contains('is-active')&&!window.__ct.seen[i]){window.__ct.seen[i]=1;window.__ct.active.push({i,t:performance.now()});}}).observe(e,{attributes:true,attributeFilter:['class']}));sec.scrollIntoView({block:'center'});});
+            await page.waitForFunction(()=>window.__ct?.active?.length===4,{timeout:12000});
+            const timing=await page.evaluate(()=>{const t=window.__ct,a=t.active.map(x=>x.t-t.start);return{activeMs:a,firstActiveMs:a[0],gaps:a.slice(1).map((x,i)=>x-a[i])};});
+            timing.transferDurationSource620=await page.evaluate(async()=>{const t=await (await fetch('/assets/js/homepage-connected-system-r13.js')).text();return /transferDuration\s*[:=]\s*620/.test(t)||/transferDuration:\s*620/.test(t)||t.includes('620');});
+            timing.cadencePass=Math.abs(timing.firstActiveMs-760)<=170&&timing.gaps.length===3&&timing.gaps.every(g=>Math.abs(g-1900)<=130);
+            await page.close(); return timing;
+          }
+
+          async function ruRhythm(browser){
+            const {page}=await open(browser,'/ru/',1440,900,'ru-rhythm');
+            await page.evaluate(()=>document.querySelector('[data-connected-system]').scrollIntoView({block:'center'})); await sleep(7800);
+            const r=await page.evaluate(()=>{const sec=document.querySelector('[data-connected-system]'),st=[...sec.querySelectorAll('[data-system-stage]')],m=st.map(e=>{const b=e.getBoundingClientRect(),c=e.querySelector('.cs-components')?.getBoundingClientRect();return{height:b.height,componentsTop:c?c.top-b.top:null,client:e.clientHeight,scroll:e.scrollHeight};});const nums=m.map(x=>x.componentsTop).filter(Number.isFinite);return{connectedCount:document.querySelectorAll('[data-connected-system]').length,stageCount:st.length,noClip:m.every(x=>x.scroll<=x.client+2),componentsTopSpread:nums.length?Math.max(...nums)-Math.min(...nums):999,metrics:m,cssActive:[...document.styleSheets].some(s=>(s.href||'').includes('/assets/css/homepage-connected-system-r13.css'))};});
+            r.pass=r.connectedCount===1&&r.stageCount===4&&r.noClip&&r.componentsTopSpread<=8&&r.cssActive;
+            await page.screenshot({path:path.join(proof,'screenshot-2-desktop-connected-ru.png')}); await page.close(); return r;
+          }
+
+          async function mobile(browser,route,label,shot=false){
+            const {page,httpStatus}=await open(browser,route,390,844,label); const s=await state(page,httpStatus);
+            if(shot){await page.evaluate(()=>scrollTo(0,0));await sleep(250);await page.screenshot({path:path.join(proof,'screenshot-3-mobile.png')});}
+            await page.close();
+            s.pass=goodBoot(s)&&!s.overflow; return s;
+          }
+
+          (async()=>{
+            fs.mkdirSync(proof,{recursive:true});
+            const browser=await puppeteer.launch({executablePath:process.env.CHROME_BIN,headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--ignore-gpu-blocklist','--enable-webgl','--enable-unsafe-swiftshader','--use-angle=swiftshader']});
+            try{
+              result.boot.en=await boot(browser,'/','boot-en');
+              result.boot.ru=await boot(browser,'/ru/','boot-ru');
+              result.boot.enPass=goodBoot(result.boot.en); result.boot.ruPass=goodBoot(result.boot.ru);
+              if(result.boot.enPass&&result.boot.ruPass){
+                await heroShot(browser);
+                result.cube=await cubeProof(browser);
+                result.connected=await connectedProof(browser);
+                result.ruRhythm=await ruRhythm(browser);
+                result.mobile.en=await mobile(browser,'/','mobile-en',true);
+                result.mobile.ru=await mobile(browser,'/ru/','mobile-ru',false);
+              }
+              result.screenshots={one:fs.existsSync(path.join(proof,'screenshot-1-desktop-hero-en.png')),two:fs.existsSync(path.join(proof,'screenshot-2-desktop-connected-ru.png')),three:fs.existsSync(path.join(proof,'screenshot-3-mobile.png'))};
+              result.pass=result.boot.enPass&&result.boot.ruPass&&result.cube.moving&&result.cube.negativeYawObserved&&result.cube.pitchRollObserved&&result.cube.trueStaggeredPairObserved&&result.connected.cadencePass&&result.connected.transferDurationSource620&&result.ruRhythm.pass&&result.mobile.en?.pass&&result.mobile.ru?.pass&&result.screenshots.one&&result.screenshots.two&&result.screenshots.three&&fatal.length===0;
+            }catch(e){fatal.push(`harness: ${e.stack||e}`);}
+            finally{await browser.close();result.fatal=fatal;result.consoleErrors=consoleErrors;result.networkFailures=networkFailures;fs.writeFileSync(path.join(proof,'QA_RESULTS.json'),JSON.stringify(result,null,2));fs.writeFileSync(path.join(proof,'console-errors.txt'),consoleErrors.join('\n'));fs.writeFileSync(path.join(proof,'network-failures.txt'),networkFailures.join('\n'));}
+            if(!result.pass)process.exit(2);
+          })();
+          NODE
+          node /tmp/proai-p0-proof/proof.cjs
+          rc=$?
+          cat "$PROOF_DIR/QA_RESULTS.json" || true
+          exit $rc
+
+      - name: Upload proof artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-home-golden-assembly-r1-wiring-proof
+          path: proof/
+          if-no-files-found: warn
+          retention-days: 7

@@ -413,7 +413,7 @@ function canonicalTransformError(){let maxPosition=0,maxQuaternionRad=0,maxScale
 function presentationVelocityAt(timeMs){const cycle=PRESENTATION_R1_2.velocityCycleMs;let local=timeMs%cycle;if(local<0)local+=cycle;const keys=PRESENTATION_R1_2.velocityKeyframes;for(let i=0;i<keys.length-1;i++){const a=keys[i],b=keys[i+1];if(local<=b.timeMs){const p=smoothstep((local-a.timeMs)/Math.max(1,b.timeMs-a.timeMs));return THREE.MathUtils.lerp(a.velocityDegPerSec,b.velocityDegPerSec,p);}}return keys[0].velocityDegPerSec;}
 function presentationPitchRollAt(timeMs){const pitch=THREE.MathUtils.degToRad(8.65*Math.sin((timeMs/PRESENTATION_R1_2.pitchPrimaryPeriodMs)*Math.PI*2+.42)+1.55*Math.sin((timeMs/PRESENTATION_R1_2.pitchSecondaryPeriodMs)*Math.PI*2+1.18));const roll=THREE.MathUtils.degToRad(1.92*Math.sin((timeMs/PRESENTATION_R1_2.rollPrimaryPeriodMs)*Math.PI*2+1.35)+.48*Math.sin((timeMs/PRESENTATION_R1_2.rollSecondaryPeriodMs)*Math.PI*2+2.20));return{pitch,roll};}
 function presentationQuaternionAt(timeMs,yawRad){const{pitch,roll}=presentationPitchRollAt(timeMs);return new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch,yawRad,roll,'YXZ')).normalize();}
-function updatePresentationMotion(now){if(!runtime.ready||prefersReducedMotion)return;if(!presentationLastNow){presentationLastNow=now;return;}const deltaMs=Math.min(80,Math.max(0,now-presentationLastNow));presentationLastNow=now;presentationSimTimeMs+=deltaMs;presentationYawVelocityDegPerSec=presentationVelocityAt(presentationSimTimeMs);const yawStepDeg=presentationYawVelocityDegPerSec*(deltaMs/1000);presentationYawRad+=THREE.MathUtils.degToRad(yawStepDeg);presentationSignedYawDeg+=yawStepDeg;presentationCumulativeYawDeg+=Math.abs(yawStepDeg);const pr=presentationPitchRollAt(presentationSimTimeMs);presentationPitchDeg=THREE.MathUtils.radToDeg(pr.pitch);presentationRollDeg=THREE.MathUtils.radToDeg(pr.roll);presentationRig.quaternion.copy(presentationQuaternionAt(presentationSimTimeMs,presentationYawRad));}
+function updatePresentationMotion(now){if(!runtimeState.ready||prefersReducedMotion)return;if(!presentationLastNow){presentationLastNow=now;return;}const deltaMs=Math.min(80,Math.max(0,now-presentationLastNow));presentationLastNow=now;presentationSimTimeMs+=deltaMs;presentationYawVelocityDegPerSec=presentationVelocityAt(presentationSimTimeMs);const yawStepDeg=presentationYawVelocityDegPerSec*(deltaMs/1000);presentationYawRad+=THREE.MathUtils.degToRad(yawStepDeg);presentationSignedYawDeg+=yawStepDeg;presentationCumulativeYawDeg+=Math.abs(yawStepDeg);const pr=presentationPitchRollAt(presentationSimTimeMs);presentationPitchDeg=THREE.MathUtils.radToDeg(pr.pitch);presentationRollDeg=THREE.MathUtils.radToDeg(pr.roll);presentationRig.quaternion.copy(presentationQuaternionAt(presentationSimTimeMs,presentationYawRad));}
 
 function seededUnit(){let x=sliceSeed>>>0;x^=(x<<13)>>>0;x^=x>>>17;x^=(x<<5)>>>0;sliceSeed=x>>>0;return sliceSeed/4294967296;}
 function seededRange(min,max){return min+(max-min)*seededUnit();}
@@ -496,7 +496,7 @@ function startRelease(now,success,reason){const duration=semanticState.readableM
 function finishRelease(now){setFaceEnvelope(null,0);if(semanticState.releaseSuccess){semanticState.messageIndex=(semanticState.messageIndex+1)%SEMANTIC.messages.length;semanticState.nextEligibleMs=now+semanticRange(...SEMANTIC.observer.cooldownRangeMs);}semanticState.state='DORMANT';semanticState.face=null;semanticState.message=null;semanticState.stageMs=null;semanticState.candidateMs=null;semanticState.readableMs=null;semanticState.releaseMs=null;semanticState.belowExitSinceMs=null;semanticState.candidatePeak=0;}
 
 function updateSemantic(now){
-  if(!runtime.ready||!semanticEnabled)return;
+  if(!runtimeState.ready||!semanticEnabled)return;
   if(semanticState.firstEligibilityMs===null)semanticState.firstEligibilityMs=now;
   const dt=Math.max(0,Math.min(80,now-(semanticState.lastUpdateMs||now)));semanticState.lastUpdateMs=now;
   if(semanticState.state==='DORMANT'){
@@ -538,19 +538,20 @@ function resize(){const rect=canvas.getBoundingClientRect();renderer.setSize(Mat
 window.addEventListener('resize',resize,{passive:true});
 
 function diagnosticsSnapshot(){return{
-  ready:runtime.ready,semanticEnabled,golden:GOLDEN,motionState,
+  ready:runtimeState.ready,semanticEnabled,golden:GOLDEN,motionState,
   signedYawVelocityDegPerSec:presentationYawVelocityDegPerSec,signedYawDeg:presentationSignedYawDeg,pitchDeg:presentationPitchDeg,rollDeg:presentationRollDeg,
   eventSerial:sliceEventSerial,singleCount:counters.single,pairCount:counters.pair,phraseCount:counters.phrase,actualConcurrentPairCount:counters.concurrentPairs,
   axisCounts:{...counters.axes},layerCounts:{...counters.layers},maxSimultaneousTurns:counters.maxSimultaneousTurns,pairOverlapEvents:counters.pairOverlapEvents,
   activeTurns:activeTurnList().map((t)=>({axis:t.axis,layer:t.layer,direction:t.direction,linear:t.linear,ids:t.cubiePlans.map((p)=>p.cubie.id)})),
-  endpointError:lastTurnResult?.endpointErrorRad??null,canonicalError:runtime.ready&&activeTurns.size===0?canonicalTransformError():null,
+  endpointError:lastTurnResult?.endpointErrorRad??null,canonicalError:runtimeState.ready&&activeTurns.size===0?canonicalTransformError():null,
   semanticState:semanticState.state,semanticMessage:semanticState.message,semanticFace:semanticState.face,semanticStageTime:semanticState.stageMs===null?null:semanticState.stageMs-readyAtMs,semanticCandidateTime:semanticState.candidateMs===null?null:semanticState.candidateMs-readyAtMs,semanticReadableTime:semanticState.readableMs===null?null:semanticState.readableMs-readyAtMs,semanticReleaseTime:semanticState.releaseMs===null?null:semanticState.releaseMs-readyAtMs,readableDuration:semanticState.readableDurationMs,
   protectedSubstitutions:semanticState.protectedSubstitutions,tearingViolations:semanticState.tearingViolations,wholeFaceDeferrals:semanticState.wholeFaceDeferrals,wholeFaceReadableRotationsExecuted:semanticState.wholeFaceReadableRotationsExecuted,safePairsDuringProtection:semanticState.safePairsDuringProtection,stageCancellations:semanticState.stageCancellations,semanticQueueIndex:semanticState.messageIndex,
   firstEligibility:semanticState.firstEligibilityMs===null?null:semanticState.firstEligibilityMs-readyAtMs,firstStage:semanticState.firstStageMs===null?null:semanticState.firstStageMs-readyAtMs,firstCandidate:semanticState.firstCandidateMs===null?null:semanticState.firstCandidateMs-readyAtMs,firstReadable:semanticState.firstReadableMs===null?null:semanticState.firstReadableMs-readyAtMs,firstRelease:semanticState.firstReleaseMs===null?null:semanticState.firstReleaseMs-readyAtMs,firstFace:semanticState.firstFace,firstMessage:semanticState.firstMessage,
   semanticFaces:[...semanticFaceRegistry.keys()],eventPattern:[...SLICE_R1_2.eventPattern],signedNegativeYawPreserved:PRESENTATION_R1_2.velocityKeyframes.some((k)=>k.velocityDegPerSec<0),
 };}
-const runtime={ready:false,get snapshot(){return diagnosticsSnapshot();},get readyState(){return runtime.ready;},stop(){sliceSchedulerEnabled=false;},start(){if(!prefersReducedMotion){sliceSchedulerEnabled=true;void sliceSchedulerLoop();}}};
-Object.defineProperty(window,'__PROAI_GOLDEN_SEMANTIC_R1',{value:Object.freeze(runtime),writable:false,configurable:false});
+const runtimeState={ready:false};
+const diagnostics=Object.freeze({get ready(){return runtimeState.ready;},get snapshot(){return diagnosticsSnapshot();}});
+Object.defineProperty(window,'__PROAI_GOLDEN_SEMANTIC_R1',{value:diagnostics,writable:false,configurable:false});
 
 function render(now){updatePresentationMotion(now);updateSemantic(now);controls.update();renderer.render(scene,camera);requestAnimationFrame(render);}
 requestAnimationFrame(render);
@@ -568,7 +569,7 @@ async function boot(){
     const gltf=await loadVerifiedGoldenGLB();cubeRoot=gltf.scene;presentationRig.add(cubeRoot);cubeRoot.updateMatrixWorld(true);sceneOne=cubeRoot.getObjectByName('right')?.parent||cubeRoot.getObjectByName('Scene 1')||cubeRoot;
     cubeRoot.traverse((o)=>{if(o.name==='Plane'||o.isLight)o.visible=false;});prepareMechanicalModel();const geometry=enhanceRenderGeometry();if(!geometry.pass)throw new Error(`Golden geometry gate failed ${JSON.stringify(geometry)}`);
     cubeRoot.updateMatrixWorld(true);cubeRoot.traverse((o)=>{if(o.isMesh&&o.name!=='Plane'){o.material=classifyReviewMaterial(o);o.castShadow=false;o.receiveShadow=false;}});
-    installSemanticRegistry();frameCamera();resize();readyAtMs=performance.now();runtime.ready=true;motionState='rest';status.textContent=`Golden verified · semantics ${semanticEnabled?'enabled':'disabled'} · Owner review`;status.classList.add('ready');if(sliceSchedulerEnabled)void sliceSchedulerLoop();
+    installSemanticRegistry();frameCamera();resize();readyAtMs=performance.now();runtimeState.ready=true;motionState='rest';status.textContent=`Golden verified · semantics ${semanticEnabled?'enabled':'disabled'} · Owner review`;status.classList.add('ready');if(sliceSchedulerEnabled)void sliceSchedulerLoop();
   }catch(error){console.error('[Golden Semantic R1] boot failed',error);motionState='error';status.textContent=`Runtime error: ${error.message||error}`;status.classList.add('error');}
 }
 boot();

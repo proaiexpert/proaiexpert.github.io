@@ -9,6 +9,7 @@ permalink: /
 {% assign homepage_assembled = assembly_base | replace_first: assembly_frontmatter, '' %}
 
 {% capture connected_system_head %}<link rel="stylesheet" href="/assets/css/homepage-connected-system-r13.css?v=20260815.1">
+<link rel="stylesheet" href="/assets/css/homepage-two-worlds-r1.css?v=20260816.1">
 </head>{% endcapture %}
 {% assign homepage_assembled = homepage_assembled | replace_first: '</head>', connected_system_head %}
 
@@ -19,7 +20,21 @@ permalink: /
 {% capture connected_system %}{% include homepage-connected-system-en.html %}{% endcapture %}
 {% assign homepage_assembled = homepage_before_manifest | append: connected_system | append: post_manifest_marker | append: homepage_after_manifest %}
 
+{% capture legacy_two_worlds_start %}<section class="split-section" id="core-split">{% endcapture %}
+{% capture methodology_marker %}<div class="process-wrapper" id="methodology">{% endcapture %}
+{% assign homepage_before_two_worlds = homepage_assembled | split: legacy_two_worlds_start | first %}
+{% assign homepage_after_two_worlds = homepage_assembled | split: methodology_marker | last %}
+{% capture two_worlds_r1 %}{% include homepage-two-worlds-r1-en.html %}{% endcapture %}
+{% assign homepage_assembled = homepage_before_two_worlds | append: two_worlds_r1 | append: methodology_marker | append: homepage_after_two_worlds %}
+
+{% capture legacy_technology_start %}<section id="tech-section-en">{% endcapture %}
+{% capture work_marker %}<section class="case-study-interactive" id="section-trigger">{% endcapture %}
+{% assign homepage_before_legacy_technology = homepage_assembled | split: legacy_technology_start | first %}
+{% assign homepage_after_legacy_technology = homepage_assembled | split: work_marker | last %}
+{% assign homepage_assembled = homepage_before_legacy_technology | append: work_marker | append: homepage_after_legacy_technology %}
+
 {% capture connected_system_body_end %}<script src="/assets/js/homepage-connected-system-r13.js?v=20260815.1" defer></script>
+<script src="/assets/js/homepage-two-worlds-r1.js?v=20260816.1" defer></script>
 </body>{% endcapture %}
 {% assign homepage_assembled = homepage_assembled | replace_first: '</body>', connected_system_body_end %}
 

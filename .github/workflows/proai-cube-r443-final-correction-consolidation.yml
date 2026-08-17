@@ -31,7 +31,7 @@ jobs:
           test "$(git rev-parse origin/$PRODUCT_BRANCH)" = "$START_SHA"
           test "$(git rev-parse origin/main)" = "$MAIN_SHA"
 
-      - name: Consolidate exact A98 behavior into authoritative architecture
+      - name: Consolidate exact A98 contract into authoritative architecture
         id: consolidate
         run: |
           set -euo pipefail
@@ -53,74 +53,60 @@ jobs:
                   raise SystemExit(f'{label}: expected exactly 1 anchor, got {count}')
               return text.replace(old, new, 1)
 
-          old_config = "const SEMANTIC_R443_CONFIG=Object.freeze({firstSemanticDelayMs:1600,stageScoreMin:.12,stageScoreMax:.59,stageViewMin:.36,stageAreaMin:.20,stageBrdfMin:0,stageAbortScore:0,stageTimeoutMs:3800,candidateApproachScore:.58,candidateApproachView:.46,candidateDwellMs:80,enterScore:.64,enterView:.52,enterArea:.26,enterBrdf:.18,exitScore:.54,exitView:.50,releaseDebounceMs:90,maxReadableHoldMs:1600,rearmScore:.50,breathingRangeMs:[5000,7000],longGapWarningMs:24000,longReadableWarningMs:2200,recentFaceDepth:2});"
-          new_config = "const SEMANTIC_R443_CONFIG=Object.freeze({firstSemanticDelayMs:1600,stageScoreMin:.12,stageScoreMax:.72,stageViewMin:.36,stageAreaMin:.20,stageBrdfMin:0,stageAbortScore:0,stageTimeoutMs:3800,candidateApproachScore:.54,candidateApproachView:.44,candidateDwellMs:80,enterScore:.60,enterView:.48,enterArea:.24,enterBrdf:.10,exitScore:.50,exitView:.46,releaseDebounceMs:90,maxReadableHoldMs:1600,rearmScore:.50,breathingRangeMs:[5000,7000],longGapWarningMs:24000,longReadableWarningMs:2200,recentFaceDepth:2});"
-          source = replace_once(source, old_config, new_config, 'A98 semantic config')
+          anchor = "for(const forbidden of[\n  'semanticR443PendingResolutionCount',"
+          block = r'''// R4.4.3 A98 FINAL PREMIUM CONTRACT — consolidated into the authoritative
+          // architecture layer. These replacements are intentionally identical to A98;
+          // no values, timing, motion, protection semantics, or material constants change.
+          replaceUnique(
+            "const SEMANTIC_R443_CONFIG=Object.freeze({firstSemanticDelayMs:1600,stageScoreMin:.12,stageScoreMax:.59,stageViewMin:.36,stageAreaMin:.20,stageBrdfMin:0,stageAbortScore:0,stageTimeoutMs:3800,candidateApproachScore:.58,candidateApproachView:.46,candidateDwellMs:80,enterScore:.64,enterView:.52,enterArea:.26,enterBrdf:.18,exitScore:.54,exitView:.50,releaseDebounceMs:90,maxReadableHoldMs:1600,rearmScore:.50,breathingRangeMs:[5000,7000],longGapWarningMs:24000,longReadableWarningMs:2200,recentFaceDepth:2});",
+            "const SEMANTIC_R443_CONFIG=Object.freeze({firstSemanticDelayMs:1600,stageScoreMin:.12,stageScoreMax:.72,stageViewMin:.36,stageAreaMin:.20,stageBrdfMin:0,stageAbortScore:0,stageTimeoutMs:3800,candidateApproachScore:.54,candidateApproachView:.44,candidateDwellMs:80,enterScore:.60,enterView:.48,enterArea:.24,enterBrdf:.10,exitScore:.50,exitView:.46,releaseDebounceMs:90,maxReadableHoldMs:1600,rearmScore:.50,breathingRangeMs:[5000,7000],longGapWarningMs:24000,longReadableWarningMs:2200,recentFaceDepth:2});",
+            'consolidated A98 dark-state semantic optical window',
+          );
+          replaceUnique(
+            "function semanticR443GuardFace(){return semanticR443State.stagedFace||semanticR442State.protectedFace||semanticR443State.candidateFace||null}",
+            "function semanticR443GuardFace(){return semanticR442State.protectedFace||semanticR443State.candidateFace||null}",
+            'consolidated A98 Candidate/Readable-only local motion guard',
+          );
+          replaceUnique(
+            "  let candidates=SEMANTIC_R443_CLOSED_ARCHETYPES.filter(p=>p.sourceState===semanticR443ClosedState.safeStateId);",
+            "  let candidates=SEMANTIC_R443_CLOSED_ARCHETYPES.filter(p=>p.sourceState===semanticR443ClosedState.safeStateId);\n  if(semanticR443ClosedState.phraseCount===0&&semanticR443ClosedState.safeStateId==='S00'){const opening=candidates.find(p=>p.id==='AUTH_B01');if(!opening)throw new Error('R4.4.3 final opening phrase AUTH_B01 unavailable');candidates=[opening]}",
+            'consolidated A98 AUTH_B01 opening selection',
+          );
+          replaceUnique(
+            '  await schedulerDelay(4800);',
+            '  await schedulerDelay(1200);',
+            'consolidated A98 opening scheduler continuity',
+          );
+          replaceUnique(
+            "      const spec=phrase.moves[i],liveGuard=semanticR443GuardFace();\n      if(liveGuard&&semanticR442MoveIntersection(spec,liveGuard).count>0){\n        semanticR443ClosedState.protectionAlterations++;\n        if(semanticR443State.phase===SEMANTIC_R443_PHASE.NORMAL&&semanticR443State.stagedFace===liveGuard){\n          semanticR443Unstage('impending-intersecting-turn');\n        }else{\n          while(sliceSchedulerEnabled){\n            const guardNow=semanticR443GuardFace();\n            if(!guardNow||semanticR442MoveIntersection(spec,guardNow).count===0)break;\n            await sleep(40)\n          }\n          if(!sliceSchedulerEnabled)break;\n          if(!await waitForSliceAutonomy())break\n        }\n      }",
+            "      const spec=phrase.moves[i],stagedGuard=semanticR443State.phase===SEMANTIC_R443_PHASE.NORMAL?semanticR443State.stagedFace:null,liveGuard=semanticR443GuardFace();\n      if(stagedGuard&&semanticR442MoveIntersection(spec,stagedGuard).count>0){semanticR443ClosedState.protectionAlterations++;semanticR443Unstage('impending-intersecting-turn')}\n      if(liveGuard&&semanticR442MoveIntersection(spec,liveGuard).count>0){\n        semanticR443ClosedState.protectionAlterations++;\n        while(sliceSchedulerEnabled){\n          const guardNow=semanticR443GuardFace();\n          if(!guardNow||semanticR442MoveIntersection(spec,guardNow).count===0)break;\n          await sleep(40)\n        }\n        if(!sliceSchedulerEnabled)break;\n        if(!await waitForSliceAutonomy())break\n      }",
+            'consolidated A98 non-stalling Stage plus local Candidate/Readable protection',
+          );
+          replaceUnique(
+            'bodyV=Math.round(255*.550),edgeV=Math.round(255*.095),radius=2;',
+            'bodyV=Math.round(255*.550),edgeV=Math.round(255*.095),radius=3;',
+            'consolidated A98 Pearl micro-catch radius',
+          );
+          replaceUnique('innerEdgeRadiusPx:2','innerEdgeRadiusPx:3','consolidated A98 Pearl micro-catch metadata');
 
-          source = replace_once(
-              source,
-              "function semanticR443GuardFace(){return semanticR443State.stagedFace||semanticR442State.protectedFace||semanticR443State.candidateFace||null}",
-              "function semanticR443GuardFace(){return semanticR442State.protectedFace||semanticR443State.candidateFace||null}",
-              'A98 Candidate/Readable-only local guard',
-          )
+          for(const required of[
+            'firstSemanticDelayMs:1600','stageScoreMin:.12','stageScoreMax:.72','stageViewMin:.36','stageAreaMin:.20','stageBrdfMin:0','stageAbortScore:0','stageTimeoutMs:3800',
+            'candidateApproachScore:.54','candidateApproachView:.44','candidateDwellMs:80','enterScore:.60','enterView:.48','enterArea:.24','enterBrdf:.10','exitScore:.50','exitView:.46',
+            'releaseDebounceMs:90','maxReadableHoldMs:1600','rearmScore:.50','await schedulerDelay(1200);',"candidates.find(p=>p.id==='AUTH_B01')",
+            "function semanticR443GuardFace(){return semanticR442State.protectedFace||semanticR443State.candidateFace||null}",
+            "stagedGuard=semanticR443State.phase===SEMANTIC_R443_PHASE.NORMAL?semanticR443State.stagedFace:null",
+            'bodyV=Math.round(255*.550),edgeV=Math.round(255*.095),radius=3;','innerEdgeRadiusPx:3',
+            'bumpScale:-0.130,roughnessMapInk:0.550,metalnessDelta:0.0,tonalInk:0.820','edgeRoughnessInk:.095',
+            'semanticVelocityMultiplier: 1.0','const deltaMs=wallDeltaMs',"yawDirectionPolicy:'continuous-positive'",
+            'overlayTextRendered:false','alphaDominantReveal:false','semanticMotionCoupled:false','semanticOrientationForcing:false',
+          ])if(!source.includes(required))throw new Error(`R4.4.3 consolidated A98 missing invariant: ${required}`);
 
-          source = replace_once(
-              source,
-              "  let candidates=SEMANTIC_R443_CLOSED_ARCHETYPES.filter(p=>p.sourceState===semanticR443ClosedState.safeStateId);",
-              "  let candidates=SEMANTIC_R443_CLOSED_ARCHETYPES.filter(p=>p.sourceState===semanticR443ClosedState.safeStateId);\n  if(semanticR443ClosedState.phraseCount===0&&semanticR443ClosedState.safeStateId==='S00'){const opening=candidates.find(p=>p.id==='AUTH_B01');if(!opening)throw new Error('R4.4.3 final opening phrase AUTH_B01 unavailable');candidates=[opening]}",
-              'A98 deterministic AUTH_B01 opening',
-          )
-
-          source = replace_once(source, '  await schedulerDelay(4800);', '  await schedulerDelay(1200);', 'A98 opening scheduler delay')
-
-          old_guard_block = """      const spec=phrase.moves[i],liveGuard=semanticR443GuardFace();
-          if(liveGuard&&semanticR442MoveIntersection(spec,liveGuard).count>0){
-            semanticR443ClosedState.protectionAlterations++;
-            if(semanticR443State.phase===SEMANTIC_R443_PHASE.NORMAL&&semanticR443State.stagedFace===liveGuard){
-              semanticR443Unstage('impending-intersecting-turn');
-            }else{
-              while(sliceSchedulerEnabled){
-                const guardNow=semanticR443GuardFace();
-                if(!guardNow||semanticR442MoveIntersection(spec,guardNow).count===0)break;
-                await sleep(40)
-              }
-              if(!sliceSchedulerEnabled)break;
-              if(!await waitForSliceAutonomy())break
-            }
-          }"""
-          new_guard_block = """      const spec=phrase.moves[i],stagedGuard=semanticR443State.phase===SEMANTIC_R443_PHASE.NORMAL?semanticR443State.stagedFace:null,liveGuard=semanticR443GuardFace();
-          if(stagedGuard&&semanticR442MoveIntersection(spec,stagedGuard).count>0){semanticR443ClosedState.protectionAlterations++;semanticR443Unstage('impending-intersecting-turn')}
-          if(liveGuard&&semanticR442MoveIntersection(spec,liveGuard).count>0){
-            semanticR443ClosedState.protectionAlterations++;
-            while(sliceSchedulerEnabled){
-              const guardNow=semanticR443GuardFace();
-              if(!guardNow||semanticR442MoveIntersection(spec,guardNow).count===0)break;
-              await sleep(40)
-            }
-            if(!sliceSchedulerEnabled)break;
-            if(!await waitForSliceAutonomy())break
-          }"""
-          source = replace_once(source, old_guard_block, new_guard_block, 'A98 non-stalling Stage/local Candidate-Readable protection')
-
-          micro_edge_integration = """replaceUnique('bodyV=Math.round(255*.550),edgeV=Math.round(255*.095),radius=2;','bodyV=Math.round(255*.550),edgeV=Math.round(255*.095),radius=3;','Pearl micro-catch radius');
-          replaceUnique('innerEdgeRadiusPx:2','innerEdgeRadiusPx:3','Pearl micro-catch metadata');
-
-          """
-          source = replace_once(
-              source,
-              'const runtimeArchetypes=JSON.stringify',
-              micro_edge_integration + 'const runtimeArchetypes=JSON.stringify',
-              'A98 physical 3px micro-edge integration',
-          )
+          '''
+          source = replace_once(source, anchor, block + anchor, 'insert consolidated A98 contract')
           arch.write_text(source)
 
           package_text = pkg.read_text()
-          package_text = replace_once(
-              package_text,
-              ' && node material-polish-r443-final-premium-correction.mjs',
-              '',
-              'remove final premium patch from build chain',
-          )
+          package_text = replace_once(package_text, ' && node material-polish-r443-final-premium-correction.mjs', '', 'remove final premium patch from build chain')
           pkg.write_text(package_text)
           if not patch.exists():
               raise SystemExit('final premium patch file unexpectedly absent before consolidation')
@@ -137,13 +123,11 @@ jobs:
           test "$(printf '%s\n' "${CHANGED[@]}")" = "$(printf '%s\n' "${EXPECTED[@]}")"
           test ! -e "$PRODUCT_DIR/material-polish-r443-final-premium-correction.mjs"
           ! grep -Fq 'material-polish-r443-final-premium-correction.mjs' "$PRODUCT_DIR/package.json"
-          grep -Fq 'stageScoreMax:.72,stageViewMin:.36,stageAreaMin:.20,stageBrdfMin:0,stageAbortScore:0,stageTimeoutMs:3800,candidateApproachScore:.54,candidateApproachView:.44' "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
-          grep -Fq "function semanticR443GuardFace(){return semanticR442State.protectedFace||semanticR443State.candidateFace||null}" "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
+          grep -Fq 'R4.4.3 A98 FINAL PREMIUM CONTRACT' "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
+          grep -Fq 'stageScoreMax:.72' "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
           grep -Fq "candidates.find(p=>p.id==='AUTH_B01')" "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
           grep -Fq 'await schedulerDelay(1200);' "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
-          grep -Fq "stagedGuard=semanticR443State.phase===SEMANTIC_R443_PHASE.NORMAL?semanticR443State.stagedFace:null" "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
-          grep -Fq "replaceUnique('bodyV=Math.round(255*.550),edgeV=Math.round(255*.095),radius=2;'" "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
-          grep -Fq "replaceUnique('innerEdgeRadiusPx:2','innerEdgeRadiusPx:3'" "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
+          grep -Fq 'radius=3;' "$PRODUCT_DIR/material-polish-r443-closed-phrase-architecture.mjs"
 
           git config user.name 'Ihor Horb'
           git config user.email 'proai.expert2026@gmail.com'

@@ -1,0 +1,460 @@
+name: Golden Assembly R1 Owner Review
+
+on:
+  push:
+    branches:
+      - agent/proai-home-golden-assembly-r1-owner-review
+
+permissions:
+  contents: read
+
+concurrency:
+  group: golden-assembly-r1-owner-review
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    env:
+      GOLDEN_DOC_HEAD: 1a9acebef0c6dfee38b0b1c8371b4356d085ecfd
+      GOLDEN_PRODUCT_SHA: 6968afc698fc583b4573cf8056476ad984fa52d7
+      MAIN_SHA: c945084e1952c05c686494091f7dbca0f7acdf08
+    steps:
+      - name: Checkout exact review branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify review-only delta and Golden identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/proai-review
+          test "$(git rev-parse HEAD^)" = "$GOLDEN_DOC_HEAD"
+          test "$(git diff --name-only "$GOLDEN_DOC_HEAD"..HEAD)" = ".github/workflows/golden-assembly-r1-owner-review.yml"
+          test -z "$(git diff --name-only "$GOLDEN_PRODUCT_SHA".."$GOLDEN_DOC_HEAD" | grep -v '^docs/site-evolution/PROAI_HOME_GOLDEN_COMPONENT_MANIFEST.md$' || true)"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/bootstrap.js)" = "b46b26164efc000daef8ecb3416039008db7cd79"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" = "bab6b00e73b20fc2a51aeb00cb7fc08f16129e72"
+          test "$(sha256sum assets/models/proai-cube/rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
+          test "$(git hash-object assets/js/homepage-connected-system-r13.js)" = "8fba38d49366bb69b7e06f9527dd4d07d8d05279"
+          test "$(git hash-object assets/css/homepage-connected-system-r13.css)" = "b99dfc19739070fee88d47c94c202d60feab7619"
+          test "$(git hash-object _includes/homepage-connected-system-en.html)" = "6bf4b0c236ab9063b7588faf5c59f660f64b71aa"
+          test "$(git hash-object _includes/homepage-connected-system-ru.html)" = "92081f9f98f43a9f794d2c5a49b7bce19aafae16"
+          test "$(git hash-object assets/css/homepage-two-worlds-r22.css)" = "63e9d73d4ecad2c339ac42a61b0cdf39663894b2"
+          test "$(git hash-object assets/js/homepage-two-worlds-r22.js)" = "1983ba4bef7816501a7605293a95b828d3748b06"
+          printf 'REVIEW_HEAD=%s\nGOLDEN_DOC_HEAD=%s\nGOLDEN_PRODUCT_SHA=%s\n' "$(git rev-parse HEAD)" "$GOLDEN_DOC_HEAD" "$GOLDEN_PRODUCT_SHA" | tee /tmp/proai-review/identity.txt
+
+      - name: Build exact site with repository Jekyll path
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          test -s _site/index.html
+          test -s _site/ru/index.html
+          mkdir -p _site/__review
+          cp /tmp/proai-review/identity.txt _site/__review/identity.txt
+
+      - name: Start local static server
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4000 --bind 127.0.0.1 --directory _site >/tmp/proai-review/http.log 2>&1 &
+          echo $! >/tmp/proai-review/http.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4000/ >/dev/null && curl -fsS http://127.0.0.1:4000/ru/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/proai-review/http.log
+          exit 1
+
+      - name: Install Chromium review driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+          mkdir -p /tmp/proai-review/node
+          cd /tmp/proai-review/node
+          npm init -y >/dev/null 2>&1
+          npm install --no-save puppeteer-core@24.16.0 >/dev/null
+
+      - name: Create runtime-only Chromium QA harness
+        shell: bash
+        run: |
+          cat > /tmp/proai-review/node/review.cjs <<'NODE'
+          const fs = require('fs');
+          const puppeteer = require('puppeteer-core');
+
+          const base = process.argv[2].replace(/\/$/, '');
+          const mode = process.argv[3] || 'local';
+          const output = process.argv[4];
+          const chrome = process.env.CHROME_BIN;
+          const sleep = ms => new Promise(r => setTimeout(r, ms));
+          const viewports = [[1440,900],[1366,768],[1024,768],[430,932],[390,844]];
+          const fatal = [];
+          const consoleErrors = [];
+
+          function attachErrors(page, label) {
+            page.on('pageerror', err => fatal.push(`${label}: pageerror: ${err.message}`));
+            page.on('console', msg => {
+              if (msg.type() === 'error') {
+                const text = `${label}: console: ${msg.text()}`;
+                consoleErrors.push(text);
+                if (/GLB load failed|initialization failed|Uncaught|TypeError|ReferenceError|SyntaxError/i.test(text)) fatal.push(text);
+              }
+            });
+            page.on('requestfailed', req => {
+              const url = req.url();
+              if (/\.(js|css|glb)(\?|$)/i.test(url)) fatal.push(`${label}: requestfailed: ${url} ${req.failure()?.errorText || ''}`);
+            });
+          }
+
+          async function launch() {
+            return puppeteer.launch({
+              executablePath: chrome,
+              headless: true,
+              args: [
+                '--no-sandbox','--disable-dev-shm-usage','--ignore-gpu-blocklist',
+                '--enable-webgl','--enable-unsafe-swiftshader','--use-angle=swiftshader',
+                '--window-position=0,0'
+              ]
+            });
+          }
+
+          async function waitCube(page) {
+            await page.waitForFunction(() => {
+              const slot = document.querySelector('.proai-hero-object-slot[data-proai-hero-object]');
+              return slot?.dataset.cubeMounted === 'true' && window.__PROAI_HERO_CUBE_R1?.runtime?.ready === true;
+            }, { timeout: 25000 });
+          }
+
+          async function visibleSnapshot(page) {
+            return page.evaluate(() => {
+              const visible = el => {
+                if (!el) return false;
+                const r = el.getBoundingClientRect();
+                const s = getComputedStyle(el);
+                return r.width > 4 && r.height > 4 && s.display !== 'none' && s.visibility !== 'hidden' && Number(s.opacity || 1) > 0;
+              };
+              const header = document.querySelector('[data-site-header]');
+              const hero = document.querySelector('#hero');
+              const cube = document.querySelector('#cube-canvas');
+              const connected = document.querySelector('[data-connected-system]');
+              const twoWorlds = document.querySelector('[data-tw-r2]');
+              return {
+                headerCount: document.querySelectorAll('[data-site-header]').length,
+                heroCount: document.querySelectorAll('#hero').length,
+                cubeMountCount: document.querySelectorAll('#proai-hero-cube-mount').length,
+                cubeCanvasCount: document.querySelectorAll('#cube-canvas').length,
+                connectedCount: document.querySelectorAll('[data-connected-system]').length,
+                connectedScriptCount: [...document.scripts].filter(s => /\/assets\/js\/homepage-connected-system-r13\.js(?:\?|$)/.test(s.src)).length,
+                twoWorldsCount: document.querySelectorAll('[data-tw-r2]').length,
+                headerVisible: visible(header), heroVisible: visible(hero), cubeVisible: visible(cube),
+                connectedVisible: visible(connected), twoWorldsVisible: visible(twoWorlds),
+                cubeReady: window.__PROAI_HERO_CUBE_R1?.runtime?.ready === true,
+                semanticRuntimePresent: Boolean(window.__PROAI_SEMANTIC_CUBE || window.__PROAI_CUBE_SEMANTIC_R1),
+                horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth + 2,
+                width: innerWidth, height: innerHeight
+              };
+            });
+          }
+
+          async function routeViewportCheck(browser, route, width, height) {
+            const page = await browser.newPage();
+            attachErrors(page, `${mode}:${route}:${width}x${height}`);
+            await page.setViewport({width,height,deviceScaleFactor:1});
+            await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
+            await page.goto(base + route, { waitUntil:'networkidle0', timeout:40000 });
+            await waitCube(page);
+            const top = await visibleSnapshot(page);
+            await page.evaluate(() => document.querySelector('[data-connected-system]')?.scrollIntoView({block:'center'}));
+            await sleep(300);
+            const connected = await page.evaluate(() => {
+              const e=document.querySelector('[data-connected-system]'); if(!e)return false; const r=e.getBoundingClientRect(); return r.bottom>0&&r.top<innerHeight;
+            });
+            await page.evaluate(() => document.querySelector('[data-tw-r2]')?.scrollIntoView({block:'center'}));
+            await sleep(300);
+            const tw = await page.evaluate(() => {
+              const e=document.querySelector('[data-tw-r2]'); if(!e)return false; const r=e.getBoundingClientRect(); return r.bottom>0&&r.top<innerHeight;
+            });
+            await page.close();
+            return {...top, connectedVisible: connected, twoWorldsVisible: tw};
+          }
+
+          async function mobileHeaderCheck(browser) {
+            const page = await browser.newPage();
+            attachErrors(page, `${mode}:mobile-header`);
+            await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+            await page.goto(base + '/', { waitUntil:'networkidle0', timeout:40000 });
+            await waitCube(page);
+            await page.evaluate(() => window.scrollTo(0, 240));
+            await sleep(420);
+            const hidden = await page.$eval('[data-site-header]', e => e.classList.contains('header-hidden'));
+            await page.evaluate(() => window.scrollBy(0, -80));
+            await sleep(420);
+            const revealed = await page.$eval('[data-site-header]', e => !e.classList.contains('header-hidden'));
+            await page.close();
+            return {hiddenOnDown: hidden, revealedOnUp: revealed, pass: hidden && revealed};
+          }
+
+          async function cubeMotionCheck(browser) {
+            const page = await browser.newPage();
+            attachErrors(page, `${mode}:cube-motion`);
+            await page.setViewport({width:1440,height:900,deviceScaleFactor:1});
+            await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
+            await page.goto(base + '/', { waitUntil:'networkidle0', timeout:40000 });
+            await waitCube(page);
+            const start = await page.evaluate(() => window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());
+            const firstSeen = new Map();
+            let pair = null, negative = null, pitchRoll = null, moving = false;
+            const wallStart = Date.now();
+            while (Date.now() - wallStart < 46000) {
+              const sample = await page.evaluate(() => {
+                const r=window.__PROAI_HERO_CUBE_R1.runtime;
+                const d=r.getDiagnostics();
+                const p=r.getReviewPresentationSample(d.presentation.simTimeMs/1000);
+                return {d,p,now:performance.now()};
+              });
+              if (sample.d.presentation.cumulativeYawDeg - start.presentation.cumulativeYawDeg > 1) moving = true;
+              if (!pitchRoll && Math.abs(sample.p.pitchDeg) > 0.8 && Math.abs(sample.p.rollDeg) > 0.08) pitchRoll = sample.p;
+              if (!negative && sample.d.presentation.yawVelocityDegPerSec < -1) negative = {
+                simTimeMs: sample.d.presentation.simTimeMs,
+                velocityDegPerSec: sample.d.presentation.yawVelocityDegPerSec,
+                signedYawDeg: sample.d.presentation.signedYawDeg
+              };
+              for (const t of sample.d.activeTurns) if (!firstSeen.has(t.id)) firstSeen.set(t.id, sample.now);
+              if (!pair && sample.d.activeTurns.length === 2) {
+                const [a,b]=sample.d.activeTurns;
+                if (a.axis===b.axis && a.layer!==b.layer) {
+                  pair={axis:a.axis,layers:[a.layer,b.layer],staggerMs:Math.abs((firstSeen.get(b.id)||sample.now)-(firstSeen.get(a.id)||sample.now)),turns:[a.id,b.id]};
+                }
+              }
+              if (moving && pitchRoll && negative && pair) break;
+              await sleep(25);
+            }
+            await page.screenshot({path:'_site/__review/screenshot-1-desktop-hero-en.png',fullPage:false});
+            const end = await page.evaluate(() => window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());
+            await page.close();
+            return {
+              ready:start.ready, moving, signedYawObserved:Boolean(negative), negative,
+              pitchRollObserved:Boolean(pitchRoll), pitchRoll,
+              pairedStaggerObserved:Boolean(pair), pair,
+              startCumulativeYawDeg:start.presentation.cumulativeYawDeg,
+              endCumulativeYawDeg:end.presentation.cumulativeYawDeg
+            };
+          }
+
+          async function connectedTimingCheck(browser, route='/') {
+            const page = await browser.newPage();
+            attachErrors(page, `${mode}:connected-timing:${route}`);
+            await page.setViewport({width:1440,height:900,deviceScaleFactor:1});
+            await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
+            await page.goto(base + route, { waitUntil:'networkidle0', timeout:40000 });
+            await waitCube(page);
+            await page.evaluate(() => {
+              const sec=document.querySelector('[data-connected-system]');
+              const stages=[...sec.querySelectorAll('[data-system-stage]')];
+              window.__proaiTiming={scrollAt:0,active:[],seen:{}};
+              stages.forEach((stage,index)=>new MutationObserver(()=>{
+                if(stage.classList.contains('is-active')&&!window.__proaiTiming.seen[index]){
+                  window.__proaiTiming.seen[index]=true;
+                  window.__proaiTiming.active.push({index,t:performance.now()});
+                }
+              }).observe(stage,{attributes:true,attributeFilter:['class']}));
+              window.__proaiTiming.scrollAt=performance.now();
+              sec.scrollIntoView({block:'center'});
+            });
+            await page.waitForFunction(() => window.__proaiTiming?.active?.length === 4, {timeout:13000});
+            const timing = await page.evaluate(() => {
+              const t=window.__proaiTiming;
+              const values=t.active.map(x=>x.t-t.scrollAt);
+              return {activeMs:values,firstActiveMs:values[0],gaps:values.slice(1).map((v,i)=>v-values[i])};
+            });
+            timing.cadencePass = Math.abs(timing.firstActiveMs-760) <= 120 && timing.gaps.every(g=>Math.abs(g-1900)<=80);
+            await page.close();
+            return timing;
+          }
+
+          async function ruRhythmAndScreenshot(browser) {
+            const page = await browser.newPage();
+            attachErrors(page, `${mode}:ru-rhythm`);
+            await page.setViewport({width:1440,height:900,deviceScaleFactor:1});
+            await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
+            await page.goto(base + '/ru/', { waitUntil:'networkidle0', timeout:40000 });
+            await waitCube(page);
+            await page.evaluate(() => document.querySelector('[data-connected-system]').scrollIntoView({block:'center'}));
+            await sleep(7600);
+            const rhythm = await page.evaluate(() => {
+              const stages=[...document.querySelectorAll('[data-connected-system] [data-system-stage]')];
+              const metrics=stages.map(stage=>{
+                const s=stage.getBoundingClientRect();
+                const copy=stage.querySelector('.cs-stage-copy').getBoundingClientRect();
+                const components=stage.querySelector('.cs-components').getBoundingClientRect();
+                return {stageHeight:s.height,copyHeight:copy.height,copyTop:copy.top-s.top,componentsTop:components.top-s.top,componentsBottom:components.bottom-s.top,clientHeight:stage.clientHeight,scrollHeight:stage.scrollHeight};
+              });
+              const spread = key => Math.max(...metrics.map(x=>x[key]))-Math.min(...metrics.map(x=>x[key]));
+              const noClip=metrics.every(x=>x.scrollHeight<=x.clientHeight+2);
+              return {metrics,stageHeightSpread:spread('stageHeight'),componentsTopSpread:spread('componentsTop'),noClip};
+            });
+            rhythm.pass = rhythm.noClip && rhythm.stageHeightSpread <= 3 && rhythm.componentsTopSpread <= 6;
+            await page.screenshot({path:'_site/__review/screenshot-2-desktop-connected-ru.png',fullPage:false});
+            await page.close();
+            return rhythm;
+          }
+
+          async function mobileScreenshot(browser) {
+            const page = await browser.newPage();
+            attachErrors(page, `${mode}:mobile-shot`);
+            await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+            await page.goto(base + '/', { waitUntil:'networkidle0', timeout:40000 });
+            await waitCube(page);
+            await page.screenshot({path:'_site/__review/screenshot-3-mobile-home-en.png',fullPage:false});
+            await page.close();
+          }
+
+          async function publicCoreCheck(browser, route) {
+            const page = await browser.newPage();
+            attachErrors(page, `${mode}:public:${route}`);
+            await page.setViewport({width:1440,height:900,deviceScaleFactor:1});
+            await page.goto(base + route, {waitUntil:'networkidle0',timeout:45000});
+            await waitCube(page);
+            const top=await visibleSnapshot(page);
+            await page.evaluate(()=>document.querySelector('[data-connected-system]').scrollIntoView({block:'center'}));
+            await sleep(350);
+            const connected=await page.evaluate(()=>{const e=document.querySelector('[data-connected-system]');const r=e.getBoundingClientRect();return r.bottom>0&&r.top<innerHeight;});
+            await page.evaluate(()=>document.querySelector('[data-tw-r2]').scrollIntoView({block:'center'}));
+            await sleep(350);
+            const twoWorlds=await page.evaluate(()=>{const e=document.querySelector('[data-tw-r2]');const r=e.getBoundingClientRect();return r.bottom>0&&r.top<innerHeight;});
+            await page.close();
+            return {...top,connectedVisible:connected,twoWorldsVisible:twoWorlds};
+          }
+
+          (async()=>{
+            const browser=await launch();
+            const result={mode,base,consoleErrors,fatalErrors:fatal};
+            try {
+              if(mode==='local') {
+                result.responsive={};
+                for(const route of ['/','/ru/']) {
+                  result.responsive[route]=[];
+                  for(const [w,h] of viewports) result.responsive[route].push(await routeViewportCheck(browser,route,w,h));
+                }
+                result.headerAutoHide=await mobileHeaderCheck(browser);
+                result.cube=await cubeMotionCheck(browser);
+                result.connected=await connectedTimingCheck(browser,'/');
+                result.ruRhythm=await ruRhythmAndScreenshot(browser);
+                await mobileScreenshot(browser);
+                const all=result.responsive['/'].concat(result.responsive['/ru/']);
+                result.localENPass=result.responsive['/'].every(x=>x.headerVisible&&x.heroVisible&&x.cubeVisible&&x.cubeReady&&x.connectedVisible&&x.twoWorldsVisible&&!x.horizontalOverflow&&!x.semanticRuntimePresent);
+                result.localRUPass=result.responsive['/ru/'].every(x=>x.headerVisible&&x.heroVisible&&x.cubeVisible&&x.cubeReady&&x.connectedVisible&&x.twoWorldsVisible&&!x.horizontalOverflow&&!x.semanticRuntimePresent);
+                result.duplicates={
+                  header:Math.max(...all.map(x=>x.headerCount)), cube:Math.max(...all.map(x=>x.cubeCanvasCount)),
+                  connected:Math.max(...all.map(x=>x.connectedCount)), connectedScript:Math.max(...all.map(x=>x.connectedScriptCount)),
+                  twoWorlds:Math.max(...all.map(x=>x.twoWorldsCount))
+                };
+                result.pass=result.localENPass&&result.localRUPass&&result.headerAutoHide.pass&&result.cube.moving&&result.cube.signedYawObserved&&result.cube.pitchRollObserved&&result.cube.pairedStaggerObserved&&result.connected.cadencePass&&result.ruRhythm.pass&&result.duplicates.header===1&&result.duplicates.cube===1&&result.duplicates.connected===1&&result.duplicates.connectedScript===1&&result.duplicates.twoWorlds===1&&fatal.length===0;
+              } else {
+                result.en=await publicCoreCheck(browser,'/');
+                result.ru=await publicCoreCheck(browser,'/ru/');
+                const good=x=>x.headerVisible&&x.heroVisible&&x.cubeVisible&&x.cubeReady&&x.connectedVisible&&x.twoWorldsVisible&&!x.semanticRuntimePresent;
+                result.enPass=good(result.en); result.ruPass=good(result.ru); result.pass=result.enPass&&result.ruPass&&fatal.length===0;
+              }
+            } finally {
+              await browser.close();
+              fs.writeFileSync(output,JSON.stringify(result,null,2));
+            }
+            if(!result.pass) process.exit(2);
+          })().catch(err=>{fatal.push(`harness: ${err.stack||err}`);fs.writeFileSync(output,JSON.stringify({mode,base,consoleErrors,fatalErrors:fatal,pass:false},null,2));process.exit(3);});
+          NODE
+
+      - name: Local Chromium visual and motion gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          node /tmp/proai-review/node/review.cjs http://127.0.0.1:4000 local _site/__review/local-result.json
+
+      - name: Install and start TryCloudflare
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -L --fail --retry 3 https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/proai-review/cloudflared
+          chmod +x /tmp/proai-review/cloudflared
+          /tmp/proai-review/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4000 >/tmp/proai-review/cloudflared.log 2>&1 &
+          echo $! >/tmp/proai-review/cloudflared.pid
+          PUBLIC_BASE=""
+          for i in $(seq 1 60); do
+            PUBLIC_BASE="$(grep -Eo 'https://[a-zA-Z0-9-]+\.trycloudflare\.com' /tmp/proai-review/cloudflared.log | head -1 || true)"
+            if [ -n "$PUBLIC_BASE" ]; then
+              if curl -fsS "$PUBLIC_BASE/" >/dev/null && curl -fsS "$PUBLIC_BASE/ru/" >/dev/null; then break; fi
+            fi
+            sleep 1
+          done
+          test -n "$PUBLIC_BASE"
+          curl -fsS "$PUBLIC_BASE/" >/dev/null
+          curl -fsS "$PUBLIC_BASE/ru/" >/dev/null
+          echo "PUBLIC_BASE=$PUBLIC_BASE" >> "$GITHUB_ENV"
+          printf '%s\n' "$PUBLIC_BASE" > _site/__review/public-base.txt
+
+      - name: Public Chromium gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          node /tmp/proai-review/node/review.cjs "$PUBLIC_BASE" public _site/__review/public-result.json
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          local=json.loads(Path('_site/__review/local-result.json').read_text())
+          public=json.loads(Path('_site/__review/public-result.json').read_text())
+          out={'publicBase':os.environ['PUBLIC_BASE'],'local':local,'public':public}
+          Path('_site/__review/review-result.json').write_text(json.dumps(out,indent=2))
+          print('PUBLIC_EN_URL='+os.environ['PUBLIC_BASE']+'/')
+          print('PUBLIC_RU_URL='+os.environ['PUBLIC_BASE']+'/ru/')
+          print('SCREENSHOT_1='+os.environ['PUBLIC_BASE']+'/__review/screenshot-1-desktop-hero-en.png')
+          print('SCREENSHOT_2='+os.environ['PUBLIC_BASE']+'/__review/screenshot-2-desktop-connected-ru.png')
+          print('SCREENSHOT_3='+os.environ['PUBLIC_BASE']+'/__review/screenshot-3-mobile-home-en.png')
+          print('RESULT_JSON='+os.environ['PUBLIC_BASE']+'/__review/review-result.json')
+          PY
+
+      - name: Upload review evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-assembly-r1-owner-review-evidence
+          path: |
+            _site/__review/
+            /tmp/proai-review/cloudflared.log
+          if-no-files-found: error
+
+      - name: Write review summary
+        shell: bash
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, os
+          from pathlib import Path
+          r=json.loads(Path('_site/__review/review-result.json').read_text())
+          l=r['local']; p=r['public']; b=r['publicBase']
+          print('# ProAI Golden Assembly R1 Owner Review')
+          print(f'- Public EN: {b}/')
+          print(f'- Public RU: {b}/ru/')
+          print(f'- Screenshot 1: {b}/__review/screenshot-1-desktop-hero-en.png')
+          print(f'- Screenshot 2: {b}/__review/screenshot-2-desktop-connected-ru.png')
+          print(f'- Screenshot 3: {b}/__review/screenshot-3-mobile-home-en.png')
+          print(f'- Cube negative yaw: {l["cube"]["negative"]}')
+          print(f'- Cube pair: {l["cube"]["pair"]}')
+          print(f'- Connected first active: {l["connected"]["firstActiveMs"]:.1f} ms')
+          print(f'- Connected gaps: {", ".join(f"{x:.1f}" for x in l["connected"]["gaps"])} ms')
+          print(f'- RU rhythm pass: {l["ruRhythm"]["pass"]}')
+          print(f'- Public Chromium EN/RU: {p["enPass"]}/{p["ruPass"]}')
+          print(f'- Fatal errors: {p["fatalErrors"] or l["fatalErrors"] or "NONE"}')
+          PY
+
+      - name: Hold temporary owner review endpoint
+        shell: bash
+        run: sleep 7200

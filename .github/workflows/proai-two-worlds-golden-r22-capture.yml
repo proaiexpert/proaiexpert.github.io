@@ -1,0 +1,219 @@
+name: ProAI Two Worlds Golden R2.2 Capture
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-golden-recovery-r3-capture-workflow
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install validation and browser tooling
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright css-tree >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null
+
+      - name: Validate exact R2.2 sources
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const cp = require('child_process');
+          const csstree = require('css-tree');
+          const cssFiles = [
+            'assets/css/homepage-two-worlds-r2.css',
+            'assets/css/homepage-two-worlds-r21.css',
+            'assets/css/homepage-two-worlds-r22.css'
+          ];
+          const jsFiles = [
+            'assets/js/homepage-two-worlds-r2.js',
+            'assets/js/homepage-two-worlds-r21.js',
+            'assets/js/homepage-two-worlds-r22.js'
+          ];
+          const report = {
+            base: '411937c0e1367681891ef562e02d333681984c39',
+            cssUtf8: true,
+            jsUtf8: true,
+            cssParse: true,
+            jsParse: true,
+            binaryCorruption: 'NONE',
+            invalidUnits: [],
+            technologySizingSelectors: [],
+            files: {}
+          };
+          function inspectUtf8(file, kind) {
+            const buf = fs.readFileSync(file);
+            const text = buf.toString('utf8');
+            const nul = buf.includes(0);
+            const replacement = text.includes('\uFFFD');
+            const badControl = [...text].some(ch => {
+              const c = ch.charCodeAt(0);
+              return c < 32 && c !== 9 && c !== 10 && c !== 13;
+            });
+            const ok = !nul && !replacement && !badControl;
+            report.files[file] = {utf8: ok, bytes: buf.length};
+            if (!ok) {
+              report.binaryCorruption = 'FOUND';
+              if (kind === 'css') report.cssUtf8 = false;
+              if (kind === 'js') report.jsUtf8 = false;
+            }
+            return text;
+          }
+          let allCss = '';
+          for (const file of cssFiles) {
+            const text = inspectUtf8(file, 'css');
+            allCss += '\n' + text;
+            try { csstree.parse(text, {positions: true}); }
+            catch (err) { report.cssParse = false; report.files[file].parseError = String(err.message || err); }
+            const bad = [...text.matchAll(/\b\d+(?:\.\d+)?(?:pw|pwx|pwt|p\s+x)\b/gi)].map(m => m[0]);
+            if (bad.length) report.invalidUnits.push({file, values: bad});
+          }
+          for (const file of jsFiles) {
+            inspectUtf8(file, 'js');
+            const r = cp.spawnSync(process.execPath, ['--check', file], {encoding:'utf8'});
+            if (r.status !== 0) { report.jsParse = false; report.files[file].parseError = (r.stderr || r.stdout || '').trim(); }
+          }
+          const ast = csstree.parse(allCss);
+          csstree.walk(ast, node => {
+            if (node.type === 'Rule' && node.prelude) {
+              const sel = csstree.generate(node.prelude);
+              if (sel.includes('.tw-tech-r2__marks') && (sel.includes('img') || sel.includes('li'))) report.technologySizingSelectors.push(sel);
+            }
+          });
+          report.technologySizingSelectors = [...new Set(report.technologySizingSelectors)];
+          if (!report.technologySizingSelectors.some(s => s.includes('img'))) report.cssParse = false;
+          fs.writeFileSync('/tmp/r22-source-validation.json', JSON.stringify(report, null, 2));
+          console.log(JSON.stringify(report, null, 2));
+          if (!report.cssUtf8 || !report.jsUtf8 || !report.cssParse || !report.jsParse || report.binaryCorruption !== 'NONE' || report.invalidUnits.length) process.exit(1);
+          NODE
+
+      - name: Build exact R2.2 review harness
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const en = fs.readFileSync('_includes/homepage-two-worlds-r2-en.html','utf8');
+          const ru = fs.readFileSync('_includes/homepage-two-worlds-r2-ru.html','utf8');
+          fs.mkdirSync('.review-r22',{recursive:true});
+          function localPage(lang, body) {
+            return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Golden R2.2 ${lang}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="/assets/css/homepage-two-worlds-r2.css"><link rel="stylesheet" href="/assets/css/homepage-two-worlds-r21.css"><link rel="stylesheet" href="/assets/css/homepage-two-worlds-r22.css"><style>html,body{margin:0;background:#020304;color:#fff;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-x:hidden}</style></head><body class="lang-${lang}">${body}<script src="/assets/js/homepage-two-worlds-r2.js"></script><script src="/assets/js/homepage-two-worlds-r21.js"></script><script src="/assets/js/homepage-two-worlds-r22.js"></script></body></html>`;
+          }
+          fs.writeFileSync('.review-r22/en.html', localPage('en', en));
+          fs.writeFileSync('.review-r22/ru.html', localPage('ru', ru));
+          NODE
+
+      - name: Serve exact R2.2
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/r22-http.log 2>&1 &
+          echo $! >/tmp/r22-http.pid
+          sleep 2
+
+      - name: Capture controlled R2.2 states and runtime QA
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const { chromium } = require('playwright');
+          const out = 'docs/site-evolution/two-worlds-golden-recovery-r3/review';
+          const cap = path.join(out,'captures');
+          fs.mkdirSync(cap,{recursive:true});
+          const qa = {
+            browserZoom:'100%', deviceScaleFactor:1,
+            sourceValidation: JSON.parse(fs.readFileSync('/tmp/r22-source-validation.json','utf8')),
+            technology:{}, overflow:{}, titleIntegrity:{}, captures:[]
+          };
+          const base = 'http://127.0.0.1:4173/.review-r22/ru.html';
+          const brands = ['openai','claude','gemini','n8n','make','twilio','vercel','gmail','zapier','github'];
+          function shotName(n,s){ return `${String(n).padStart(2,'0')}-${s}.jpg`; }
+          async function fonts(page){ try { await page.evaluate(() => document.fonts && document.fonts.ready); } catch {} await page.waitForTimeout(120); }
+          async function overflow(page,key){ const v=await page.evaluate(()=>({w:innerWidth,sw:document.documentElement.scrollWidth,bw:document.body.scrollWidth})); qa.overflow[key]=v; if (Math.max(v.sw,v.bw)>v.w+1) throw new Error('Horizontal overflow '+key+' '+JSON.stringify(v)); }
+          async function titles(page,key){ const v=await page.$$eval('.tw-r2__world-title', els => els.map(el => ({text:el.textContent.trim(), lines:[...el.querySelectorAll('.tw-r2__title-line')].length, width:el.getBoundingClientRect().width, scrollWidth:el.scrollWidth}))); qa.titleIntegrity[key]=v; if (v.some(x=>x.lines!==2 || x.scrollWidth>x.width+2)) throw new Error('Title integrity '+key+' '+JSON.stringify(v)); }
+          async function tech(page,key,limitW,limitH){
+            await page.locator('#tech').scrollIntoViewIfNeeded(); await page.waitForTimeout(250);
+            const boxes=await page.$$eval('.tw-tech-r2__marks li', lis => lis.map(li => { const img=li.querySelector('img'); const r=img.getBoundingClientRect(); return {brand:li.dataset.brand,w:+r.width.toFixed(2),h:+r.height.toFixed(2),complete:img.complete}; }));
+            qa.technology[key]=boxes;
+            if (boxes.length!==10 || brands.some(b=>!boxes.some(x=>x.brand===b)) || boxes.some(x=>x.w<=0||x.h<=0||x.w>limitW||x.h>limitH)) throw new Error('Technology sizing '+key+' '+JSON.stringify(boxes));
+          }
+          async function setProgress(page,p){
+            await page.evaluate(p=>{ const exp=document.querySelector('[data-tw-experience]'); const top=exp.getBoundingClientRect().top+scrollY; const travel=Math.max(1,exp.offsetHeight-innerHeight); scrollTo(0,top+p*travel); },p);
+            await page.waitForTimeout(260);
+          }
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            // laptop 1440 x 900
+            let ctx=await browser.newContext({viewport:{width:1440,height:900},deviceScaleFactor:1});
+            let page=await ctx.newPage(); await page.goto(base,{waitUntil:'networkidle'}); await fonts(page); await page.evaluate(()=>scrollTo(0,0)); await overflow(page,'1440-neutral'); await titles(page,'1440-neutral');
+            let f=path.join(cap,shotName(1,'laptop-neutral-1440x900')); await page.screenshot({path:f,type:'jpeg',quality:90}); qa.captures.push(f);
+            const vp=page.locator('[data-tw-viewport]'); let b=await vp.boundingBox(); await page.mouse.move(b.x+b.width*.22,b.y+b.height*.50); await page.waitForTimeout(1300); await overflow(page,'1440-ai');
+            f=path.join(cap,shotName(2,'laptop-ai-active-1440x900')); await page.screenshot({path:f,type:'jpeg',quality:90}); qa.captures.push(f);
+            b=await vp.boundingBox(); await page.mouse.move(b.x+b.width*.78,b.y+b.height*.50); await page.waitForTimeout(1300); await overflow(page,'1440-web');
+            f=path.join(cap,shotName(3,'laptop-web-active-1440x900')); await page.screenshot({path:f,type:'jpeg',quality:90}); qa.captures.push(f);
+            await tech(page,'1440x900',190,78); await page.locator('#tech').scrollIntoViewIfNeeded(); await page.waitForTimeout(220);
+            f=path.join(cap,shotName(9,'technology-desktop-1440x900')); await page.screenshot({path:f,type:'jpeg',quality:90}); qa.captures.push(f); await ctx.close();
+
+            // portrait 390 x 844
+            ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true}); page=await ctx.newPage(); await page.goto(base,{waitUntil:'networkidle'}); await fonts(page);
+            await setProgress(page,0); await overflow(page,'390-ai'); await titles(page,'390-ai'); f=path.join(cap,shotName(4,'portrait-ai-settled-390x844')); await page.screenshot({path:f,type:'jpeg',quality:90}); qa.captures.push(f);
+            await setProgress(page,.5); await overflow(page,'390-turn'); f=path.join(cap,shotName(5,'portrait-turn-390x844')); await page.screenshot({path:f,type:'jpeg',quality:90}); qa.captures.push(f);
+            await setProgress(page,1); await overflow(page,'390-web'); f=path.join(cap,shotName(6,'portrait-web-settled-390x844')); await page.screenshot({path:f,type:'jpeg',quality:90}); qa.captures.push(f);
+            await tech(page,'390x844',150,70); await page.locator('#tech').scrollIntoViewIfNeeded(); await page.waitForTimeout(220); f=path.join(cap,shotName(10,'technology-portrait-390x844')); await page.screenshot({path:f,type:'jpeg',quality:90}); qa.captures.push(f); await ctx.close();
+
+            // landscape 844 x 390
+            ctx=await browser.newContext({viewport:{width:844,height:390},deviceScaleFactor:1,isMobile:true,hasTouch:true}); page=await ctx.newPage(); await page.goto(base,{waitUntil:'networkidle'}); await fonts(page);
+            await setProgress(page,0); await overflow(page,'844-ai'); await titles(page,'844-ai'); f=path.join(cap,shotName(7,'landscape-ai-settled-844x390')); await page.screenshot({path:f,type:'jpeg',quality:90}); qa.captures.push(f);
+            await setProgress(page,1); await overflow(page,'844-web'); f=path.join(cap,shotName(8,'landscape-web-settled-844x390')); await page.screenshot({path:f,type:'jpeg',quality:90}); qa.captures.push(f); await tech(page,'844x390',180,72); await ctx.close();
+
+            fs.writeFileSync(path.join(out,'qa-r22-golden.json'),JSON.stringify(qa,null,2)); await browser.close();
+          })().catch(err=>{ console.error(err); process.exit(1); });
+          NODE
+
+      - name: Additional 1280 and 1728 desktop validation
+        run: |
+          node <<'NODE'
+          const fs=require('fs'); const {chromium}=require('playwright'); const qaPath='docs/site-evolution/two-worlds-golden-recovery-r3/review/qa-r22-golden.json'; const qa=JSON.parse(fs.readFileSync(qaPath));
+          (async()=>{const browser=await chromium.launch({headless:true}); qa.additionalDesktop={}; for (const [w,h] of [[1280,800],[1728,1117]]) { const c=await browser.newContext({viewport:{width:w,height:h},deviceScaleFactor:1}); const p=await c.newPage(); await p.goto('http://127.0.0.1:4173/.review-r22/ru.html',{waitUntil:'networkidle'}); await p.waitForTimeout(200); const states={}; for (const s of ['neutral','ai','web']) { if(s==='neutral'){await p.mouse.move(w/2,5); await p.waitForTimeout(650);} else {const b=await p.locator('[data-tw-viewport]').boundingBox(); await p.mouse.move(b.x+b.width*(s==='ai'?.22:.78),b.y+b.height*.5); await p.waitForTimeout(1300);} states[s]=await p.evaluate(()=>({overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth,titles:[...document.querySelectorAll('.tw-r2__world-title')].map(el=>({w:el.getBoundingClientRect().width,sw:el.scrollWidth}))})); if(states[s].overflow>1||states[s].titles.some(x=>x.sw>x.w+2)) throw new Error(`desktop QA ${w} ${s}`); } qa.additionalDesktop[`${w}x${h}`]=states; await c.close(); } await browser.close(); fs.writeFileSync(qaPath,JSON.stringify(qa,null,2));})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Build review HTML and live pages
+        run: |
+          node <<'NODE'
+          const fs=require('fs'); const out='docs/site-evolution/two-worlds-golden-recovery-r3/review'; const prefix='../../../../';
+          const en=fs.readFileSync('_includes/homepage-two-worlds-r2-en.html','utf8').replaceAll('src="/assets/','src="'+prefix+'assets/');
+          const ru=fs.readFileSync('_includes/homepage-two-worlds-r2-ru.html','utf8').replaceAll('src="/assets/','src="'+prefix+'assets/');
+          function live(lang,body){return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>ProAI Two Worlds Golden R2.2 — ${lang.toUpperCase()}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"><link rel="stylesheet" href="${prefix}assets/css/homepage-two-worlds-r2.css?v=golden22"><link rel="stylesheet" href="${prefix}assets/css/homepage-two-worlds-r21.css?v=golden22"><link rel="stylesheet" href="${prefix}assets/css/homepage-two-worlds-r22.css?v=golden22"><style>html,body{margin:0;background:#020304;color:#fff;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-x:hidden}</style></head><body class="lang-${lang}">${body}<script src="${prefix}assets/js/homepage-two-worlds-r2.js?v=golden22"></script><script src="${prefix}assets/js/homepage-two-worlds-r21.js?v=golden22"></script><script src="${prefix}assets/js/homepage-two-worlds-r22.js?v=golden22"></script></body></html>`}
+          fs.writeFileSync(out+'/live.html',live('en',en)); fs.writeFileSync(out+'/live-ru.html',live('ru',ru));
+          const shots=[['01','LAPTOP — NEUTRAL 50/50','01-laptop-neutral-1440x900.jpg'],['02','LAPTOP — AI ACTIVE','02-laptop-ai-active-1440x900.jpg'],['03','LAPTOP — WEB ACTIVE','03-laptop-web-active-1440x900.jpg'],['04','PORTRAIT — AI SETTLED','04-portrait-ai-settled-390x844.jpg'],['05','PORTRAIT — TURN','05-portrait-turn-390x844.jpg'],['06','PORTRAIT — WEB SETTLED','06-portrait-web-settled-390x844.jpg'],['07','LANDSCAPE — AI SETTLED','07-landscape-ai-settled-844x390.jpg'],['08','LANDSCAPE — WEB SETTLED','08-landscape-web-settled-844x390.jpg'],['09','TECHNOLOGY — DESKTOP','09-technology-desktop-1440x900.jpg'],['10','TECHNOLOGY — PORTRAIT','10-technology-portrait-390x844.jpg']];
+          const figures=shots.map(([n,t,f])=>`<figure><figcaption><b>${n}</b> ${t}</figcaption><img src="captures/${f}" alt="Golden R2.2 ${t}" loading="lazy"></figure>`).join('');
+          fs.writeFileSync(out+'/index.html',`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ProAI Two Worlds — Golden R2.2 Recovery</title><style>*{box-sizing:border-box}:root{color-scheme:dark}html,body{margin:0;background:#030405;color:#eee;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{width:min(calc(100% - 20px),1480px);margin:auto;padding:34px 0 80px}.k{color:#737b83;font:700 10px/1.4 ui-monospace,monospace;letter-spacing:.16em}h1{max-width:1100px;margin:10px 0 12px;font-size:clamp(38px,6vw,72px);line-height:.95;letter-spacing:-.05em}.lede{max-width:900px;color:#969da4;line-height:1.6;margin-bottom:40px}.grid{display:grid;gap:44px}figure{margin:0}figcaption{margin:0 0 10px;color:#b7bdc2;font-size:13px;letter-spacing:.035em}figcaption b{color:#707980;font:700 10px ui-monospace,monospace;margin-right:8px}img{display:block;width:100%;height:auto;border:1px solid #1b2126;background:#050607}.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:46px;padding-top:24px;border-top:1px solid #1b2126}.actions a{display:flex;min-height:54px;align-items:center;justify-content:center;border:1px solid #343b42;color:#fff;text-decoration:none;font-weight:700;font-size:12px}@media(max-width:720px){.actions{grid-template-columns:1fr}}</style></head><body><main class="wrap"><p class="k">PROAI EXPERT / TWO WORLDS / GOLDEN R2.2</p><h1>Uncontaminated recovery baseline.</h1><p class="lede">Exact product base: 411937c0e1367681891ef562e02d333681984c39. No R2.3, R2.4 or R2.5 runtime files are loaded. Controlled Chromium captures: browser zoom 100%, deviceScaleFactor 1.</p><div class="grid">${figures}</div><div class="actions"><a href="live-ru.html">LIVE RU →</a><a href="live.html">LIVE EN →</a></div></main></body></html>`);
+          NODE
+
+      - name: Verify Connected System blobs from golden base
+        run: |
+          test "$(git rev-parse 411937c0e1367681891ef562e02d333681984c39:assets/css/homepage-connected-system-r13.css)" = "946780c076fc6a2e4811e41f88a5a8f18a915baa"
+          test "$(git rev-parse 411937c0e1367681891ef562e02d333681984c39:assets/js/homepage-connected-system-r13.js)" = "1fe31763ef41b97277cf0b692337a09a3568bb0a"
+          test "$(git rev-parse 411937c0e1367681891ef562e02d333681984c39:_includes/homepage-connected-system-en.html)" = "6bf4b0c236ab9063b7588faf5c59f660f64b71aa"
+          test "$(git rev-parse 411937c0e1367681891ef562e02d333681984c39:_includes/homepage-connected-system-ru.html)" = "92081f9f98f43a9f794d2c5a49b7bce19aafae16"
+
+      - name: Commit review-only proof to recovery branch
+        run: |
+          git config user.name "ProAI Recovery Builder"
+          git config user.email "proai.expert2026@gmail.com"
+          git fetch origin agent/proai-two-worlds-golden-recovery-r3
+          git checkout -B golden-review origin/agent/proai-two-worlds-golden-recovery-r3
+          git add docs/site-evolution/two-worlds-golden-recovery-r3/review
+          git commit -m "review: add Golden R2.2 recovery owner review"
+          git push origin HEAD:agent/proai-two-worlds-golden-recovery-r3
+          git rev-parse HEAD

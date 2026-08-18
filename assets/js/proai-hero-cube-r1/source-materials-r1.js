@@ -1601,3 +1601,239 @@ loader.load(
     status.textContent = 'GLB load failed';
   },
 );
+
+/* ProAI Cube Resend-like Spatial Motion R1 — whole-cube presentation override only. */
+const PRESENTATION_SPATIAL_R1 = Object.freeze({
+  cycleMs: 34000,
+  integrationStepMs: 12,
+  keyframes: Object.freeze([
+    Object.freeze({ timeMs: 0, axis: Object.freeze([0.35, 0.88, 0.32]), speedDegPerSec: 9.0 }),
+    Object.freeze({ timeMs: 3200, axis: Object.freeze([0.72, 0.42, -0.55]), speedDegPerSec: 20.0 }),
+    Object.freeze({ timeMs: 6800, axis: Object.freeze([0.66, -0.18, -0.73]), speedDegPerSec: 34.0 }),
+    Object.freeze({ timeMs: 10500, axis: Object.freeze([0.18, -0.78, -0.60]), speedDegPerSec: 24.0 }),
+    Object.freeze({ timeMs: 13200, axis: Object.freeze([-0.58, -0.68, 0.45]), speedDegPerSec: 5.0 }),
+    Object.freeze({ timeMs: 15100, axis: Object.freeze([-0.76, 0.26, 0.60]), speedDegPerSec: -16.0 }),
+    Object.freeze({ timeMs: 19100, axis: Object.freeze([-0.24, 0.91, 0.34]), speedDegPerSec: -30.0 }),
+    Object.freeze({ timeMs: 23200, axis: Object.freeze([0.56, 0.46, 0.69]), speedDegPerSec: -18.0 }),
+    Object.freeze({ timeMs: 26500, axis: Object.freeze([0.82, -0.40, 0.40]), speedDegPerSec: 6.0 }),
+    Object.freeze({ timeMs: 28900, axis: Object.freeze([0.16, -0.91, 0.38]), speedDegPerSec: 25.0 }),
+    Object.freeze({ timeMs: 34000, axis: Object.freeze([0.35, 0.88, 0.32]), speedDegPerSec: 9.0 }),
+  ]),
+  secondaryDrift: Object.freeze({
+    xDeg: 1.15,
+    yDeg: 0.75,
+    zDeg: 0.90,
+    xPeriodMs: 19400,
+    yPeriodMs: 27800,
+    zPeriodMs: 23600,
+  }),
+});
+
+const SPATIAL_BASE_QUATERNION = new THREE.Quaternion();
+const spatialPrimaryQuaternion = new THREE.Quaternion();
+const spatialAxis = new THREE.Vector3(...PRESENTATION_SPATIAL_R1.keyframes[0].axis).normalize();
+const spatialDeltaQuaternion = new THREE.Quaternion();
+const spatialDriftQuaternion = new THREE.Quaternion();
+const spatialDriftXQuaternion = new THREE.Quaternion();
+const spatialDriftYQuaternion = new THREE.Quaternion();
+const spatialDriftZQuaternion = new THREE.Quaternion();
+const spatialTargetQuaternion = new THREE.Quaternion();
+const spatialResumeFrom = new THREE.Quaternion();
+let spatialSimTimeMs = 0;
+let spatialAngularTravelDeg = 0;
+let spatialAngularVelocityDegPerSec = PRESENTATION_SPATIAL_R1.keyframes[0].speedDegPerSec;
+let spatialLastNow = 0;
+let spatialResumeAt = 0;
+let spatialResumeStart = 0;
+let spatialInteractionActive = false;
+
+function spatialKinematicsAt(timeMs, outAxis = spatialAxis) {
+  const cycle = PRESENTATION_SPATIAL_R1.cycleMs;
+  let local = timeMs % cycle;
+  if (local < 0) local += cycle;
+  const keys = PRESENTATION_SPATIAL_R1.keyframes;
+  for (let i = 0; i < keys.length - 1; i += 1) {
+    const a = keys[i];
+    const b = keys[i + 1];
+    if (local <= b.timeMs) {
+      const p = smoothstep((local - a.timeMs) / Math.max(1, b.timeMs - a.timeMs));
+      outAxis.set(
+        THREE.MathUtils.lerp(a.axis[0], b.axis[0], p),
+        THREE.MathUtils.lerp(a.axis[1], b.axis[1], p),
+        THREE.MathUtils.lerp(a.axis[2], b.axis[2], p),
+      ).normalize();
+      return THREE.MathUtils.lerp(a.speedDegPerSec, b.speedDegPerSec, p);
+    }
+  }
+  outAxis.fromArray(keys[0].axis).normalize();
+  return keys[0].speedDegPerSec;
+}
+
+function spatialSecondaryDriftAt(timeMs, outQuaternion = spatialDriftQuaternion) {
+  const drift = PRESENTATION_SPATIAL_R1.secondaryDrift;
+  const tau = Math.PI * 2;
+  spatialDriftXQuaternion.setFromAxisAngle(AXIS_VECTOR.X, THREE.MathUtils.degToRad(drift.xDeg) * Math.sin((timeMs / drift.xPeriodMs) * tau));
+  spatialDriftYQuaternion.setFromAxisAngle(AXIS_VECTOR.Y, THREE.MathUtils.degToRad(drift.yDeg) * Math.sin((timeMs / drift.yPeriodMs) * tau));
+  spatialDriftZQuaternion.setFromAxisAngle(AXIS_VECTOR.Z, THREE.MathUtils.degToRad(drift.zDeg) * Math.sin((timeMs / drift.zPeriodMs) * tau));
+  return outQuaternion.identity()
+    .multiply(spatialDriftXQuaternion)
+    .multiply(spatialDriftYQuaternion)
+    .multiply(spatialDriftZQuaternion)
+    .normalize();
+}
+
+function spatialPresentationTargetAt(timeMs, primaryQuaternion, outQuaternion = spatialTargetQuaternion) {
+  spatialSecondaryDriftAt(timeMs, spatialDriftQuaternion);
+  return outQuaternion.copy(SPATIAL_BASE_QUATERNION)
+    .multiply(primaryQuaternion)
+    .multiply(spatialDriftQuaternion)
+    .normalize();
+}
+
+function integrateSpatialPrimary(deltaMs) {
+  let remaining = Math.max(0, deltaMs);
+  while (remaining > 0) {
+    const dt = Math.min(PRESENTATION_SPATIAL_R1.integrationStepMs, remaining);
+    const sampleTimeMs = spatialSimTimeMs + dt * 0.5;
+    spatialAngularVelocityDegPerSec = spatialKinematicsAt(sampleTimeMs, spatialAxis);
+    const stepDeg = spatialAngularVelocityDegPerSec * (dt / 1000);
+    spatialDeltaQuaternion.setFromAxisAngle(spatialAxis, THREE.MathUtils.degToRad(stepDeg));
+    spatialPrimaryQuaternion.premultiply(spatialDeltaQuaternion).normalize();
+    spatialAngularTravelDeg += Math.abs(stepDeg);
+    spatialSimTimeMs += dt;
+    remaining -= dt;
+  }
+}
+
+function deterministicSpatialStateAt(timeMs) {
+  const targetTimeMs = Math.max(0, timeMs);
+  const primary = new THREE.Quaternion();
+  const axis = new THREE.Vector3();
+  const delta = new THREE.Quaternion();
+  let elapsed = 0;
+  let travelDeg = 0;
+  let velocityDegPerSec = PRESENTATION_SPATIAL_R1.keyframes[0].speedDegPerSec;
+  while (elapsed < targetTimeMs) {
+    const dt = Math.min(PRESENTATION_SPATIAL_R1.integrationStepMs, targetTimeMs - elapsed);
+    velocityDegPerSec = spatialKinematicsAt(elapsed + dt * 0.5, axis);
+    const stepDeg = velocityDegPerSec * (dt / 1000);
+    delta.setFromAxisAngle(axis, THREE.MathUtils.degToRad(stepDeg));
+    primary.premultiply(delta).normalize();
+    travelDeg += Math.abs(stepDeg);
+    elapsed += dt;
+  }
+  const target = new THREE.Quaternion();
+  spatialPresentationTargetAt(targetTimeMs, primary, target);
+  spatialKinematicsAt(targetTimeMs, axis);
+  return { target, axis, velocityDegPerSec, angularTravelDeg: travelDeg };
+}
+
+function spatialDominantAxis(axis) {
+  const components = [Math.abs(axis.x), Math.abs(axis.y), Math.abs(axis.z)];
+  const index = components.indexOf(Math.max(...components));
+  return AXES[index];
+}
+
+function spatialPresentationSample(timeSec = 0) {
+  const timeMs = Math.max(0, timeSec) * 1000;
+  const state = deterministicSpatialStateAt(timeMs);
+  const euler = new THREE.Euler().setFromQuaternion(state.target, 'YXZ');
+  return {
+    timeSec,
+    signedYawDeg: THREE.MathUtils.radToDeg(euler.y),
+    cumulativeYawDeg: state.angularTravelDeg,
+    velocityDegPerSec: state.velocityDegPerSec,
+    pitchDeg: THREE.MathUtils.radToDeg(euler.x),
+    rollDeg: THREE.MathUtils.radToDeg(euler.z),
+    angularTravelDeg: state.angularTravelDeg,
+    dominantAxis: spatialDominantAxis(state.axis),
+    rotationAxis: state.axis.toArray(),
+  };
+}
+
+const getDiagnosticsR1_2 = getDiagnostics;
+getDiagnostics = function getSpatialDiagnostics() {
+  const diagnostics = getDiagnosticsR1_2();
+  const euler = new THREE.Euler().setFromQuaternion(presentationRig.quaternion, 'YXZ');
+  const axis = spatialAxis.clone();
+  diagnostics.presentationConfig = PRESENTATION_SPATIAL_R1;
+  diagnostics.presentation = {
+    simTimeMs: spatialSimTimeMs,
+    angularTravelDeg: spatialAngularTravelDeg,
+    angularVelocityDegPerSec: spatialAngularVelocityDegPerSec,
+    rotationAxis: axis.toArray(),
+    dominantAxis: spatialDominantAxis(axis),
+    pitchDeg: THREE.MathUtils.radToDeg(euler.x),
+    yawDeg: THREE.MathUtils.radToDeg(euler.y),
+    rollDeg: THREE.MathUtils.radToDeg(euler.z),
+    frameAngularDeltaRad: presentationFrameDeltaRad,
+    quaternion: presentationRig.quaternion.toArray(),
+    engine: 'quaternion-spatial-r1',
+  };
+  return diagnostics;
+};
+
+getReviewPresentationSample = spatialPresentationSample;
+setReviewPresentation = function setSpatialReviewPresentation(timeSec = 0, resumeProgress = 1, renderFrame = true) {
+  if (!captureMode || !api.ready) return false;
+  const sample = spatialPresentationSample(timeSec);
+  const target = deterministicSpatialStateAt(Math.max(0, timeSec) * 1000).target;
+  if (resumeProgress < 1) {
+    const progress = smoothstep(resumeProgress);
+    presentationRig.quaternion.slerpQuaternions(frozenPresentationQuaternion, target, progress).normalize();
+  } else {
+    presentationRig.quaternion.copy(target);
+  }
+  if (renderFrame) renderReviewFrame();
+  return { ...sample, quaternion: presentationRig.quaternion.toArray() };
+};
+
+updatePresentationMotion = function updateSpatialPresentationMotion(now) {
+  if (!api.ready || captureMode || prefersReducedMotion) return;
+  if (!spatialLastNow) {
+    spatialLastNow = now;
+    lastPresentationQuaternion.copy(presentationRig.quaternion);
+    return;
+  }
+  const deltaMs = Math.min(80, Math.max(0, now - spatialLastNow));
+  spatialLastNow = now;
+  if (spatialInteractionActive || now < spatialResumeAt) {
+    presentationFrameDeltaRad = 0;
+    lastPresentationQuaternion.copy(presentationRig.quaternion);
+    return;
+  }
+
+  integrateSpatialPrimary(deltaMs);
+  spatialPresentationTargetAt(spatialSimTimeMs, spatialPrimaryQuaternion, spatialTargetQuaternion);
+  const before = presentationRig.quaternion.clone();
+  if (spatialResumeStart > 0 && now < spatialResumeStart + MOTION.manualResumeBlendMs) {
+    const progress = smoothstep((now - spatialResumeStart) / MOTION.manualResumeBlendMs);
+    presentationRig.quaternion.slerpQuaternions(spatialResumeFrom, spatialTargetQuaternion, progress).normalize();
+  } else {
+    presentationRig.quaternion.copy(spatialTargetQuaternion);
+    if (spatialResumeStart > 0) spatialResumeStart = 0;
+  }
+  presentationFrameDeltaRad = before.angleTo(presentationRig.quaternion);
+  lastPresentationQuaternion.copy(presentationRig.quaternion);
+};
+
+controls.addEventListener('start', () => {
+  spatialInteractionActive = true;
+  spatialResumeAt = Infinity;
+  spatialResumeStart = 0;
+  spatialResumeFrom.copy(presentationRig.quaternion);
+});
+
+controls.addEventListener('end', () => {
+  spatialInteractionActive = false;
+  const now = performance.now();
+  spatialResumeAt = now + MOTION.manualResumeDelayMs;
+  spatialResumeStart = spatialResumeAt;
+  spatialResumeFrom.copy(presentationRig.quaternion);
+});
+
+api.presentationConfig = PRESENTATION_SPATIAL_R1;
+api.getReviewPresentationSample = getReviewPresentationSample;
+api.setReviewPresentation = setReviewPresentation;
+api.getDiagnostics = getDiagnostics;
+window.__PROAI_CUBE_SPATIAL_R1 = api;

@@ -62,30 +62,29 @@ const PRESENTATION_R1_2 = Object.freeze({
   review360TargetSec: 18.0,
 });
 
-// Retained only as immutable Hero freeze-sentinel data; not a runtime presentation authority.
-const PRESENTATION_SPATIAL_R1_1 = Object.freeze({
-  cycleMs: 64000,
-  motionAuthority: 'quaternion-editorial-spatial-r1.1',
+// Runtime whole-object presentation authority — R1.2 premium editorial spatial motion.
+const PRESENTATION_SPATIAL_R1_2 = Object.freeze({
+  cycleMs: 66000,
+  motionAuthority: 'quaternion-editorial-spatial-r1.2-premium',
   keyframes: Object.freeze([
     Object.freeze({ timeMs: 0, poseDeg: Object.freeze([0, 0, 0]), motion: 'sweep', label: 'natural-3q' }),
-    Object.freeze({ timeMs: 5500, poseDeg: Object.freeze([25, 60, -25]), motion: 'breath', label: 'top-side-3q' }),
-    Object.freeze({ timeMs: 7800, poseDeg: Object.freeze([23, 66, -23]), motion: 'sweep', label: 'top-side-breath' }),
-    Object.freeze({ timeMs: 13200, poseDeg: Object.freeze([-45, 40, -25]), motion: 'breath', label: 'lower-side-inspection' }),
-    Object.freeze({ timeMs: 15500, poseDeg: Object.freeze([-43, 46, -23]), motion: 'sweep', label: 'lower-side-breath' }),
-    Object.freeze({ timeMs: 21000, poseDeg: Object.freeze([10, 85, 5]), motion: 'breath', label: 'opposite-3q-a' }),
-    Object.freeze({ timeMs: 23500, poseDeg: Object.freeze([8, 91, 7]), motion: 'sweep', label: 'opposite-3q-a-breath' }),
-    Object.freeze({ timeMs: 29500, poseDeg: Object.freeze([-22, 188, -18]), motion: 'breath', label: 'opposite-3q-b' }),
-    Object.freeze({ timeMs: 32000, poseDeg: Object.freeze([-20, 194, -16]), motion: 'breath', label: 'opposite-3q-b-breath' }),
-    Object.freeze({ timeMs: 34500, poseDeg: Object.freeze([-22, 188, -18]), motion: 'sweep', label: 'opposite-3q-b-return' }),
-    Object.freeze({ timeMs: 40500, poseDeg: Object.freeze([8, 91, 7]), motion: 'breath', label: 'opposite-3q-a-return' }),
-    Object.freeze({ timeMs: 43000, poseDeg: Object.freeze([10, 85, 5]), motion: 'sweep', label: 'opposite-3q-a-return-breath' }),
-    Object.freeze({ timeMs: 48500, poseDeg: Object.freeze([-43, 46, -23]), motion: 'breath', label: 'lower-side-return' }),
-    Object.freeze({ timeMs: 50800, poseDeg: Object.freeze([-45, 40, -25]), motion: 'sweep', label: 'lower-side-return-breath' }),
-    Object.freeze({ timeMs: 56200, poseDeg: Object.freeze([23, 66, -23]), motion: 'breath', label: 'top-side-return' }),
-    Object.freeze({ timeMs: 58500, poseDeg: Object.freeze([25, 60, -25]), motion: 'sweep', label: 'top-side-return-breath' }),
-    Object.freeze({ timeMs: 64000, poseDeg: Object.freeze([0, 0, 0]), motion: 'sweep', label: 'natural-3q-loop' }),
+    Object.freeze({ timeMs: 5600, poseDeg: Object.freeze([24, 58, -23]), motion: 'breath', label: 'top-side-3q' }),
+    Object.freeze({ timeMs: 8200, poseDeg: Object.freeze([22, 64, -21]), motion: 'sweep', label: 'top-side-breath' }),
+    Object.freeze({ timeMs: 13900, poseDeg: Object.freeze([-42, 38, -23]), motion: 'breath', label: 'lower-side-inspection' }),
+    Object.freeze({ timeMs: 16400, poseDeg: Object.freeze([-40, 45, -21]), motion: 'sweep', label: 'lower-side-breath' }),
+    Object.freeze({ timeMs: 22000, poseDeg: Object.freeze([9, 87, 6]), motion: 'breath', label: 'opposite-3q-a' }),
+    Object.freeze({ timeMs: 24700, poseDeg: Object.freeze([7, 94, 8]), motion: 'sweep', label: 'opposite-3q-a-breath' }),
+    Object.freeze({ timeMs: 30900, poseDeg: Object.freeze([-18, 178, -16]), motion: 'breath', label: 'deep-opposite-3q' }),
+    Object.freeze({ timeMs: 33700, poseDeg: Object.freeze([-16, 184, -14]), motion: 'sweep', label: 'deep-opposite-breath' }),
+    Object.freeze({ timeMs: 38600, poseDeg: Object.freeze([24, 138, 23]), motion: 'breath', label: 'high-opposite-return' }),
+    Object.freeze({ timeMs: 41200, poseDeg: Object.freeze([22, 144, 21]), motion: 'sweep', label: 'high-opposite-breath' }),
+    Object.freeze({ timeMs: 46900, poseDeg: Object.freeze([-27, 96, 31]), motion: 'breath', label: 'diagonal-return-inspection' }),
+    Object.freeze({ timeMs: 49400, poseDeg: Object.freeze([-24, 102, 29]), motion: 'sweep', label: 'diagonal-return-breath' }),
+    Object.freeze({ timeMs: 55500, poseDeg: Object.freeze([19, 42, -14]), motion: 'breath', label: 'front-side-3q' }),
+    Object.freeze({ timeMs: 58100, poseDeg: Object.freeze([17, 48, -12]), motion: 'sweep', label: 'front-side-breath' }),
+    Object.freeze({ timeMs: 66000, poseDeg: Object.freeze([0, 0, 0]), motion: 'sweep', label: 'natural-3q-loop' }),
   ]),
-  easing: Object.freeze({ sweepLinearWeight: 0.22, breathLinearWeight: 0.84 }),
+  easing: Object.freeze({ sweepLinearWeight: 0.14, breathLinearWeight: 0.72, sweepSettleBias: 0.075 }),
   targetBreathSpeedDegPerSec: Object.freeze([2, 6]),
 });
 
@@ -339,8 +338,8 @@ let presentationLastNow = 0;
 let presentationFrameDeltaRad = 0;
 let presentationAngularTravelDeg = 0;
 let presentationAngularVelocityDegPerSec = 0;
-let presentationPhase = PRESENTATION_SPATIAL_R1_1.keyframes[0].motion;
-let presentationPoseLabel = PRESENTATION_SPATIAL_R1_1.keyframes[0].label;
+let presentationPhase = PRESENTATION_SPATIAL_R1_2.keyframes[0].motion;
+let presentationPoseLabel = PRESENTATION_SPATIAL_R1_2.keyframes[0].label;
 let lastPresentationQuaternion = new THREE.Quaternion();
 const presentationPoseEuler = new THREE.Euler();
 const presentationPoseQuaternionA = new THREE.Quaternion();
@@ -355,7 +354,7 @@ const api = {
   motionState,
   motionConfig: MOTION,
   geometryConfig: GEOMETRY_R1,
-  presentationConfig: PRESENTATION_SPATIAL_R1_1,
+  presentationConfig: PRESENTATION_SPATIAL_R1_2,
   sliceConfig: SLICE_R1_2,
   geometry: null,
   hierarchy: null,
@@ -391,6 +390,7 @@ window.__PROAI_CUBE_R1 = api;
 window.__PROAI_CUBE_ML_R1 = api;
 window.__PROAI_CUBE_SPATIAL_R1 = api;
 window.__PROAI_CUBE_SPATIAL_R1_1 = api;
+window.__PROAI_CUBE_SPATIAL_R1_2 = api;
 
 function setMotionState(next) {
   motionState = next;
@@ -1216,10 +1216,10 @@ function presentationPoseQuaternion(poseDeg, outQuaternion = presentationTargetQ
 }
 
 function presentationSegmentAt(timeMs) {
-  const cycle = PRESENTATION_SPATIAL_R1_1.cycleMs;
+  const cycle = PRESENTATION_SPATIAL_R1_2.cycleMs;
   let local = timeMs % cycle;
   if (local < 0) local += cycle;
-  const keys = PRESENTATION_SPATIAL_R1_1.keyframes;
+  const keys = PRESENTATION_SPATIAL_R1_2.keyframes;
   for (let index = 0; index < keys.length - 1; index += 1) {
     const a = keys[index];
     const b = keys[index + 1];
@@ -1241,19 +1241,16 @@ function presentationSegmentAt(timeMs) {
 
 function presentationEditorialEase(progress, phase) {
   const p = THREE.MathUtils.clamp(progress, 0, 1);
-  const linearWeight = phase === 'breath'
-    ? PRESENTATION_SPATIAL_R1_1.easing.breathLinearWeight
-    : PRESENTATION_SPATIAL_R1_1.easing.sweepLinearWeight;
-  return THREE.MathUtils.lerp(smoothstep(p), p, linearWeight);
+  const linearWeight = phase === 'breath' ? PRESENTATION_SPATIAL_R1_2.easing.breathLinearWeight : PRESENTATION_SPATIAL_R1_2.easing.sweepLinearWeight;
+  if (phase === 'breath') return THREE.MathUtils.lerp(smoothstep(p), p, linearWeight);
+  const biased = THREE.MathUtils.clamp(p + PRESENTATION_SPATIAL_R1_2.easing.sweepSettleBias * Math.sin(Math.PI * p), 0, 1);
+  return THREE.MathUtils.lerp(smoothstep(biased), biased, linearWeight);
 }
 
 function presentationEditorialEaseDerivative(progress, phase) {
   const p = THREE.MathUtils.clamp(progress, 0, 1);
-  const linearWeight = phase === 'breath'
-    ? PRESENTATION_SPATIAL_R1_1.easing.breathLinearWeight
-    : PRESENTATION_SPATIAL_R1_1.easing.sweepLinearWeight;
-  const smoothDerivative = 6 * p * (1 - p);
-  return linearWeight + (1 - linearWeight) * smoothDerivative;
+  const e = 0.001, lo = Math.max(0, p - e), hi = Math.min(1, p + e);
+  return hi <= lo ? 0 : (presentationEditorialEase(hi, phase) - presentationEditorialEase(lo, phase)) / (hi - lo);
 }
 
 function presentationSegmentGeometry(a, b) {
@@ -1290,7 +1287,7 @@ function presentationQuaternionAt(timeMs, outQuaternion = presentationTargetQuat
 }
 
 function presentationCycleTravelDeg() {
-  const keys = PRESENTATION_SPATIAL_R1_1.keyframes;
+  const keys = PRESENTATION_SPATIAL_R1_2.keyframes;
   let total = 0;
   for (let index = 0; index < keys.length - 1; index += 1) {
     total += presentationSegmentGeometry(keys[index], keys[index + 1]).angleDeg;
@@ -1298,15 +1295,15 @@ function presentationCycleTravelDeg() {
   return total;
 }
 
-const PRESENTATION_SPATIAL_R1_1_CYCLE_TRAVEL_DEG = presentationCycleTravelDeg();
+const PRESENTATION_SPATIAL_R1_2_CYCLE_TRAVEL_DEG = presentationCycleTravelDeg();
 
 function presentationTravelAt(timeMs) {
   const target = Math.max(0, timeMs);
-  const cycle = PRESENTATION_SPATIAL_R1_1.cycleMs;
+  const cycle = PRESENTATION_SPATIAL_R1_2.cycleMs;
   const completeCycles = Math.floor(target / cycle);
   const local = target % cycle;
-  const keys = PRESENTATION_SPATIAL_R1_1.keyframes;
-  let travelDeg = completeCycles * PRESENTATION_SPATIAL_R1_1_CYCLE_TRAVEL_DEG;
+  const keys = PRESENTATION_SPATIAL_R1_2.keyframes;
+  let travelDeg = completeCycles * PRESENTATION_SPATIAL_R1_2_CYCLE_TRAVEL_DEG;
   for (let index = 0; index < keys.length - 1; index += 1) {
     const a = keys[index];
     const b = keys[index + 1];
@@ -1363,7 +1360,7 @@ function getReviewPresentationSample(timeSec = 0) {
     rotationAxis: metrics.axis.toArray(),
     phase: metrics.phase,
     poseLabel: metrics.poseLabel,
-    engine: PRESENTATION_SPATIAL_R1_1.motionAuthority,
+    engine: PRESENTATION_SPATIAL_R1_2.motionAuthority,
   };
 }
 
@@ -1607,7 +1604,7 @@ function getDiagnostics() {
     hierarchy: api.hierarchy,
     mechanics: api.mechanics,
     motionConfig: MOTION,
-    presentationConfig: PRESENTATION_SPATIAL_R1_1,
+    presentationConfig: PRESENTATION_SPATIAL_R1_2,
     sliceConfig: SLICE_R1_2,
     presentation: {
     simTimeMs: presentationSimTimeMs,
@@ -1622,7 +1619,7 @@ function getDiagnostics() {
     poseLabel: presentationPoseLabel,
     frameAngularDeltaRad: presentationFrameDeltaRad,
     quaternion: presentationRig.quaternion.toArray(),
-    engine: PRESENTATION_SPATIAL_R1_1.motionAuthority,
+    engine: PRESENTATION_SPATIAL_R1_2.motionAuthority,
   },
     activeTurns: activeTurnList().map((turn) => ({
       id: turn.id,

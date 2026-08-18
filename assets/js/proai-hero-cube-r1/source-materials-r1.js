@@ -324,10 +324,6 @@ let motionState = 'loading';
 let sliceSchedulerEnabled = !captureMode && !prefersReducedMotion;
 let sliceSchedulerRunning = false;
 let interactionActive = false;
-let manualResumeAt = 0;
-let sliceResumeAt = 0;
-let presentationResumeStart = 0;
-let presentationResumeFrom = new THREE.Quaternion();
 let frozenPresentationQuaternion = new THREE.Quaternion();
 let lastTurnResult = null;
 let lastTurnResults = [];
@@ -968,11 +964,11 @@ function finalizeTurn(turnOrId) {
 }
 
 function presentationAutonomyBlocked() {
-  return interactionActive || performance.now() < manualResumeAt;
+  return false;
 }
 
 function sliceAutonomyBlocked() {
-  return interactionActive || performance.now() < sliceResumeAt;
+  return false;
 }
 
 function autonomyBlocked() {
@@ -1380,12 +1376,6 @@ function updatePresentationMotion(now) {
   }
   const deltaMs = Math.min(80, Math.max(0, now - presentationLastNow));
   presentationLastNow = now;
-  if (presentationAutonomyBlocked()) {
-    presentationFrameDeltaRad = 0;
-    lastPresentationQuaternion.copy(presentationRig.quaternion);
-    return;
-  }
-
   presentationSimTimeMs += deltaMs;
   presentationQuaternionAt(presentationSimTimeMs, presentationTargetQuaternion);
   const metrics = presentationMetricsAt(presentationSimTimeMs);
@@ -1395,13 +1385,7 @@ function updatePresentationMotion(now) {
   presentationPoseLabel = metrics.poseLabel;
   const before = presentationRig.quaternion.clone();
 
-  if (presentationResumeStart > 0 && now < presentationResumeStart + MOTION.manualResumeBlendMs) {
-    const progress = smoothstep((now - presentationResumeStart) / MOTION.manualResumeBlendMs);
-    presentationRig.quaternion.slerpQuaternions(presentationResumeFrom, presentationTargetQuaternion, progress).normalize();
-  } else {
-    presentationRig.quaternion.copy(presentationTargetQuaternion);
-    if (presentationResumeStart > 0) presentationResumeStart = 0;
-  }
+  presentationRig.quaternion.copy(presentationTargetQuaternion);
   presentationFrameDeltaRad = before.angleTo(presentationRig.quaternion);
   lastPresentationQuaternion.copy(presentationRig.quaternion);
 }
@@ -1514,14 +1498,17 @@ async function sliceSchedulerLoop() {
 }
 
 function getInteractionState() {
-  const now = performance.now();
   return {
     interactionActive,
-    autonomyBlocked: presentationAutonomyBlocked(),
-    sliceAutonomyBlocked: sliceAutonomyBlocked(),
-    resumeDelayRemainingMs: Math.max(0, manualResumeAt - now),
-    sliceResumeDelayRemainingMs: Math.max(0, sliceResumeAt - now),
-    presentationResumeActive: presentationResumeStart > 0 && now >= presentationResumeStart && now < presentationResumeStart + MOTION.manualResumeBlendMs,
+    autonomyBlocked: false,
+    sliceAutonomyBlocked: false,
+    resumeDelayRemainingMs: 0,
+    sliceResumeDelayRemainingMs: 0,
+    presentationResumeActive: false,
+    presentationSimTimeMs,
+    sliceEventSerial,
+    activeTurnCount: activeTurns.size,
+    activeTurnProgress: activeTurnList().map((turn) => ({ id: turn.id, linear: turn.linear, eased: turn.eased })),
     cameraPosition: camera.position.toArray(),
     presentationQuaternion: presentationRig.quaternion.toArray(),
   };
@@ -1530,19 +1517,10 @@ function getInteractionState() {
 controls.addEventListener('start', () => {
   interactionActive = true;
   frozenPresentationQuaternion.copy(presentationRig.quaternion);
-  presentationResumeFrom.copy(presentationRig.quaternion);
-  manualResumeAt = Infinity;
-  sliceResumeAt = Infinity;
-  presentationResumeStart = 0;
 });
 
 controls.addEventListener('end', () => {
   interactionActive = false;
-  const now = performance.now();
-  manualResumeAt = now + MOTION.manualResumeDelayMs;
-  sliceResumeAt = manualResumeAt + MOTION.sliceResumeStaggerMs;
-  presentationResumeStart = manualResumeAt;
-  presentationResumeFrom.copy(presentationRig.quaternion);
 });
 
 function beginReviewTurn(axis, layer, direction) {

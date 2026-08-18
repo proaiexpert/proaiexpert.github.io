@@ -1,0 +1,209 @@
+name: Temporary ProAI Cube R1.1 CDP QA
+
+on:
+  pull_request:
+    branches:
+      - agent/tmp-proai-cube-r11-cdp-qa-base
+
+permissions:
+  contents: read
+
+jobs:
+  cdp-qa:
+    timeout-minutes: 3
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 5e1ac4fbcbad31d263e5fd95e6fbbb3f95ed226a
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Start site and headless Chrome
+        shell: bash
+        run: |
+          python3 -m http.server 8082 --bind 127.0.0.1 > /tmp/proai-r11-cdp-http.log 2>&1 &
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME"
+          echo "Chrome: $CHROME"
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --enable-webgl --use-gl=angle --use-angle=swiftshader --remote-debugging-port=9222 --remote-allow-origins='*' --user-data-dir=/tmp/proai-r11-cdp-profile about:blank > /tmp/proai-r11-chrome.log 2>&1 &
+          for i in $(seq 1 40); do
+            if curl --fail --silent http://127.0.0.1:9222/json/version > /tmp/proai-r11-version.json; then break; fi
+            sleep 0.25
+          done
+          cat /tmp/proai-r11-version.json
+
+      - name: Install CDP websocket client
+        run: python -m pip install --quiet websocket-client
+
+      - name: Run exact-candidate CDP QA
+        shell: bash
+        run: |
+          mkdir -p qa-r11-cdp
+          timeout 125s python3 - <<'PY'
+          import base64
+          import json
+          import math
+          import time
+          import urllib.request
+          from pathlib import Path
+          from websocket import create_connection, WebSocketTimeoutException
+
+          out = Path('qa-r11-cdp')
+          with urllib.request.urlopen('http://127.0.0.1:9222/json/list', timeout=5) as response:
+              targets = json.load(response)
+          page = next(item for item in targets if item.get('type') == 'page')
+          ws = create_connection(page['webSocketDebuggerUrl'], timeout=10, origin='http://localhost')
+          next_id = 0
+          events = []
+
+          def call(method, params=None, timeout=20):
+              global next_id
+              next_id += 1
+              ident = next_id
+              ws.send(json.dumps({'id': ident, 'method': method, 'params': params or {}}))
+              deadline = time.monotonic() + timeout
+              while time.monotonic() < deadline:
+                  ws.settimeout(max(0.1, deadline - time.monotonic()))
+                  message = json.loads(ws.recv())
+                  if message.get('id') == ident:
+                      if 'error' in message:
+                          raise RuntimeError(f"CDP {method}: {message['error']}")
+                      return message.get('result', {})
+                  events.append(message)
+              raise TimeoutError(method)
+
+          def evaluate(expression, await_promise=False, timeout=20):
+              result = call('Runtime.evaluate', {
+                  'expression': expression,
+                  'returnByValue': True,
+                  'awaitPromise': await_promise,
+                  'userGesture': True,
+              }, timeout=timeout)
+              remote = result.get('result', {})
+              if remote.get('subtype') == 'error':
+                  raise RuntimeError(remote.get('description') or remote)
+              if 'exceptionDetails' in result:
+                  raise RuntimeError(result['exceptionDetails'])
+              return remote.get('value')
+
+          def wait_ready(timeout=20):
+              deadline = time.monotonic() + timeout
+              while time.monotonic() < deadline:
+                  try:
+                      if evaluate('Boolean(window.__PROAI_CUBE_OWNER_REVIEW && window.__PROAI_CUBE_OWNER_REVIEW.ready)', timeout=3):
+                          return
+                  except Exception:
+                      pass
+                  time.sleep(0.15)
+              status = evaluate("document.getElementById('runtime-status')?.textContent || 'no status'", timeout=3)
+              raise TimeoutError(f'Cube ready timeout; status={status}')
+
+          def evaluate_json(expression, await_promise=False, timeout=20):
+              raw = evaluate(f'JSON.stringify({expression})', await_promise=await_promise, timeout=timeout)
+              return json.loads(raw)
+
+          def screenshot(name):
+              data = call('Page.captureScreenshot', {'format': 'png', 'fromSurface': True}, timeout=15)['data']
+              (out / name).write_bytes(base64.b64decode(data))
+
+          call('Page.enable')
+          call('Runtime.enable')
+          call('Log.enable')
+
+          base = 'http://127.0.0.1:8082/docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html'
+          call('Page.navigate', {'url': base})
+          wait_ready()
+
+          boot = evaluate_json("(() => { const api=window.__PROAI_CUBE_OWNER_REVIEW; const d=api.getDiagnostics(); return { ready:api.ready, motionState:api.motionState, canvasCount:document.querySelectorAll('#cube-canvas').length, status:document.getElementById('runtime-status')?.textContent, engine:d.presentation.engine, hierarchy:d.hierarchy, mechanics:d.mechanics, geometry:d.geometry, scheduler:d.scheduler }; })()")
+          assert boot['ready'] is True and boot['motionState'] != 'error'
+          assert boot['canvasCount'] == 1
+          assert 'ready' in boot['status'].lower()
+          assert boot['engine'] == 'quaternion-editorial-spatial-r1.1'
+          assert boot['hierarchy']['pass'] is True
+          assert boot['mechanics']['physicalCubies'] == 27
+          assert boot['mechanics']['axes'] == ['X', 'Y', 'Z']
+          assert boot['geometry']['pass'] is True
+
+          timeline = []
+          started = time.monotonic()
+          captures = [(0.0,'t00.png'),(5.8,'t06.png'),(13.4,'t13.png'),(21.2,'t21.png'),(29.7,'t30.png'),(34.8,'t35.png')]
+          for target, filename in captures:
+              delay = target - (time.monotonic() - started)
+              if delay > 0:
+                  time.sleep(delay)
+              sample = evaluate_json("(() => { const d=window.__PROAI_CUBE_OWNER_REVIEW.getDiagnostics(); return { presentation:d.presentation, scheduler:d.scheduler, activeTurns:d.activeTurns.length, lastTurnResults:d.lastTurnResults.length }; })()")
+              timeline.append({'targetSec': target, **sample})
+              screenshot(filename)
+
+          post = timeline[-1]
+          assert post['scheduler']['eventSerial'] > 0 or post['lastTurnResults'] > 0
+
+          rect = evaluate_json("document.getElementById('cube-canvas').getBoundingClientRect().toJSON()")
+          cx = rect['x'] + rect['width'] * 0.5
+          cy = rect['y'] + rect['height'] * 0.5
+          camera_before = evaluate_json("window.__PROAI_CUBE_OWNER_REVIEW.getInteractionState().cameraPosition")
+          call('Input.dispatchMouseEvent', {'type':'mouseMoved','x':cx,'y':cy,'button':'none'})
+          call('Input.dispatchMouseEvent', {'type':'mousePressed','x':cx,'y':cy,'button':'left','buttons':1,'clickCount':1})
+          call('Input.dispatchMouseEvent', {'type':'mouseMoved','x':cx+105,'y':cy+34,'button':'left','buttons':1})
+          time.sleep(0.25)
+          call('Input.dispatchMouseEvent', {'type':'mouseReleased','x':cx+105,'y':cy+34,'button':'left','buttons':0,'clickCount':1})
+          after_drag = evaluate_json("window.__PROAI_CUBE_OWNER_REVIEW.getInteractionState()")
+          camera_after = after_drag['cameraPosition']
+          camera_delta = math.sqrt(sum((a-b)**2 for a,b in zip(camera_before,camera_after)))
+          assert after_drag['interactionActive'] is False
+          assert after_drag['resumeDelayRemainingMs'] > 0
+          assert camera_delta > 1e-5
+          time.sleep(2.1)
+          during_resume = evaluate_json("window.__PROAI_CUBE_OWNER_REVIEW.getInteractionState()")
+          assert during_resume['presentationResumeActive'] is True
+          time.sleep(2.6)
+          after_resume = evaluate_json("window.__PROAI_CUBE_OWNER_REVIEW.getInteractionState()")
+          assert after_resume['presentationResumeActive'] is False and after_resume['autonomyBlocked'] is False
+
+          call('Page.navigate', {'url': base + '?capture'})
+          wait_ready()
+          qa_json = evaluate("(async () => JSON.stringify(await window.__PROAI_CUBE_OWNER_REVIEW.runAutomatedQA()))()", await_promise=True, timeout=30)
+          qa = json.loads(qa_json)
+          assert qa['axisSupport']['X']['restoredAfterPair'] is True
+          assert qa['axisSupport']['Y']['restoredAfterPair'] is True
+          assert qa['axisSupport']['Z']['restoredAfterPair'] is True
+          assert qa['repeatability30']['pass'] is True
+          assert qa['inverseRestoration']['pass'] is True
+          assert qa['pairedTurnQA']['pass'] is True
+
+          fatal_events = []
+          for event in events:
+              method = event.get('method')
+              params = event.get('params', {})
+              if method == 'Runtime.exceptionThrown':
+                  fatal_events.append(event)
+              elif method == 'Log.entryAdded' and params.get('entry', {}).get('level') == 'error':
+                  fatal_events.append(event)
+          assert not fatal_events, fatal_events
+
+          report = {
+              'boot': boot,
+              'timeline': timeline,
+              'manualInteraction': {'cameraDelta': camera_delta, 'afterDrag': after_drag, 'duringResume': during_resume, 'afterResume': after_resume},
+              'mechanicsQA': qa,
+              'fatalEvents': fatal_events,
+          }
+          (out/'cdp-report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+          print('CDP_RUNTIME_QA_PASS')
+          print('dominant axes:', [x['presentation']['dominantAxis'] for x in timeline])
+          print('phases:', [x['presentation']['phase'] for x in timeline])
+          print('camera delta:', camera_delta)
+          print('scheduler event serial:', post['scheduler']['eventSerial'])
+          ws.close()
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proai-cube-r11-cdp-qa
+          path: qa-r11-cdp/
+          if-no-files-found: warn

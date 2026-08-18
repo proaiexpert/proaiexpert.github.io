@@ -1,0 +1,65 @@
+name: TEMP ProAI Cube Spatial R1 PR QA
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Source and scope checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE='assets/js/proai-hero-cube-r1/source-materials-r1.js'
+          node --check "$FILE"
+          git diff --check d5f2e2fd85218b2a98e774b0b19df1536240d4fb..HEAD
+          test "$(git hash-object "$FILE")" = 'c15d4c884621f1d365811a1bf3af424eabe29295'
+          grep -q "const PRESENTATION_SPATIAL_R1" "$FILE"
+          grep -q "engine: 'quaternion-spatial-r1'" "$FILE"
+          grep -q "turnDurationRangeMs: \[1080, 1420\]" "$FILE"
+          grep -q "graphiteFace: Object.freeze({ color: '#242a31'" "$FILE"
+          grep -q "hemisphereIntensity: 0.52, keyIntensity: 5.2, fillIntensity: 4.0, rimIntensity: 4.6" "$FILE"
+
+      - name: Build Jekyll site
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          test -s _site/index.html
+          test -s _site/ru/index.html
+          test -s _site/assets/js/proai-hero-cube-r1/source-materials-r1.js
+          test -s _site/docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html
+
+      - name: Boot EN RU and exact review in headless Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --directory _site >/tmp/proai-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          sleep 1
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          FLAGS=(--headless=new --no-sandbox --disable-dev-shm-usage --enable-webgl --use-gl=angle --use-angle=swiftshader --window-size=1440,1000 --virtual-time-budget=18000)
+          "$CHROME" "${FLAGS[@]}" --dump-dom http://127.0.0.1:8765/ >/tmp/en.html 2>/tmp/en.chrome.log
+          "$CHROME" "${FLAGS[@]}" --dump-dom http://127.0.0.1:8765/ru/ >/tmp/ru.html 2>/tmp/ru.chrome.log
+          "$CHROME" "${FLAGS[@]}" --dump-dom http://127.0.0.1:8765/docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html >/tmp/review.html 2>/tmp/review.chrome.log
+          grep -q 'data-cube-mounted="true"' /tmp/en.html
+          grep -q 'data-cube-mounted="true"' /tmp/ru.html
+          grep -q 'Exact candidate ready' /tmp/review.html
+          ! grep -q 'Review boot failed' /tmp/review.html

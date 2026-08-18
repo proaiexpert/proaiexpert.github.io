@@ -1,0 +1,92 @@
+name: ProAI Historical Three-Block Owner Review
+
+on:
+  push:
+    branches:
+      - agent/proai-three-block-historical-owner-review
+    paths:
+      - .github/workflows/proai-three-block-historical-owner-review.yml
+
+permissions:
+  contents: write
+
+jobs:
+  owner-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 105
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify historical product and build
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT=d5f2e2fd85218b2a98e774b0b19df1536240d4fb
+          MAIN=c945084e1952c05c686494091f7dbca0f7acdf08
+          git cat-file -e "$PRODUCT^{commit}"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN"
+          git worktree add /tmp/proai-historical "$PRODUCT"
+          cd /tmp/proai-historical
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination /tmp/proai-historical-site >/dev/null
+          test -s /tmp/proai-historical-site/index.html
+          test -s /tmp/proai-historical-site/ru/index.html
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory /tmp/proai-historical-site >/tmp/proai-historical-http.log 2>&1 &
+          echo $! >/tmp/proai-historical-http.pid
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:8080/ >/dev/null && break
+            [ "$i" -eq 30 ] && exit 1
+            sleep 1
+          done
+
+      - name: Start HTTPS tunnel and publish owner URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --retry-delay 2 -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >/tmp/proai-historical-cloudflared.log 2>&1 &
+          echo $! >/tmp/proai-historical-cloudflared.pid
+
+          BASE=""
+          for i in $(seq 1 60); do
+            BASE="$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/proai-historical-cloudflared.log | tail -1 || true)"
+            [ -n "$BASE" ] && break
+            sleep 2
+          done
+          test -n "$BASE"
+
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 15 "$BASE/" >/tmp/historical-en.html; then break; fi
+            [ "$i" -eq 30 ] && exit 1
+            sleep 3
+          done
+          curl -fsS --retry 3 --retry-delay 2 --max-time 20 "$BASE/ru/" >/tmp/historical-ru.html
+          grep -q 'proai-hero-cube-mount' /tmp/historical-en.html
+          grep -q 'THE CONNECTED SYSTEM' /tmp/historical-en.html
+          grep -q 'ЕДИНАЯ СИСТЕМА' /tmp/historical-ru.html
+
+          printf 'HISTORICAL THREE-BLOCK OWNER REVIEW\nPRODUCT=%s\nEN=%s/\nRU=%s/ru/\n' \
+            'd5f2e2fd85218b2a98e774b0b19df1536240d4fb' "$BASE" "$BASE" >/tmp/HISTORICAL_THREE_BLOCK_LIVE_URL.txt
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git switch agent/proai-three-block-historical-owner-review
+          mkdir -p docs/site-evolution
+          cp /tmp/HISTORICAL_THREE_BLOCK_LIVE_URL.txt docs/site-evolution/HISTORICAL_THREE_BLOCK_LIVE_URL.txt
+          git add docs/site-evolution/HISTORICAL_THREE_BLOCK_LIVE_URL.txt
+          git commit -m 'review: publish historical three-block owner URL'
+          git push origin HEAD:agent/proai-three-block-historical-owner-review
+
+          echo "OWNER_REVIEW_EN=$BASE/"
+          echo "OWNER_REVIEW_RU=$BASE/ru/"
+
+      - name: Keep review alive
+        shell: bash
+        run: sleep 5400

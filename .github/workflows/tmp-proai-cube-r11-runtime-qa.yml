@@ -1,0 +1,182 @@
+name: Temporary ProAI Cube R1.1 runtime QA
+
+on:
+  pull_request:
+    branches:
+      - agent/tmp-proai-cube-r11-trigger
+
+permissions:
+  contents: read
+
+jobs:
+  runtime-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 5e1ac4fbcbad31d263e5fd95e6fbbb3f95ed226a
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install browser driver client
+        run: python -m pip install --quiet selenium
+
+      - name: Start local review server
+        shell: bash
+        run: |
+          python3 -m http.server 8080 --bind 127.0.0.1 > /tmp/proai-r11-http.log 2>&1 &
+          echo $! > /tmp/proai-r11-http.pid
+          sleep 2
+          curl --fail --silent http://127.0.0.1:8080/docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html > /dev/null
+
+      - name: Run 35s browser observation and mechanics QA
+        shell: bash
+        run: |
+          mkdir -p qa-r11
+          python3 - <<'PY'
+          import json
+          import math
+          import time
+          from pathlib import Path
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.common.action_chains import ActionChains
+          from selenium.webdriver.support.ui import WebDriverWait
+
+          out = Path('qa-r11')
+          options = Options()
+          options.add_argument('--headless=new')
+          options.add_argument('--no-sandbox')
+          options.add_argument('--disable-dev-shm-usage')
+          options.add_argument('--window-size=1440,1000')
+          options.set_capability('goog:loggingPrefs', {'browser': 'ALL'})
+
+          driver = webdriver.Chrome(options=options)
+          driver.set_script_timeout(45)
+          try:
+              url = 'http://127.0.0.1:8080/docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html'
+              driver.get(url)
+              WebDriverWait(driver, 20).until(
+                  lambda d: d.execute_script('return Boolean(window.__PROAI_CUBE_OWNER_REVIEW && window.__PROAI_CUBE_OWNER_REVIEW.ready)')
+              )
+
+              boot = driver.execute_script('''
+                const api = window.__PROAI_CUBE_OWNER_REVIEW;
+                const d = api.getDiagnostics();
+                return {
+                  ready: api.ready,
+                  motionState: api.motionState,
+                  canvasCount: document.querySelectorAll('#cube-canvas').length,
+                  engine: d.presentation.engine,
+                  hierarchy: d.hierarchy,
+                  mechanics: d.mechanics,
+                  geometry: d.geometry,
+                  scheduler: d.scheduler,
+                  presentation: d.presentation,
+                };
+              ''')
+              assert boot['ready'] is True
+              assert boot['motionState'] != 'error'
+              assert boot['canvasCount'] == 1
+              assert boot['engine'] == 'quaternion-editorial-spatial-r1.1'
+              assert boot['hierarchy']['pass'] is True
+              assert boot['mechanics']['physicalCubies'] == 27
+              assert boot['mechanics']['axes'] == ['X', 'Y', 'Z']
+              assert boot['geometry']['pass'] is True
+
+              timeline = []
+              started = time.monotonic()
+              captures = [(0.0, 't00'), (5.8, 't06'), (13.4, 't13'), (21.2, 't21'), (29.7, 't30'), (34.8, 't35')]
+              for target, label in captures:
+                  delay = target - (time.monotonic() - started)
+                  if delay > 0:
+                      time.sleep(delay)
+                  sample = driver.execute_script('''
+                    const d = window.__PROAI_CUBE_OWNER_REVIEW.getDiagnostics();
+                    return { presentation: d.presentation, scheduler: d.scheduler, activeTurns: d.activeTurns.length, lastTurnResults: d.lastTurnResults.length };
+                  ''')
+                  timeline.append({'targetSec': target, 'label': label, **sample})
+                  driver.save_screenshot(str(out / f'{label}.png'))
+
+              post_observation = driver.execute_script('''
+                const d = window.__PROAI_CUBE_OWNER_REVIEW.getDiagnostics();
+                return d;
+              ''')
+              assert post_observation['scheduler']['eventSerial'] > 0 or len(post_observation['lastTurnResults']) > 0
+
+              mechanics_qa = driver.execute_async_script('''
+                const done = arguments[0];
+                window.__PROAI_CUBE_OWNER_REVIEW.runAutomatedQA()
+                  .then(result => done({ ok: true, result }))
+                  .catch(error => done({ ok: false, error: String(error && (error.stack || error.message) || error) }));
+              ''')
+              assert mechanics_qa['ok'] is True, mechanics_qa.get('error')
+              result = mechanics_qa['result']
+              assert result['axisSupport']['X']['restoredAfterPair'] is True
+              assert result['axisSupport']['Y']['restoredAfterPair'] is True
+              assert result['axisSupport']['Z']['restoredAfterPair'] is True
+              assert result['repeatability30']['pass'] is True
+              assert result['inverseRestoration']['pass'] is True
+              assert result['pairedTurnQA']['pass'] is True
+
+              canvas = driver.find_element('id', 'cube-canvas')
+              before_interaction = driver.execute_script('''
+                const api = window.__PROAI_CUBE_OWNER_REVIEW;
+                return { interaction: api.getInteractionState(), presentation: api.getDiagnostics().presentation };
+              ''')
+              ActionChains(driver).move_to_element_with_offset(canvas, 720, 500).click_and_hold().move_by_offset(105, 34).pause(0.35).release().perform()
+              just_after = driver.execute_script('''
+                const api = window.__PROAI_CUBE_OWNER_REVIEW;
+                return { interaction: api.getInteractionState(), presentation: api.getDiagnostics().presentation };
+              ''')
+              assert just_after['interaction']['interactionActive'] is False
+              assert just_after['interaction']['resumeDelayRemainingMs'] > 0
+              assert just_after['interaction']['sliceResumeDelayRemainingMs'] >= just_after['interaction']['resumeDelayRemainingMs']
+
+              time.sleep(2.15)
+              during_resume = driver.execute_script('return window.__PROAI_CUBE_OWNER_REVIEW.getInteractionState()')
+              assert during_resume['presentationResumeActive'] is True
+
+              time.sleep(2.6)
+              after_resume = driver.execute_script('''
+                const api = window.__PROAI_CUBE_OWNER_REVIEW;
+                return { interaction: api.getInteractionState(), presentation: api.getDiagnostics().presentation };
+              ''')
+              assert after_resume['interaction']['presentationResumeActive'] is False
+              assert after_resume['interaction']['autonomyBlocked'] is False
+
+              logs = driver.get_log('browser')
+              severe = [entry for entry in logs if entry.get('level') == 'SEVERE']
+              assert not severe, severe
+
+              report = {
+                  'boot': boot,
+                  'timeline': timeline,
+                  'mechanicsQA': mechanics_qa,
+                  'interaction': {
+                      'before': before_interaction,
+                      'justAfter': just_after,
+                      'duringResume': during_resume,
+                      'afterResume': after_resume,
+                  },
+                  'browserLogs': logs,
+                  'severeLogs': severe,
+              }
+              (out / 'runtime-report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+              print('RUNTIME_QA_PASS')
+              print('timeline dominant axes:', [item['presentation']['dominantAxis'] for item in timeline])
+              print('timeline phases:', [item['presentation']['phase'] for item in timeline])
+              print('scheduler events:', post_observation['scheduler']['eventSerial'])
+          finally:
+              driver.quit()
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proai-cube-r11-runtime-qa
+          path: qa-r11/
+          if-no-files-found: warn

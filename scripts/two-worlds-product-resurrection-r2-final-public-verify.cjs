@@ -5,8 +5,6 @@ const base = process.env.PUBLIC_GALLERY_URL;
 if (!base) throw new Error('PUBLIC_GALLERY_URL missing');
 const CHROME = process.env.CHROME || '/usr/bin/google-chrome';
 
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
 async function waitVideo(page, src) {
   return page.evaluate(async (src) => {
     const old = document.querySelector('#__verify_video');
@@ -25,7 +23,7 @@ async function waitVideo(page, src) {
           clearTimeout(timer);
           const before = v.currentTime;
           await v.play();
-          await new Promise(r => setTimeout(r, 1400));
+          await new Promise(r => setTimeout(r, 1600));
           const after = v.currentTime;
           v.pause();
           resolve({src, duration:v.duration, videoWidth:v.videoWidth, videoHeight:v.videoHeight, before, after, readyState:v.readyState});
@@ -38,6 +36,8 @@ async function waitVideo(page, src) {
     if (!(result.duration > 1) || !(result.after > result.before) || !result.videoWidth || !result.videoHeight) {
       throw new Error('video did not play: ' + JSON.stringify(result));
     }
+    v.removeAttribute('src');
+    v.load();
     return result;
   }, src);
 }
@@ -56,10 +56,16 @@ async function waitVideo(page, src) {
   const images = await page.$$eval('img', xs=>xs.map(x=>new URL(x.src, location.href).href));
   if (videos.length !== 8) throw new Error('expected 8 owner videos, got '+videos.length);
   if (images.length < 40) throw new Error('expected >=40 owner stills, got '+images.length);
+
+  // Stop gallery-level preload traffic before sequential playback verification.
+  await page.$$eval('video', vs=>vs.forEach(v=>{ v.pause(); v.removeAttribute('src'); v.querySelectorAll('source').forEach(s=>s.removeAttribute('src')); v.load(); }));
+
   const played=[];
   for (const src of videos) played.push(await waitVideo(page, src));
+
   const checkedImages=[];
-  for (const src of images.filter((_,i)=>i%Math.max(1,Math.floor(images.length/12))===0).slice(0,12)) {
+  const sample = images.filter((_,i)=>i%Math.max(1,Math.floor(images.length/12))===0).slice(0,12);
+  for (const src of sample) {
     const p = await browser.newPage();
     const r = await p.goto(src,{waitUntil:'load',timeout:30000});
     if (!r || !r.ok()) throw new Error('still failed '+src);
@@ -68,6 +74,7 @@ async function waitVideo(page, src) {
     checkedImages.push({src,...dims});
     await p.close();
   }
+
   const report={
     verifiedAt:new Date().toISOString(),
     publicGalleryUrl:base,

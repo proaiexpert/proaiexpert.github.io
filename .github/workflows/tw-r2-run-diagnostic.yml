@@ -1,4 +1,4 @@
-# inspect race-free final committed V3 Owner filmstrip verification — refresh 2
+# inspect race-free final committed V3 Owner filmstrip verification — no-assert diagnostic
 name: Two Worlds R2 Run Diagnostic
 
 on:
@@ -23,7 +23,19 @@ jobs:
           set -euo pipefail
           json=$(curl -fsS -H "Authorization: Bearer ${{ github.token }}" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${{ github.repository }}/actions/runs?branch=agent%2Fproai-two-worlds-product-resurrection-r2&per_page=50")
           printf '%s' "$json" > /tmp/runs.json
-          python3 -c 'import json; d=json.load(open("/tmp/runs.json")); runs=[r for r in d.get("workflow_runs",[]) if r.get("name")=="ProAI Two Worlds Product Resurrection R2 V3 Finalize V3"]; assert runs, "no finalizer V3 run"; r=runs[0]; print(r["id"]); print(r["status"]); print(r.get("conclusion") or ""); print(r["html_url"])' >/tmp/result.txt
+          python3 - <<'PY' >/tmp/result.txt
+          import json
+          d=json.load(open('/tmp/runs.json'))
+          runs=[r for r in d.get('workflow_runs',[]) if r.get('name')=='ProAI Two Worlds Product Resurrection R2 V3 Finalize V3']
+          if not runs:
+              print('NONE'); print('missing'); print(''); print('https://github.com/proaiexpert/proaiexpert.github.io/actions')
+          else:
+              r=runs[0]; print(r['id']); print(r['status']); print(r.get('conclusion') or ''); print(r['html_url'])
+          PY
           run_id=$(sed -n '1p' /tmp/result.txt); status=$(sed -n '2p' /tmp/result.txt); conclusion=$(sed -n '3p' /tmp/result.txt); url=$(sed -n '4p' /tmp/result.txt)
-          state=pending; [ "$status" = completed ] && state=success; [ "$status" = completed ] && [ "$conclusion" != success ] && state=error
-          curl -fsS -X POST -H "Authorization: Bearer ${{ github.token }}" -H "Accept: application/vnd.github+json" https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} -d "{\"state\":\"$state\",\"context\":\"tw-r2-v3-final-v3-diagnostic\",\"description\":\"run $run_id $status $conclusion\",\"target_url\":\"$url\"}" >/dev/null
+          state=pending
+          desc="run $run_id $status $conclusion"
+          if [ "$status" = missing ]; then state=error; desc="no V3 finalizer run found"; fi
+          if [ "$status" = completed ]; then state=success; fi
+          if [ "$status" = completed ] && [ "$conclusion" != success ]; then state=error; fi
+          curl -fsS -X POST -H "Authorization: Bearer ${{ github.token }}" -H "Accept: application/vnd.github+json" https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} -d "{\"state\":\"$state\",\"context\":\"tw-r2-v3-final-v3-diagnostic\",\"description\":\"$desc\",\"target_url\":\"$url\"}" >/dev/null

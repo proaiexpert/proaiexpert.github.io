@@ -1,0 +1,158 @@
+/* ProAI Expert — Two Worlds / Bimetal Fold final integrity layer
+   Layering + mobile chroma + laptop composition correction.
+   No concept, authority, Fold, copy, or Technology redesign. */
+
+.tw-r2 {
+  --tw-r24-portrait-macro-ratio:.66;
+  --tw-r24-landscape-macro-ratio:.60;
+  --tw-r24-landscape-inset:clamp(96px,11.5vw,116px);
+}
+
+/* Explicit physical layer hierarchy:
+   content > Fold > surface response > engraving > base material. */
+.tw-r2__inscription {
+  z-index:0;
+  color:rgba(236,236,232,.047);
+  -webkit-text-stroke:.30px rgba(242,240,235,.016);
+  text-shadow:
+    0 -.48px 0 rgba(242,240,235,.040),
+    0 .72px 0 rgba(0,0,0,.72);
+}
+.tw-r2__face::before { z-index:1; }
+.tw-r2__content { z-index:5; }
+.tw-r2__fold { z-index:6; }
+
+.tw-r2[data-focus="ai"] .tw-r2__inscription--ai,
+.tw-r2[data-focus="web"] .tw-r2__inscription--web {
+  color:rgba(238,238,234,.055);
+  -webkit-text-stroke:.30px rgba(242,240,235,.020);
+  text-shadow:
+    0 -.58px 0 rgba(242,240,235,.056),
+    0 .82px 0 rgba(0,0,0,.78);
+}
+.tw-r2[data-focus="ai"] .tw-r2__inscription--web,
+.tw-r2[data-focus="web"] .tw-r2__inscription--ai {
+  opacity:.24;
+}
+
+/* Desktop remains the approved R2.1/R2.2 composition. Only material readability
+   is clarified enough for controlled laptop comparison. */
+@media (min-width:981px) {
+  .tw-r2[data-focus="ai"] .tw-r2__material--ai::after {
+    opacity:.48;
+  }
+  .tw-r2[data-focus="web"] .tw-r2__material--web::after {
+    opacity:.47;
+  }
+}
+
+/* Mobile: return the engraving to the physical face so Fold/content can occlude it.
+   R2.3 viewport overlay is disabled; R2.4 JS fits the face-bound word to viewport optics
+   only in settled AI/Web states, while THE TURN hides it. */
+@media (max-width:980px), ((hover:none) and (pointer:coarse)) {
+  .tw-r2 { overflow-x:clip; }
+  .tw-r23-mobile-inscription {
+    display:none!important;
+    visibility:hidden!important;
+  }
+  .tw-r2__inscription {
+    transition-property:opacity!important;
+    transition-duration:140ms!important;
+    transition-delay:0ms!important;
+    transition-timing-function:linear!important;
+  }
+
+  .tw-r2[data-r24-mobile-inscription="ready"] .tw-r2__inscription,
+  .tw-r2[data-r24-mobile-inscription="ready"][data-focus="neutral"] .tw-r2__inscription,
+  .tw-r2[data-r24-mobile-inscription="ready"][data-focus="turn"] .tw-r2__inscription {
+    opacity:0!important;
+  }
+
+  .tw-r2[data-r24-mobile-inscription="ready"][data-focus="ai"] .tw-r2__inscription--ai,
+  .tw-r2[data-r24-mobile-inscription="ready"][data-focus="web"] .tw-r2__inscription--web {
+    top:9.2%;
+    right:auto!important;
+    left:var(--tw-r24-inscription-center,50%)!important;
+    z-index:0;
+    max-width:none;
+    font-size:var(--tw-r24-inscription-size,76px)!important;
+    letter-spacing:-.064em;
+    text-align:center;
+    transform:translateX(-50%) translateZ(0)!important;
+    transform-origin:50% 50%;
+  }
+  .tw-r2[data-r24-mobile-inscription="ready"][data-focus="ai"] .tw-r2__inscription--ai {
+    left:calc(var(--tw-r24-inscription-center,50%) - var(--tw-mobile-ai-x,0%))!important;
+    opacity:clamp(0,calc(1 - var(--tw-mobile-progress,0) * 3.2),1)!important;
+  }
+  .tw-r2[data-r24-mobile-inscription="ready"][data-focus="web"] .tw-r2__inscription--web {
+    left:calc(var(--tw-r24-inscription-center,50%) - var(--tw-mobile-web-x,0%))!important;
+    opacity:clamp(0,calc((var(--tw-mobile-progress,1) - .66) * 2.95),1)!important;
+  }
+
+  /* Narrow, physically localized interference response. The surface remains
+     overwhelmingly Graphite/Obsidian; only the grazing band carries chroma. */
+  .tw-r2__material--ai::after {
+    background:linear-gradient(112deg,
+      transparent 34%,
+      rgba(38,28,111,.40) 40%,
+      rgba(226,232,239,.255) 47%,
+      rgba(164,141,104,.045) 52%,
+      transparent 59%);
+    opacity:.22;
+  }
+  .tw-r2__material--web::after {
+    background:linear-gradient(108deg,
+      transparent 36%,
+      rgba(43,35,101,.115) 42%,
+      rgba(233,234,237,.265) 49%,
+      rgba(176,148,101,.195) 54%,
+      transparent 61%);
+    opacity:.22;
+  }
+
+  .tw-r2[data-focus="ai"] .tw-r2__material--ai::after {
+    opacity:.48;
+    transform:none;
+  }
+  .tw-r2[data-focus="ai"] .tw-r2__material--web::after { opacity:.08; }
+  .tw-r2[data-focus="web"] .tw-r2__material--web::after {
+    opacity:.46;
+    transform:none;
+  }
+  .tw-r2[data-focus="web"] .tw-r2__material--ai::after { opacity:.07; }
+  .tw-r2[data-focus="turn"] .tw-r2__material--ai::after,
+  .tw-r2[data-focus="turn"] .tw-r2__material--web::after {
+    opacity:.54;
+  }
+  .tw-r2[data-focus="turn"] .tw-r2__fold-plane::after {
+    opacity:1;
+  }
+}
+
+/* Wide/short mobile is optically inset ~7–8% from the visible viewport once the
+   canonical -4% face bleed is accounted for. Editorial left alignment remains. */
+@media (orientation:landscape) and (max-height:540px) and (max-width:980px) {
+  .tw-r2 .tw-r2__content--ai,
+  .tw-r2 .tw-r2__content--web,
+  .tw-r2[data-focus="ai"] .tw-r2__content--ai,
+  .tw-r2[data-focus="web"] .tw-r2__content--web {
+    left:var(--tw-r24-landscape-inset);
+    right:var(--tw-r24-landscape-inset);
+    width:auto!important;
+  }
+
+  .tw-r2[data-r24-mobile-inscription="ready"][data-focus="ai"] .tw-r2__inscription--ai,
+  .tw-r2[data-r24-mobile-inscription="ready"][data-focus="web"] .tw-r2__inscription--web {
+    top:6.2%;
+    letter-spacing:-.060em;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  /* Preserve canonical static face-bound engraving and material hierarchy. */
+  .tw-r23-mobile-inscription { display:none!important; }
+  .tw-r2[data-r24-mobile-inscription="ready"] .tw-r2__inscription {
+    opacity:initial!important;
+  }
+}

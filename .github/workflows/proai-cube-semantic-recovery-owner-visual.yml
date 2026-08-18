@@ -6,6 +6,12 @@ on:
       - agent/proai-cube-semantic-recovery-r1
     paths:
       - '.github/workflows/proai-cube-semantic-recovery-owner-visual.yml'
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+    paths:
+      - '.github/workflows/proai-cube-semantic-recovery-owner-visual.yml'
 
 permissions:
   contents: write
@@ -112,7 +118,6 @@ jobs:
             if(r.status!==0) throw new Error(r.stderr||'ffmpeg failed');
           }
 
-          // Candidate 1 — Golden current-state physical semantic.
           {
             const root=path.join(OUT,'candidate-1');
             const {context,page,errors}=await pageFor('http://127.0.0.1:4171/?semantic=1');
@@ -127,7 +132,6 @@ jobs:
             await context.close();
           }
 
-          // Candidate 2 — R4.4.1 Pearl/Silver physical micro-engraving.
           {
             const root=path.join(OUT,'candidate-2');
             const still=await pageFor('http://127.0.0.1:4172/?capture&view=front');
@@ -135,7 +139,6 @@ jobs:
             await still.page.waitForTimeout(500);
             await canvasShot(still.page,path.join(root,'candidate-2-r441-front.png'));
             await still.context.close();
-
             const motion=await pageFor('http://127.0.0.1:4172/?capture');
             await motion.page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});
             await motion.page.evaluate(()=>window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
@@ -146,7 +149,6 @@ jobs:
             await motion.context.close();
           }
 
-          // Candidate 3 — R3 Concept C exact deterministic Internal Optical Reveal demo.
           {
             const root=path.join(OUT,'candidate-3');
             const still=await pageFor('http://127.0.0.1:4173/?concept=C&capture&view=front');
@@ -154,7 +156,6 @@ jobs:
             await still.page.waitForTimeout(500);
             await canvasShot(still.page,path.join(root,'candidate-3-r3c-front.png'));
             await still.context.close();
-
             const demo=await pageFor('http://127.0.0.1:4173/?concept=C&capture&demo');
             await demo.page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});
             await sequence(demo.page,path.join(root,'frames'),8.2);
@@ -163,7 +164,6 @@ jobs:
             fs.writeFileSync(path.join(root,'capture.json'),JSON.stringify({candidate:'R3 Concept C Internal Optical Reveal',sha:'d69f904a84c1416eac0f932ceb82ae5d2a4294f0',errors:[...still.errors,...demo.errors]},null,2));
             await demo.context.close();
           }
-
           await browser.close();
           NODE
           cd /tmp/review-tool
@@ -199,6 +199,7 @@ jobs:
           EOF
 
       - name: Commit owner-review media only
+        if: github.event_name == 'push'
         shell: bash
         run: |
           set -euo pipefail
@@ -209,3 +210,12 @@ jobs:
           test "$(git diff --cached --name-only | grep -v '^docs/site-evolution/semantic-recovery-owner-review-r1/' | wc -l)" -eq 0
           git commit -m 'review: add semantic recovery owner visuals'
           git push origin HEAD:agent/proai-cube-semantic-recovery-r1
+
+      - name: Upload owner review artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-semantic-recovery-owner-visuals
+          path: docs/site-evolution/semantic-recovery-owner-review-r1
+          if-no-files-found: warn
+          retention-days: 7

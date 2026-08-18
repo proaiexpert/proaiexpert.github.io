@@ -1,0 +1,143 @@
+name: Temporary ProAI Cube R1.2 robust headed Xvfb QA
+on:
+  pull_request:
+    branches: [agent/tmp-proai-cube-r12-qa-base]
+permissions: {contents: read}
+jobs:
+  qa:
+    if: github.event.pull_request.head.ref == 'agent/tmp-proai-cube-r12-qa-trigger-v7'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: candidate-a, sha: 0d662e29a0a6bb47b89ac6d3028fc460e443bb94, engine: quaternion-editorial-spatial-r1.1, cycle: 64000}
+          - {name: candidate-b, sha: be68d6ecdac6c3486d97cbb52f4a614ad78d4cc3, engine: quaternion-editorial-spatial-r1.2-premium, cycle: 66000}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: '${{ matrix.sha }}', fetch-depth: 1}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install --quiet websocket-client
+      - name: Start headed Chrome and wait for page target
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8090 --bind 127.0.0.1 >/tmp/http.log 2>&1 &
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          xvfb-run -a -s '-screen 0 1440x900x24' "$CHROME" --no-sandbox --disable-dev-shm-usage --window-size=1440,900 --enable-webgl --use-gl=angle --use-angle=swiftshader --remote-debugging-port=9230 --remote-allow-origins='*' --user-data-dir=/tmp/xvfb-${{ matrix.name }} about:blank >/tmp/chrome.log 2>&1 &
+          for i in $(seq 1 150); do
+            if curl -fsS http://127.0.0.1:9230/json/list >/tmp/targets.json 2>/dev/null && grep -q '"type": "page"' /tmp/targets.json; then break; fi
+            sleep .2
+          done
+          grep -q '"type": "page"' /tmp/targets.json
+      - name: Exact live-interaction and mechanics QA
+        env: {CANDIDATE: '${{ matrix.name }}', ENGINE: '${{ matrix.engine }}', CYCLE: '${{ matrix.cycle }}'}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-r12-xvfb-v2
+          timeout 145s python3 - <<'PY'
+          import json,math,os,time,urllib.request
+          from pathlib import Path
+          from websocket import create_connection,WebSocketTimeoutException
+          C=os.environ['CANDIDATE'];E=os.environ['ENGINE'];CYCLE=int(os.environ['CYCLE']);OUT=Path('qa-r12-xvfb-v2')
+          deadline=time.monotonic()+15;page=None
+          while time.monotonic()<deadline and page is None:
+            try:
+              targets=json.load(urllib.request.urlopen('http://127.0.0.1:9230/json/list',timeout=3));page=next((x for x in targets if x.get('type')=='page'),None)
+            except Exception:pass
+            if page is None:time.sleep(.2)
+          if page is None:raise RuntimeError('CDP page target did not appear')
+          ws=create_connection(page['webSocketDebuggerUrl'],timeout=15,origin='http://localhost');seq=0;events=[]
+          def call(m,p=None,t=25):
+            global seq
+            seq+=1;i=seq;ws.send(json.dumps({'id':i,'method':m,'params':p or {}}));end=time.monotonic()+t
+            while time.monotonic()<end:
+              try:ws.settimeout(max(.2,end-time.monotonic()));x=json.loads(ws.recv())
+              except WebSocketTimeoutException:continue
+              if x.get('id')==i:
+                if 'error'in x:raise RuntimeError((m,x['error']))
+                return x.get('result',{})
+              events.append(x)
+            raise TimeoutError(m)
+          def ev(x,awaitp=False,t=25):
+            r=call('Runtime.evaluate',{'expression':x,'returnByValue':True,'awaitPromise':awaitp,'userGesture':True},t)
+            if 'exceptionDetails'in r:raise RuntimeError(r['exceptionDetails'])
+            return r.get('result',{}).get('value')
+          def js(x,t=25):return json.loads(ev('JSON.stringify('+x+')',False,t))
+          def ready():
+            end=time.monotonic()+35
+            while time.monotonic()<end:
+              try:
+                if ev('Boolean(window.__PROAI_CUBE_OWNER_REVIEW?.ready)',False,10):return
+              except Exception:pass
+              time.sleep(.15)
+            status=ev("document.getElementById('runtime-status')?.textContent || 'none'",False,5)
+            raise RuntimeError('ready timeout '+str(status))
+          def d():return js("(()=>{const a=window.__PROAI_CUBE_OWNER_REVIEW,x=a.getDiagnostics(),i=a.getInteractionState();return{i,p:x.presentation,s:x.scheduler,last:x.lastTurnResults.length,turns:x.activeTurns,state:a.motionState}})()",25)
+          def qang(a,b):
+            dot=min(1,max(-1,abs(sum(x*y for x,y in zip(a,b)))));return 2*math.acos(dot)
+          def dist(a,b):return math.sqrt(sum((x-y)**2 for x,y in zip(a,b)))
+          def mouse(t,x,y,buttons=0):call('Input.dispatchMouseEvent',{'type':t,'x':x,'y':y,'button':'left' if t!='mouseMoved' else 'none','buttons':buttons,'clickCount':1},12)
+          call('Page.enable');call('Runtime.enable');call('Log.enable');call('Emulation.setDeviceMetricsOverride',{'width':1440,'height':900,'deviceScaleFactor':1,'mobile':False})
+          url='http://127.0.0.1:8090/docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html';call('Page.navigate',{'url':url});ready();boot=d()
+          assert boot['state']!='error' and boot['p']['engine']==E and boot['s']['enabled'] and boot['s']['running'] and boot['i']['sliceAutonomyBlocked'] is False and boot['i']['autonomyBlocked'] is False
+          assert js('window.__PROAI_CUBE_OWNER_REVIEW.presentationConfig')['cycleMs']==CYCLE
+          rect=js("document.getElementById('cube-canvas').getBoundingClientRect().toJSON()");cx=rect['x']+rect['width']/2;cy=rect['y']+rect['height']/2
+
+          # TEST 1A: held desktop Orbit, untouched autonomous scheduler.
+          h0=d();mouse('mouseMoved',cx,cy);mouse('mousePressed',cx,cy,1)
+          for k in range(24):call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':cx+(58 if k%2==0 else -42)+(k%4)*5,'y':cy+(18 if k%3==0 else -14),'button':'left','buttons':1},12);time.sleep(.25)
+          h6=d();first={'simDelta':h6['i']['presentationSimTimeMs']-h0['i']['presentationSimTimeMs'],'eventDelta':h6['i']['sliceEventSerial']-h0['i']['sliceEventSerial'],'lastDelta':h6['last']-h0['last'],'cameraDelta':dist(h0['i']['cameraPosition'],h6['i']['cameraPosition']),'quatDelta':qang(h0['i']['presentationQuaternion'],h6['i']['presentationQuaternion'])};print('HELD_AUTONOMOUS',first,flush=True)
+          assert h6['i']['interactionActive'] and h6['i']['sliceAutonomyBlocked'] is False and h6['s']['running'] and first['simDelta']>0 and first['eventDelta']>0 and first['lastDelta']>0 and first['cameraDelta']>.03 and first['quatDelta']>.005
+
+          # TEST 1B: still held. Isolate a deliberately long slice and prove linear progress in a normal RAF window.
+          ev('window.__PROAI_CUBE_OWNER_REVIEW.stopChoreography(); true')
+          end=time.monotonic()+8
+          while time.monotonic()<end:
+            x=d()
+            if not x['turns'] and not x['s']['running']:break
+            time.sleep(.1)
+          x=d();assert not x['turns'] and not x['s']['running']
+          js("(()=>{const a=window.__PROAI_CUBE_OWNER_REVIEW;a.turnSlice({axis:'X',layer:0,direction:1,durationMs:8000});return a.getInteractionState();})()")
+          time.sleep(.5);s1=d();assert s1['i']['interactionActive'] and s1['i']['activeTurnProgress'];tracked=s1['i']['activeTurnProgress'][0]
+          time.sleep(.9);s2=d();same=next((v for v in s2['i']['activeTurnProgress'] if v['id']==tracked['id']),None);completed=any(v['id']==tracked['id'] for v in s2['turns']) is False and s2['last']>s1['last'];progress={'id':tracked['id'],'linear1':tracked['linear'],'linear2':same['linear'] if same else None,'completed':completed};print('ACTIVE_PROGRESS',progress,flush=True)
+          assert (same is not None and same['linear']>tracked['linear']+.01) or completed
+          assert s2['i']['sliceAutonomyBlocked'] is False and s2['i']['presentationSimTimeMs']>s1['i']['presentationSimTimeMs']
+          # Let isolated turn finish before restarting scheduler.
+          end=time.monotonic()+10
+          while time.monotonic()<end and d()['turns']:time.sleep(.1)
+          assert not d()['turns']
+          ev('window.__PROAI_CUBE_OWNER_REVIEW.startChoreography(); true');time.sleep(.4);r0=d();assert r0['s']['running']
+          for k in range(20):call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':cx+((k%5)-2)*25,'y':cy+((k%3)-1)*18,'button':'left','buttons':1},12);time.sleep(.25)
+          r1=d();second={'simDelta':r1['i']['presentationSimTimeMs']-r0['i']['presentationSimTimeMs'],'eventDelta':r1['i']['sliceEventSerial']-r0['i']['sliceEventSerial']};print('HELD_RESTARTED',second,flush=True);assert r1['i']['interactionActive'] and r1['i']['sliceAutonomyBlocked'] is False and r1['s']['running'] and second['simDelta']>0 and second['eventDelta']>0
+          qpre=r1['i']['presentationQuaternion'];spre=r1['i']['presentationSimTimeMs'];mouse('mouseReleased',cx,cy,0);time.sleep(.2);rel=d();release={'quatDelta':qang(qpre,rel['i']['presentationQuaternion']),'simDelta':rel['i']['presentationSimTimeMs']-spre};print('RELEASE',release,flush=True);assert not rel['i']['interactionActive'] and rel['i']['sliceAutonomyBlocked'] is False and rel['i']['autonomyBlocked'] is False and release['quatDelta']<.2
+
+          # TEST 2: 15-second held/intermittent drag with scheduler untouched.
+          l0=d();mouse('mouseMoved',cx,cy);mouse('mousePressed',cx,cy,1)
+          for k in range(30):call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':cx+((k%5)-2)*24,'y':cy+((k%3)-1)*18,'button':'left','buttons':1},12);time.sleep(.5)
+          l1=d();long={'simDelta':l1['i']['presentationSimTimeMs']-l0['i']['presentationSimTimeMs'],'eventDelta':l1['i']['sliceEventSerial']-l0['i']['sliceEventSerial'],'lastDelta':l1['last']-l0['last']};print('LONG15',long,flush=True);assert l1['i']['interactionActive'] and l1['i']['sliceAutonomyBlocked'] is False and l1['s']['running'] and long['simDelta']>0 and long['eventDelta']>0 and long['lastDelta']>0;mouse('mouseReleased',cx,cy,0);time.sleep(.2)
+
+          # TEST 4: drag/release x3.
+          rep0=d()
+          for z in range(3):
+            mouse('mouseMoved',cx,cy);mouse('mousePressed',cx,cy,1)
+            for k in range(5):call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':cx+40+k*6,'y':cy-14+k*3,'button':'left','buttons':1},12);time.sleep(.25)
+            mid=d();assert mid['i']['interactionActive'] and mid['i']['sliceAutonomyBlocked'] is False;mouse('mouseReleased',cx+60,cy,0);time.sleep(.3);aft=d();assert not aft['i']['interactionActive'] and aft['i']['sliceAutonomyBlocked'] is False and aft['s']['running']
+          rep1=d();repeat={'simDelta':rep1['i']['presentationSimTimeMs']-rep0['i']['presentationSimTimeMs'],'eventDelta':rep1['i']['sliceEventSerial']-rep0['i']['sliceEventSerial']};assert repeat['simDelta']>0
+
+          # Canonical slice QA (X/Y/Z, repeatability, inverse restoration, pairs).
+          call('Page.navigate',{'url':url+'?capture'});ready();mechanics=json.loads(ev("(async()=>JSON.stringify(await window.__PROAI_CUBE_OWNER_REVIEW.runAutomatedQA()))()",True,50));assert all(mechanics['axisSupport'][a]['restoredAfterPair'] for a in 'XYZ') and mechanics['repeatability30']['pass'] and mechanics['inverseRestoration']['pass'] and mechanics['pairedTurnQA']['pass']
+          samples=[js(f'window.__PROAI_CUBE_OWNER_REVIEW.getReviewPresentationSample({t})') for t in ([0,6,14,22,31,39,47,56,64] if CYCLE==64000 else [0,6,14,22,31,39,47,56,65])]
+
+          # Mobile 390x844 touch regression.
+          call('Emulation.setDeviceMetricsOverride',{'width':390,'height':844,'deviceScaleFactor':2,'mobile':True,'screenWidth':390,'screenHeight':844});call('Emulation.setTouchEmulationEnabled',{'enabled':True,'maxTouchPoints':1});call('Page.navigate',{'url':url});ready();m0=d();x=195;y=422;call('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':x,'y':y,'radiusX':2,'radiusY':2,'force':1}]})
+          for k in range(20):call('Input.dispatchTouchEvent',{'type':'touchMove','touchPoints':[{'x':x+min(86,k*5),'y':y+16*math.sin(k*.4),'radiusX':2,'radiusY':2,'force':1}]});time.sleep(.25)
+          m1=d();call('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]});time.sleep(.2);mr=d();mobile={'simDelta':m1['i']['presentationSimTimeMs']-m0['i']['presentationSimTimeMs'],'eventDelta':m1['i']['sliceEventSerial']-m0['i']['sliceEventSerial'],'lastDelta':m1['last']-m0['last']};print('MOBILE',mobile,flush=True);assert m1['i']['sliceAutonomyBlocked'] is False and m1['s']['running'] and mobile['simDelta']>0 and (mobile['eventDelta']>0 or mobile['lastDelta']>0) and mr['i']['sliceAutonomyBlocked'] is False
+          fatal=[x for x in events if x.get('method')=='Runtime.exceptionThrown' or (x.get('method')=='Log.entryAdded' and x.get('params',{}).get('entry',{}).get('level')=='error')];assert not fatal
+          report={'candidate':C,'heldAutonomous':first,'activeProgress':progress,'heldRestarted':second,'release':release,'long15':long,'repeat':repeat,'mobile':mobile,'mechanics':mechanics,'samples':samples};(OUT/f'{C}-report.json').write_text(json.dumps(report,indent=2));print('R12_XVFB_V2_QA_PASS',C,flush=True);ws.close()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: 'proai-cube-r12-${{ matrix.name }}-xvfb-v2', path: 'qa-r12-xvfb-v2/', if-no-files-found: warn}

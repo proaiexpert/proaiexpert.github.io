@@ -1,0 +1,110 @@
+name: Temporary ProAI Cube R1.1 bounded QA
+
+on:
+  pull_request:
+    branches:
+      - agent/tmp-proai-cube-r11-trigger
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-qa:
+    timeout-minutes: 2
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 5e1ac4fbcbad31d263e5fd95e6fbbb3f95ed226a
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: python -m pip install --quiet selenium
+
+      - name: Start server
+        run: |
+          python3 -m http.server 8081 --bind 127.0.0.1 > /tmp/proai-r11-bounded-http.log 2>&1 &
+          sleep 2
+
+      - name: Bounded real-browser QA
+        shell: bash
+        run: |
+          mkdir -p qa-r11-bounded
+          timeout 80s python3 - <<'PY'
+          import json, time
+          from pathlib import Path
+          from selenium import webdriver
+          from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.common.action_chains import ActionChains
+          from selenium.webdriver.support.ui import WebDriverWait
+
+          out = Path('qa-r11-bounded')
+          options = Options()
+          options.add_argument('--headless=new')
+          options.add_argument('--no-sandbox')
+          options.add_argument('--disable-dev-shm-usage')
+          options.add_argument('--window-size=1440,1000')
+          options.set_capability('goog:loggingPrefs', {'browser': 'ALL'})
+          driver = webdriver.Chrome(options=options)
+          driver.set_script_timeout(25)
+          base = 'http://127.0.0.1:8081/docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html'
+
+          driver.get(base)
+          WebDriverWait(driver, 20).until(lambda d: d.execute_script('return Boolean(window.__PROAI_CUBE_OWNER_REVIEW?.ready)'))
+          boot = driver.execute_script('''
+            const api=window.__PROAI_CUBE_OWNER_REVIEW; const d=api.getDiagnostics();
+            return {ready:api.ready,motionState:api.motionState,canvasCount:document.querySelectorAll('#cube-canvas').length,
+              engine:d.presentation.engine,hierarchy:d.hierarchy,mechanics:d.mechanics,geometry:d.geometry,scheduler:d.scheduler};
+          ''')
+          assert boot['ready'] and boot['motionState'] != 'error' and boot['canvasCount'] == 1
+          assert boot['engine'] == 'quaternion-editorial-spatial-r1.1'
+          assert boot['hierarchy']['pass'] and boot['geometry']['pass'] and boot['mechanics']['physicalCubies'] == 27
+          time.sleep(7)
+          autonomous = driver.execute_script('''
+            const d=window.__PROAI_CUBE_OWNER_REVIEW.getDiagnostics();
+            return {scheduler:d.scheduler,lastTurnResults:d.lastTurnResults.length,presentation:d.presentation};
+          ''')
+          assert autonomous['scheduler']['eventSerial'] > 0 or autonomous['lastTurnResults'] > 0
+          driver.save_screenshot(str(out/'normal-after-7s.png'))
+
+          canvas = driver.find_element('id','cube-canvas')
+          ActionChains(driver).move_to_element(canvas).click_and_hold().move_by_offset(100,30).pause(0.25).release().perform()
+          after_drag = driver.execute_script('return window.__PROAI_CUBE_OWNER_REVIEW.getInteractionState()')
+          assert after_drag['interactionActive'] is False and after_drag['resumeDelayRemainingMs'] > 0
+          time.sleep(2.1)
+          during_resume = driver.execute_script('return window.__PROAI_CUBE_OWNER_REVIEW.getInteractionState()')
+          assert during_resume['presentationResumeActive'] is True
+          time.sleep(2.6)
+          after_resume = driver.execute_script('return window.__PROAI_CUBE_OWNER_REVIEW.getInteractionState()')
+          assert after_resume['presentationResumeActive'] is False and after_resume['autonomyBlocked'] is False
+          normal_logs = driver.get_log('browser')
+          assert not [x for x in normal_logs if x.get('level') == 'SEVERE'], normal_logs
+
+          driver.get(base + '?capture')
+          WebDriverWait(driver, 20).until(lambda d: d.execute_script('return Boolean(window.__PROAI_CUBE_OWNER_REVIEW?.ready)'))
+          mechanics = driver.execute_async_script('''
+            const done=arguments[0];
+            window.__PROAI_CUBE_OWNER_REVIEW.runAutomatedQA().then(r=>done({ok:true,r})).catch(e=>done({ok:false,error:String(e)}));
+          ''')
+          assert mechanics['ok'], mechanics
+          r=mechanics['r']
+          assert r['axisSupport']['X']['restoredAfterPair'] and r['axisSupport']['Y']['restoredAfterPair'] and r['axisSupport']['Z']['restoredAfterPair']
+          assert r['repeatability30']['pass'] and r['inverseRestoration']['pass'] and r['pairedTurnQA']['pass']
+          capture_logs = driver.get_log('browser')
+          assert not [x for x in capture_logs if x.get('level') == 'SEVERE'], capture_logs
+
+          report={'boot':boot,'autonomous':autonomous,'afterDrag':after_drag,'duringResume':during_resume,'afterResume':after_resume,
+                  'mechanicsQA':mechanics,'normalLogs':normal_logs,'captureLogs':capture_logs}
+          (out/'bounded-report.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+          print('BOUNDED_RUNTIME_QA_PASS', flush=True)
+          PY
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proai-cube-r11-bounded-qa
+          path: qa-r11-bounded/
+          if-no-files-found: warn

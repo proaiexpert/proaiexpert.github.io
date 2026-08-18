@@ -1,0 +1,157 @@
+name: ProAI Two Worlds Product Resurrection R2 Finalize
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-product-resurrection-r2
+    paths:
+      - .github/workflows/proai-two-worlds-product-resurrection-r2-finalize.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  finalize-owner-filmstrip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout isolated resurrection branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Publish pending finalize status
+        shell: bash
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d '{"state":"pending","context":"two-worlds-product-resurrection-r2-final","description":"Public Owner filmstrip verification running"}' >/dev/null
+
+      - name: Validate committed fresh evidence inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="docs/site-evolution/two-worlds-product-resurrection-r2/review"
+          test -f "$root/index.html"
+          test -f "$root/capture-summary.json"
+          for id in a b c d; do
+            dir="$root/media/$id"
+            test "$(find "$dir" -maxdepth 1 -name '*.jpg' ! -name 'inspection-contact-sheet.jpg' | wc -l)" -eq 10
+            test "$(find "$dir" -maxdepth 1 -name '*.mp4' | wc -l)" -eq 2
+            test -f "$dir/runtime-report.json"
+            test -f "$dir/inspection-contact-sheet.jpg"
+          done
+          echo "COMMITTED_FRESH_EVIDENCE=PASS"
+
+      - name: Install public verification dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+          if ! command -v cloudflared >/dev/null; then
+            curl -fsSL -o /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+            sudo dpkg -i /tmp/cloudflared.deb >/dev/null
+          fi
+          command -v ffprobe >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y ffmpeg; }
+
+      - name: Revalidate committed MP4 codecs
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="docs/site-evolution/two-worlds-product-resurrection-r2/review/media"
+          for v in "$root"/{a,b,c,d}/*.mp4; do
+            codec=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,pix_fmt -of csv=p=0 "$v")
+            echo "$v => $codec"
+            test "$codec" = "h264,yuv420p"
+          done
+          echo "COMMITTED_MP4_CODEC=PASS"
+
+      - name: Start fresh public HTTPS Owner gallery
+        shell: bash
+        run: |
+          set -euo pipefail
+          review="docs/site-evolution/two-worlds-product-resurrection-r2/review"
+          python3 -m http.server 8400 --bind 127.0.0.1 --directory "$review" >/tmp/tw-r2-final-http.log 2>&1 &
+          cloudflared tunnel --url http://127.0.0.1:8400 --no-autoupdate >/tmp/tw-r2-final-tunnel.log 2>&1 &
+          url=''
+          for i in $(seq 1 90); do
+            url=$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/tw-r2-final-tunnel.log | tail -1 || true)
+            [ -n "$url" ] && break
+            sleep 1
+          done
+          test -n "$url"
+          ok=0
+          for i in $(seq 1 60); do
+            if curl -fsS --connect-timeout 5 --max-time 20 "$url/" -o /tmp/tw-r2-final-public.html; then ok=1; break; fi
+            sleep 2
+          done
+          test "$ok" = 1
+          grep -q 'Historical Owner Filmstrip' /tmp/tw-r2-final-public.html
+          echo "PUBLIC_GALLERY_URL=$url/" >> "$GITHUB_ENV"
+          echo "$url/" > "$review/public-url.txt"
+          echo "PUBLIC_GALLERY=$url/"
+
+      - name: Open exact public URL and sequentially play all 8 Owner MP4s
+        shell: bash
+        env:
+          PUBLIC_GALLERY_URL: ${{ env.PUBLIC_GALLERY_URL }}
+        run: |
+          set -euo pipefail
+          node scripts/two-worlds-product-resurrection-r2-final-public-verify.cjs
+
+      - name: Persist final public verification record
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="docs/site-evolution/two-worlds-product-resurrection-r2/review"
+          python3 - <<'PY'
+          import json,os,pathlib
+          p=pathlib.Path('docs/site-evolution/two-worlds-product-resurrection-r2/review/finalize-run.json')
+          p.write_text(json.dumps({
+            'runId': int(os.environ['GITHUB_RUN_ID']),
+            'runAttempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
+            'sourceSha': os.environ['GITHUB_SHA'],
+            'publicGalleryUrl': os.environ['PUBLIC_GALLERY_URL']
+          },indent=2),encoding='utf-8')
+          PY
+          git config user.name "ProAI Review Recovery"
+          git config user.email "proai.expert2026@gmail.com"
+          git add "$root/public-url.txt" "$root/public-verification.json" "$root/finalize-run.json"
+          git commit -m "review: verify fresh Two Worlds Owner filmstrip public playback"
+          git push origin HEAD:agent/proai-two-worlds-product-resurrection-r2
+
+      - name: Upload final resurrection evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-two-worlds-product-resurrection-r2-final
+          path: docs/site-evolution/two-worlds-product-resurrection-r2/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish success status
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d "{\"state\":\"success\",\"context\":\"two-worlds-product-resurrection-r2-final\",\"description\":\"Fresh Owner filmstrip public playback verified\",\"target_url\":\"${PUBLIC_GALLERY_URL}\"}" >/dev/null
+
+      - name: Publish failure status
+        if: failure()
+        shell: bash
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d '{"state":"failure","context":"two-worlds-product-resurrection-r2-final","description":"Final public Owner filmstrip verification failed"}' >/dev/null || true
+
+      - name: Keep verified Owner gallery available
+        shell: bash
+        run: sleep 10800

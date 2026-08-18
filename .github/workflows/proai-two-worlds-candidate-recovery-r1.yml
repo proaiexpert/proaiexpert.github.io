@@ -1,0 +1,219 @@
+name: ProAI Two Worlds Historical Candidate Recovery R1
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-candidate-recovery-r1
+    paths:
+      - .github/workflows/proai-two-worlds-candidate-recovery-r1.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  owner-candidate-gallery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout isolated review branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install review dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+          python3 -m pip install --quiet tinycss2
+          command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y ffmpeg; }
+
+      - name: Verify source integrity for all Owner candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,re,subprocess,pathlib
+          import tinycss2
+          manifest=json.loads(pathlib.Path('docs/site-evolution/two-worlds-candidate-recovery-r1/candidates.json').read_text())
+          layers={
+            1:(['assets/css/homepage-two-worlds-r1.css','assets/css/homepage-two-worlds-r12.css'],['assets/js/homepage-two-worlds-r1.js','assets/js/homepage-two-worlds-r12.js']),
+            2:(['assets/css/homepage-two-worlds-r2.css'],['assets/js/homepage-two-worlds-r2.js']),
+            3:(['assets/css/homepage-two-worlds-r2.css','assets/css/homepage-two-worlds-r21.css'],['assets/js/homepage-two-worlds-r2.js','assets/js/homepage-two-worlds-r21.js']),
+            4:(['assets/css/homepage-two-worlds-r2.css','assets/css/homepage-two-worlds-r21.css','assets/css/homepage-two-worlds-r22.css'],['assets/js/homepage-two-worlds-r2.js','assets/js/homepage-two-worlds-r21.js','assets/js/homepage-two-worlds-r22.js']),
+            5:(['assets/css/homepage-two-worlds-r2.css','assets/css/homepage-two-worlds-r21.css','assets/css/homepage-two-worlds-r22.css','assets/css/homepage-two-worlds-r23.css'],['assets/js/homepage-two-worlds-r2.js','assets/js/homepage-two-worlds-r21.js','assets/js/homepage-two-worlds-r22.js','assets/js/homepage-two-worlds-r23.js']),
+            6:(['assets/css/homepage-two-worlds-r2.css','assets/css/homepage-two-worlds-r21.css','assets/css/homepage-two-worlds-r22.css','assets/css/homepage-two-worlds-r23.css','assets/css/homepage-two-worlds-r24.css'],['assets/js/homepage-two-worlds-r2.js','assets/js/homepage-two-worlds-r21.js','assets/js/homepage-two-worlds-r22.js','assets/js/homepage-two-worlds-r23.js','assets/js/homepage-two-worlds-r24.js'])
+          }
+          invalid=re.compile(r'(?i)(?:\d)(?:pxpx|remrem|emem|vwvw|vhvh|svhsvh|dvhpx|pxrem|%%)')
+          report={}
+          def raw(sha,p):
+            b=subprocess.check_output(['git','show',f'{sha}:{p}'])
+            if b'\x00' in b: raise RuntimeError(f'{sha} {p}: binary/NUL corruption')
+            try: return b.decode('utf-8')
+            except UnicodeDecodeError as e: raise RuntimeError(f'{sha} {p}: invalid UTF-8') from e
+          for c in manifest['candidates']:
+            v=c['variant']; sha=c['productSha']; css,js=layers[v]
+            item={'cssUtf8':'PASS','jsUtf8':'PASS','cssParse':'PASS','binaryCorruption':'NONE','invalidUnitScan':'NONE FOUND','linkedAssets':'PASS'}
+            for p in css:
+              text=raw(sha,p)
+              errs=[x for x in tinycss2.parse_stylesheet(text,skip_comments=False,skip_whitespace=False) if getattr(x,'type',None)=='error']
+              if errs: raise RuntimeError(f'v{v} {p}: CSS parse errors {errs}')
+              if invalid.search(text): raise RuntimeError(f'v{v} {p}: malformed unit')
+            for p in js: raw(sha,p)
+            inc='_includes/homepage-two-worlds-r1-en.html' if v==1 else '_includes/homepage-two-worlds-r2-en.html'
+            html=raw(sha,inc)
+            assets=sorted(set(re.findall(r'(?:src|href)=["\'](/assets/[^"\']+)',html)))
+            for a in assets:
+              clean=a.split('?')[0].lstrip('/')
+              subprocess.check_call(['git','cat-file','-e',f'{sha}:{clean}'])
+            item['cssFiles']=css; item['jsFiles']=js; item['checkedAssets']=assets
+            report[f'v{v}']=item
+          pathlib.Path('_source-integrity.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+          print('SOURCE_INTEGRITY=PASS')
+          PY
+
+      - name: Reconstruct exact historical products in isolated review roots
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          rm -rf _owner_root
+          mkdir -p _owner_root/variants _owner_root/media
+          python3 - <<'PY' > /tmp/candidates.tsv
+          import json
+          m=json.load(open('docs/site-evolution/two-worlds-candidate-recovery-r1/candidates.json'))
+          for c in m['candidates']: print(c['variant'],c['productSha'],sep='\t')
+          PY
+          while IFS=$'\t' read -r v sha; do
+            echo "BUILD v${v} ${sha}"
+            git fetch --no-tags origin "$sha" >/dev/null 2>&1 || true
+            rm -rf "/tmp/tw-v${v}" "/tmp/tw-site-${v}"
+            git worktree add --detach "/tmp/tw-v${v}" "$sha" >/dev/null
+            (cd "/tmp/tw-v${v}" && jekyll build --source . --destination "/tmp/tw-site-${v}" --quiet)
+            mkdir -p "_owner_root/variants/v${v}"
+            cp -a "/tmp/tw-site-${v}/." "_owner_root/variants/v${v}/"
+            git worktree remove --force "/tmp/tw-v${v}"
+            python3 - "$v" <<'PY'
+          import pathlib,re,sys
+          v=sys.argv[1]; root=pathlib.Path(f'_owner_root/variants/v{v}'); prefix=f'/variants/v{v}'
+          for rel in ('index.html','ru/index.html'):
+            p=root/rel
+            s=p.read_text(encoding='utf-8')
+            s=s.replace('href="/assets/','href="'+prefix+'/assets/').replace("href='/assets/","href='"+prefix+'/assets/')
+            s=s.replace('src="/assets/','src="'+prefix+'/assets/').replace("src='/assets/","src='"+prefix+'/assets/')
+            p.write_text(s,encoding='utf-8')
+          for folder in ('assets/css','assets/js'):
+            d=root/folder
+            if not d.exists(): continue
+            for p in d.rglob('*'):
+              if not p.is_file() or p.suffix not in ('.css','.js'): continue
+              try: s=p.read_text(encoding='utf-8')
+              except UnicodeDecodeError: continue
+              s=s.replace('/assets/',prefix+'/assets/')
+              p.write_text(s,encoding='utf-8')
+          PY
+          done < /tmp/candidates.tsv
+          cp _source-integrity.json _owner_root/source-integrity.json
+          echo "HISTORICAL_RECONSTRUCTION=PASS"
+
+      - name: Start local review server
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8080 --bind 127.0.0.1 --directory _owner_root >/tmp/two-worlds-review-http.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8080/variants/v4/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8080/variants/v4/ | grep -q 'Two professional worlds'
+          curl -fsS http://127.0.0.1:8080/variants/v4/ru/ | grep -q 'Два профессиональных мира'
+
+      - name: Capture comparable stills and H.264 videos
+        env:
+          OWNER_ROOT: _owner_root
+          REVIEW_BASE: http://127.0.0.1:8080
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/two-worlds-candidate-capture-r1.cjs
+
+      - name: Build Owner candidate gallery and donor matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,html,pathlib
+          root=pathlib.Path('_owner_root')
+          m=json.load(open('docs/site-evolution/two-worlds-candidate-recovery-r1/candidates.json'))
+          integrity=json.load(open('_owner_root/source-integrity.json'))
+          captures=json.load(open('_owner_root/capture-summary.json'))
+          ratings={
+            1:['GOOD','GOOD','GOOD','GOOD','GOOD','WEAK','BROKEN','GOOD','GOOD','GOOD','BEST','GOOD','BEST'],
+            2:['GOOD','GOOD','GOOD','GOOD','GOOD','GOOD','GOOD','GOOD','GOOD','GOOD','GOOD','WEAK','BEST'],
+            3:['GOOD','BEST','GOOD','GOOD','GOOD','GOOD','GOOD','GOOD','BEST','BEST','GOOD','GOOD','BEST'],
+            4:['BEST','BEST','BEST','BEST','BEST','GOOD','BEST','BEST','BEST','BEST','BEST','BEST','BEST'],
+            5:['GOOD','BEST','BEST','BEST','BEST','BEST','BEST','BEST','BEST','BEST','BEST','GOOD','BEST'],
+            6:['GOOD','BEST','BEST','BEST','BEST','BEST','BEST','BEST','BEST','BEST','GOOD','GOOD','BEST']
+          }
+          rows=['overall concept','desktop geometry','desktop motion','AI material','Web material','chroma','Fold','inscription','RU typography','EN typography','mobile portrait','mobile landscape','Technology']
+          esc=html.escape
+          cards=[]
+          for c in m['candidates']:
+            v=c['variant']; media=f'/media/v{v}'; live=f'/variants/v{v}'
+            cards.append(f'''<section class="card" id="variant-{v}"><div class="tag">VARIANT {v}</div><h2>{esc(c['version'])}</h2><dl><dt>Product SHA</dt><dd><code>{c['productSha']}</code></dd><dt>Review/source SHA</dt><dd><code>{c['reviewSha']}</code></dd><dt>Why shortlisted</dt><dd>{esc(c['why'])}</dd><dt>Strongest trait</dt><dd>{esc(c['strongest'])}</dd><dt>Known weakness</dt><dd>{esc(c['weakness'])}</dd><dt>Source integrity</dt><dd>PASS — UTF-8 / CSS parse / binary / units / linked assets</dd><dt>Runtime QA</dt><dd>{captures['candidates'][f'v{v}']['status']} — zero page overflow at desktop, portrait and landscape; Technology 10-mark sizing gate passed</dd></dl><div class="buttons"><a href="{live}/ru/">LIVE RU</a><a href="{live}/">LIVE EN</a><a href="{media}/desktop.mp4">DESKTOP VIDEO</a><a href="{media}/mobile.mp4">MOBILE VIDEO</a><a href="#variant-{v}">OWNER REVIEW</a></div><h3>Desktop — 1440 × 900</h3><div class="grid3"><figure><img src="{media}/desktop-neutral.jpg"><figcaption>Neutral</figcaption></figure><figure><img src="{media}/desktop-ai.jpg"><figcaption>AI Active</figcaption></figure><figure><img src="{media}/desktop-web.jpg"><figcaption>Web Active</figcaption></figure></div><h3>Mobile portrait — 390 × 844</h3><div class="grid3 portrait"><figure><img src="{media}/mobile-ai.jpg"><figcaption>AI settled</figcaption></figure><figure><img src="{media}/mobile-turn.jpg"><figcaption>Transition midpoint</figcaption></figure><figure><img src="{media}/mobile-web.jpg"><figcaption>Web settled</figcaption></figure></div><h3>Mobile landscape — 844 × 390</h3><div class="grid2"><figure><img src="{media}/landscape-ai.jpg"><figcaption>AI</figcaption></figure><figure><img src="{media}/landscape-web.jpg"><figcaption>Web</figcaption></figure></div><h3>Technology</h3><figure><img src="{media}/technology.jpg"><figcaption>Technology attached subsystem</figcaption></figure><p class="qa"><a href="{media}/qa.json">Candidate QA JSON</a></p></section>''')
+          heads=''.join(f'<th>V{c["variant"]}<small>{esc(c["version"])}</small></th>' for c in m['candidates'])
+          body=''.join('<tr><th>'+esc(name)+'</th>'+''.join(f'<td class="{ratings[c["variant"]][i].lower()}">{ratings[c["variant"]][i]}</td>' for c in m['candidates'])+'</tr>' for i,name in enumerate(rows))
+          donors=''.join(f'<li><b>{esc(x["version"])}</b> — <code>{x["sha"]}</code> — {esc(x["reason"])}</li>' for x in m['donorOnly'])
+          rejects=''.join(f'<li><b>{esc(x["version"])}</b> — <code>{x["sha"]}</code> — {esc(x["reason"])}</li>' for x in m['rejected'])
+          doc=f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ProAI Two Worlds — Historical Candidate Gallery</title><style>*{{box-sizing:border-box}}:root{{color-scheme:dark}}html,body{{margin:0;background:#030405;color:#f2f0eb;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}}main{{width:min(100% - 24px,1500px);margin:auto;padding:34px 0 90px}}h1{{font-size:clamp(38px,6vw,76px);line-height:.94;letter-spacing:-.055em;margin:10px 0 18px}}h2{{font-size:clamp(30px,4vw,54px);letter-spacing:-.04em;margin:8px 0 24px}}h3{{margin:34px 0 12px;font-size:14px;letter-spacing:.02em}}.k,.tag{{font:700 10px/1.4 ui-monospace,monospace;letter-spacing:.16em;color:#7f878f}}.intro{{max-width:950px;color:#9ba2a9;line-height:1.6}}.feedback{{white-space:pre-wrap;border:1px solid #252c32;background:#07090b;padding:20px;margin:28px 0 48px;color:#c5cbd0;font:600 12px/1.65 ui-monospace,monospace}}.card{{border-top:1px solid #252b30;padding:52px 0 68px}}dl{{display:grid;grid-template-columns:180px minmax(0,1fr);gap:8px 20px;max-width:1050px}}dt{{color:#747d85;font-size:11px;text-transform:uppercase;letter-spacing:.08em}}dd{{margin:0;color:#b6bdc3;line-height:1.5;overflow-wrap:anywhere}}code{{font-size:10px;color:#9aa3aa}}.buttons{{display:flex;flex-wrap:wrap;gap:9px;margin:24px 0}}.buttons a,.qa a{{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid #3a4249;color:#fff;text-decoration:none;font-size:11px;font-weight:700;letter-spacing:.05em}}figure{{margin:0;border:1px solid #1d2328;background:#050607}}figure img{{display:block;width:100%;height:auto}}figcaption{{padding:8px 10px;color:#7e878e;font:700 9px/1.3 ui-monospace,monospace;letter-spacing:.08em}}.grid3{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}}.grid3.portrait figure{{max-width:390px}}.grid2{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}}.matrix{{overflow:auto;margin:46px 0}}table{{border-collapse:collapse;min-width:1050px;width:100%;font-size:11px}}th,td{{border:1px solid #252c32;padding:10px;text-align:center}}th:first-child{{text-align:left}}thead th small{{display:block;color:#707980;margin-top:5px;font-weight:500}}td.best{{color:#fff;font-weight:800}}td.good{{color:#bcc4ca}}td.weak{{color:#8a9298}}td.broken{{color:#777}}.list{{color:#9ca4aa;line-height:1.7}}.list li{{margin:8px 0}}@media(max-width:760px){{dl{{grid-template-columns:1fr}}.grid3,.grid2{{grid-template-columns:1fr}}.grid3.portrait figure{{margin:auto}}}}</style></head><body><main><div class="k">PROAI EXPERT / TWO WORLDS / FORENSIC HISTORICAL RECOVERY R1</div><h1>Historical Golden Candidate Gallery</h1><p class="intro">Six meaningfully distinct historical product states are reconstructed from their exact product SHAs. This page is review packaging only: no candidate is polished, hybridized, redesigned, merged, or deployed to production. Connected System product files are not modified.</p><div class="feedback">For each candidate, Owner can respond:\n\nVARIANT 1:\nLIKE:\n...\nDISLIKE:\n...\n\nVARIANT 2:\nLIKE:\n...\nDISLIKE:\n...\n\nVARIANT 3:\nLIKE:\n...\nDISLIKE:\n...\n\nVARIANT 4:\nLIKE:\n...\nDISLIKE:\n...\n\nVARIANT 5:\nLIKE:\n...\nDISLIKE:\n...\n\nVARIANT 6:\nLIKE:\n...\nDISLIKE:\n...\n\nBEST OVERALL:\n...\n\nBEST COLOR:\n...\n\nBEST MOTION:\n...\n\nBEST MOBILE:\n...\n\nBEST DESKTOP:\n...</div>{''.join(cards)}<section class="card"><div class="tag">FORENSIC DONOR MATRIX</div><h2>Candidate trait matrix</h2><div class="matrix"><table><thead><tr><th>Trait</th>{heads}</tr></thead><tbody>{body}</tbody></table></div><div class="tag">DONOR-ONLY STATES</div><ul class="list">{donors}</ul><div class="tag" style="margin-top:30px">REJECTED STATES</div><ul class="list">{rejects}</ul><p class="intro">Best forensic baseline before Owner review: <b>R2.2</b>. This is a hypothesis only; Owner visual selection remains required.</p><p class="qa"><a href="/source-integrity.json">Source integrity JSON</a> <a href="/capture-summary.json">Capture QA JSON</a></p></section></main></body></html>'''
+          (root/'index.html').write_text(doc,encoding='utf-8')
+          PY
+          curl -fsS http://127.0.0.1:8080/ | grep -q 'Historical Golden Candidate Gallery'
+
+      - name: Upload durable review evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-two-worlds-candidate-recovery-r1
+          path: |
+            _owner_root/index.html
+            _owner_root/source-integrity.json
+            _owner_root/capture-summary.json
+            _owner_root/media
+          retention-days: 30
+
+      - name: Start and verify public Owner gallery
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate >/tmp/two-worlds-cloudflared.log 2>&1 &
+          URL=""
+          for i in $(seq 1 60); do URL="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/two-worlds-cloudflared.log | head -1 || true)"; [ -n "$URL" ] && break; sleep 1; done
+          [ -n "$URL" ] || { cat /tmp/two-worlds-cloudflared.log; exit 1; }
+          READY=0
+          for i in $(seq 1 60); do
+            if curl -fsS --connect-timeout 8 "$URL/" -o /tmp/public-gallery.html 2>/dev/null && grep -q 'Historical Golden Candidate Gallery' /tmp/public-gallery.html && curl -fsS "$URL/media/v4/desktop.mp4" -o /tmp/test.mp4 2>/dev/null && [ -s /tmp/test.mp4 ]; then READY=1; break; fi
+            sleep 2
+          done
+          [ "$READY" = 1 ] || { cat /tmp/two-worlds-cloudflared.log; exit 1; }
+          echo "OWNER_GALLERY=$URL/" >> "$GITHUB_STEP_SUMMARY"
+          for v in 1 2 3 4 5 6; do
+            echo "VARIANT_${v}_LIVE_EN=$URL/variants/v${v}/" >> "$GITHUB_STEP_SUMMARY"
+            echo "VARIANT_${v}_LIVE_RU=$URL/variants/v${v}/ru/" >> "$GITHUB_STEP_SUMMARY"
+            echo "VARIANT_${v}_DESKTOP_VIDEO=$URL/media/v${v}/desktop.mp4" >> "$GITHUB_STEP_SUMMARY"
+            echo "VARIANT_${v}_MOBILE_VIDEO=$URL/media/v${v}/mobile.mp4" >> "$GITHUB_STEP_SUMMARY"
+          done
+          python3 -c 'import json,sys; print(json.dumps({"state":"success","target_url":sys.argv[1],"description":"Two Worlds historical candidate gallery ready","context":"two-worlds-candidate-recovery-r1"}))' "$URL/" >/tmp/status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d @/tmp/status.json >/dev/null
+          echo "$URL" >/tmp/owner-gallery-url.txt
+
+      - name: Keep Owner gallery alive
+        shell: bash
+        run: sleep 10800

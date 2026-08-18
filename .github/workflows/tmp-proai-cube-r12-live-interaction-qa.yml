@@ -1,0 +1,186 @@
+name: Temporary ProAI Cube R1.2 live interaction QA
+
+on:
+  pull_request:
+    branches: [agent/tmp-proai-cube-r12-qa-base]
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    if: github.event.pull_request.head.ref == 'agent/tmp-proai-cube-r12-qa-trigger'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: candidate-a
+            sha: 0d662e29a0a6bb47b89ac6d3028fc460e443bb94
+            engine: quaternion-editorial-spatial-r1.1
+            cycle: 64000
+          - name: candidate-b
+            sha: be68d6ecdac6c3486d97cbb52f4a614ad78d4cc3
+            engine: quaternion-editorial-spatial-r1.2-premium
+            cycle: 66000
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --quiet websocket-client
+      - name: Start site and Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8084 --bind 127.0.0.1 >/tmp/r12-http.log 2>&1 &
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          test -n "$CHROME"
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --enable-webgl --use-gl=angle --use-angle=swiftshader --remote-debugging-port=9224 --remote-allow-origins='*' --user-data-dir=/tmp/r12-${{ matrix.name }} about:blank >/tmp/r12-chrome.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:9224/json/version >/tmp/r12-version.json && break || true; sleep .2; done
+          test -s /tmp/r12-version.json
+      - name: Desktop held-drag, repeat, mobile touch, mechanics QA
+        env:
+          CANDIDATE: ${{ matrix.name }}
+          EXPECTED_ENGINE: ${{ matrix.engine }}
+          EXPECTED_CYCLE: ${{ matrix.cycle }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-r12
+          timeout 155s python3 - <<'PY'
+          import base64, json, math, os, time, urllib.request
+          from pathlib import Path
+          from websocket import create_connection
+
+          OUT=Path('qa-r12'); candidate=os.environ['CANDIDATE']; expected=os.environ['EXPECTED_ENGINE']; cycle=int(os.environ['EXPECTED_CYCLE'])
+          targets=json.load(urllib.request.urlopen('http://127.0.0.1:9224/json/list',timeout=5)); page=next(x for x in targets if x.get('type')=='page')
+          ws=create_connection(page['webSocketDebuggerUrl'],timeout=10,origin='http://localhost'); seq=0; events=[]
+          def call(method,params=None,timeout=20):
+              global seq
+              seq+=1; ident=seq; ws.send(json.dumps({'id':ident,'method':method,'params':params or {}})); deadline=time.monotonic()+timeout
+              while time.monotonic()<deadline:
+                  ws.settimeout(max(.1,deadline-time.monotonic())); m=json.loads(ws.recv())
+                  if m.get('id')==ident:
+                      if 'error' in m: raise RuntimeError(f'{method}: {m["error"]}')
+                      return m.get('result',{})
+                  events.append(m)
+              raise TimeoutError(method)
+          def ev(expr,awaitp=False,timeout=20):
+              r=call('Runtime.evaluate',{'expression':expr,'returnByValue':True,'awaitPromise':awaitp,'userGesture':True},timeout)
+              if 'exceptionDetails' in r: raise RuntimeError(r['exceptionDetails'])
+              return r.get('result',{}).get('value')
+          def js(expr): return json.loads(ev('JSON.stringify('+expr+')'))
+          def wait_ready(timeout=20):
+              end=time.monotonic()+timeout
+              while time.monotonic()<end:
+                  if ev('Boolean(window.__PROAI_CUBE_OWNER_REVIEW?.ready)',timeout=3): return
+                  time.sleep(.15)
+              raise TimeoutError(ev("document.getElementById('runtime-status')?.textContent"))
+          def diag(): return js("(() => {const a=window.__PROAI_CUBE_OWNER_REVIEW,d=a.getDiagnostics(),i=a.getInteractionState(); return {i,p:d.presentation,s:d.scheduler,turns:d.activeTurns,last:d.lastTurnResults.length,ready:a.ready,state:a.motionState};})()")
+          def qangle(a,b):
+              dot=abs(sum(x*y for x,y in zip(a,b))); dot=min(1,max(-1,dot)); return 2*math.acos(dot)
+          def dist(a,b): return math.sqrt(sum((x-y)**2 for x,y in zip(a,b)))
+          def shot(name):
+              data=call('Page.captureScreenshot',{'format':'png','fromSurface':True},15)['data']; (OUT/name).write_bytes(base64.b64decode(data))
+          def mouse(type,x,y,buttons=0): call('Input.dispatchMouseEvent',{'type':type,'x':x,'y':y,'button':'left' if type!='mouseMoved' else 'none','buttons':buttons,'clickCount':1})
+
+          call('Page.enable'); call('Runtime.enable'); call('Log.enable')
+          call('Emulation.setDeviceMetricsOverride',{'width':1440,'height':900,'deviceScaleFactor':1,'mobile':False})
+          url='http://127.0.0.1:8084/docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html'
+          call('Page.navigate',{'url':url}); wait_ready(); boot=diag()
+          assert boot['ready'] and boot['state']!='error' and boot['p']['engine']==expected
+          assert js("window.__PROAI_CUBE_OWNER_REVIEW.presentationConfig")['cycleMs']==cycle
+          assert boot['s']['enabled'] and boot['s']['running']
+          assert boot['i']['sliceAutonomyBlocked'] is False and boot['i']['autonomyBlocked'] is False
+          shot(f'{candidate}-desktop-start.png')
+
+          # TEST 1: continuously held desktop drag ~10s.
+          r=js("document.getElementById('cube-canvas').getBoundingClientRect().toJSON()")
+          cx=r['x']+r['width']*.5; cy=r['y']+r['height']*.5
+          before=diag(); cam0=before['i']['cameraPosition']; q0=before['i']['presentationQuaternion']; sim0=before['i']['presentationSimTimeMs']; serial0=before['i']['sliceEventSerial']; last0=before['last']
+          mouse('mouseMoved',cx,cy); mouse('mousePressed',cx,cy,1)
+          samples=[]; progress_evidence=False; previous={}
+          for k in range(20):
+              x=cx+(70 if k%2==0 else -45)+(k%4)*8; y=cy+(24 if k%3==0 else -18)
+              call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':x,'y':y,'button':'left','buttons':1}); time.sleep(.5)
+              d=diag(); samples.append(d); assert d['i']['interactionActive'] is True; assert d['i']['sliceAutonomyBlocked'] is False; assert d['s']['enabled'] and d['s']['running']
+              for t in d['i']['activeTurnProgress']:
+                  old=previous.get(t['id'])
+                  if old is not None and t['linear']>old+.02: progress_evidence=True
+                  previous[t['id']]=t['linear']
+          held_end=diag(); qpre=held_end['i']['presentationQuaternion']; simpre=held_end['i']['presentationSimTimeMs']
+          assert held_end['i']['presentationSimTimeMs']-sim0 > 7000
+          assert held_end['i']['sliceEventSerial']>serial0 or held_end['last']>last0
+          assert dist(cam0,held_end['i']['cameraPosition'])>.05
+          assert qangle(q0,qpre)>.02
+          assert progress_evidence, 'no active turn progress observed while held'
+          mouse('mouseReleased',cx+80,cy+20,0); time.sleep(.18); released=diag()
+          assert released['i']['interactionActive'] is False
+          assert released['i']['sliceAutonomyBlocked'] is False and released['i']['autonomyBlocked'] is False
+          assert released['i']['presentationSimTimeMs']-simpre < 700
+          assert qangle(qpre,released['i']['presentationQuaternion']) < .18
+          time.sleep(.5); released2=diag(); assert released2['i']['presentationSimTimeMs']>released['i']['presentationSimTimeMs']; assert released2['s']['running']
+          shot(f'{candidate}-desktop-held10-release.png')
+
+          # TEST 2: long held/intermittent drag ~15s.
+          long0=diag(); mouse('mouseMoved',cx,cy); mouse('mousePressed',cx,cy,1)
+          for k in range(20):
+              call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':cx+((k%5)-2)*28,'y':cy+((k%3)-1)*22,'button':'left','buttons':1}); time.sleep(.75)
+          long1=diag(); assert long1['i']['interactionActive'] is True; assert long1['i']['presentationSimTimeMs']-long0['i']['presentationSimTimeMs']>10500
+          assert long1['i']['sliceEventSerial']>long0['i']['sliceEventSerial']; assert long1['i']['sliceAutonomyBlocked'] is False; assert long1['s']['running']
+          mouse('mouseReleased',cx,cy,0); time.sleep(.2); longrel=diag(); assert longrel['i']['interactionActive'] is False and longrel['i']['sliceAutonomyBlocked'] is False
+
+          # TEST 3/4: three repeated interactions, no dead period.
+          rep0=diag()
+          for cycle_i in range(3):
+              mouse('mouseMoved',cx,cy); mouse('mousePressed',cx,cy,1)
+              for k in range(5): call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':cx+45+k*6,'y':cy-18+k*4,'button':'left','buttons':1}); time.sleep(.35)
+              mid=diag(); assert mid['i']['interactionActive'] is True and mid['i']['sliceAutonomyBlocked'] is False
+              mouse('mouseReleased',cx+70,cy,0); time.sleep(.35); rr=diag(); assert rr['i']['interactionActive'] is False and rr['s']['running'] and rr['i']['presentationSimTimeMs']>mid['i']['presentationSimTimeMs']
+          rep1=diag(); assert rep1['i']['presentationSimTimeMs']>rep0['i']['presentationSimTimeMs']; assert rep1['i']['sliceEventSerial']>=rep0['i']['sliceEventSerial']
+
+          # Deterministic owner-review frames for visual A/B comparison.
+          call('Page.navigate',{'url':url+'?capture'}); wait_ready()
+          times=[0,6,14,22,31,39,47,56,64 if cycle==64000 else 65]
+          deterministic=[]
+          for sec in times:
+              sample=js(f"window.__PROAI_CUBE_OWNER_REVIEW.setReviewPresentation({sec},1,true)"); deterministic.append(sample); shot(f'{candidate}-pose-{sec:02d}.png')
+          qa=json.loads(ev("(async()=>JSON.stringify(await window.__PROAI_CUBE_OWNER_REVIEW.runAutomatedQA()))()",True,35))
+          assert qa['axisSupport']['X']['restoredAfterPair'] and qa['axisSupport']['Y']['restoredAfterPair'] and qa['axisSupport']['Z']['restoredAfterPair']
+          assert qa['repeatability30']['pass'] and qa['inverseRestoration']['pass'] and qa['pairedTurnQA']['pass']
+
+          # Mobile touch regression ~390x844 on normal runtime.
+          call('Emulation.setDeviceMetricsOverride',{'width':390,'height':844,'deviceScaleFactor':2,'mobile':True,'screenWidth':390,'screenHeight':844})
+          call('Emulation.setTouchEmulationEnabled',{'enabled':True,'maxTouchPoints':1})
+          call('Page.navigate',{'url':url}); wait_ready(); mob0=diag(); mx=195; my=422
+          call('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':mx,'y':my,'radiusX':2,'radiusY':2,'force':1}]})
+          touch_active_seen=False
+          for k in range(12):
+              call('Input.dispatchTouchEvent',{'type':'touchMove','touchPoints':[{'x':mx+min(90,k*8),'y':my+20*math.sin(k*.5),'radiusX':2,'radiusY':2,'force':1}]}); time.sleep(.5)
+              md=diag(); touch_active_seen=touch_active_seen or md['i']['interactionActive']; assert md['i']['sliceAutonomyBlocked'] is False and md['s']['running']
+          mob1=diag(); call('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]}); time.sleep(.2); mobrel=diag()
+          assert touch_active_seen, 'touch did not activate OrbitControls'
+          assert mob1['i']['presentationSimTimeMs']-mob0['i']['presentationSimTimeMs']>4000
+          assert mob1['i']['sliceEventSerial']>mob0['i']['sliceEventSerial'] or mob1['last']>mob0['last']
+          assert mobrel['i']['sliceAutonomyBlocked'] is False and mobrel['i']['autonomyBlocked'] is False
+          shot(f'{candidate}-mobile-release.png')
+
+          fatal=[]
+          for e in events:
+              if e.get('method')=='Runtime.exceptionThrown': fatal.append(e)
+              if e.get('method')=='Log.entryAdded' and e.get('params',{}).get('entry',{}).get('level')=='error': fatal.append(e)
+          assert not fatal, fatal
+          report={'candidate':candidate,'boot':boot,'held10':{'before':before,'samples':samples,'end':held_end,'released':released,'progressEvidence':progress_evidence},'long15':{'before':long0,'end':long1,'released':longrel},'repeated':{'before':rep0,'after':rep1},'deterministic':deterministic,'mechanics':qa,'mobile':{'before':mob0,'held':mob1,'released':mobrel,'touchActiveSeen':touch_active_seen},'fatal':fatal}
+          (OUT/f'{candidate}-report.json').write_text(json.dumps(report,indent=2)); print('R12_LIVE_QA_PASS',candidate); print('held10 event delta',held_end['i']['sliceEventSerial']-serial0,'sim delta',held_end['i']['presentationSimTimeMs']-sim0); print('long15 event delta',long1['i']['sliceEventSerial']-long0['i']['sliceEventSerial']); print('mobile event delta',mob1['i']['sliceEventSerial']-mob0['i']['sliceEventSerial'])
+          ws.close()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proai-cube-r12-${{ matrix.name }}-qa
+          path: qa-r12/
+          if-no-files-found: warn

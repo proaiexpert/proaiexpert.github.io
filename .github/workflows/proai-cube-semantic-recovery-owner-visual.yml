@@ -1,0 +1,211 @@
+name: ProAI Cube Semantic Recovery Owner Visual
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-semantic-recovery-r1
+    paths:
+      - '.github/workflows/proai-cube-semantic-recovery-owner-visual.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: proai-cube-semantic-recovery-owner-visual
+  cancel-in-progress: true
+
+jobs:
+  capture-owner-visuals:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-semantic-recovery-r1
+          fetch-depth: 0
+
+      - name: Prepare exact historical worktrees
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/candidate-1 1f897995edd67ac52b6a69c90d9b5bfe7c65cfbf
+          git worktree add --detach /tmp/candidate-2 65adaa0bb3fb356bdc031646fd9eef6ddfb737fc
+          git worktree add --detach /tmp/candidate-3 d69f904a84c1416eac0f932ceb82ae5d2a4294f0
+
+      - name: Build historical R3 exact runtime
+        working-directory: /tmp/candidate-3/docs/site-evolution/spline/proai-cube-semantic-brand-face-r3
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run prepare-r3
+          test -s main.generated.js
+
+      - name: Install capture tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/review-tool
+          cd /tmp/review-tool
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.54.0
+          npx playwright install --with-deps chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Start exact historical review servers
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4171 --bind 127.0.0.1 --directory /tmp/candidate-1/docs/site-evolution/spline/proai-cube-golden-hero-semantic-r1 >/tmp/c1.log 2>&1 &
+          nohup python3 -m http.server 4172 --bind 127.0.0.1 --directory /tmp/candidate-2/docs/site-evolution/spline/proai-cube-semantic-brand-face-r4/review-dist >/tmp/c2.log 2>&1 &
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory /tmp/candidate-3/docs/site-evolution/spline/proai-cube-semantic-brand-face-r3 >/tmp/c3.log 2>&1 &
+          for port in 4171 4172 4173; do
+            for i in $(seq 1 60); do curl -fsS "http://127.0.0.1:${port}/" >/dev/null && break; sleep 1; done
+            curl -fsS "http://127.0.0.1:${port}/" >/dev/null
+          done
+
+      - name: Capture exact owner visuals
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$GITHUB_WORKSPACE/docs/site-evolution/semantic-recovery-owner-review-r1"
+          rm -rf "$OUT"
+          mkdir -p "$OUT/candidate-1" "$OUT/candidate-2" "$OUT/candidate-3"
+          cat >/tmp/review-tool/capture.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { spawnSync } from 'node:child_process';
+
+          const OUT=process.env.OUT;
+          const FPS=12;
+          const browser=await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--use-angle=swiftshader']});
+
+          async function pageFor(url){
+            const context=await browser.newContext({viewport:{width:900,height:900},deviceScaleFactor:1});
+            const page=await context.newPage();
+            const errors=[];
+            page.on('pageerror',e=>errors.push(String(e)));
+            page.on('console',m=>{if(m.type()==='error'&&!/favicon/i.test(m.text()))errors.push(m.text())});
+            await page.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
+            return {context,page,errors};
+          }
+
+          async function canvasShot(page,file){
+            const canvas=page.locator('#cube-canvas');
+            await canvas.waitFor({state:'visible',timeout:120000});
+            await canvas.screenshot({path:file});
+          }
+
+          async function sequence(page,dir,seconds){
+            fs.mkdirSync(dir,{recursive:true});
+            const total=Math.round(seconds*FPS);
+            for(let i=0;i<total;i++){
+              const target=Date.now()+1000/FPS;
+              await canvasShot(page,path.join(dir,`frame-${String(i).padStart(4,'0')}.png`));
+              const left=target-Date.now(); if(left>0) await page.waitForTimeout(left);
+            }
+          }
+
+          function encode(dir,file){
+            const r=spawnSync('ffmpeg',['-y','-v','error','-framerate',String(FPS),'-i',path.join(dir,'frame-%04d.png'),'-an','-c:v','libx264','-preset','medium','-crf','18','-pix_fmt','yuv420p','-movflags','+faststart','-r',String(FPS),file],{encoding:'utf8'});
+            if(r.status!==0) throw new Error(r.stderr||'ffmpeg failed');
+          }
+
+          // Candidate 1 — Golden current-state physical semantic.
+          {
+            const root=path.join(OUT,'candidate-1');
+            const {context,page,errors}=await pageFor('http://127.0.0.1:4171/?semantic=1');
+            await page.waitForFunction(()=>window.__PROAI_GOLDEN_SEMANTIC_R1?.ready===true,null,{timeout:120000});
+            await page.waitForFunction(()=>['STAGED','CANDIDATE','READABLE'].includes(window.__PROAI_GOLDEN_SEMANTIC_R1?.snapshot?.semanticState),null,{timeout:90000});
+            await sequence(page,path.join(root,'frames'),8.0);
+            await page.waitForFunction(()=>window.__PROAI_GOLDEN_SEMANTIC_R1?.snapshot?.semanticState==='READABLE',null,{timeout:30000}).catch(()=>{});
+            await canvasShot(page,path.join(root,'candidate-1-golden-readable.png'));
+            encode(path.join(root,'frames'),path.join(root,'candidate-1-golden-semantic.mp4'));
+            fs.rmSync(path.join(root,'frames'),{recursive:true,force:true});
+            fs.writeFileSync(path.join(root,'capture.json'),JSON.stringify({candidate:'Golden current-state physical semantic',sha:'1f897995edd67ac52b6a69c90d9b5bfe7c65cfbf',errors},null,2));
+            await context.close();
+          }
+
+          // Candidate 2 — R4.4.1 Pearl/Silver physical micro-engraving.
+          {
+            const root=path.join(OUT,'candidate-2');
+            const still=await pageFor('http://127.0.0.1:4172/?capture&view=front');
+            await still.page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});
+            await still.page.waitForTimeout(500);
+            await canvasShot(still.page,path.join(root,'candidate-2-r441-front.png'));
+            await still.context.close();
+
+            const motion=await pageFor('http://127.0.0.1:4172/?capture');
+            await motion.page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});
+            await motion.page.evaluate(()=>window.__PROAI_CUBE_R1_2.replaySemanticBrandMoment());
+            await sequence(motion.page,path.join(root,'frames'),8.0);
+            encode(path.join(root,'frames'),path.join(root,'candidate-2-r441-pearl-silver.mp4'));
+            fs.rmSync(path.join(root,'frames'),{recursive:true,force:true});
+            fs.writeFileSync(path.join(root,'capture.json'),JSON.stringify({candidate:'R4.4.1 Pearl/Silver physical micro-engraving',sha:'65adaa0bb3fb356bdc031646fd9eef6ddfb737fc',errors:[...still.errors,...motion.errors]},null,2));
+            await motion.context.close();
+          }
+
+          // Candidate 3 — R3 Concept C exact deterministic Internal Optical Reveal demo.
+          {
+            const root=path.join(OUT,'candidate-3');
+            const still=await pageFor('http://127.0.0.1:4173/?concept=C&capture&view=front');
+            await still.page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});
+            await still.page.waitForTimeout(500);
+            await canvasShot(still.page,path.join(root,'candidate-3-r3c-front.png'));
+            await still.context.close();
+
+            const demo=await pageFor('http://127.0.0.1:4173/?concept=C&capture&demo');
+            await demo.page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:120000});
+            await sequence(demo.page,path.join(root,'frames'),8.2);
+            encode(path.join(root,'frames'),path.join(root,'candidate-3-r3c-internal-reveal.mp4'));
+            fs.rmSync(path.join(root,'frames'),{recursive:true,force:true});
+            fs.writeFileSync(path.join(root,'capture.json'),JSON.stringify({candidate:'R3 Concept C Internal Optical Reveal',sha:'d69f904a84c1416eac0f932ceb82ae5d2a4294f0',errors:[...still.errors,...demo.errors]},null,2));
+            await demo.context.close();
+          }
+
+          await browser.close();
+          NODE
+          cd /tmp/review-tool
+          OUT="$OUT" node capture.mjs
+          find "$OUT" -maxdepth 2 -type f -print
+
+      - name: Write owner gallery index
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="docs/site-evolution/semantic-recovery-owner-review-r1"
+          cat >"$OUT/README.md" <<'EOF'
+          # ProAI Cube — Semantic Recovery Owner Review R1
+
+          These are exact historical captures, not redesigned candidates.
+
+          ## Candidate 1 — Golden current-state physical semantic
+          - SHA: `1f897995edd67ac52b6a69c90d9b5bfe7c65cfbf`
+          - PNG: `candidate-1/candidate-1-golden-readable.png`
+          - MP4: `candidate-1/candidate-1-golden-semantic.mp4`
+
+          ## Candidate 2 — R4.4.1 Pearl/Silver physical micro-engraving
+          - SHA: `65adaa0bb3fb356bdc031646fd9eef6ddfb737fc`
+          - PNG: `candidate-2/candidate-2-r441-front.png`
+          - MP4: `candidate-2/candidate-2-r441-pearl-silver.mp4`
+
+          ## Candidate 3 — R3 Concept C Internal Optical Reveal
+          - SHA: `d69f904a84c1416eac0f932ceb82ae5d2a4294f0`
+          - PNG: `candidate-3/candidate-3-r3c-front.png`
+          - MP4: `candidate-3/candidate-3-r3c-internal-reveal.mp4`
+
+          Scope lock: review media only. No semantic redesign, no Resend motion work, no production deploy.
+          EOF
+
+      - name: Commit owner-review media only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/semantic-recovery-owner-review-r1
+          git diff --cached --check
+          test "$(git diff --cached --name-only | grep -v '^docs/site-evolution/semantic-recovery-owner-review-r1/' | wc -l)" -eq 0
+          git commit -m 'review: add semantic recovery owner visuals'
+          git push origin HEAD:agent/proai-cube-semantic-recovery-r1

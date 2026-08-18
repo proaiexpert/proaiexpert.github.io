@@ -1,0 +1,50 @@
+name: Temporary ProAI Cube R1.1 PR trigger
+
+on:
+  pull_request:
+    branches:
+      - agent/proai-cube-resend-spatial-motion-r1
+
+permissions:
+  contents: write
+
+jobs:
+  build-r11:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-resend-spatial-motion-r1
+          fetch-depth: 0
+
+      - name: Execute checked R1.1 transform
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          workflow = Path('.github/workflows/tmp-proai-cube-r11-build.yml').read_text(encoding='utf-8')
+          opener = "          python3 - <<'PY'\n"
+          start = workflow.index(opener) + len(opener)
+          end = workflow.index('\n          PY', start)
+          code = textwrap.dedent(workflow[start:end])
+          exec(compile(code, 'tmp-proai-cube-r11-transform.py', 'exec'), {})
+          PY
+
+          node --check assets/js/proai-hero-cube-r1/source-materials-r1.js
+          git diff --check
+
+      - name: Commit product source only
+        shell: bash
+        run: |
+          if git diff --quiet -- assets/js/proai-hero-cube-r1/source-materials-r1.js; then
+            echo "No product diff to commit"
+            exit 0
+          fi
+          git config user.name "ProAI Cube R1.1 Builder"
+          git config user.email "proai.expert2026@gmail.com"
+          git add assets/js/proai-hero-cube-r1/source-materials-r1.js
+          git commit -m "Polish Resend-like spatial Cube motion R1.1"
+          git push origin HEAD:agent/proai-cube-resend-spatial-motion-r1

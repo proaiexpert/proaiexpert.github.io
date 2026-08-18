@@ -1,0 +1,25 @@
+name: ProAI Two Worlds Candidate Recovery R1 Smoke
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-candidate-recovery-r1
+    paths:
+      - .github/workflows/proai-two-worlds-candidate-recovery-r1-smoke.yml
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish trigger proof
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -c 'import json; print(json.dumps({"state":"success","target_url":"https://github.com/proaiexpert/proaiexpert.github.io/tree/agent/proai-two-worlds-candidate-recovery-r1","description":"Review branch Actions trigger is healthy","context":"two-worlds-recovery-r1-smoke"}))' >/tmp/status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d @/tmp/status.json >/dev/null

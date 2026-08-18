@@ -1,0 +1,163 @@
+name: Golden Assembly R1 Connected Trace
+
+on:
+  push:
+    branches:
+      - agent/proai-home-golden-assembly-r1-connected-trace
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PRODUCT_SHA: 9128ce0690062755f1a5e229b44ce3ad98465d69
+      TRACE_DIR: connected-trace
+    steps:
+      - name: Checkout exact Golden product
+        uses: actions/checkout@v6
+        with:
+          ref: 9128ce0690062755f1a5e229b44ce3ad98465d69
+          fetch-depth: 0
+
+      - name: Build and serve
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          mkdir -p "$TRACE_DIR"
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site > "$TRACE_DIR/jekyll-build.log" 2>&1
+          test -s _site/index.html
+          python3 -m http.server 4000 --bind 127.0.0.1 --directory _site > "$TRACE_DIR/http.log" 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4000/ >/dev/null 2>&1 && exit 0; sleep 1; done
+          exit 1
+
+      - name: Install Chromium driver
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+          mkdir -p /tmp/proai-connected-trace
+          cd /tmp/proai-connected-trace
+          npm init -y >/dev/null 2>&1
+          npm install --no-save puppeteer-core@24.16.0 >/dev/null
+
+      - name: Trace Connected stage lifecycle
+        id: trace
+        shell: bash
+        run: |
+          cat > /tmp/proai-connected-trace/trace.cjs <<'NODE'
+          const fs=require('fs');
+          const path=require('path');
+          const puppeteer=require('puppeteer-core');
+          const base='http://127.0.0.1:4000';
+          const out=path.resolve(process.env.TRACE_DIR);
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          (async()=>{
+            const browser=await puppeteer.launch({executablePath:process.env.CHROME_BIN,headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--ignore-gpu-blocklist','--enable-webgl','--enable-unsafe-swiftshader','--use-angle=swiftshader']});
+            const page=await browser.newPage();
+            await page.setCacheEnabled(false);
+            await page.setViewport({width:1440,height:900,deviceScaleFactor:1});
+            await page.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
+            await page.evaluateOnNewDocument(()=>{
+              window.__csTrace={entryAt:null,entryEvents:[],mutations:[]};
+              const NativeIO=window.IntersectionObserver;
+              window.IntersectionObserver=class extends NativeIO{
+                constructor(cb,opts={}){
+                  const isEntry=typeof opts.threshold==='number' && Math.abs(opts.threshold-.24)<.001;
+                  super((entries,observer)=>{
+                    if(isEntry){
+                      const now=performance.now();
+                      for(const e of entries){
+                        if(e.target?.matches?.('[data-connected-system]')){
+                          window.__csTrace.entryEvents.push({t:now,isIntersecting:e.isIntersecting,ratio:e.intersectionRatio});
+                          if(window.__csTrace.entryAt===null && e.isIntersecting) window.__csTrace.entryAt=now;
+                        }
+                      }
+                    }
+                    cb(entries,observer);
+                  },opts);
+                }
+              };
+              const startObserver=()=>{
+                new MutationObserver(records=>{
+                  for(const m of records){
+                    const e=m.target;
+                    if(!(e instanceof Element)||!e.matches('[data-system-stage]')) continue;
+                    const sec=e.closest('[data-connected-system]');
+                    if(!sec) continue;
+                    const stages=[...sec.querySelectorAll('[data-system-stage]')];
+                    window.__csTrace.mutations.push({t:performance.now(),index:stages.indexOf(e),className:e.className});
+                  }
+                }).observe(document.documentElement,{subtree:true,attributes:true,attributeFilter:['class']});
+              };
+              if(document.documentElement) startObserver(); else document.addEventListener('DOMContentLoaded',startObserver,{once:true});
+            });
+            const response=await page.goto(base+'/',{waitUntil:'domcontentloaded',timeout:45000});
+            await page.waitForFunction(()=>document.querySelector('.proai-hero-object-slot[data-proai-hero-object]')?.dataset.cubeMounted==='true'&&window.__PROAI_HERO_CUBE_R1?.runtime?.ready===true,{timeout:30000});
+            const before=await page.evaluate(()=>({trace:window.__csTrace,rect:document.querySelector('[data-connected-system]').getBoundingClientRect().toJSON(),scrollY,classes:[...document.querySelectorAll('[data-system-stage]')].map(e=>e.className)}));
+            if(before.trace.entryAt===null){
+              await page.evaluate(()=>document.querySelector('[data-connected-system]').scrollIntoView({block:'center'}));
+            }
+            await sleep(10000);
+            const final=await page.evaluate(()=>{
+              const tr=window.__csTrace;
+              const active=tr.mutations.filter(m=>m.className.split(/\s+/).includes('is-active'));
+              const firstActiveByIndex={};
+              for(const m of active) if(firstActiveByIndex[m.index]===undefined) firstActiveByIndex[m.index]=m.t;
+              const indices=Object.keys(firstActiveByIndex).map(Number).sort((a,b)=>a-b);
+              const values=indices.map(i=>firstActiveByIndex[i]);
+              const relative=tr.entryAt===null?[]:values.map(t=>t-tr.entryAt);
+              const gaps=relative.slice(1).map((v,i)=>v-relative[i]);
+              return {
+                entryAt:tr.entryAt,
+                entryEvents:tr.entryEvents,
+                mutationCount:tr.mutations.length,
+                mutations:tr.mutations,
+                activeEvents:active,
+                firstActiveByIndex,
+                activeIndices:indices,
+                activeRelativeMs:relative,
+                firstActiveMs:relative[0]??null,
+                gaps,
+                finalClasses:[...document.querySelectorAll('[data-system-stage]')].map(e=>e.className),
+                connectedRect:document.querySelector('[data-connected-system]').getBoundingClientRect().toJSON(),
+                viewport:{w:innerWidth,h:innerHeight},
+                scrollY
+              };
+            });
+            const source=await page.evaluate(async()=>await(await fetch('/assets/js/homepage-connected-system-r13.js')).text());
+            final.sourceConstants={firstActive:/const firstActive=760/.test(source),stageOffset:/const stageOffset=1900/.test(source),transferDuration:/const transferDuration=620/.test(source)};
+            final.httpStatus=response?.status()||0;
+            fs.writeFileSync(path.join(out,'CONNECTED_TRACE.json'),JSON.stringify(final,null,2));
+            await browser.close();
+            console.log(JSON.stringify(final,null,2));
+          })().catch(e=>{fs.writeFileSync(path.join(out,'TRACE_ERROR.txt'),String(e.stack||e));process.exit(1)});
+          NODE
+          node /tmp/proai-connected-trace/trace.cjs
+
+      - name: Upload trace artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-connected-trace
+          path: connected-trace/
+          retention-days: 7
+
+      - name: Publish trace status
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OUTCOME: ${{ steps.trace.outcome }}
+        shell: bash
+        run: |
+          state=failure; [ "$OUTCOME" = success ] && state=success
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d "{\"state\":\"$state\",\"context\":\"proai/connected-trace\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}" >/dev/null

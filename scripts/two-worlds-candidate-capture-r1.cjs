@@ -22,9 +22,10 @@ async function pageSetup(browser,w,h,mobile=false){
 }
 async function gotoCandidate(page,v,lang='en'){
   const suffix=lang==='ru'?'ru/':'';
-  await page.goto(`${BASE}/variants/v${v}/${suffix}`,{waitUntil:'networkidle2',timeout:120000});
-  await page.evaluate(async()=>{ if(document.fonts) await document.fonts.ready; document.documentElement.style.scrollBehavior='auto'; });
+  await page.goto(`${BASE}/variants/v${v}/${suffix}`,{waitUntil:'domcontentloaded',timeout:120000});
   await page.waitForSelector('[data-tw-r2],[data-tw-r1]',{timeout:30000});
+  await page.evaluate(async()=>{ if(document.fonts) await document.fonts.ready; document.documentElement.style.scrollBehavior='auto'; });
+  await sleep(500);
 }
 async function sectionInfo(page){
   return page.evaluate(()=>{
@@ -95,7 +96,7 @@ async function landscapeEvidence(browser,c){
 }
 async function technologyEvidence(browser,c){
   const v=c.variant, page=await pageSetup(browser,1440,900,false); await gotoCandidate(page,v,'en');
-  const tech='[data-tw-tech-r2],[data-tw-tech],.tw-tech-r1';
+  const tech='[data-tw-tech-r2],[data-tw-tech],.tw-tech-r2,.tw-tech-r1';
   const el=await page.$(tech); if(!el) throw new Error(`Variant ${v}: Technology missing`);
   await page.evaluate(sel=>document.querySelector(sel).scrollIntoView({block:'center'}),tech); await sleep(600); await shot(page,out(v,'technology.jpg'));
   const q=await page.evaluate(sel=>{

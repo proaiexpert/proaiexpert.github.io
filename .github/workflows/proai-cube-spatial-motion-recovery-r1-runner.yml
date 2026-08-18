@@ -1,0 +1,805 @@
+name: ProAI Cube Spatial Motion Recovery R1 Runner
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-spatial-motion-recovery-r1-runner
+    paths:
+      - .github/workflows/proai-cube-spatial-motion-recovery-r1-runner.yml
+
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  recover-and-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      BASE_SHA: 1af1cce6e98d1f606489dbd3078f7b21515b4191
+      PRODUCT_BRANCH: agent/proai-cube-spatial-motion-recovery-r1
+      SOURCE_FILE: assets/js/proai-hero-cube-r1/source-materials-r1.js
+      SOURCE_BLOB_BASE: bab6b00e73b20fc2a51aeb00cb7fc08f16129e72
+      BOOTSTRAP_BLOB: b46b26164efc000daef8ecb3416039008db7cd79
+      HERO_CSS_BLOB: 5dde833560aac0958875842a598f622942597b74
+      GLB_BLOB: 7992019d85304c16244d0ca55a8cf15c13c26190
+      GLB_SHA256: dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b
+      PROOF_DIR: spatial-motion-proof
+    steps:
+      - name: Checkout exact recovery branch base
+        uses: actions/checkout@v6
+        with:
+          ref: agent/proai-cube-spatial-motion-recovery-r1
+          fetch-depth: 0
+
+      - name: Verify exact frozen base
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git hash-object "$SOURCE_FILE")" = "$SOURCE_BLOB_BASE"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/bootstrap.js)" = "$BOOTSTRAP_BLOB"
+          test "$(git hash-object assets/css/homepage-hero-signature-r3.css)" = "$HERO_CSS_BLOB"
+          test "$(git hash-object assets/models/proai-cube/rubik_39_s_cube_animation.glb)" = "$GLB_BLOB"
+          test "$(sha256sum assets/models/proai-cube/rubik_39_s_cube_animation.glb | awk '{print $1}')" = "$GLB_SHA256"
+          test "$(git rev-parse main 2>/dev/null || git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+
+      - name: Surgical R1.1 presentation port with slice protection
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$PROOF_DIR"
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+
+          path = Path('assets/js/proai-hero-cube-r1/source-materials-r1.js')
+          source = path.read_text()
+
+          def region(text, start_marker, end_marker):
+              start = text.index(start_marker)
+              end = text.index(end_marker, start)
+              return text[start:end]
+
+          protected_specs = {
+              'slice_config': ('const SLICE_R1_2 = Object.freeze({', 'const PRIMARY_PHRASE = Object.freeze(['),
+              'slice_mechanics': ('function selectLayer(axis, layer) {', 'function presentationAutonomyBlocked() {'),
+              'slice_scheduler': ('function seededUnit() {', 'function getInteractionState() {'),
+          }
+          before = {name: hashlib.sha256(region(source, *markers).encode()).hexdigest() for name, markers in protected_specs.items()}
+
+          def replace_once(old, new, label):
+              global source
+              count = source.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one match, got {count}')
+              source = source.replace(old, new, 1)
+
+          replace_once(
+          """  sliceResumeStaggerMs: 280,\n});""",
+          """  sliceResumeStaggerMs: 280,\n  bodyDrift: Object.freeze({\n    yawDeg: 3.8,\n    pitchDeg: 2.15,\n    rollDeg: 0.65,\n    yawPeriodMs: 12800,\n    pitchPeriodMs: 15200,\n    rollPeriodMs: 10600,\n  }),\n});""",
+          'add R1.1 micro drift')
+
+          r11 = """
+const PRESENTATION_R1_1 = Object.freeze({
+  inspectionDurationRangeMs: [6400, 8800],
+  autonomousYawRangeDeg: [150, 360],
+  fullTurnDeg: 360,
+  initialDelayMs: 1550,
+  easingProfiles: Object.freeze([
+    [0.42, 0.0, 0.12, 1.0],
+    [0.38, 0.0, 0.10, 1.0],
+    [0.46, 0.0, 0.14, 1.0],
+  ]),
+  moves: Object.freeze([
+    Object.freeze({ yawDeg: 150, pitchAmpDeg: 6.2, rollAmpDeg: -1.05, durationMs: 6400, holdMs: 1450, easing: [0.42, 0.0, 0.12, 1.0] }),
+    Object.freeze({ yawDeg: -225, pitchAmpDeg: -7.6, rollAmpDeg: 1.45, durationMs: 7600, holdMs: 1720, easing: [0.38, 0.0, 0.10, 1.0] }),
+    Object.freeze({ yawDeg: 360, pitchAmpDeg: 7.5, rollAmpDeg: -1.35, durationMs: 8800, holdMs: 2180, easing: [0.46, 0.0, 0.14, 1.0], rare: true }),
+    Object.freeze({ yawDeg: 175, pitchAmpDeg: -5.8, rollAmpDeg: 0.95, durationMs: 6900, holdMs: 1580, easing: [0.40, 0.0, 0.11, 1.0] }),
+  ]),
+  overlapStartProgress: 0.72,
+});
+"""
+          marker = '\nconst SLICE_R1_2 = Object.freeze({'
+          if source.count(marker) != 1:
+              raise SystemExit('R1.1 insertion marker mismatch')
+          source = source.replace(marker, r11 + marker, 1)
+
+          old_vars = """let presentationSimTimeMs = 0;
+let presentationYawRad = 0;
+let presentationSignedYawDeg = 0;
+let presentationCumulativeYawDeg = 0;
+let presentationYawVelocityDegPerSec = 0;
+let presentationLastNow = 0;
+let presentationFrameDeltaRad = 0;
+let lastPresentationQuaternion = new THREE.Quaternion();"""
+          new_vars = """let presentationBaseQuaternion = new THREE.Quaternion();
+let activeInspection = null;
+let inspectionSerial = 0;
+let presentationMoveIndex = 0;
+let presentationCompletedMoves = 0;
+let presentationSchedulerEnabled = !captureMode && !prefersReducedMotion;
+let presentationSchedulerRunning = false;
+let presentationDriftTimeMs = 0;
+let presentationLastNow = 0;
+let presentationFrameDeltaRad = 0;
+let lastPresentationQuaternion = new THREE.Quaternion();"""
+          replace_once(old_vars, new_vars, 'replace continuous yaw state')
+
+          count = source.count('presentationConfig: PRESENTATION_R1_2,')
+          if count != 2:
+              raise SystemExit(f'presentationConfig occurrences expected 2, got {count}')
+          source = source.replace('presentationConfig: PRESENTATION_R1_2,', 'presentationConfig: PRESENTATION_R1_1,')
+
+          old_api = """  stopChoreography() { sliceSchedulerEnabled = false; },
+  stopSliceScheduler() { sliceSchedulerEnabled = false; },
+  startChoreography() {
+    if (!prefersReducedMotion) {
+      sliceSchedulerEnabled = true;
+      void sliceSchedulerLoop();
+    }
+  },"""
+          new_api = """  stopChoreography() {
+    sliceSchedulerEnabled = false;
+    presentationSchedulerEnabled = false;
+  },
+  stopSliceScheduler() { sliceSchedulerEnabled = false; },
+  stopPresentationScheduler() { presentationSchedulerEnabled = false; },
+  startChoreography() {
+    if (!prefersReducedMotion) {
+      sliceSchedulerEnabled = true;
+      presentationSchedulerEnabled = true;
+      void sliceSchedulerLoop();
+      void presentationSchedulerLoop();
+    }
+  },"""
+          replace_once(old_api, new_api, 'separate presentation and slice engines')
+
+          start = source.index('function presentationVelocityAt(timeMs) {')
+          end = source.index('function seededUnit() {', start)
+          presentation_block = r"""function driftQuaternion(timeMs) {
+  const drift = MOTION.bodyDrift;
+  const yaw = THREE.MathUtils.degToRad(drift.yawDeg) * Math.sin((timeMs / drift.yawPeriodMs) * Math.PI * 2 + 0.35);
+  const pitch = THREE.MathUtils.degToRad(drift.pitchDeg) * Math.sin((timeMs / drift.pitchPeriodMs) * Math.PI * 2 + 1.15);
+  const roll = THREE.MathUtils.degToRad(drift.rollDeg) * Math.sin((timeMs / drift.rollPeriodMs) * Math.PI * 2 + 2.1);
+  return new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, roll, 'XYZ')).normalize();
+}
+
+function presentationBezierEase(x, curve) {
+  const [x1, y1, x2, y2] = curve;
+  const cx = 3 * x1;
+  const bx = 3 * (x2 - x1) - cx;
+  const ax = 1 - cx - bx;
+  const cy = 3 * y1;
+  const by = 3 * (y2 - y1) - cy;
+  const ay = 1 - cy - by;
+  const sampleX = (t) => ((ax * t + bx) * t + cx) * t;
+  const sampleY = (t) => ((ay * t + by) * t + cy) * t;
+  const sampleDX = (t) => (3 * ax * t + 2 * bx) * t + cx;
+  let t = THREE.MathUtils.clamp(x, 0, 1);
+  for (let i = 0; i < 7; i += 1) {
+    const error = sampleX(t) - x;
+    const slope = sampleDX(t);
+    if (Math.abs(error) < 1e-7 || Math.abs(slope) < 1e-7) break;
+    t = THREE.MathUtils.clamp(t - error / slope, 0, 1);
+  }
+  return sampleY(t);
+}
+
+function inspectionDeltaQuaternion(move, eased) {
+  const yaw = THREE.MathUtils.degToRad(move.yawDeg) * eased;
+  const arc = Math.sin(Math.PI * eased);
+  const pitch = THREE.MathUtils.degToRad(move.pitchAmpDeg) * arc;
+  const roll = THREE.MathUtils.degToRad(move.rollAmpDeg) * arc;
+  return new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, roll, 'YXZ')).normalize();
+}
+
+function inspectionFinalYawQuaternion(move) {
+  return new THREE.Quaternion().setFromAxisAngle(AXIS_VECTOR.Y, THREE.MathUtils.degToRad(move.yawDeg)).normalize();
+}
+
+function presentationEulerDegrees(quaternion) {
+  const euler = new THREE.Euler().setFromQuaternion(quaternion, 'YXZ');
+  return {
+    pitchDeg: THREE.MathUtils.radToDeg(euler.x),
+    yawDeg: THREE.MathUtils.radToDeg(euler.y),
+    rollDeg: THREE.MathUtils.radToDeg(euler.z),
+  };
+}
+
+function currentPresentationTarget(driftTimeMs = presentationDriftTimeMs) {
+  const target = presentationBaseQuaternion.clone();
+  if (activeInspection) target.multiply(inspectionDeltaQuaternion(activeInspection.move, activeInspection.eased));
+  target.multiply(driftQuaternion(driftTimeMs));
+  return target.normalize();
+}
+
+function beginInspection(move, moveIndex = presentationMoveIndex) {
+  if (activeInspection) return false;
+  activeInspection = {
+    serial: ++inspectionSerial,
+    moveIndex,
+    move,
+    elapsedMs: 0,
+    eased: 0,
+    linear: 0,
+    resolve: null,
+  };
+  return activeInspection;
+}
+
+function finalizeInspection() {
+  if (!activeInspection) return false;
+  const finished = activeInspection;
+  presentationBaseQuaternion.multiply(inspectionFinalYawQuaternion(finished.move)).normalize();
+  presentationCompletedMoves += 1;
+  activeInspection = null;
+  if (finished.resolve) finished.resolve({
+    serial: finished.serial,
+    moveIndex: finished.moveIndex,
+    yawDeg: finished.move.yawDeg,
+    durationMs: finished.move.durationMs,
+    baseQuaternion: presentationBaseQuaternion.toArray(),
+  });
+  return true;
+}
+
+function presentationInteractionBlocked() {
+  return interactionActive || performance.now() < manualResumeAt;
+}
+
+function updatePresentationMotion(now) {
+  if (!api.ready || captureMode || prefersReducedMotion) return;
+  if (!presentationLastNow) {
+    presentationLastNow = now;
+    lastPresentationQuaternion.copy(presentationRig.quaternion);
+    return;
+  }
+  const deltaMs = Math.min(80, Math.max(0, now - presentationLastNow));
+  presentationLastNow = now;
+  const blocked = presentationInteractionBlocked();
+  if (activeInspection && !blocked) {
+    activeInspection.elapsedMs += deltaMs;
+    activeInspection.linear = THREE.MathUtils.clamp(activeInspection.elapsedMs / activeInspection.move.durationMs, 0, 1);
+    activeInspection.eased = presentationBezierEase(activeInspection.linear, activeInspection.move.easing);
+    if (activeInspection.linear >= 1) finalizeInspection();
+  }
+  if (blocked) {
+    presentationFrameDeltaRad = 0;
+    lastPresentationQuaternion.copy(presentationRig.quaternion);
+    return;
+  }
+
+  presentationDriftTimeMs += deltaMs;
+  const target = currentPresentationTarget(presentationDriftTimeMs);
+  const before = presentationRig.quaternion.clone();
+  if (presentationResumeStart > 0 && now < presentationResumeStart + MOTION.manualResumeBlendMs) {
+    const progress = smoothstep((now - presentationResumeStart) / MOTION.manualResumeBlendMs);
+    presentationRig.quaternion.slerpQuaternions(presentationResumeFrom, target, progress).normalize();
+  } else {
+    presentationRig.quaternion.copy(target);
+    if (presentationResumeStart > 0) presentationResumeStart = 0;
+  }
+  presentationFrameDeltaRad = before.angleTo(presentationRig.quaternion);
+  lastPresentationQuaternion.copy(presentationRig.quaternion);
+}
+
+function animateInspection(move, moveIndex = presentationMoveIndex) {
+  return new Promise((resolve) => {
+    const state = beginInspection(move, moveIndex);
+    if (!state) { resolve(false); return; }
+    state.resolve = resolve;
+  });
+}
+
+async function presentationDelay(durationMs) {
+  let elapsed = 0;
+  let previous = performance.now();
+  while (elapsed < durationMs && presentationSchedulerEnabled) {
+    await sleep(Math.min(32, Math.max(8, durationMs - elapsed)));
+    const now = performance.now();
+    const delta = now - previous;
+    previous = now;
+    if (!presentationInteractionBlocked()) elapsed += delta;
+  }
+  return presentationSchedulerEnabled;
+}
+
+async function presentationSchedulerLoop() {
+  if (presentationSchedulerRunning) return;
+  presentationSchedulerRunning = true;
+  if (!await presentationDelay(PRESENTATION_R1_1.initialDelayMs)) {
+    presentationSchedulerRunning = false;
+    return;
+  }
+  while (presentationSchedulerEnabled) {
+    while (presentationSchedulerEnabled && presentationInteractionBlocked()) await sleep(40);
+    if (!presentationSchedulerEnabled) break;
+    const moveIndex = presentationMoveIndex % PRESENTATION_R1_1.moves.length;
+    const move = PRESENTATION_R1_1.moves[moveIndex];
+    const result = await animateInspection(move, moveIndex);
+    if (!result && !presentationSchedulerEnabled) break;
+    if (!presentationSchedulerEnabled) break;
+    if (!await presentationDelay(move.holdMs)) break;
+    presentationMoveIndex = (moveIndex + 1) % PRESENTATION_R1_1.moves.length;
+  }
+  presentationSchedulerRunning = false;
+}
+
+function sampleAuthoredPresentationAt(timeSec = 0) {
+  const absoluteMs = Math.max(0, timeSec) * 1000;
+  let remaining = absoluteMs;
+  let moveIndex = 0;
+  let completedMoves = 0;
+  const base = new THREE.Quaternion();
+
+  if (remaining < PRESENTATION_R1_1.initialDelayMs) {
+    const quaternion = base.clone().multiply(driftQuaternion(remaining)).normalize();
+    return {
+      timeSec,
+      phase: 'initial-delay',
+      activeInspection: null,
+      completedMoves,
+      baseQuaternion: base.toArray(),
+      quaternion: quaternion.toArray(),
+      eulerDeg: presentationEulerDegrees(quaternion),
+    };
+  }
+  remaining -= PRESENTATION_R1_1.initialDelayMs;
+
+  for (let guard = 0; guard < 64; guard += 1) {
+    const move = PRESENTATION_R1_1.moves[moveIndex];
+    if (remaining <= move.durationMs) {
+      const linear = THREE.MathUtils.clamp(remaining / move.durationMs, 0, 1);
+      const eased = presentationBezierEase(linear, move.easing);
+      const quaternion = base.clone()
+        .multiply(inspectionDeltaQuaternion(move, eased))
+        .multiply(driftQuaternion(absoluteMs))
+        .normalize();
+      return {
+        timeSec,
+        phase: 'inspection',
+        activeInspection: {
+          moveIndex,
+          yawDeg: move.yawDeg,
+          pitchAmpDeg: move.pitchAmpDeg,
+          rollAmpDeg: move.rollAmpDeg,
+          durationMs: move.durationMs,
+          holdMs: move.holdMs,
+          linear,
+          eased,
+        },
+        completedMoves,
+        baseQuaternion: base.toArray(),
+        quaternion: quaternion.toArray(),
+        eulerDeg: presentationEulerDegrees(quaternion),
+      };
+    }
+    remaining -= move.durationMs;
+    base.multiply(inspectionFinalYawQuaternion(move)).normalize();
+    completedMoves += 1;
+    if (remaining <= move.holdMs) {
+      const quaternion = base.clone().multiply(driftQuaternion(absoluteMs)).normalize();
+      return {
+        timeSec,
+        phase: 'hold',
+        activeInspection: null,
+        holdingAfterMoveIndex: moveIndex,
+        completedMoves,
+        baseQuaternion: base.toArray(),
+        quaternion: quaternion.toArray(),
+        eulerDeg: presentationEulerDegrees(quaternion),
+      };
+    }
+    remaining -= move.holdMs;
+    moveIndex = (moveIndex + 1) % PRESENTATION_R1_1.moves.length;
+  }
+  throw new Error('Presentation sample guard exhausted');
+}
+
+function getReviewPresentationSample(timeSec = 0) {
+  return sampleAuthoredPresentationAt(timeSec);
+}
+
+"""
+          source = source[:start] + presentation_block + source[end:]
+
+          old_controls = """controls.addEventListener('start', () => {
+  interactionActive = true;
+  frozenPresentationQuaternion.copy(presentationRig.quaternion);
+  presentationResumeFrom.copy(presentationRig.quaternion);
+  manualResumeAt = Infinity;
+  sliceResumeAt = Infinity;
+  presentationResumeStart = 0;
+});
+
+controls.addEventListener('end', () => {
+  interactionActive = false;
+  const now = performance.now();
+  manualResumeAt = now + MOTION.manualResumeDelayMs;
+  sliceResumeAt = manualResumeAt + MOTION.sliceResumeStaggerMs;
+  presentationResumeStart = manualResumeAt;
+  presentationResumeFrom.copy(presentationRig.quaternion);
+});"""
+          secondary_controls = old_controls + """
+
+// Spatial-recovery interaction guard survives the frozen Homepage bootstrap adaptation.
+function spatialPresentationInteractionStart() {
+  interactionActive = true;
+  frozenPresentationQuaternion.copy(presentationRig.quaternion);
+  presentationResumeFrom.copy(presentationRig.quaternion);
+  manualResumeAt = Infinity;
+  sliceResumeAt = Infinity;
+  presentationResumeStart = 0;
+}
+
+function spatialPresentationInteractionEnd() {
+  interactionActive = false;
+  const now = performance.now();
+  manualResumeAt = now + MOTION.manualResumeDelayMs;
+  sliceResumeAt = manualResumeAt + MOTION.sliceResumeStaggerMs;
+  presentationResumeStart = manualResumeAt;
+  presentationResumeFrom.copy(presentationRig.quaternion);
+}
+
+controls.addEventListener('start', spatialPresentationInteractionStart);
+controls.addEventListener('end', spatialPresentationInteractionEnd);"""
+          replace_once(old_controls, secondary_controls, 'interaction recovery adapter')
+
+          review_start = source.index('function setReviewPresentation(timeSec = 0, resumeProgress = 1, renderFrame = true) {')
+          review_end = source.index('function renderReviewFrame() {', review_start)
+          review_fn = r"""function setReviewPresentation(timeSec = 0, resumeProgress = 1, renderFrame = true) {
+  if (!captureMode || !api.ready) return false;
+  const sample = getReviewPresentationSample(timeSec);
+  const target = new THREE.Quaternion().fromArray(sample.quaternion).normalize();
+  if (resumeProgress < 1) {
+    const progress = smoothstep(resumeProgress);
+    presentationRig.quaternion.slerpQuaternions(frozenPresentationQuaternion, target, progress).normalize();
+  } else {
+    presentationRig.quaternion.copy(target);
+  }
+  if (renderFrame) renderReviewFrame();
+  return { ...sample, quaternion: presentationRig.quaternion.toArray(), eulerDeg: presentationEulerDegrees(presentationRig.quaternion) };
+}
+
+"""
+          source = source[:review_start] + review_fn + source[review_end:]
+
+          old_interaction_tail = """    cameraPosition: camera.position.toArray(),
+    presentationQuaternion: presentationRig.quaternion.toArray(),
+  };
+}"""
+          new_interaction_tail = """    cameraPosition: camera.position.toArray(),
+    presentationQuaternion: presentationRig.quaternion.toArray(),
+    presentationBaseQuaternion: presentationBaseQuaternion.toArray(),
+    activeInspection: activeInspection ? {
+      serial: activeInspection.serial,
+      moveIndex: activeInspection.moveIndex,
+      yawDeg: activeInspection.move.yawDeg,
+      pitchAmpDeg: activeInspection.move.pitchAmpDeg,
+      rollAmpDeg: activeInspection.move.rollAmpDeg,
+      linear: activeInspection.linear,
+      eased: activeInspection.eased,
+    } : null,
+  };
+}"""
+          replace_once(old_interaction_tail, new_interaction_tail, 'interaction diagnostics')
+
+          old_diag_presentation = """    presentation: {
+      simTimeMs: presentationSimTimeMs,
+      signedYawDeg: presentationSignedYawDeg,
+      cumulativeYawDeg: presentationCumulativeYawDeg,
+      yawVelocityDegPerSec: presentationYawVelocityDegPerSec,
+      frameAngularDeltaRad: presentationFrameDeltaRad,
+      quaternion: presentationRig.quaternion.toArray(),
+    },"""
+          new_diag_presentation = """    presentation: {
+      authority: 'PRESENTATION_R1_1_SPATIAL_INSPECTION',
+      legacyContinuousYawAuthority: false,
+      baseQuaternion: presentationBaseQuaternion.toArray(),
+      activeInspection: activeInspection ? {
+        serial: activeInspection.serial,
+        moveIndex: activeInspection.moveIndex,
+        yawDeg: activeInspection.move.yawDeg,
+        pitchAmpDeg: activeInspection.move.pitchAmpDeg,
+        rollAmpDeg: activeInspection.move.rollAmpDeg,
+        durationMs: activeInspection.move.durationMs,
+        holdMs: activeInspection.move.holdMs,
+        linear: activeInspection.linear,
+        eased: activeInspection.eased,
+      } : null,
+      moveIndex: presentationMoveIndex,
+      completedMoves: presentationCompletedMoves,
+      driftTimeMs: presentationDriftTimeMs,
+      frameAngularDeltaRad: presentationFrameDeltaRad,
+      quaternion: presentationRig.quaternion.toArray(),
+      eulerDeg: presentationEulerDegrees(presentationRig.quaternion),
+    },"""
+          replace_once(old_diag_presentation, new_diag_presentation, 'presentation diagnostics')
+
+          old_sched = """    scheduler: {
+      enabled: sliceSchedulerEnabled,
+      running: sliceSchedulerRunning,
+      eventSerial: sliceEventSerial,
+      eventsUntilBreath,
+    },"""
+          new_sched = """    scheduler: {
+      enabled: sliceSchedulerEnabled,
+      running: sliceSchedulerRunning,
+      eventSerial: sliceEventSerial,
+      eventsUntilBreath,
+      presentationEnabled: presentationSchedulerEnabled,
+      presentationRunning: presentationSchedulerRunning,
+    },"""
+          replace_once(old_sched, new_sched, 'scheduler diagnostics')
+
+          replace_once(
+              "status.textContent = 'Three.js GLB loaded. Geometry R1 + Motion R1.2 frozen. Materials + Lighting R1 ready.';\n    if (sliceSchedulerEnabled) void sliceSchedulerLoop();",
+              "status.textContent = 'Three.js GLB loaded. R1.1 spatial presentation + R1.2 slices + Materials + Lighting R1 ready.';\n    if (sliceSchedulerEnabled) void sliceSchedulerLoop();\n    if (presentationSchedulerEnabled) void presentationSchedulerLoop();",
+              'runtime startup')
+
+          forbidden = [
+              'function presentationVelocityAt(',
+              'function presentationPitchRollAt(',
+              'function integratePresentationYawDeg(',
+              'presentationYawRad +=',
+              'presentationYawVelocityDegPerSec =',
+          ]
+          for token in forbidden:
+              if token in source:
+                  raise SystemExit(f'legacy continuous yaw authority remains: {token}')
+
+          required = [
+              'const PRESENTATION_R1_1 = Object.freeze({',
+              'yawDeg: 150, pitchAmpDeg: 6.2, rollAmpDeg: -1.05, durationMs: 6400, holdMs: 1450',
+              'yawDeg: -225, pitchAmpDeg: -7.6, rollAmpDeg: 1.45, durationMs: 7600, holdMs: 1720',
+              'yawDeg: 360, pitchAmpDeg: 7.5, rollAmpDeg: -1.35, durationMs: 8800, holdMs: 2180',
+              'yawDeg: 175, pitchAmpDeg: -5.8, rollAmpDeg: 0.95, durationMs: 6900, holdMs: 1580',
+              'presentationBaseQuaternion.multiply(inspectionFinalYawQuaternion(finished.move)).normalize();',
+              "authority: 'PRESENTATION_R1_1_SPATIAL_INSPECTION'",
+              'void presentationSchedulerLoop();',
+              'void sliceSchedulerLoop();',
+          ]
+          for token in required:
+              if token not in source:
+                  raise SystemExit(f'required recovery token missing: {token[:80]}')
+
+          after = {name: hashlib.sha256(region(source, *markers).encode()).hexdigest() for name, markers in protected_specs.items()}
+          if before != after:
+              raise SystemExit(f'protected slice regions changed: before={before} after={after}')
+
+          Path('spatial-motion-proof').mkdir(exist_ok=True)
+          Path('spatial-motion-proof/protected-slice-hashes.json').write_text(json.dumps({'before': before, 'after': after, 'pass': before == after}, indent=2))
+          path.write_text(source)
+          PY
+          node --check "$SOURCE_FILE"
+          git diff --check
+          test "$(git diff --name-only | wc -l)" -eq 1
+          test "$(git diff --name-only)" = "$SOURCE_FILE"
+          grep -q "const PRESENTATION_R1_1" "$SOURCE_FILE"
+          grep -q "legacyContinuousYawAuthority: false" "$SOURCE_FILE"
+          grep -q "const SLICE_R1_2" "$SOURCE_FILE"
+
+      - name: Create exactly one product commit
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ProAI Recovery Builder"
+          git config user.email "proai.expert2026@gmail.com"
+          git add "$SOURCE_FILE"
+          git commit -m "fix: recover spatial Cube presentation motion"
+          CANDIDATE_SHA="$(git rev-parse HEAD)"
+          echo "candidate_sha=$CANDIDATE_SHA" >> "$GITHUB_OUTPUT"
+          echo "CANDIDATE_SHA=$CANDIDATE_SHA" >> "$GITHUB_ENV"
+          test "$(git rev-parse HEAD^)" = "$BASE_SHA"
+          test "$(git diff --name-only "$BASE_SHA"..HEAD | wc -l)" -eq 1
+          test "$(git diff --name-only "$BASE_SHA"..HEAD)" = "$SOURCE_FILE"
+          git push origin "HEAD:refs/heads/$PRODUCT_BRANCH"
+          echo "$CANDIDATE_SHA" > "$PROOF_DIR/candidate-sha.txt"
+          git hash-object "$SOURCE_FILE" > "$PROOF_DIR/source-blob.txt"
+
+      - name: Verify frozen identities after commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object assets/js/proai-hero-cube-r1/bootstrap.js)" = "$BOOTSTRAP_BLOB"
+          test "$(git hash-object assets/css/homepage-hero-signature-r3.css)" = "$HERO_CSS_BLOB"
+          test "$(git hash-object assets/models/proai-cube/rubik_39_s_cube_animation.glb)" = "$GLB_BLOB"
+          test "$(sha256sum assets/models/proai-cube/rubik_39_s_cube_animation.glb | awk '{print $1}')" = "$GLB_SHA256"
+          test "$(git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+
+      - name: Build exact candidate and serve locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site > "$PROOF_DIR/jekyll-build.log" 2>&1
+          test -s _site/index.html
+          test -s _site/ru/index.html
+          python3 -m http.server 4000 --bind 127.0.0.1 --directory _site > "$PROOF_DIR/http.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4000/ >/dev/null && curl -fsS http://127.0.0.1:4000/ru/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Install bounded Chromium harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+          mkdir -p /tmp/proai-spatial-r1
+          cd /tmp/proai-spatial-r1
+          npm init -y >/dev/null 2>&1
+          npm install --no-save puppeteer-core@24.16.0 >/dev/null
+
+      - name: Chromium 30-second spatial motion + interaction proof
+        id: browser
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/proai-spatial-r1/proof.cjs <<'NODE'
+          const fs=require('fs'),path=require('path'),puppeteer=require('puppeteer-core');
+          const proof=path.resolve(process.env.PROOF_DIR),base='http://127.0.0.1:4000';
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          const result={candidateSha:process.env.CANDIDATE_SHA,boot:{},samples:[],fatal:[],consoleErrors:[],networkFailures:[],simultaneous:false,manualInteraction:null,pass:false};
+          function attach(p,label){
+            p.on('pageerror',e=>{const t=`${label}: pageerror: ${e.message}`;result.consoleErrors.push(t);result.fatal.push(t)});
+            p.on('console',m=>{if(m.type()==='error'){const t=`${label}: console: ${m.text()}`;result.consoleErrors.push(t);if(/GLB load failed|initialization failed|Uncaught|TypeError|ReferenceError|SyntaxError/i.test(t))result.fatal.push(t)}});
+            p.on('requestfailed',r=>{const u=r.url(),t=`${label}: requestfailed: ${u} ${r.failure()?.errorText||''}`;result.networkFailures.push(t);if((u.startsWith(base)&&/\.(js|css|glb)(\?|$)/i.test(u))||/\.glb(\?|$)/i.test(u))result.fatal.push(t)});
+          }
+          async function open(browser,route,label){
+            const p=await browser.newPage();attach(p,label);await p.setViewport({width:1440,height:900,deviceScaleFactor:1});
+            await p.emulateMediaFeatures([{name:'prefers-reduced-motion',value:'no-preference'}]);
+            const response=await p.goto(base+route,{waitUntil:'domcontentloaded',timeout:45000});
+            await p.waitForFunction(()=>document.querySelector('.proai-hero-object-slot[data-proai-hero-object]')?.dataset.cubeMounted==='true'&&window.__PROAI_HERO_CUBE_R1?.runtime?.ready===true,{timeout:30000});
+            return {p,status:response?.status()||0};
+          }
+          async function boot(browser,route,label){
+            const {p,status}=await open(browser,route,label);
+            const s=await p.evaluate(status=>({status,hero:document.querySelectorAll('#hero').length,cube:document.querySelectorAll('#cube-canvas').length,ready:window.__PROAI_HERO_CUBE_R1?.runtime?.ready===true,authority:window.__PROAI_HERO_CUBE_R1?.runtime?.getDiagnostics()?.presentation?.authority||null}),status);
+            await p.close(); return s;
+          }
+          function quatAngle(a,b){const dot=Math.min(1,Math.abs(a.reduce((s,v,i)=>s+v*b[i],0)));return 2*Math.acos(dot)}
+          (async()=>{
+            fs.mkdirSync(proof,{recursive:true});
+            const browser=await puppeteer.launch({executablePath:process.env.CHROME_BIN,headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--ignore-gpu-blocklist','--enable-webgl','--enable-unsafe-swiftshader','--use-angle=swiftshader']});
+            try{
+              result.boot.en=await boot(browser,'/','en');
+              result.boot.ru=await boot(browser,'/ru/','ru');
+              const {p}=await open(browser,'/','motion');
+              const runtimeExpr=()=>window.__PROAI_HERO_CUBE_R1.runtime;
+              const start=Date.now();
+              for(const targetSec of [0,4,8,12,16,20,24,28]){
+                while(Date.now()-start<targetSec*1000) await sleep(Math.min(100,targetSec*1000-(Date.now()-start)));
+                const sample=await p.evaluate(()=>{const r=window.__PROAI_HERO_CUBE_R1.runtime,d=r.getDiagnostics();return{wallMs:performance.now(),presentation:d.presentation,activeTurns:d.activeTurns,scheduler:d.scheduler,interaction:d.interaction}});
+                sample.targetSec=targetSec;result.samples.push(sample);
+                if(sample.presentation?.activeInspection&&sample.activeTurns?.length)result.simultaneous=true;
+              }
+              const authored=await p.evaluate(()=>[0,4,8,12,16,20,24,28,32,36].map(t=>window.__PROAI_HERO_CUBE_R1.runtime.getReviewPresentationSample(t)));
+              result.authoredSamples=authored;
+
+              const quats=result.samples.map(s=>s.presentation.quaternion);
+              result.maxSampleQuaternionSeparation=Math.max(...quats.flatMap((a,i)=>quats.slice(i+1).map(b=>quatAngle(a,b))));
+              const pitches=result.samples.map(s=>s.presentation.eulerDeg?.pitchDeg).filter(Number.isFinite);
+              const rolls=result.samples.map(s=>s.presentation.eulerDeg?.rollDeg).filter(Number.isFinite);
+              result.pitchSignVariation=pitches.some(v=>v>1)&&pitches.some(v=>v<-1);
+              result.rollSignVariation=rolls.some(v=>v>.1)&&rolls.some(v=>v<-.1);
+              result.earlyDirectionReversal=result.samples.some(s=>s.presentation.activeInspection?.yawDeg<0);
+              result.explicit360=result.samples.some(s=>s.presentation.activeInspection?.yawDeg===360)||authored.some(s=>s.activeInspection?.yawDeg===360);
+              result.baseAccumulation=result.samples.some(s=>s.presentation.completedMoves>=1&&Math.abs(s.presentation.baseQuaternion[3]-1)>.01);
+
+              const canvas=await p.$('#cube-canvas');
+              const box=await canvas.boundingBox();
+              const before=await p.evaluate(()=>window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());
+              await p.mouse.move(box.x+box.width*.58,box.y+box.height*.48);
+              await p.mouse.down();
+              await p.mouse.move(box.x+box.width*.34,box.y+box.height*.36,{steps:10});
+              await sleep(900);
+              const during=await p.evaluate(()=>window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());
+              await p.mouse.up();
+              const released=await p.evaluate(()=>window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());
+              await sleep(1950);
+              const blend=await p.evaluate(()=>window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());
+              await sleep(2600);
+              const resumed=await p.evaluate(()=>window.__PROAI_HERO_CUBE_R1.runtime.getDiagnostics());
+              const beforeLinear=before.presentation.activeInspection?.linear??null,duringLinear=during.presentation.activeInspection?.linear??null,resumedLinear=resumed.presentation.activeInspection?.linear??null;
+              result.manualInteraction={
+                beforeLinear,duringLinear,resumedLinear,
+                paused:beforeLinear===null||duringLinear===null||Math.abs(duringLinear-beforeLinear)<0.035,
+                releaseDelay:released.interaction.resumeDelayRemainingMs>1500,
+                blendActive:blend.interaction.presentationResumeActive===true,
+                resumed:resumed.interaction.autonomyBlocked===false,
+                cameraBefore:before.interaction.cameraPosition,
+                cameraDuring:during.interaction.cameraPosition,
+                cameraResumed:resumed.interaction.cameraPosition,
+                canonicalAfter:resumed.canonicalError,
+              };
+              await p.screenshot({path:path.join(proof,'owner-spatial-candidate.png')});
+              await p.close();
+
+              const expectedMoves=authored.filter(x=>x.activeInspection).map(x=>x.activeInspection.yawDeg);
+              result.move1Observed=expectedMoves.includes(150);
+              result.move2Observed=expectedMoves.includes(-225);
+              result.move3Observed=expectedMoves.includes(360);
+              result.move4Observed=expectedMoves.includes(175);
+              result.pass=result.boot.en.status===200&&result.boot.ru.status===200&&result.boot.en.hero===1&&result.boot.ru.hero===1&&result.boot.en.cube===1&&result.boot.ru.cube===1&&result.boot.en.ready&&result.boot.ru.ready&&result.boot.en.authority==='PRESENTATION_R1_1_SPATIAL_INSPECTION'&&result.boot.ru.authority==='PRESENTATION_R1_1_SPATIAL_INSPECTION'&&result.maxSampleQuaternionSeparation>.8&&result.pitchSignVariation&&result.rollSignVariation&&result.earlyDirectionReversal&&result.explicit360&&result.baseAccumulation&&result.simultaneous&&result.move1Observed&&result.move2Observed&&result.move3Observed&&result.move4Observed&&result.manualInteraction.paused&&result.manualInteraction.releaseDelay&&result.manualInteraction.blendActive&&result.manualInteraction.resumed&&result.fatal.length===0;
+            }catch(e){result.fatal.push(`harness: ${e.stack||e}`)}finally{
+              await browser.close();
+              fs.writeFileSync(path.join(proof,'QA_RESULTS.json'),JSON.stringify(result,null,2));
+              fs.writeFileSync(path.join(proof,'console-errors.txt'),result.consoleErrors.join('\n'));
+              fs.writeFileSync(path.join(proof,'network-failures.txt'),result.networkFailures.join('\n'));
+            }
+            if(!result.pass)process.exit(2);
+          })();
+          NODE
+          node /tmp/proai-spatial-r1/proof.cjs
+
+      - name: Upload bounded proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-spatial-motion-recovery-r1-proof
+          path: spatial-motion-proof/
+          retention-days: 7
+
+      - name: Publish technical candidate status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+        shell: bash
+        run: |
+          state=failure; [ "$BROWSER_OUTCOME" = success ] && state=success
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${CANDIDATE_SHA}" \
+            -d "{\"state\":\"$state\",\"context\":\"proai/spatial-motion-recovery-r1\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"description\":\"Spatial motion technical gate: ${BROWSER_OUTCOME}\"}" >/dev/null
+
+      - name: Temporary HTTPS owner review
+        if: steps.browser.outcome == 'success'
+        id: public
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:4000 --no-autoupdate > "$PROOF_DIR/cloudflared.log" 2>&1 &
+          URL=""
+          for i in $(seq 1 60); do
+            URL="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' "$PROOF_DIR/cloudflared.log" | head -1 || true)"
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          [ -n "$URL" ] || exit 2
+          READY=0
+          for i in $(seq 1 60); do
+            if curl -fsS --connect-timeout 5 "$URL/" -o /tmp/public-en.html 2>/dev/null && curl -fsS --connect-timeout 5 "$URL/ru/" -o /tmp/public-ru.html 2>/dev/null; then
+              if grep -q 'proai-hero-cube-mount' /tmp/public-en.html && grep -q 'proai-hero-cube-mount' /tmp/public-ru.html; then READY=1; break; fi
+            fi
+            sleep 2
+          done
+          [ "$READY" = 1 ] || exit 3
+          echo "$URL/" > "$PROOF_DIR/owner-en-url.txt"
+          echo "$URL/ru/" > "$PROOF_DIR/owner-ru-url.txt"
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${CANDIDATE_SHA}" \
+            -d "{\"state\":\"success\",\"context\":\"proai/spatial-motion-owner-review\",\"target_url\":\"$URL/\",\"description\":\"Temporary Owner review: EN root, RU /ru/\"}" >/dev/null
+          echo "OWNER_EN_URL=$URL/"
+          echo "OWNER_RU_URL=$URL/ru/"
+          sleep 3600

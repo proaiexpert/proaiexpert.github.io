@@ -1,0 +1,162 @@
+name: ProAI Cube Spatial Motion Recovery R1 QA2
+
+on:
+  pull_request:
+    branches:
+      - agent/proai-cube-spatial-motion-recovery-r1-runner
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  qa2-and-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      CANDIDATE_SHA: 62d93b59a911b5d2957de0d3fd19806bbafcbd52
+      PRODUCT_BRANCH: agent/proai-cube-spatial-motion-recovery-r1
+      SOURCE_FILE: assets/js/proai-hero-cube-r1/source-materials-r1.js
+      SOURCE_BLOB: ac81b190617c1894d99e4bbd6517422fbe198ee2
+      BOOTSTRAP_BLOB: b46b26164efc000daef8ecb3416039008db7cd79
+      HERO_CSS_BLOB: 5dde833560aac0958875842a598f622942597b74
+      GLB_BLOB: 7992019d85304c16244d0ca55a8cf15c13c26190
+      GLB_SHA256: dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b
+      PROOF_DIR: spatial-motion-proof-v2
+    steps:
+      - name: Checkout exact product candidate
+        uses: actions/checkout@v6
+        with:
+          ref: 62d93b59a911b5d2957de0d3fd19806bbafcbd52
+          fetch-depth: 0
+          path: candidate
+
+      - name: Checkout isolated QA tools
+        uses: actions/checkout@v6
+        with:
+          ref: agent/proai-cube-spatial-motion-recovery-r1-runner
+          fetch-depth: 1
+          path: runner
+
+      - name: Verify exact candidate and freezes
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_SHA"
+          test "$(git hash-object "$SOURCE_FILE")" = "$SOURCE_BLOB"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/bootstrap.js)" = "$BOOTSTRAP_BLOB"
+          test "$(git hash-object assets/css/homepage-hero-signature-r3.css)" = "$HERO_CSS_BLOB"
+          test "$(git hash-object assets/models/proai-cube/rubik_39_s_cube_animation.glb)" = "$GLB_BLOB"
+          test "$(sha256sum assets/models/proai-cube/rubik_39_s_cube_animation.glb | awk '{print $1}')" = "$GLB_SHA256"
+          test "$(git rev-parse origin/main)" = "c945084e1952c05c686494091f7dbca0f7acdf08"
+          test "$(git rev-parse HEAD^)" = "1af1cce6e98d1f606489dbd3078f7b21515b4191"
+          test "$(git diff --name-only HEAD^..HEAD | wc -l)" -eq 1
+          test "$(git diff --name-only HEAD^..HEAD)" = "$SOURCE_FILE"
+          git diff --check HEAD^..HEAD
+          node --check "$SOURCE_FILE"
+
+      - name: Build exact candidate and serve locally
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$PROOF_DIR"
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          gem install --user-install webrick --no-document >/dev/null
+          jekyll build --source . --destination _site > "$PROOF_DIR/jekyll-build-v2.log" 2>&1
+          test -s _site/index.html
+          test -s _site/ru/index.html
+          nohup python3 -m http.server 4000 --bind 127.0.0.1 --directory _site > "$PROOF_DIR/http-v2.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4000/ >/dev/null && curl -fsS http://127.0.0.1:4000/ru/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Install bounded Chromium harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME_BIN"
+          echo "CHROME_BIN=$CHROME_BIN" >> "$GITHUB_ENV"
+          mkdir -p /tmp/proai-spatial-r1-v2
+          cd /tmp/proai-spatial-r1-v2
+          npm init -y >/dev/null 2>&1
+          npm install --no-save puppeteer-core@24.16.0 >/dev/null
+
+      - name: Chromium active-page 30-second spatial proof
+        id: browser
+        continue-on-error: true
+        working-directory: candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          NODE_PATH=/tmp/proai-spatial-r1-v2/node_modules node ../runner/tools/spatial_recovery_r1_proof_v2.cjs
+
+      - name: Upload QA2 artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-spatial-motion-recovery-r1-proof-v2
+          path: candidate/spatial-motion-proof-v2/
+          retention-days: 7
+
+      - name: Publish QA2 status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BROWSER_OUTCOME: ${{ steps.browser.outcome }}
+        shell: bash
+        run: |
+          state=failure; [ "$BROWSER_OUTCOME" = success ] && state=success
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${CANDIDATE_SHA}" \
+            -d "{\"state\":\"$state\",\"context\":\"proai/spatial-motion-recovery-r1-qa2\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\",\"description\":\"Spatial motion QA2: ${BROWSER_OUTCOME}\"}" >/dev/null
+
+      - name: Temporary HTTPS owner review
+        if: steps.browser.outcome == 'success'
+        id: public
+        continue-on-error: true
+        working-directory: candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --url http://127.0.0.1:4000 --no-autoupdate > "$PROOF_DIR/cloudflared-v2.log" 2>&1 &
+          URL=""
+          for i in $(seq 1 60); do
+            URL="$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' "$PROOF_DIR/cloudflared-v2.log" | head -1 || true)"
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          [ -n "$URL" ] || exit 2
+          READY=0
+          for i in $(seq 1 60); do
+            if curl -fsS --connect-timeout 5 "$URL/" -o /tmp/public-en.html 2>/dev/null && curl -fsS --connect-timeout 5 "$URL/ru/" -o /tmp/public-ru.html 2>/dev/null; then
+              if grep -q 'proai-hero-cube-mount' /tmp/public-en.html && grep -q 'proai-hero-cube-mount' /tmp/public-ru.html; then READY=1; break; fi
+            fi
+            sleep 2
+          done
+          [ "$READY" = 1 ] || exit 3
+          echo "$URL/" > "$PROOF_DIR/owner-en-url-v2.txt"
+          echo "$URL/ru/" > "$PROOF_DIR/owner-ru-url-v2.txt"
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${CANDIDATE_SHA}" \
+            -d "{\"state\":\"success\",\"context\":\"proai/spatial-motion-owner-review\",\"target_url\":\"$URL/\",\"description\":\"Temporary Owner review: EN root, RU /ru/\"}" >/dev/null
+          echo "OWNER_EN_URL=$URL/"
+          echo "OWNER_RU_URL=$URL/ru/"
+          sleep 3600

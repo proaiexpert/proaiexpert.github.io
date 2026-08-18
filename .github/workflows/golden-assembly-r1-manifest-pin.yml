@@ -1,0 +1,84 @@
+name: Golden Assembly R1 Manifest Pin
+
+on:
+  push:
+    branches:
+      - agent/proai-home-golden-assembly-r1-manifest-pin
+
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PRODUCT_SHA: 9128ce0690062755f1a5e229b44ce3ad98465d69
+      GOLDEN_BRANCH: agent/proai-home-golden-assembly-r1
+      MANIFEST: docs/site-evolution/PROAI_HOME_GOLDEN_COMPONENT_MANIFEST.md
+    steps:
+      - name: Checkout Golden branch
+        uses: actions/checkout@v6
+        with:
+          ref: agent/proai-home-golden-assembly-r1
+          fetch-depth: 0
+
+      - name: Pin corrected wiring manifest
+        id: pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('docs/site-evolution/PROAI_HOME_GOLDEN_COMPONENT_MANIFEST.md')
+          s=p.read_text(encoding='utf-8')
+          replacements=[
+            ('- Golden Assembly product SHA: `6968afc698fc583b4573cf8056476ad984fa52d7`', '- Golden Assembly product SHA: `9128ce0690062755f1a5e229b44ce3ad98465d69`'),
+            ('- `index.html` — `eba5f5f7c63a4519861251e894fcef4c0406c8cf`', '- `index.html` — `b8e121186dbcec3e8569f5569b000c064bc8411d`'),
+            ('- `ru/index.html` — `ff91c72ba2a6cdc7fa2e1db4c57001b8152b5cea`', '- `ru/index.html` — `3bdae81e293f60c3a974f9dd2a48531a8ebd9649`'),
+          ]
+          for old,new in replacements:
+            assert s.count(old)==1, f'expected exactly one occurrence: {old}'
+            s=s.replace(old,new,1)
+          anchor='- `mobile-pass-v141.css` — `5bd5bf4ddcb9fe4af0979abe63d4267251c561cd`\n'
+          note='\nAssembly wiring correction: obsolete exact `work_marker` caused a duplicated homepage fragment; corrected to the emitted `aria-labelledby="financial-stream-heading"` marker in the EN/RU wrappers.\n'
+          assert s.count(anchor)==1
+          assert 'Assembly wiring correction: obsolete exact `work_marker`' not in s
+          s=s.replace(anchor,anchor+note,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+          test "$(git diff --name-only)" = "$MANIFEST"
+          grep -Fq 'Golden Assembly product SHA: `9128ce0690062755f1a5e229b44ce3ad98465d69`' "$MANIFEST"
+          grep -Fq '`index.html` — `b8e121186dbcec3e8569f5569b000c064bc8411d`' "$MANIFEST"
+          grep -Fq '`ru/index.html` — `3bdae81e293f60c3a974f9dd2a48531a8ebd9649`' "$MANIFEST"
+          grep -Fq 'Product: `1f897995edd67ac52b6a69c90d9b5bfe7c65cfbf`' "$MANIFEST"
+          grep -Fq 'Status: **PRESERVED R&D PRODUCT / OWNER VISUAL REVIEW BLOCKED**' "$MANIFEST"
+          test "$(git hash-object _includes/header-system/header.html)" = "6edc924df1df630a69379dfd746d161bab2fbe98"
+          test "$(git hash-object assets/css/homepage-hero-signature-r3.css)" = "5dde833560aac0958875842a598f622942597b74"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/bootstrap.js)" = "b46b26164efc000daef8ecb3416039008db7cd79"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" = "bab6b00e73b20fc2a51aeb00cb7fc08f16129e72"
+          test "$(git hash-object assets/js/homepage-connected-system-r13.js)" = "8fba38d49366bb69b7e06f9527dd4d07d8d05279"
+          test "$(git hash-object assets/css/homepage-connected-system-r13.css)" = "b99dfc19739070fee88d47c94c202d60feab7619"
+          test "$(git hash-object assets/css/homepage-two-worlds-r22.css)" = "63e9d73d4ecad2c339ac42a61b0cdf39663894b2"
+          test "$(git hash-object assets/js/homepage-two-worlds-r22.js)" = "1983ba4bef7816501a7605293a95b828d3748b06"
+          git config user.name "ProAI Review Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add "$MANIFEST"
+          git commit -m "docs: pin corrected Golden assembly wiring"
+          DOCS_SHA=$(git rev-parse HEAD)
+          echo "docs_sha=$DOCS_SHA" >> "$GITHUB_OUTPUT"
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_SHA"
+          test "$(git diff --name-only "$PRODUCT_SHA"..HEAD)" = "$MANIFEST"
+          git push origin HEAD:"refs/heads/$GOLDEN_BRANCH"
+
+      - name: Publish pin status
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OUTCOME: ${{ steps.pin.outcome }}
+        shell: bash
+        run: |
+          state=failure; [ "$OUTCOME" = success ] && state=success
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d "{\"state\":\"$state\",\"context\":\"proai/manifest-pin\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}" >/dev/null

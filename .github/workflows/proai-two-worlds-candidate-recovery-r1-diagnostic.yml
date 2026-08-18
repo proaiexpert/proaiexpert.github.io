@@ -1,0 +1,41 @@
+name: ProAI Two Worlds Candidate Recovery R1 Diagnostic
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-candidate-recovery-r1
+    paths:
+      - .github/workflows/proai-two-worlds-candidate-recovery-r1-diagnostic.yml
+
+permissions:
+  contents: read
+  actions: read
+  statuses: write
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish heavy gallery run state
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          API="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs?branch=agent%2Fproai-two-worlds-candidate-recovery-r1&per_page=30"
+          curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API" >/tmp/runs.json
+          python3 - <<'PY' >/tmp/diag.json
+          import json
+          d=json.load(open('/tmp/runs.json'))
+          runs=[r for r in d.get('workflow_runs',[]) if r.get('name')=='ProAI Two Worlds Historical Candidate Recovery R1']
+          if not runs:
+              out={'state':'error','target_url':'https://github.com/proaiexpert/proaiexpert.github.io/actions','description':'Heavy gallery run not found','context':'two-worlds-recovery-r1-diagnostic'}
+          else:
+              r=runs[0]; st=r.get('status'); co=r.get('conclusion')
+              if st!='completed': state='pending'
+              elif co=='success': state='success'
+              else: state='error'
+              out={'state':state,'target_url':r.get('html_url'),'description':f"run {r.get('id')} {st}/{co or '-'}"[:140],'context':'two-worlds-recovery-r1-diagnostic'}
+          print(json.dumps(out))
+          PY
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" -d @/tmp/diag.json >/dev/null

@@ -15,11 +15,65 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 function ensure(p){ fs.mkdirSync(p,{recursive:true}); }
 function candidateDir(c){ return c.id === 'E_TEST' ? path.join(INTERNAL,'e-test') : path.join(OUT,'media',c.id.toLowerCase()); }
 function f(c,name){ const d=candidateDir(c); ensure(d); return path.join(d,name); }
-function encode(frames,dest,fps=8){
-  cp.execFileSync('ffmpeg',['-y','-loglevel','error','-framerate',String(fps),'-i',path.join(frames,'frame-%04d.jpg'),'-c:v','libx264','-profile:v','high','-level','4.0','-pix_fmt','yuv420p','-movflags','+faststart','-crf','21',dest]);
-}
 function portFor(c){ return 8200 + all.findIndex(x=>x.id===c.id) + 1; }
 function baseFor(c){ return `http://127.0.0.1:${portFor(c)}`; }
+function shellQuote(s){ return String(s).replace(/'/g,"'\\''"); }
+
+function encodeTimeline(frames,dest,width,height,started,ended){
+  if(frames.length < 2) throw new Error(`Screencast produced only ${frames.length} frames for ${dest}`);
+  frames.sort((a,b)=>a.index-b.index);
+  frames[0].time = Math.min(frames[0].time, started);
+  const listPath = path.join(path.dirname(frames[0].file),'timeline.txt');
+  const lines=[];
+  for(let i=0;i<frames.length;i++){
+    const cur=frames[i];
+    const nextTime=i+1<frames.length ? frames[i+1].time : ended;
+    const duration=Math.max(0.025,(nextTime-cur.time)/1000);
+    lines.push(`file '${shellQuote(cur.file)}'`);
+    lines.push(`duration ${duration.toFixed(6)}`);
+  }
+  lines.push(`file '${shellQuote(frames[frames.length-1].file)}'`);
+  fs.writeFileSync(listPath,lines.join('\n')+'\n');
+  cp.execFileSync('ffmpeg',[
+    '-y','-loglevel','error','-f','concat','-safe','0','-i',listPath,
+    '-vf',`fps=24,scale=${width}:${height}:flags=lanczos,setsar=1`,
+    '-c:v','libx264','-profile:v','high','-level','4.0','-pix_fmt','yuv420p',
+    '-movflags','+faststart','-crf','21',dest
+  ]);
+}
+
+async function recordScreencast(page,dest,width,height,action){
+  const dir=dest+'.frames'; ensure(dir);
+  const client=await page.target().createCDPSession();
+  await client.send('Page.enable');
+  const frames=[]; let seq=0; let accepting=true;
+  const started=Date.now();
+  const handler=async ev=>{
+    try{
+      if(accepting){
+        const file=path.join(dir,`frame-${String(seq).padStart(5,'0')}.jpg`);
+        fs.writeFileSync(file,Buffer.from(ev.data,'base64'));
+        frames.push({index:seq++,file,time:Date.now()});
+      }
+    } finally {
+      try{ await client.send('Page.screencastFrameAck',{sessionId:ev.sessionId}); }catch(_e){}
+    }
+  };
+  client.on('Page.screencastFrame',handler);
+  await client.send('Page.startScreencast',{format:'jpeg',quality:78,maxWidth:width,maxHeight:height,everyNthFrame:3});
+  await sleep(350);
+  await action();
+  await sleep(350);
+  const ended=Date.now();
+  accepting=false;
+  await client.send('Page.stopScreencast');
+  await sleep(150);
+  client.off('Page.screencastFrame',handler);
+  await client.detach();
+  encodeTimeline(frames,dest,width,height,started,ended);
+  fs.rmSync(dir,{recursive:true,force:true});
+  return {frames:frames.length,durationSeconds:Number(((ended-started)/1000).toFixed(3))};
+}
 
 async function setupPage(browser,w,h,mobile=false){
   const page = await browser.newPage();
@@ -27,6 +81,7 @@ async function setupPage(browser,w,h,mobile=false){
   const cdp = await page.target().createCDPSession();
   await cdp.send('Network.enable');
   await cdp.send('Network.setCacheDisabled',{cacheDisabled:true});
+  await cdp.detach();
   return page;
 }
 
@@ -44,7 +99,7 @@ async function gotoRuntime(page,c,lang='en'){
   await page.goto(url,{waitUntil:'domcontentloaded',timeout:120000});
   await page.waitForSelector('[data-tw-r2]',{timeout:45000});
   await page.evaluate(async()=>{ if(document.fonts) await document.fonts.ready; document.documentElement.style.scrollBehavior='auto'; });
-  await sleep(750);
+  await sleep(600);
   const identity=await page.evaluate(()=>({
     title:document.title,
     css:[...document.styleSheets].map(s=>s.href).filter(Boolean),
@@ -69,9 +124,9 @@ function requiredAssetFailures(c,audit){
 
 async function scrollToTwoWorlds(page){
   await page.evaluate(()=>document.querySelector('[data-tw-r2]').scrollIntoView({block:'start'}));
-  await sleep(600);
+  await sleep(450);
 }
-async function neutral(page){ await page.mouse.move(8,8,{steps:6}); await sleep(700); }
+async function neutral(page){ await page.mouse.move(8,8,{steps:6}); }
 async function hover(page,world){
   const el=await page.$(`[data-tw-world="${world}"]`); if(!el) throw new Error(`missing ${world}`);
   const b=await el.boundingBox(); if(!b) throw new Error(`no bounds ${world}`);
@@ -95,33 +150,31 @@ async function primeTechnologyImages(page){
     })));
     await Promise.all(imgs.map(img=>img.decode ? img.decode().catch(()=>{}) : Promise.resolve()));
   });
-  await sleep(450);
+  await sleep(350);
 }
 
 async function desktop(browser,c,report){
   console.log(`  ${c.id} desktop start`);
-  const page=await setupPage(browser,1440,900,false); const audit=await gotoRuntime(page,c,'en'); await scrollToTwoWorlds(page); await neutral(page);
+  const page=await setupPage(browser,1440,900,false); const audit=await gotoRuntime(page,c,'en');
+  await scrollToTwoWorlds(page); await neutral(page); await sleep(700);
   await jpg(page,f(c,'01-neutral-1440x900.jpg'));
-  await hover(page,'ai'); await sleep(1100); await jpg(page,f(c,'02-ai-active-1440x900.jpg'));
-  await neutral(page); await hover(page,'web'); await sleep(1100); await jpg(page,f(c,'03-web-active-1440x900.jpg')); await neutral(page);
-
-  const frames=f(c,'desktop-frames'); ensure(frames); let next=Date.now();
+  await hover(page,'ai'); await sleep(1050); await jpg(page,f(c,'02-ai-active-1440x900.jpg'));
+  await neutral(page); await sleep(700); await hover(page,'web'); await sleep(1050); await jpg(page,f(c,'03-web-active-1440x900.jpg'));
+  await neutral(page); await sleep(700);
   await scrollToTwoWorlds(page); await neutral(page);
-  for(let i=0;i<96;i++){
-    if(i===14) await hover(page,'ai');
-    if(i===36) await neutral(page);
-    if(i===50) await hover(page,'web');
-    if(i===72) await neutral(page);
-    await jpg(page,path.join(frames,`frame-${String(i).padStart(4,'0')}.jpg`),82);
-    next+=125; const d=next-Date.now(); if(d>0) await sleep(d);
-  }
-  encode(frames,f(c,'desktop-1440x900.mp4')); fs.rmSync(frames,{recursive:true,force:true});
+  report.desktopVideoCapture=await recordScreencast(page,f(c,'desktop-1440x900.mp4'),1440,900,async()=>{
+    await sleep(1700);
+    await hover(page,'ai'); await sleep(2600);
+    await neutral(page); await sleep(1700);
+    await hover(page,'web'); await sleep(2600);
+    await neutral(page); await sleep(1700);
+  });
   report.desktopOverflow=await overflow(page);
   report.desktopIdentity=audit.identity;
   report.desktopRequiredAssetFailures=requiredAssetFailures(c,audit);
   if(report.desktopRequiredAssetFailures.length) throw new Error(`${c.id} required desktop asset failure: ${JSON.stringify(report.desktopRequiredAssetFailures)}`);
   await page.close();
-  console.log(`  ${c.id} desktop pass`);
+  console.log(`  ${c.id} desktop pass ${JSON.stringify(report.desktopVideoCapture)}`);
 }
 
 async function mobileBounds(page){
@@ -138,35 +191,39 @@ async function mobileBounds(page){
 async function portrait(browser,c,report){
   console.log(`  ${c.id} portrait start`);
   const page=await setupPage(browser,390,844,true); const audit=await gotoRuntime(page,c,'ru'); const b=await mobileBounds(page);
-  await page.evaluate(y=>scrollTo(0,y),b.start); await sleep(1000); await jpg(page,f(c,'04-ai-390x844.jpg'));
-  await page.evaluate(y=>scrollTo(0,y),b.mid); await sleep(850); await jpg(page,f(c,'05-turn-390x844.jpg'));
-  await page.evaluate(y=>scrollTo(0,y),b.end); await sleep(1000); await jpg(page,f(c,'06-web-390x844.jpg'));
-
-  const frames=f(c,'mobile-frames'); ensure(frames); let next=Date.now();
-  for(let i=0;i<104;i++){
-    let y;
-    if(i<14) y=b.start;
-    else if(i<78){ const t=(i-14)/63; const e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2; y=Math.round(b.start+(b.end-b.start)*e); }
-    else if(i<92) y=b.end;
-    else { const t=(i-92)/11; y=Math.round(b.end-(b.end-b.start)*.12*t); }
-    await page.evaluate(v=>scrollTo(0,v),y);
-    await jpg(page,path.join(frames,`frame-${String(i).padStart(4,'0')}.jpg`),82);
-    next+=125; const d=next-Date.now(); if(d>0) await sleep(d);
-  }
-  encode(frames,f(c,'mobile-390x844.mp4')); fs.rmSync(frames,{recursive:true,force:true});
+  await page.evaluate(y=>scrollTo(0,y),b.start); await sleep(900); await jpg(page,f(c,'04-ai-390x844.jpg'));
+  await page.evaluate(y=>scrollTo(0,y),b.mid); await sleep(800); await jpg(page,f(c,'05-turn-390x844.jpg'));
+  await page.evaluate(y=>scrollTo(0,y),b.end); await sleep(900); await jpg(page,f(c,'06-web-390x844.jpg'));
+  await page.evaluate(y=>scrollTo(0,y),b.start); await sleep(700);
+  report.mobileVideoCapture=await recordScreencast(page,f(c,'mobile-390x844.mp4'),390,844,async()=>{
+    await sleep(1800);
+    const steps=32;
+    for(let i=1;i<=steps;i++){
+      const t=i/steps; const e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+      const y=Math.round(b.start+(b.end-b.start)*e);
+      await page.evaluate(v=>scrollTo(0,v),y);
+      await sleep(200);
+    }
+    await sleep(1700);
+    for(let i=1;i<=6;i++){
+      const y=Math.round(b.end-(b.end-b.start)*.12*(i/6));
+      await page.evaluate(v=>scrollTo(0,v),y);
+      await sleep(180);
+    }
+  });
   report.portraitOverflow=await overflow(page);
   report.portraitIdentity=audit.identity;
   report.portraitRequiredAssetFailures=requiredAssetFailures(c,audit);
   if(report.portraitRequiredAssetFailures.length) throw new Error(`${c.id} required portrait asset failure: ${JSON.stringify(report.portraitRequiredAssetFailures)}`);
   await page.close();
-  console.log(`  ${c.id} portrait pass`);
+  console.log(`  ${c.id} portrait pass ${JSON.stringify(report.mobileVideoCapture)}`);
 }
 
 async function landscape(browser,c,report){
   console.log(`  ${c.id} landscape start`);
   const page=await setupPage(browser,844,390,true); const audit=await gotoRuntime(page,c,'ru'); const b=await mobileBounds(page);
-  await page.evaluate(y=>scrollTo(0,y),b.start); await sleep(900); await jpg(page,f(c,'07-ai-844x390.jpg'));
-  await page.evaluate(y=>scrollTo(0,y),b.end); await sleep(900); await jpg(page,f(c,'08-web-844x390.jpg'));
+  await page.evaluate(y=>scrollTo(0,y),b.start); await sleep(850); await jpg(page,f(c,'07-ai-844x390.jpg'));
+  await page.evaluate(y=>scrollTo(0,y),b.end); await sleep(850); await jpg(page,f(c,'08-web-844x390.jpg'));
   report.landscapeOverflow=await overflow(page);
   report.landscapeRequiredAssetFailures=requiredAssetFailures(c,audit);
   if(report.landscapeRequiredAssetFailures.length) throw new Error(`${c.id} required landscape asset failure: ${JSON.stringify(report.landscapeRequiredAssetFailures)}`);
@@ -199,7 +256,7 @@ async function technology(browser,c,report){
 (async()=>{
   ensure(OUT); ensure(path.join(OUT,'media')); ensure(INTERNAL);
   const browser=await puppeteer.launch({headless:true,executablePath:CHROME,args:['--no-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required']});
-  const summary={captureSpec:{desktop:'1440x900',portrait:'390x844',landscape:'844x390',zoom:'100%',deviceScaleFactor:1,video:'MP4 H.264 yuv420p'},candidates:{}};
+  const summary={captureSpec:{desktop:'1440x900',portrait:'390x844',landscape:'844x390',zoom:'100%',deviceScaleFactor:1,video:'MP4 H.264 yuv420p / Chrome CDP screencast'},candidates:{}};
   for(const c of all){
     console.log(`RESURRECT ${c.id} ${c.version} ${c.productSha}`);
     const r={id:c.id,version:c.version,productSha:c.productSha,runtimeVerifiedFromExactSha:true};

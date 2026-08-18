@@ -23,9 +23,9 @@ jobs:
           json=$(curl -fsS \
             -H "Authorization: Bearer ${{ github.token }}" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/runs?branch=agent%2Fproai-two-worlds-product-resurrection-r2&per_page=20")
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?branch=agent%2Fproai-two-worlds-product-resurrection-r2&per_page=30")
           printf '%s' "$json" > /tmp/runs.json
-          python3 -c 'import json; d=json.load(open("/tmp/runs.json")); runs=[r for r in d.get("workflow_runs",[]) if r.get("name")=="ProAI Two Worlds Product Resurrection R2 Finalize"]; assert runs, "no finalize run"; r=runs[0]; print(r["id"]); print(r["status"]); print(r.get("conclusion") or ""); print(r["html_url"])' >/tmp/result.txt
+          python3 -c 'import json; d=json.load(open("/tmp/runs.json")); runs=[r for r in d.get("workflow_runs",[]) if r.get("name")=="ProAI Two Worlds R2 Geometry Probe"]; assert runs, "no geometry probe run"; r=runs[0]; print(r["id"]); print(r["status"]); print(r.get("conclusion") or ""); print(r["html_url"])' >/tmp/result.txt
           run_id=$(sed -n '1p' /tmp/result.txt)
           status=$(sed -n '2p' /tmp/result.txt)
           conclusion=$(sed -n '3p' /tmp/result.txt)
@@ -37,4 +37,4 @@ jobs:
             -H "Authorization: Bearer ${{ github.token }}" \
             -H "Accept: application/vnd.github+json" \
             https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
-            -d "{\"state\":\"$state\",\"context\":\"tw-r2-finalize-diagnostic\",\"description\":\"run $run_id $status $conclusion\",\"target_url\":\"$url\"}" >/dev/null
+            -d "{\"state\":\"$state\",\"context\":\"tw-r2-geometry-probe-diagnostic\",\"description\":\"run $run_id $status $conclusion\",\"target_url\":\"$url\"}" >/dev/null

@@ -1,0 +1,40 @@
+name: ProAI Two Worlds Product Resurrection R2 Run Diagnostic
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-product-resurrection-r2
+    paths:
+      - .github/workflows/proai-two-worlds-product-resurrection-r2-run-diag.yml
+
+permissions:
+  actions: read
+  statuses: write
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find latest resurrection run
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs?branch=agent%2Fproai-two-worlds-product-resurrection-r2&event=workflow_dispatch&per_page=20" > /tmp/runs.json
+          python3 - <<'PY' >/tmp/run.txt
+          import json
+          d=json.load(open('/tmp/runs.json'))
+          rs=[r for r in d.get('workflow_runs',[]) if r.get('name')=='ProAI Two Worlds Product Resurrection R2']
+          if not rs: raise SystemExit('NO TARGET RUN')
+          r=rs[0]
+          print(r['id']);print(r['status']);print(r.get('conclusion') or 'NONE');print(r['html_url'])
+          PY
+          id=$(sed -n '1p' /tmp/run.txt); status=$(sed -n '2p' /tmp/run.txt); conclusion=$(sed -n '3p' /tmp/run.txt); url=$(sed -n '4p' /tmp/run.txt)
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d "{\"state\":\"error\",\"context\":\"two-worlds-r2-run-diag\",\"description\":\"run $id $status $conclusion\",\"target_url\":\"$url\"}" >/dev/null

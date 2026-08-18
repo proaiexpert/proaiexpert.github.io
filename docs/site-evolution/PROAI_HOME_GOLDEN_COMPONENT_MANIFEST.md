@@ -4,7 +4,7 @@ Recovery date: 2026-08-17
 
 - Production main / Golden Assembly base: `c945084e1952c05c686494091f7dbca0f7acdf08`
 - Recovery branch: `agent/proai-home-golden-assembly-r1`
-- Golden Assembly product SHA: `6968afc698fc583b4573cf8056476ad984fa52d7`
+- Golden Assembly product SHA: `9128ce0690062755f1a5e229b44ce3ad98465d69`
 
 ## Logo — OWNER APPROVED
 
@@ -117,10 +117,12 @@ Controlled wiring source: latest Two Worlds R2.2 snapshot `411937c0e1367681891ef
 Critical wiring identities:
 - `_includes/homepage-assembly-base-en.html` — `72a5a6e84b6bfd47753bbce8a7ccfbc9c5cffd22`
 - `_includes/homepage-assembly-base-ru.html` — `690ccf7d82368b57b29dc66031c010db2cbb8b94`
-- `index.html` — `eba5f5f7c63a4519861251e894fcef4c0406c8cf`
-- `ru/index.html` — `ff91c72ba2a6cdc7fa2e1db4c57001b8152b5cea`
+- `index.html` — `b8e121186dbcec3e8569f5569b000c064bc8411d`
+- `ru/index.html` — `3bdae81e293f60c3a974f9dd2a48531a8ebd9649`
 - `assets/js/homepage-core-hardening-v1.js` — `4ffd9833232177f77d4189811a21b71dd28201dc`
 - `mobile-pass-v141.css` — `5bd5bf4ddcb9fe4af0979abe63d4267251c561cd`
+
+Assembly wiring correction: obsolete exact `work_marker` caused a duplicated homepage fragment; corrected to the emitted `aria-labelledby="financial-stream-heading"` marker in the EN/RU wrappers.
 
 Connected System component blobs are replaced from `d5f2e2fd85218b2a98e774b0b19df1536240d4fb`; latest Two Worlds R2.2 production files/wiring remain exact to `411937c0e1367681891ef562e02d333681984c39`.
 

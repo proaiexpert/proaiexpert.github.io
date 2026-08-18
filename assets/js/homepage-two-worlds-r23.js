@@ -71,7 +71,7 @@
     var landscape = isLandscape();
     var targetRatio = landscape ? 0.70 : 0.74;
     var targetWidth = width * targetRatio;
-    var limits = landscape ? [50, 116] : [58, 138];
+    var limits = landscape ? [34, 160] : [40, 150];
 
     ['ai', 'web'].forEach(function (world) {
       var node = viewport.querySelector('.tw-r23-mobile-inscription[data-world="' + world + '"]');
@@ -81,7 +81,18 @@
       var measured = meterWidth(node);
       var size = clamp((100 * targetWidth) / measured, limits[0], limits[1]);
       node.style.setProperty('--tw-r23-mobile-macro-size', size.toFixed(2) + 'px');
+
+      /* Final optical-width refinement uses the actual rendered glyph geometry.
+         This absorbs font-load and EN/RU glyph differences without language offsets. */
+      var rendered = node.getBoundingClientRect().width;
+      if (rendered > 1) {
+        size = clamp(size * (targetWidth / rendered), limits[0], limits[1]);
+        node.style.setProperty('--tw-r23-mobile-macro-size', size.toFixed(2) + 'px');
+        rendered = node.getBoundingClientRect().width;
+      }
+
       node.setAttribute('data-r23-target', Math.round(targetWidth) + 'px');
+      node.setAttribute('data-r23-rendered', Math.round(rendered) + 'px');
     });
 
     section.setAttribute('data-r23-mobile-macro', 'ready');

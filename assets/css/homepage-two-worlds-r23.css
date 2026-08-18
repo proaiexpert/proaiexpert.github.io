@@ -3,8 +3,8 @@
    Preserves R2/R2.1/R2.2 concept, geometry authority and motion language. */
 
 .tw-r2 {
-  --tw-r23-mobile-inset:clamp(42px,11vw,54px);
-  --tw-r23-landscape-inset:clamp(72px,8.7vw,96px);
+  --tw-r23-mobile-inset:clamp(52px,14vw,60px);
+  --tw-r23-landscape-inset:clamp(104px,12.5vw,128px);
   --tw-r23-mobile-macro-size:92px;
 }
 
@@ -64,13 +64,15 @@
     left:var(--tw-r23-mobile-inset);
   }
   .tw-r2 .tw-r2__content--web {
-    right:var(--tw-r23-mobile-inset);
+    left:var(--tw-r23-mobile-inset);
+    right:auto;
   }
   .tw-r2[data-focus="ai"] .tw-r2__content--ai {
     left:var(--tw-r23-mobile-inset);
   }
   .tw-r2[data-focus="web"] .tw-r2__content--web {
-    right:var(--tw-r23-mobile-inset);
+    left:var(--tw-r23-mobile-inset);
+    right:auto;
   }
 
   /* Restore restrained Interference Alloy visibility on phone displays.
@@ -97,20 +99,31 @@
   }
 
   .tw-r2[data-focus="ai"] .tw-r2__material--ai::after {
-    opacity:.39;
+    opacity:.44;
   }
   .tw-r2[data-focus="ai"] .tw-r2__material--web::after {
     opacity:.11;
   }
   .tw-r2[data-focus="web"] .tw-r2__material--web::after {
-    opacity:.38;
+    opacity:.43;
   }
   .tw-r2[data-focus="web"] .tw-r2__material--ai::after {
     opacity:.10;
   }
   .tw-r2[data-focus="turn"] .tw-r2__material--ai::after,
   .tw-r2[data-focus="turn"] .tw-r2__material--web::after {
-    opacity:.43;
+    opacity:.46;
+  }
+
+  /* Mobile alloy follows scroll-state promptly but keeps a high-mass ease.
+     Geometry choreography remains untouched. */
+  .tw-r2[data-focus="ai"] .tw-r2__material--ai::after,
+  .tw-r2[data-focus="ai"] .tw-r2__material--web::after,
+  .tw-r2[data-focus="web"] .tw-r2__material--web::after,
+  .tw-r2[data-focus="web"] .tw-r2__material--ai::after,
+  .tw-r2[data-focus="turn"] .tw-r2__material--ai::after,
+  .tw-r2[data-focus="turn"] .tw-r2__material--web::after {
+    transition:opacity 560ms var(--tw-r2-ease) 0ms,transform 620ms var(--tw-r2-ease) 0ms;
   }
 
   /* A slightly clearer grazing catch through THE TURN, still predominantly achromatic. */
@@ -123,7 +136,7 @@
    retain left alignment, and preserve the existing 56/44 information hierarchy. */
 @media (orientation:landscape) and (max-height:540px) and (max-width:980px) {
   .tw-r2 {
-    --tw-r23-landscape-inset:clamp(72px,8.7vw,96px);
+    --tw-r23-landscape-inset:clamp(104px,12.5vw,128px);
   }
 
   .tw-r2 .tw-r2__content--ai,

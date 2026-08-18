@@ -80,7 +80,26 @@ async function hover(page,world){
 async function jpg(page,file,quality=88){ await page.screenshot({path:file,type:'jpeg',quality,fullPage:false}); }
 async function overflow(page){ return page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,delta:document.documentElement.scrollWidth-document.documentElement.clientWidth})); }
 
+async function primeTechnologyImages(page){
+  await page.evaluate(()=>document.querySelector('[data-tw-tech-r2]').scrollIntoView({block:'center'}));
+  await page.evaluate(async()=>{
+    const imgs=[...document.querySelectorAll('[data-tw-tech-r2] img')];
+    imgs.forEach(img=>{ img.loading='eager'; });
+    await Promise.all(imgs.map(img=>new Promise(resolve=>{
+      if(img.complete && img.naturalWidth>0){ resolve(); return; }
+      let done=false;
+      const finish=()=>{ if(done) return; done=true; resolve(); };
+      img.addEventListener('load',finish,{once:true});
+      img.addEventListener('error',finish,{once:true});
+      setTimeout(finish,12000);
+    })));
+    await Promise.all(imgs.map(img=>img.decode ? img.decode().catch(()=>{}) : Promise.resolve()));
+  });
+  await sleep(450);
+}
+
 async function desktop(browser,c,report){
+  console.log(`  ${c.id} desktop start`);
   const page=await setupPage(browser,1440,900,false); const audit=await gotoRuntime(page,c,'en'); await scrollToTwoWorlds(page); await neutral(page);
   await jpg(page,f(c,'01-neutral-1440x900.jpg'));
   await hover(page,'ai'); await sleep(1100); await jpg(page,f(c,'02-ai-active-1440x900.jpg'));
@@ -100,8 +119,9 @@ async function desktop(browser,c,report){
   report.desktopOverflow=await overflow(page);
   report.desktopIdentity=audit.identity;
   report.desktopRequiredAssetFailures=requiredAssetFailures(c,audit);
-  if(report.desktopRequiredAssetFailures.length) throw new Error(`${c.id} required desktop asset failure`);
+  if(report.desktopRequiredAssetFailures.length) throw new Error(`${c.id} required desktop asset failure: ${JSON.stringify(report.desktopRequiredAssetFailures)}`);
   await page.close();
+  console.log(`  ${c.id} desktop pass`);
 }
 
 async function mobileBounds(page){
@@ -116,6 +136,7 @@ async function mobileBounds(page){
 }
 
 async function portrait(browser,c,report){
+  console.log(`  ${c.id} portrait start`);
   const page=await setupPage(browser,390,844,true); const audit=await gotoRuntime(page,c,'ru'); const b=await mobileBounds(page);
   await page.evaluate(y=>scrollTo(0,y),b.start); await sleep(1000); await jpg(page,f(c,'04-ai-390x844.jpg'));
   await page.evaluate(y=>scrollTo(0,y),b.mid); await sleep(850); await jpg(page,f(c,'05-turn-390x844.jpg'));
@@ -136,34 +157,43 @@ async function portrait(browser,c,report){
   report.portraitOverflow=await overflow(page);
   report.portraitIdentity=audit.identity;
   report.portraitRequiredAssetFailures=requiredAssetFailures(c,audit);
-  if(report.portraitRequiredAssetFailures.length) throw new Error(`${c.id} required portrait asset failure`);
+  if(report.portraitRequiredAssetFailures.length) throw new Error(`${c.id} required portrait asset failure: ${JSON.stringify(report.portraitRequiredAssetFailures)}`);
   await page.close();
+  console.log(`  ${c.id} portrait pass`);
 }
 
 async function landscape(browser,c,report){
+  console.log(`  ${c.id} landscape start`);
   const page=await setupPage(browser,844,390,true); const audit=await gotoRuntime(page,c,'ru'); const b=await mobileBounds(page);
   await page.evaluate(y=>scrollTo(0,y),b.start); await sleep(900); await jpg(page,f(c,'07-ai-844x390.jpg'));
   await page.evaluate(y=>scrollTo(0,y),b.end); await sleep(900); await jpg(page,f(c,'08-web-844x390.jpg'));
   report.landscapeOverflow=await overflow(page);
   report.landscapeRequiredAssetFailures=requiredAssetFailures(c,audit);
-  if(report.landscapeRequiredAssetFailures.length) throw new Error(`${c.id} required landscape asset failure`);
+  if(report.landscapeRequiredAssetFailures.length) throw new Error(`${c.id} required landscape asset failure: ${JSON.stringify(report.landscapeRequiredAssetFailures)}`);
   await page.close();
+  console.log(`  ${c.id} landscape pass`);
 }
 
 async function technology(browser,c,report){
+  console.log(`  ${c.id} technology start`);
   const desktop=await setupPage(browser,1440,900,false); let audit=await gotoRuntime(desktop,c,'en');
-  await desktop.evaluate(()=>document.querySelector('[data-tw-tech-r2]').scrollIntoView({block:'center'})); await sleep(900); await jpg(desktop,f(c,'09-tech-desktop.jpg'));
-  report.techDesktop=await desktop.evaluate(()=>({marks:[...document.querySelectorAll('[data-tw-tech-r2] img')].map(x=>({alt:x.alt,w:Math.round(x.getBoundingClientRect().width),h:Math.round(x.getBoundingClientRect().height),complete:x.complete,naturalWidth:x.naturalWidth})),overflow:{scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,delta:document.documentElement.scrollWidth-document.documentElement.clientWidth}}));
+  await primeTechnologyImages(desktop);
+  report.techDesktop=await desktop.evaluate(()=>({marks:[...document.querySelectorAll('[data-tw-tech-r2] img')].map(x=>({alt:x.alt,src:x.currentSrc||x.src,w:Math.round(x.getBoundingClientRect().width),h:Math.round(x.getBoundingClientRect().height),complete:x.complete,naturalWidth:x.naturalWidth,naturalHeight:x.naturalHeight})),overflow:{scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,delta:document.documentElement.scrollWidth-document.documentElement.clientWidth}}));
   report.techDesktopRequiredAssetFailures=requiredAssetFailures(c,audit);
-  if(report.techDesktop.marks.length<10 || report.techDesktop.marks.some(x=>!x.complete||x.naturalWidth<1)) throw new Error(`${c.id} desktop Technology asset failure`);
+  if(report.techDesktopRequiredAssetFailures.length) throw new Error(`${c.id} desktop Technology network failure: ${JSON.stringify(report.techDesktopRequiredAssetFailures)}`);
+  if(report.techDesktop.marks.length<10 || report.techDesktop.marks.some(x=>!x.complete||x.naturalWidth<1)) throw new Error(`${c.id} desktop Technology decode failure: ${JSON.stringify(report.techDesktop.marks)}`);
+  await jpg(desktop,f(c,'09-tech-desktop.jpg'));
   await desktop.close();
 
   const mobile=await setupPage(browser,390,844,true); audit=await gotoRuntime(mobile,c,'ru');
-  await mobile.evaluate(()=>document.querySelector('[data-tw-tech-r2]').scrollIntoView({block:'center'})); await sleep(900); await jpg(mobile,f(c,'10-tech-mobile.jpg'));
-  report.techMobile=await mobile.evaluate(()=>({marks:[...document.querySelectorAll('[data-tw-tech-r2] img')].map(x=>({alt:x.alt,w:Math.round(x.getBoundingClientRect().width),h:Math.round(x.getBoundingClientRect().height),complete:x.complete,naturalWidth:x.naturalWidth})),overflow:{scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,delta:document.documentElement.scrollWidth-document.documentElement.clientWidth}}));
+  await primeTechnologyImages(mobile);
+  report.techMobile=await mobile.evaluate(()=>({marks:[...document.querySelectorAll('[data-tw-tech-r2] img')].map(x=>({alt:x.alt,src:x.currentSrc||x.src,w:Math.round(x.getBoundingClientRect().width),h:Math.round(x.getBoundingClientRect().height),complete:x.complete,naturalWidth:x.naturalWidth,naturalHeight:x.naturalHeight})),overflow:{scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,delta:document.documentElement.scrollWidth-document.documentElement.clientWidth}}));
   report.techMobileRequiredAssetFailures=requiredAssetFailures(c,audit);
-  if(report.techMobile.marks.length<10 || report.techMobile.marks.some(x=>!x.complete||x.naturalWidth<1)) throw new Error(`${c.id} mobile Technology asset failure`);
+  if(report.techMobileRequiredAssetFailures.length) throw new Error(`${c.id} mobile Technology network failure: ${JSON.stringify(report.techMobileRequiredAssetFailures)}`);
+  if(report.techMobile.marks.length<10 || report.techMobile.marks.some(x=>!x.complete||x.naturalWidth<1)) throw new Error(`${c.id} mobile Technology decode failure: ${JSON.stringify(report.techMobile.marks)}`);
+  await jpg(mobile,f(c,'10-tech-mobile.jpg'));
   await mobile.close();
+  console.log(`  ${c.id} technology pass`);
 }
 
 (async()=>{
@@ -180,6 +210,7 @@ async function technology(browser,c,report){
     r.loadedJs=r.desktopIdentity.js.filter(u=>u.includes('homepage-two-worlds'));
     fs.writeFileSync(f(c,'runtime-report.json'),JSON.stringify(r,null,2));
     summary.candidates[c.id]=r;
+    console.log(`RESURRECT ${c.id} COMPLETE`);
   }
   await browser.close();
   fs.writeFileSync(path.join(OUT,'capture-summary.json'),JSON.stringify(summary,null,2));

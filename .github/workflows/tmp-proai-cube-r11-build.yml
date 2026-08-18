@@ -1,0 +1,413 @@
+name: Temporary ProAI Cube R1.1 build
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-resend-spatial-motion-r1
+
+permissions:
+  contents: write
+
+jobs:
+  build-r11:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-resend-spatial-motion-r1
+          fetch-depth: 0
+
+      - name: Build clean spatial presentation R1.1
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('assets/js/proai-hero-cube-r1/source-materials-r1.js')
+          source = path.read_text(encoding='utf-8')
+
+          if 'PRESENTATION_SPATIAL_R1_1' in source:
+              print('R1.1 already present; no-op')
+              raise SystemExit(0)
+
+          r1_override_marker = '\n/* ProAI Cube Resend-like Spatial Motion R1 — whole-cube presentation override only. */'
+          assert source.count(r1_override_marker) == 1, 'Expected exactly one R1 appended override'
+
+          spatial_config = r'''const PRESENTATION_SPATIAL_R1_1 = Object.freeze({
+            cycleMs: 64000,
+            motionAuthority: 'quaternion-editorial-spatial-r1.1',
+            keyframes: Object.freeze([
+              Object.freeze({ timeMs: 0, poseDeg: Object.freeze([0, 0, 0]), motion: 'sweep', label: 'natural-3q' }),
+              Object.freeze({ timeMs: 5500, poseDeg: Object.freeze([25, 60, -25]), motion: 'breath', label: 'top-side-3q' }),
+              Object.freeze({ timeMs: 7800, poseDeg: Object.freeze([23, 66, -23]), motion: 'sweep', label: 'top-side-breath' }),
+              Object.freeze({ timeMs: 13200, poseDeg: Object.freeze([-45, 40, -25]), motion: 'breath', label: 'lower-side-inspection' }),
+              Object.freeze({ timeMs: 15500, poseDeg: Object.freeze([-43, 46, -23]), motion: 'sweep', label: 'lower-side-breath' }),
+              Object.freeze({ timeMs: 21000, poseDeg: Object.freeze([10, 85, 5]), motion: 'breath', label: 'opposite-3q-a' }),
+              Object.freeze({ timeMs: 23500, poseDeg: Object.freeze([8, 91, 7]), motion: 'sweep', label: 'opposite-3q-a-breath' }),
+              Object.freeze({ timeMs: 29500, poseDeg: Object.freeze([-22, 188, -18]), motion: 'breath', label: 'opposite-3q-b' }),
+              Object.freeze({ timeMs: 32000, poseDeg: Object.freeze([-20, 194, -16]), motion: 'breath', label: 'opposite-3q-b-breath' }),
+              Object.freeze({ timeMs: 34500, poseDeg: Object.freeze([-22, 188, -18]), motion: 'sweep', label: 'opposite-3q-b-return' }),
+              Object.freeze({ timeMs: 40500, poseDeg: Object.freeze([8, 91, 7]), motion: 'breath', label: 'opposite-3q-a-return' }),
+              Object.freeze({ timeMs: 43000, poseDeg: Object.freeze([10, 85, 5]), motion: 'sweep', label: 'opposite-3q-a-return-breath' }),
+              Object.freeze({ timeMs: 48500, poseDeg: Object.freeze([-43, 46, -23]), motion: 'breath', label: 'lower-side-return' }),
+              Object.freeze({ timeMs: 50800, poseDeg: Object.freeze([-45, 40, -25]), motion: 'sweep', label: 'lower-side-return-breath' }),
+              Object.freeze({ timeMs: 56200, poseDeg: Object.freeze([23, 66, -23]), motion: 'breath', label: 'top-side-return' }),
+              Object.freeze({ timeMs: 58500, poseDeg: Object.freeze([25, 60, -25]), motion: 'sweep', label: 'top-side-return-breath' }),
+              Object.freeze({ timeMs: 64000, poseDeg: Object.freeze([0, 0, 0]), motion: 'sweep', label: 'natural-3q-loop' }),
+            ]),
+            easing: Object.freeze({ sweepLinearWeight: 0.22, breathLinearWeight: 0.84 }),
+            targetBreathSpeedDegPerSec: Object.freeze([2, 6]),
+          });'''
+
+          presentation_anchor = '\n\nconst SLICE_R1_2 = Object.freeze({'
+          presentation_start = source.index('const PRESENTATION_R1_2 = Object.freeze({')
+          anchor_index = source.index(presentation_anchor, presentation_start)
+          source = (
+              source[:anchor_index]
+              + "\n\n// Retained only as immutable Hero freeze-sentinel data; not a runtime presentation authority.\n"
+              + spatial_config
+              + source[anchor_index:]
+          )
+
+          old_state = '''let presentationSimTimeMs = 0;
+          let presentationYawRad = 0;
+          let presentationSignedYawDeg = 0;
+          let presentationCumulativeYawDeg = 0;
+          let presentationYawVelocityDegPerSec = 0;
+          let presentationLastNow = 0;
+          let presentationFrameDeltaRad = 0;
+          let lastPresentationQuaternion = new THREE.Quaternion();'''
+          new_state = '''let presentationSimTimeMs = 0;
+          let presentationLastNow = 0;
+          let presentationFrameDeltaRad = 0;
+          let presentationAngularTravelDeg = 0;
+          let presentationAngularVelocityDegPerSec = 0;
+          let presentationPhase = PRESENTATION_SPATIAL_R1_1.keyframes[0].motion;
+          let presentationPoseLabel = PRESENTATION_SPATIAL_R1_1.keyframes[0].label;
+          let lastPresentationQuaternion = new THREE.Quaternion();
+          const presentationPoseEuler = new THREE.Euler();
+          const presentationPoseQuaternionA = new THREE.Quaternion();
+          const presentationPoseQuaternionB = new THREE.Quaternion();
+          const presentationInverseQuaternion = new THREE.Quaternion();
+          const presentationRelativeQuaternion = new THREE.Quaternion();
+          const presentationTargetQuaternion = new THREE.Quaternion();
+          const presentationAxis = new THREE.Vector3();'''
+          assert source.count(old_state) == 1, 'Old R1.2 presentation state block mismatch'
+          source = source.replace(old_state, new_state, 1)
+
+          source = source.replace('presentationConfig: PRESENTATION_R1_2,', 'presentationConfig: PRESENTATION_SPATIAL_R1_1,')
+
+          globals_anchor = 'window.__PROAI_CUBE_ML_R1 = api;\n'
+          globals_replacement = globals_anchor + 'window.__PROAI_CUBE_SPATIAL_R1 = api;\nwindow.__PROAI_CUBE_SPATIAL_R1_1 = api;\n'
+          assert source.count(globals_anchor) == 1, 'Cube API globals anchor mismatch'
+          source = source.replace(globals_anchor, globals_replacement, 1)
+
+          presentation_block = r'''function presentationPoseQuaternion(poseDeg, outQuaternion = presentationTargetQuaternion) {
+            presentationPoseEuler.set(
+              THREE.MathUtils.degToRad(poseDeg[0]),
+              THREE.MathUtils.degToRad(poseDeg[1]),
+              THREE.MathUtils.degToRad(poseDeg[2]),
+              'YXZ',
+            );
+            return outQuaternion.setFromEuler(presentationPoseEuler).normalize();
+          }
+
+          function presentationSegmentAt(timeMs) {
+            const cycle = PRESENTATION_SPATIAL_R1_1.cycleMs;
+            let local = timeMs % cycle;
+            if (local < 0) local += cycle;
+            const keys = PRESENTATION_SPATIAL_R1_1.keyframes;
+            for (let index = 0; index < keys.length - 1; index += 1) {
+              const a = keys[index];
+              const b = keys[index + 1];
+              if (local <= b.timeMs) {
+                return {
+                  index,
+                  a,
+                  b,
+                  local,
+                  durationMs: Math.max(1, b.timeMs - a.timeMs),
+                  progress: THREE.MathUtils.clamp((local - a.timeMs) / Math.max(1, b.timeMs - a.timeMs), 0, 1),
+                };
+              }
+            }
+            const a = keys[keys.length - 2];
+            const b = keys[keys.length - 1];
+            return { index: keys.length - 2, a, b, local, durationMs: b.timeMs - a.timeMs, progress: 1 };
+          }
+
+          function presentationEditorialEase(progress, phase) {
+            const p = THREE.MathUtils.clamp(progress, 0, 1);
+            const linearWeight = phase === 'breath'
+              ? PRESENTATION_SPATIAL_R1_1.easing.breathLinearWeight
+              : PRESENTATION_SPATIAL_R1_1.easing.sweepLinearWeight;
+            return THREE.MathUtils.lerp(smoothstep(p), p, linearWeight);
+          }
+
+          function presentationEditorialEaseDerivative(progress, phase) {
+            const p = THREE.MathUtils.clamp(progress, 0, 1);
+            const linearWeight = phase === 'breath'
+              ? PRESENTATION_SPATIAL_R1_1.easing.breathLinearWeight
+              : PRESENTATION_SPATIAL_R1_1.easing.sweepLinearWeight;
+            const smoothDerivative = 6 * p * (1 - p);
+            return linearWeight + (1 - linearWeight) * smoothDerivative;
+          }
+
+          function presentationSegmentGeometry(a, b) {
+            const qa = presentationPoseQuaternion(a.poseDeg, presentationPoseQuaternionA);
+            const qb = presentationPoseQuaternion(b.poseDeg, presentationPoseQuaternionB);
+            presentationInverseQuaternion.copy(qa).invert();
+            presentationRelativeQuaternion.copy(qb).multiply(presentationInverseQuaternion).normalize();
+            if (presentationRelativeQuaternion.w < 0) {
+              presentationRelativeQuaternion.x *= -1;
+              presentationRelativeQuaternion.y *= -1;
+              presentationRelativeQuaternion.z *= -1;
+              presentationRelativeQuaternion.w *= -1;
+            }
+            const w = THREE.MathUtils.clamp(presentationRelativeQuaternion.w, -1, 1);
+            const angleRad = 2 * Math.acos(w);
+            const sinHalf = Math.sqrt(Math.max(0, 1 - w * w));
+            if (sinHalf > 1e-6) {
+              presentationAxis.set(
+                presentationRelativeQuaternion.x / sinHalf,
+                presentationRelativeQuaternion.y / sinHalf,
+                presentationRelativeQuaternion.z / sinHalf,
+              ).normalize();
+            } else {
+              presentationAxis.set(0, 1, 0);
+            }
+            return { qa, qb, axis: presentationAxis, angleRad, angleDeg: THREE.MathUtils.radToDeg(angleRad) };
+          }
+
+          function presentationQuaternionAt(timeMs, outQuaternion = presentationTargetQuaternion) {
+            const segment = presentationSegmentAt(timeMs);
+            const geometry = presentationSegmentGeometry(segment.a, segment.b);
+            const eased = presentationEditorialEase(segment.progress, segment.a.motion);
+            return outQuaternion.slerpQuaternions(geometry.qa, geometry.qb, eased).normalize();
+          }
+
+          function presentationCycleTravelDeg() {
+            const keys = PRESENTATION_SPATIAL_R1_1.keyframes;
+            let total = 0;
+            for (let index = 0; index < keys.length - 1; index += 1) {
+              total += presentationSegmentGeometry(keys[index], keys[index + 1]).angleDeg;
+            }
+            return total;
+          }
+
+          const PRESENTATION_SPATIAL_R1_1_CYCLE_TRAVEL_DEG = presentationCycleTravelDeg();
+
+          function presentationTravelAt(timeMs) {
+            const target = Math.max(0, timeMs);
+            const cycle = PRESENTATION_SPATIAL_R1_1.cycleMs;
+            const completeCycles = Math.floor(target / cycle);
+            const local = target % cycle;
+            const keys = PRESENTATION_SPATIAL_R1_1.keyframes;
+            let travelDeg = completeCycles * PRESENTATION_SPATIAL_R1_1_CYCLE_TRAVEL_DEG;
+            for (let index = 0; index < keys.length - 1; index += 1) {
+              const a = keys[index];
+              const b = keys[index + 1];
+              const geometry = presentationSegmentGeometry(a, b);
+              if (local >= b.timeMs) {
+                travelDeg += geometry.angleDeg;
+                continue;
+              }
+              if (local > a.timeMs) {
+                const progress = (local - a.timeMs) / Math.max(1, b.timeMs - a.timeMs);
+                travelDeg += geometry.angleDeg * presentationEditorialEase(progress, a.motion);
+              }
+              break;
+            }
+            return travelDeg;
+          }
+
+          function spatialDominantAxis(axis) {
+            const components = [Math.abs(axis.x), Math.abs(axis.y), Math.abs(axis.z)];
+            return AXES[components.indexOf(Math.max(...components))];
+          }
+
+          function presentationMetricsAt(timeMs) {
+            const segment = presentationSegmentAt(timeMs);
+            const geometry = presentationSegmentGeometry(segment.a, segment.b);
+            const durationSec = segment.durationMs / 1000;
+            const derivative = presentationEditorialEaseDerivative(segment.progress, segment.a.motion);
+            const speedDegPerSec = (geometry.angleDeg / Math.max(0.001, durationSec)) * derivative;
+            return {
+              segmentIndex: segment.index,
+              phase: segment.a.motion,
+              poseLabel: segment.a.label,
+              axis: geometry.axis.clone(),
+              dominantAxis: spatialDominantAxis(geometry.axis),
+              speedDegPerSec,
+              segmentArcDeg: geometry.angleDeg,
+            };
+          }
+
+          function getReviewPresentationSample(timeSec = 0) {
+            const timeMs = Math.max(0, timeSec) * 1000;
+            const target = presentationQuaternionAt(timeMs, presentationTargetQuaternion);
+            const euler = new THREE.Euler().setFromQuaternion(target, 'YXZ');
+            const metrics = presentationMetricsAt(timeMs);
+            return {
+              timeSec,
+              signedYawDeg: THREE.MathUtils.radToDeg(euler.y),
+              cumulativeYawDeg: presentationTravelAt(timeMs),
+              velocityDegPerSec: metrics.speedDegPerSec,
+              pitchDeg: THREE.MathUtils.radToDeg(euler.x),
+              rollDeg: THREE.MathUtils.radToDeg(euler.z),
+              angularTravelDeg: presentationTravelAt(timeMs),
+              dominantAxis: metrics.dominantAxis,
+              rotationAxis: metrics.axis.toArray(),
+              phase: metrics.phase,
+              poseLabel: metrics.poseLabel,
+              engine: PRESENTATION_SPATIAL_R1_1.motionAuthority,
+            };
+          }
+
+          function updatePresentationMotion(now) {
+            if (!api.ready || captureMode || prefersReducedMotion) return;
+            if (!presentationLastNow) {
+              presentationLastNow = now;
+              lastPresentationQuaternion.copy(presentationRig.quaternion);
+              return;
+            }
+            const deltaMs = Math.min(80, Math.max(0, now - presentationLastNow));
+            presentationLastNow = now;
+            if (presentationAutonomyBlocked()) {
+              presentationFrameDeltaRad = 0;
+              lastPresentationQuaternion.copy(presentationRig.quaternion);
+              return;
+            }
+
+            presentationSimTimeMs += deltaMs;
+            presentationQuaternionAt(presentationSimTimeMs, presentationTargetQuaternion);
+            const metrics = presentationMetricsAt(presentationSimTimeMs);
+            presentationAngularVelocityDegPerSec = metrics.speedDegPerSec;
+            presentationAngularTravelDeg += metrics.speedDegPerSec * (deltaMs / 1000);
+            presentationPhase = metrics.phase;
+            presentationPoseLabel = metrics.poseLabel;
+            const before = presentationRig.quaternion.clone();
+
+            if (presentationResumeStart > 0 && now < presentationResumeStart + MOTION.manualResumeBlendMs) {
+              const progress = smoothstep((now - presentationResumeStart) / MOTION.manualResumeBlendMs);
+              presentationRig.quaternion.slerpQuaternions(presentationResumeFrom, presentationTargetQuaternion, progress).normalize();
+            } else {
+              presentationRig.quaternion.copy(presentationTargetQuaternion);
+              if (presentationResumeStart > 0) presentationResumeStart = 0;
+            }
+            presentationFrameDeltaRad = before.angleTo(presentationRig.quaternion);
+            lastPresentationQuaternion.copy(presentationRig.quaternion);
+          }'''
+
+          old_presentation_start = source.index('function presentationVelocityAt(timeMs) {')
+          old_presentation_end = source.index('function seededUnit() {', old_presentation_start)
+          source = source[:old_presentation_start] + presentation_block + '\n\n' + source[old_presentation_end:]
+
+          old_review_target = "const target = presentationQuaternionAt(sample.timeSec * 1000, THREE.MathUtils.degToRad(sample.signedYawDeg));"
+          new_review_target = "const target = presentationQuaternionAt(sample.timeSec * 1000, presentationTargetQuaternion);"
+          assert source.count(old_review_target) == 1, 'Review presentation target mismatch'
+          source = source.replace(old_review_target, new_review_target, 1)
+
+          diagnostics_anchor = 'function getDiagnostics() {\n  return {'
+          assert source.count(diagnostics_anchor) == 1, 'Diagnostics function anchor mismatch'
+          source = source.replace(
+              diagnostics_anchor,
+              'function getDiagnostics() {\n  const presentationSample = getReviewPresentationSample(presentationSimTimeMs / 1000);\n  return {',
+              1,
+          )
+
+          old_diagnostics = '''    presentation: {
+                simTimeMs: presentationSimTimeMs,
+                signedYawDeg: presentationSignedYawDeg,
+                cumulativeYawDeg: presentationCumulativeYawDeg,
+                yawVelocityDegPerSec: presentationYawVelocityDegPerSec,
+                frameAngularDeltaRad: presentationFrameDeltaRad,
+                quaternion: presentationRig.quaternion.toArray(),
+              },'''
+          # normalize indentation from source before matching
+          old_diagnostics = '\n'.join(line[10:] if line.startswith('          ') else line for line in old_diagnostics.splitlines())
+          new_diagnostics = '''    presentation: {
+              simTimeMs: presentationSimTimeMs,
+              angularTravelDeg: presentationAngularTravelDeg,
+              angularVelocityDegPerSec: presentationAngularVelocityDegPerSec,
+              rotationAxis: presentationSample.rotationAxis,
+              dominantAxis: presentationSample.dominantAxis,
+              pitchDeg: presentationSample.pitchDeg,
+              yawDeg: presentationSample.signedYawDeg,
+              rollDeg: presentationSample.rollDeg,
+              phase: presentationPhase,
+              poseLabel: presentationPoseLabel,
+              frameAngularDeltaRad: presentationFrameDeltaRad,
+              quaternion: presentationRig.quaternion.toArray(),
+              engine: PRESENTATION_SPATIAL_R1_1.motionAuthority,
+            },'''
+          new_diagnostics = '\n'.join(line[10:] if line.startswith('          ') else line for line in new_diagnostics.splitlines())
+          assert source.count(old_diagnostics) == 1, 'Old presentation diagnostics block mismatch'
+          source = source.replace(old_diagnostics, new_diagnostics, 1)
+
+          # Remove the experimental appended R1 authority completely. R1.1 now has one in-place engine.
+          override_index = source.index(r1_override_marker)
+          source = source[:override_index].rstrip() + '\n'
+
+          # Structural safeguards for the frozen Hero bootstrap and slice interaction contract.
+          autonomy_block = '''function presentationAutonomyBlocked() {
+            return interactionActive || performance.now() < manualResumeAt;
+          }
+
+          function sliceAutonomyBlocked() {
+            return interactionActive || performance.now() < sliceResumeAt;
+          }'''
+          autonomy_block = '\n'.join(line[10:] if line.startswith('          ') else line for line in autonomy_block.splitlines())
+          controls_block = '''controls.addEventListener('start', () => {
+            interactionActive = true;
+            frozenPresentationQuaternion.copy(presentationRig.quaternion);
+            presentationResumeFrom.copy(presentationRig.quaternion);
+            manualResumeAt = Infinity;
+            sliceResumeAt = Infinity;
+            presentationResumeStart = 0;
+          });
+
+          controls.addEventListener('end', () => {
+            interactionActive = false;
+            const now = performance.now();
+            manualResumeAt = now + MOTION.manualResumeDelayMs;
+            sliceResumeAt = manualResumeAt + MOTION.sliceResumeStaggerMs;
+            presentationResumeStart = manualResumeAt;
+            presentationResumeFrom.copy(presentationRig.quaternion);
+          });'''
+          controls_block = '\n'.join(line[10:] if line.startswith('          ') else line for line in controls_block.splitlines())
+          assert autonomy_block in source, 'Shared slice/presentation autonomy block changed unexpectedly'
+          assert source.count("controls.addEventListener('start'") == 1, 'Duplicate Orbit start authority remains'
+          assert source.count("controls.addEventListener('end'") == 1, 'Duplicate Orbit end authority remains'
+          assert controls_block in source, 'Shared Orbit interaction authority changed unexpectedly'
+          assert source.count('function updatePresentationMotion(now)') == 1, 'Expected one presentation engine'
+          assert 'presentationYawRad' not in source, 'Obsolete yaw runtime state remains'
+          assert 'presentationSignedYawDeg' not in source, 'Obsolete yaw runtime state remains'
+          assert 'presentationYawVelocityDegPerSec' not in source, 'Obsolete yaw runtime state remains'
+          assert 'spatialInteractionActive' not in source, 'Duplicate spatial interaction authority remains'
+          assert 'secondaryDrift' not in source, 'Secondary drift should be absent in R1.1'
+          assert 'normalYawVelocityDegPerSec: [7, 12]' in source, 'Hero freeze sentinel lost'
+          assert 'inspectionYawVelocityDegPerSec: [18, 30]' in source, 'Hero freeze sentinel lost'
+          assert 'pitchEnvelopeDeg: 10.2' in source and 'rollEnvelopeDeg: 2.45' in source, 'Hero freeze sentinel lost'
+          assert 'window.__PROAI_CUBE_SPATIAL_R1 = api;' in source
+          assert 'window.__PROAI_CUBE_SPATIAL_R1_1 = api;' in source
+
+          path.write_text(source, encoding='utf-8')
+          PY
+
+          node --check assets/js/proai-hero-cube-r1/source-materials-r1.js
+          git diff --check
+
+      - name: Commit product source only
+        shell: bash
+        run: |
+          if git diff --quiet -- assets/js/proai-hero-cube-r1/source-materials-r1.js; then
+            echo "No product diff to commit"
+            exit 0
+          fi
+          git config user.name "ProAI Cube R1.1 Builder"
+          git config user.email "proai.expert2026@gmail.com"
+          git add assets/js/proai-hero-cube-r1/source-materials-r1.js
+          git commit -m "Polish Resend-like spatial Cube motion R1.1"
+          git push origin HEAD:agent/proai-cube-resend-spatial-motion-r1

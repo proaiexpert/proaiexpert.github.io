@@ -1,0 +1,23 @@
+name: ProAI Two Worlds R2 Probe Artifact
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-product-resurrection-r2
+    paths:
+      - .github/workflows/proai-two-worlds-r2-probe-artifact.yml
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-two-worlds-r2-geometry-probe
+          path: docs/site-evolution/two-worlds-product-resurrection-r2/_probe/
+          retention-days: 7
+          if-no-files-found: error

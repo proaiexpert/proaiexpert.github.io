@@ -28,6 +28,7 @@ jobs:
           MAIN=c945084e1952c05c686494091f7dbca0f7acdf08
           git cat-file -e "$PRODUCT^{commit}"
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$MAIN"
+          test "$(git rev-parse "$PRODUCT:assets/js/proai-hero-cube-r1/source-materials-r1.js")" = "bab6b00e73b20fc2a51aeb00cb7fc08f16129e72"
           git worktree add /tmp/proai-historical "$PRODUCT"
           cd /tmp/proai-historical
           export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
@@ -72,8 +73,8 @@ jobs:
           grep -q 'THE CONNECTED SYSTEM' /tmp/historical-en.html
           grep -q 'ЕДИНАЯ СИСТЕМА' /tmp/historical-ru.html
 
-          printf 'HISTORICAL THREE-BLOCK OWNER REVIEW\nPRODUCT=%s\nEN=%s/\nRU=%s/ru/\n' \
-            'd5f2e2fd85218b2a98e774b0b19df1536240d4fb' "$BASE" "$BASE" >/tmp/HISTORICAL_THREE_BLOCK_LIVE_URL.txt
+          printf 'HISTORICAL THREE-BLOCK OWNER REVIEW\nPRODUCT=%s\nCUBE_BLOB=%s\nEN=%s/\nRU=%s/ru/\n' \
+            'd5f2e2fd85218b2a98e774b0b19df1536240d4fb' 'bab6b00e73b20fc2a51aeb00cb7fc08f16129e72' "$BASE" "$BASE" >/tmp/HISTORICAL_THREE_BLOCK_LIVE_URL.txt
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'

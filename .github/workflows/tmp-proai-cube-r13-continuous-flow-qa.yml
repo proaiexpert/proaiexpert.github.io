@@ -1,0 +1,125 @@
+name: Temporary ProAI Cube R1.3 continuous-flow QA
+
+on:
+  pull_request:
+    branches:
+      - agent/tmp-proai-cube-r12-qa-base
+
+permissions:
+  contents: read
+
+jobs:
+  qa-r13:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2eaec83dbac4645befca792f4f80a66cef4ad7fd
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --quiet websocket-client
+      - name: Static scope and syntax gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "2eaec83dbac4645befca792f4f80a66cef4ad7fd"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" = "f9298b0b00feaae4123eb5a7161f24f669ae0eca"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/source-continuous-flow-r1-3.js)" = "14b2d657d5d07369fd708b37135216b76c722db4"
+          cp assets/js/proai-hero-cube-r1/source-continuous-flow-r1-3.js /tmp/r13.mjs
+          node --check /tmp/r13.mjs
+      - name: Start headed Chrome under Xvfb
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8095 --bind 127.0.0.1 >/tmp/r13-http.log 2>&1 &
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          xvfb-run -a -s '-screen 0 1440x900x24' "$CHROME" --no-sandbox --disable-dev-shm-usage --window-size=1440,900 --enable-webgl --use-gl=angle --use-angle=swiftshader --remote-debugging-port=9235 --remote-allow-origins='*' --user-data-dir=/tmp/r13-chrome about:blank >/tmp/r13-chrome.log 2>&1 &
+          for i in $(seq 1 120); do curl -fsS http://127.0.0.1:9235/json/version >/tmp/version.json 2>/dev/null && break || true; sleep .2; done
+          test -s /tmp/version.json
+          for i in $(seq 1 50); do curl -fsS -X PUT 'http://127.0.0.1:9235/json/new?about:blank' >/tmp/page.json 2>/dev/null && grep -q webSocketDebuggerUrl /tmp/page.json && break || true; sleep .2; done
+          grep -q webSocketDebuggerUrl /tmp/page.json
+      - name: 75-second visual sweep plus seam and held-Orbit QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa-r13/screens
+          timeout 180s python3 - <<'PY'
+          import base64,json,math,time
+          from pathlib import Path
+          from websocket import create_connection,WebSocketTimeoutException
+          OUT=Path('qa-r13'); page=json.load(open('/tmp/page.json')); ws=create_connection(page['webSocketDebuggerUrl'],timeout=15,origin='http://localhost'); seq=0; events=[]
+          def call(method,params=None,timeout=25):
+              global seq
+              seq+=1; i=seq; ws.send(json.dumps({'id':i,'method':method,'params':params or {}})); end=time.monotonic()+timeout
+              while time.monotonic()<end:
+                  try: ws.settimeout(max(.2,end-time.monotonic())); x=json.loads(ws.recv())
+                  except WebSocketTimeoutException: continue
+                  if x.get('id')==i:
+                      if 'error' in x: raise RuntimeError((method,x['error']))
+                      return x.get('result',{})
+                  events.append(x)
+              raise TimeoutError(method)
+          def ev(expr,awaitp=False,timeout=25):
+              r=call('Runtime.evaluate',{'expression':expr,'returnByValue':True,'awaitPromise':awaitp,'userGesture':True},timeout)
+              if 'exceptionDetails' in r: raise RuntimeError(r['exceptionDetails'])
+              return r.get('result',{}).get('value')
+          def js(expr,timeout=25): return json.loads(ev('JSON.stringify('+expr+')',False,timeout))
+          def ready():
+              end=time.monotonic()+35
+              while time.monotonic()<end:
+                  try:
+                      if ev('Boolean(window.__PROAI_CUBE_OWNER_REVIEW?.ready)',False,8): return
+                  except Exception: pass
+                  time.sleep(.12)
+              raise RuntimeError('Cube ready timeout')
+          def diag(): return js("(()=>{const a=window.__PROAI_CUBE_OWNER_REVIEW,x=a.getDiagnostics(),i=a.getInteractionState();return{i,p:x.presentation,s:x.scheduler,last:x.lastTurnResults.length,state:a.motionState,cfg:a.presentationConfig,slice:a.sliceConfig}})()")
+          def dist(a,b): return math.sqrt(sum((x-y)**2 for x,y in zip(a,b)))
+          def qang(a,b):
+              dot=min(1,max(-1,abs(sum(x*y for x,y in zip(a,b))))); return 2*math.acos(dot)
+          def screenshot(name):
+              data=call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False},30)['data']; (OUT/'screens'/f'{name}.png').write_bytes(base64.b64decode(data))
+          def mouse(kind,x,y,buttons=0): call('Input.dispatchMouseEvent',{'type':kind,'x':x,'y':y,'button':'left' if kind!='mouseMoved' else 'none','buttons':buttons,'clickCount':1},10)
+          call('Page.enable'); call('Runtime.enable'); call('Log.enable'); call('Emulation.setDeviceMetricsOverride',{'width':1440,'height':900,'deviceScaleFactor':1,'mobile':False})
+          base='http://127.0.0.1:8095/docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html'
+          # Deterministic real-render visual sweep across 75 seconds, including full 66s loop seam.
+          call('Page.navigate',{'url':base+'?capture'}); ready(); boot=diag()
+          assert boot['p']['engine']=='quaternion-continuous-flow-r1.3' and boot['cfg']['cycleMs']==66000
+          assert boot['slice']['seed']==0x51a7c0de and boot['slice']['eventPattern']==['single','pair','single','single','phrase','single','pair','single','single','phrase']
+          samples=[]
+          for t in range(0,76):
+              sample=js(f"window.__PROAI_CUBE_OWNER_REVIEW.setReviewPresentation({t},1,true)")
+              samples.append(sample)
+              if t%5==0: screenshot(f't{t:02d}')
+          speeds=[s['velocityDegPerSec'] for s in samples]
+          axes=[s['rotationAxis'] for s in samples]
+          travel20=samples[20]['angularTravelDeg']; travel25=samples[25]['angularTravelDeg']; travel30=samples[30]['angularTravelDeg']
+          first360=next(i for i,s in enumerate(samples) if s['angularTravelDeg']>=360)
+          fine_first=None
+          for k in range(2000,3201):
+              t=k/100
+              s=js(f"window.__PROAI_CUBE_OWNER_REVIEW.getReviewPresentationSample({t})")
+              if s['angularTravelDeg']>=360: fine_first=t; break
+          seam_pre=js('window.__PROAI_CUBE_OWNER_REVIEW.getReviewPresentationSample(65.999)')
+          seam_zero=js('window.__PROAI_CUBE_OWNER_REVIEW.getReviewPresentationSample(66.0)')
+          seam_post=js('window.__PROAI_CUBE_OWNER_REVIEW.getReviewPresentationSample(66.001)')
+          dominant=set(s['dominantAxis'] for s in samples)
+          assert min(speeds)>=8 and 13<=sum(speeds)/len(speeds)<=17 and max(speeds)<=25 and 22<=fine_first<=30 and {'X','Y','Z'}.issubset(dominant)
+          # Normal-mode held Orbit; inherited R1.2 autonomy ownership must stay live.
+          call('Page.navigate',{'url':base}); ready(); h0=diag(); rect=js("document.getElementById('cube-canvas').getBoundingClientRect().toJSON()"); cx=rect['x']+rect['width']/2; cy=rect['y']+rect['height']/2
+          mouse('mouseMoved',cx,cy); mouse('mousePressed',cx,cy,1); start=time.monotonic(); k=0
+          while time.monotonic()-start<10:
+              call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':cx+(55 if k%2==0 else -40)+(k%4)*4,'y':cy+(18 if k%3==0 else -14),'button':'left','buttons':1},10); k+=1; time.sleep(.25)
+          h1=diag(); held={'simDelta':h1['i']['presentationSimTimeMs']-h0['i']['presentationSimTimeMs'],'eventDelta':h1['i']['sliceEventSerial']-h0['i']['sliceEventSerial'],'completedSliceDelta':h1['last']-h0['last'],'cameraDelta':dist(h0['i']['cameraPosition'],h1['i']['cameraPosition']),'quatDelta':qang(h0['i']['presentationQuaternion'],h1['i']['presentationQuaternion'])}
+          assert h1['i']['interactionActive'] and h1['i']['sliceAutonomyBlocked'] is False and h1['s']['running'] and held['simDelta']>0 and held['eventDelta']>0 and held['completedSliceDelta']>0 and held['cameraDelta']>.03 and held['quatDelta']>.003
+          qpre=h1['i']['presentationQuaternion']; mouse('mouseReleased',cx,cy,0); time.sleep(.25); rel=diag(); release={'quatDelta':qang(qpre,rel['i']['presentationQuaternion']),'interactionActive':rel['i']['interactionActive'],'sliceBlocked':rel['i']['sliceAutonomyBlocked']}; assert not release['interactionActive'] and not release['sliceBlocked'] and release['quatDelta']<.2
+          report={'speed1s':{'min':min(speeds),'avg':sum(speeds)/len(speeds),'max':max(speeds)},'travel':{'20':travel20,'25':travel25,'30':travel30,'first360Fine':fine_first},'dominantAxes':sorted(dominant),'axisSamples':[samples[t] for t in [0,6,12,18,24,30,36,42,48,54,60,66,72,75]],'seam':{'pre':seam_pre,'zero':seam_zero,'post':seam_post},'held10':held,'release':release}
+          (OUT/'report.json').write_text(json.dumps(report,indent=2)); print('R13_QA_REPORT',json.dumps(report),flush=True); print('R13_BROWSER_QA_PASS',flush=True); ws.close()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: proai-cube-r13-continuous-flow-qa
+          path: qa-r13/
+          if-no-files-found: warn

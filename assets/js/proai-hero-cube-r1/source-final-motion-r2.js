@@ -522,10 +522,11 @@ function recentCompletedEventKinds(limit = 6) {
 function eventStarvationBoost(kind, recentEvents) {
   const index = recentEvents.indexOf(kind);
   const gap = index < 0 ? recentEvents.length + 1 : index;
-  if (gap >= 4) return kind === 'pair' ? 5.5 : 4.6;
-  if (gap >= 3) return kind === 'pair' ? 3.2 : 2.8;
-  if (gap >= 2) return 1.65;
-  return 1;
+  if (gap >= 4) return 3.6;
+  if (gap >= 3) return 2.4;
+  if (gap >= 2) return 1.5;
+  if (gap === 1) return 0.92;
+  return 0.68;
 }
 
 function eventWeights() {
@@ -535,7 +536,7 @@ function eventWeights() {
   const recentMoves = motionEventLog.slice(-8).map((entry) => entry.kind);
   const recentEvents = recentCompletedEventKinds(6);
   return {
-    single: base.single * (0.95 + 0.40 * speed) * (recentMoves.at(-1) === 'single' ? 0.88 : 1),
+    single: base.single * (0.95 + 0.40 * speed) * (recentMoves.at(-1) === 'single' ? 0.88 : 1) * eventStarvationBoost('single', recentEvents),
     pair: base.pair * (1.18 - 0.55 * speed) * (0.72 + 0.55 * readable)
       * (recentMoves.includes('pair') ? 0.86 : 1) * eventStarvationBoost('pair', recentEvents),
     phrase: base.phrase * (1.22 - 0.62 * speed) * (0.66 + 0.62 * readable)

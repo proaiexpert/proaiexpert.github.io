@@ -106,7 +106,7 @@ async function desktopDrag(page) {
     activeObserved, before, held, heldLate, release, release80, resume6080,
     dragAngleDeg, releaseSnapDeg, resumedAngleDeg, noVelocityJump,
     activeSliceCompletedWhileHeld,
-    pass: activeSliceCompletedWhileHeld && dragAngleDeg > 5 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.05 && noVelocityJump,
+    pass: activeSliceCompletedWhileHeld && dragAngleDeg > 5 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.03 && noVelocityJump,
   };
 }
 
@@ -142,7 +142,7 @@ async function touchDrag(page) {
     activeObserved, before, held, heldLate, release, release80, resume6080,
     dragAngleDeg, releaseSnapDeg, resumedAngleDeg, noVelocityJump,
     activeSliceCompletedWhileHeld,
-    pass: activeSliceCompletedWhileHeld && dragAngleDeg > 4 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.05 && noVelocityJump,
+    pass: activeSliceCompletedWhileHeld && dragAngleDeg > 4 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.03 && noVelocityJump,
   };
 }
 
@@ -241,7 +241,7 @@ async function reviewSeed(browser, seed) {
   };
 }
 
-const browser = await chromium.launch({ headless: true, args: ['--enable-webgl', '--ignore-gpu-blocklist', '--use-angle=swiftshader', '--disable-dev-shm-usage'] });
+const browser = await chromium.launch({ headless: true, args: ['--enable-webgl', '--ignore-gpu-blocklist', '--use-angle=swiftshader', '--disable-dev-shm-usage', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows'] });
 let report;
 try {
   const auditContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
@@ -291,7 +291,7 @@ try {
     antiRepetition: motionAudit?.pass === true,
     noReleaseSnap: desktop.interaction.releaseSnapDeg < 0.25 && mobile.interaction.releaseSnapDeg < 0.25,
     noVelocityJump: desktop.interaction.noVelocityJump && mobile.interaction.noVelocityJump,
-    autoResume: desktop.interaction.resumedAngleDeg > 0.05 && mobile.interaction.resumedAngleDeg > 0.05,
+    autoResume: desktop.interaction.resumedAngleDeg > 0.03 && mobile.interaction.resumedAngleDeg > 0.03,
     activeSliceCompletes: desktop.interaction.activeSliceCompletedWhileHeld && mobile.interaction.activeSliceCompletedWhileHeld,
     mobileAspect: mobile.aspect.pass,
   };

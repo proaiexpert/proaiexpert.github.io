@@ -154,7 +154,35 @@
   <script src="https://raw.githack.com/proaiexpert/proaiexpert.github.io/20a36a5246ac2fb4507c69858289fc55d0f4a977/assets/js/header-footer-logo-r1.js" defer></script>
   <script type="module">
     const slot = document.querySelector('[data-proai-hero-object]');
+    const canvas = document.getElementById('cube-canvas');
+    const nextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+    const cameraAspectTrace = [];
+    let restoreCameraInstrumentation = null;
+
+    function measureAspectLifecycle(label) {
+      const slotRect = slot.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      const cameraAspect = cameraAspectTrace.length ? cameraAspectTrace[cameraAspectTrace.length - 1].aspect : null;
+      return {
+        label,
+        slot: { width: slotRect.width, height: slotRect.height, aspect: slotRect.width / Math.max(1, slotRect.height) },
+        canvasCss: { width: canvasRect.width, height: canvasRect.height, aspect: canvasRect.width / Math.max(1, canvasRect.height) },
+        canvasBacking: { width: canvas.width, height: canvas.height, aspect: canvas.width / Math.max(1, canvas.height) },
+        cameraAspect,
+      };
+    }
+
     try {
+      const THREE = await import('three');
+      const originalUpdateProjectionMatrix = THREE.PerspectiveCamera.prototype.updateProjectionMatrix;
+      THREE.PerspectiveCamera.prototype.updateProjectionMatrix = function (...args) {
+        cameraAspectTrace.push({ at: performance.now(), aspect: this.aspect });
+        return originalUpdateProjectionMatrix.apply(this, args);
+      };
+      restoreCameraInstrumentation = () => {
+        THREE.PerspectiveCamera.prototype.updateProjectionMatrix = originalUpdateProjectionMatrix;
+      };
+
       await import('https://raw.githack.com/proaiexpert/proaiexpert.github.io/3985cf239ade7e13e44608d5179c76ddd6152bcb/assets/js/proai-hero-cube-r1/source-confidence-flow-r1-4.js');
       const runtime = window.__PROAI_CUBE_SPATIAL_R1_4 || window.__PROAI_CUBE_SPATIAL_R1 || window.__PROAI_CUBE_ML_R1;
       const started = performance.now();
@@ -162,15 +190,33 @@
         await new Promise(resolve => setTimeout(resolve, 40));
       }
       if (!runtime?.ready) throw new Error('R1.4 Cube did not become ready');
+
+      const beforeMount = measureAspectLifecycle('runtime-ready-before-mount');
       slot.dataset.cubeMounted = 'true';
+      await nextFrame();
+      await nextFrame();
+      const mountedBeforeResize = measureAspectLifecycle('mounted-before-resize');
+
+      // Review-harness repair: invoke the existing Cube resize listener only after
+      // the frozen Hero has committed its final square mounted geometry.
+      window.dispatchEvent(new Event('resize'));
+      await nextFrame();
+      const afterResize = measureAspectLifecycle('mounted-after-existing-resize');
+
+      restoreCameraInstrumentation?.();
+      restoreCameraInstrumentation = null;
+
       window.__PROAI_FULL_HERO_REVIEW = {
         headerSource: '20a36a5246ac2fb4507c69858289fc55d0f4a977',
         heroSource: '735982473854c29a6f1eeeb4d87773abbc573b4d',
         cubeProduct: '3985cf239ade7e13e44608d5179c76ddd6152bcb',
         cubeSourceBlob: '535982f6c3efa5a4166e928d41db230eb3ea57c9',
-        runtime
+        runtime,
+        aspectLifecycle: { beforeMount, mountedBeforeResize, afterResize, cameraAspectTrace },
       };
+      console.info('[ProAI R1.4 full Hero review] aspect lifecycle', window.__PROAI_FULL_HERO_REVIEW.aspectLifecycle);
     } catch (error) {
+      restoreCameraInstrumentation?.();
       console.error('Full Hero review boot failed', error);
       slot.dataset.cubeMounted = 'false';
     }

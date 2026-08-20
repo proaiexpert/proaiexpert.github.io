@@ -103,20 +103,39 @@ Ownership: separate Two Worlds recovery / Owner selection lane. Master does not 
 
 ## D. UNFINISHED COMPONENTS
 
-### Technology Ecosystem — RECOVERY
+### Technology Ecosystem — OWNER CANDIDATE
 
-Immediate Master product task.
+Historical states recovered: `6`.
 
-Historical checkpoints already identified for forensic comparison:
+Recovered checkpoints:
 
-- `a21bbaea80282b65e0c680b2e8d1398a5047eb56` — first compact Two Worlds-attached technology register.
-- `adf01e341a821b6ed0c6051c478a859e74ebebf8` — R1.1 real local platform marks.
-- `f206628d775b5f288f67853277ff117730dcf605` — R1.2 compact register with selected wordmarks and mobile art direction.
-- `fa6df2967ab7a42141ca9028a8631957285fd5d6` — older workflow-first Technology direction; historical reference only pending audit.
-- `7882a58b346bc067ea76fe0ca0f3a0892bd75357` — older curated marquee state; historical reference only pending audit.
-- `5e7ab9ea5802c37e5d2eee53466e949bd91eb833` — older mobile marquee correction; historical reference only pending audit.
+1. `a21bbaea80282b65e0c680b2e8d1398a5047eb56` — first compact Two Worlds-attached Technology register.
+2. `adf01e341a821b6ed0c6051c478a859e74ebebf8` — R1.1 local platform marks.
+3. `f206628d775b5f288f67853277ff117730dcf605` — R1.2 compact 2 × 5 register, selected local wordmarks, mobile art-direction pass.
+4. `fa6df2967ab7a42141ca9028a8631957285fd5d6` — older workflow-first Technology direction.
+5. `7882a58b346bc067ea76fe0ca0f3a0892bd75357` — older curated marquee state.
+6. `5e7ab9ea5802c37e5d2eee53466e949bd91eb833` — older mobile marquee readability correction.
 
-Target inventory: OpenAI, Claude, Gemini, n8n, Make, Twilio, Vercel, Gmail, Zapier, GitHub.
+Best historical reference: `f206628d775b5f288f67853277ff117730dcf605`.
+
+Forensic conclusion: R1.2 already contained the strongest compact visual foundation and real local assets. The material gaps were component coupling to Two Worlds and a compressed five-across mobile register. The Master candidate therefore performs a recovery-led standalone extraction and mobile recomposition rather than a new visual-language redesign.
+
+Owner candidate product: `fc04d14d78466f68f6afea0f8c483078ea347fd0`.
+
+Product files:
+
+- `_includes/home-technology-ecosystem-r1.html` — `9286fdf1e2d8924c22edb34c73d2cbb703afedf4`
+- `assets/css/home-technology-ecosystem-r1.css` — `8653f2800d1d77f297eed77a1d74e60eb23a62c3`
+- `assets/js/home-technology-ecosystem-r1.js` — `c53b95101a89dab4aca77aadfd4005a35144a348`
+
+Review source:
+
+- `docs/site-evolution/reviews/home-master-r1/technology/index.html` — `60e8b69cc7d5459e691afdeabd01b9cc2ea1129f`
+- Source URL: `https://github.com/proaiexpert/proaiexpert.github.io/blob/fc04d14d78466f68f6afea0f8c483078ea347fd0/docs/site-evolution/reviews/home-master-r1/technology/index.html`
+
+Technical state: desktop `PASS`; mobile composition `PASS`; EN `PASS`; RU `PASS`.
+
+Owner state: `OWNER CANDIDATE`. No Owner visual approval is inferred from technical PASS.
 
 ### Work / Proof — PLANNED
 
@@ -134,9 +153,46 @@ No implementation yet.
 
 No implementation yet.
 
-### Homepage Footer — RECOVERY
+### Homepage Footer — OWNER CANDIDATE
 
-Recover shared footer infrastructure and historical large restrained `PROAI EXPERT` signature concepts before creating a homepage-specific candidate. Shared footer remains intact until Owner approval.
+Historical footer states recovered: `10` material homepage/shared-system states.
+
+Recovered checkpoints:
+
+1. `1a75a6cd119874109eb82d6594ea225cfef63e0c` — first Commercial Footer V1 on homepage EN/RU.
+2. `dae361bd02fcfca6c543e332454e3f22a41de550` — homepage footer CTA polish.
+3. `bf8e88be9dfc6f13b0711b40cbcbd625cf1d33a4` — CTA stacking correction.
+4. `4fba2ba5dc7afde8478b221d321f13fc888b2d62` — mobile alignment / title-pulse refinement.
+5. `257bcac825c51fc1a9911ce7709c606d65c87cd1` — homepage footer polish cache checkpoint.
+6. `44683132c13d0a6300b0a1833209e46a3cd5459f` — final homepage footer alignment across viewports.
+7. `8ab023984c8c0ba6655cf40bdc0dfa24ec4ce7f1` — homepage footer decoupled from global section layout.
+8. `73a9a437f944a2551e68081c73a85df58c8bc5fa` — mobile watermark fit / title refinement.
+9. `7e990536c41faa21b182d1db6e5100be13c75188` — unified Footer System with structural watermark / canonical brand treatment.
+10. `af9b7288a9a5fc36de57afd816302e80e17e0d8a` — shared Footer System title-pulse consolidation.
+
+Current shared homepage footer source:
+
+- `_includes/footer-commercial-v1.html` — `68e3a03e7bbfc5d515be74770473ad51271be37e`
+
+Current shared Footer System remains intact. Relevant shared include identities include `_includes/footer-system/footer.html` — `ce1facf719a92c316e581d41a68f639a583647f7`, `_includes/footer-system/contact-links.html` — `d060531809982c226dad8c4ef00a49be02fbdc40`, and `_includes/footer-system/brand-zone.html` — `d6396a016a966919e2abf94c99b328577b57236a`.
+
+Homepage-only Owner candidate product: `9f645eaac2792b8e1122aa24aed0622636e5421f`.
+
+Product files:
+
+- `_includes/home-footer-signature-r1.html` — `7f411a8c2ffbc055d5d7cce1cc87c695e0b4d8d9`
+- `assets/css/home-footer-signature-r1.css` — `bcea9d4d249da582159474cffb6b4931dea1ba06`
+
+Review source:
+
+- `docs/site-evolution/reviews/home-master-r1/footer/index.html` — `f30ec4375ea095e39bccc0431d414c96d173800e`
+- Source URL: `https://github.com/proaiexpert/proaiexpert.github.io/blob/9f645eaac2792b8e1122aa24aed0622636e5421f/docs/site-evolution/reviews/home-master-r1/footer/index.html`
+
+Candidate architecture: utility/contact layer → large restrained `PROAI EXPERT` signature → locale/legal resolution. It preserves useful contact, capability, social, language and legal functions while keeping the shared site-wide Footer System untouched.
+
+Technical state: desktop `PASS`; mobile composition `PASS`; EN `PASS`; RU `PASS`.
+
+Owner state: `OWNER CANDIDATE`. No Owner visual approval is inferred from technical PASS.
 
 ## E. APPROVED ROLLBACK SHAs
 
@@ -147,16 +203,19 @@ Recover shared footer infrastructure and historical large restrained `PROAI EXPE
 - Hero: `735982473854c29a6f1eeeb4d87773abbc573b4d`
 - Connected System: `d5f2e2fd85218b2a98e774b0b19df1536240d4fb`
 - Two Worlds preserved in-progress snapshot: `411937c0e1367681891ef562e02d333681984c39`
+- Technology historical recovery reference: `f206628d775b5f288f67853277ff117730dcf605`
+- Technology Owner candidate product: `fc04d14d78466f68f6afea0f8c483078ea347fd0`
+- Homepage Footer Owner candidate product: `9f645eaac2792b8e1122aa24aed0622636e5421f`
 
 ## F. CURRENT REVIEW CANDIDATES
 
-- Cube spatial motion: `f21a51b965ceea6b44093f763d644e9b0111392a` — IN PROGRESS, separate lane.
-- Technology: RECOVERY; Owner candidate not yet promoted in this initial status snapshot.
-- Homepage Footer: RECOVERY; Owner candidate not yet promoted in this initial status snapshot.
+- Cube spatial motion: `f21a51b965ceea6b44093f763d644e9b0111392a` — `IN PROGRESS`, separate lane.
+- Technology Ecosystem R1: `fc04d14d78466f68f6afea0f8c483078ea347fd0` — `OWNER CANDIDATE`.
+- Homepage Footer Signature R1: `9f645eaac2792b8e1122aa24aed0622636e5421f` — `OWNER CANDIDATE`.
 
 ## G. COMPONENT OWNERSHIP
 
-- Master chat: homepage order, state register, Technology, controlled Golden Assembly, downstream section progression, Footer candidate, final integration gates.
+- Master chat: homepage order, state register, Technology, controlled Golden Assembly, downstream section progression, homepage-specific Footer candidate, final integration gates.
 - Cube whole-object motion chat: spatial motion only.
 - Cube semantic recovery chat: inscriptions / semantic face only.
 - Two Worlds recovery chat: Two Worlds Owner selection only.
@@ -173,10 +232,15 @@ Recover shared footer infrastructure and historical large restrained `PROAI EXPE
 7. Maintain EN/RU parity and desktop/tablet/mobile review for every new section.
 8. Avoid uncontrolled third-party runtime dependencies.
 9. No production promotion without explicit Owner authorization.
+10. Technology and Homepage Footer Owner candidates remain isolated from homepage production wiring until Owner approval.
 
 ## I. FUTURE BLOCK ORDER
 
-After Technology Owner review, next bounded product phase is Work / Proof. Footer recovery may proceed after Technology reaches a stable Owner-review candidate but must not delay Technology.
+Immediate gate: Owner review of Technology Ecosystem R1 and Homepage Footer Signature R1.
+
+After Technology is Owner-approved, next bounded homepage product phase is Work / Proof, beginning with historical recovery before any new implementation.
+
+Do not start Work / Proof while the current Owner review decision is pending unless the Owner explicitly overrides this gate.
 
 ## J. PRODUCTION LOCK
 

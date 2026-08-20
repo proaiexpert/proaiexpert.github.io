@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>ProAI Cube — R1.2 Candidate B · Premium Motion</title>
+  <title>ProAI Cube — R1.3 · Continuous Flow</title>
   <style>
     html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050607;color:#d9dee5;font:12px/1.4 system-ui,sans-serif}
     main{position:relative;width:100%;height:100%}
@@ -22,32 +22,21 @@
 </head>
 <body>
 <main>
-  <canvas id="cube-canvas" aria-label="ProAI Cube spatial motion review"></canvas>
-  <div id="review-label">ProAI Cube · R1.2 Candidate B · Premium Motion</div>
-  <div id="runtime-status">Loading exact candidate…</div>
+  <canvas id="cube-canvas" aria-label="ProAI Cube continuous spatial motion review"></canvas>
+  <div id="review-label">ProAI Cube · R1.3 · Continuous Flow</div>
+  <div id="runtime-status">Loading exact R1.3 candidate…</div>
 </main>
 <script type="module">
   const status = document.getElementById('runtime-status');
-  const sourceUrl = new URL('../../../../assets/js/proai-hero-cube-r1/source-materials-r1.js', import.meta.url);
-  const glbUrl = new URL('../../../../assets/models/proai-cube/rubik_39_s_cube_animation.glb', import.meta.url);
   try {
-    const response = await fetch(sourceUrl, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`source HTTP ${response.status}`);
-    let source = await response.text();
-    source = source.replace(
-      "const GLB_URL = new URL('./rubik_39_s_cube_animation.glb', import.meta.url).href;",
-      `const GLB_URL = '${glbUrl.href}';`,
-    );
-    const moduleUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
-    await import(moduleUrl);
-    URL.revokeObjectURL(moduleUrl);
-    const runtime = window.__PROAI_CUBE_SPATIAL_R1 || window.__PROAI_CUBE_ML_R1;
+    await import(new URL('../../../../assets/js/proai-hero-cube-r1/source-continuous-flow-r1-3.js', import.meta.url));
+    const runtime = window.__PROAI_CUBE_SPATIAL_R1_3 || window.__PROAI_CUBE_SPATIAL_R1 || window.__PROAI_CUBE_ML_R1;
     const started = performance.now();
     while (runtime && !runtime.ready && runtime.motionState !== 'error' && performance.now() - started < 15000) {
       await new Promise(resolve => setTimeout(resolve, 40));
     }
     if (!runtime?.ready) throw new Error('Cube did not become ready');
-    status.textContent = 'Exact candidate ready · drag to inspect';
+    status.textContent = 'R1.3 continuous flow ready · drag to inspect';
     window.__PROAI_CUBE_OWNER_REVIEW = runtime;
   } catch (error) {
     console.error(error);

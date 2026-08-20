@@ -1,0 +1,196 @@
+name: Footer R2 Owner Review Packaging
+
+on:
+  push:
+    branches:
+      - agent/proai-home-footer-watermark-r2
+    paths:
+      - .github/workflows/footer-r2-owner-pack.yml
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout R2 review branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/proai-home-footer-watermark-r2
+          fetch-depth: 1
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install browser tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Verify browser-visible preview and generate Owner media
+        env:
+          REVIEW_COMMIT: e42eca6e043ceb66348db3569333fc825fd11d63
+        run: |
+          cat > /tmp/footer_r2_pack.py <<'PY'
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          import glob, os, subprocess
+
+          repo = 'proaiexpert/proaiexpert.github.io'
+          review_commit = os.environ['REVIEW_COMMIT']
+          review_path = 'docs/site-evolution/reviews/home-footer-watermark-r2/index.html'
+          source = Path(review_path).read_text(encoding='utf-8')
+          out = Path('docs/site-evolution/reviews/home-footer-watermark-r2/media')
+          out.mkdir(parents=True, exist_ok=True)
+
+          preferred = f'https://htmlpreview.github.io/?https://github.com/{repo}/blob/{review_commit}/{review_path}'
+          fallback = f'https://raw.githack.com/{repo}/{review_commit}/{review_path}'
+
+          def verify_preview(browser, url):
+              page = browser.new_page(viewport={'width': 390, 'height': 844})
+              try:
+                  page.goto(url, wait_until='domcontentloaded', timeout=60000)
+                  page.wait_for_timeout(1200)
+                  if 'Footer Watermark R2 Owner Review' not in page.title():
+                      return False
+                  if page.locator('button[data-lang="ru"]').count() != 1:
+                      return False
+                  page.locator('button[data-lang="ru"]').click()
+                  page.wait_for_timeout(150)
+                  return page.locator('.pane.on').inner_text().find('Соберём более ясную систему') >= 0
+              except Exception:
+                  return False
+              finally:
+                  page.close()
+
+          def set_review(page, width, height, ru=False):
+              page.set_viewport_size({'width': width, 'height': height})
+              page.set_content(source, wait_until='load')
+              page.wait_for_timeout(180)
+              if ru:
+                  page.locator('button[data-lang="ru"]').click()
+                  page.wait_for_timeout(100)
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=True)
+              selected = None
+              if verify_preview(browser, preferred):
+                  selected = preferred
+              elif verify_preview(browser, fallback):
+                  selected = fallback
+              else:
+                  raise RuntimeError('Neither HTMLPreview nor GitHack produced a rendered, switchable review page.')
+              print('PREVIEW_OK=' + selected)
+
+              page = browser.new_page(viewport={'width': 1440, 'height': 900})
+              set_review(page, 1440, 900, False)
+              page.locator('.pane.on .foot').screenshot(path=str(out/'01-footer-r2-en-desktop-1440.png'))
+              set_review(page, 1440, 900, True)
+              page.locator('.pane.on .foot').screenshot(path=str(out/'02-footer-r2-ru-desktop-1440.png'))
+
+              set_review(page, 390, 844, False)
+              page.locator('.pane.on .foot').screenshot(path=str(out/'03-footer-r2-en-mobile-390.png'))
+              set_review(page, 390, 844, True)
+              page.locator('.pane.on .foot').screenshot(path=str(out/'04-footer-r2-ru-mobile-390.png'))
+
+              set_review(page, 1440, 900, False)
+              mat = page.locator('.pane.on .mat')
+              mat.scroll_into_view_if_needed()
+              page.wait_for_timeout(250)
+              mat.screenshot(path=str(out/'05-footer-r2-watermark-rest.png'))
+              box = mat.bounding_box()
+              page.mouse.move(box['x'] - 20, box['y'] + box['height'] * .52)
+              page.mouse.move(box['x'] + box['width'] * .38, box['y'] + box['height'] * .52, steps=18)
+              page.wait_for_timeout(160)
+              page.mouse.move(box['x'] + box['width'] * .63, box['y'] + box['height'] * .47, steps=12)
+              page.wait_for_timeout(220)
+              mat.screenshot(path=str(out/'06-footer-r2-watermark-hover-metallic-ripple.png'))
+              page.locator('.pane.on .bottom').screenshot(path=str(out/'07-footer-r2-lower-signature.png'))
+              page.close()
+              browser.close()
+
+              # Record actual interaction at the required desktop viewport.
+              browser = p.chromium.launch(headless=True)
+              context = browser.new_context(
+                  viewport={'width': 1440, 'height': 900},
+                  record_video_dir='/tmp/footer-r2-video',
+                  record_video_size={'width': 1440, 'height': 900}
+              )
+              page = context.new_page()
+              page.set_content(source, wait_until='load')
+              page.evaluate("""(()=>{const c=document.createElement('div');c.id='review-cursor';Object.assign(c.style,{position:'fixed',left:'25px',top:'85px',width:'16px',height:'16px',border:'1px solid rgba(241,239,234,.95)',borderRadius:'50%',background:'rgba(205,209,208,.12)',boxShadow:'0 0 0 4px rgba(205,209,208,.055)',pointerEvents:'none',zIndex:'9999',transform:'translate(-50%,-50%)'});document.body.appendChild(c);window.addEventListener('pointermove',e=>{c.style.left=e.clientX+'px';c.style.top=e.clientY+'px'});})()""")
+              page.evaluate('window.scrollTo(0, 1340)')
+              page.wait_for_timeout(1500)
+              mat = page.locator('.pane.on .mat')
+              box = mat.bounding_box()
+              outside = (box['x'] + box['width'] * .12, box['y'] - 58)
+              p1 = (box['x'] + box['width'] * .34, box['y'] + box['height'] * .52)
+              p2 = (box['x'] + box['width'] * .53, box['y'] + box['height'] * .43)
+              p3 = (box['x'] + box['width'] * .72, box['y'] + box['height'] * .55)
+              bottom = page.locator('.pane.on .bottom').bounding_box()
+              p4 = (bottom['x'] + bottom['width'] * .57, bottom['y'] + bottom['height'] * .45)
+              page.mouse.move(*outside)
+              page.wait_for_timeout(500)
+              page.mouse.move(*p1, steps=30)
+              page.wait_for_timeout(650)
+              page.mouse.move(*p2, steps=28)
+              page.wait_for_timeout(350)
+              page.mouse.move(*p3, steps=34)
+              page.wait_for_timeout(650)
+              page.mouse.move(*p4, steps=32)
+              page.wait_for_timeout(1800)
+              page.evaluate('window.scrollBy(0, 100)')
+              page.wait_for_timeout(1100)
+              video = page.video
+              page.close()
+              context.close()
+              browser.close()
+              webm = Path(video.path())
+
+          mp4 = out/'footer-r2-watermark-hover-review.mp4'
+          subprocess.run([
+              'ffmpeg','-y','-i',str(webm),'-c:v','libx264','-profile:v','high','-crf','19',
+              '-pix_fmt','yuv420p','-color_range','tv','-movflags','+faststart',str(mp4)
+          ], check=True)
+
+          probe = subprocess.check_output([
+              'ffprobe','-v','error','-show_entries','format=duration','-show_entries',
+              'stream=codec_name,width,height,pix_fmt','-of','default=nw=1',str(mp4)
+          ], text=True)
+          print(probe)
+          if 'codec_name=h264' not in probe or 'pix_fmt=yuv420p' not in probe:
+              raise RuntimeError('MP4 encoding verification failed')
+          duration = float([x.split('=',1)[1] for x in probe.splitlines() if x.startswith('duration=')][0])
+          if not 6.0 <= duration <= 10.0:
+              raise RuntimeError(f'Unexpected motion duration: {duration}')
+
+          required = [
+              '01-footer-r2-en-desktop-1440.png',
+              '02-footer-r2-ru-desktop-1440.png',
+              '03-footer-r2-en-mobile-390.png',
+              '04-footer-r2-ru-mobile-390.png',
+              '05-footer-r2-watermark-rest.png',
+              '06-footer-r2-watermark-hover-metallic-ripple.png',
+              '07-footer-r2-lower-signature.png',
+              'footer-r2-watermark-hover-review.mp4',
+          ]
+          for name in required:
+              f = out/name
+              if not f.exists() or f.stat().st_size < 5000:
+                  raise RuntimeError(f'Missing or invalid media: {name}')
+          PY
+          python /tmp/footer_r2_pack.py
+
+      - name: Commit review package and remove temporary workflow
+        run: |
+          rm -f .github/workflows/footer-r2-owner-pack.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/reviews/home-footer-watermark-r2/media .github/workflows/footer-r2-owner-pack.yml
+          git commit -m 'review: package Footer R2 owner media'
+          git push origin HEAD:agent/proai-home-footer-watermark-r2

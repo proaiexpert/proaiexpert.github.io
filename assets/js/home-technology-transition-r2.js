@@ -32,7 +32,8 @@
 
   function inViewport(section) {
     var rect = section.getBoundingClientRect();
-    return rect.bottom > 0 && rect.top < window.innerHeight;
+    var margin = window.innerHeight * 0.2;
+    return rect.bottom > -margin && rect.top < window.innerHeight + margin;
   }
 
   if (reducedMotion && reducedMotion.matches) {
@@ -53,8 +54,8 @@
     });
   }, {
     root: null,
-    rootMargin: '5% 0px -8% 0px',
-    threshold: 0.14
+    rootMargin: '20% 0px 20% 0px',
+    threshold: 0.01
   });
 
   sections.forEach(function (section) {

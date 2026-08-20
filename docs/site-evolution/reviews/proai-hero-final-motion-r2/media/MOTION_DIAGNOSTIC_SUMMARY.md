@@ -14,8 +14,8 @@
 - Mobile aspect: **PASS**
 - Canonical transform safety: **PASS**
 - Video event coverage: **FAIL**
-- Desktop coverage: singles 1, pairs 2, phrases 1, breaths 1
-- Mobile coverage: singles 3, pairs 2, phrases 1, breaths 2
+- Desktop coverage: singles 1, pairs 4, phrases 1, breaths 2
+- Mobile coverage: singles 3, pairs 4, phrases 1, breaths 4
 
 ## Five-minute generator audit
 - Seed 142857: PASS; moves 210; exact repeats 0; immediate inverse 0; short-window inverse 0; recent phrase repeats 2/3/4/5 = 0/0/0/0; axis spread 1.4%; direction spread 5.7%
@@ -23,6 +23,6 @@
 - Seed 314159: PASS; moves 210; exact repeats 0; immediate inverse 0; short-window inverse 0; recent phrase repeats 2/3/4/5 = 0/0/0/0; axis spread 0.0%; direction spread 4.8%
 
 ## Runtime seed review
-- Seed 142857: PASS; pose quality min 1.000; speed 13.67–16.27 deg/s; observed moves 3
-- Seed 271828: PASS; pose quality min 1.000; speed 13.90–15.74 deg/s; observed moves 3
-- Seed 314159: PASS; pose quality min 1.000; speed 13.51–15.71 deg/s; observed moves 3
+- Seed 142857: PASS; pose quality min 1.000; speed 14.10–16.57 deg/s; observed moves 4
+- Seed 271828: PASS; pose quality min 1.000; speed 13.51–15.41 deg/s; observed moves 3
+- Seed 314159: PASS; pose quality min 1.000; speed 13.52–15.71 deg/s; observed moves 3

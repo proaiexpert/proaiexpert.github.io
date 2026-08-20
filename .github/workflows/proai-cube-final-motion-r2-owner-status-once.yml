@@ -1,0 +1,41 @@
+name: ProAI Cube Final Motion R2 Owner Status Once
+
+on:
+  push:
+    branches:
+      - review/proai-hero-final-motion-r2
+    paths:
+      - '.github/workflows/proai-cube-final-motion-r2-owner-status-once.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: review/proai-hero-final-motion-r2
+          fetch-depth: 0
+      - name: Record owner workflow status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TARGET_SHA: be3bc0f3ecd46c73bea945d61d479be863e6089b
+        run: |
+          set -euo pipefail
+          OUT=docs/site-evolution/reviews/proai-hero-final-motion-r2/OWNER_RUN_STATUS.json
+          curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${REPO}/actions/runs?head_sha=${TARGET_SHA}&per_page=20" \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); keep=[{k:r.get(k) for k in ("id","name","status","conclusion","head_sha","html_url","created_at","updated_at")} for r in d.get("workflow_runs",[])]; print(json.dumps(keep,indent=2))' > "$OUT"
+          git config user.name "ProAI Review Bot"
+          git config user.email "proai.expert2026@gmail.com"
+          git rm -- .github/workflows/proai-cube-final-motion-r2-owner-status-once.yml
+          git add -- "$OUT"
+          git commit -m "ci: record final motion R2 owner run status"
+          git push origin HEAD:review/proai-hero-final-motion-r2

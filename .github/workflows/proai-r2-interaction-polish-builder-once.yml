@@ -1,0 +1,162 @@
+name: ProAI R2 Interaction Polish Builder Once
+
+on:
+  push:
+    branches:
+      - builder/proai-r2-interaction-polish-once
+    paths:
+      - '.github/workflows/proai-r2-interaction-polish-builder-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-final-motion-r2-interaction-polish
+          fetch-depth: 0
+      - name: Repair additive living interaction
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('assets/js/proai-hero-cube-r1/source-final-motion-r2.js')
+          s = p.read_text(encoding='utf-8')
+
+          def once(old, new, label):
+              global s
+              n = s.count(old)
+              if n != 1:
+                  raise SystemExit(f'{label}: expected 1 target, got {n}')
+              s = s.replace(old, new, 1)
+
+          once(
+              "    dragRadiansPerPixel: 0.0052,\n    resumeGraceMs: 420,",
+              "    dragRadiansPerPixel: 0.0052,\n    activeAutoInfluence: 0.30,\n    resumeGraceMs: 0,",
+              'interaction config',
+          )
+
+          old_autonomy = """const autonomyR2 = `function presentationAutonomyBlocked() { return interactionActive; }
+function sliceAutonomyBlocked() {
+  return interactionActive || performance.now() - interactionReleaseAtMs < FINAL_MOTION_R2.interaction.resumeGraceMs;
+}
+function autonomyBlocked() { return presentationAutonomyBlocked(); }`;"""
+          new_autonomy = """const autonomyR2 = `function presentationAutonomyBlocked() { return false; }
+function sliceAutonomyBlocked() { return false; }
+function autonomyBlocked() { return false; }`;"""
+          once(old_autonomy, new_autonomy, 'autonomy composition')
+
+          pattern = re.compile(r"  if \(interactionActive\) \{\n    presentationResumeBlend = 0;\n    presentationTargetVelocity\.set\(0, 0, 0\);\n  \} else \{\n    const sinceRelease = now - interactionReleaseAtMs;\n    const resumeT = THREE\.MathUtils\.clamp\(\(sinceRelease - FINAL_MOTION_R2\.interaction\.resumeGraceMs\) / MOTION\.manualResumeBlendMs, 0, 1\);\n    presentationResumeBlend = smoothstep\(resumeT\);\n    fieldAtSeconds\(presentationSimTimeMs / 1000, presentationFieldAxis\);(?P<body>[\s\S]*?)    const targetSpeedRad = THREE\.MathUtils\.degToRad\(targetSpeedDeg\) \* presentationResumeBlend;\n    presentationTargetVelocity\.copy\(presentationFieldAxis\)\.multiplyScalar\(targetSpeedRad\);\n  \}")
+          m = pattern.search(s)
+          if not m:
+              raise SystemExit('presentation interaction block target missing')
+          body = m.group('body')
+          replacement = """  fieldAtSeconds(presentationSimTimeMs / 1000, presentationFieldAxis);""" + body + """    const targetSpeedRad = THREE.MathUtils.degToRad(targetSpeedDeg);
+    presentationTargetVelocity.copy(presentationFieldAxis).multiplyScalar(targetSpeedRad);
+
+  const autoInfluenceTarget = interactionActive ? FINAL_MOTION_R2.interaction.activeAutoInfluence : 1;
+  const autoInfluenceTau = interactionActive ? 0.10 : 0.55;
+  presentationResumeBlend += (autoInfluenceTarget - presentationResumeBlend) * (1 - Math.exp(-dt / autoInfluenceTau));
+  presentationResumeBlend = THREE.MathUtils.clamp(presentationResumeBlend, FINAL_MOTION_R2.interaction.activeAutoInfluence, 1);"""
+          s = s[:m.start()] + replacement + s[m.end():]
+
+          once(
+              "  if (!interactionActive && angularSpeed > 1e-7) {\n    motionDeltaQuaternion.setFromAxisAngle(presentationVelocity.clone().normalize(), angularSpeed * dt);",
+              "  if (angularSpeed > 1e-7) {\n    motionDeltaQuaternion.setFromAxisAngle(presentationVelocity.clone().normalize(), angularSpeed * dt * presentationResumeBlend);",
+              'additive auto application',
+          )
+
+          old_pointer = """canvas.addEventListener('pointerdown', (event) => {
+  if (!api.ready || prefersReducedMotion) return;
+  interactionActive = true;
+  activePointerId = event.pointerId;
+  dragLastX = event.clientX;
+  dragLastY = event.clientY;
+  frozenPresentationQuaternion.copy(presentationRig.quaternion);
+  presentationResumeBlend = 0;
+  presentationTargetVelocity.set(0, 0, 0);
+  canvas.style.cursor = 'grabbing';
+  canvas.setPointerCapture?.(event.pointerId);
+  event.preventDefault();
+}, { passive: false });"""
+          new_pointer = """canvas.addEventListener('pointerdown', (event) => {
+  if (!api.ready || prefersReducedMotion) return;
+  if (activePointerId != null && activePointerId !== event.pointerId) return;
+  interactionActive = true;
+  activePointerId = event.pointerId;
+  dragLastX = event.clientX;
+  dragLastY = event.clientY;
+  frozenPresentationQuaternion.copy(presentationRig.quaternion);
+  canvas.style.cursor = 'grabbing';
+  try { canvas.setPointerCapture?.(event.pointerId); } catch {}
+  event.preventDefault();
+}, { passive: false });"""
+          once(old_pointer, new_pointer, 'pointerdown')
+
+          old_finish = """function finishDirectInteraction(event) {
+  if (!interactionActive || (event?.pointerId != null && event.pointerId !== activePointerId)) return;
+  interactionActive = false;
+  interactionReleaseAtMs = performance.now();
+  activePointerId = null;
+  presentationVelocity.set(0, 0, 0);
+  presentationAcceleration.set(0, 0, 0);
+  presentationTargetVelocity.set(0, 0, 0);
+  presentationResumeBlend = 0;
+  canvas.style.cursor = 'grab';
+  if (event?.pointerId != null) canvas.releasePointerCapture?.(event.pointerId);
+}
+canvas.addEventListener('pointerup', finishDirectInteraction, { passive: true });
+canvas.addEventListener('pointercancel', finishDirectInteraction, { passive: true });`"""
+          new_finish = """function finishDirectInteraction(event) {
+  if (!interactionActive || (event?.pointerId != null && event.pointerId !== activePointerId)) return;
+  const releasedPointerId = activePointerId;
+  interactionActive = false;
+  interactionReleaseAtMs = performance.now();
+  activePointerId = null;
+  canvas.style.cursor = 'grab';
+  if (releasedPointerId != null && canvas.hasPointerCapture?.(releasedPointerId)) {
+    try { canvas.releasePointerCapture?.(releasedPointerId); } catch {}
+  }
+}
+canvas.addEventListener('pointerup', finishDirectInteraction, { passive: true });
+canvas.addEventListener('pointercancel', finishDirectInteraction, { passive: true });
+canvas.addEventListener('lostpointercapture', (event) => {
+  if (interactionActive && event.pointerId === activePointerId) finishDirectInteraction(event);
+}, { passive: true });`"""
+          once(old_finish, new_finish, 'release continuity')
+
+          forbidden = [
+              'function presentationAutonomyBlocked() { return interactionActive; }',
+              'return interactionActive || performance.now() - interactionReleaseAtMs',
+              'presentationVelocity.set(0, 0, 0);',
+              'presentationAcceleration.set(0, 0, 0);',
+          ]
+          for token in forbidden:
+              if token in s:
+                  raise SystemExit(f'forbidden interaction regression remains: {token}')
+          required = [
+              'activeAutoInfluence: 0.30',
+              'function presentationAutonomyBlocked() { return false; }',
+              'function sliceAutonomyBlocked() { return false; }',
+              'angularSpeed * dt * presentationResumeBlend',
+              "canvas.addEventListener('lostpointercapture'",
+          ]
+          for token in required:
+              if token not in s:
+                  raise SystemExit(f'required interaction repair missing: {token}')
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+          git config user.name "ProAI Interaction Builder"
+          git config user.email "proai.expert2026@gmail.com"
+          git add -- assets/js/proai-hero-cube-r1/source-final-motion-r2.js
+          git diff --cached --check
+          git diff --cached --stat
+          git commit -m "fix: keep final motion R2 alive during direct interaction"
+          git push origin HEAD:agent/proai-cube-final-motion-r2-interaction-polish

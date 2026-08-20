@@ -430,6 +430,7 @@ function candidateMoveWeight(move, history = sliceHistory, neutralVisibility = f
   const sameLayer8 = recentCount(recent8, (entry) => layerKey(entry) === layerKey(move));
   const axis8 = recentCount(recent8, (entry) => entry.axis === move.axis);
   const direction8 = recentCount(recent8, (entry) => entry.direction === move.direction);
+  const direction24 = recentCount(recent24, (entry) => entry.direction === move.direction);
   const axis24 = recentCount(recent24, (entry) => entry.axis === move.axis);
   const layer24 = recentCount(recent24, (entry) => layerKey(entry) === layerKey(move));
 
@@ -437,7 +438,8 @@ function candidateMoveWeight(move, history = sliceHistory, neutralVisibility = f
   let weight = 1;
   weight *= Math.pow(0.52, sameLayer8);
   weight *= Math.pow(0.76, axis8);
-  weight *= Math.pow(0.88, direction8);
+  weight *= Math.pow(0.86, direction8);
+  weight *= Math.pow(0.86, Math.max(0, direction24 - 12));
   weight *= 1 / (1 + Math.max(0, axis24 - 8) * 0.18);
   weight *= 1 / (1 + Math.max(0, layer24 - 4) * 0.25);
   if (move.layer === 0) weight *= 1.03; else weight *= 0.96;

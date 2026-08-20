@@ -507,15 +507,39 @@ function rememberMove(move, kind, eventId) {
   }
 }
 
+function recentCompletedEventKinds(limit = 6) {
+  const kinds = [];
+  const seen = new Set();
+  for (let index = motionEventLog.length - 1; index >= 0 && kinds.length < limit; index -= 1) {
+    const entry = motionEventLog[index];
+    if (!entry?.axis || seen.has(entry.eventId)) continue;
+    seen.add(entry.eventId);
+    kinds.push(entry.kind);
+  }
+  return kinds;
+}
+
+function eventStarvationBoost(kind, recentEvents) {
+  const index = recentEvents.indexOf(kind);
+  const gap = index < 0 ? recentEvents.length + 1 : index;
+  if (gap >= 4) return kind === 'pair' ? 5.5 : 4.6;
+  if (gap >= 3) return kind === 'pair' ? 3.2 : 2.8;
+  if (gap >= 2) return 1.65;
+  return 1;
+}
+
 function eventWeights() {
   const base = FINAL_MOTION_R2.slice.eventWeights;
   const speed = currentWholeSpeedNormalized();
   const readable = THREE.MathUtils.clamp((presentationPoseQuality - 0.42) / 0.42, 0, 1);
-  const recentKinds = motionEventLog.slice(-8).map((entry) => entry.kind);
+  const recentMoves = motionEventLog.slice(-8).map((entry) => entry.kind);
+  const recentEvents = recentCompletedEventKinds(6);
   return {
-    single: base.single * (0.95 + 0.40 * speed) * (recentKinds.at(-1) === 'single' ? 0.88 : 1),
-    pair: base.pair * (1.18 - 0.55 * speed) * (0.72 + 0.55 * readable) * (recentKinds.includes('pair') ? 0.86 : 1),
-    phrase: base.phrase * (1.22 - 0.62 * speed) * (0.66 + 0.62 * readable) * (recentKinds.includes('phrase') ? 0.82 : 1),
+    single: base.single * (0.95 + 0.40 * speed) * (recentMoves.at(-1) === 'single' ? 0.88 : 1),
+    pair: base.pair * (1.18 - 0.55 * speed) * (0.72 + 0.55 * readable)
+      * (recentMoves.includes('pair') ? 0.86 : 1) * eventStarvationBoost('pair', recentEvents),
+    phrase: base.phrase * (1.22 - 0.62 * speed) * (0.66 + 0.62 * readable)
+      * (recentMoves.includes('phrase') ? 0.82 : 1) * eventStarvationBoost('phrase', recentEvents),
   };
 }
 

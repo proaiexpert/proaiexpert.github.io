@@ -1,0 +1,56 @@
+name: ProAI Cube Final Motion R2 Refresh Product Once
+
+on:
+  push:
+    branches:
+      - review/proai-hero-final-motion-r2
+    paths:
+      - '.github/workflows/proai-cube-final-motion-r2-refresh-product-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: review/proai-hero-final-motion-r2
+          fetch-depth: 0
+      - name: Pin balanced product and finalize resume QA window
+        env:
+          REPO_URL: https://github.com/proaiexpert/proaiexpert.github.io.git
+        run: |
+          set -euo pipefail
+          PRODUCT="$(git ls-remote "$REPO_URL" refs/heads/agent/proai-cube-final-motion-r2 | awk '{print $1}')"
+          test -n "$PRODUCT"
+          export PRODUCT
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          product = os.environ['PRODUCT']
+          old = '7413c94d622d412a6991b9353a247f826539c84e'
+          review = Path('docs/site-evolution/reviews/proai-hero-final-motion-r2/review.html')
+          s = review.read_text(encoding='utf-8')
+          if old not in s:
+              raise SystemExit('old product pin missing from review')
+          review.write_text(s.replace(old, product), encoding='utf-8')
+
+          capture = Path('docs/site-evolution/reviews/proai-hero-final-motion-r2/capture.mjs')
+          c = capture.read_text(encoding='utf-8')
+          if c.count('await page.waitForTimeout(3120);') != 2:
+              raise SystemExit('expected two resume wait targets')
+          c = c.replace('await page.waitForTimeout(3120);', 'await page.waitForTimeout(4500);')
+          c = c.replace('resume3200', 'resume4580')
+          c = c.replace('await page.waitForTimeout(5000);\n  samples.push(await runtimeSample(page));\n  await page.waitForTimeout(11000);', 'await page.waitForTimeout(4000);\n  samples.push(await runtimeSample(page));\n  await page.waitForTimeout(9000);')
+          capture.write_text(c, encoding='utf-8')
+          print('PINNED_PRODUCT=' + product)
+          PY
+          git config user.name "ProAI Review Bot"
+          git config user.email "proai.expert2026@gmail.com"
+          git rm -- .github/workflows/proai-cube-final-motion-r2-refresh-product-once.yml
+          git add -- docs/site-evolution/reviews/proai-hero-final-motion-r2/review.html docs/site-evolution/reviews/proai-hero-final-motion-r2/capture.mjs
+          git diff --cached --check
+          git commit -m "review: pin balanced final motion R2 product"
+          git push origin HEAD:review/proai-hero-final-motion-r2

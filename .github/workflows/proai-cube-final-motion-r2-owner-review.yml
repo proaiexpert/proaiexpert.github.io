@@ -1,0 +1,122 @@
+name: ProAI Cube Final Motion R2 Owner Review
+
+on:
+  push:
+    branches:
+      - review/proai-hero-final-motion-r2
+    paths:
+      - 'docs/site-evolution/reviews/proai-hero-final-motion-r2/review.html'
+      - 'docs/site-evolution/reviews/proai-hero-final-motion-r2/header-logo-live.html'
+      - 'docs/site-evolution/reviews/proai-hero-final-motion-r2/capture.mjs'
+      - '.github/workflows/proai-cube-final-motion-r2-owner-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: proai-cube-final-motion-r2-owner-review
+  cancel-in-progress: false
+
+jobs:
+  owner-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Checkout review branch
+        uses: actions/checkout@v4
+        with:
+          ref: review/proai-hero-final-motion-r2
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start isolated static review server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/proai-r2-server.log 2>&1 &
+          echo $! > /tmp/proai-r2-server.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/docs/site-evolution/reviews/proai-hero-final-motion-r2/review.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/proai-r2-server.log
+          exit 1
+
+      - name: Capture desktop mobile and diagnostics
+        id: capture
+        continue-on-error: true
+        run: node docs/site-evolution/reviews/proai-hero-final-motion-r2/capture.mjs
+
+      - name: Convert review videos to H.264 MP4
+        if: always()
+        run: |
+          set -e
+          OUT=docs/site-evolution/reviews/proai-hero-final-motion-r2/media
+          test -f "$OUT/desktop.webm"
+          test -f "$OUT/mobile.webm"
+          ffmpeg -y -i "$OUT/desktop.webm" -an -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -movflags +faststart "$OUT/desktop-final-motion-r2.mp4"
+          ffmpeg -y -i "$OUT/mobile.webm" -an -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -movflags +faststart "$OUT/mobile-final-motion-r2.mp4"
+          rm -f "$OUT/desktop.webm" "$OUT/mobile.webm"
+          rm -rf "$OUT/_video-desktop" "$OUT/_video-mobile"
+          ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$OUT/desktop-final-motion-r2.mp4" > "$OUT/desktop-duration.txt"
+          ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$OUT/mobile-final-motion-r2.mp4" > "$OUT/mobile-duration.txt"
+
+      - name: Verify evidence inventory
+        if: always()
+        run: |
+          set -e
+          OUT=docs/site-evolution/reviews/proai-hero-final-motion-r2/media
+          test -s "$OUT/motion-audit.json"
+          test -s "$OUT/MOTION_DIAGNOSTIC_SUMMARY.md"
+          test -s "$OUT/desktop-final-motion-r2.mp4"
+          test -s "$OUT/mobile-final-motion-r2.mp4"
+          test "$(find "$OUT" -maxdepth 1 -name 'desktop-*.png' | wc -l)" -ge 4
+          test "$(find "$OUT" -maxdepth 1 -name 'mobile-*.png' | wc -l)" -ge 4
+          awk '($1+0)>=24 && ($1+0)<=40 {ok=1} END {exit !ok}' "$OUT/desktop-duration.txt"
+          awk '($1+0)>=24 && ($1+0)<=40 {ok=1} END {exit !ok}' "$OUT/mobile-duration.txt"
+          find "$OUT" -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
+
+      - name: Commit owner-review evidence
+        if: always()
+        run: |
+          set -e
+          OUT=docs/site-evolution/reviews/proai-hero-final-motion-r2/media
+          git config user.name "ProAI Review Bot"
+          git config user.email "proai.expert2026@gmail.com"
+          git add -- \
+            "$OUT/MOTION_DIAGNOSTIC_SUMMARY.md" \
+            "$OUT/motion-audit.json" \
+            "$OUT/desktop-final-motion-r2.mp4" \
+            "$OUT/mobile-final-motion-r2.mp4" \
+            "$OUT/desktop-duration.txt" \
+            "$OUT/mobile-duration.txt" \
+            "$OUT/desktop-01.png" \
+            "$OUT/desktop-02.png" \
+            "$OUT/desktop-03-interaction-resume.png" \
+            "$OUT/desktop-04.png" \
+            "$OUT/mobile-01.png" \
+            "$OUT/mobile-02.png" \
+            "$OUT/mobile-03-interaction-resume.png" \
+            "$OUT/mobile-04.png"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "review: add final motion R2 owner evidence"
+          git push origin HEAD:review/proai-hero-final-motion-r2
+
+      - name: Enforce automated acceptance gate
+        if: always()
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const p = 'docs/site-evolution/reviews/proai-hero-final-motion-r2/media/motion-audit.json';
+          const report = JSON.parse(fs.readFileSync(p, 'utf8'));
+          console.log(JSON.stringify({pass:report.pass,acceptance:report.acceptance,seeds:report.seeds}, null, 2));
+          if (!report.pass) process.exit(2);
+          NODE

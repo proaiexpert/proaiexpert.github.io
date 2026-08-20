@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ProAI Cube — R1.4 · Confidence / Momentum</title>
+  <style>
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050607;color:#d9dee5;font:12px/1.4 system-ui,sans-serif}
+    main{position:relative;width:100%;height:100%}
+    #cube-canvas{display:block;width:100%;height:100%;touch-action:none}
+    #review-label{position:absolute;left:18px;top:16px;z-index:2;padding:7px 9px;border:1px solid rgba(255,255,255,.12);background:rgba(5,6,7,.64);backdrop-filter:blur(8px);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
+    #runtime-status{position:absolute;left:18px;bottom:16px;z-index:2;color:#9ca4ad;pointer-events:none}
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "../../../../assets/vendor/three-r180/build/three.module.min.js",
+      "three/addons/": "../../../../assets/vendor/three-r180/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+<main>
+  <canvas id="cube-canvas" aria-label="ProAI Cube R1.4 confidence momentum review"></canvas>
+  <div id="review-label">ProAI Cube · R1.4 · Confidence / Momentum</div>
+  <div id="runtime-status">Loading exact R1.4 candidate…</div>
+</main>
+<script type="module">
+  const status = document.getElementById('runtime-status');
+  try {
+    await import(new URL('../../../../assets/js/proai-hero-cube-r1/source-confidence-flow-r1-4.js', import.meta.url));
+    const runtime = window.__PROAI_CUBE_SPATIAL_R1_4 || window.__PROAI_CUBE_SPATIAL_R1 || window.__PROAI_CUBE_ML_R1;
+    const started = performance.now();
+    while (runtime && !runtime.ready && runtime.motionState !== 'error' && performance.now() - started < 15000) {
+      await new Promise(resolve => setTimeout(resolve, 40));
+    }
+    if (!runtime?.ready) throw new Error('Cube did not become ready');
+    status.textContent = 'R1.4 confidence flow ready · drag to inspect';
+    window.__PROAI_CUBE_OWNER_REVIEW = runtime;
+  } catch (error) {
+    console.error(error);
+    status.textContent = `Review boot failed: ${error.message}`;
+  }
+</script>
+</body>
+</html>

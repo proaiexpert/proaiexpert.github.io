@@ -11,7 +11,7 @@ permissions:
 
 concurrency:
   group: proai-cube-final-motion-r2-owner-review
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   owner-evidence:
@@ -53,12 +53,28 @@ jobs:
       - name: Convert review videos to H.264 MP4
         if: always()
         run: |
-          set -e
+          set -euo pipefail
           OUT=docs/site-evolution/reviews/proai-hero-final-motion-r2/media
+          echo "Evidence files after capture:"
+          find "$OUT" -maxdepth 2 -type f -printf '%p %s bytes\n' | sort || true
           test -f "$OUT/desktop.webm"
           test -f "$OUT/mobile.webm"
-          ffmpeg -y -i "$OUT/desktop.webm" -an -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -movflags +faststart "$OUT/desktop-final-motion-r2.mp4"
-          ffmpeg -y -i "$OUT/mobile.webm" -an -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -movflags +faststart "$OUT/mobile-final-motion-r2.mp4"
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          normalize_video() {
+            src="$1"
+            dst="$2"
+            duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$src")"
+            if awk -v d="$duration" 'BEGIN {exit !(d > 29.0)}'; then
+              ffmpeg -y -sseof -28 -i "$src" -t 28 -an -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -movflags +faststart "$dst"
+            else
+              ffmpeg -y -i "$src" -an -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -movflags +faststart "$dst"
+            fi
+          }
+          normalize_video "$OUT/desktop.webm" "$OUT/desktop-final-motion-r2.mp4"
+          normalize_video "$OUT/mobile.webm" "$OUT/mobile-final-motion-r2.mp4"
           rm -f "$OUT/desktop.webm" "$OUT/mobile.webm"
           rm -rf "$OUT/_video-desktop" "$OUT/_video-mobile"
           ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$OUT/desktop-final-motion-r2.mp4" > "$OUT/desktop-duration.txt"
@@ -67,7 +83,7 @@ jobs:
       - name: Verify evidence inventory
         if: always()
         run: |
-          set -e
+          set -euo pipefail
           OUT=docs/site-evolution/reviews/proai-hero-final-motion-r2/media
           test -s "$OUT/motion-audit.json"
           test -s "$OUT/MOTION_DIAGNOSTIC_SUMMARY.md"
@@ -75,14 +91,14 @@ jobs:
           test -s "$OUT/mobile-final-motion-r2.mp4"
           test "$(find "$OUT" -maxdepth 1 -name 'desktop-*.png' | wc -l)" -ge 4
           test "$(find "$OUT" -maxdepth 1 -name 'mobile-*.png' | wc -l)" -ge 4
-          awk '($1+0)>=24 && ($1+0)<=40 {ok=1} END {exit !ok}' "$OUT/desktop-duration.txt"
-          awk '($1+0)>=24 && ($1+0)<=40 {ok=1} END {exit !ok}' "$OUT/mobile-duration.txt"
+          awk '($1+0)>=24 && ($1+0)<=30 {ok=1} END {exit !ok}' "$OUT/desktop-duration.txt"
+          awk '($1+0)>=24 && ($1+0)<=30 {ok=1} END {exit !ok}' "$OUT/mobile-duration.txt"
           find "$OUT" -maxdepth 1 -type f -printf '%f %s bytes\n' | sort
 
       - name: Commit owner-review evidence
         if: always()
         run: |
-          set -e
+          set -euo pipefail
           OUT=docs/site-evolution/reviews/proai-hero-final-motion-r2/media
           git config user.name "ProAI Review Bot"
           git config user.email "proai.expert2026@gmail.com"

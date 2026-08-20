@@ -1,0 +1,85 @@
+name: ProAI Cube Final Motion R2 Interaction Polish QA
+
+on:
+  push:
+    branches:
+      - review/proai-hero-final-motion-r2-interaction-polish
+    paths:
+      - 'docs/site-evolution/reviews/proai-hero-final-motion-r2-interaction-polish/**'
+      - '.github/workflows/proai-cube-final-motion-r2-interaction-polish.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  interaction-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish pending QA status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state='pending' -f context='proai/final-motion-r2-interaction-polish' -f description='Interaction QA running' -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium QA runtime
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start isolated review server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/proai-interaction-server.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/docs/site-evolution/reviews/proai-hero-final-motion-r2-interaction-polish/review.html >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/proai-interaction-server.log
+          exit 1
+      - name: Run interaction-first full-Hero QA
+        id: qa
+        continue-on-error: true
+        run: node docs/site-evolution/reviews/proai-hero-final-motion-r2-interaction-polish/qa.mjs
+      - name: Verify executable live review
+        id: live
+        continue-on-error: true
+        run: |
+          URL='https://raw.githack.com/proaiexpert/proaiexpert.github.io/review/proai-hero-final-motion-r2-interaction-polish/docs/site-evolution/reviews/proai-hero-final-motion-r2-interaction-polish/review.html'
+          for i in {1..12}; do
+            if curl -fsS "$URL" | grep -q 'Final Motion R2 interaction polish'; then
+              echo "LIVE_REVIEW=PASS"
+              echo "URL=$URL"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "LIVE_REVIEW=FAIL"
+          exit 1
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-motion-r2-interaction-polish-qa
+          path: docs/site-evolution/reviews/proai-hero-final-motion-r2-interaction-polish/qa-artifacts/
+          if-no-files-found: error
+      - name: Publish final QA commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          QA_OUTCOME: ${{ steps.qa.outcome }}
+          LIVE_OUTCOME: ${{ steps.live.outcome }}
+        run: |
+          if [ "$QA_OUTCOME" = success ] && [ "$LIVE_OUTCOME" = success ]; then STATE=success; DESC='Interaction QA and live review PASS'; else STATE=failure; DESC="Interaction QA=${QA_OUTCOME}; live=${LIVE_OUTCOME}"; fi
+          gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$GITHUB_SHA" -f state="$STATE" -f context='proai/final-motion-r2-interaction-polish' -f description="$DESC" -f target_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+      - name: Enforce owner gate
+        if: always()
+        env:
+          QA_OUTCOME: ${{ steps.qa.outcome }}
+          LIVE_OUTCOME: ${{ steps.live.outcome }}
+        run: |
+          test "$QA_OUTCOME" = success
+          test "$LIVE_OUTCOME" = success

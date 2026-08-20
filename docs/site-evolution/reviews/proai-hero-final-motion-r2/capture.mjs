@@ -26,8 +26,7 @@ async function waitReady(page) {
 
 async function aspectCheck(page) {
   return page.evaluate(() => {
-    const review = window.__PROAI_FULL_HERO_REVIEW;
-    const life = review.aspectLifecycle.afterResize;
+    const life = window.__PROAI_FULL_HERO_REVIEW.aspectLifecycle.afterResize;
     const diffs = {
       cssCamera: Math.abs(life.canvasCss.aspect - life.cameraAspect),
       cssBacking: Math.abs(life.canvasCss.aspect - life.canvasBacking.aspect),
@@ -55,12 +54,12 @@ async function runtimeSample(page) {
   });
 }
 
-async function waitForActiveTurn(page, timeoutMs = 5000) {
+async function waitForActiveTurn(page, timeoutMs = 6000) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
     const active = await page.evaluate(() => window.__PROAI_FULL_HERO_REVIEW.runtime.getDiagnostics().activeTurns.length);
     if (active > 0) return true;
-    await page.waitForTimeout(80);
+    await page.waitForTimeout(70);
   }
   return false;
 }
@@ -71,6 +70,7 @@ async function desktopDrag(page) {
   const x = box.x + box.width * 0.55;
   const y = box.y + box.height * 0.54;
   await page.mouse.move(x, y);
+  const activeObserved = await waitForActiveTurn(page, 6000);
   const before = await runtimeSample(page);
   await page.mouse.down();
   for (let i = 1; i <= 9; i++) {
@@ -78,7 +78,7 @@ async function desktopDrag(page) {
     await page.waitForTimeout(45);
   }
   const held = await runtimeSample(page);
-  await page.waitForTimeout(1350);
+  await page.waitForTimeout(1450);
   const heldLate = await runtimeSample(page);
   await page.mouse.up();
   const release = await runtimeSample(page);
@@ -86,13 +86,14 @@ async function desktopDrag(page) {
   const release80 = await runtimeSample(page);
   await page.waitForTimeout(520);
   const resume600 = await runtimeSample(page);
+  const dragAngleDeg = qAngleDeg(before.quaternion, held.quaternion);
+  const releaseSnapDeg = qAngleDeg(release.quaternion, release80.quaternion);
+  const resumedAngleDeg = qAngleDeg(release.quaternion, resume600.quaternion);
   return {
-    before, held, heldLate, release, release80, resume600,
-    dragAngleDeg: qAngleDeg(before.quaternion, held.quaternion),
-    releaseSnapDeg: qAngleDeg(release.quaternion, release80.quaternion),
-    resumedAngleDeg: qAngleDeg(release.quaternion, resume600.quaternion),
-    activeSliceCompletedWhileHeld: held.activeTurns > 0 && heldLate.activeTurns === 0,
-    pass: qAngleDeg(before.quaternion, held.quaternion) > 5 && qAngleDeg(release.quaternion, release80.quaternion) < 0.25 && qAngleDeg(release.quaternion, resume600.quaternion) > 0.01,
+    activeObserved, before, held, heldLate, release, release80, resume600,
+    dragAngleDeg, releaseSnapDeg, resumedAngleDeg,
+    activeSliceCompletedWhileHeld: activeObserved && before.activeTurns > 0 && heldLate.activeTurns === 0,
+    pass: activeObserved && dragAngleDeg > 5 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.01,
   };
 }
 
@@ -101,38 +102,42 @@ async function touchDrag(page) {
   if (!box) throw new Error('mobile canvas unavailable');
   const x = box.x + box.width * 0.52;
   const y = box.y + box.height * 0.55;
+  const activeObserved = await waitForActiveTurn(page, 6000);
   const before = await runtimeSample(page);
-  await page.evaluate(({x,y}) => {
-    const c = document.querySelector('#cube-canvas');
-    c.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerId:77,pointerType:'touch',clientX:x,clientY:y,isPrimary:true,buttons:1}));
-  }, {x,y});
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, radiusX: 1, radiusY: 1, force: 1, id: 77 }] });
   for (let i = 1; i <= 8; i++) {
-    await page.evaluate(({x,y,i}) => {
-      const c = document.querySelector('#cube-canvas');
-      c.dispatchEvent(new PointerEvent('pointermove',{bubbles:true,cancelable:true,pointerId:77,pointerType:'touch',clientX:x+i*8,clientY:y-i*4,isPrimary:true,buttons:1}));
-    }, {x,y,i});
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x+i*8, y: y-i*4, radiusX: 1, radiusY: 1, force: 1, id: 77 }] });
     await page.waitForTimeout(55);
   }
   const held = await runtimeSample(page);
-  await page.waitForTimeout(1300);
+  await page.waitForTimeout(1450);
   const heldLate = await runtimeSample(page);
-  await page.evaluate(({x,y}) => {
-    const c = document.querySelector('#cube-canvas');
-    c.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,cancelable:true,pointerId:77,pointerType:'touch',clientX:x+64,clientY:y-32,isPrimary:true,buttons:0}));
-  }, {x,y});
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await cdp.detach();
   const release = await runtimeSample(page);
   await page.waitForTimeout(80);
   const release80 = await runtimeSample(page);
   await page.waitForTimeout(520);
   const resume600 = await runtimeSample(page);
+  const dragAngleDeg = qAngleDeg(before.quaternion, held.quaternion);
+  const releaseSnapDeg = qAngleDeg(release.quaternion, release80.quaternion);
+  const resumedAngleDeg = qAngleDeg(release.quaternion, resume600.quaternion);
   return {
-    before, held, heldLate, release, release80, resume600,
-    dragAngleDeg: qAngleDeg(before.quaternion, held.quaternion),
-    releaseSnapDeg: qAngleDeg(release.quaternion, release80.quaternion),
-    resumedAngleDeg: qAngleDeg(release.quaternion, resume600.quaternion),
-    activeSliceCompletedWhileHeld: held.activeTurns > 0 && heldLate.activeTurns === 0,
-    pass: qAngleDeg(before.quaternion, held.quaternion) > 4 && qAngleDeg(release.quaternion, release80.quaternion) < 0.25 && qAngleDeg(release.quaternion, resume600.quaternion) > 0.01,
+    activeObserved, before, held, heldLate, release, release80, resume600,
+    dragAngleDeg, releaseSnapDeg, resumedAngleDeg,
+    activeSliceCompletedWhileHeld: activeObserved && before.activeTurns > 0 && heldLate.activeTurns === 0,
+    pass: activeObserved && dragAngleDeg > 4 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.01,
   };
+}
+
+async function stopAndReadCanonical(page) {
+  await page.evaluate(() => window.__PROAI_FULL_HERO_REVIEW.runtime.stopChoreography?.());
+  await page.waitForFunction(() => window.__PROAI_FULL_HERO_REVIEW.runtime.getDiagnostics().activeTurns.length === 0, null, { timeout: 5000 });
+  return page.evaluate(() => {
+    const r = window.__PROAI_FULL_HERO_REVIEW.runtime;
+    return { diag: r.getDiagnostics(), log: r.getMotionLog() };
+  });
 }
 
 async function captureScenario(browser, { name, viewport, mobile = false }) {
@@ -151,6 +156,7 @@ async function captureScenario(browser, { name, viewport, mobile = false }) {
   page.on('pageerror', err => consoleErrors.push(String(err)));
   await page.goto(BASE + '?motionSeed=' + SEEDS[0], { waitUntil: 'domcontentloaded', timeout: 30000 });
   const ready = await waitReady(page);
+  const scenarioStarted = Date.now();
   const aspect = await aspectCheck(page);
   const samples = [];
 
@@ -160,20 +166,16 @@ async function captureScenario(browser, { name, viewport, mobile = false }) {
   await page.waitForTimeout(4000);
   samples.push(await runtimeSample(page));
   await page.screenshot({ path: path.join(OUT, `${name}-02.png`), fullPage: false });
-  await waitForActiveTurn(page, 4000);
   const interaction = mobile ? await touchDrag(page) : await desktopDrag(page);
   samples.push(await runtimeSample(page));
   await page.screenshot({ path: path.join(OUT, `${name}-03-interaction-resume.png`), fullPage: false });
   await page.waitForTimeout(5000);
   samples.push(await runtimeSample(page));
   await page.screenshot({ path: path.join(OUT, `${name}-04.png`), fullPage: false });
-  await page.waitForTimeout(7000);
+  await page.waitForTimeout(Math.max(0, 27500 - (Date.now() - scenarioStarted)));
   samples.push(await runtimeSample(page));
 
-  const finalDiag = await page.evaluate(() => {
-    const r = window.__PROAI_FULL_HERO_REVIEW.runtime;
-    return { diag: r.getDiagnostics(), log: r.getMotionLog() };
-  });
+  const finalDiag = await stopAndReadCanonical(page);
   const video = page.video();
   await context.close();
   const videoPath = await video.path();
@@ -193,15 +195,19 @@ async function reviewSeed(browser, seed) {
     await page.waitForTimeout(330);
     samples.push(await runtimeSample(page));
   }
-  const data = await page.evaluate(() => {
-    const r = window.__PROAI_FULL_HERO_REVIEW.runtime;
-    return { seed: r.getMotionSeed(), log: r.getMotionLog(), diag: r.getDiagnostics() };
-  });
+  const data = await stopAndReadCanonical(page);
   await context.close();
   const poseMin = Math.min(...samples.map(s => s.poseQuality));
   const speedMax = Math.max(...samples.map(s => s.speed));
   const speedMin = Math.min(...samples.map(s => s.speed));
-  return { requestedSeed: seed, readySeed: ready.seed, poseMin, speedMin, speedMax, moveCount: data.log.filter(x => x.axis).length, errors, pass: ready.seed === seed && errors.length === 0 && poseMin >= 0.35 && speedMax <= 25.1 };
+  const canonical = data.diag.canonicalError;
+  const canonicalPass = canonical && canonical.maxPosition < 1e-6 && canonical.maxQuaternionRad < 1e-6 && canonical.maxScale < 1e-8;
+  return { requestedSeed: seed, readySeed: ready.seed, poseMin, speedMin, speedMax, moveCount: data.log.filter(x => x.axis).length, canonical, errors, pass: ready.seed === seed && errors.length === 0 && poseMin >= 0.35 && speedMax <= 25.1 && canonicalPass };
+}
+
+function eventCoverage(log) {
+  const unique = kind => new Set(log.filter(e => e.kind === kind).map(e => e.eventId)).size;
+  return { singleEvents: unique('single'), pairEvents: unique('pair'), phraseEvents: unique('phrase'), breaths: log.filter(e => e.kind === 'breath').length };
 }
 
 const browser = await chromium.launch({ headless: true, args: ['--enable-webgl','--ignore-gpu-blocklist','--use-angle=swiftshader','--disable-dev-shm-usage'] });
@@ -220,8 +226,15 @@ try {
   const desktop = await captureScenario(browser, { name: 'desktop', viewport: { width: 1440, height: 900 }, mobile: false });
   const mobile = await captureScenario(browser, { name: 'mobile', viewport: { width: 390, height: 844 }, mobile: true });
 
-  const desktopKinds = desktop.finalDiag.log.reduce((a,e)=>(a[e.kind]=(a[e.kind]||0)+1,a),{});
-  const mobileKinds = mobile.finalDiag.log.reduce((a,e)=>(a[e.kind]=(a[e.kind]||0)+1,a),{});
+  const desktopCoverage = eventCoverage(desktop.finalDiag.log);
+  const mobileCoverage = eventCoverage(mobile.finalDiag.log);
+  const mechanicsPass = Boolean(automatedQA?.repeatability30?.pass && automatedQA?.inverseRestoration?.pass && automatedQA?.pairedTurnQA?.pass);
+  const canonicalPass = [desktop, mobile].every(x => {
+    const c = x.finalDiag.diag.canonicalError;
+    return c && c.maxPosition < 1e-6 && c.maxQuaternionRad < 1e-6 && c.maxScale < 1e-8;
+  });
+  const coveragePass = [desktopCoverage, mobileCoverage].every(k => k.singleEvents >= 2 && k.pairEvents >= 2 && k.phraseEvents >= 2 && k.breaths >= 1);
+
   report = {
     generatedAt: new Date().toISOString(),
     product: desktop.ready.product,
@@ -229,20 +242,18 @@ try {
     automatedQA,
     motionAudit,
     seedReviews,
-    desktop: { aspect: desktop.aspect, interaction: desktop.interaction, samples: desktop.samples, kinds: desktopKinds, consoleErrors: desktop.consoleErrors, scheduler: desktop.finalDiag.diag.scheduler, canonicalError: desktop.finalDiag.diag.canonicalError },
-    mobile: { aspect: mobile.aspect, interaction: mobile.interaction, samples: mobile.samples, kinds: mobileKinds, consoleErrors: mobile.consoleErrors, scheduler: mobile.finalDiag.diag.scheduler, canonicalError: mobile.finalDiag.diag.canonicalError },
+    desktop: { aspect: desktop.aspect, interaction: desktop.interaction, samples: desktop.samples, coverage: desktopCoverage, consoleErrors: desktop.consoleErrors, scheduler: desktop.finalDiag.diag.scheduler, canonicalError: desktop.finalDiag.diag.canonicalError },
+    mobile: { aspect: mobile.aspect, interaction: mobile.interaction, samples: mobile.samples, coverage: mobileCoverage, consoleErrors: mobile.consoleErrors, scheduler: mobile.finalDiag.diag.scheduler, canonicalError: mobile.finalDiag.diag.canonicalError },
   };
-  const canonicalPass = [desktop, mobile].every(x => !x.finalDiag.diag.canonicalError || (x.finalDiag.diag.canonicalError.maxPosition < 1e-6 && x.finalDiag.diag.canonicalError.maxQuaternionRad < 1e-6));
-  const videosHaveLivingEvents = [desktopKinds, mobileKinds].every(k => (k.single||0) >= 2 && (k.pair||0) >= 2 && (k.phrase||0) >= 4 && (k.breath||0) >= 1);
-  report.pass = Boolean(automatedQA?.repeatability?.pass && automatedQA?.pairedTurnQA?.pass && motionAudit?.pass && seedReviews.every(x=>x.pass) && desktop.aspect.pass && mobile.aspect.pass && desktop.interaction.pass && mobile.interaction.pass && canonicalPass && videosHaveLivingEvents && desktop.consoleErrors.length === 0 && mobile.consoleErrors.length === 0);
-  report.acceptance = { canonicalPass, videosHaveLivingEvents, antiRepetition: motionAudit?.pass === true, noReleaseSnap: desktop.interaction.pass && mobile.interaction.pass, mobileAspect: mobile.aspect.pass };
+  report.pass = Boolean(mechanicsPass && motionAudit?.pass && seedReviews.every(x=>x.pass) && desktop.aspect.pass && mobile.aspect.pass && desktop.interaction.pass && mobile.interaction.pass && canonicalPass && coveragePass && desktop.consoleErrors.length === 0 && mobile.consoleErrors.length === 0);
+  report.acceptance = { mechanicsPass, canonicalPass, videoCoverage: coveragePass, antiRepetition: motionAudit?.pass === true, noReleaseSnap: desktop.interaction.pass && mobile.interaction.pass, mobileAspect: mobile.aspect.pass };
 } finally {
   await browser.close();
 }
 
 await fs.writeFile(path.join(OUT, 'motion-audit.json'), JSON.stringify(report, null, 2));
 const s = report.motionAudit.seeds;
-const summary = `# Final Cube Motion R2 — Diagnostic Summary\n\n- Product: ${report.product}\n- Seeds: ${report.seeds.join(', ')}\n- Overall automated acceptance: **${report.pass ? 'PASS' : 'FAIL'}**\n- Anti-repetition audit: **${report.acceptance.antiRepetition ? 'PASS' : 'FAIL'}**\n- Desktop interaction/no-snap: **${report.desktop.interaction.pass ? 'PASS' : 'FAIL'}** (release delta ${report.desktop.interaction.releaseSnapDeg.toFixed(4)}°)\n- Mobile touch/no-snap: **${report.mobile.interaction.pass ? 'PASS' : 'FAIL'}** (release delta ${report.mobile.interaction.releaseSnapDeg.toFixed(4)}°)\n- Mobile aspect: **${report.mobile.aspect.pass ? 'PASS' : 'FAIL'}**\n- Canonical transform safety: **${report.acceptance.canonicalPass ? 'PASS' : 'FAIL'}**\n- Video event coverage: **${report.acceptance.videosHaveLivingEvents ? 'PASS' : 'FAIL'}**\n\n## Five-minute generator audit\n${s.map(x=>`- Seed ${x.seed}: ${x.pass?'PASS':'FAIL'}; moves ${x.moveCount}; exact repeats ${x.exactRepeat}; immediate inverse ${x.immediateInverse}; short-window inverse ${x.shortInverse}; recent phrase repeats 2/3/4/5 = ${x.phraseRepeats[2]}/${x.phraseRepeats[3]}/${x.phraseRepeats[4]}/${x.phraseRepeats[5]}; axis spread ${(x.axisSpread*100).toFixed(1)}%; direction spread ${(x.directionSpread*100).toFixed(1)}%`).join('\n')}\n\n## Runtime seed review\n${report.seedReviews.map(x=>`- Seed ${x.requestedSeed}: ${x.pass?'PASS':'FAIL'}; pose quality min ${x.poseMin.toFixed(3)}; speed ${x.speedMin.toFixed(2)}–${x.speedMax.toFixed(2)} deg/s; observed moves ${x.moveCount}`).join('\n')}\n`;
+const summary = `# Final Cube Motion R2 — Diagnostic Summary\n\n- Product: ${report.product}\n- Seeds: ${report.seeds.join(', ')}\n- Overall automated acceptance: **${report.pass ? 'PASS' : 'FAIL'}**\n- Mechanics / exact endpoints: **${report.acceptance.mechanicsPass ? 'PASS' : 'FAIL'}**\n- Anti-repetition audit: **${report.acceptance.antiRepetition ? 'PASS' : 'FAIL'}**\n- Desktop interaction/no-snap: **${report.desktop.interaction.pass ? 'PASS' : 'FAIL'}** (release delta ${report.desktop.interaction.releaseSnapDeg.toFixed(4)}°)\n- Mobile touch/no-snap: **${report.mobile.interaction.pass ? 'PASS' : 'FAIL'}** (release delta ${report.mobile.interaction.releaseSnapDeg.toFixed(4)}°)\n- Mobile aspect: **${report.mobile.aspect.pass ? 'PASS' : 'FAIL'}**\n- Canonical transform safety: **${report.acceptance.canonicalPass ? 'PASS' : 'FAIL'}**\n- Video event coverage: **${report.acceptance.videoCoverage ? 'PASS' : 'FAIL'}**\n- Desktop coverage: singles ${report.desktop.coverage.singleEvents}, pairs ${report.desktop.coverage.pairEvents}, phrases ${report.desktop.coverage.phraseEvents}, breaths ${report.desktop.coverage.breaths}\n- Mobile coverage: singles ${report.mobile.coverage.singleEvents}, pairs ${report.mobile.coverage.pairEvents}, phrases ${report.mobile.coverage.phraseEvents}, breaths ${report.mobile.coverage.breaths}\n\n## Five-minute generator audit\n${s.map(x=>`- Seed ${x.seed}: ${x.pass?'PASS':'FAIL'}; moves ${x.moveCount}; exact repeats ${x.exactRepeat}; immediate inverse ${x.immediateInverse}; short-window inverse ${x.shortInverse}; recent phrase repeats 2/3/4/5 = ${x.phraseRepeats[2]}/${x.phraseRepeats[3]}/${x.phraseRepeats[4]}/${x.phraseRepeats[5]}; axis spread ${(x.axisSpread*100).toFixed(1)}%; direction spread ${(x.directionSpread*100).toFixed(1)}%`).join('\n')}\n\n## Runtime seed review\n${report.seedReviews.map(x=>`- Seed ${x.requestedSeed}: ${x.pass?'PASS':'FAIL'}; pose quality min ${x.poseMin.toFixed(3)}; speed ${x.speedMin.toFixed(2)}–${x.speedMax.toFixed(2)} deg/s; observed moves ${x.moveCount}`).join('\n')}\n`;
 await fs.writeFile(path.join(OUT, 'MOTION_DIAGNOSTIC_SUMMARY.md'), summary);
 console.log(JSON.stringify({ pass: report.pass, product: report.product, seeds: report.seeds, acceptance: report.acceptance }, null, 2));
 if (!report.pass) process.exitCode = 2;

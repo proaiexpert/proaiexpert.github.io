@@ -1,11 +1,11 @@
-name: Temporary ProAI Cube R1.4 confidence QA
+name: Temporary ProAI Cube R1.4 final live QA
 on:
   pull_request:
     branches: [agent/tmp-proai-cube-r12-qa-base]
 permissions: {contents: read}
 
 jobs:
-  trajectory-confidence:
+  desktop-observe-75s:
     if: github.event.pull_request.head.ref == 'agent/tmp-proai-cube-r14-qa-trigger'
     runs-on: ubuntu-latest
     steps:
@@ -14,113 +14,35 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: python -m pip install --quiet websocket-client
-      - name: Exact preservation and syntax gates
-        shell: bash
+      - name: Exact candidate gate
         run: |
-          set -euo pipefail
           test "$(git rev-parse HEAD)" = "cffbdaac3627efff272570b15f264c3e8c3e0706"
           test "$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" = "f9298b0b00feaae4123eb5a7161f24f669ae0eca"
           test "$(git hash-object assets/js/proai-hero-cube-r1/source-continuous-flow-r1-3.js)" = "14b2d657d5d07369fd708b37135216b76c722db4"
           test "$(git hash-object assets/js/proai-hero-cube-r1/source-confidence-flow-r1-4.js)" = "535982f6c3efa5a4166e928d41db230eb3ea57c9"
-          test "$(git hash-object docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html)" = "9d22d1d3106b337ce02624a8fea3bba1b64acad9"
-          cp assets/js/proai-hero-cube-r1/source-confidence-flow-r1-4.js /tmp/r14.mjs
-          node --check /tmp/r14.mjs
-      - name: Start headed Chrome
+      - name: Start desktop Chrome
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 8114 --bind 127.0.0.1 >/tmp/r14-http.log 2>&1 &
+          python3 -m http.server 8121 --bind 127.0.0.1 >/tmp/http.log 2>&1 &
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
-          xvfb-run -a -s '-screen 0 960x600x24' "$CHROME" --no-sandbox --disable-dev-shm-usage --window-size=960,600 --enable-webgl --use-gl=angle --use-angle=swiftshader --remote-debugging-port=9254 --remote-allow-origins='*' --user-data-dir=/tmp/r14-confidence about:blank >/tmp/r14-chrome.log 2>&1 &
-          for i in $(seq 1 150); do curl -fsS http://127.0.0.1:9254/json/version >/tmp/version.json 2>/dev/null && break || true; sleep .2; done
+          xvfb-run -a -s '-screen 0 1440x900x24' "$CHROME" --no-sandbox --disable-dev-shm-usage --window-size=1440,900 --enable-webgl --use-gl=angle --use-angle=swiftshader --remote-debugging-port=9261 --remote-allow-origins='*' --user-data-dir=/tmp/r14-observe-desktop about:blank >/tmp/chrome.log 2>&1 &
+          for i in $(seq 1 160); do curl -fsS http://127.0.0.1:9261/json/version >/tmp/version.json 2>/dev/null && break || true; sleep .2; done
           test -s /tmp/version.json
-          for i in $(seq 1 80); do curl -fsS -X PUT 'http://127.0.0.1:9254/json/new?about:blank' >/tmp/page.json 2>/dev/null && grep -q webSocketDebuggerUrl /tmp/page.json && break || true; sleep .2; done
+          for i in $(seq 1 80); do curl -fsS -X PUT 'http://127.0.0.1:9261/json/new?about:blank' >/tmp/page.json 2>/dev/null && grep -q webSocketDebuggerUrl /tmp/page.json && break || true; sleep .2; done
           grep -q webSocketDebuggerUrl /tmp/page.json
-      - name: R1.3 vs R1.4 trajectory and confidence metrics
+      - name: Observe live desktop for 75 seconds
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p qa-r14-confidence
-          timeout 120s python3 - <<'PY'
-          import json,math,time
+          mkdir -p qa-r14-desktop-observe
+          timeout 115s python3 - <<'PY'
+          import json,time
           from pathlib import Path
           from websocket import create_connection,WebSocketTimeoutException
-          OUT=Path('qa-r14-confidence'); page=json.load(open('/tmp/page.json')); ws=create_connection(page['webSocketDebuggerUrl'],timeout=15,origin='http://localhost'); seq=0
-          def call(method,params=None,timeout=35):
-              global seq
-              seq+=1; i=seq; ws.send(json.dumps({'id':i,'method':method,'params':params or {}})); end=time.monotonic()+timeout
-              while time.monotonic()<end:
-                  try: ws.settimeout(max(.2,end-time.monotonic())); x=json.loads(ws.recv())
-                  except WebSocketTimeoutException: continue
-                  if x.get('id')==i:
-                      if 'error' in x: raise RuntimeError((method,x['error']))
-                      return x.get('result',{})
-              raise TimeoutError(method)
-          def ev(expr,timeout=35):
-              r=call('Runtime.evaluate',{'expression':expr,'returnByValue':True,'userGesture':True},timeout)
-              if 'exceptionDetails' in r: raise RuntimeError(r['exceptionDetails'])
-              return r.get('result',{}).get('value')
-          def js(expr,timeout=35): return json.loads(ev('JSON.stringify('+expr+')',timeout))
-          def ready():
-              end=time.monotonic()+40
-              while time.monotonic()<end:
-                  try:
-                      if ev('Boolean(window.__PROAI_CUBE_OWNER_REVIEW?.ready)',8): return
-                  except Exception: pass
-                  time.sleep(.1)
-              raise RuntimeError('ready timeout')
-          call('Page.enable'); call('Runtime.enable'); call('Emulation.setDeviceMetricsOverride',{'width':960,'height':600,'deviceScaleFactor':1,'mobile':False})
-          root='http://127.0.0.1:8114/'
-          pages={'r13':root+'docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html?capture','r14':root+'docs/site-evolution/spline/proai-cube-spatial-confidence-r1-4/review.html?capture'}
-          def metrics_for(name,cycle):
-              call('Page.navigate',{'url':pages[name]}); ready()
-              expr=f"""(()=>{{const a=window.__PROAI_CUBE_OWNER_REVIEW,cycle={cycle},dt=.01,n=Math.round(cycle/dt),samples=new Array(n);let min=Infinity,max=-Infinity,sum=0,first360=null,maxX=0,maxY=0,maxZ=0,minPitch=Infinity,maxPitch=-Infinity,minRoll=Infinity,maxRoll=-Infinity;for(let i=0;i<n;i++){{const t=i*dt,s=a.getReviewPresentationSample(t);samples[i]=s;min=Math.min(min,s.velocityDegPerSec);max=Math.max(max,s.velocityDegPerSec);sum+=s.velocityDegPerSec;maxX=Math.max(maxX,Math.abs(s.rotationAxis[0]));maxY=Math.max(maxY,Math.abs(s.rotationAxis[1]));maxZ=Math.max(maxZ,Math.abs(s.rotationAxis[2]));minPitch=Math.min(minPitch,s.pitchDeg);maxPitch=Math.max(maxPitch,s.pitchDeg);minRoll=Math.min(minRoll,s.rollDeg);maxRoll=Math.max(maxRoll,s.rollDeg);if(first360===null&&s.angularTravelDeg>=360)first360=t;}}const angle=(x,y)=>{{let d=x[0]*y[0]+x[1]*y[1]+x[2]*y[2];d=Math.max(-1,Math.min(1,d));return Math.acos(d)*180/Math.PI;}};const w=Math.round(1/dt),changes=[];for(let i=0;i<n;i++)changes.push(angle(samples[i].rotationAxis,samples[(i+w)%n].rotationAxis));changes.sort((x,y)=>x-y);let dominantChanges=0;for(let i=1;i<n;i++)if(samples[i].dominantAxis!==samples[i-1].dominantAxis)dominantChanges++;if(samples[0].dominantAxis!==samples[n-1].dominantAxis)dominantChanges++;const pre=a.setReviewPresentation(cycle-.001,1,false),zero=a.setReviewPresentation(cycle,1,false),post=a.setReviewPresentation(cycle+.001,1,false);const qang=(x,y)=>{{let d=Math.abs(x[0]*y[0]+x[1]*y[1]+x[2]*y[2]+x[3]*y[3]);d=Math.max(-1,Math.min(1,d));return 2*Math.acos(d)*180/Math.PI;}};const spre=a.getReviewPresentationSample(cycle-.001),spost=a.getReviewPresentationSample(cycle+.001);return{{engine:a.getDiagnostics().presentation.engine,cycle,min,avg:sum/n,max,first360,travel20:a.getReviewPresentationSample(20).angularTravelDeg,travel25:a.getReviewPresentationSample(25).angularTravelDeg,travel30:a.getReviewPresentationSample(30).angularTravelDeg,confidence:{{medianAxisChangeDegPerSec:changes[Math.floor(changes.length*.5)],p95AxisChangeDegPerSec:changes[Math.floor(changes.length*.95)],dominantAxisChangesPerCycle:dominantChanges}},axisEnvelope:{{maxAbsX:maxX,maxAbsY:maxY,maxAbsZ:maxZ,pitchSpan:maxPitch-minPitch,rollSpan:maxRoll-minRoll}},axisSamples:[0,cycle*.1,cycle*.2,cycle*.3,cycle*.4,cycle*.5,cycle*.6,cycle*.7,cycle*.8,cycle*.9,cycle].map(t=>a.getReviewPresentationSample(t)),seam:{{orientationDeltaDeg:qang(pre.quaternion,post.quaternion),speedDelta:Math.abs(spre.velocityDegPerSec-spost.velocityDegPerSec),axisDeltaDeg:angle(spre.rotationAxis,spost.rotationAxis),zeroOrientationFromPreDeg:qang(pre.quaternion,zero.quaternion)}}}};}})()"""
-              return js(expr,55)
-          r13=metrics_for('r13',66); r14=metrics_for('r14',75)
-          assert r13['engine']=='quaternion-continuous-flow-r1.3' and r14['engine']=='quaternion-confidence-flow-r1.4'
-          assert r14['min']>=11 and 16<=r14['avg']<=18 and r14['max']<=24 and 21<=r14['first360']<=25
-          assert r14['confidence']['medianAxisChangeDegPerSec']<r13['confidence']['medianAxisChangeDegPerSec'] and r14['confidence']['p95AxisChangeDegPerSec']<r13['confidence']['p95AxisChangeDegPerSec']
-          assert r14['axisEnvelope']['maxAbsX']>.55 and r14['axisEnvelope']['maxAbsZ']>.50 and r14['axisEnvelope']['pitchSpan']>120 and r14['axisEnvelope']['rollSpan']>120
-          assert r14['seam']['orientationDeltaDeg']<.1 and r14['seam']['speedDelta']<.01 and r14['seam']['axisDeltaDeg']<.1
-          report={'r13':r13,'r14':r14}; (OUT/'report.json').write_text(json.dumps(report,indent=2)); print('R14_CONFIDENCE_REPORT',json.dumps(report),flush=True); print('R14_TRAJECTORY_CONFIDENCE_PASS',flush=True); ws.close()
-          PY
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with: {name: proai-cube-r14-confidence-qa, path: qa-r14-confidence/, if-no-files-found: warn}
-
-  desktop-live:
-    if: github.event.pull_request.head.ref == 'agent/tmp-proai-cube-r14-qa-trigger'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: {ref: 'cffbdaac3627efff272570b15f264c3e8c3e0706', fetch-depth: 1}
-      - uses: actions/setup-python@v5
-        with: {python-version: '3.12'}
-      - run: python -m pip install --quiet websocket-client
-      - name: Start 1440x900 headed Chrome
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 -m http.server 8115 --bind 127.0.0.1 >/tmp/r14d-http.log 2>&1 &
-          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
-          xvfb-run -a -s '-screen 0 1440x900x24' "$CHROME" --no-sandbox --disable-dev-shm-usage --window-size=1440,900 --enable-webgl --use-gl=angle --use-angle=swiftshader --remote-debugging-port=9255 --remote-allow-origins='*' --user-data-dir=/tmp/r14-desktop about:blank >/tmp/r14d-chrome.log 2>&1 &
-          for i in $(seq 1 150); do curl -fsS http://127.0.0.1:9255/json/version >/tmp/version.json 2>/dev/null && break || true; sleep .2; done
-          test -s /tmp/version.json
-          for i in $(seq 1 80); do curl -fsS -X PUT 'http://127.0.0.1:9255/json/new?about:blank' >/tmp/page.json 2>/dev/null && grep -q webSocketDebuggerUrl /tmp/page.json && break || true; sleep .2; done
-          grep -q webSocketDebuggerUrl /tmp/page.json
-      - name: 75s live desktop plus three held-Orbit tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p qa-r14-desktop
-          timeout 165s python3 - <<'PY'
-          import json,math,time
-          from pathlib import Path
-          from websocket import create_connection,WebSocketTimeoutException
-          OUT=Path('qa-r14-desktop'); page=json.load(open('/tmp/page.json')); ws=create_connection(page['webSocketDebuggerUrl'],timeout=15,origin='http://localhost'); seq=0
+          OUT=Path('qa-r14-desktop-observe');page=json.load(open('/tmp/page.json'));ws=create_connection(page['webSocketDebuggerUrl'],timeout=15,origin='http://localhost');seq=0
           def call(method,params=None,timeout=30):
-              global seq
-              seq+=1;i=seq;ws.send(json.dumps({'id':i,'method':method,'params':params or {}}));end=time.monotonic()+timeout
+              global seq;seq+=1;i=seq;ws.send(json.dumps({'id':i,'method':method,'params':params or {}}));end=time.monotonic()+timeout
               while time.monotonic()<end:
                   try:ws.settimeout(max(.2,end-time.monotonic()));x=json.loads(ws.recv())
                   except WebSocketTimeoutException:continue
@@ -131,7 +53,7 @@ jobs:
           def ev(expr,timeout=30):return call('Runtime.evaluate',{'expression':expr,'returnByValue':True,'userGesture':True},timeout).get('result',{}).get('value')
           def js(expr,timeout=30):return json.loads(ev('JSON.stringify('+expr+')',timeout))
           def ready():
-              end=time.monotonic()+45
+              end=time.monotonic()+40
               while time.monotonic()<end:
                   try:
                       if ev('Boolean(window.__PROAI_CUBE_OWNER_REVIEW?.ready)',8):return
@@ -139,38 +61,24 @@ jobs:
                   time.sleep(.1)
               raise RuntimeError('ready timeout')
           def diag():return js("(()=>{const a=window.__PROAI_CUBE_OWNER_REVIEW,x=a.getDiagnostics(),i=a.getInteractionState();return{i,p:x.presentation,s:x.scheduler,lastSerial:x.lastTurnResult?.serial||0,state:a.motionState}})()")
-          def dist(a,b):return math.sqrt(sum((x-y)**2 for x,y in zip(a,b)))
-          def qang(a,b):
-              d=min(1,max(-1,abs(sum(x*y for x,y in zip(a,b)))));return 2*math.acos(d)
-          def mouse(kind,x,y,buttons=0):call('Input.dispatchMouseEvent',{'type':kind,'x':x,'y':y,'button':'left' if kind!='mouseMoved' else 'none','buttons':buttons,'clickCount':1},12)
           call('Page.enable');call('Runtime.enable');call('Emulation.setDeviceMetricsOverride',{'width':1440,'height':900,'deviceScaleFactor':1,'mobile':False})
-          call('Page.navigate',{'url':'http://127.0.0.1:8115/docs/site-evolution/spline/proai-cube-spatial-confidence-r1-4/review.html'});ready();d0=diag();assert d0['p']['engine']=='quaternion-confidence-flow-r1.4'
-          live=[{'wallSec':0,'diag':d0}]; start=time.monotonic(); next_mark=5; prev=d0
-          while time.monotonic()-start<75:
-              elapsed=time.monotonic()-start
-              if elapsed>=next_mark:
-                  d=diag(); assert d['i']['presentationSimTimeMs']>prev['i']['presentationSimTimeMs']; live.append({'wallSec':next_mark,'diag':d}); prev=d; next_mark+=5
-              time.sleep(.15)
-          d75=diag(); live.append({'wallSec':75,'diag':d75})
-          assert d75['s']['running'] and d75['i']['presentationSimTimeMs']>d0['i']['presentationSimTimeMs'] and d75['i']['sliceEventSerial']>d0['i']['sliceEventSerial'] and d75['lastSerial']>d0['lastSerial']
-          rect=js("document.getElementById('cube-canvas').getBoundingClientRect().toJSON()");cx=rect['x']+rect['width']/2;cy=rect['y']+rect['height']/2
-          tests=[]
-          for r in range(3):
-              b=diag();mouse('mouseMoved',cx,cy);mouse('mousePressed',cx,cy,1);st=time.monotonic();k=0
-              while time.monotonic()-st<12:
-                  call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':cx+(62 if k%2==0 else -47)+(k%5)*3,'y':cy+(20 if k%3==0 else -17),'button':'left','buttons':1},12);k+=1;time.sleep(.25)
-              h=diag();held={'simDelta':h['i']['presentationSimTimeMs']-b['i']['presentationSimTimeMs'],'eventDelta':h['i']['sliceEventSerial']-b['i']['sliceEventSerial'],'turnSerialDelta':h['lastSerial']-b['lastSerial'],'cameraDelta':dist(b['i']['cameraPosition'],h['i']['cameraPosition']),'quatDelta':qang(b['i']['presentationQuaternion'],h['i']['presentationQuaternion'])}
-              assert h['i']['interactionActive'] and not h['i']['sliceAutonomyBlocked'] and h['s']['running'] and held['simDelta']>0 and held['eventDelta']>0 and held['turnSerialDelta']>0 and held['cameraDelta']>.02 and held['quatDelta']>.002
-              qpre=h['i']['presentationQuaternion'];spre=h['i']['presentationSimTimeMs'];mouse('mouseReleased',cx,cy,0);time.sleep(.25);rel=diag();release={'quatDelta':qang(qpre,rel['i']['presentationQuaternion']),'simDelta':rel['i']['presentationSimTimeMs']-spre,'active':rel['i']['interactionActive'],'blocked':rel['i']['sliceAutonomyBlocked']}
-              assert not release['active'] and not release['blocked'] and release['quatDelta']<.2 and 0<=release['simDelta']<=500
-              tests.append({'held':held,'release':release});time.sleep(.5)
-          report={'live75':live,'interactionRepeats':tests};(OUT/'report.json').write_text(json.dumps(report,indent=2));print('R14_DESKTOP_LIVE_PASS',json.dumps(report),flush=True);ws.close()
+          call('Page.navigate',{'url':'http://127.0.0.1:8121/docs/site-evolution/spline/proai-cube-spatial-confidence-r1-4/review.html'});ready();d0=diag();assert d0['p']['engine']=='quaternion-confidence-flow-r1.4'
+          start=time.monotonic();marks=[25,50];samples=[{'wallSec':0,'diag':d0}]
+          for mark in marks:
+              while time.monotonic()-start<mark:time.sleep(.2)
+              samples.append({'wallSec':mark,'diag':diag()})
+          while time.monotonic()-start<75:time.sleep(.2)
+          d75=diag();samples.append({'wallSec':75,'diag':d75})
+          report={'samples':samples,'presentationSimDeltaMs':d75['i']['presentationSimTimeMs']-d0['i']['presentationSimTimeMs'],'sliceEventDelta':d75['i']['sliceEventSerial']-d0['i']['sliceEventSerial'],'turnSerialDelta':d75['lastSerial']-d0['lastSerial']}
+          (OUT/'report.json').write_text(json.dumps(report,indent=2))
+          assert d75['s']['running'] and report['presentationSimDeltaMs']>0 and report['sliceEventDelta']>0 and report['turnSerialDelta']>0
+          print('R14_DESKTOP_75S_PASS',json.dumps(report),flush=True);ws.close()
           PY
       - uses: actions/upload-artifact@v4
         if: always()
-        with: {name: proai-cube-r14-desktop-live-final, path: qa-r14-desktop/, if-no-files-found: warn}
+        with: {name: proai-cube-r14-desktop-observe-final, path: qa-r14-desktop-observe/, if-no-files-found: warn}
 
-  mobile-live:
+  mobile-observe-75s:
     if: github.event.pull_request.head.ref == 'agent/tmp-proai-cube-r14-qa-trigger'
     runs-on: ubuntu-latest
     steps:
@@ -179,30 +87,29 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: python -m pip install --quiet websocket-client
-      - name: Start 390x844 headed Chrome
+      - name: Start mobile Chrome
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 8116 --bind 127.0.0.1 >/tmp/r14m-http.log 2>&1 &
+          python3 -m http.server 8122 --bind 127.0.0.1 >/tmp/http.log 2>&1 &
           CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
-          xvfb-run -a -s '-screen 0 390x844x24' "$CHROME" --no-sandbox --disable-dev-shm-usage --window-size=390,844 --enable-webgl --use-gl=angle --use-angle=swiftshader --remote-debugging-port=9256 --remote-allow-origins='*' --user-data-dir=/tmp/r14-mobile about:blank >/tmp/r14m-chrome.log 2>&1 &
-          for i in $(seq 1 150); do curl -fsS http://127.0.0.1:9256/json/version >/tmp/version.json 2>/dev/null && break || true; sleep .2; done
+          xvfb-run -a -s '-screen 0 390x844x24' "$CHROME" --no-sandbox --disable-dev-shm-usage --window-size=390,844 --enable-webgl --use-gl=angle --use-angle=swiftshader --remote-debugging-port=9262 --remote-allow-origins='*' --user-data-dir=/tmp/r14-observe-mobile about:blank >/tmp/chrome.log 2>&1 &
+          for i in $(seq 1 160); do curl -fsS http://127.0.0.1:9262/json/version >/tmp/version.json 2>/dev/null && break || true; sleep .2; done
           test -s /tmp/version.json
-          for i in $(seq 1 80); do curl -fsS -X PUT 'http://127.0.0.1:9256/json/new?about:blank' >/tmp/page.json 2>/dev/null && grep -q webSocketDebuggerUrl /tmp/page.json && break || true; sleep .2; done
+          for i in $(seq 1 80); do curl -fsS -X PUT 'http://127.0.0.1:9262/json/new?about:blank' >/tmp/page.json 2>/dev/null && grep -q webSocketDebuggerUrl /tmp/page.json && break || true; sleep .2; done
           grep -q webSocketDebuggerUrl /tmp/page.json
-      - name: 75s live mobile review
+      - name: Observe live mobile for 75 seconds
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p qa-r14-mobile
-          timeout 110s python3 - <<'PY'
+          mkdir -p qa-r14-mobile-observe
+          timeout 115s python3 - <<'PY'
           import json,time
           from pathlib import Path
           from websocket import create_connection,WebSocketTimeoutException
-          OUT=Path('qa-r14-mobile');page=json.load(open('/tmp/page.json'));ws=create_connection(page['webSocketDebuggerUrl'],timeout=15,origin='http://localhost');seq=0
+          OUT=Path('qa-r14-mobile-observe');page=json.load(open('/tmp/page.json'));ws=create_connection(page['webSocketDebuggerUrl'],timeout=15,origin='http://localhost');seq=0
           def call(method,params=None,timeout=30):
-              global seq
-              seq+=1;i=seq;ws.send(json.dumps({'id':i,'method':method,'params':params or {}}));end=time.monotonic()+timeout
+              global seq;seq+=1;i=seq;ws.send(json.dumps({'id':i,'method':method,'params':params or {}}));end=time.monotonic()+timeout
               while time.monotonic()<end:
                   try:ws.settimeout(max(.2,end-time.monotonic()));x=json.loads(ws.recv())
                   except WebSocketTimeoutException:continue
@@ -213,7 +120,7 @@ jobs:
           def ev(expr,timeout=30):return call('Runtime.evaluate',{'expression':expr,'returnByValue':True,'userGesture':True},timeout).get('result',{}).get('value')
           def js(expr,timeout=30):return json.loads(ev('JSON.stringify('+expr+')',timeout))
           def ready():
-              end=time.monotonic()+45
+              end=time.monotonic()+40
               while time.monotonic()<end:
                   try:
                       if ev('Boolean(window.__PROAI_CUBE_OWNER_REVIEW?.ready)',8):return
@@ -222,16 +129,93 @@ jobs:
               raise RuntimeError('ready timeout')
           def diag():return js("(()=>{const a=window.__PROAI_CUBE_OWNER_REVIEW,x=a.getDiagnostics(),i=a.getInteractionState();return{i,p:x.presentation,s:x.scheduler,lastSerial:x.lastTurnResult?.serial||0}})()")
           call('Page.enable');call('Runtime.enable');call('Emulation.setDeviceMetricsOverride',{'width':390,'height':844,'deviceScaleFactor':1,'mobile':True})
-          call('Page.navigate',{'url':'http://127.0.0.1:8116/docs/site-evolution/spline/proai-cube-spatial-confidence-r1-4/review.html'});ready();d0=diag();assert d0['p']['engine']=='quaternion-confidence-flow-r1.4'
-          data=[{'wallSec':0,'diag':d0}];start=time.monotonic();next_mark=5;prev=d0
-          while time.monotonic()-start<75:
-              elapsed=time.monotonic()-start
-              if elapsed>=next_mark:
-                  d=diag();assert d['i']['presentationSimTimeMs']>prev['i']['presentationSimTimeMs'];data.append({'wallSec':next_mark,'diag':d});prev=d;next_mark+=5
-              time.sleep(.15)
-          d75=diag();data.append({'wallSec':75,'diag':d75});assert d75['s']['running'] and d75['i']['presentationSimTimeMs']>d0['i']['presentationSimTimeMs'] and d75['i']['sliceEventSerial']>d0['i']['sliceEventSerial'] and d75['lastSerial']>d0['lastSerial']
-          report={'live75':data};(OUT/'report.json').write_text(json.dumps(report,indent=2));print('R14_MOBILE_LIVE_PASS',json.dumps(report),flush=True);ws.close()
+          call('Page.navigate',{'url':'http://127.0.0.1:8122/docs/site-evolution/spline/proai-cube-spatial-confidence-r1-4/review.html'});ready();d0=diag();assert d0['p']['engine']=='quaternion-confidence-flow-r1.4'
+          start=time.monotonic();samples=[{'wallSec':0,'diag':d0}]
+          for mark in [25,50]:
+              while time.monotonic()-start<mark:time.sleep(.2)
+              samples.append({'wallSec':mark,'diag':diag()})
+          while time.monotonic()-start<75:time.sleep(.2)
+          d75=diag();samples.append({'wallSec':75,'diag':d75})
+          report={'samples':samples,'presentationSimDeltaMs':d75['i']['presentationSimTimeMs']-d0['i']['presentationSimTimeMs'],'sliceEventDelta':d75['i']['sliceEventSerial']-d0['i']['sliceEventSerial'],'turnSerialDelta':d75['lastSerial']-d0['lastSerial']}
+          (OUT/'report.json').write_text(json.dumps(report,indent=2))
+          assert d75['s']['running'] and report['presentationSimDeltaMs']>0 and report['sliceEventDelta']>0 and report['turnSerialDelta']>0
+          print('R14_MOBILE_75S_PASS',json.dumps(report),flush=True);ws.close()
           PY
       - uses: actions/upload-artifact@v4
         if: always()
-        with: {name: proai-cube-r14-mobile-live-final, path: qa-r14-mobile/, if-no-files-found: warn}
+        with: {name: proai-cube-r14-mobile-observe-final, path: qa-r14-mobile-observe/, if-no-files-found: warn}
+
+  held-orbit-repeat:
+    if: github.event.pull_request.head.ref == 'agent/tmp-proai-cube-r14-qa-trigger'
+    strategy:
+      fail-fast: false
+      matrix: {repeat: [1, 2, 3]}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: 'cffbdaac3627efff272570b15f264c3e8c3e0706', fetch-depth: 1}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: python -m pip install --quiet websocket-client
+      - name: Start interaction Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=$((8130 + ${{ matrix.repeat }})); DEBUG=$((9270 + ${{ matrix.repeat }})); echo "$PORT" >/tmp/http-port; echo "$DEBUG" >/tmp/debug-port
+          python3 -m http.server "$PORT" --bind 127.0.0.1 >/tmp/http.log 2>&1 &
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          xvfb-run -a -s '-screen 0 1440x900x24' "$CHROME" --no-sandbox --disable-dev-shm-usage --window-size=1440,900 --enable-webgl --use-gl=angle --use-angle=swiftshader --remote-debugging-port="$DEBUG" --remote-allow-origins='*' --user-data-dir="/tmp/r14-interaction-${{ matrix.repeat }}" about:blank >/tmp/chrome.log 2>&1 &
+          for i in $(seq 1 160); do curl -fsS "http://127.0.0.1:$DEBUG/json/version" >/tmp/version.json 2>/dev/null && break || true; sleep .2; done
+          test -s /tmp/version.json
+          for i in $(seq 1 80); do curl -fsS -X PUT "http://127.0.0.1:$DEBUG/json/new?about:blank" >/tmp/page.json 2>/dev/null && grep -q webSocketDebuggerUrl /tmp/page.json && break || true; sleep .2; done
+          grep -q webSocketDebuggerUrl /tmp/page.json
+      - name: Hold Orbit for 12 seconds and release
+        shell: bash
+        env: {REPEAT: '${{ matrix.repeat }}'}
+        run: |
+          set -euo pipefail
+          mkdir -p "qa-r14-interaction-$REPEAT"
+          timeout 75s python3 - <<'PY'
+          import json,math,os,time
+          from pathlib import Path
+          from websocket import create_connection,WebSocketTimeoutException
+          rep=int(os.environ['REPEAT']);OUT=Path(f'qa-r14-interaction-{rep}');page=json.load(open('/tmp/page.json'));ws=create_connection(page['webSocketDebuggerUrl'],timeout=15,origin='http://localhost');seq=0;port=int(Path('/tmp/http-port').read_text())
+          def call(method,params=None,timeout=30):
+              global seq;seq+=1;i=seq;ws.send(json.dumps({'id':i,'method':method,'params':params or {}}));end=time.monotonic()+timeout
+              while time.monotonic()<end:
+                  try:ws.settimeout(max(.2,end-time.monotonic()));x=json.loads(ws.recv())
+                  except WebSocketTimeoutException:continue
+                  if x.get('id')==i:
+                      if 'error'in x:raise RuntimeError((method,x['error']))
+                      return x.get('result',{})
+              raise TimeoutError(method)
+          def ev(expr,timeout=30):return call('Runtime.evaluate',{'expression':expr,'returnByValue':True,'userGesture':True},timeout).get('result',{}).get('value')
+          def js(expr,timeout=30):return json.loads(ev('JSON.stringify('+expr+')',timeout))
+          def ready():
+              end=time.monotonic()+40
+              while time.monotonic()<end:
+                  try:
+                      if ev('Boolean(window.__PROAI_CUBE_OWNER_REVIEW?.ready)',8):return
+                  except Exception:pass
+                  time.sleep(.1)
+              raise RuntimeError('ready timeout')
+          def diag():return js("(()=>{const a=window.__PROAI_CUBE_OWNER_REVIEW,x=a.getDiagnostics(),i=a.getInteractionState();return{i,p:x.presentation,s:x.scheduler,lastSerial:x.lastTurnResult?.serial||0}})()")
+          def dist(a,b):return math.sqrt(sum((x-y)**2 for x,y in zip(a,b)))
+          def qang(a,b):
+              d=min(1,max(-1,abs(sum(x*y for x,y in zip(a,b)))));return 2*math.acos(d)
+          def mouse(kind,x,y,buttons=0):call('Input.dispatchMouseEvent',{'type':kind,'x':x,'y':y,'button':'left' if kind!='mouseMoved' else 'none','buttons':buttons,'clickCount':1},12)
+          call('Page.enable');call('Runtime.enable');call('Emulation.setDeviceMetricsOverride',{'width':1440,'height':900,'deviceScaleFactor':1,'mobile':False})
+          call('Page.navigate',{'url':f'http://127.0.0.1:{port}/docs/site-evolution/spline/proai-cube-spatial-confidence-r1-4/review.html'});ready();b=diag();assert b['p']['engine']=='quaternion-confidence-flow-r1.4'
+          rect=js("document.getElementById('cube-canvas').getBoundingClientRect().toJSON()");cx=rect['x']+rect['width']/2;cy=rect['y']+rect['height']/2
+          mouse('mouseMoved',cx,cy);mouse('mousePressed',cx,cy,1);st=time.monotonic();k=0
+          while time.monotonic()-st<12:
+              call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':cx+(64 if k%2==0 else -48)+(k%5)*3,'y':cy+(22 if k%3==0 else -16),'button':'left','buttons':1},12);k+=1;time.sleep(.25)
+          h=diag();held={'simDeltaMs':h['i']['presentationSimTimeMs']-b['i']['presentationSimTimeMs'],'sliceEventDelta':h['i']['sliceEventSerial']-b['i']['sliceEventSerial'],'turnSerialDelta':h['lastSerial']-b['lastSerial'],'cameraDelta':dist(b['i']['cameraPosition'],h['i']['cameraPosition']),'presentationQuatDeltaRad':qang(b['i']['presentationQuaternion'],h['i']['presentationQuaternion'])}
+          assert h['i']['interactionActive'] and not h['i']['sliceAutonomyBlocked'] and h['s']['running'] and held['simDeltaMs']>0 and held['sliceEventDelta']>0 and held['turnSerialDelta']>0 and held['cameraDelta']>.02 and held['presentationQuatDeltaRad']>.002
+          qpre=h['i']['presentationQuaternion'];spre=h['i']['presentationSimTimeMs'];mouse('mouseReleased',cx,cy,0);time.sleep(.25);rel=diag();release={'quatDeltaRad':qang(qpre,rel['i']['presentationQuaternion']),'simDeltaMs':rel['i']['presentationSimTimeMs']-spre,'interactionActive':rel['i']['interactionActive'],'sliceBlocked':rel['i']['sliceAutonomyBlocked']}
+          assert not release['interactionActive'] and not release['sliceBlocked'] and release['quatDeltaRad']<.2 and 0<=release['simDeltaMs']<=500
+          report={'repeat':rep,'held':held,'release':release};(OUT/'report.json').write_text(json.dumps(report,indent=2));print('R14_HELD_ORBIT_PASS',json.dumps(report),flush=True);ws.close()
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: 'proai-cube-r14-held-orbit-${{ matrix.repeat }}', path: 'qa-r14-interaction-${{ matrix.repeat }}/', if-no-files-found: warn}

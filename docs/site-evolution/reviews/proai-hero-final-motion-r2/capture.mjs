@@ -6,8 +6,7 @@ const ROOT = 'docs/site-evolution/reviews/proai-hero-final-motion-r2';
 const OUT = path.join(ROOT, 'media');
 const BASE = 'http://127.0.0.1:4173/' + ROOT + '/review.html';
 const SEEDS = [142857, 271828, 314159];
-const EXTRA_VIDEO_SEEDS = Array.from({ length: 45 }, (_, index) => (((0x9e3779b9 * (index + 1)) ^ 0x5f3759df) >>> 0) || (index + 1));
-const VIDEO_SEED_POOL = [...new Set([...SEEDS, ...EXTRA_VIDEO_SEEDS])];
+const VIDEO_SEED = SEEDS[0];
 const SCENARIO_MS = 29500;
 await fs.mkdir(OUT, { recursive: true });
 
@@ -17,7 +16,7 @@ function qAngleDeg(a, b) {
 }
 
 async function waitReady(page) {
-  await page.waitForFunction(() => document.documentElement.dataset.reviewReady === 'true', null, { timeout: 30000 });
+  await page.waitForFunction(() => document.documentElement.dataset.reviewReady === 'true', null, { timeout: 45000 });
   const ready = await page.evaluate(() => {
     const runtime = window.__PROAI_FULL_HERO_REVIEW?.runtime;
     const raw = new URL(location.href).searchParams.get('motionSeed');
@@ -50,8 +49,6 @@ async function runtimeSample(page) {
     const r = window.__PROAI_FULL_HERO_REVIEW.runtime;
     const d = r.getDiagnostics();
     const p = r.getReviewPresentationSample?.() || {};
-    const poseQuality = Number.isFinite(d.presentation?.poseQuality) ? d.presentation.poseQuality : p.poseQuality;
-    const guardActive = d.presentation?.guardActive ?? p.guardActive ?? false;
     return {
       at: performance.now(),
       rngState: r.getMotionSeed(),
@@ -59,8 +56,8 @@ async function runtimeSample(page) {
       quaternion: d.presentation.quaternion,
       speed: d.presentation.angularVelocityDegPerSec,
       axis: d.presentation.rotationAxis,
-      poseQuality,
-      guardActive,
+      poseQuality: Number.isFinite(d.presentation?.poseQuality) ? d.presentation.poseQuality : p.poseQuality,
+      guardActive: d.presentation?.guardActive ?? p.guardActive ?? false,
       activeTurns: d.activeTurns.length,
       interaction: d.interaction,
       scheduler: d.scheduler,
@@ -190,13 +187,11 @@ async function runInteractionScenario(browser, { seed, viewport, mobile = false,
   const aspect = await aspectCheck(page);
   const samples = [];
 
-  await page.waitForTimeout(3000);
+  await page.waitForTimeout(5000);
   samples.push(await runtimeSample(page));
-  await page.waitForTimeout(4000);
+  await page.waitForTimeout(11000);
   samples.push(await runtimeSample(page));
   const interaction = mobile ? await touchDrag(page) : await desktopDrag(page);
-  samples.push(await runtimeSample(page));
-  await page.waitForTimeout(3000);
   samples.push(await runtimeSample(page));
   await page.waitForTimeout(Math.max(0, SCENARIO_MS - (Date.now() - scenarioStarted)));
   samples.push(await runtimeSample(page));
@@ -210,31 +205,6 @@ async function runInteractionScenario(browser, { seed, viewport, mobile = false,
     await fs.copyFile(videoPath, path.join(OUT, `${recordName}.webm`));
   }
   return { seed, ready, aspect, interaction, samples, finalDiag, coverage, consoleErrors };
-}
-
-async function findCoverageSeed(browser) {
-  const probes = [];
-  const batchSize = 4;
-  for (let offset = 0; offset < VIDEO_SEED_POOL.length; offset += batchSize) {
-    const batch = VIDEO_SEED_POOL.slice(offset, offset + batchSize);
-    const results = await Promise.all(batch.map(seed => runInteractionScenario(browser, {
-      seed,
-      viewport: { width: 800, height: 600 },
-      mobile: false,
-    })));
-    for (const result of results) {
-      const probe = {
-        seed: result.seed,
-        coverage: result.coverage,
-        interaction: result.interaction,
-        interactionPass: result.interaction.pass,
-        consoleErrors: result.consoleErrors,
-      };
-      probes.push(probe);
-      if (coveragePass(result.coverage) && result.interaction.pass && result.consoleErrors.length === 0) return { seed: result.seed, probes };
-    }
-  }
-  return { seed: null, probes };
 }
 
 async function reviewSeed(browser, seed) {
@@ -261,7 +231,6 @@ async function reviewSeed(browser, seed) {
   return {
     requestedSeed: seed,
     readySeed: ready.seed,
-    rngState: ready.rngState,
     poseMin,
     speedMin,
     speedMax,
@@ -270,16 +239,6 @@ async function reviewSeed(browser, seed) {
     errors,
     pass: ready.seed === seed && errors.length === 0 && Number.isFinite(poseMin) && poseMin >= 0.35 && speedMax <= 25.1 && canonicalPass,
   };
-}
-
-async function motionAuditForSeed(browser, seed) {
-  const context = await browser.newContext({ viewport: { width: 800, height: 600 }, deviceScaleFactor: 1 });
-  const page = await context.newPage();
-  await page.goto(BASE + '?motionSeed=' + seed, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  await waitReady(page);
-  const audit = await page.evaluate(value => window.__PROAI_FULL_HERO_REVIEW.runtime.runMotionAudit({ seeds: [value], minutes: 5 }), seed);
-  await context.close();
-  return audit;
 }
 
 const browser = await chromium.launch({ headless: true, args: ['--enable-webgl', '--ignore-gpu-blocklist', '--use-angle=swiftshader', '--disable-dev-shm-usage'] });
@@ -296,18 +255,8 @@ try {
   const seedReviews = [];
   for (const seed of SEEDS) seedReviews.push(await reviewSeed(browser, seed));
 
-  const coverageSelection = await findCoverageSeed(browser);
-  if (coverageSelection.seed == null) throw new Error(`No audited representative seed met mandatory video coverage: ${JSON.stringify(coverageSelection.probes)}`);
-  const videoSeed = coverageSelection.seed;
-  const videoSeedReview = SEEDS.includes(videoSeed)
-    ? seedReviews.find(item => item.requestedSeed === videoSeed)
-    : await reviewSeed(browser, videoSeed);
-  const videoSeedAudit = SEEDS.includes(videoSeed)
-    ? { pass: motionAudit.seeds.find(item => item.seed === videoSeed)?.pass === true, seeds: motionAudit.seeds.filter(item => item.seed === videoSeed) }
-    : await motionAuditForSeed(browser, videoSeed);
-
-  const desktop = await runInteractionScenario(browser, { seed: videoSeed, recordName: 'desktop', viewport: { width: 1440, height: 900 }, mobile: false });
-  const mobile = await runInteractionScenario(browser, { seed: videoSeed, recordName: 'mobile', viewport: { width: 390, height: 844 }, mobile: true });
+  const desktop = await runInteractionScenario(browser, { seed: VIDEO_SEED, recordName: 'desktop', viewport: { width: 1440, height: 900 }, mobile: false });
+  const mobile = await runInteractionScenario(browser, { seed: VIDEO_SEED, recordName: 'mobile', viewport: { width: 390, height: 844 }, mobile: true });
 
   const mechanicsPass = Boolean(automatedQA?.repeatability30?.pass && automatedQA?.inverseRestoration?.pass && automatedQA?.pairedTurnQA?.pass);
   const canonicalPass = [desktop, mobile].every(x => {
@@ -321,10 +270,7 @@ try {
     generatedAt: new Date().toISOString(),
     product: desktop.ready.product,
     seeds: SEEDS,
-    videoSeed,
-    coverageSelection,
-    videoSeedReview,
-    videoSeedAudit,
+    videoSeed: VIDEO_SEED,
     automatedQA,
     motionAudit,
     seedReviews,
@@ -332,27 +278,17 @@ try {
     mobile: { aspect: mobile.aspect, interaction: mobile.interaction, samples: mobile.samples, coverage: mobile.coverage, consoleErrors: mobile.consoleErrors, scheduler: mobile.finalDiag.diag.scheduler, canonicalError: mobile.finalDiag.diag.canonicalError },
   };
   report.pass = Boolean(
-    mechanicsPass &&
-    motionAudit?.pass &&
-    seedReviews.every(x => x.pass) &&
-    videoSeedReview?.pass &&
-    videoSeedAudit?.pass &&
-    desktop.aspect.pass &&
-    mobile.aspect.pass &&
-    desktop.interaction.pass &&
-    mobile.interaction.pass &&
-    canonicalPass &&
-    videoCoverage &&
-    poseEnvelopePass &&
-    desktop.consoleErrors.length === 0 &&
-    mobile.consoleErrors.length === 0
+    mechanicsPass && motionAudit?.pass && seedReviews.every(x => x.pass) &&
+    desktop.aspect.pass && mobile.aspect.pass && desktop.interaction.pass && mobile.interaction.pass &&
+    canonicalPass && videoCoverage && poseEnvelopePass &&
+    desktop.consoleErrors.length === 0 && mobile.consoleErrors.length === 0
   );
   report.acceptance = {
     mechanicsPass,
     canonicalPass,
     videoCoverage,
     poseEnvelopePass,
-    antiRepetition: motionAudit?.pass === true && videoSeedAudit?.pass === true,
+    antiRepetition: motionAudit?.pass === true,
     noReleaseSnap: desktop.interaction.releaseSnapDeg < 0.25 && mobile.interaction.releaseSnapDeg < 0.25,
     noVelocityJump: desktop.interaction.noVelocityJump && mobile.interaction.noVelocityJump,
     autoResume: desktop.interaction.resumedAngleDeg > 0.05 && mobile.interaction.resumedAngleDeg > 0.05,
@@ -365,7 +301,7 @@ try {
 
 await fs.writeFile(path.join(OUT, 'motion-audit.json'), JSON.stringify(report, null, 2));
 const s = report.motionAudit.seeds;
-const summary = `# Final Cube Motion R2 — Diagnostic Summary\n\n- Product: ${report.product}\n- Required seeds: ${report.seeds.join(', ')}\n- Representative video seed: ${report.videoSeed}\n- Overall automated acceptance: **${report.pass ? 'PASS' : 'FAIL'}**\n- Mechanics / exact endpoints: **${report.acceptance.mechanicsPass ? 'PASS' : 'FAIL'}**\n- Anti-repetition audit: **${report.acceptance.antiRepetition ? 'PASS' : 'FAIL'}**\n- Pose readability envelope: **${report.acceptance.poseEnvelopePass ? 'PASS' : 'FAIL'}**\n- Active slice completes during held drag: **${report.acceptance.activeSliceCompletes ? 'PASS' : 'FAIL'}**\n- Desktop interaction/no-snap/resume: **${report.desktop.interaction.pass ? 'PASS' : 'FAIL'}** (snap ${report.desktop.interaction.releaseSnapDeg.toFixed(4)}°, resume ${report.desktop.interaction.resumedAngleDeg.toFixed(4)}°)\n- Mobile touch/no-snap/resume: **${report.mobile.interaction.pass ? 'PASS' : 'FAIL'}** (snap ${report.mobile.interaction.releaseSnapDeg.toFixed(4)}°, resume ${report.mobile.interaction.resumedAngleDeg.toFixed(4)}°)\n- No velocity jump: **${report.acceptance.noVelocityJump ? 'PASS' : 'FAIL'}**\n- Mobile aspect: **${report.mobile.aspect.pass ? 'PASS' : 'FAIL'}**\n- Canonical transform safety: **${report.acceptance.canonicalPass ? 'PASS' : 'FAIL'}**\n- Video event coverage: **${report.acceptance.videoCoverage ? 'PASS' : 'FAIL'}**\n- Desktop coverage: singles ${report.desktop.coverage.singleEvents}, pairs ${report.desktop.coverage.pairEvents}, phrases ${report.desktop.coverage.phraseEvents}, breaths ${report.desktop.coverage.breaths}\n- Mobile coverage: singles ${report.mobile.coverage.singleEvents}, pairs ${report.mobile.coverage.pairEvents}, phrases ${report.mobile.coverage.phraseEvents}, breaths ${report.mobile.coverage.breaths}\n\n## Five-minute required-seed generator audit\n${s.map(x => `- Seed ${x.seed}: ${x.pass ? 'PASS' : 'FAIL'}; moves ${x.moveCount}; exact repeats ${x.exactRepeat}; immediate inverse ${x.immediateInverse}; short-window inverse ${x.shortInverse}; recent phrase repeats 2/3/4/5 = ${x.phraseRepeats[2]}/${x.phraseRepeats[3]}/${x.phraseRepeats[4]}/${x.phraseRepeats[5]}; axis spread ${(x.axisSpread * 100).toFixed(1)}%; direction spread ${(x.directionSpread * 100).toFixed(1)}%`).join('\n')}\n\n## Runtime required-seed review\n${report.seedReviews.map(x => `- Seed ${x.requestedSeed}: ${x.pass ? 'PASS' : 'FAIL'}; pose quality min ${Number.isFinite(x.poseMin) ? x.poseMin.toFixed(3) : 'n/a'}; speed ${x.speedMin.toFixed(2)}–${x.speedMax.toFixed(2)} deg/s; observed moves ${x.moveCount}`).join('\n')}\n\n## Representative video seed\n- Seed ${report.videoSeed}: runtime ${report.videoSeedReview?.pass ? 'PASS' : 'FAIL'}; five-minute audit ${report.videoSeedAudit?.pass ? 'PASS' : 'FAIL'}\n\n## Coverage-seed probes\n${report.coverageSelection.probes.map(x => `- Seed ${x.seed}: singles ${x.coverage.singleEvents}, pairs ${x.coverage.pairEvents}, phrases ${x.coverage.phraseEvents}, breaths ${x.coverage.breaths}; interaction ${x.interactionPass ? 'PASS' : 'FAIL'}; snap ${Number.isFinite(x.interaction?.releaseSnapDeg) ? x.interaction.releaseSnapDeg.toFixed(4) : 'n/a'}°; resume ${Number.isFinite(x.interaction?.resumedAngleDeg) ? x.interaction.resumedAngleDeg.toFixed(4) : 'n/a'}°`).join('\n')}\n`;
+const summary = `# Final Cube Motion R2 — Diagnostic Summary\n\n- Product: ${report.product}\n- Required seeds: ${report.seeds.join(', ')}\n- Owner-video seed: ${report.videoSeed}\n- Overall automated acceptance: **${report.pass ? 'PASS' : 'FAIL'}**\n- Mechanics / exact endpoints: **${report.acceptance.mechanicsPass ? 'PASS' : 'FAIL'}**\n- Anti-repetition audit: **${report.acceptance.antiRepetition ? 'PASS' : 'FAIL'}**\n- Pose readability envelope: **${report.acceptance.poseEnvelopePass ? 'PASS' : 'FAIL'}**\n- Active slice completes during held drag: **${report.acceptance.activeSliceCompletes ? 'PASS' : 'FAIL'}**\n- Desktop interaction/no-snap/resume: **${report.desktop.interaction.pass ? 'PASS' : 'FAIL'}** (snap ${report.desktop.interaction.releaseSnapDeg.toFixed(4)}°, resume ${report.desktop.interaction.resumedAngleDeg.toFixed(4)}°)\n- Mobile touch/no-snap/resume: **${report.mobile.interaction.pass ? 'PASS' : 'FAIL'}** (snap ${report.mobile.interaction.releaseSnapDeg.toFixed(4)}°, resume ${report.mobile.interaction.resumedAngleDeg.toFixed(4)}°)\n- No velocity jump: **${report.acceptance.noVelocityJump ? 'PASS' : 'FAIL'}**\n- Mobile aspect: **${report.mobile.aspect.pass ? 'PASS' : 'FAIL'}**\n- Canonical transform safety: **${report.acceptance.canonicalPass ? 'PASS' : 'FAIL'}**\n- Video event coverage: **${report.acceptance.videoCoverage ? 'PASS' : 'FAIL'}**\n- Desktop coverage: singles ${report.desktop.coverage.singleEvents}, pairs ${report.desktop.coverage.pairEvents}, phrases ${report.desktop.coverage.phraseEvents}, breaths ${report.desktop.coverage.breaths}\n- Mobile coverage: singles ${report.mobile.coverage.singleEvents}, pairs ${report.mobile.coverage.pairEvents}, phrases ${report.mobile.coverage.phraseEvents}, breaths ${report.mobile.coverage.breaths}\n\n## Five-minute generator audit\n${s.map(x => `- Seed ${x.seed}: ${x.pass ? 'PASS' : 'FAIL'}; moves ${x.moveCount}; exact repeats ${x.exactRepeat}; immediate inverse ${x.immediateInverse}; short-window inverse ${x.shortInverse}; recent phrase repeats 2/3/4/5 = ${x.phraseRepeats[2]}/${x.phraseRepeats[3]}/${x.phraseRepeats[4]}/${x.phraseRepeats[5]}; axis spread ${(x.axisSpread * 100).toFixed(1)}%; direction spread ${(x.directionSpread * 100).toFixed(1)}%`).join('\n')}\n\n## Runtime seed review\n${report.seedReviews.map(x => `- Seed ${x.requestedSeed}: ${x.pass ? 'PASS' : 'FAIL'}; pose quality min ${Number.isFinite(x.poseMin) ? x.poseMin.toFixed(3) : 'n/a'}; speed ${x.speedMin.toFixed(2)}–${x.speedMax.toFixed(2)} deg/s; observed moves ${x.moveCount}`).join('\n')}\n`;
 await fs.writeFile(path.join(OUT, 'MOTION_DIAGNOSTIC_SUMMARY.md'), summary);
 console.log(summary);
 if (!report.pass) process.exitCode = 2;

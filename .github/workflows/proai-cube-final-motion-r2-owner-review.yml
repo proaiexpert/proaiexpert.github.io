@@ -50,7 +50,7 @@ jobs:
         continue-on-error: true
         run: node docs/site-evolution/reviews/proai-hero-final-motion-r2/capture.mjs
 
-      - name: Convert review videos to H.264 MP4
+      - name: Convert review videos and derive evidence stills
         if: always()
         run: |
           set -euo pipefail
@@ -73,8 +73,22 @@ jobs:
               ffmpeg -y -i "$src" -an -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -movflags +faststart "$dst"
             fi
           }
+          still() {
+            src="$1"
+            at="$2"
+            dst="$3"
+            ffmpeg -y -ss "$at" -i "$src" -frames:v 1 -an "$dst"
+          }
           normalize_video "$OUT/desktop.webm" "$OUT/desktop-final-motion-r2.mp4"
           normalize_video "$OUT/mobile.webm" "$OUT/mobile-final-motion-r2.mp4"
+          still "$OUT/desktop-final-motion-r2.mp4" 4 "$OUT/desktop-01.png"
+          still "$OUT/desktop-final-motion-r2.mp4" 9 "$OUT/desktop-02.png"
+          still "$OUT/desktop-final-motion-r2.mp4" 15 "$OUT/desktop-03-interaction-resume.png"
+          still "$OUT/desktop-final-motion-r2.mp4" 23 "$OUT/desktop-04.png"
+          still "$OUT/mobile-final-motion-r2.mp4" 4 "$OUT/mobile-01.png"
+          still "$OUT/mobile-final-motion-r2.mp4" 9 "$OUT/mobile-02.png"
+          still "$OUT/mobile-final-motion-r2.mp4" 15 "$OUT/mobile-03-interaction-resume.png"
+          still "$OUT/mobile-final-motion-r2.mp4" 23 "$OUT/mobile-04.png"
           rm -f "$OUT/desktop.webm" "$OUT/mobile.webm"
           rm -rf "$OUT/_video-desktop" "$OUT/_video-mobile"
           ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$OUT/desktop-final-motion-r2.mp4" > "$OUT/desktop-duration.txt"

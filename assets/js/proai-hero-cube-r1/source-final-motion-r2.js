@@ -56,7 +56,10 @@ const FINAL_MOTION_R2 = Object.freeze({
     maxJerkDegPerSec3: 68.0,
     poseQualitySoft: 0.56,
     poseQualityHard: 0.42,
-    guardSampleDeg: 4.0,
+    poseGuardTrigger: 0.62,
+    poseLookaheadSec: 1.0,
+    guardSampleDeg: 5.0,
+    guardContinuityWeight: 0.12,
     fieldPeriodsSec: Object.freeze([43.7, 67.3, 101.9, 151.1]),
   }),
   slice: Object.freeze({
@@ -116,32 +119,16 @@ const recentPhraseSignatures = new Map();
 const motionEventLog = [];
 const sliceCounters = { axis: { X: 0, Y: 0, Z: 0 }, layer: { '-1': 0, '0': 0, '1': 0 }, direction: { '-1': 0, '1': 0 }, kinds: { single: 0, pair: 0, phrase: 0, breath: 0 } };`,
 );
-source = source.replace(
-  "let presentationPhase = PRESENTATION_SPATIAL_R1_2.keyframes[0].motion;",
-  "let presentationPhase = 'continuous';",
-);
-source = source.replace(
-  "let presentationPoseLabel = PRESENTATION_SPATIAL_R1_2.keyframes[0].label;",
-  "let presentationPoseLabel = 'guarded-3q';",
-);
-
-source = source.replace(
-  '  presentationConfig: PRESENTATION_SPATIAL_R1_2,\n  sliceConfig: SLICE_R1_2,',
-  `  presentationConfig: FINAL_MOTION_R2.presentation,
-  sliceConfig: FINAL_MOTION_R2.slice,`,
-);
-source = source.replace(
-  '  runPairedTurnQA,',
-  `  runPairedTurnQA,
+source = source.replace("let presentationPhase = PRESENTATION_SPATIAL_R1_2.keyframes[0].motion;", "let presentationPhase = 'continuous';");
+source = source.replace("let presentationPoseLabel = PRESENTATION_SPATIAL_R1_2.keyframes[0].label;", "let presentationPoseLabel = 'guarded-3q';");
+source = source.replace('  presentationConfig: PRESENTATION_SPATIAL_R1_2,\n  sliceConfig: SLICE_R1_2,', `  presentationConfig: FINAL_MOTION_R2.presentation,
+  sliceConfig: FINAL_MOTION_R2.slice,`);
+source = source.replace('  runPairedTurnQA,', `  runPairedTurnQA,
   runMotionAudit,
   getMotionLog() { return motionEventLog.map((entry) => ({ ...entry })); },
-  getMotionSeed() { return sliceSeed >>> 0; },`,
-);
-source = source.replace(
-  'window.__PROAI_CUBE_SPATIAL_R1_2 = api;',
-  `window.__PROAI_CUBE_SPATIAL_R1_2 = api;
-window.__PROAI_CUBE_FINAL_MOTION_R2 = api;`,
-);
+  getMotionSeed() { return sliceSeed >>> 0; },`);
+source = source.replace('window.__PROAI_CUBE_SPATIAL_R1_2 = api;', `window.__PROAI_CUBE_SPATIAL_R1_2 = api;
+window.__PROAI_CUBE_FINAL_MOTION_R2 = api;`);
 
 const autonomyStub = `function presentationAutonomyBlocked() {
   return false;
@@ -177,6 +164,19 @@ const desiredAccelScratch = new THREE.Vector3();
 const jerkScratch = new THREE.Vector3();
 const dragYawQuaternion = new THREE.Quaternion();
 const dragPitchQuaternion = new THREE.Quaternion();
+const predictedQuaternion = new THREE.Quaternion();
+const predictedDeltaQuaternion = new THREE.Quaternion();
+const velocityAxisScratch = new THREE.Vector3();
+const guardCandidateAxis = new THREE.Vector3();
+const GUARD_AXES = Object.freeze([
+  WORLD_X, WORLD_Y, WORLD_Z,
+  new THREE.Vector3(1, 1, 0).normalize(),
+  new THREE.Vector3(1, 0, 1).normalize(),
+  new THREE.Vector3(0, 1, 1).normalize(),
+  new THREE.Vector3(1, -1, 0).normalize(),
+  new THREE.Vector3(1, 0, -1).normalize(),
+  new THREE.Vector3(0, 1, -1).normalize(),
+]);
 
 function fieldAtSeconds(timeSec, out = presentationFieldAxis) {
   const p = FINAL_MOTION_R2.presentation.fieldPeriodsSec;
@@ -215,18 +215,26 @@ function poseQualityForQuaternion(quaternion) {
   return THREE.MathUtils.clamp(1 - 0.42 * dominance - 0.43 * secondaryLoss - 0.15 * tertiaryLoss, 0, 1);
 }
 
-function bestPoseGuardAxis(quaternion) {
+function bestPoseGuardAxis(quaternion, currentAxis) {
   const step = THREE.MathUtils.degToRad(FINAL_MOTION_R2.presentation.guardSampleDeg);
-  let bestScore = poseQualityForQuaternion(quaternion);
+  const baseScore = poseQualityForQuaternion(quaternion);
+  let bestScore = baseScore;
+  let bestMerit = -Infinity;
   guardAxis.set(0, 0, 0);
-  for (const axis of [WORLD_X, WORLD_Y, WORLD_Z]) {
+  for (const axis of GUARD_AXES) {
     for (const sign of [-1, 1]) {
-      motionDeltaQuaternion.setFromAxisAngle(axis, step * sign);
+      guardCandidateAxis.copy(axis).multiplyScalar(sign);
+      motionDeltaQuaternion.setFromAxisAngle(guardCandidateAxis, step);
       guardTestQuaternion.copy(motionDeltaQuaternion).multiply(quaternion).normalize();
       const score = poseQualityForQuaternion(guardTestQuaternion);
-      if (score > bestScore + 0.002) {
+      const improvement = score - baseScore;
+      if (improvement <= 0.0005) continue;
+      const continuity = currentAxis ? guardCandidateAxis.dot(currentAxis) : 0;
+      const merit = improvement + FINAL_MOTION_R2.presentation.guardContinuityWeight * continuity;
+      if (merit > bestMerit) {
+        bestMerit = merit;
         bestScore = score;
-        guardAxis.copy(axis).multiplyScalar(sign);
+        guardAxis.copy(guardCandidateAxis);
       }
     }
   }
@@ -305,14 +313,35 @@ function updatePresentationMotion(now) {
     const resumeT = THREE.MathUtils.clamp((sinceRelease - FINAL_MOTION_R2.interaction.resumeGraceMs) / MOTION.manualResumeBlendMs, 0, 1);
     presentationResumeBlend = smoothstep(resumeT);
     fieldAtSeconds(presentationSimTimeMs / 1000, presentationFieldAxis);
-    const guard = bestPoseGuardAxis(presentationRig.quaternion);
     presentationPoseQuality = poseQualityForQuaternion(presentationRig.quaternion);
-    presentationGuardActive = presentationPoseQuality < FINAL_MOTION_R2.presentation.poseQualitySoft && guard.axis.lengthSq() > 0;
+    const currentAxis = presentationVelocity.lengthSq() > 1e-8
+      ? velocityAxisScratch.copy(presentationVelocity).normalize()
+      : velocityAxisScratch.copy(presentationFieldAxis);
+    if (presentationFieldAxis.dot(currentAxis) < 0) presentationFieldAxis.negate();
+
+    let targetSpeedDeg = speedAtSeconds(presentationSimTimeMs / 1000);
+    const lookaheadRad = THREE.MathUtils.degToRad(targetSpeedDeg) * FINAL_MOTION_R2.presentation.poseLookaheadSec;
+    predictedDeltaQuaternion.setFromAxisAngle(presentationFieldAxis, lookaheadRad);
+    predictedQuaternion.copy(predictedDeltaQuaternion).multiply(presentationRig.quaternion).normalize();
+    const predictedQuality = poseQualityForQuaternion(predictedQuaternion);
+    const guardReference = predictedQuality < presentationPoseQuality ? predictedQuaternion : presentationRig.quaternion;
+    const guard = bestPoseGuardAxis(guardReference, currentAxis);
+    const guardMetric = Math.min(presentationPoseQuality, predictedQuality);
+    presentationGuardActive = (predictedQuality < FINAL_MOTION_R2.presentation.poseGuardTrigger
+      || presentationPoseQuality < FINAL_MOTION_R2.presentation.poseQualitySoft)
+      && guard.axis.lengthSq() > 0;
     if (presentationGuardActive) {
-      const severity = THREE.MathUtils.clamp((FINAL_MOTION_R2.presentation.poseQualitySoft - presentationPoseQuality) / 0.22, 0.15, 1);
-      presentationFieldAxis.lerp(guard.axis, 0.28 + 0.42 * severity).normalize();
+      const severity = THREE.MathUtils.clamp(
+        (FINAL_MOTION_R2.presentation.poseGuardTrigger - guardMetric)
+          / (FINAL_MOTION_R2.presentation.poseGuardTrigger - FINAL_MOTION_R2.presentation.poseQualityHard),
+        0,
+        1,
+      );
+      const guardWeight = Math.min(0.95, 0.78 + 0.15 * severity);
+      presentationFieldAxis.lerp(guard.axis, guardWeight).normalize();
+      if (guardMetric < FINAL_MOTION_R2.presentation.poseQualityHard) targetSpeedDeg = Math.min(targetSpeedDeg, 12);
     }
-    const targetSpeedRad = THREE.MathUtils.degToRad(speedAtSeconds(presentationSimTimeMs / 1000)) * presentationResumeBlend;
+    const targetSpeedRad = THREE.MathUtils.degToRad(targetSpeedDeg) * presentationResumeBlend;
     presentationTargetVelocity.copy(presentationFieldAxis).multiplyScalar(targetSpeedRad);
   }
 
@@ -461,10 +490,7 @@ function chooseMove({ history = sliceHistory, neutralVisibility = false } = {}) 
     const last = history.at(-1);
     move = candidates.find((candidate) => !last || (moveKey(candidate) !== moveKey(last) && moveKey(candidate) !== inverseKey(last))) || candidates[0];
   }
-  return {
-    ...move,
-    durationMs: Math.round(seededRange(...FINAL_MOTION_R2.slice.turnDurationRangeMs)),
-  };
+  return { ...move, durationMs: Math.round(seededRange(...FINAL_MOTION_R2.slice.turnDurationRangeMs)) };
 }
 
 function rememberMove(move, kind, eventId) {
@@ -524,9 +550,7 @@ async function runSingleScheduledEvent(eventId) {
 }
 
 function pairCompatibility(first, second) {
-  if (first.axis === second.axis && first.layer !== second.layer) {
-    return { simultaneous: true, score: Math.abs(first.layer - second.layer) === 2 ? 1.25 : 0.72 };
-  }
+  if (first.axis === second.axis && first.layer !== second.layer) return { simultaneous: true, score: Math.abs(first.layer - second.layer) === 2 ? 1.25 : 0.72 };
   if (first.axis !== second.axis) return { simultaneous: false, score: 1.10 };
   return { simultaneous: false, score: 0 };
 }
@@ -576,10 +600,7 @@ async function runPhraseScheduledEvent(eventId) {
     const durationScale = index === 0 ? seededRange(0.96, 1.05) : index === phraseLength - 1 ? seededRange(1.02, 1.12) : seededRange(0.90, 1.02);
     move.durationMs = Math.round(move.durationMs * durationScale);
     const result = await turnSlice(move);
-    if (result) {
-      rememberMove(move, 'phrase', eventId);
-      completed = true;
-    }
+    if (result) { rememberMove(move, 'phrase', eventId); completed = true; }
     if (index < phraseLength - 1) await schedulerDelay(Math.round(seededRange(...FINAL_MOTION_R2.slice.microGapRangeMs)));
   }
   return completed;
@@ -687,14 +708,7 @@ function auditSequence(seed, moveCount = 240) {
 function runMotionAudit({ seeds = [142857, 271828, 314159], minutes = 5, estimatedMovesPerMinute = 42 } = {}) {
   const moveCount = Math.max(180, Math.round(minutes * estimatedMovesPerMinute));
   const seedReports = seeds.map((seed) => auditSequence(seed, moveCount));
-  return {
-    authority: FINAL_MOTION_R2.motionAuthority,
-    generatedAt: new Date().toISOString(),
-    minutes,
-    moveCountPerSeed: moveCount,
-    seeds: seedReports,
-    pass: seedReports.every((report) => report.pass),
-  };
+  return { authority: FINAL_MOTION_R2.motionAuthority, generatedAt: new Date().toISOString(), minutes, moveCountPerSeed: moveCount, seeds: seedReports, pass: seedReports.every((report) => report.pass) };
 }
 
 function getInteractionState() {
@@ -777,26 +791,17 @@ source = source.replace(
 source = source.replaceAll('presentationConfig: PRESENTATION_SPATIAL_R1_2', 'presentationConfig: FINAL_MOTION_R2.presentation');
 source = source.replaceAll('sliceConfig: SLICE_R1_2', 'sliceConfig: FINAL_MOTION_R2.slice');
 source = source.replaceAll('engine: PRESENTATION_SPATIAL_R1_2.motionAuthority', 'engine: FINAL_MOTION_R2.motionAuthority');
-source = source.replace(
-  '    eventsUntilBreath,',
-  `    eventsUntilBreath,
+source = source.replace('    eventsUntilBreath,', `    eventsUntilBreath,
       seed: sliceSeed >>> 0,
       requestedSeed: Number.isFinite(requestedMotionSeed) ? requestedMotionSeed >>> 0 : null,
       history: sliceHistory.slice(-24).map((move) => ({ ...move })),
-      counts: JSON.parse(JSON.stringify(sliceCounters)),`,
-);
-source = source.replace(
-  '    phase: presentationPhase,\n    poseLabel: presentationPoseLabel,',
-  `    phase: presentationPhase,
+      counts: JSON.parse(JSON.stringify(sliceCounters)),`);
+source = source.replace('    phase: presentationPhase,\n    poseLabel: presentationPoseLabel,', `    phase: presentationPhase,
     poseLabel: presentationPoseLabel,
     poseQuality: presentationPoseQuality,
     guardActive: presentationGuardActive,
-    resumeBlend: presentationResumeBlend,`,
-);
-source = source.replace(
-  'Geometry R1 + Motion R1.2 frozen. Materials + Lighting R1 ready.',
-  'Geometry R1 frozen. FINAL MOTION R2 active. Materials + Lighting R1 frozen.',
-);
+    resumeBlend: presentationResumeBlend,`);
+source = source.replace('Geometry R1 + Motion R1.2 frozen. Materials + Lighting R1 ready.', 'Geometry R1 frozen. FINAL MOTION R2 active. Materials + Lighting R1 frozen.');
 
 if (source.includes('const PRIMARY_PHRASE = Object.freeze([')) throw new Error('FINAL MOTION R2 left PRIMARY_PHRASE authority');
 if (source.includes('const RESOLUTION_PHRASE = Object.freeze(')) throw new Error('FINAL MOTION R2 left RESOLUTION_PHRASE authority');

@@ -143,6 +143,25 @@ source = source.replace(
 window.__PROAI_CUBE_FINAL_MOTION_R2 = api;`,
 );
 
+const autonomyStub = `function presentationAutonomyBlocked() {
+  return false;
+}
+
+function sliceAutonomyBlocked() {
+  return false;
+}
+
+function autonomyBlocked() {
+  return presentationAutonomyBlocked();
+}`;
+const autonomyR2 = `function presentationAutonomyBlocked() { return interactionActive; }
+function sliceAutonomyBlocked() {
+  return interactionActive || performance.now() - interactionReleaseAtMs < FINAL_MOTION_R2.interaction.resumeGraceMs;
+}
+function autonomyBlocked() { return presentationAutonomyBlocked(); }`;
+if (!source.includes(autonomyStub)) throw new Error('FINAL MOTION R2 autonomy patch target missing');
+source = source.replace(autonomyStub, autonomyR2);
+
 const presentationFunctionsPattern = /function presentationPoseQuaternion\([\s\S]*?\nfunction seededUnit\(\) \{/;
 const presentationFunctionsR2 = `const WORLD_X = new THREE.Vector3(1, 0, 0);
 const WORLD_Y = new THREE.Vector3(0, 1, 0);
@@ -382,7 +401,6 @@ function sequenceAlreadyRecent(history, candidate) {
   return false;
 }
 
-function recentCount(window, predicate) { return window.reduce((count, move) => count + (predicate(move) ? 1 : 0), 0); }
 function currentWholeSpeedNormalized() {
   return THREE.MathUtils.clamp((presentationSpeedDegPerSec - 8) / 16, 0, 1);
 }
@@ -425,7 +443,7 @@ function candidateMoveWeight(move, history = sliceHistory, neutralVisibility = f
   if (move.layer === 0) weight *= 1.03; else weight *= 0.96;
   if (!neutralVisibility) weight *= 0.55 + 0.65 * layerVisibilityScore(move);
 
-  if (presentationVelocity.lengthSq() > 1e-8) {
+  if (!neutralVisibility && presentationVelocity.lengthSq() > 1e-8) {
     const axisVector = move.axis === 'X' ? WORLD_X : move.axis === 'Y' ? WORLD_Y : WORLD_Z;
     const alignment = Math.abs(axisVector.dot(presentationVelocity.clone().normalize()));
     if (alignment > 0.78 && move.direction === Math.sign(axisVector.dot(presentationVelocity))) weight *= 0.78;
@@ -477,13 +495,6 @@ function chooseEventType() {
   const weights = eventWeights();
   return chooseWeighted(['single', 'pair', 'phrase'], (kind) => weights[kind]) || 'single';
 }
-
-function interactionBlocksNewSlices() {
-  return interactionActive || performance.now() - interactionReleaseAtMs < FINAL_MOTION_R2.interaction.resumeGraceMs;
-}
-function presentationAutonomyBlocked() { return interactionActive; }
-function sliceAutonomyBlocked() { return interactionBlocksNewSlices(); }
-function autonomyBlocked() { return presentationAutonomyBlocked(); }
 
 async function waitForSliceAutonomy() {
   while (sliceSchedulerEnabled && sliceAutonomyBlocked()) await sleep(32);
@@ -627,7 +638,8 @@ function auditSequence(seed, moveCount = 240) {
   let shortInverse = 0;
   let exactRepeat = 0;
   const phraseRepeats = { 2: 0, 3: 0, 4: 0, 5: 0 };
-  const seen = { 2: new Set(), 3: new Set(), 4: new Set(), 5: new Set() };
+  const phraseRepeatMinDistance = { 2: Infinity, 3: Infinity, 4: Infinity, 5: Infinity };
+  const lastSeen = { 2: new Map(), 3: new Map(), 4: new Map(), 5: new Map() };
   for (let i = 0; i < moveCount; i += 1) {
     const move = chooseMoveOffline(history, rng);
     const last = history.at(-1);
@@ -641,8 +653,13 @@ function auditSequence(seed, moveCount = 240) {
     for (const length of FINAL_MOTION_R2.slice.phraseLengths) {
       if (history.length < length) continue;
       const signature = sequenceKey(history.slice(-length));
-      if (seen[length].has(signature)) phraseRepeats[length] += 1;
-      seen[length].add(signature);
+      const priorIndex = lastSeen[length].get(signature);
+      if (priorIndex != null) {
+        const distance = i - priorIndex;
+        phraseRepeatMinDistance[length] = Math.min(phraseRepeatMinDistance[length], distance);
+        if (distance <= FINAL_MOTION_R2.slice.phraseWindow) phraseRepeats[length] += 1;
+      }
+      lastSeen[length].set(signature, i);
     }
   }
   const axisValues = Object.values(counts.axis);
@@ -656,6 +673,7 @@ function auditSequence(seed, moveCount = 240) {
     immediateInverse,
     shortInverse,
     phraseRepeats,
+    phraseRepeatMinDistance: Object.fromEntries(Object.entries(phraseRepeatMinDistance).map(([length, value]) => [length, Number.isFinite(value) ? value : null])),
     counts,
     axisSpread,
     directionSpread,

@@ -13,6 +13,20 @@ function qAngleDeg(a, b) {
   return (2 * Math.acos(dot)) * 180 / Math.PI;
 }
 
+async function capturePng(page, filePath) {
+  const cdp = await page.context().newCDPSession(page);
+  try {
+    const result = await cdp.send('Page.captureScreenshot', {
+      format: 'png',
+      fromSurface: true,
+      captureBeyondViewport: false,
+    });
+    await fs.writeFile(filePath, Buffer.from(result.data, 'base64'));
+  } finally {
+    await cdp.detach();
+  }
+}
+
 async function waitReady(page) {
   await page.waitForFunction(() => document.documentElement.dataset.reviewReady === 'true', null, { timeout: 30000 });
   const ready = await page.evaluate(() => {
@@ -171,16 +185,16 @@ async function captureScenario(browser, { name, viewport, mobile = false }) {
 
   await page.waitForTimeout(3000);
   samples.push(await runtimeSample(page));
-  await page.screenshot({ path: path.join(OUT, `${name}-01.png`), fullPage: false });
+  await capturePng(page, path.join(OUT, `${name}-01.png`));
   await page.waitForTimeout(4000);
   samples.push(await runtimeSample(page));
-  await page.screenshot({ path: path.join(OUT, `${name}-02.png`), fullPage: false });
+  await capturePng(page, path.join(OUT, `${name}-02.png`));
   const interaction = mobile ? await touchDrag(page) : await desktopDrag(page);
   samples.push(await runtimeSample(page));
-  await page.screenshot({ path: path.join(OUT, `${name}-03-interaction-resume.png`), fullPage: false });
+  await capturePng(page, path.join(OUT, `${name}-03-interaction-resume.png`));
   await page.waitForTimeout(5000);
   samples.push(await runtimeSample(page));
-  await page.screenshot({ path: path.join(OUT, `${name}-04.png`), fullPage: false });
+  await capturePng(page, path.join(OUT, `${name}-04.png`));
   await page.waitForTimeout(Math.max(0, 27500 - (Date.now() - scenarioStarted)));
   samples.push(await runtimeSample(page));
 

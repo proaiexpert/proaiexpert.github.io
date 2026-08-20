@@ -1,0 +1,306 @@
+name: Temporary ProAI Cube R1.3 builder
+
+on:
+  push:
+    branches:
+      - agent/tmp-proai-cube-r13-builder
+
+permissions:
+  contents: write
+
+jobs:
+  build-r13:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-continuous-flow-r1-3
+          fetch-depth: 2
+      - name: Verify exact Candidate B base
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "be68d6ecdac6c3486d97cbb52f4a614ad78d4cc3"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" = "f9298b0b00feaae4123eb5a7161f24f669ae0eca"
+      - name: Build continuous-flow source
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          src_path = Path('assets/js/proai-hero-cube-r1/source-materials-r1.js')
+          review_path = Path('docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html')
+          source = src_path.read_text()
+          original = source
+
+          def section(text, start, end):
+              a = text.index(start)
+              b = text.index(end, a)
+              return text[a:b]
+
+          frozen_slice = section(original, 'const SLICE_R1_2', 'const PRIMARY_PHRASE')
+          frozen_geometry = section(original, 'const GEOMETRY_R1', 'const renderer')
+          frozen_lookdev = section(original, '// Materials + Lighting R1:', 'let cubeRoot;')
+          frozen_camera = section(original, 'function frameCamera()', 'function getDiagnostics()')
+
+          config_re = re.compile(
+              r"// Runtime whole-object presentation authority — R1\.2 premium editorial spatial motion\.\n"
+              r"const PRESENTATION_SPATIAL_R1_2 = Object\.freeze\(\{.*?\n\}\);\n\nconst SLICE_R1_2",
+              re.S,
+          )
+          config = """// Runtime whole-object presentation authority — R1.3 continuous quaternion flow.\nconst PRESENTATION_SPATIAL_R1_3 = Object.freeze({\n  cycleMs: 66000,\n  motionAuthority: 'quaternion-continuous-flow-r1.3',\n  rotorTurns: Object.freeze({ y: 2, x: 2 }),\n  phaseModulation: Object.freeze({\n    yPrimaryRad: 0.75,\n    ySecondaryRad: 0.14,\n    yPrimaryPhaseRad: 0.20,\n    ySecondaryPhaseRad: -0.60,\n    xPrimaryRad: 0.58,\n    xSecondaryRad: 0.12,\n    xPrimaryPhaseRad: 1.20,\n    xSecondaryPhaseRad: 0.40,\n  }),\n  rollModulation: Object.freeze({ primaryRad: 0.16, secondaryRad: 0.035, primaryPhaseRad: -0.90, secondaryPhaseRad: 0.20 }),\n  metricEpsilonMs: 8,\n  travelSampleStepMs: 20,\n  targetSpeedDegPerSec: Object.freeze({ calm: [8, 12], normal: [12, 18], sweep: [18, 25] }),\n});\n\nconst SLICE_R1_2"""
+          source, count = config_re.subn(config, source, count=1)
+          assert count == 1, f'config replacement count={count}'
+
+          source = source.replace('PRESENTATION_SPATIAL_R1_2', 'PRESENTATION_SPATIAL_R1_3')
+          source = source.replace("let presentationPhase = PRESENTATION_SPATIAL_R1_3.keyframes[0].motion;", "let presentationPhase = 'continuous';")
+          source = source.replace("let presentationPoseLabel = PRESENTATION_SPATIAL_R1_3.keyframes[0].label;", "let presentationPoseLabel = 'continuous-flow';")
+          source = source.replace(
+              'window.__PROAI_CUBE_SPATIAL_R1_2 = api;',
+              'window.__PROAI_CUBE_SPATIAL_R1_2 = api;\nwindow.__PROAI_CUBE_SPATIAL_R1_3 = api;',
+              1,
+          )
+
+          presentation_re = re.compile(r"function presentationPoseQuaternion\(.*?\nfunction seededUnit\(\) \{", re.S)
+          presentation = r"""const presentationFlowQY = new THREE.Quaternion();
+const presentationFlowQX = new THREE.Quaternion();
+const presentationFlowQZ = new THREE.Quaternion();
+const presentationMetricBefore = new THREE.Quaternion();
+const presentationMetricAfter = new THREE.Quaternion();
+
+function presentationFlowAnglesAt(timeMs) {
+  const cycle = PRESENTATION_SPATIAL_R1_3.cycleMs;
+  let local = timeMs % cycle;
+  if (local < 0) local += cycle;
+  const u = Math.PI * 2 * (local / cycle);
+  const phase = PRESENTATION_SPATIAL_R1_3.phaseModulation;
+  const roll = PRESENTATION_SPATIAL_R1_3.rollModulation;
+  return {
+    y: PRESENTATION_SPATIAL_R1_3.rotorTurns.y * u
+      + phase.yPrimaryRad * Math.sin(u + phase.yPrimaryPhaseRad)
+      + phase.ySecondaryRad * Math.sin(2 * u + phase.ySecondaryPhaseRad),
+    x: PRESENTATION_SPATIAL_R1_3.rotorTurns.x * u
+      + phase.xPrimaryRad * Math.sin(u + phase.xPrimaryPhaseRad)
+      - phase.xSecondaryRad * Math.sin(2 * u + phase.xSecondaryPhaseRad),
+    z: roll.primaryRad * Math.sin(u + roll.primaryPhaseRad)
+      + roll.secondaryRad * Math.sin(2 * u + roll.secondaryPhaseRad),
+  };
+}
+
+function presentationQuaternionAt(timeMs, outQuaternion = presentationTargetQuaternion) {
+  const angles = presentationFlowAnglesAt(timeMs);
+  presentationFlowQY.setFromAxisAngle(AXIS_VECTOR.Y, angles.y);
+  presentationFlowQX.setFromAxisAngle(AXIS_VECTOR.X, angles.x);
+  presentationFlowQZ.setFromAxisAngle(AXIS_VECTOR.Z, angles.z);
+  return outQuaternion.copy(presentationFlowQY).multiply(presentationFlowQX).multiply(presentationFlowQZ).normalize();
+}
+
+function quaternionDeltaMetrics(before, after, durationSec) {
+  presentationInverseQuaternion.copy(before).invert();
+  presentationRelativeQuaternion.copy(after).multiply(presentationInverseQuaternion).normalize();
+  if (presentationRelativeQuaternion.w < 0) {
+    presentationRelativeQuaternion.x *= -1;
+    presentationRelativeQuaternion.y *= -1;
+    presentationRelativeQuaternion.z *= -1;
+    presentationRelativeQuaternion.w *= -1;
+  }
+  const w = THREE.MathUtils.clamp(presentationRelativeQuaternion.w, -1, 1);
+  const angleRad = 2 * Math.acos(w);
+  const sinHalf = Math.sqrt(Math.max(0, 1 - w * w));
+  if (sinHalf > 1e-7) {
+    presentationAxis.set(
+      presentationRelativeQuaternion.x / sinHalf,
+      presentationRelativeQuaternion.y / sinHalf,
+      presentationRelativeQuaternion.z / sinHalf,
+    ).normalize();
+  } else {
+    presentationAxis.set(0, 1, 0);
+  }
+  return {
+    axis: presentationAxis.clone(),
+    angleRad,
+    angleDeg: THREE.MathUtils.radToDeg(angleRad),
+    speedDegPerSec: THREE.MathUtils.radToDeg(angleRad) / Math.max(1e-6, durationSec),
+  };
+}
+
+function presentationMetricsAt(timeMs) {
+  const epsilonMs = PRESENTATION_SPATIAL_R1_3.metricEpsilonMs;
+  presentationQuaternionAt(timeMs - epsilonMs, presentationMetricBefore);
+  presentationQuaternionAt(timeMs + epsilonMs, presentationMetricAfter);
+  const metrics = quaternionDeltaMetrics(presentationMetricBefore, presentationMetricAfter, (2 * epsilonMs) / 1000);
+  return {
+    phase: 'continuous',
+    poseLabel: `continuous-${spatialDominantAxis(metrics.axis)}`,
+    axis: metrics.axis,
+    dominantAxis: spatialDominantAxis(metrics.axis),
+    speedDegPerSec: metrics.speedDegPerSec,
+  };
+}
+
+function buildPresentationTravelLut() {
+  const cycle = PRESENTATION_SPATIAL_R1_3.cycleMs;
+  const step = PRESENTATION_SPATIAL_R1_3.travelSampleStepMs;
+  const entries = [{ timeMs: 0, travelDeg: 0 }];
+  let total = 0;
+  let previous = presentationQuaternionAt(0, new THREE.Quaternion()).clone();
+  for (let timeMs = step; timeMs < cycle; timeMs += step) {
+    const current = presentationQuaternionAt(timeMs, new THREE.Quaternion()).clone();
+    total += THREE.MathUtils.radToDeg(previous.angleTo(current));
+    entries.push({ timeMs, travelDeg: total });
+    previous = current;
+  }
+  const end = presentationQuaternionAt(cycle, new THREE.Quaternion()).clone();
+  total += THREE.MathUtils.radToDeg(previous.angleTo(end));
+  entries.push({ timeMs: cycle, travelDeg: total });
+  return Object.freeze({ entries: Object.freeze(entries), cycleTravelDeg: total });
+}
+
+const PRESENTATION_SPATIAL_R1_3_TRAVEL = buildPresentationTravelLut();
+
+function presentationTravelAt(timeMs) {
+  const target = Math.max(0, timeMs);
+  const cycle = PRESENTATION_SPATIAL_R1_3.cycleMs;
+  const completeCycles = Math.floor(target / cycle);
+  const local = target % cycle;
+  const step = PRESENTATION_SPATIAL_R1_3.travelSampleStepMs;
+  const entries = PRESENTATION_SPATIAL_R1_3_TRAVEL.entries;
+  const index = Math.min(entries.length - 2, Math.floor(local / step));
+  const a = entries[index];
+  const b = entries[index + 1];
+  const mix = THREE.MathUtils.clamp((local - a.timeMs) / Math.max(1, b.timeMs - a.timeMs), 0, 1);
+  return completeCycles * PRESENTATION_SPATIAL_R1_3_TRAVEL.cycleTravelDeg + THREE.MathUtils.lerp(a.travelDeg, b.travelDeg, mix);
+}
+
+function spatialDominantAxis(axis) {
+  const components = [Math.abs(axis.x), Math.abs(axis.y), Math.abs(axis.z)];
+  return AXES[components.indexOf(Math.max(...components))];
+}
+
+function getReviewPresentationSample(timeSec = 0) {
+  const timeMs = Math.max(0, timeSec) * 1000;
+  const target = presentationQuaternionAt(timeMs, presentationTargetQuaternion);
+  const euler = new THREE.Euler().setFromQuaternion(target, 'YXZ');
+  const metrics = presentationMetricsAt(timeMs);
+  return {
+    timeSec,
+    signedYawDeg: THREE.MathUtils.radToDeg(euler.y),
+    cumulativeYawDeg: presentationTravelAt(timeMs),
+    velocityDegPerSec: metrics.speedDegPerSec,
+    pitchDeg: THREE.MathUtils.radToDeg(euler.x),
+    rollDeg: THREE.MathUtils.radToDeg(euler.z),
+    angularTravelDeg: presentationTravelAt(timeMs),
+    dominantAxis: metrics.dominantAxis,
+    rotationAxis: metrics.axis.toArray(),
+    phase: metrics.phase,
+    poseLabel: metrics.poseLabel,
+    engine: PRESENTATION_SPATIAL_R1_3.motionAuthority,
+  };
+}
+
+function updatePresentationMotion(now) {
+  if (!api.ready || captureMode || prefersReducedMotion) return;
+  if (!presentationLastNow) {
+    presentationLastNow = now;
+    lastPresentationQuaternion.copy(presentationRig.quaternion);
+    return;
+  }
+  const deltaMs = Math.min(80, Math.max(0, now - presentationLastNow));
+  presentationLastNow = now;
+  presentationSimTimeMs += deltaMs;
+  presentationQuaternionAt(presentationSimTimeMs, presentationTargetQuaternion);
+  const metrics = presentationMetricsAt(presentationSimTimeMs);
+  presentationAngularVelocityDegPerSec = metrics.speedDegPerSec;
+  presentationPhase = metrics.phase;
+  presentationPoseLabel = metrics.poseLabel;
+  const before = presentationRig.quaternion.clone();
+  presentationRig.quaternion.copy(presentationTargetQuaternion);
+  presentationFrameDeltaRad = before.angleTo(presentationRig.quaternion);
+  presentationAngularTravelDeg += THREE.MathUtils.radToDeg(presentationFrameDeltaRad);
+  lastPresentationQuaternion.copy(presentationRig.quaternion);
+}
+
+function seededUnit() {"""
+          source, count = presentation_re.subn(presentation, source, count=1)
+          assert count == 1, f'presentation replacement count={count}'
+
+          assert 'PRESENTATION_SPATIAL_R1_2' not in source
+          assert "motionAuthority: 'quaternion-continuous-flow-r1.3'" in source
+          assert 'keyframes:' not in section(source, '// Runtime whole-object presentation authority — R1.3', 'const SLICE_R1_2')
+          assert section(source, 'const SLICE_R1_2', 'const PRIMARY_PHRASE') == frozen_slice
+          assert section(source, 'const GEOMETRY_R1', 'const renderer') == frozen_geometry
+          assert section(source, '// Materials + Lighting R1:', 'let cubeRoot;') == frozen_lookdev
+          assert section(source, 'function frameCamera()', 'function getDiagnostics()') == frozen_camera
+
+          src_path.write_text(source)
+
+          review = review_path.read_text()
+          review = review.replace('ProAI Cube — R1.2 Candidate B · Premium Motion', 'ProAI Cube — R1.3 · Continuous Flow')
+          review = review.replace('ProAI Cube · R1.2 Candidate B · Premium Motion', 'ProAI Cube · R1.3 · Continuous Flow')
+          review_path.write_text(review)
+          PY
+
+          cp assets/js/proai-hero-cube-r1/source-materials-r1.js /tmp/proai-cube-r13.mjs
+          node --check /tmp/proai-cube-r13.mjs
+          git diff --check
+          test "$(git diff --name-only | sort)" = $'assets/js/proai-hero-cube-r1/source-materials-r1.js\ndocs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html'
+      - name: Numerical flow audit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import math
+
+          T = 66.0
+          def mul(a,b):
+              ax,ay,az,aw=a; bx,by,bz,bw=b
+              return (aw*bx+ax*bw+ay*bz-az*by, aw*by-ax*bz+ay*bw+az*bx, aw*bz+ax*by-ay*bx+az*bw, aw*bw-ax*bx-ay*by-az*bz)
+          def qa(axis,a):
+              s=math.sin(a/2); c=math.cos(a/2)
+              return (axis[0]*s,axis[1]*s,axis[2]*s,c)
+          def q(t):
+              u=2*math.pi*((t%T)/T)
+              y=2*u+.75*math.sin(u+.20)+.14*math.sin(2*u-.60)
+              x=2*u+.58*math.sin(u+1.20)-.12*math.sin(2*u+.40)
+              z=.16*math.sin(u-.90)+.035*math.sin(2*u+.20)
+              return mul(mul(qa((0,1,0),y),qa((1,0,0),x)),qa((0,0,1),z))
+          def angle(a,b):
+              d=min(1,max(-1,abs(sum(x*y for x,y in zip(a,b)))))
+              return 2*math.acos(d)
+          def speed(t,dt=.002): return math.degrees(angle(q(t),q(t+dt)))/dt
+          speeds=[speed(i*T/6600) for i in range(6600)]
+          def travel(limit,dt=.01):
+              p=q(0); total=0; t=dt
+              while t <= limit+1e-9:
+                  n=q(t); total+=math.degrees(angle(p,n)); p=n; t+=dt
+              return total
+          first=None; p=q(0); total=0; t=.01
+          while t<=T:
+              n=q(t); total+=math.degrees(angle(p,n)); p=n
+              if first is None and total>=360: first=t
+              t+=.01
+          seam=math.degrees(angle(q(0),q(T)))
+          vals=(min(speeds),sum(speeds)/len(speeds),max(speeds),travel(20),travel(25),travel(30),first,seam)
+          print('R1.3 numerical:', vals)
+          assert vals[0] >= 8.0
+          assert 13.0 <= vals[1] <= 17.0
+          assert vals[2] <= 25.0
+          assert 22.0 <= vals[6] <= 30.0
+          assert seam < 1e-6
+          PY
+      - name: Commit exact R1.3 candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "proaiexpert"
+          git config user.email "proai.expert2026@gmail.com"
+          git add -- assets/js/proai-hero-cube-r1/source-materials-r1.js docs/site-evolution/spline/proai-cube-resend-spatial-motion-r1/review.html
+          git commit -m "Build Cube continuous spatial flow R1.3"
+          git push origin HEAD:agent/proai-cube-continuous-flow-r1-3
+          echo "R13_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "R13_BLOB=$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" >> "$GITHUB_ENV"
+      - name: Report
+        shell: bash
+        run: |
+          echo "R1.3 commit: $R13_SHA"
+          echo "R1.3 source blob: $R13_BLOB"

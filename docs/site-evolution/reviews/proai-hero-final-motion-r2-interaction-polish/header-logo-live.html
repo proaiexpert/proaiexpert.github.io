@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}body{display:grid;place-items:center}#cube-canvas{display:block;width:100%;height:100%;background:transparent;transform:none;filter:none!important}#runtime-status{display:none!important}</style>
+  <script type="importmap">{"imports":{"three":"https://raw.githack.com/proaiexpert/proaiexpert.github.io/20a36a5246ac2fb4507c69858289fc55d0f4a977/assets/vendor/three-r180/build/three.module.min.js","three/addons/":"https://raw.githack.com/proaiexpert/proaiexpert.github.io/20a36a5246ac2fb4507c69858289fc55d0f4a977/assets/vendor/three-r180/examples/jsm/"}}</script>
+</head>
+<body>
+  <canvas id="cube-canvas" aria-hidden="true"></canvas><span id="runtime-status" aria-hidden="true"></span>
+  <script type="module">
+    const revision = '20a36a5246ac2fb4507c69858289fc55d0f4a977';
+    const root = `https://raw.githack.com/proaiexpert/proaiexpert.github.io/${revision}`;
+    const response = await fetch(`${root}/assets/brand/proai-logo-r341/live-runtime.js`, { cache: 'force-cache' });
+    if (!response.ok) throw new Error(`Header logo runtime HTTP ${response.status}`);
+    let source = await response.text();
+    source = source.replace("const SOURCE_URL='/assets/js/proai-hero-cube-r1/source-materials-r1.js';", `const SOURCE_URL='${root}/assets/js/proai-hero-cube-r1/source-materials-r1.js';`);
+    source = source.replace("const GLB_URL='/assets/models/proai-cube/rubik_39_s_cube_animation.glb';", `const GLB_URL='${root}/assets/models/proai-cube/rubik_39_s_cube_animation.glb';`);
+    const moduleUrl = URL.createObjectURL(new Blob([source], { type: 'text/javascript' }));
+    try { await import(moduleUrl); } finally { URL.revokeObjectURL(moduleUrl); }
+  </script>
+</body>
+</html>

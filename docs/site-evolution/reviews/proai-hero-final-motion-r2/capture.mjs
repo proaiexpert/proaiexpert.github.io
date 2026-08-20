@@ -15,11 +15,17 @@ function qAngleDeg(a, b) {
 
 async function waitReady(page) {
   await page.waitForFunction(() => document.documentElement.dataset.reviewReady === 'true', null, { timeout: 30000 });
-  const ready = await page.evaluate(() => ({
-    product: window.__PROAI_FULL_HERO_REVIEW?.cubeProduct,
-    seed: window.__PROAI_FULL_HERO_REVIEW?.runtime?.getMotionSeed?.(),
-    diag: window.__PROAI_FULL_HERO_REVIEW?.runtime?.getDiagnostics?.(),
-  }));
+  const ready = await page.evaluate(() => {
+    const runtime = window.__PROAI_FULL_HERO_REVIEW?.runtime;
+    const raw = new URL(location.href).searchParams.get('motionSeed');
+    const requestedSeed = raw == null ? null : Number.parseInt(raw, 10);
+    return {
+      product: window.__PROAI_FULL_HERO_REVIEW?.cubeProduct,
+      seed: Number.isFinite(requestedSeed) ? requestedSeed >>> 0 : runtime?.getMotionSeed?.(),
+      rngState: runtime?.getMotionSeed?.(),
+      diag: runtime?.getDiagnostics?.(),
+    };
+  });
   if (!ready.diag?.ready) throw new Error('R2 runtime not ready');
   return ready;
 }
@@ -41,7 +47,8 @@ async function runtimeSample(page) {
     const d = r.getDiagnostics();
     return {
       at: performance.now(),
-      seed: r.getMotionSeed(),
+      rngState: r.getMotionSeed(),
+      requestedSeed: d.scheduler.requestedSeed,
       quaternion: d.presentation.quaternion,
       speed: d.presentation.angularVelocityDegPerSec,
       axis: d.presentation.rotationAxis,
@@ -89,11 +96,12 @@ async function desktopDrag(page) {
   const dragAngleDeg = qAngleDeg(before.quaternion, held.quaternion);
   const releaseSnapDeg = qAngleDeg(release.quaternion, release80.quaternion);
   const resumedAngleDeg = qAngleDeg(release.quaternion, resume600.quaternion);
+  const activeSliceCompletedWhileHeld = activeObserved && before.activeTurns > 0 && heldLate.activeTurns === 0;
   return {
     activeObserved, before, held, heldLate, release, release80, resume600,
     dragAngleDeg, releaseSnapDeg, resumedAngleDeg,
-    activeSliceCompletedWhileHeld: activeObserved && before.activeTurns > 0 && heldLate.activeTurns === 0,
-    pass: activeObserved && dragAngleDeg > 5 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.01,
+    activeSliceCompletedWhileHeld,
+    pass: activeSliceCompletedWhileHeld && dragAngleDeg > 5 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.01,
   };
 }
 
@@ -123,11 +131,12 @@ async function touchDrag(page) {
   const dragAngleDeg = qAngleDeg(before.quaternion, held.quaternion);
   const releaseSnapDeg = qAngleDeg(release.quaternion, release80.quaternion);
   const resumedAngleDeg = qAngleDeg(release.quaternion, resume600.quaternion);
+  const activeSliceCompletedWhileHeld = activeObserved && before.activeTurns > 0 && heldLate.activeTurns === 0;
   return {
     activeObserved, before, held, heldLate, release, release80, resume600,
     dragAngleDeg, releaseSnapDeg, resumedAngleDeg,
-    activeSliceCompletedWhileHeld: activeObserved && before.activeTurns > 0 && heldLate.activeTurns === 0,
-    pass: activeObserved && dragAngleDeg > 4 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.01,
+    activeSliceCompletedWhileHeld,
+    pass: activeSliceCompletedWhileHeld && dragAngleDeg > 4 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.01,
   };
 }
 
@@ -202,7 +211,7 @@ async function reviewSeed(browser, seed) {
   const speedMin = Math.min(...samples.map(s => s.speed));
   const canonical = data.diag.canonicalError;
   const canonicalPass = canonical && canonical.maxPosition < 1e-6 && canonical.maxQuaternionRad < 1e-6 && canonical.maxScale < 1e-8;
-  return { requestedSeed: seed, readySeed: ready.seed, poseMin, speedMin, speedMax, moveCount: data.log.filter(x => x.axis).length, canonical, errors, pass: ready.seed === seed && errors.length === 0 && poseMin >= 0.35 && speedMax <= 25.1 && canonicalPass };
+  return { requestedSeed: seed, readySeed: ready.seed, rngState: ready.rngState, poseMin, speedMin, speedMax, moveCount: data.log.filter(x => x.axis).length, canonical, errors, pass: ready.seed === seed && errors.length === 0 && poseMin >= 0.35 && speedMax <= 25.1 && canonicalPass };
 }
 
 function eventCoverage(log) {
@@ -246,14 +255,14 @@ try {
     mobile: { aspect: mobile.aspect, interaction: mobile.interaction, samples: mobile.samples, coverage: mobileCoverage, consoleErrors: mobile.consoleErrors, scheduler: mobile.finalDiag.diag.scheduler, canonicalError: mobile.finalDiag.diag.canonicalError },
   };
   report.pass = Boolean(mechanicsPass && motionAudit?.pass && seedReviews.every(x=>x.pass) && desktop.aspect.pass && mobile.aspect.pass && desktop.interaction.pass && mobile.interaction.pass && canonicalPass && coveragePass && desktop.consoleErrors.length === 0 && mobile.consoleErrors.length === 0);
-  report.acceptance = { mechanicsPass, canonicalPass, videoCoverage: coveragePass, antiRepetition: motionAudit?.pass === true, noReleaseSnap: desktop.interaction.pass && mobile.interaction.pass, mobileAspect: mobile.aspect.pass };
+  report.acceptance = { mechanicsPass, canonicalPass, videoCoverage: coveragePass, antiRepetition: motionAudit?.pass === true, noReleaseSnap: desktop.interaction.pass && mobile.interaction.pass, activeSliceCompletes: desktop.interaction.activeSliceCompletedWhileHeld && mobile.interaction.activeSliceCompletedWhileHeld, mobileAspect: mobile.aspect.pass };
 } finally {
   await browser.close();
 }
 
 await fs.writeFile(path.join(OUT, 'motion-audit.json'), JSON.stringify(report, null, 2));
 const s = report.motionAudit.seeds;
-const summary = `# Final Cube Motion R2 — Diagnostic Summary\n\n- Product: ${report.product}\n- Seeds: ${report.seeds.join(', ')}\n- Overall automated acceptance: **${report.pass ? 'PASS' : 'FAIL'}**\n- Mechanics / exact endpoints: **${report.acceptance.mechanicsPass ? 'PASS' : 'FAIL'}**\n- Anti-repetition audit: **${report.acceptance.antiRepetition ? 'PASS' : 'FAIL'}**\n- Desktop interaction/no-snap: **${report.desktop.interaction.pass ? 'PASS' : 'FAIL'}** (release delta ${report.desktop.interaction.releaseSnapDeg.toFixed(4)}°)\n- Mobile touch/no-snap: **${report.mobile.interaction.pass ? 'PASS' : 'FAIL'}** (release delta ${report.mobile.interaction.releaseSnapDeg.toFixed(4)}°)\n- Mobile aspect: **${report.mobile.aspect.pass ? 'PASS' : 'FAIL'}**\n- Canonical transform safety: **${report.acceptance.canonicalPass ? 'PASS' : 'FAIL'}**\n- Video event coverage: **${report.acceptance.videoCoverage ? 'PASS' : 'FAIL'}**\n- Desktop coverage: singles ${report.desktop.coverage.singleEvents}, pairs ${report.desktop.coverage.pairEvents}, phrases ${report.desktop.coverage.phraseEvents}, breaths ${report.desktop.coverage.breaths}\n- Mobile coverage: singles ${report.mobile.coverage.singleEvents}, pairs ${report.mobile.coverage.pairEvents}, phrases ${report.mobile.coverage.phraseEvents}, breaths ${report.mobile.coverage.breaths}\n\n## Five-minute generator audit\n${s.map(x=>`- Seed ${x.seed}: ${x.pass?'PASS':'FAIL'}; moves ${x.moveCount}; exact repeats ${x.exactRepeat}; immediate inverse ${x.immediateInverse}; short-window inverse ${x.shortInverse}; recent phrase repeats 2/3/4/5 = ${x.phraseRepeats[2]}/${x.phraseRepeats[3]}/${x.phraseRepeats[4]}/${x.phraseRepeats[5]}; axis spread ${(x.axisSpread*100).toFixed(1)}%; direction spread ${(x.directionSpread*100).toFixed(1)}%`).join('\n')}\n\n## Runtime seed review\n${report.seedReviews.map(x=>`- Seed ${x.requestedSeed}: ${x.pass?'PASS':'FAIL'}; pose quality min ${x.poseMin.toFixed(3)}; speed ${x.speedMin.toFixed(2)}–${x.speedMax.toFixed(2)} deg/s; observed moves ${x.moveCount}`).join('\n')}\n`;
+const summary = `# Final Cube Motion R2 — Diagnostic Summary\n\n- Product: ${report.product}\n- Seeds: ${report.seeds.join(', ')}\n- Overall automated acceptance: **${report.pass ? 'PASS' : 'FAIL'}**\n- Mechanics / exact endpoints: **${report.acceptance.mechanicsPass ? 'PASS' : 'FAIL'}**\n- Anti-repetition audit: **${report.acceptance.antiRepetition ? 'PASS' : 'FAIL'}**\n- Active slice completes during held drag: **${report.acceptance.activeSliceCompletes ? 'PASS' : 'FAIL'}**\n- Desktop interaction/no-snap: **${report.desktop.interaction.pass ? 'PASS' : 'FAIL'}** (release delta ${report.desktop.interaction.releaseSnapDeg.toFixed(4)}°)\n- Mobile touch/no-snap: **${report.mobile.interaction.pass ? 'PASS' : 'FAIL'}** (release delta ${report.mobile.interaction.releaseSnapDeg.toFixed(4)}°)\n- Mobile aspect: **${report.mobile.aspect.pass ? 'PASS' : 'FAIL'}**\n- Canonical transform safety: **${report.acceptance.canonicalPass ? 'PASS' : 'FAIL'}**\n- Video event coverage: **${report.acceptance.videoCoverage ? 'PASS' : 'FAIL'}**\n- Desktop coverage: singles ${report.desktop.coverage.singleEvents}, pairs ${report.desktop.coverage.pairEvents}, phrases ${report.desktop.coverage.phraseEvents}, breaths ${report.desktop.coverage.breaths}\n- Mobile coverage: singles ${report.mobile.coverage.singleEvents}, pairs ${report.mobile.coverage.pairEvents}, phrases ${report.mobile.coverage.phraseEvents}, breaths ${report.mobile.coverage.breaths}\n\n## Five-minute generator audit\n${s.map(x=>`- Seed ${x.seed}: ${x.pass?'PASS':'FAIL'}; moves ${x.moveCount}; exact repeats ${x.exactRepeat}; immediate inverse ${x.immediateInverse}; short-window inverse ${x.shortInverse}; recent phrase repeats 2/3/4/5 = ${x.phraseRepeats[2]}/${x.phraseRepeats[3]}/${x.phraseRepeats[4]}/${x.phraseRepeats[5]}; axis spread ${(x.axisSpread*100).toFixed(1)}%; direction spread ${(x.directionSpread*100).toFixed(1)}%`).join('\n')}\n\n## Runtime seed review\n${report.seedReviews.map(x=>`- Seed ${x.requestedSeed}: ${x.pass?'PASS':'FAIL'}; pose quality min ${x.poseMin.toFixed(3)}; speed ${x.speedMin.toFixed(2)}–${x.speedMax.toFixed(2)} deg/s; observed moves ${x.moveCount}`).join('\n')}\n`;
 await fs.writeFile(path.join(OUT, 'MOTION_DIAGNOSTIC_SUMMARY.md'), summary);
 console.log(JSON.stringify({ pass: report.pass, product: report.product, seeds: report.seeds, acceptance: report.acceptance }, null, 2));
 if (!report.pass) process.exitCode = 2;

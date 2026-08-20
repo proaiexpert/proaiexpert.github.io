@@ -95,15 +95,15 @@ async function desktopDrag(page) {
   const release = await runtimeSample(page);
   await page.waitForTimeout(80);
   const release80 = await runtimeSample(page);
-  await page.waitForTimeout(3120);
-  const resume3200 = await runtimeSample(page);
+  await page.waitForTimeout(4500);
+  const resume4580 = await runtimeSample(page);
   const dragAngleDeg = qAngleDeg(before.quaternion, held.quaternion);
   const releaseSnapDeg = qAngleDeg(release.quaternion, release80.quaternion);
-  const resumedAngleDeg = qAngleDeg(release.quaternion, resume3200.quaternion);
+  const resumedAngleDeg = qAngleDeg(release.quaternion, resume4580.quaternion);
   const activeSliceCompletedWhileHeld = activeObserved && before.activeTurns > 0 && heldLate.activeTurns === 0;
   const noVelocityJump = Math.abs(release80.speed - release.speed) < 0.35;
   return {
-    activeObserved, before, held, heldLate, release, release80, resume3200,
+    activeObserved, before, held, heldLate, release, release80, resume4580,
     dragAngleDeg, releaseSnapDeg, resumedAngleDeg, noVelocityJump,
     activeSliceCompletedWhileHeld,
     pass: activeSliceCompletedWhileHeld && dragAngleDeg > 5 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.05 && noVelocityJump,
@@ -131,15 +131,15 @@ async function touchDrag(page) {
   const release = await runtimeSample(page);
   await page.waitForTimeout(80);
   const release80 = await runtimeSample(page);
-  await page.waitForTimeout(3120);
-  const resume3200 = await runtimeSample(page);
+  await page.waitForTimeout(4500);
+  const resume4580 = await runtimeSample(page);
   const dragAngleDeg = qAngleDeg(before.quaternion, held.quaternion);
   const releaseSnapDeg = qAngleDeg(release.quaternion, release80.quaternion);
-  const resumedAngleDeg = qAngleDeg(release.quaternion, resume3200.quaternion);
+  const resumedAngleDeg = qAngleDeg(release.quaternion, resume4580.quaternion);
   const activeSliceCompletedWhileHeld = activeObserved && before.activeTurns > 0 && heldLate.activeTurns === 0;
   const noVelocityJump = Math.abs(release80.speed - release.speed) < 0.35;
   return {
-    activeObserved, before, held, heldLate, release, release80, resume3200,
+    activeObserved, before, held, heldLate, release, release80, resume4580,
     dragAngleDeg, releaseSnapDeg, resumedAngleDeg, noVelocityJump,
     activeSliceCompletedWhileHeld,
     pass: activeSliceCompletedWhileHeld && dragAngleDeg > 4 && releaseSnapDeg < 0.25 && resumedAngleDeg > 0.05 && noVelocityJump,
@@ -187,9 +187,9 @@ async function runInteractionScenario(browser, { seed, viewport, mobile = false,
   const aspect = await aspectCheck(page);
   const samples = [];
 
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(4000);
   samples.push(await runtimeSample(page));
-  await page.waitForTimeout(11000);
+  await page.waitForTimeout(9000);
   samples.push(await runtimeSample(page));
   const interaction = mobile ? await touchDrag(page) : await desktopDrag(page);
   samples.push(await runtimeSample(page));

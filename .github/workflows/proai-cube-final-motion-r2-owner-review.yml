@@ -138,6 +138,8 @@ jobs:
             "$OUT/mobile-04.png"
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "review: add final motion R2 owner evidence"
+          git fetch origin review/proai-hero-final-motion-r2
+          git rebase origin/review/proai-hero-final-motion-r2
           git push origin HEAD:review/proai-hero-final-motion-r2
 
       - name: Enforce automated acceptance gate
@@ -147,6 +149,6 @@ jobs:
           const fs = require('fs');
           const p = 'docs/site-evolution/reviews/proai-hero-final-motion-r2/media/motion-audit.json';
           const report = JSON.parse(fs.readFileSync(p, 'utf8'));
-          console.log(JSON.stringify({pass:report.pass,acceptance:report.acceptance,seeds:report.seeds}, null, 2));
+          console.log(JSON.stringify({pass:report.pass,acceptance:report.acceptance,seeds:report.seeds,videoSeed:report.videoSeed}, null, 2));
           if (!report.pass) process.exit(2);
           NODE

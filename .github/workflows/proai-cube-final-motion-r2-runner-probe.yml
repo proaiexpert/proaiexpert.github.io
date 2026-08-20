@@ -1,0 +1,36 @@
+name: ProAI Cube Final Motion R2 Runner Probe
+
+on:
+  push:
+    branches:
+      - review/proai-hero-final-motion-r2
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Record runner availability without third-party actions
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          cd "$work"
+          git init
+          git config user.name "ProAI Review Bot"
+          git config user.email "proai.expert2026@gmail.com"
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          git fetch --depth=1 origin "${REF_NAME}"
+          git checkout -B "${REF_NAME}" FETCH_HEAD
+          mkdir -p docs/site-evolution/reviews/proai-hero-final-motion-r2
+          printf 'runner=PASS\ntrigger_sha=%s\nrun_id=%s\n' "$SHA" "$GITHUB_RUN_ID" > docs/site-evolution/reviews/proai-hero-final-motion-r2/RUNNER_PROBE.txt
+          git add docs/site-evolution/reviews/proai-hero-final-motion-r2/RUNNER_PROBE.txt
+          git commit -m "ci: record final motion R2 runner probe"
+          git push origin HEAD:"${REF_NAME}"

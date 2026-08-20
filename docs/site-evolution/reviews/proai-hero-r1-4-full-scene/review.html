@@ -203,6 +203,11 @@
       await nextFrame();
       const afterResize = measureAspectLifecycle('mounted-after-existing-resize');
 
+      // Review-harness lifecycle guarantee: use the frozen runtime's own
+      // idempotent choreography entrypoint so Rubik slice turns are live in the
+      // integrated review just as they are in the product Cube.
+      runtime.startChoreography?.();
+
       restoreCameraInstrumentation?.();
       restoreCameraInstrumentation = null;
 

@@ -1,0 +1,34 @@
+name: ProAI Cube Final Motion R2 Live Verify Once
+
+on:
+  push:
+    branches:
+      - review/proai-hero-final-motion-r2
+    paths:
+      - '.github/workflows/proai-cube-final-motion-r2-live-verify-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: review/proai-hero-final-motion-r2
+          fetch-depth: 0
+      - name: Verify public browser review URL
+        run: |
+          set -euo pipefail
+          URL='https://raw.githack.com/proaiexpert/proaiexpert.github.io/review/proai-hero-final-motion-r2/docs/site-evolution/reviews/proai-hero-final-motion-r2/review.html'
+          code="$(curl -L -sS -o /tmp/review.html -w '%{http_code}' "$URL")"
+          test "$code" = 200
+          grep -q 'Final Cube Motion R2 Owner Review' /tmp/review.html
+          printf 'LIVE_REVIEW=PASS\nHTTP=%s\nURL=%s\n' "$code" "$URL" > docs/site-evolution/reviews/proai-hero-final-motion-r2/LIVE_VERIFY.txt
+          git config user.name "ProAI Review Bot"
+          git config user.email "proai.expert2026@gmail.com"
+          git rm -- .github/workflows/proai-cube-final-motion-r2-live-verify-once.yml
+          git add -- docs/site-evolution/reviews/proai-hero-final-motion-r2/LIVE_VERIFY.txt
+          git commit -m "review: verify final motion R2 live URL"
+          git push origin HEAD:review/proai-hero-final-motion-r2

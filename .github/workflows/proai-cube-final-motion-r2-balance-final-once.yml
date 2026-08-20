@@ -1,0 +1,58 @@
+name: ProAI Cube Final Motion R2 Balance Final Once
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-final-motion-r2
+    paths:
+      - '.github/workflows/proai-cube-final-motion-r2-balance-final-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-final-motion-r2
+          fetch-depth: 0
+      - name: Apply all-class adaptive starvation protection
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('assets/js/proai-hero-cube-r1/source-final-motion-r2.js')
+          s = p.read_text(encoding='utf-8')
+          old = '''function eventStarvationBoost(kind, recentEvents) {
+  const index = recentEvents.indexOf(kind);
+  const gap = index < 0 ? recentEvents.length + 1 : index;
+  if (gap >= 4) return kind === 'pair' ? 5.5 : 4.6;
+  if (gap >= 3) return kind === 'pair' ? 3.2 : 2.8;
+  if (gap >= 2) return 1.65;
+  return 1;
+}'''
+          new = '''function eventStarvationBoost(kind, recentEvents) {
+  const index = recentEvents.indexOf(kind);
+  const gap = index < 0 ? recentEvents.length + 1 : index;
+  if (gap >= 4) return kind === 'pair' ? 6.0 : kind === 'phrase' ? 5.2 : 4.4;
+  if (gap >= 3) return kind === 'pair' ? 3.6 : kind === 'phrase' ? 3.2 : 2.8;
+  if (gap >= 2) return 1.75;
+  return 1;
+}'''
+          if s.count(old) != 1:
+              raise SystemExit(f'eventStarvationBoost target count={s.count(old)}')
+          s = s.replace(old, new)
+          old_single = "single: base.single * (0.95 + 0.40 * speed) * (recentMoves.at(-1) === 'single' ? 0.88 : 1),"
+          new_single = "single: base.single * (0.95 + 0.40 * speed) * (recentMoves.at(-1) === 'single' ? 0.88 : 1)\n      * eventStarvationBoost('single', recentEvents),"
+          if s.count(old_single) != 1:
+              raise SystemExit('single weight target missing')
+          p.write_text(s.replace(old_single, new_single), encoding='utf-8')
+          PY
+          git config user.name "ProAI Motion Builder"
+          git config user.email "proai.expert2026@gmail.com"
+          git rm -- .github/workflows/proai-cube-final-motion-r2-balance-final-once.yml
+          git add -- assets/js/proai-hero-cube-r1/source-final-motion-r2.js
+          git diff --cached --check
+          git commit -m "fix: balance all final motion R2 event classes"
+          git push origin HEAD:agent/proai-cube-final-motion-r2

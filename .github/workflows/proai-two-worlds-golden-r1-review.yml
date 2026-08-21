@@ -1,0 +1,66 @@
+name: ProAI Two Worlds Golden R1 Owner Review
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-golden-synthesis-r1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: proai-two-worlds-golden-r1-review
+  cancel-in-progress: true
+
+jobs:
+  capture-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start isolated review server
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/two-worlds-golden-r1-http.log 2>&1 &
+          echo $! > /tmp/two-worlds-golden-r1-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:8765/docs/site-evolution/two-worlds-golden-synthesis-r1/review/index.html >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/two-worlds-golden-r1-http.log
+          exit 1
+
+      - name: Run Golden browser QA and capture three Owner stills
+        run: node docs/site-evolution/two-worlds-golden-synthesis-r1/review/qa.mjs
+
+      - name: Commit fresh review evidence
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- docs/site-evolution/two-worlds-golden-synthesis-r1/review/qa-report.json \
+            docs/site-evolution/two-worlds-golden-synthesis-r1/review/media/01-neutral-50-50-1440x900.jpg \
+            docs/site-evolution/two-worlds-golden-synthesis-r1/review/media/02-ai-active-fold-right-1440x900.jpg \
+            docs/site-evolution/two-worlds-golden-synthesis-r1/review/media/03-web-active-fold-left-1440x900.jpg
+          if git diff --cached --quiet; then
+            echo "No review evidence changes"
+            exit 0
+          fi
+          git commit -m "review: capture Golden Two Worlds R1 owner stills"
+          git push origin HEAD:agent/proai-two-worlds-golden-synthesis-r1

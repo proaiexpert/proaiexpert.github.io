@@ -1,0 +1,325 @@
+name: Golden Assembly R1 Review QA
+
+on:
+  push:
+    branches:
+      - agent/proai-home-golden-assembly-r1-sol
+    paths-ignore:
+      - 'docs/site-evolution/reviews/proai-home-golden-assembly-r1/**'
+      - 'docs/site-evolution/PROAI_HOME_GOLDEN_ASSEMBLY_R1_MANIFEST.md'
+
+permissions:
+  contents: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout Golden branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Build Jekyll site
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+
+      - name: Verify generated Golden structure
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for route in ('index.html','ru/index.html'):
+              text=(Path('_site')/route).read_text(encoding='utf-8')
+              assert text.count('data-connected-system') == 1, route
+              assert text.count('data-tw-golden-r1') == 1, route
+              assert 'data-tw-tech-r2' not in text, route
+              assert 'id="core-split"' not in text, route
+              assert 'id="section-trigger"' not in text, route
+              assert 'data-fs-showcase-r11' not in text, route
+              assert text.count('data-home-tech-r2') == 1, route
+              assert text.count('data-footer-watermark-r2') >= 1, route
+              assert 'homepage-two-worlds-r2.js' not in text, route
+              assert 'homepage-two-worlds-r21.js' not in text, route
+              assert 'homepage-two-worlds-r22.js' not in text, route
+              assert 'source-final-motion-r2-touch-auto-45-r1.js' in text or 'bootstrap-golden-r1.js' in text, route
+          print('Generated Golden structure: PASS')
+          PY
+
+      - name: Install browser QA runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start generated site
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory _site >/tmp/golden-http.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/golden-http.log
+          exit 1
+
+      - name: Run browser QA and capture evidence
+        shell: bash
+        env:
+          PRODUCT_SHA: a1b34e85348c88dc332612f635529e893d028ecd
+        run: |
+          mkdir -p docs/site-evolution/reviews/proai-home-golden-assembly-r1/media
+          cat >/tmp/golden-qa.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const out='docs/site-evolution/reviews/proai-home-golden-assembly-r1';
+          const media=`${out}/media`;
+          const viewports=[
+            ['1440x900',1440,900],['1366x768',1366,768],['1024x768',1024,768],
+            ['430x932',430,932],['393x852',393,852],['390x844',390,844],
+            ['375x812',375,812],['320x568',320,568],['844x390',844,390],['932x430',932,430]
+          ];
+          const browser=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
+          const report={productSha:process.env.PRODUCT_SHA,generatedAt:new Date().toISOString(),viewports:{},timing:{},interaction:{},twoWorlds:{},technology:{},footer:{},failures:[]};
+
+          async function open(lang,width,height){
+            const context=await browser.newContext({viewport:{width,height},deviceScaleFactor:1});
+            const page=await context.newPage();
+            const pageErrors=[];
+            page.on('pageerror',e=>pageErrors.push(String(e)));
+            await page.goto(`http://127.0.0.1:4173/${lang==='ru'?'ru/':''}`,{waitUntil:'networkidle',timeout:45000});
+            await page.waitForTimeout(500);
+            return {context,page,pageErrors};
+          }
+
+          for(const lang of ['en','ru']){
+            report.viewports[lang]={};
+            for(const [name,width,height] of viewports){
+              const {context,page,pageErrors}=await open(lang,width,height);
+              let cubeMounted=null;
+              if(['1440x900','1366x768','390x844','844x390'].includes(name)){
+                try{await page.waitForFunction(()=>document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',{timeout:17000});cubeMounted=true;}catch{cubeMounted=false;}
+              }
+              const state=await page.evaluate(()=>{
+                const html=document.documentElement, body=document.body;
+                const overflow=Math.max(0,html.scrollWidth-innerWidth,body.scrollWidth-innerWidth);
+                const major=[document.querySelector('#hero h1'),document.querySelector('[data-connected-system] h2'),document.querySelector('[data-tw-r2] h2'),document.querySelector('[data-home-tech-r2] h2')].filter(Boolean);
+                const clippedMajor=major.filter(el=>{const r=el.getBoundingClientRect();return r.left < -2 || r.right > innerWidth+2;}).map(el=>el.textContent.trim().replace(/\s+/g,' ').slice(0,80));
+                const ids=[...document.querySelectorAll('[id]')].map(n=>n.id);
+                const dupIds=[...new Set(ids.filter((id,i)=>ids.indexOf(id)!==i))];
+                return {
+                  overflow,
+                  connected:document.querySelectorAll('[data-connected-system]').length,
+                  twoWorlds:document.querySelectorAll('[data-tw-golden-r1]').length,
+                  embeddedTech:document.querySelectorAll('[data-tw-tech-r2]').length,
+                  standaloneTech:document.querySelectorAll('[data-home-tech-r2]').length,
+                  techMarks:document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity').length,
+                  coreSplit:Boolean(document.getElementById('core-split')),
+                  financial:Boolean(document.getElementById('section-trigger')||document.querySelector('[data-fs-showcase-r11]')),
+                  footerCount:document.querySelectorAll('footer').length,
+                  headerCount:document.querySelectorAll('header').length,
+                  oldTwScripts:[...document.scripts].filter(s=>/homepage-two-worlds-r2(?:1|2)?\.js/.test(s.src)).map(s=>s.src),
+                  clippedMajor,dupIds
+                };
+              });
+              state.cubeMounted=cubeMounted;
+              state.pageErrors=pageErrors;
+              state.pass=state.overflow===0&&state.connected===1&&state.twoWorlds===1&&state.embeddedTech===0&&state.standaloneTech===1&&state.techMarks===10&&!state.coreSplit&&!state.financial&&state.footerCount===1&&state.headerCount===1&&state.oldTwScripts.length===0&&state.clippedMajor.length===0&&state.dupIds.length===0&&(cubeMounted!==false);
+              report.viewports[lang][name]=state;
+              if(!state.pass)report.failures.push(`${lang} ${name}`);
+              if(lang==='en'&&name==='1440x900')await page.screenshot({path:`${media}/01-en-desktop-1440-full.png`,fullPage:true});
+              if(lang==='en'&&name==='1366x768')await page.screenshot({path:`${media}/02-en-laptop-1366-full.png`,fullPage:true});
+              if(lang==='en'&&name==='390x844')await page.screenshot({path:`${media}/03-en-mobile-390-full.png`,fullPage:true});
+              if(lang==='ru'&&name==='1366x768')await page.screenshot({path:`${media}/04-ru-laptop-1366-full.png`,fullPage:true});
+              await context.close();
+            }
+          }
+
+          // Clean autonomous desktop Connected System cadence: no pointer interaction.
+          {
+            const {context,page}=await open('en',1440,900);
+            await page.evaluate(()=>{
+              const section=document.querySelector('[data-connected-system]');
+              const stages=[...section.querySelectorAll('[data-system-stage]')];
+              window.__goldenCsEvents=[];
+              const seen=new Set();
+              const start=performance.now();
+              const record=()=>stages.forEach((stage,index)=>{
+                if(stage.classList.contains('is-active')&&!seen.has(index)){
+                  seen.add(index);window.__goldenCsEvents.push({index,at:performance.now()-start});
+                }
+              });
+              const observer=new MutationObserver(record);
+              stages.forEach(stage=>observer.observe(stage,{attributes:true,attributeFilter:['class']}));
+              section.scrollIntoView({block:'center',behavior:'instant'});
+              record();
+            });
+            await page.waitForTimeout(7300);
+            const events=await page.evaluate(()=>window.__goldenCsEvents||[]);
+            const cadence=events.slice(1).map((e,i)=>Math.round((e.at-events[i].at)*10)/10);
+            report.timing={events,cadence,pass:events.length===4&&cadence.every(v=>v>=1800&&v<=2000)};
+            await page.locator('[data-connected-system]').screenshot({path:`${media}/05-connected-system-state.png`});
+            if(!report.timing.pass)report.failures.push('connected autonomous cadence');
+            await context.close();
+          }
+
+          // Desktop interaction transfer: measure the actual WAAPI optical animation after intro is consumed.
+          {
+            const {context,page}=await open('en',1440,900);
+            const section=page.locator('[data-connected-system]');
+            await section.scrollIntoViewIfNeeded();
+            await page.waitForTimeout(7000);
+            const stages=page.locator('[data-system-stage]');
+            await stages.nth(0).hover();
+            await page.waitForTimeout(180);
+            const start=await page.evaluate(()=>performance.now());
+            await stages.nth(2).hover();
+            await page.waitForTimeout(25);
+            const animation=await page.evaluate((start)=>{
+              const focus=document.querySelector('.cs-spine-catch');
+              const carriage=document.querySelector('.cs-light-carriage');
+              const durations=[...(focus?.getAnimations()||[]),...(carriage?.getAnimations()||[])].map(a=>a.effect?.getTiming().duration).filter(Number.isFinite);
+              return {sampleAtMs:performance.now()-start,durations};
+            },start);
+            report.interaction={...animation,expectedOpticalMs:460,pass:animation.durations.some(v=>Math.abs(v-460)<5)};
+            if(!report.interaction.pass)report.failures.push('connected interaction transfer');
+            await context.close();
+          }
+
+          // Two Worlds integrated desktop states + mobile THE TURN.
+          {
+            const {context,page}=await open('en',1440,900);
+            const viewport=page.locator('[data-tw-viewport]');
+            await viewport.scrollIntoViewIfNeeded();
+            const box=await viewport.boundingBox();
+            const states={};
+            for(const [label,fraction] of [['ai',.20],['neutral',.50],['web',.80]]){
+              await page.mouse.move(box.x+box.width*fraction,box.y+box.height*.5);
+              await page.waitForTimeout(120);
+              states[label]=await page.locator('[data-tw-r2]').getAttribute('data-focus');
+            }
+            report.twoWorlds.desktop=states;
+            await page.locator('[data-home-tech-r2]').scrollIntoViewIfNeeded();
+            await page.waitForTimeout(350);
+            await page.screenshot({path:`${media}/06-two-worlds-to-technology.png`,fullPage:false});
+            await context.close();
+
+            const m=await open('en',390,844);
+            await m.page.evaluate(()=>{
+              const exp=document.querySelector('[data-tw-experience]');
+              const top=exp.getBoundingClientRect().top+scrollY;
+              const travel=Math.max(1,exp.getBoundingClientRect().height-innerHeight);
+              scrollTo(0,top+travel*.50);
+            });
+            await m.page.waitForTimeout(200);
+            report.twoWorlds.mobileTurn=await m.page.locator('[data-tw-r2]').getAttribute('data-focus');
+            report.twoWorlds.pass=states.ai==='ai'&&states.neutral==='neutral'&&states.web==='web'&&report.twoWorlds.mobileTurn==='turn';
+            if(!report.twoWorlds.pass)report.failures.push('two worlds states');
+            await m.context.close();
+          }
+
+          // Technology fast-scroll one-shot assembly and Footer response.
+          {
+            const {context,page}=await open('en',1440,900);
+            await page.evaluate(()=>scrollTo(0,document.body.scrollHeight));
+            await page.locator('[data-home-tech-r2]').scrollIntoViewIfNeeded();
+            await page.waitForTimeout(1750);
+            report.technology.state=await page.locator('[data-home-tech-r2]').getAttribute('data-tech-r2-state');
+            report.technology.pass=report.technology.state==='settled';
+            if(!report.technology.pass)report.failures.push('technology settle');
+            const material=page.locator('[data-footer-material]');
+            await material.scrollIntoViewIfNeeded();
+            await material.hover();
+            await page.waitForTimeout(100);
+            report.footer.desktopActive=await page.locator('[data-footer-watermark-r2]').getAttribute('data-r2-active');
+            report.footer.pass=report.footer.desktopActive==='true';
+            await page.locator('footer').screenshot({path:`${media}/07-footer-r2.png`});
+            if(!report.footer.pass)report.failures.push('footer hover');
+            await context.close();
+          }
+
+          report.pass=report.failures.length===0;
+          fs.writeFileSync(`${out}/qa-report.json`,JSON.stringify(report,null,2));
+          await browser.close();
+          if(!report.pass){console.error(JSON.stringify(report.failures));process.exitCode=1;}
+          JS
+          node /tmp/golden-qa.mjs
+
+      - name: Generate immutable-friendly Owner review HTML
+        if: always()
+        shell: bash
+        env:
+          PRODUCT_SHA: a1b34e85348c88dc332612f635529e893d028ecd
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          from urllib.parse import urljoin
+
+          owner='proaiexpert'; repo='proaiexpert.github.io'; sha='a1b34e85348c88dc332612f635529e893d028ecd'
+          root=f'https://raw.githack.com/{owner}/{repo}/{sha}/'
+          review=Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1')
+          review.mkdir(parents=True,exist_ok=True)
+
+          def css_rewrite(css,path):
+              base=urljoin(root,path)
+              def repl(m):
+                  raw=m.group(1).strip().strip('"\'')
+                  if raw.startswith(('data:','http://','https://','#')): return f'url({m.group(1)})'
+                  target=urljoin(root,raw.lstrip('/')) if raw.startswith('/') else urljoin(base,raw)
+                  return f'url("{target}")'
+              return re.sub(r'url\(([^)]+)\)',repl,css)
+
+          def standalone(route):
+              html=(Path('_site')/route).read_text(encoding='utf-8')
+              def inline_css(m):
+                  attrs=m.group(1); href=m.group(2)
+                  path=href.split('?',1)[0].lstrip('/')
+                  p=Path('_site')/path
+                  if not p.is_file(): return m.group(0)
+                  css=css_rewrite(p.read_text(encoding='utf-8'),path)
+                  return '<style data-review-source="'+path+'">'+css+'</style>'
+              html=re.sub(r'<link([^>]*rel=["\']stylesheet["\'][^>]*href=["\'])(/[^"\']+)(["\'][^>]*>)',lambda m:inline_css(type('M',(),{'group':lambda self,n:{0:m.group(0),1:m.group(1),2:m.group(2),3:m.group(3)}[n]})()),html)
+              # Simpler second pass for conventional link ordering.
+              def link_pass(m):
+                  href=m.group(1); path=href.split('?',1)[0].lstrip('/'); p=Path('_site')/path
+                  if not p.is_file(): return m.group(0)
+                  return '<style data-review-source="'+path+'">'+css_rewrite(p.read_text(encoding='utf-8'),path)+'</style>'
+              html=re.sub(r'<link\s+rel=["\']stylesheet["\']\s+href=["\'](/[^"\']+)["\'][^>]*>',link_pass,html)
+
+              cube_path='assets/js/proai-hero-cube-r1/bootstrap-golden-r1.js'
+              cube=(Path('_site')/cube_path).read_text(encoding='utf-8')
+              cube=cube.replace("'/assets/",f"'{root}assets/").replace('"/assets/',f'"{root}assets/')
+              html=re.sub(r'<script([^>]*data-proai-hero-cube-r1=["\']golden-45["\'][^>]*)src=["\'][^"\']+["\']([^>]*)></script>',lambda m:f'<script {m.group(1)} {m.group(2)}>{cube}</script>',html)
+              html=re.sub(r'<script([^>]*)src=["\'](/assets/[^"\']+)["\']([^>]*)></script>',lambda m:f'<script{m.group(1)}src="{root}{m.group(2).split("?",1)[0].lstrip("/")}"{m.group(3)}></script>',html)
+              html=html.replace('src="/assets/',f'src="{root}assets/').replace("src='/assets/",f"src='{root}assets/")
+              html=html.replace('srcset="/assets/',f'srcset="{root}assets/').replace(', /assets/',f', {root}assets/')
+              html=html.replace('src="/ru/about/',f'src="{root}ru/about/')
+              html=html.replace('<head>','<head><base href="'+root+'">',1)
+              return html
+
+          (review/'owner-review-en.html').write_text(standalone('index.html'),encoding='utf-8')
+          (review/'owner-review-ru.html').write_text(standalone('ru/index.html'),encoding='utf-8')
+          (review/'index.html').write_text('''<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ProAI Golden Assembly R1 Owner Review</title></head><body><script>const p=new URLSearchParams(location.search);location.replace(p.get('lang')==='ru'?'owner-review-ru.html':'owner-review-en.html');</script></body></html>''',encoding='utf-8')
+          PY
+
+      - name: Commit review evidence to isolated branch
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "proai-golden-review-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add docs/site-evolution/reviews/proai-home-golden-assembly-r1
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "review: add Golden Assembly R1 browser evidence [skip ci]"
+          git push origin HEAD:agent/proai-home-golden-assembly-r1-sol

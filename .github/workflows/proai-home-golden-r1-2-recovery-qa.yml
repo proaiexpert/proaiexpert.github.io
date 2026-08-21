@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   mobile-diagnostic:
-    if: ${{ github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'qa-evidence:') }}
+    if: ${{ github.event_name == 'workflow_dispatch' || (!startsWith(github.event.head_commit.message, 'qa-evidence:') && !startsWith(github.event.head_commit.message, 'review-final-run:') && !contains(github.event.head_commit.message, '[review-final]')) }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout recovery branch

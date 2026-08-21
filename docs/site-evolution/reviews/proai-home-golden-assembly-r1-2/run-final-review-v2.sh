@@ -19,10 +19,10 @@ if old2 not in src:
     raise SystemExit('Expected downstream comparison line not found')
 src=src.replace(old2,new2,1)
 qa=Path(sys.argv[3]).read_text(encoding='utf-8')
-oldqa="const outer=await x.page.locator(cfg.root).evaluate(e=>e.outerHTML)"
-newqa="const outer=await x.page.evaluate(sel=>document.querySelector(sel)?.outerHTML||null,cfg.root);if(!outer){fail(`parity:${w}x${h}:${name}:missing-root`,cfg.root);out[name]={assembly:null,reference:null,issues:[`missing root ${cfg.root}`],pass:false};continue}"
+oldqa="const outer=await x.page.locator(cfg.root).evaluate(e=>e.outerHTML),assembly="
+newqa="const outer=await x.page.evaluate(sel=>document.querySelector(sel)?.outerHTML||null,cfg.root);if(!outer){fail(`parity:${w}x${h}:${name}:missing-root`,cfg.root);out[name]={assembly:null,reference:null,issues:[`missing root ${cfg.root}`],pass:false};continue}const assembly="
 if oldqa not in qa:
-    raise SystemExit('Expected parity locator expression not found')
+    raise SystemExit('Expected parity outer/assembly expression not found')
 qa=qa.replace(oldqa,newqa,1)
 Path(sys.argv[4]).write_text(qa,encoding='utf-8')
 oldcmd='PRODUCT_SHA="$PRODUCT_SHA" node "$REVIEW_DIR/run-qa.mjs"'

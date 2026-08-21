@@ -8,6 +8,11 @@ permalink: /ru/
 {% assign golden_shell = golden_shell | replace_first: source_frontmatter, '' %}
 
 {% assign golden_top = golden_shell | split: '<section id="manifest">' | first %}
+{% capture legacy_body_overflow %}body { background-color: var(--bg); color: white; font-family: var(--font); overflow-x: hidden; }{% endcapture %}
+{% capture clean_body_rule %}body { background-color: var(--bg); color: white; font-family: var(--font); }{% endcapture %}
+{% assign golden_top = golden_top | replace_first: legacy_body_overflow, clean_body_rule %}
+{% capture legacy_mobile_overflow %}  html, body { overflow-x: clip !important; }{% endcapture %}
+{% assign golden_top = golden_top | replace: legacy_mobile_overflow, '' %}
 {% capture golden_head_assets %}
 <link rel="stylesheet" href="/assets/css/homepage-connected-system-r13.css?v=golden-r1">
 <link rel="stylesheet" href="/assets/css/homepage-two-worlds-golden-r1.css?v=golden-r1">

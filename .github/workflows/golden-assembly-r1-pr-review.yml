@@ -12,7 +12,7 @@ jobs:
   review:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 25
     env:
       PRODUCT_SHA: 38b92195a11709546db8fe0beeaa782244eee83f
       REVIEW_DIR: docs/site-evolution/reviews/proai-home-golden-assembly-r1-1
@@ -95,7 +95,7 @@ jobs:
         id: qa
         continue-on-error: true
         shell: bash
-        run: node "$REVIEW_DIR/run-qa.mjs"
+        run: node "$REVIEW_DIR/run-qa-fast.mjs"
 
       - name: Generate immutable Owner review harness
         if: always()
@@ -120,11 +120,11 @@ jobs:
             const context=await browser.newContext({viewport:{width:1366,height:768},reducedMotion:'no-preference'});
             const page=await context.newPage();
             page.on('pageerror',e=>result.errors.push(String(e)));
-            await page.goto(`http://127.0.0.1:4174/${out}/index.html?lang=${lang}`,{waitUntil:'domcontentloaded',timeout:60000});
-            await page.waitForFunction(()=>document.querySelectorAll('[data-connected-system]').length===1&&document.querySelectorAll('[data-home-tech-r2]').length===1&&document.querySelectorAll('[data-fs-showcase-r11]').length===1,{timeout:20000});
+            await page.goto(`http://127.0.0.1:4174/${out}/index.html?lang=${lang}`,{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForFunction(()=>document.querySelectorAll('[data-connected-system]').length===1&&document.querySelectorAll('[data-home-tech-r2]').length===1&&document.querySelectorAll('[data-fs-showcase-r11]').length===1,null,{timeout:10000});
             result[lang]=true;
             if(lang==='en'){
-              try{await page.waitForFunction(()=>window.__PROAI_HERO_CUBE_GOLDEN_R1?.runtime?.ready===true&&document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',{timeout:22000});result.cube=true;}catch{}
+              try{await page.waitForFunction(()=>window.__PROAI_HERO_CUBE_GOLDEN_R1?.runtime?.ready===true&&document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',null,{timeout:12000});result.cube=true;}catch{}
               result.financial=await page.evaluate(()=>document.querySelectorAll('[data-fs-showcase-r11]').length===1);
             }
             await context.close();
@@ -139,7 +139,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: proai-home-golden-r1-1-owner-review
+          name: proai-home-golden-r1-1-owner-review-fast
           path: ${{ env.REVIEW_DIR }}
           if-no-files-found: error
           retention-days: 14

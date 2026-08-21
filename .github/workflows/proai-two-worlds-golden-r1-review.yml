@@ -1,7 +1,7 @@
 name: ProAI Two Worlds Golden R1 Owner Review
 
 on:
-  push:
+  pull_request:
     branches:
       - agent/proai-two-worlds-golden-synthesis-r1
   workflow_dispatch:
@@ -18,9 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
-      - name: Checkout exact branch head
+      - name: Checkout exact Golden branch head
         uses: actions/checkout@v4
         with:
+          ref: agent/proai-two-worlds-golden-synthesis-r1
           fetch-depth: 1
 
       - name: Setup Node
@@ -33,34 +34,48 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Start isolated review server
+      - name: Resolve immutable public Owner URL
+        id: public
+        shell: bash
         run: |
-          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/two-worlds-golden-r1-http.log 2>&1 &
-          echo $! > /tmp/two-worlds-golden-r1-http.pid
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:8765/docs/site-evolution/two-worlds-golden-synthesis-r1/review/index.html >/dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          cat /tmp/two-worlds-golden-r1-http.log
-          exit 1
+          GOLDEN_SHA="$(git rev-parse HEAD)"
+          PUBLIC_URL="https://raw.githack.com/proaiexpert/proaiexpert.github.io/${GOLDEN_SHA}/docs/site-evolution/two-worlds-golden-synthesis-r1/review/index.html"
+          echo "golden_sha=${GOLDEN_SHA}" >> "$GITHUB_OUTPUT"
+          echo "public_url=${PUBLIC_URL}" >> "$GITHUB_OUTPUT"
+          curl -fLsS --retry 4 --retry-delay 2 "$PUBLIC_URL" -o /tmp/two-worlds-golden-r1-public.html
+          grep -q 'TWO WORLDS — GOLDEN SYNTHESIS R1' /tmp/two-worlds-golden-r1-public.html
 
-      - name: Run Golden browser QA and capture three Owner stills
+      - name: Run Golden browser QA against exact public HTTPS URL
+        env:
+          TW_GOLDEN_URL: ${{ steps.public.outputs.public_url }}
         run: node docs/site-evolution/two-worlds-golden-synthesis-r1/review/qa.mjs
 
-      - name: Commit fresh review evidence
+      - name: Record public verification
+        if: success()
+        shell: bash
+        run: |
+          printf '%s\n' '${{ steps.public.outputs.public_url }}' > docs/site-evolution/two-worlds-golden-synthesis-r1/review/public-url.txt
+          cat > docs/site-evolution/two-worlds-golden-synthesis-r1/review/public-verification.json <<EOF
+          {
+            "goldenSha": "${{ steps.public.outputs.golden_sha }}",
+            "publicUrl": "${{ steps.public.outputs.public_url }}",
+            "openedByBuilderAutomation": true,
+            "browser": "Playwright Chromium",
+            "source": "immutable raw.githack commit URL"
+          }
+          EOF
+
+      - name: Commit fresh review evidence to Golden branch
         if: success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -- docs/site-evolution/two-worlds-golden-synthesis-r1/review/qa-report.json \
+            docs/site-evolution/two-worlds-golden-synthesis-r1/review/public-url.txt \
+            docs/site-evolution/two-worlds-golden-synthesis-r1/review/public-verification.json \
             docs/site-evolution/two-worlds-golden-synthesis-r1/review/media/01-neutral-50-50-1440x900.jpg \
             docs/site-evolution/two-worlds-golden-synthesis-r1/review/media/02-ai-active-fold-right-1440x900.jpg \
             docs/site-evolution/two-worlds-golden-synthesis-r1/review/media/03-web-active-fold-left-1440x900.jpg
-          if git diff --cached --quiet; then
-            echo "No review evidence changes"
-            exit 0
-          fi
-          git commit -m "review: capture Golden Two Worlds R1 owner stills"
+          git diff --cached --quiet && exit 0
+          git commit -m "review: capture Golden Two Worlds R1 owner evidence"
           git push origin HEAD:agent/proai-two-worlds-golden-synthesis-r1

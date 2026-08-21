@@ -11,8 +11,10 @@ permalink: /
 {% capture legacy_body_overflow %}body { background-color: var(--bg); color: white; font-family: var(--font); overflow-x: hidden; }{% endcapture %}
 {% capture clean_body_rule %}body { background-color: var(--bg); color: white; font-family: var(--font); }{% endcapture %}
 {% assign golden_top = golden_top | replace_first: legacy_body_overflow, clean_body_rule %}
-{% capture legacy_mobile_overflow %}  html, body { overflow-x: clip !important; }{% endcapture %}
-{% assign golden_top = golden_top | replace: legacy_mobile_overflow, '' %}
+{% capture legacy_mobile_overflow_important %}  html, body { overflow-x: clip !important; }{% endcapture %}
+{% assign golden_top = golden_top | replace: legacy_mobile_overflow_important, '' %}
+{% capture legacy_mobile_overflow_inline %}            html, body { overflow-x: clip; }{% endcapture %}
+{% assign golden_top = golden_top | replace: legacy_mobile_overflow_inline, '' %}
 {% capture golden_head_assets %}
 <link rel="stylesheet" href="/assets/css/homepage-connected-system-r13.css?v=golden-r1-1">
 <link rel="stylesheet" href="/assets/css/homepage-two-worlds-golden-r1.css?v=golden-r1-1">

@@ -10,9 +10,10 @@ permissions:
   contents: write
 
 jobs:
-  mobile-diagnostic:
-    if: ${{ github.event_name == 'workflow_dispatch' || (!startsWith(github.event.head_commit.message, 'qa-evidence:') && !startsWith(github.event.head_commit.message, 'review-final-run:') && !contains(github.event.head_commit.message, '[review-final]')) }}
+  final-review:
+    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'review-final-run:') }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 55
     steps:
       - name: Checkout recovery branch
         uses: actions/checkout@v6
@@ -20,137 +21,22 @@ jobs:
           ref: agent/proai-home-golden-assembly-r1-2-recovery
           fetch-depth: 0
 
-      - name: Build real Jekyll product
-        shell: bash
-        run: |
-          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
-          export PATH="$GEM_HOME/bin:$PATH"
-          gem install --user-install jekyll -v 4.3.4 --no-document
-          gem install --user-install webrick --no-document
-          jekyll build --source . --destination _site
-
-      - name: Probe exact Cube source bodies
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import hashlib, json, subprocess
-          base = Path('_site/assets/js/proai-hero-cube-r1')
-          expected = {
-            'source-final-motion-r2-touch-auto-45-r1.js': 'fc2c0ba13692c94f5838008d09f05dda9859e9d2',
-            'source-final-motion-r2.js': '67ca618cf10a47561d351715968187d2e4c50351',
-            'source-materials-r1.js': 'f9298b0b00feaae4123eb5a7161f24f669ae0eca',
-          }
-          markers = {
-            'source-materials-r1.js': [
-              "motionAuthority: 'quaternion-editorial-spatial-r1.2-premium'",
-              'const SLICE_R1_2 = Object.freeze({',
-              "selectedPreset: 'premiumHybrid'",
-              "const GLB_URL = new URL('./rubik_39_s_cube_animation.glb', import.meta.url).href;",
-            ]
-          }
-          out = {}
-          for name, want in expected.items():
-            p = base / name
-            data = p.read_bytes()
-            text = data.decode('utf-8')
-            blob = subprocess.check_output(['git','hash-object',str(p)], text=True).strip()
-            out[name] = {
-              'length': len(data),
-              'sha256': hashlib.sha256(data).hexdigest(),
-              'gitBlob': blob,
-              'expectedBlob': want,
-              'blobMatch': blob == want,
-              'markers': {m: (m in text) for m in markers.get(name, [])},
-            }
-          target = Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/source-probe.json')
-          target.parent.mkdir(parents=True, exist_ok=True)
-          target.write_text(json.dumps(out, indent=2), encoding='utf-8')
-          print(json.dumps(out, indent=2))
-          PY
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
-      - name: Trace browser setup and mobile gate
-        id: traced_mobile
+      - name: Run traced exact-recovery final review
         shell: bash
-        run: |
-          set +e
-          mkdir -p docs/site-evolution/reviews/proai-home-golden-assembly-r1-2
-          : > docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log
-          npm install --no-save playwright@1.55.0 >> docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log 2>&1
-          npm_code=$?
-          pw_code=99
-          server_code=99
-          mobile_code=99
-          if [ "$npm_code" -eq 0 ]; then
-            npx playwright install --with-deps chromium >> docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log 2>&1
-            pw_code=$?
-          fi
-          if [ "$npm_code" -eq 0 ] && [ "$pw_code" -eq 0 ]; then
-            python3 -m http.server 4173 --directory _site >> docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log 2>&1 &
-            server_pid=$!
-            server_code=1
-            for i in {1..30}; do
-              if curl -fsS http://127.0.0.1:4173/ >/dev/null; then server_code=0; break; fi
-              sleep 1
-            done
-            if [ "$server_code" -eq 0 ]; then
-              node docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-mobile-gate.mjs >> docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log 2>&1
-              mobile_code=$?
-            fi
-            kill "$server_pid" >/dev/null 2>&1 || true
-          fi
-          python - "$npm_code" "$pw_code" "$server_code" "$mobile_code" <<'PY'
-          from pathlib import Path
-          import json, sys
-          keys=['npmInstall','playwrightInstall','server','mobileGate']
-          values=[int(x) for x in sys.argv[1:]]
-          Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-qa-trace.json').write_text(json.dumps(dict(zip(keys,values)),indent=2),encoding='utf-8')
-          PY
-          if [ "$npm_code" -eq 0 ] && [ "$pw_code" -eq 0 ] && [ "$server_code" -eq 0 ] && [ "$mobile_code" -eq 0 ]; then
-            echo "passed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "passed=false" >> "$GITHUB_OUTPUT"
-          fi
-          exit 0
+        run: bash docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-final-review-v2.sh
 
-      - name: Persist mobile diagnostic evidence
-        if: always()
-        shell: bash
-        run: |
-          git config user.name "ProAI QA Bot"
-          git config user.email "proai.expert2026@gmail.com"
-          git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/source-probe.json
-          git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log
-          git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-qa-trace.json
-          git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-gate.json
-          git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/media/00-mobile-gate-en-390x844.png
-          if git diff --cached --quiet; then
-            echo "No mobile diagnostic evidence changes."
-            exit 0
-          fi
-          git commit -m "qa-evidence: capture traced Golden R1.2 mobile gate for $GITHUB_SHA"
-          git push origin HEAD:agent/proai-home-golden-assembly-r1-2-recovery
-
-      - name: Upload mobile diagnostic evidence
+      - name: Upload final or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: proai-golden-r1-2-mobile-diagnostic-${{ github.sha }}
+          name: proai-home-golden-r1-2-final-review-${{ github.sha }}
           path: |
-            docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/source-probe.json
-            docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log
-            docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-qa-trace.json
-            docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-gate.json
-            docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/media/00-mobile-gate-en-390x844.png
+            docs/site-evolution/reviews/proai-home-golden-assembly-r1-2
+            docs/site-evolution/PROAI_HOME_GOLDEN_ASSEMBLY_R1_MANIFEST.md
           if-no-files-found: warn
-          retention-days: 14
-
-      - name: Enforce mobile gate result
-        if: always()
-        shell: bash
-        run: test "${{ steps.traced_mobile.outputs.passed }}" = "true"
+          retention-days: 30

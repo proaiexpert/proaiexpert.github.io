@@ -1,0 +1,89 @@
+name: ProAI Two Worlds R2 Isolated Base Probe
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-product-resurrection-r2
+    paths:
+      - .github/workflows/proai-two-worlds-r2-isolated-base-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Install lightweight probe dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+      - name: Build exact R2.2 isolated host with exact historical base prerequisites
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          rm -rf /tmp/tw-base-probe-wt /tmp/tw-base-probe-site docs/site-evolution/two-worlds-product-resurrection-r2/_base-probe
+          git worktree add --detach /tmp/tw-base-probe-wt 411937c0e1367681891ef562e02d333681984c39 >/dev/null
+          (cd /tmp/tw-base-probe-wt && jekyll build --source . --destination /tmp/tw-base-probe-site --quiet)
+          python3 - <<'PY'
+          import pathlib,re,html
+          wt=pathlib.Path('/tmp/tw-base-probe-wt'); built=pathlib.Path('/tmp/tw-base-probe-site')
+          css_files=['homepage-two-worlds-r2.css','homepage-two-worlds-r21.css','homepage-two-worlds-r22.css']
+          js_files=['homepage-two-worlds-r2.js','homepage-two-worlds-r21.js','homepage-two-worlds-r22.js']
+          for lang in ('en','ru'):
+            markup=(wt/f'_includes/homepage-two-worlds-r2-{lang}.html').read_text(encoding='utf-8')
+            current=(wt/f'_includes/homepage-current-{lang}.html').read_text(encoding='utf-8')
+            style=re.search(r'<style>(.*?)</style>',current,re.S)
+            if not style: raise SystemExit('historical inline style missing')
+            src=style.group(1)
+            blocks=[]
+            for selector,pattern in [(':root',r':root\s*\{[^{}]*\}'),('*',r'(?m)^\s*\*\s*\{[^{}]*\}'),('html',r'(?m)^\s*html\s*\{[^{}]*\}'),('body',r'(?m)^\s*body\s*\{[^{}]*\}')]:
+              m=re.search(pattern,src,re.S)
+              if not m: raise SystemExit(f'missing historical base block {selector}')
+              blocks.append(m.group(0))
+            base='\n'.join(blocks)
+            css='\n'.join(f'<link rel="stylesheet" href="/assets/css/{html.escape(x)}">' for x in css_files)
+            js='\n'.join(f'<script src="/assets/js/{html.escape(x)}"></script>' for x in js_files)
+            body_class='lang-ru' if lang=='ru' else 'lang-en'
+            doc=f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>R2.2 isolated base probe</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">{css}<style>{base}\nhtml{{scroll-behavior:auto!important}}.resurrection-tail{{height:120vh;pointer-events:none}}</style></head><body class="{body_class}"><main>{markup}</main><div class="resurrection-tail"></div>{js}</body></html>'''
+            out=built/'__resurrection__'/lang/'index.html';out.parent.mkdir(parents=True,exist_ok=True);out.write_text(doc,encoding='utf-8')
+          PY
+          python3 -m http.server 8302 --bind 127.0.0.1 --directory /tmp/tw-base-probe-site >/tmp/tw-base-probe-http.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8302/__resurrection__/en/ -o /dev/null && break || sleep 1; done
+      - name: Browser geometry and interaction probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/site-evolution/two-worlds-product-resurrection-r2/_base-probe
+          node <<'NODE'
+          const puppeteer=require('puppeteer-core'),fs=require('fs');
+          const out='docs/site-evolution/two-worlds-product-resurrection-r2/_base-probe';
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function g(p){return p.evaluate(()=>{const s=document.querySelector('[data-tw-r2]'),v=s.querySelector('[data-tw-viewport]');const r=v.getBoundingClientRect();return {focus:s.dataset.focus,viewport:{left:r.left,right:r.right,width:r.width,height:r.height,top:r.top,bottom:r.bottom},scrollWidth:document.documentElement.scrollWidth,clientWidth:document.documentElement.clientWidth,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth};});}
+          (async()=>{const b=await puppeteer.launch({headless:true,executablePath:'/usr/bin/google-chrome',args:['--no-sandbox','--disable-dev-shm-usage']});const report={};
+            let p=await b.newPage();await p.setViewport({width:1440,height:900,deviceScaleFactor:1});await p.goto('http://127.0.0.1:8302/__resurrection__/en/',{waitUntil:'domcontentloaded'});await p.waitForSelector('[data-tw-r2]');await p.evaluate(()=>document.querySelector('[data-tw-experience]').scrollIntoView({block:'center'}));await sleep(400);await p.focus('[data-tw-world="ai"] .tw-r2__cta');await sleep(800);report.desktop=await g(p);await p.screenshot({path:out+'/desktop-ai.jpg',type:'jpeg',quality:90});await p.close();
+            p=await b.newPage();await p.setViewport({width:390,height:844,deviceScaleFactor:1,isMobile:true,hasTouch:true});await p.goto('http://127.0.0.1:8302/__resurrection__/ru/',{waitUntil:'domcontentloaded'});await p.waitForSelector('[data-tw-r2]');await p.evaluate(()=>{const e=document.querySelector('[data-tw-experience]');const r=e.getBoundingClientRect();scrollTo(0,r.top+scrollY);});await sleep(700);report.portrait=await g(p);await p.screenshot({path:out+'/portrait-ai.jpg',type:'jpeg',quality:90});await p.close();await b.close();
+            fs.writeFileSync(out+'/probe.json',JSON.stringify(report,null,2));
+            if(report.desktop.viewport.width<1300||report.desktop.focus!=='ai'||report.desktop.overflow!==0)throw new Error('desktop probe failed '+JSON.stringify(report.desktop));
+            if(report.portrait.viewport.width<370||report.portrait.overflow!==0)throw new Error('portrait probe failed '+JSON.stringify(report.portrait));
+            console.log('ISOLATED_BASE_PREREQUISITES_PROBE=PASS',JSON.stringify(report));
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Commit successful base probe evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ProAI Review Recovery"; git config user.email "proai.expert2026@gmail.com"
+          git add docs/site-evolution/two-worlds-product-resurrection-r2/_base-probe
+          git commit -m "review: verify exact historical base prerequisites for isolated R2.2"
+          git push origin HEAD:agent/proai-two-worlds-product-resurrection-r2

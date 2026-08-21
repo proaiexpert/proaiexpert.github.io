@@ -1,0 +1,48 @@
+name: ProAI Two Worlds R2 Geometry Probe
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-product-resurrection-r2
+    paths:
+      - .github/workflows/proai-two-worlds-r2-geometry-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Install probe dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+      - name: Build exact R2.2 and run probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          rm -rf /tmp/tw-probe-wt /tmp/tw-probe-site docs/site-evolution/two-worlds-product-resurrection-r2/_probe
+          git worktree add --detach /tmp/tw-probe-wt 411937c0e1367681891ef562e02d333681984c39 >/dev/null
+          (cd /tmp/tw-probe-wt && jekyll build --source . --destination /tmp/tw-probe-site --quiet)
+          python3 -m http.server 8302 --bind 127.0.0.1 --directory /tmp/tw-probe-site >/tmp/tw-probe-http.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:8302/ -o /dev/null && break || sleep 1; done
+          node scripts/two-worlds-r2-geometry-probe.cjs
+      - name: Commit probe evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ProAI Review Recovery"
+          git config user.email "proai.expert2026@gmail.com"
+          git add docs/site-evolution/two-worlds-product-resurrection-r2/_probe
+          git commit -m "review: capture corrected Two Worlds geometry probe"
+          git push origin HEAD:agent/proai-two-worlds-product-resurrection-r2

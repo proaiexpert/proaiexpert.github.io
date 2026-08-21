@@ -1,0 +1,56 @@
+name: Trigger ProAI Two Worlds Product Resurrection R2
+# dispatch revision: streamed Chrome CDP motion capture + public full-size verification
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-product-resurrection-r2
+    paths:
+      - .github/workflows/proai-two-worlds-product-resurrection-r2-trigger.yml
+
+permissions:
+  actions: write
+  contents: read
+  statuses: write
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mark trigger pending
+        shell: bash
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d '{"state":"pending","context":"two-worlds-resurrection-r2-trigger","description":"Dispatching exact-SHA resurrection"}' >/dev/null
+
+      - name: Dispatch resurrection workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/proai-two-worlds-product-resurrection-r2.yml/dispatches \
+            -d '{"ref":"agent/proai-two-worlds-product-resurrection-r2"}'
+
+      - name: Mark trigger success
+        shell: bash
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d '{"state":"success","context":"two-worlds-resurrection-r2-trigger","description":"Resurrection workflow dispatched"}' >/dev/null
+
+      - name: Mark trigger failure
+        if: failure()
+        shell: bash
+        run: |
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d '{"state":"failure","context":"two-worlds-resurrection-r2-trigger","description":"Resurrection dispatch failed"}' >/dev/null || true

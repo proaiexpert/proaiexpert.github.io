@@ -1,0 +1,242 @@
+name: ProAI Two Worlds Product Resurrection R2 Corrected
+
+on:
+  push:
+    branches:
+      - agent/proai-two-worlds-product-resurrection-r2
+    paths:
+      - .github/workflows/proai-two-worlds-product-resurrection-r2-corrected.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  corrected-resurrection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout isolated recovery branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Publish pending status
+        shell: bash
+        run: |
+          curl -fsS -X POST -H "Authorization: Bearer ${{ github.token }}" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d '{"state":"pending","context":"two-worlds-product-resurrection-r2-corrected","description":"Corrected exact-SHA resurrection capture running"}' >/dev/null
+
+      - name: Install review dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document >/dev/null
+          npm install --no-save --no-audit --no-fund puppeteer-core@24.16.0 >/dev/null
+          python3 -m pip install --quiet pillow
+          command -v ffmpeg >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y ffmpeg; }
+          if ! command -v cloudflared >/dev/null; then
+            curl -fsSL -o /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+            sudo dpkg -i /tmp/cloudflared.deb >/dev/null
+          fi
+
+      - name: Create exact SHA worktrees, historical builds, and fresh isolated resurrection hosts
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          rm -rf /tmp/tw-r2-corrected
+          mkdir -p /tmp/tw-r2-corrected
+          python3 - <<'PY' >/tmp/tw-corrected.tsv
+          import json
+          m=json.load(open('docs/site-evolution/two-worlds-product-resurrection-r2/resurrection-manifest.json'))
+          rows=m['ownerGalleryCandidates']+[m['internalIntermediateTest']]
+          for i,c in enumerate(rows,1): print(c['id'],c['productSha'],8500+i,sep='\t')
+          PY
+          while IFS=$'\t' read -r id sha port; do
+            wt="/tmp/tw-r2-corrected/worktree-${id}"
+            built="/tmp/tw-r2-corrected/built-${id}"
+            git cat-file -e "${sha}^{commit}"
+            git worktree add --detach "$wt" "$sha" >/dev/null
+            (cd "$wt" && jekyll build --source . --destination "$built" --quiet)
+          done </tmp/tw-corrected.tsv
+          python3 - <<'PY'
+          import json,pathlib,html
+          m=json.load(open('docs/site-evolution/two-worlds-product-resurrection-r2/resurrection-manifest.json'))
+          rows=m['ownerGalleryCandidates']+[m['internalIntermediateTest']]
+          base_css=[]
+          for c in rows:
+            wt=pathlib.Path('/tmp/tw-r2-corrected/worktree-'+c['id'])
+            built=pathlib.Path('/tmp/tw-r2-corrected/built-'+c['id'])
+            for lang in ('en','ru'):
+              include=wt/('_includes/homepage-two-worlds-r2-'+lang+'.html')
+              if not include.exists(): raise SystemExit(f'{c["id"]} missing {include}')
+              markup=include.read_text(encoding='utf-8')
+              css='\n'.join(f'<link rel="stylesheet" href="/assets/css/{html.escape(name)}">' for name in c['expectedCss'])
+              js='\n'.join(f'<script src="/assets/js/{html.escape(name)}"></script>' for name in c['expectedJs'])
+              body_class='lang-ru' if lang=='ru' else 'lang-en'
+              doc=f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>{c['version']} exact-SHA resurrection {lang.upper()}</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">{css}<style>html{{scroll-behavior:auto;background:#050506}}body{{margin:0;background:#050506;color:#fff;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow-x:hidden}}.resurrection-tail{{height:120vh;pointer-events:none}}</style></head><body class="{body_class}"><main id="resurrection-exact-sha">{markup}</main><div class="resurrection-tail" aria-hidden="true"></div>{js}</body></html>'''
+              out=built/'__resurrection__'/lang/'index.html'; out.parent.mkdir(parents=True,exist_ok=True); out.write_text(doc,encoding='utf-8')
+            print('HOST',c['id'],c['productSha'])
+          PY
+          echo "EXACT_SHA_ISOLATED_HOSTS=PASS"
+
+      - name: Start exact-SHA isolated candidate runtimes
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS=$'\t' read -r id sha port; do
+            python3 -m http.server "$port" --bind 127.0.0.1 --directory "/tmp/tw-r2-corrected/built-${id}" >"/tmp/tw-corrected-${id}.log" 2>&1 &
+          done </tmp/tw-corrected.tsv
+          while IFS=$'\t' read -r id sha port; do
+            ok=0
+            for i in $(seq 1 30); do if curl -fsS "http://127.0.0.1:${port}/__resurrection__/en/" -o /tmp/host.html; then ok=1; break; fi; sleep 1; done
+            test "$ok" = 1
+            grep -q 'data-tw-r2' /tmp/host.html
+          done </tmp/tw-corrected.tsv
+          echo "EXACT_SHA_ISOLATED_SERVERS=PASS"
+
+      - name: Fresh corrected browser capture with visible-scene gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf docs/site-evolution/two-worlds-product-resurrection-r2/review/media docs/site-evolution/two-worlds-product-resurrection-r2/_internal/e-test
+          node scripts/two-worlds-product-resurrection-r2-capture-corrected.cjs
+
+      - name: Rebuild self-contained Owner gallery
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/two-worlds-product-resurrection-r2-gallery.py
+
+      - name: Build still and video forensic contact sheets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from PIL import Image,ImageDraw
+          import pathlib
+          roots=[pathlib.Path('docs/site-evolution/two-worlds-product-resurrection-r2/review/media')/x for x in ['a','b','c','d']]
+          roots.append(pathlib.Path('docs/site-evolution/two-worlds-product-resurrection-r2/_internal/e-test'))
+          names=['01-neutral-1440x900.jpg','02-ai-active-1440x900.jpg','03-web-active-1440x900.jpg','04-ai-390x844.jpg','05-turn-390x844.jpg','06-web-390x844.jpg','07-ai-844x390.jpg','08-web-844x390.jpg','09-tech-desktop.jpg','10-tech-mobile.jpg']
+          for root in roots:
+            thumbs=[]
+            for n in names:
+              im=Image.open(root/n).convert('RGB'); im.thumbnail((360,225)); tile=Image.new('RGB',(380,265),'#080a0c'); tile.paste(im,((380-im.width)//2,8)); ImageDraw.Draw(tile).text((10,240),n,fill='white'); thumbs.append(tile)
+            sheet=Image.new('RGB',(760,1325),'#030405')
+            for i,t in enumerate(thumbs): sheet.paste(t,((i%2)*380,(i//2)*265))
+            sheet.save(root/'inspection-contact-sheet.jpg',quality=90,optimize=True)
+          PY
+          for root in docs/site-evolution/two-worlds-product-resurrection-r2/review/media/{a,b,c,d} docs/site-evolution/two-worlds-product-resurrection-r2/_internal/e-test; do
+            ffmpeg -y -loglevel error -i "$root/desktop-1440x900.mp4" -vf "fps=1,scale=480:-1,tile=4x3:padding=4:margin=4" -frames:v 1 "$root/desktop-video-contact-sheet.jpg"
+            ffmpeg -y -loglevel error -i "$root/mobile-390x844.mp4" -vf "fps=1,scale=195:-1,tile=4x3:padding=4:margin=4" -frames:v 1 "$root/mobile-video-contact-sheet.jpg"
+          done
+          echo "CORRECTED_CONTACT_SHEETS=PASS"
+
+      - name: Validate corrected media inventory, codecs, durations, overflow and identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,pathlib
+          root=pathlib.Path('docs/site-evolution/two-worlds-product-resurrection-r2/review/media')
+          for id in 'abcd':
+            r=json.load(open(root/id/'runtime-report.json'))
+            assert r['runtimeVerifiedFromExactSha'] is True
+            for k in ('desktopOverflow','portraitOverflow','landscapeOverflow'): assert r[k]['delta']==0,(id,k,r[k])
+            for k in ('desktopRequiredAssetFailures','portraitRequiredAssetFailures','landscapeRequiredAssetFailures','techDesktopRequiredAssetFailures','techMobileRequiredAssetFailures'): assert r[k]==[],(id,k,r[k])
+            assert r['desktopNeutralGeometry']['viewport']['width']>1300
+            assert r['portraitAiGeometry']['viewport']['width']>=370
+          print('CORRECTED_RUNTIME_GATES=PASS')
+          PY
+          for id in a b c d; do
+            dir="docs/site-evolution/two-worlds-product-resurrection-r2/review/media/$id"
+            for v in "$dir"/*.mp4; do
+              codec=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,pix_fmt -of csv=p=0 "$v")
+              test "$codec" = "h264,yuv420p"
+              dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$v")
+              awk -v d="$dur" 'BEGIN{exit !(d>=7.5 && d<=15.5)}'
+            done
+          done
+          echo "CORRECTED_OWNER_MEDIA=PASS"
+
+      - name: Commit corrected fresh evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "ProAI Review Recovery"
+          git config user.email "proai.expert2026@gmail.com"
+          git add docs/site-evolution/two-worlds-product-resurrection-r2/review docs/site-evolution/two-worlds-product-resurrection-r2/_internal/e-test
+          git commit -m "review: replace failed captures with visible exact-SHA Two Worlds filmstrip"
+          git push origin HEAD:agent/proai-two-worlds-product-resurrection-r2
+          echo "CORRECTED_EVIDENCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Start new public HTTPS Owner gallery
+        shell: bash
+        run: |
+          set -euo pipefail
+          review="docs/site-evolution/two-worlds-product-resurrection-r2/review"
+          python3 -m http.server 8600 --bind 127.0.0.1 --directory "$review" >/tmp/tw-corrected-gallery-http.log 2>&1 &
+          cloudflared tunnel --url http://127.0.0.1:8600 --no-autoupdate >/tmp/tw-corrected-tunnel.log 2>&1 &
+          url=''
+          for i in $(seq 1 90); do url=$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/tw-corrected-tunnel.log | tail -1 || true); [ -n "$url" ] && break; sleep 1; done
+          test -n "$url"
+          ok=0
+          for i in $(seq 1 60); do if curl -fsS --connect-timeout 5 --max-time 20 "$url/" -o /tmp/tw-corrected-public.html; then ok=1; break; fi; sleep 2; done
+          test "$ok" = 1
+          grep -q 'Historical Owner Filmstrip' /tmp/tw-corrected-public.html
+          echo "PUBLIC_GALLERY_URL=$url/" >> "$GITHUB_ENV"
+          echo "$url/" > "$review/public-url.txt"
+
+      - name: Open exact public URL and sequentially play all Owner MP4s
+        shell: bash
+        env:
+          PUBLIC_GALLERY_URL: ${{ env.PUBLIC_GALLERY_URL }}
+        run: |
+          set -euo pipefail
+          node scripts/two-worlds-product-resurrection-r2-final-public-verify.cjs
+
+      - name: Persist corrected public verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,os,pathlib
+          p=pathlib.Path('docs/site-evolution/two-worlds-product-resurrection-r2/review/finalize-run.json')
+          p.write_text(json.dumps({'runId':int(os.environ['GITHUB_RUN_ID']),'runAttempt':int(os.environ['GITHUB_RUN_ATTEMPT']),'sourceSha':os.environ['GITHUB_SHA'],'correctedEvidenceSha':os.environ.get('CORRECTED_EVIDENCE_SHA'),'publicGalleryUrl':os.environ['PUBLIC_GALLERY_URL'],'captureMode':'exact-SHA isolated component resurrection host; historical include/CSS/JS unmodified'},indent=2),encoding='utf-8')
+          PY
+          git pull --rebase origin agent/proai-two-worlds-product-resurrection-r2
+          git add docs/site-evolution/two-worlds-product-resurrection-r2/review/public-url.txt docs/site-evolution/two-worlds-product-resurrection-r2/review/public-verification.json docs/site-evolution/two-worlds-product-resurrection-r2/review/finalize-run.json
+          git commit -m "review: verify corrected Two Worlds Owner filmstrip public playback"
+          git push origin HEAD:agent/proai-two-worlds-product-resurrection-r2
+
+      - name: Upload corrected complete evidence artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-two-worlds-product-resurrection-r2-corrected
+          path: docs/site-evolution/two-worlds-product-resurrection-r2/
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Publish success status
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS -X POST -H "Authorization: Bearer ${{ github.token }}" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d "{\"state\":\"success\",\"context\":\"two-worlds-product-resurrection-r2-corrected\",\"description\":\"Visible exact-SHA Owner filmstrip verified\",\"target_url\":\"${PUBLIC_GALLERY_URL}\"}" >/dev/null
+
+      - name: Publish failure status
+        if: failure()
+        shell: bash
+        run: |
+          curl -sS -X POST -H "Authorization: Bearer ${{ github.token }}" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+            -d '{"state":"failure","context":"two-worlds-product-resurrection-r2-corrected","description":"Corrected resurrection packaging failed"}' >/dev/null || true
+
+      - name: Keep verified corrected gallery available
+        shell: bash
+        run: sleep 10800

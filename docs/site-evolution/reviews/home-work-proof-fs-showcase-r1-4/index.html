@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Financial Stream Flagship Proof R1.4 — Owner Review</title>
+<link rel="stylesheet" href="../../../../assets/css/home-work-proof-financial-stream-r1-1.css">
+<link rel="stylesheet" href="../../../../assets/css/home-work-proof-financial-stream-r1-2.css">
+<link rel="stylesheet" href="../../../../assets/css/home-work-proof-financial-stream-r1-3.css">
+<link rel="stylesheet" href="../../../../assets/css/home-work-proof-financial-stream-r1-3-1.css">
+<script>
+const reviewParams=new URLSearchParams(location.search);
+const reviewVersion=reviewParams.get('version')==='r131'?'r131':'r14';
+if(reviewVersion==='r14')document.write('<link rel="stylesheet" href="../../../../assets/css/home-work-proof-financial-stream-r1-4.css">');
+</script>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;background:#050608;color:#fff;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.review-toolbar{position:fixed;z-index:9999;top:10px;right:10px;display:flex;gap:5px;padding:5px;background:rgba(5,7,9,.86);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(14px)}.review-toolbar a{min-width:42px;padding:8px 9px;color:#cdd8df;text-decoration:none;text-align:center;font:700 9px/1 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.08em;border:1px solid transparent}.review-toolbar a[aria-current="true"]{background:#eef4f7;color:#07182a}.review-context{min-height:18vh;display:flex;align-items:flex-end;padding:34px max(18px,4vw);background:linear-gradient(180deg,#0a0c0f,#07090c);border-bottom:1px solid rgba(255,255,255,.055)}.review-context p{margin:0;color:rgba(230,237,242,.4);font:700 9px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.13em;text-transform:uppercase}.review-exit{min-height:22vh;display:flex;justify-content:center;padding-top:68px;background:linear-gradient(180deg,#07090c,#030405);border-top:1px solid rgba(255,255,255,.06);color:rgba(255,255,255,.25);font:700 9px/1.3 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.13em;text-transform:uppercase}@media(max-width:600px){.review-toolbar{top:7px;right:7px}.review-context{min-height:12vh;padding:28px 14px 18px}.review-context p{font-size:7.5px;max-width:30ch}}
+</style>
+</head>
+<body>
+<nav class="review-toolbar" aria-label="Owner review controls"><a id="lang-en" href="#">EN</a><a id="lang-ru" href="#">RU</a><a id="ver-r131" href="#">R1.3.1</a><a id="ver-r14" href="#">R1.4</a></nav>
+<section class="review-context"><p>WORK / PROOF · FINANCIAL STREAM · OWNER REVIEW · R1.3.1 ↔ R1.4</p></section>
+<main id="showcase-root"></main>
+<div class="review-exit">Neutral continuation / review boundary</div>
+<script>
+const lang=reviewParams.get('lang')==='ru'?'ru':'en';
+const version=reviewVersion;
+document.documentElement.lang=lang;
+const href=(l,v)=>`?lang=${l}&version=${v}`;
+document.getElementById('lang-en').href=href('en',version);
+document.getElementById('lang-ru').href=href('ru',version);
+document.getElementById('ver-r131').href=href(lang,'r131');
+document.getElementById('ver-r14').href=href(lang,'r14');
+document.getElementById('lang-'+lang).setAttribute('aria-current','true');
+document.getElementById('ver-'+version).setAttribute('aria-current','true');
+(async()=>{
+  const file=version==='r14'
+    ?(lang==='ru'?'home-work-proof-financial-stream-r1-4-ru.html':'home-work-proof-financial-stream-r1-4-en.html')
+    :(lang==='ru'?'home-work-proof-financial-stream-r1-1-ru.html':'home-work-proof-financial-stream-r1-1-en.html');
+  const res=await fetch(`../../../../_includes/${file}`);
+  if(!res.ok)throw new Error('include '+res.status);
+  let html=await res.text();
+  html=html.replaceAll('src="/assets/','src="../../../../assets/').replaceAll('srcset="/assets/','srcset="../../../../assets/').replaceAll(', /assets/',', ../../../../assets/');
+  document.getElementById('showcase-root').innerHTML=html;
+  const s=document.createElement('script');s.src='../../../../assets/js/home-work-proof-financial-stream-r1-1.js';document.body.appendChild(s);
+})();
+</script>
+</body>
+</html>

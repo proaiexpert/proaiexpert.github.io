@@ -74,28 +74,49 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install Chromium QA runtime
+      - name: Trace browser setup and mobile gate
+        id: traced_mobile
         shell: bash
         run: |
-          npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
-
-      - name: Serve real Jekyll output
-        shell: bash
-        run: |
-          python3 -m http.server 4173 --directory _site >/tmp/golden-r12-http.log 2>&1 &
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
-            sleep 1
-          done
-          cat /tmp/golden-r12-http.log
-          exit 1
-
-      - name: Run 390x844 forensic mobile gate
-        id: mobile
-        continue-on-error: true
-        shell: bash
-        run: node docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-mobile-gate.mjs
+          set +e
+          mkdir -p docs/site-evolution/reviews/proai-home-golden-assembly-r1-2
+          : > docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log
+          npm install --no-save playwright@1.55.0 >> docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log 2>&1
+          npm_code=$?
+          pw_code=99
+          server_code=99
+          mobile_code=99
+          if [ "$npm_code" -eq 0 ]; then
+            npx playwright install --with-deps chromium >> docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log 2>&1
+            pw_code=$?
+          fi
+          if [ "$npm_code" -eq 0 ] && [ "$pw_code" -eq 0 ]; then
+            python3 -m http.server 4173 --directory _site >> docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log 2>&1 &
+            server_pid=$!
+            server_code=1
+            for i in {1..30}; do
+              if curl -fsS http://127.0.0.1:4173/ >/dev/null; then server_code=0; break; fi
+              sleep 1
+            done
+            if [ "$server_code" -eq 0 ]; then
+              node docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-mobile-gate.mjs >> docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log 2>&1
+              mobile_code=$?
+            fi
+            kill "$server_pid" >/dev/null 2>&1 || true
+          fi
+          python - "$npm_code" "$pw_code" "$server_code" "$mobile_code" <<'PY'
+          from pathlib import Path
+          import json, sys
+          keys=['npmInstall','playwrightInstall','server','mobileGate']
+          values=[int(x) for x in sys.argv[1:]]
+          Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-qa-trace.json').write_text(json.dumps(dict(zip(keys,values)),indent=2),encoding='utf-8')
+          PY
+          if [ "$npm_code" -eq 0 ] && [ "$pw_code" -eq 0 ] && [ "$server_code" -eq 0 ] && [ "$mobile_code" -eq 0 ]; then
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "passed=false" >> "$GITHUB_OUTPUT"
+          fi
+          exit 0
 
       - name: Persist mobile diagnostic evidence
         if: always()
@@ -104,13 +125,15 @@ jobs:
           git config user.name "ProAI QA Bot"
           git config user.email "proai.expert2026@gmail.com"
           git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/source-probe.json
+          git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log
+          git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-qa-trace.json
           git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-gate.json
           git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/media/00-mobile-gate-en-390x844.png
           if git diff --cached --quiet; then
             echo "No mobile diagnostic evidence changes."
             exit 0
           fi
-          git commit -m "qa-evidence: capture Golden R1.2 mobile gate for $GITHUB_SHA"
+          git commit -m "qa-evidence: capture traced Golden R1.2 mobile gate for $GITHUB_SHA"
           git push origin HEAD:agent/proai-home-golden-assembly-r1-2-recovery
 
       - name: Upload mobile diagnostic evidence
@@ -120,6 +143,8 @@ jobs:
           name: proai-golden-r1-2-mobile-diagnostic-${{ github.sha }}
           path: |
             docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/source-probe.json
+            docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-run.log
+            docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-qa-trace.json
             docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-gate.json
             docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/media/00-mobile-gate-en-390x844.png
           if-no-files-found: warn
@@ -128,4 +153,4 @@ jobs:
       - name: Enforce mobile gate result
         if: always()
         shell: bash
-        run: test "${{ steps.mobile.outcome }}" = "success"
+        run: test "${{ steps.traced_mobile.outputs.passed }}" = "true"

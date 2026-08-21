@@ -29,6 +29,46 @@ jobs:
           gem install --user-install webrick --no-document
           jekyll build --source . --destination _site
 
+      - name: Probe exact Cube source bodies
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib, json, subprocess
+          base = Path('_site/assets/js/proai-hero-cube-r1')
+          expected = {
+            'source-final-motion-r2-touch-auto-45-r1.js': 'fc2c0ba13692c94f5838008d09f05dda9859e9d2',
+            'source-final-motion-r2.js': '67ca618cf10a47561d351715968187d2e4c50351',
+            'source-materials-r1.js': 'bab6b00e73b20fc2a51aeb00cb7fc08f16129e72',
+          }
+          markers = {
+            'source-materials-r1.js': [
+              "motionAuthority: 'quaternion-editorial-spatial-r1.2-premium'",
+              'const SLICE_R1_2 = Object.freeze({',
+              "selectedPreset: 'premiumHybrid'",
+              "const GLB_URL = new URL('./rubik_39_s_cube_animation.glb', import.meta.url).href;",
+            ]
+          }
+          out = {}
+          for name, want in expected.items():
+            p = base / name
+            data = p.read_bytes()
+            text = data.decode('utf-8')
+            blob = subprocess.check_output(['git','hash-object',str(p)], text=True).strip()
+            out[name] = {
+              'length': len(data),
+              'sha256': hashlib.sha256(data).hexdigest(),
+              'gitBlob': blob,
+              'expectedBlob': want,
+              'blobMatch': blob == want,
+              'markers': {m: (m in text) for m in markers.get(name, [])},
+            }
+          target = Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/source-probe.json')
+          target.parent.mkdir(parents=True, exist_ok=True)
+          target.write_text(json.dumps(out, indent=2), encoding='utf-8')
+          print(json.dumps(out, indent=2))
+          PY
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -63,6 +103,7 @@ jobs:
         run: |
           git config user.name "ProAI QA Bot"
           git config user.email "proai.expert2026@gmail.com"
+          git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/source-probe.json
           git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-gate.json
           git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/media/00-mobile-gate-en-390x844.png
           if git diff --cached --quiet; then
@@ -78,6 +119,7 @@ jobs:
         with:
           name: proai-golden-r1-2-mobile-diagnostic-${{ github.sha }}
           path: |
+            docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/source-probe.json
             docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-gate.json
             docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/media/00-mobile-gate-en-390x844.png
           if-no-files-found: warn

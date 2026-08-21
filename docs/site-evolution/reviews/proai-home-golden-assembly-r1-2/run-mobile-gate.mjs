@@ -18,6 +18,31 @@ page.on('requestfailed',r=>{const u=r.url();if(/cube|three|GLTF|RoomEnvironment|
 
 await page.goto(BASE,{waitUntil:'domcontentloaded',timeout:30000});
 await page.evaluate(()=>document.fonts?.ready).catch(()=>{});
+const browserSourceProbe=await page.evaluate(async()=>{
+  const files=[
+    'assets/js/proai-hero-cube-r1/source-final-motion-r2-touch-auto-45-r1.js',
+    'assets/js/proai-hero-cube-r1/source-final-motion-r2.js',
+    'assets/js/proai-hero-cube-r1/source-materials-r1.js'
+  ];
+  const hex=buffer=>[...new Uint8Array(buffer)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  const out={};
+  for(const file of files){
+    const response=await fetch('/'+file,{cache:'no-store'});
+    const text=await response.text();
+    const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+    out[file]={
+      status:response.status,
+      length:text.length,
+      sha256:hex(digest),
+      motionAuthorityMarker:text.includes("motionAuthority: 'quaternion-editorial-spatial-r1.2-premium'"),
+      sliceMarker:text.includes('const SLICE_R1_2 = Object.freeze({'),
+      presetMarker:text.includes("selectedPreset: 'premiumHybrid'"),
+      glbMarker:text.includes("const GLB_URL = new URL('./rubik_39_s_cube_animation.glb', import.meta.url).href;"),
+      prefix:text.slice(0,120)
+    };
+  }
+  return out;
+});
 let cubeReady=false;
 try{await page.waitForFunction(()=>document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true'&&!!document.querySelector('#cube-canvas')&&window.__PROAI_HERO_CUBE_GOLDEN_R1?.runtime?.ready===true,null,{timeout:20000});cubeReady=true}catch{}
 
@@ -57,7 +82,7 @@ const measured=await page.evaluate(()=>{
   };
 });
 
-const result={cubeReady,measured,consoleEntries,pageErrors,requests,requestFailures};
+const result={cubeReady,browserSourceProbe,measured,consoleEntries,pageErrors,requests,requestFailures};
 result.pass=cubeReady&&measured.cube.mounted==='true'&&measured.cube.canvas&&measured.cube.runtimeReady&&measured.overflow===0&&measured.twoWorlds.titleInside&&measured.twoWorlds.embeddedTechnology===0&&measured.financial?.primaryPct>=103.5&&measured.financial?.primaryPct<=104.5&&measured.financial?.secondaryPct>=25.5&&measured.financial?.secondaryPct<=26.5&&measured.financial?.rightPct>=-5&&measured.financial?.rightPct<=-4&&measured.financial?.titleInside&&measured.financial?.fullMobileAsset&&measured.brokenImages.length===0&&pageErrors.length===0&&requestFailures.length===0;
 await page.screenshot({path:`${MEDIA}/00-mobile-gate-en-390x844.png`,fullPage:true});
 fs.writeFileSync(`${OUT}/mobile-gate.json`,JSON.stringify(result,null,2));

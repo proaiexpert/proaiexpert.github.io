@@ -104,8 +104,10 @@ async function mobileSmoke(width, height) {
   async function atProgress(progress) {
     await page.evaluate(p => {
       const exp = document.querySelector('[data-tw-experience]');
-      const travel = Math.max(1, exp.getBoundingClientRect().height - window.innerHeight);
-      window.scrollTo(0, exp.offsetTop + p * travel);
+      const rect = exp.getBoundingClientRect();
+      const absoluteTop = rect.top + window.scrollY;
+      const travel = Math.max(1, rect.height - window.innerHeight);
+      window.scrollTo(0, absoluteTop + p * travel);
     }, progress);
     await page.waitForTimeout(220);
     return page.evaluate(() => {

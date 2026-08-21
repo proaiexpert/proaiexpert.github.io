@@ -92,6 +92,37 @@ jobs:
           cat /tmp/golden-r11-http.log
           exit 1
 
+      - name: Patch review-only screenshot harness safely
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1-1/run-qa.mjs')
+          s=p.read_text(encoding='utf-8')
+          pattern=r"async function screenshotBoundary\(lang,width,height,name,upperSel,lowerSel\)\{.*?\n\}\n\nasync function screenshotElement"
+          replacement=r'''async function screenshotBoundary(lang,width,height,name,upperSel,lowerSel){
+            const {context,page}=await openPage(lang,width,height);
+            const lower=page.locator(lowerSel);
+            if(await lower.count()){
+              await lower.scrollIntoViewIfNeeded();
+              await page.evaluate(()=>window.scrollBy(0,-Math.round(innerHeight*.48)));
+              await page.waitForTimeout(900);
+            }
+            const file=`${MEDIA}/${name}.png`;
+            await page.screenshot({path:file,fullPage:false});
+            report.screenshots.push(file);
+            await context.close();
+          }
+
+          async function screenshotElement'''
+          s2,n=re.subn(pattern,replacement,s,count=1,flags=re.S)
+          if n!=1:
+              raise SystemExit(f'Unable to patch screenshotBoundary safely: {n}')
+          p.write_text(s2,encoding='utf-8')
+          print('Review-only screenshot harness patched: PASS')
+          PY
+
       - name: Run real Chromium QA and screenshots
         id: qa
         continue-on-error: true
@@ -123,11 +154,11 @@ jobs:
             page.on('pageerror',e=>result.errors.push(String(e)));
             await page.goto(`http://127.0.0.1:4174/${out}/index.html?lang=${lang}`,{waitUntil:'domcontentloaded',timeout:60000});
             await page.waitForFunction(()=>document.querySelectorAll('[data-connected-system]').length===1&&document.querySelectorAll('[data-home-tech-r2]').length===1&&document.querySelectorAll('[data-fs-showcase-r11]').length===1,{timeout:20000});
+            const fsMounted=await page.evaluate(()=>document.querySelectorAll('[data-fs-showcase-r11]').length===1);
+            result.financial=result.financial||fsMounted;
             result[lang]=true;
-            result.financial=result.financial||document.querySelectorAll?.length===0;
             if(lang==='en'){
               try{await page.waitForFunction(()=>window.__PROAI_HERO_CUBE_GOLDEN_R1?.runtime?.ready===true&&document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',{timeout:22000});result.cube=true;}catch{}
-              result.financial=await page.evaluate(()=>document.querySelectorAll('[data-fs-showcase-r11]').length===1);
             }
             await context.close();
           }
@@ -141,7 +172,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: proai-home-golden-r1-1-owner-review
+          name: proai-home-golden-r1-1-owner-review-run2
           path: ${{ env.REVIEW_DIR }}
           if-no-files-found: error
           retention-days: 14
@@ -153,8 +184,9 @@ jobs:
           git config user.name "proai-golden-review-bot"
           git config user.email "actions@users.noreply.github.com"
           git add "$REVIEW_DIR"
+          git add -f "$REVIEW_DIR/qa-report.json" "$REVIEW_DIR/live-review-check.json" 2>/dev/null || true
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "review: add Golden Assembly R1.1 browser evidence [skip ci]"
+          git commit -m "review: finalize Golden Assembly R1.1 browser evidence [skip ci]"
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
 
       - name: Enforce owner-review gates

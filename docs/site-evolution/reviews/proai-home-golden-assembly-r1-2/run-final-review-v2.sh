@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 SRC='docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-final-review.sh'
+QA_SRC='docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-qa.mjs'
 TMP="$(mktemp)"
-python - "$SRC" "$TMP" <<'PY'
+QA_TMP='/tmp/proai-golden-r12-run-qa-fixed.mjs'
+python - "$SRC" "$TMP" "$QA_SRC" "$QA_TMP" <<'PY'
 from pathlib import Path
 import sys
 src=Path(sys.argv[1]).read_text(encoding='utf-8')
@@ -16,6 +18,18 @@ new2="""want=text[start:end].strip().replace('\\r\\n','\\n');marker='{{ selected
 if old2 not in src:
     raise SystemExit('Expected downstream comparison line not found')
 src=src.replace(old2,new2,1)
+qa=Path(sys.argv[3]).read_text(encoding='utf-8')
+oldqa="const outer=await x.page.locator(cfg.root).evaluate(e=>e.outerHTML)"
+newqa="const outer=await x.page.evaluate(sel=>document.querySelector(sel)?.outerHTML||null,cfg.root);if(!outer){fail(`parity:${w}x${h}:${name}:missing-root`,cfg.root);out[name]={assembly:null,reference:null,issues:[`missing root ${cfg.root}`],pass:false};continue}"
+if oldqa not in qa:
+    raise SystemExit('Expected parity locator expression not found')
+qa=qa.replace(oldqa,newqa,1)
+Path(sys.argv[4]).write_text(qa,encoding='utf-8')
+oldcmd='PRODUCT_SHA="$PRODUCT_SHA" node "$REVIEW_DIR/run-qa.mjs"'
+newcmd='PRODUCT_SHA="$PRODUCT_SHA" node /tmp/proai-golden-r12-run-qa-fixed.mjs'
+if oldcmd not in src:
+    raise SystemExit('Expected full QA command not found')
+src=src.replace(oldcmd,newcmd,1)
 Path(sys.argv[2]).write_text(src,encoding='utf-8')
 PY
 chmod +x "$TMP"

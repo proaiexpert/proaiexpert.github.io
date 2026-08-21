@@ -10,27 +10,45 @@ permissions:
 
 jobs:
   review:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && github.event.pull_request.head.ref == 'agent/proai-home-golden-assembly-r1-2-recovery'
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     env:
-      PRODUCT_SHA: 38b92195a11709546db8fe0beeaa782244eee83f
-      REVIEW_DIR: docs/site-evolution/reviews/proai-home-golden-assembly-r1-1
+      PRODUCT_SHA: eac0959950cb5e900296f811f1d92027ed2003e1
+      PRODUCT_BASE: 38b92195a11709546db8fe0beeaa782244eee83f
+      REVIEW_DIR: docs/site-evolution/reviews/proai-home-golden-assembly-r1-2
     steps:
-      - name: Checkout isolated Golden R1.1 head
+      - name: Checkout isolated Golden R1.2 recovery
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Verify product ancestry
+      - name: Verify recovery ancestry and frozen product blobs
         shell: bash
         run: |
           git merge-base --is-ancestor "$PRODUCT_SHA" HEAD
-          test "$(git rev-parse ${PRODUCT_SHA}^)" = "a8fba586122c5949a009965179b692d2aff6ec5d"
-          test "$(git rev-parse a8fba586122c5949a009965179b692d2aff6ec5d^)" = "ec551ae837cdba35b3b15490782a45a7132e7f1d"
+          test "$(git rev-parse ${PRODUCT_SHA}^)" = "$PRODUCT_BASE"
+          test "$(git hash-object assets/css/homepage-hero-signature-r3.css)" = "5dde833560aac0958875842a598f622942597b74"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/source-final-motion-r2-touch-auto-45-r1.js)" = "fc2c0ba13692c94f5838008d09f05dda9859e9d2"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/source-final-motion-r2.js)" = "67ca618cf10a47561d351715968187d2e4c50351"
+          test "$(git hash-object assets/js/proai-hero-cube-r1/source-materials-r1.js)" = "bab6b00e73b20fc2a51aeb00cb7fc08f16129e72"
+          test "$(git hash-object assets/css/homepage-connected-system-r13.css)" = "b99dfc19739070fee88d47c94c202d60feab7619"
+          test "$(git hash-object assets/js/homepage-connected-system-r13.js)" = "8fba38d49366bb69b7e06f9527dd4d07d8d05279"
+          test "$(git hash-object assets/css/homepage-two-worlds-golden-r1.css)" = "671813c61cf63e941ecf993f46cd385100c7ed2a"
+          test "$(git hash-object assets/js/homepage-two-worlds-golden-r1.js)" = "e2927f804003882f2218aa4b86741c6aae32d5a9"
+          test "$(git hash-object assets/css/home-technology-transition-r2.css)" = "f76f8b931c3ad0667c50a5b474b09c793af7e08d"
+          test "$(git hash-object assets/js/home-technology-transition-r2.js)" = "230b4b6ded23fe66509f774641fa50eadfbdfa4e"
+          test "$(git hash-object _includes/home-work-proof-financial-stream-r1-1-en.html)" = "4724a9e92fcd9665223138c36ca1c02861cc90f2"
+          test "$(git hash-object _includes/home-work-proof-financial-stream-r1-1-ru.html)" = "4adc36687ef1a7071eb711d19bb2db3f0f8da49a"
+          test "$(git hash-object assets/css/home-work-proof-financial-stream-r1-1.css)" = "47ca0005843248f4ceb5997a97f3c7d2cb0cc996"
+          test "$(git hash-object assets/js/home-work-proof-financial-stream-r1-1.js)" = "925221226fdb2f94b117a10dfd0fdb75b2151cee"
+          test "$(git hash-object assets/css/home-work-proof-financial-stream-r1-2.css)" = "415cda550dfb9e5bef316be29f56bece9e1e0299"
+          test "$(git hash-object assets/css/home-work-proof-financial-stream-r1-3.css)" = "f43cca476d2468425de230ed6b6a6b071e1aa20e"
+          test "$(git hash-object assets/css/home-work-proof-financial-stream-r1-3-1.css)" = "2bda2f705a878526c70f7054ee669374916832db"
+          test "$(git hash-object _includes/home-footer-watermark-r2.html)" = "2b46cfdf096391b928aff5ec1d513b9445900f8d"
 
-      - name: Build Jekyll site
+      - name: Build Jekyll recovery product
         shell: bash
         run: |
           export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
@@ -39,7 +57,7 @@ jobs:
           gem install --user-install webrick --no-document
           jekyll build --source . --destination _site
 
-      - name: Verify generated Golden R1.1 structure
+      - name: Verify clean-shell static structure
         shell: bash
         run: |
           python - <<'PY'
@@ -48,7 +66,7 @@ jobs:
               text=(Path('_site')/route).read_text(encoding='utf-8')
               assert text.count('data-connected-system') == 1, route
               assert text.count('data-tw-golden-r1') == 1, route
-              assert 'data-tw-tech-r2' not in text, route
+              assert 'data-tw-tech-r2' not in text and 'tw-tech-r2' not in text, route
               assert 'id="core-split"' not in text, route
               assert 'id="section-trigger"' not in text, route
               assert text.count('data-home-tech-r2') == 1, route
@@ -57,16 +75,18 @@ jobs:
               assert 'homepage-two-worlds-r2.js' not in text, route
               assert 'homepage-two-worlds-r21.js' not in text, route
               assert 'homepage-two-worlds-r22.js' not in text, route
-              assert 'bootstrap-golden-r1.js' in text, route
+              assert 'homepage-core-hardening-v1' not in text, route
+              assert 'homepage-commercial-refinement-v1' not in text, route
+              assert 'bootstrap-golden-r1-2.js' in text, route
               assert 'home-work-proof-financial-stream-r1-1.js' in text, route
               assert 'Google Search Console' in text, route
               assert 'gsc-' not in text.lower(), route
-              assert 'html, body { overflow-x: clip; }' not in text, route
-              assert 'html, body { overflow-x: clip !important; }' not in text, route
-              assert 'body { background-color: var(--bg); color: white; font-family: var(--font); overflow-x: hidden; }' not in text, route
+              assert 'overflow-x:hidden' not in text.replace(' ', '').lower(), route
+              assert 'overflow-x:clip!important' not in text.replace(' ', '').lower(), route
+              assert 'overflow-x:clip' not in text.replace(' ', '').lower(), route
               order=[text.index('home-work-proof-financial-stream-r1-1.css'),text.index('home-work-proof-financial-stream-r1-2.css'),text.index('home-work-proof-financial-stream-r1-3.css'),text.index('home-work-proof-financial-stream-r1-3-1.css')]
               assert order == sorted(order), (route,order)
-          print('Generated Golden R1.1 structure: PASS')
+          print('Golden R1.2 clean-shell structure: PASS')
           PY
 
       - name: Install browser runtime
@@ -74,91 +94,166 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Playwright Chromium
+      - name: Install Playwright Chromium and WebKit
         shell: bash
         run: |
           npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
 
-      - name: Start generated Golden R1.1 site
+      - name: Start generated recovery product
         shell: bash
         run: |
-          python3 -m http.server 4173 --directory _site >/tmp/golden-r11-http.log 2>&1 &
+          python3 -m http.server 4173 --directory _site >/tmp/golden-r12-http.log 2>&1 &
           for i in {1..30}; do
             if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
             sleep 1
           done
-          cat /tmp/golden-r11-http.log
+          cat /tmp/golden-r12-http.log
           exit 1
 
-      - name: Run real Chromium QA and screenshots
-        id: qa
+      - name: Mobile-first owner gate 390x844
+        id: mobile
         continue-on-error: true
         shell: bash
-        run: node "$REVIEW_DIR/run-qa-final.mjs"
+        run: node "$REVIEW_DIR/run-qa.mjs" --mobile
 
-      - name: Generate immutable Owner review harness
-        if: always()
-        shell: bash
-        run: python "$REVIEW_DIR/generate-owner-review.py"
-
-      - name: Verify generated Owner review harness
-        id: live_review
-        continue-on-error: true
-        if: always()
-        shell: bash
-        run: |
-          python3 -m http.server 4174 --directory . >/tmp/golden-r11-review-http.log 2>&1 &
-          sleep 1
-          node --input-type=module <<'JS'
-          import { chromium } from 'playwright';
-          import fs from 'node:fs';
-          const out='docs/site-evolution/reviews/proai-home-golden-assembly-r1-1';
-          const browser=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
-          const result={generatedAt:new Date().toISOString(),en:false,ru:false,cube:false,financial:false,errors:[]};
-          for(const lang of ['en','ru']){
-            const context=await browser.newContext({viewport:{width:1366,height:768},reducedMotion:'no-preference'});
-            const page=await context.newPage();
-            page.on('pageerror',e=>result.errors.push(String(e)));
-            await page.goto(`http://127.0.0.1:4174/${out}/index.html?lang=${lang}`,{waitUntil:'domcontentloaded',timeout:30000});
-            await page.waitForFunction(()=>document.querySelectorAll('[data-connected-system]').length===1&&document.querySelectorAll('[data-home-tech-r2]').length===1&&document.querySelectorAll('[data-fs-showcase-r11]').length===1,null,{timeout:10000});
-            result[lang]=true;
-            if(lang==='en'){
-              try{await page.waitForFunction(()=>window.__PROAI_HERO_CUBE_GOLDEN_R1?.runtime?.ready===true&&document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',null,{timeout:12000});result.cube=true;}catch{}
-              result.financial=await page.evaluate(()=>document.querySelectorAll('[data-fs-showcase-r11]').length===1);
-            }
-            await context.close();
-          }
-          await browser.close();
-          result.pass=result.en&&result.ru&&result.financial&&result.errors.length===0;
-          fs.writeFileSync(`${out}/live-review-check.json`,JSON.stringify(result,null,2));
-          if(!result.pass)process.exit(1);
-          JS
-
-      - name: Upload review evidence artifact
+      - name: Upload mobile-gate diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: proai-home-golden-r1-1-owner-review-final
-          path: ${{ env.REVIEW_DIR }}
-          if-no-files-found: error
+          name: proai-home-golden-r1-2-mobile-gate
+          path: |
+            ${{ env.REVIEW_DIR }}/mobile-gate.json
+            ${{ env.REVIEW_DIR }}/qa-mobile.json
+            ${{ env.REVIEW_DIR }}/media/00-mobile-gate-en-390x844.png
+          if-no-files-found: warn
           retention-days: 14
 
-      - name: Commit review evidence to isolated branch
-        if: always()
+      - name: Enforce mobile-first gate
+        shell: bash
+        run: test "${{ steps.mobile.outcome }}" = "success"
+
+      - name: Full real-browser QA and parity fingerprints
+        id: qa
+        continue-on-error: true
+        shell: bash
+        run: node "$REVIEW_DIR/run-qa.mjs"
+
+      - name: Upload full-QA diagnostics on failure
+        if: steps.qa.outcome != 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-home-golden-r1-2-full-qa-failure
+          path: ${{ env.REVIEW_DIR }}
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Enforce full QA before packaging
+        shell: bash
+        run: test "${{ steps.qa.outcome }}" = "success"
+
+      - name: Generate safe immutable Owner review
+        shell: bash
+        run: python "$REVIEW_DIR/generate-owner-review.py"
+
+      - name: Verify malformed URL gate
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          root=Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1-2')
+          for p in (root/'owner-review-en.html',root/'owner-review-ru.html'):
+              text=p.read_text(encoding='utf-8')
+              assert not re.search(r'raw\.githack[^\s<]*["\']data:', text, re.I), p
+              assert not re.search(r'raw\.githack[^\s<]*/data:image', text, re.I), p
+              assert not re.search(r'url\(["\']https?://[^)]*/["\']data:', text, re.I), p
+          print('Immutable URL rewrite safety: PASS')
+          PY
+
+      - name: Start immutable review harness
+        shell: bash
+        run: |
+          python3 -m http.server 4174 --directory . >/tmp/golden-r12-review-http.log 2>&1 &
+          sleep 1
+
+      - name: Verify immutable review and capture Owner screenshots
+        id: review
+        continue-on-error: true
+        shell: bash
+        run: node "$REVIEW_DIR/verify-owner-review.mjs"
+
+      - name: Upload review diagnostics on failure
+        if: steps.review.outcome != 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-home-golden-r1-2-review-failure
+          path: ${{ env.REVIEW_DIR }}
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Enforce immutable review before final packaging
+        shell: bash
+        run: test "${{ steps.review.outcome }}" = "success"
+
+      - name: Finalize recovery manifest
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          manifest=Path('docs/site-evolution/PROAI_HOME_GOLDEN_ASSEMBLY_R1_MANIFEST.md')
+          qa=json.loads(Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/qa-report.json').read_text())
+          rev=json.loads(Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/owner-review-check.json').read_text())
+          intervals=qa.get('connected',{}).get('autonomous',{}).get('intervals',[])
+          fs=qa.get('financialStream',{}).get('mobile390',{})
+          marker='## R1.2 FORENSIC RECOVERY'
+          old=manifest.read_text(encoding='utf-8') if manifest.exists() else '# PROAI HOME GOLDEN ASSEMBLY R1 MANIFEST\n'
+          if marker in old: old=old.split(marker,1)[0].rstrip()+'\n\n'
+          block=f'''{marker}\n\n- R1.1 owner review: REJECTED; static/source identity did not establish visual parity.\n- Recovery base: `38b92195a11709546db8fe0beeaa782244eee83f`.\n- Recovery product: `eac0959950cb5e900296f811f1d92027ed2003e1`.\n- Root cause 1: legacy monolithic global selector leakage (`section`, generic Header/nav/body/mobile rules) contaminated frozen Golden layouts.\n- Root cause 2: R1.1 review URL rewriting could corrupt valid CSS `data:image` URLs.\n- Root cause 3: R1.1 Cube packaging used origin-root asset/module semantics that did not survive immutable nested review paths.\n- R1.2 architecture: explicit clean shell; frozen component CSS/JS/content unchanged; unsafe legacy runtime and broad globals not loaded.\n- Delivery Process / How We Work: HELD.\n- Selected Thinking R1: NOT INTEGRATED.\n- Mobile-first immutable review: {'PASS' if rev.get('pass') else 'FAIL'}.\n- Connected measured autonomous intervals (ms): `{intervals}`.\n- Financial Stream 390 measured: primary `{fs.get('primaryPct')}%`, secondary `{fs.get('secondaryPct')}%`, right `{fs.get('rightPct')}%`, section `{fs.get('sectionViewportHeights')}vh`, full mobile asset `{fs.get('fullMobileAsset')}`, text overlap `{fs.get('textOverlap')}`.\n- Full browser QA: {'PASS' if qa.get('pass') else 'FAIL'}.\n- Parity fingerprints: `docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/parity-fingerprints.json`.\n- Network / console / review evidence: `docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/`.\n'''
+          manifest.write_text(old+block,encoding='utf-8')
+          PY
+
+      - name: Commit complete review evidence
         shell: bash
         run: |
           git config user.name "proai-golden-review-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add "$REVIEW_DIR"
-          git add -f "$REVIEW_DIR/qa-report.json" "$REVIEW_DIR/media"
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m "review: add Golden Assembly R1.1 final browser evidence [skip ci]"
+          git add "$REVIEW_DIR" docs/site-evolution/PROAI_HOME_GOLDEN_ASSEMBLY_R1_MANIFEST.md
+          git add -f "$REVIEW_DIR"/*.json "$REVIEW_DIR"/media/*.png
+          git commit -m "review: finalize Golden Assembly R1.2 owner evidence [skip ci]"
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          echo "REVIEW_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
-      - name: Enforce owner-review gates
+      - name: Verify final immutable raw.githack review
+        id: final_live
+        continue-on-error: true
+        shell: bash
+        run: |
+          export REVIEW_BASE="https://raw.githack.com/proaiexpert/proaiexpert.github.io/${REVIEW_SHA}/${REVIEW_DIR}/"
+          for i in {1..12}; do
+            if curl -fsSL "${REVIEW_BASE}owner-review-en.html" | grep -q 'data-owner-review="golden-r1-2"'; then break; fi
+            sleep 5
+          done
+          curl -fsSL "${REVIEW_BASE}owner-review-en.html" | grep -q 'data-owner-review="golden-r1-2"'
+          node "$REVIEW_DIR/verify-owner-review.mjs" --verify-only
+
+      - name: Upload final Owner evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-home-golden-r1-2-owner-candidate
+          path: |
+            ${{ env.REVIEW_DIR }}
+            docs/site-evolution/PROAI_HOME_GOLDEN_ASSEMBLY_R1_MANIFEST.md
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce final immutable Owner gate
         if: always()
         shell: bash
         run: |
+          test "${{ steps.mobile.outcome }}" = "success"
           test "${{ steps.qa.outcome }}" = "success"
-          test "${{ steps.live_review.outcome }}" = "success"
+          test "${{ steps.review.outcome }}" = "success"
+          test "${{ steps.final_live.outcome }}" = "success"

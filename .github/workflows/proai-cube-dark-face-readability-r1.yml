@@ -1,0 +1,68 @@
+name: ProAI Cube dark-face A-B smoke
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-dark-face-readability-r1
+    paths:
+      - 'assets/js/proai-hero-cube-r1/source-final-motion-r2-dark-face-readability-r1.js'
+      - 'docs/site-evolution/reviews/proai-cube-dark-face-readability-r1/**'
+      - '.github/workflows/proai-cube-dark-face-readability-r1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-dark-face-readability-r1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install browser smoke dependency
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start local review server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/proai-dark-face-server.log 2>&1 &
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/proai-dark-face-server.log
+          exit 1
+      - name: Run desktop + mobile A-B smoke
+        id: smoke_test
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          node docs/site-evolution/reviews/proai-cube-dark-face-readability-r1/smoke.mjs 2>&1 | tee /tmp/proai-dark-face-smoke.log
+      - name: Upload A-B evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-dark-face-ab-evidence
+          path: docs/site-evolution/reviews/proai-cube-dark-face-readability-r1/qa-artifacts
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Publish temporary QA evidence to branch
+        if: always()
+        env:
+          SMOKE_OUTCOME: ${{ steps.smoke_test.outcome }}
+        shell: bash
+        run: |
+          mkdir -p docs/site-evolution/reviews/proai-cube-dark-face-readability-r1/qa-evidence-temp
+          printf 'WORKFLOW_OUTCOME=%s\nRUN_ID=%s\n' "$SMOKE_OUTCOME" "$GITHUB_RUN_ID" > docs/site-evolution/reviews/proai-cube-dark-face-readability-r1/qa-evidence-temp/run.txt
+          cp /tmp/proai-dark-face-smoke.log docs/site-evolution/reviews/proai-cube-dark-face-readability-r1/qa-evidence-temp/smoke.log || true
+          cp docs/site-evolution/reviews/proai-cube-dark-face-readability-r1/qa-artifacts/QA_SUMMARY.txt docs/site-evolution/reviews/proai-cube-dark-face-readability-r1/qa-evidence-temp/QA_SUMMARY.txt || true
+          cp docs/site-evolution/reviews/proai-cube-dark-face-readability-r1/qa-artifacts/qa-report.json docs/site-evolution/reviews/proai-cube-dark-face-readability-r1/qa-evidence-temp/qa-report.json || true
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- docs/site-evolution/reviews/proai-cube-dark-face-readability-r1/qa-evidence-temp
+          git commit -m 'qa: record dark-face A-B smoke evidence' || true
+          git push origin HEAD:agent/proai-cube-dark-face-readability-r1
+          test "$SMOKE_OUTCOME" = success

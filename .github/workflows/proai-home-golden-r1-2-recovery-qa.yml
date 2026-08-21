@@ -7,15 +7,17 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   mobile-diagnostic:
+    if: ${{ github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'qa-evidence:') }}
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout recovery branch
         uses: actions/checkout@v6
         with:
+          ref: agent/proai-home-golden-assembly-r1-2-recovery
           fetch-depth: 0
 
       - name: Build real Jekyll product
@@ -54,6 +56,21 @@ jobs:
         continue-on-error: true
         shell: bash
         run: node docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-mobile-gate.mjs
+
+      - name: Persist mobile diagnostic evidence
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "ProAI QA Bot"
+          git config user.email "proai.expert2026@gmail.com"
+          git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/mobile-gate.json
+          git add -- docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/media/00-mobile-gate-en-390x844.png
+          if git diff --cached --quiet; then
+            echo "No mobile diagnostic evidence changes."
+            exit 0
+          fi
+          git commit -m "qa-evidence: capture Golden R1.2 mobile gate for $GITHUB_SHA"
+          git push origin HEAD:agent/proai-home-golden-assembly-r1-2-recovery
 
       - name: Upload mobile diagnostic evidence
         if: always()

@@ -1,0 +1,106 @@
+name: ProAI Cube touch-auto 45 review smoke
+
+on:
+  push:
+    branches:
+      - review/proai-cube-touch-auto-45-r1
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start local review server
+        run: |
+          python3 -m http.server 8080 --bind 127.0.0.1 > /tmp/proai-touch45-http.log 2>&1 &
+          echo $! > /tmp/proai-touch45-http.pid
+          sleep 2
+
+      - name: Desktop + mobile interaction smoke
+        run: |
+          cat > /tmp/proai-touch45-smoke.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          const path = '/docs/site-evolution/reviews/proai-cube-touch-auto-45-r1/review.html?mode=b';
+          const base = 'http://127.0.0.1:8080' + path;
+          const failures = [];
+          const browser = await chromium.launch({headless:true});
+
+          async function boot(context, label) {
+            const page = await context.newPage();
+            const errors = [];
+            page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+            page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+            await page.goto(base, {waitUntil:'domcontentloaded', timeout:30000});
+            await page.waitForFunction(() => document.documentElement.dataset.reviewReady === 'true', null, {timeout:30000});
+            const state = await page.evaluate(() => ({
+              ready: document.documentElement.dataset.reviewReady,
+              label: document.querySelector('#review-status')?.textContent,
+              mode: window.__PROAI_TOUCH_AUTO_REVIEW?.mode,
+              candidate: window.__PROAI_TOUCH_AUTO_REVIEW?.candidate,
+              runtimeReady: !!window.__PROAI_TOUCH_AUTO_REVIEW?.runtime?.ready,
+              rect: (() => { const r=document.querySelector('#cube-canvas')?.getBoundingClientRect(); return r ? {x:r.x,y:r.y,width:r.width,height:r.height} : null; })()
+            }));
+            if (state.ready !== 'true' || state.mode !== 'b' || !state.runtimeReady || !state.rect?.width || !state.rect?.height) {
+              failures.push(label + ' boot/state failed: ' + JSON.stringify(state));
+            }
+            return {page, errors, state};
+          }
+
+          // Desktop laptop mouse drag.
+          {
+            const ctx = await browser.newContext({viewport:{width:1440,height:900}});
+            const {page,errors,state} = await boot(ctx,'desktop');
+            const r=state.rect;
+            const x=r.x+r.width*0.55, y=r.y+r.height*0.52;
+            await page.mouse.move(x,y);
+            await page.mouse.down();
+            await page.mouse.move(x+130,y+65,{steps:10});
+            await page.waitForTimeout(650);
+            await page.mouse.up();
+            await page.waitForTimeout(1400);
+            const alive=await page.evaluate(() => !!window.__PROAI_TOUCH_AUTO_REVIEW?.runtime?.ready && document.documentElement.dataset.reviewReady==='true');
+            if(!alive) failures.push('desktop runtime not alive after mouse drag');
+            if(errors.length) failures.push('desktop errors: '+errors.join(' | '));
+            await ctx.close();
+          }
+
+          // Mobile touch drag through Chromium CDP touch events.
+          {
+            const ctx = await browser.newContext({viewport:{width:390,height:844}, isMobile:true, hasTouch:true, deviceScaleFactor:3});
+            const {page,errors,state} = await boot(ctx,'mobile');
+            const cdp=await ctx.newCDPSession(page);
+            const r=state.rect;
+            const sx=r.x+r.width*0.55, sy=r.y+r.height*0.52;
+            await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:sx,y:sy,id:1,radiusX:4,radiusY:4,force:1}]});
+            for(let i=1;i<=9;i++){
+              await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:sx+10*i,y:sy+4*i,id:1,radiusX:4,radiusY:4,force:1}]});
+              await page.waitForTimeout(35);
+            }
+            await page.waitForTimeout(700);
+            await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+            await page.waitForTimeout(1600);
+            const alive=await page.evaluate(() => !!window.__PROAI_TOUCH_AUTO_REVIEW?.runtime?.ready && document.documentElement.dataset.reviewReady==='true');
+            if(!alive) failures.push('mobile runtime not alive after touch drag/release');
+            if(errors.length) failures.push('mobile errors: '+errors.join(' | '));
+            await ctx.close();
+          }
+
+          await browser.close();
+          if(failures.length){ console.error(failures.join('\n')); process.exit(1); }
+          console.log('PASS desktop mouse + mobile touch: B 45% boots, accepts direct manipulation, releases, and remains alive without browser errors.');
+          EOF
+          node /tmp/proai-touch45-smoke.mjs

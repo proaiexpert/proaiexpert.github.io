@@ -1,45 +1,40 @@
 ---
 permalink: /
 ---
-{% capture assembly_base %}{% include homepage-assembly-base-en.html %}{% endcapture %}
-{% capture assembly_frontmatter %}---
+{% capture golden_shell %}{% include homepage-assembly-base-en.html %}{% endcapture %}
+{% capture source_frontmatter %}---
 permalink: /
----
-{% endcapture %}
-{% assign homepage_assembled = assembly_base | replace_first: assembly_frontmatter, '' %}
+---{% endcapture %}
+{% assign golden_shell = golden_shell | replace_first: source_frontmatter, '' %}
 
-{% capture connected_system_head %}<link rel="stylesheet" href="/assets/css/homepage-connected-system-r13.css?v=20260815.1">
-<link rel="stylesheet" href="/assets/css/homepage-two-worlds-r2.css?v=20260817.1">
-<link rel="stylesheet" href="/assets/css/homepage-two-worlds-r21.css?v=20260817.2">
-<link rel="stylesheet" href="/assets/css/homepage-two-worlds-r22.css?v=20260817.3">
+{% assign golden_top = golden_shell | split: '<section id="manifest">' | first %}
+{% capture golden_head_assets %}
+<link rel="stylesheet" href="/assets/css/homepage-connected-system-r13.css?v=golden-r1">
+<link rel="stylesheet" href="/assets/css/homepage-two-worlds-golden-r1.css?v=golden-r1">
+<link rel="stylesheet" href="/assets/css/home-technology-transition-r2.css?v=golden-r1">
 </head>{% endcapture %}
-{% assign homepage_assembled = homepage_assembled | replace_first: '</head>', connected_system_head %}
+{% assign golden_top = golden_top | replace_first: '</head>', golden_head_assets %}
 
-{% capture legacy_manifest_start %}<section id="manifest">{% endcapture %}
-{% capture post_manifest_marker %}<section class="split-section" id="core-split">{% endcapture %}
-{% assign homepage_before_manifest = homepage_assembled | split: legacy_manifest_start | first %}
-{% assign homepage_after_manifest = homepage_assembled | split: post_manifest_marker | last %}
-{% capture connected_system %}{% include homepage-connected-system-en.html %}{% endcapture %}
-{% assign homepage_assembled = homepage_before_manifest | append: connected_system | append: post_manifest_marker | append: homepage_after_manifest %}
+{% capture downstream_marker %}<section class="homepage-founder-proof"{% endcapture %}
+{% assign downstream_tail = golden_shell | split: downstream_marker | last %}
+{% assign downstream_body = downstream_tail | split: '</main>' | first %}
 
-{% capture legacy_two_worlds_start %}<section class="split-section" id="core-split">{% endcapture %}
-{% capture methodology_marker %}<div class="process-wrapper" id="methodology">{% endcapture %}
-{% assign homepage_before_two_worlds = homepage_assembled | split: legacy_two_worlds_start | first %}
-{% assign homepage_after_two_worlds = homepage_assembled | split: methodology_marker | last %}
-{% capture two_worlds_r2 %}{% include homepage-two-worlds-r2-en.html %}{% endcapture %}
-{% assign homepage_assembled = homepage_before_two_worlds | append: two_worlds_r2 | append: methodology_marker | append: homepage_after_two_worlds %}
+{{ golden_top }}
+{% include homepage-connected-system-en.html %}
+{% include homepage-two-worlds-golden-r1-en-assembly.html %}
+{% include home-technology-transition-r2.html lang="en" %}
+<!-- GOLDEN SLOT: WORK / PROOF — FINANCIAL STREAM | RESERVED — PRODUCT NOT MOUNTED -->
+{{ downstream_marker }}{{ downstream_body }}
+</main>
 
-{% capture legacy_technology_start %}<section id="tech-section-en">{% endcapture %}
-{% capture work_marker %}<section class="case-study-interactive" id="section-trigger" aria-labelledby="financial-stream-heading">{% endcapture %}
-{% assign homepage_before_legacy_technology = homepage_assembled | split: legacy_technology_start | first %}
-{% assign homepage_after_legacy_technology = homepage_assembled | split: work_marker | last %}
-{% assign homepage_assembled = homepage_before_legacy_technology | append: work_marker | append: homepage_after_legacy_technology %}
-
-{% capture connected_system_body_end %}<script src="/assets/js/homepage-connected-system-r13.js?v=20260815.1" defer></script>
-<script src="/assets/js/homepage-two-worlds-r2.js?v=20260817.1" defer></script>
-<script src="/assets/js/homepage-two-worlds-r21.js?v=20260817.2" defer></script>
-<script src="/assets/js/homepage-two-worlds-r22.js?v=20260817.3" defer></script>
-</body>{% endcapture %}
-{% assign homepage_assembled = homepage_assembled | replace_first: '</body>', connected_system_body_end %}
-
-{{ homepage_assembled }}
+{% include home-footer-watermark-r2.html lang="en" %}
+<script src="/assets/js/proai-hero-cube-r1/bootstrap-golden-r1.js?v=golden-r1" data-proai-hero-cube-r1="golden-45" defer></script>
+<script src="/assets/js/homepage-connected-system-r13.js?v=golden-r1" defer></script>
+<script src="/assets/js/homepage-two-worlds-golden-r1.js?v=golden-r1" defer></script>
+<script src="/assets/js/home-technology-transition-r2.js?v=golden-r1" defer></script>
+<script src="/assets/js/homepage-golden-assembly-r1.js?v=golden-r1" defer></script>
+<script src="/assets/js/homepage-core-hardening-v1.js?v=20260803.1" defer></script>
+<script src="/assets/js/header-system-v1.js?v=20260804.1" defer></script>
+<script src="/assets/js/header-footer-logo-r1.js?v=20260814.1" defer></script>
+</body>
+</html>

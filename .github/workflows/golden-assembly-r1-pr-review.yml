@@ -1,4 +1,4 @@
-name: Golden Assembly R1.2 Exact Recovery Browser Review
+name: Golden Assembly R1.2 Downstream Donor Diagnostic
 
 on:
   pull_request:
@@ -6,13 +6,12 @@ on:
       - review/proai-home-golden-assembly-r1-ci-base
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   review:
     if: github.event.pull_request.head.ref == 'agent/proai-home-golden-assembly-r1-2-recovery'
     runs-on: ubuntu-24.04
-    timeout-minutes: 55
     steps:
       - name: Checkout R1.2 recovery head
         uses: actions/checkout@v6
@@ -20,22 +19,28 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Run traced exact-recovery final review
+      - name: Print exact downstream donor diff
         shell: bash
-        run: bash docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-final-review-v2.sh
-
-      - name: Upload final or failure evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: proai-home-golden-r1-2-pr-review-${{ github.sha }}
-          path: |
-            docs/site-evolution/reviews/proai-home-golden-assembly-r1-2
-            docs/site-evolution/PROAI_HOME_GOLDEN_ASSEMBLY_R1_MANIFEST.md
-          if-no-files-found: warn
-          retention-days: 30
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess, difflib
+          donor='38b92195a11709546db8fe0beeaa782244eee83f'
+          pairs=[('_includes/homepage-assembly-base-en.html','_includes/homepage-golden-r12-downstream-en.html'),('_includes/homepage-assembly-base-ru.html','_includes/homepage-golden-r12-downstream-ru.html')]
+          failed=False
+          for source,current in pairs:
+              text=subprocess.check_output(['git','show',f'{donor}:{source}'],text=True)
+              start=text.index('<section class="homepage-founder-proof"')
+              end=text.index('{{ homepage_after_insights }}',start)
+              want=text[start:end].strip().replace('\r\n','\n')
+              cur=Path(current).read_text(encoding='utf-8').replace('\r\n','\n').strip().splitlines()
+              got='\n'.join(cur[1:-1]).strip()
+              print(f'=== {current} ===')
+              if got==want:
+                  print('MATCH')
+              else:
+                  failed=True
+                  print('MISMATCH')
+                  print(''.join(difflib.unified_diff(want.splitlines(True),got.splitlines(True),fromfile=f'{donor}:{source}',tofile=current,n=4)))
+          raise SystemExit(1 if failed else 0)
+          PY

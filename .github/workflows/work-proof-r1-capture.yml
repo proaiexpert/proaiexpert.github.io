@@ -1,0 +1,70 @@
+name: Financial Stream Work Proof R1 Render QA
+
+on:
+  pull_request:
+    branches:
+      - agent/proai-home-work-proof-verified-system-r1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Static guards
+        run: |
+          grep -q ':focus-visible' assets/css/home-work-proof-financial-stream-r1.css
+          grep -q 'prefers-reduced-motion:reduce' assets/css/home-work-proof-financial-stream-r1.css
+          grep -q '7.24K' _includes/home-work-proof-financial-stream-r1-en.html
+          grep -q '7,24K' _includes/home-work-proof-financial-stream-r1-ru.html
+          ! grep -Eq '19 clicks|4\.17K|51 indexed pages|127\+|300\+' _includes/home-work-proof-financial-stream-r1-en.html _includes/home-work-proof-financial-stream-r1-ru.html
+      - name: Render and validate
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/fs-r1-http.log 2>&1 &
+          mkdir -p docs/site-evolution/reviews/home-work-proof-verified-system-r1/media
+          { printf '%s\n' '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../../../../assets/css/home-work-proof-financial-stream-r1.css"></head><body>'; cat _includes/home-work-proof-financial-stream-r1-en.html; printf '%s\n' '</body></html>'; } > docs/site-evolution/reviews/home-work-proof-verified-system-r1/nojs-en.html
+          { printf '%s\n' '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../../../../assets/css/home-work-proof-financial-stream-r1.css"></head><body>'; cat _includes/home-work-proof-financial-stream-r1-ru.html; printf '%s\n' '</body></html>'; } > docs/site-evolution/reviews/home-work-proof-verified-system-r1/nojs-ru.html
+          cat > .fs-r1-render.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import { rename } from 'node:fs/promises';
+          import { execFileSync } from 'node:child_process';
+          const browser=await chromium.launch({headless:true});
+          const base='http://127.0.0.1:4173/docs/site-evolution/reviews/home-work-proof-verified-system-r1/index.html';
+          const out='docs/site-evolution/reviews/home-work-proof-verified-system-r1/media';
+          async function ready(page){
+            await page.waitForSelector('.home-proof-fs-r1',{state:'visible',timeout:30000});
+            await page.evaluate(()=>document.querySelectorAll('.home-proof-fs-r1 img').forEach(i=>i.loading='eager'));
+            await page.waitForFunction(()=>{const r=document.querySelector('.home-proof-fs-r1');return r&&[...r.querySelectorAll('img')].every(i=>i.complete&&i.naturalWidth>0)},null,{timeout:30000});
+          }
+          async function qa(lang,v){
+            const c=await browser.newContext({viewport:v,reducedMotion:'reduce'}),p=await c.newPage();
+            await p.goto(`${base}?lang=${lang}`,{waitUntil:'networkidle'});await ready(p);
+            const x=await p.evaluate(lang=>{const r=document.querySelector('.home-proof-fs-r1'),t=r?.textContent||'',imgs=[...r.querySelectorAll('img')];return{root:!!r,overflow:document.documentElement.scrollWidth<=innerWidth+1,layers:r?.querySelectorAll('.home-proof-fs-r1__layer').length===4,evidence:t.includes('57')&&t.includes(lang==='ru'?'7,24K':'7.24K')&&t.includes('50')&&t.includes('13'),hardware:!r?.querySelector('.device-monitor,.device-phone,.phone-notch,.monitor-stand,.monitor-base'),images:imgs.length>0&&imgs.every(i=>i.alt.trim()&&i.complete&&i.naturalWidth>0),ctas:r?.querySelectorAll('.home-proof-fs-r1__actions a').length===2,stale:!/(19 clicks|4\.17K|51 indexed pages|127\+|300\+)/i.test(t)}},lang);
+            console.log('QA',lang,`${v.width}x${v.height}`,x);if(Object.values(x).some(z=>z!==true))throw new Error(JSON.stringify({lang,v,x}));await c.close();
+          }
+          for(const v of [{width:1440,height:900},{width:1024,height:768},{width:430,height:932},{width:390,height:844},{width:375,height:812},{width:320,height:568}]){await qa('en',v);await qa('ru',v)}
+          async function shot(lang,v,file){const c=await browser.newContext({viewport:v,reducedMotion:'reduce'}),p=await c.newPage();await p.goto(`${base}?lang=${lang}`,{waitUntil:'networkidle'});await ready(p);await p.locator('.home-proof-fs-r1').screenshot({path:`${out}/${file}`});await c.close()}
+          await shot('en',{width:1440,height:1000},'financial-stream-r1-en-desktop.png');await shot('ru',{width:1440,height:1000},'financial-stream-r1-ru-desktop.png');await shot('en',{width:390,height:844},'financial-stream-r1-en-mobile.png');await shot('ru',{width:390,height:844},'financial-stream-r1-ru-mobile.png');
+          for(const lang of ['en','ru']){const c=await browser.newContext({viewport:{width:390,height:844},javaScriptEnabled:false,reducedMotion:'reduce'}),p=await c.newPage();await p.goto(`http://127.0.0.1:4173/docs/site-evolution/reviews/home-work-proof-verified-system-r1/nojs-${lang}.html`,{waitUntil:'networkidle'});const ok=await p.locator('.home-proof-fs-r1').isVisible();console.log('NOJS',lang,ok);if(!ok)throw new Error(`nojs ${lang}`);await c.close()}
+          const vc=await browser.newContext({viewport:{width:1440,height:900},recordVideo:{dir:'/tmp/fs-r1-video',size:{width:1440,height:900}}}),p=await vc.newPage();await p.goto(`${base}?lang=en`,{waitUntil:'networkidle'});await ready(p);await p.evaluate(()=>scrollTo(0,0));await p.waitForTimeout(900);for(const s of ['.home-tech-r1','.home-proof-fs-r1__identity','.home-proof-fs-r1__architecture','.home-proof-fs-r1__ledger','.home-proof-fs-r1__validation','.home-proof-fs-r1__actions']){await p.locator(s).scrollIntoViewIfNeeded();await p.waitForTimeout(1800)}const vid=p.video();await vc.close();const webm=await vid.path(),target=`${out}/financial-stream-r1-reveal.webm`;await rename(webm,target);execFileSync('ffmpeg',['-y','-i',target,'-c:v','libx264','-preset','veryfast','-crf','22','-pix_fmt','yuv420p','-movflags','+faststart',`${out}/financial-stream-r1-reveal.mp4`],{stdio:'inherit'});await browser.close();
+          JS
+          node .fs-r1-render.mjs
+          ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 docs/site-evolution/reviews/home-work-proof-verified-system-r1/media/financial-stream-r1-reveal.mp4
+      - name: Upload Owner review media
+        uses: actions/upload-artifact@v4
+        with:
+          name: financial-stream-work-proof-r1-owner-media
+          path: docs/site-evolution/reviews/home-work-proof-verified-system-r1/media/
+          if-no-files-found: error
+          retention-days: 30

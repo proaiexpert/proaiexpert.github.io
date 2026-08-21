@@ -1,0 +1,165 @@
+name: Golden Assembly R1.1 Financial Stream Browser Review
+
+on:
+  pull_request:
+    branches:
+      - review/proai-home-golden-assembly-r1-1-ci-base
+
+permissions:
+  contents: write
+
+jobs:
+  review:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PRODUCT_SHA: a8fba586122c5949a009965179b692d2aff6ec5d
+      REVIEW_DIR: docs/site-evolution/reviews/proai-home-golden-assembly-r1-1
+    steps:
+      - name: Checkout isolated Golden R1.1 head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Verify product ancestry
+        shell: bash
+        run: |
+          git merge-base --is-ancestor "$PRODUCT_SHA" HEAD
+          test "$(git rev-parse ${PRODUCT_SHA}^)" = "ec551ae837cdba35b3b15490782a45a7132e7f1d"
+
+      - name: Build Jekyll site
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+
+      - name: Verify generated Golden R1.1 structure
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for route in ('index.html','ru/index.html'):
+              text=(Path('_site')/route).read_text(encoding='utf-8')
+              assert text.count('data-connected-system') == 1, route
+              assert text.count('data-tw-golden-r1') == 1, route
+              assert 'data-tw-tech-r2' not in text, route
+              assert 'id="core-split"' not in text, route
+              assert 'id="section-trigger"' not in text, route
+              assert text.count('data-home-tech-r2') == 1, route
+              assert text.count('data-fs-showcase-r11') == 1, route
+              assert text.count('data-footer-watermark-r2') >= 1, route
+              assert 'homepage-two-worlds-r2.js' not in text, route
+              assert 'homepage-two-worlds-r21.js' not in text, route
+              assert 'homepage-two-worlds-r22.js' not in text, route
+              assert 'bootstrap-golden-r1.js' in text, route
+              assert 'home-work-proof-financial-stream-r1-1.js' in text, route
+              assert 'Google Search Console' in text, route
+              assert 'gsc-' not in text.lower(), route
+              order=[
+                  text.index('home-work-proof-financial-stream-r1-1.css'),
+                  text.index('home-work-proof-financial-stream-r1-2.css'),
+                  text.index('home-work-proof-financial-stream-r1-3.css'),
+                  text.index('home-work-proof-financial-stream-r1-3-1.css'),
+              ]
+              assert order == sorted(order), (route,order)
+          print('Generated Golden R1.1 structure: PASS')
+          PY
+
+      - name: Install browser runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start generated Golden R1.1 site
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory _site >/tmp/golden-r11-http.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/golden-r11-http.log
+          exit 1
+
+      - name: Run real Chromium QA and screenshots
+        id: qa
+        continue-on-error: true
+        shell: bash
+        run: node "$REVIEW_DIR/run-qa.mjs"
+
+      - name: Generate immutable Owner review harness
+        if: always()
+        shell: bash
+        run: python "$REVIEW_DIR/generate-owner-review.py"
+
+      - name: Verify generated Owner review harness
+        id: live_review
+        continue-on-error: true
+        if: always()
+        shell: bash
+        run: |
+          python3 -m http.server 4174 --directory . >/tmp/golden-r11-review-http.log 2>&1 &
+          sleep 1
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          const out='docs/site-evolution/reviews/proai-home-golden-assembly-r1-1';
+          const browser=await chromium.launch({headless:true,args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
+          const result={generatedAt:new Date().toISOString(),en:false,ru:false,cube:false,financial:false,errors:[]};
+          for(const lang of ['en','ru']){
+            const context=await browser.newContext({viewport:{width:1366,height:768}});
+            const page=await context.newPage();
+            page.on('pageerror',e=>result.errors.push(String(e)));
+            await page.goto(`http://127.0.0.1:4174/${out}/index.html?lang=${lang}`,{waitUntil:'domcontentloaded',timeout:60000});
+            await page.waitForFunction(()=>document.querySelectorAll('[data-connected-system]').length===1&&document.querySelectorAll('[data-home-tech-r2]').length===1&&document.querySelectorAll('[data-fs-showcase-r11]').length===1,{timeout:20000});
+            result[lang]=true;
+            result.financial=result.financial||document.querySelectorAll?.length===0;
+            if(lang==='en'){
+              try{await page.waitForFunction(()=>window.__PROAI_HERO_CUBE_GOLDEN_R1?.runtime?.ready===true&&document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true',{timeout:22000});result.cube=true;}catch{}
+              result.financial=await page.evaluate(()=>document.querySelectorAll('[data-fs-showcase-r11]').length===1);
+            }
+            await context.close();
+          }
+          await browser.close();
+          result.pass=result.en&&result.ru&&result.cube&&result.financial&&result.errors.length===0;
+          fs.writeFileSync(`${out}/live-review-check.json`,JSON.stringify(result,null,2));
+          if(!result.pass)process.exit(1);
+          JS
+
+      - name: Upload review evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-home-golden-r1-1-owner-review
+          path: ${{ env.REVIEW_DIR }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Commit review evidence to isolated branch
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "proai-golden-review-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add "$REVIEW_DIR"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "review: add Golden Assembly R1.1 browser evidence [skip ci]"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+
+      - name: Enforce owner-review gates
+        if: always()
+        shell: bash
+        run: |
+          test "${{ steps.qa.outcome }}" = "success"
+          test "${{ steps.live_review.outcome }}" = "success"

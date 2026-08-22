@@ -21,13 +21,13 @@ preview_ok=0
 for i in {1..30}; do if curl -fsS "http://127.0.0.1:4174/$REVIEW_DIR/index.html?lang=en" >/dev/null; then preview_ok=1; break; fi; sleep 1; done
 test "$preview_ok" = 1
 CURRENT_STAGE='owner-preview-smoke'
-REVIEW_BASE="http://127.0.0.1:4174/$REVIEW_DIR/" node "$REVIEW_DIR/smoke-owner-preview.mjs"
+WRITE_SCREENSHOTS=0 REVIEW_BASE="http://127.0.0.1:4174/$REVIEW_DIR/" node "$REVIEW_DIR/smoke-owner-preview.mjs"
 kill "$PREVIEW_PID" 2>/dev/null || true
 PREVIEW_PID=
 CURRENT_STAGE='owner-preview-commit'
 git config user.name 'proai-golden-preview-bot'
 git config user.email 'actions@users.noreply.github.com'
-git add -- "$REVIEW_DIR/index.html" "$REVIEW_DIR/owner-review-en.html" "$REVIEW_DIR/owner-review-ru.html" "$REVIEW_DIR/owner-preview-smoke.json" "$REVIEW_DIR/media/owner-preview-smoke-en-390x844.png" "$REVIEW_DIR/media/owner-preview-smoke-ru-390x844.png"
+git add -- "$REVIEW_DIR/index.html" "$REVIEW_DIR/owner-review-en.html" "$REVIEW_DIR/owner-review-ru.html" "$REVIEW_DIR/owner-preview-smoke.json"
 git commit -m 'review-preview: Golden R1.2 immutable Owner preview — QA pending'
 git push origin HEAD:agent/proai-home-golden-assembly-r1-2-recovery
 PREVIEW_REVIEW_SHA="$(git rev-parse HEAD)"

@@ -32,5 +32,8 @@ if oldcmd not in src:
 src=src.replace(oldcmd,newcmd,1)
 Path(sys.argv[2]).write_text(src,encoding='utf-8')
 PY
+# The patched ESM QA file lives in /tmp. Give Node the normal parent-level
+# package lookup it would have when run from the repository review directory.
+ln -sfn "$PWD/node_modules" /tmp/node_modules
 chmod +x "$TMP"
 exec bash "$TMP"

@@ -23,7 +23,8 @@ async function inspect(browser,lang){
   page.on('pageerror',e=>pageErrors.push(String(e)));
   await page.goto(`${BASE}index.html?lang=${lang}`,{waitUntil:'domcontentloaded',timeout:30000});
   await page.waitForURL(new RegExp(`owner-review-${lang}\\.html`),{timeout:10000});
-  await page.waitForFunction(sha=>document.documentElement.dataset.productSha===sha,PRODUCT_SHA,{timeout:5000});
+  await page.waitForTimeout(250);
+  const actualProductSha=await page.locator('html').getAttribute('data-product-sha');
   let cubeReady=false;
   try{
     await page.waitForFunction(()=>document.querySelector('.proai-hero-object-slot')?.dataset.cubeMounted==='true'&&!!document.querySelector('#cube-canvas')&&window.__PROAI_HERO_CUBE_GOLDEN_R1?.runtime?.ready===true,null,{timeout:25000});
@@ -54,9 +55,9 @@ async function inspect(browser,lang){
       previewStatus:document.querySelector('#owner-preview-qa-pending')?.dataset.previewStatus||null
     };
   });
-  const out={...state,cubeReady,failedCriticalRequests:failed,badCriticalResponses:bad,pageErrors};
+  const out={...state,actualProductSha,cubeReady,failedCriticalRequests:failed,badCriticalResponses:bad,pageErrors};
   out.brokenCriticalAssets=failed.length+bad.length+state.brokenFinancialImages.length;
-  out.pass=state.label==='OWNER PREVIEW — QA PENDING'&&state.previewStatus==='qa-pending'&&cubeReady&&state.cubeCanvas&&state.cubeMounted==='true'&&state.runtimeReady&&state.fsR14Count===1&&state.fsSectionCount===1&&state.overflow===0&&out.brokenCriticalAssets===0&&pageErrors.length===0;
+  out.pass=actualProductSha===PRODUCT_SHA&&state.label==='OWNER PREVIEW — QA PENDING'&&state.previewStatus==='qa-pending'&&cubeReady&&state.cubeCanvas&&state.cubeMounted==='true'&&state.runtimeReady&&state.fsR14Count===1&&state.fsSectionCount===1&&state.overflow===0&&out.brokenCriticalAssets===0&&pageErrors.length===0;
   if(SHOTS)await page.screenshot({path:`${OUT}/media/owner-preview-smoke-${lang}-390x844.png`,fullPage:false,animations:'disabled'});
   await context.close();
   return out;

@@ -29,6 +29,9 @@
 | `assets/css/home-work-proof-financial-stream-r1-2.css` | `415cda550dfb9e5bef316be29f56bece9e1e0299` | `415cda550dfb9e5bef316be29f56bece9e1e0299` | MATCH |
 | `assets/css/home-work-proof-financial-stream-r1-3.css` | `f43cca476d2468425de230ed6b6a6b071e1aa20e` | `f43cca476d2468425de230ed6b6a6b071e1aa20e` | MATCH |
 | `assets/css/home-work-proof-financial-stream-r1-3-1.css` | `2bda2f705a878526c70f7054ee669374916832db` | `2bda2f705a878526c70f7054ee669374916832db` | MATCH |
+| `_includes/home-work-proof-financial-stream-r1-4-en.html` | `7f272fd438ca97a37dd86f30da9244bcfaf56923` | `7f272fd438ca97a37dd86f30da9244bcfaf56923` | MATCH |
+| `_includes/home-work-proof-financial-stream-r1-4-ru.html` | `2261484cf094bbb52d44f9bdb7f2b49096191ad8` | `2261484cf094bbb52d44f9bdb7f2b49096191ad8` | MATCH |
+| `assets/css/home-work-proof-financial-stream-r1-4.css` | `8b2928f6315c3c44824dd18c2359bca738d9841e` | `8b2928f6315c3c44824dd18c2359bca738d9841e` | MATCH |
 | `_includes/home-footer-watermark-r2.html` | `2b46cfdf096391b928aff5ec1d513b9445900f8d` | `2b46cfdf096391b928aff5ec1d513b9445900f8d` | MATCH |
 | `assets/css/home-footer-watermark-r2.css` | `21b4bd3d700019b29b3ca1d856f1e228945ba86c` | `21b4bd3d700019b29b3ca1d856f1e228945ba86c` | MATCH |
 | `assets/js/home-footer-watermark-r2.js` | `295df8717a2d7d23e88eedb43b714869242aa797` | `295df8717a2d7d23e88eedb43b714869242aa797` | MATCH |

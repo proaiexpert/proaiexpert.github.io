@@ -27,3 +27,5 @@ These are **concept frames, not production screenshots and not proof that code e
 Visual verdict: **NOT READY**.
 
 The package is committed to preserve the rejected/diagnostic visual direction for Owner/Master comparison. It must not be promoted as approved art direction without a targeted correction round.
+
+Binary visual assets are added in the immediately following tree commit on the same Visual Lock branch.

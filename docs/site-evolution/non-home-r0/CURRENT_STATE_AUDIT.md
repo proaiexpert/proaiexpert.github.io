@@ -189,20 +189,31 @@ The later builder must execute the full viewport matrix in a real browser and co
 
 ## Claim-governance correction: Financial Stream
 
-The user-supplied R0 brief states `63 organic clicks / 8.36K impressions / 52 indexed pages`. Those values are **not repository-authorized at the locked base**.
+R0.1 reconciles Financial Stream evidence authority across repository history.
 
-The current repository authority at `docs/portfolio-case-packs/financial-stream/FINANCIAL_STREAM_GSC_EVIDENCE_IMPLEMENTATION_READY_2026-08-04.md` states:
+The newer committed product authority is Financial Stream R1.4:
 
-- 57 organic clicks in the selected six-month window captured 2026-08-04;
+- product commit: `d6e33b1c428d3478072c3fdf728c50a27ae0461b`;
+- EN authority: `_includes/home-work-proof-financial-stream-r1-4-en.html`;
+- exact blob: `7f272fd438ca97a37dd86f30da9244bcfaf56923`.
+
+That authority explicitly establishes:
+
+- **63 organic clicks**;
+- **8.36K search impressions**;
+- **52 indexed pages**;
+- Google Search Console · **6-month performance snapshot · Aug 2026**;
+- indexing updated **Aug 16, 2026**.
+
+The older production-main evidence source remains a valid **historical earlier snapshot**:
+
+- 57 organic clicks;
 - 7.24K search impressions;
-- 0.8% average CTR;
-- 35.2 average position;
-- 50 indexed pages in the 2026-07-23 indexing snapshot;
-- 13 not indexed across four reason groups.
+- 50 indexed pages.
 
-It also explicitly prohibits interpreting those snapshots as lead growth, conversion improvement, revenue, SEO ROI or guaranteed rankings.
+Those older values are not the current redesign authority. The older source also contained `0.8% CTR`, `35.2 average position`, and `13 not indexed`; R0.1 does **not** merge those fields into the newer Aug-16 authority. Any future use of CTR, average position, or not-indexed counts requires separate verification against a current evidence source.
 
-**R0 rule:** use the repository-authorized figures until a newer evidence authority is committed and verified. Do not silently replace them with `63 / 8.36K / 52`.
+The current `63 / 8.36K / 52` evidence supports search visibility and indexing/content footprint only. It does **not** prove lead growth, sales, revenue, conversion uplift, SEO ROI, ranking guarantees, or future performance.
 
 ## Current level by evaluation dimension
 

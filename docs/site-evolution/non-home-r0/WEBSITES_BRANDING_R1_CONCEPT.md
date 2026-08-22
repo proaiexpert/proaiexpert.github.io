@@ -250,18 +250,20 @@ No fashion-style giant text that sacrifices clarity.
 
 Financial Stream must remain claim-governed.
 
-At the R0 locked base the current repository authority is:
+The current redesign authority is the newer committed Financial Stream R1.4 product:
 
-- 57 organic clicks;
-- 7.24K search impressions;
-- 0.8% average CTR;
-- 35.2 average position;
-- 50 indexed pages;
-- 13 not indexed across four reason groups.
+- product commit: `d6e33b1c428d3478072c3fdf728c50a27ae0461b`;
+- `63` organic clicks;
+- `8.36K` search impressions;
+- `52` indexed pages;
+- Google Search Console · 6-month performance snapshot · Aug 2026;
+- indexing updated Aug 16, 2026.
 
-Those are dated search/indexing snapshots, not proof of leads, revenue, conversion uplift, ROI or guaranteed ranking.
+The older `57 / 7.24K / 50` evidence remains a valid historical earlier snapshot, not the current redesign authority.
 
-Do not use the unverified R0-brief values `63 / 8.36K / 52` until a newer repository authority is verified.
+Do not carry the older `0.8% CTR`, `35.2 average position`, or `13 not indexed` into the newer authority unless a current evidence source separately verifies those fields.
+
+The current metrics are dated search-visibility/indexing evidence. They do **not** prove leads, sales, revenue, conversion uplift, ROI, ranking guarantees, or future performance.
 
 ## Motion
 

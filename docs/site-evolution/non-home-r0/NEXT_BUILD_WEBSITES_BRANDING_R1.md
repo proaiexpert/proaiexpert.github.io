@@ -216,18 +216,21 @@ Do not present all cases as visually equivalent if their evidentiary status diff
 
 # 14. Financial Stream claim authority
 
-At the R0 locked base the verified repository authority is:
+Current redesign authority is the newer committed Financial Stream R1.4 product:
 
-- 57 organic clicks in selected six-month GSC window captured 2026-08-04;
-- 7.24K impressions;
-- 0.8% average CTR;
-- 35.2 average position;
-- 50 indexed pages in the 2026-07-23 indexing snapshot;
-- 13 pages not indexed across four reason groups.
+- product commit: `d6e33b1c428d3478072c3fdf728c50a27ae0461b`;
+- EN authority: `_includes/home-work-proof-financial-stream-r1-4-en.html`;
+- `63` organic clicks;
+- `8.36K` search impressions;
+- `52` indexed pages;
+- Google Search Console · 6-month performance snapshot · Aug 2026;
+- indexing updated Aug 16, 2026.
 
-These do **not** prove leads, sales, revenue, conversion uplift, SEO ROI or guaranteed rankings.
+The older `57 / 7.24K / 50` evidence remains a valid historical earlier snapshot. It is not the current redesign authority.
 
-Do not use `63 / 8.36K / 52` unless a newer committed evidence authority is verified before build.
+Do not automatically carry the older `0.8% average CTR`, `35.2 average position`, or `13 not indexed` counts into the newer Aug-16 authority. If future case-study work wants those fields, verify them separately against a current evidence source.
+
+The current `63 / 8.36K / 52` evidence supports search visibility and indexing/content footprint only. It does **not** prove leads, sales, revenue, conversion uplift, SEO ROI, ranking guarantees, or future performance.
 
 When showing GSC screenshots:
 

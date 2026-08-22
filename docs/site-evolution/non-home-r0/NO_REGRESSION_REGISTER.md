@@ -45,7 +45,7 @@ Base: `c945084e1952c05c686494091f7dbca0f7acdf08`
 26. Do not invent client outcomes, ROI, conversion uplift, lead results, revenue, rankings, testimonials, logos or awards.
 27. Real live client work must be visually distinguished from demo/concept/in-development work.
 28. Financial Stream remains the flagship real external proof.
-29. At the locked R0 base, Financial Stream current repository authority is `57 clicks / 7.24K impressions / 0.8% CTR / 35.2 average position / 50 indexed / 13 not indexed`; the brief's `63 / 8.36K / 52` values are not authorized without a newer verified repository source.
+29. Current redesign authority is Financial Stream R1.4 product `d6e33b1c428d3478072c3fdf728c50a27ae0461b`: `63 organic clicks / 8.36K search impressions / 52 indexed pages`, with Google Search Console 6-month performance provenance in Aug 2026 and indexing updated Aug 16, 2026. The older `57 / 7.24K / 50` evidence remains a valid historical earlier snapshot, not current authority. Do not merge the older `0.8% CTR`, `35.2 average position`, or `13 not indexed` fields into the newer snapshot without separate current verification.
 30. Financial Stream metrics remain dated search/indexing evidence, not proof of lead growth, conversion improvement, revenue, SEO ROI or guaranteed rankings.
 31. AI Systems reference scenarios must be labeled as scenarios/patterns unless actual client evidence exists.
 32. ProAI self-site work cannot be presented as external-client proof equivalent to Financial Stream.

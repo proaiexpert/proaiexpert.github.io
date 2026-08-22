@@ -163,7 +163,19 @@ Real external work outranks ProAI self-promotion.
 
 ### Financial Stream
 
-Preserve repository-authorized evidence and limitations. At the R0 base the authority remains `57 clicks / 7.24K impressions / 50 indexed pages`, with source dates and explicit limitations. Do not substitute `63 / 8.36K / 52` without newer committed authority.
+Preserve repository-authorized evidence and limitations.
+
+Current redesign authority is the newer committed Financial Stream R1.4 product `d6e33b1c428d3478072c3fdf728c50a27ae0461b`:
+
+- 63 organic clicks;
+- 8.36K search impressions;
+- 52 indexed pages;
+- Google Search Console · 6-month performance snapshot · Aug 2026;
+- indexing updated Aug 16, 2026.
+
+The older `57 / 7.24K / 50` evidence remains a valid historical earlier snapshot and must not be relabeled as the current authority. Do not merge the older `0.8% CTR`, `35.2 average position`, or `13 not indexed` fields into the newer snapshot without separate current verification.
+
+These metrics support search visibility and indexing/content footprint only; they do not establish leads, sales, revenue, conversion uplift, SEO ROI, ranking guarantees, or future performance.
 
 ## Phase 4 — Insights hub + article shell
 

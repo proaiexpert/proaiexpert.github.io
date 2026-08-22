@@ -1,4 +1,4 @@
-name: Golden Assembly R1.2 Exact Recovery Browser Review
+name: Golden Assembly R1.2 Final Authority Browser Review
 
 on:
   pull_request:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 55
     steps:
-      - name: Checkout R1.2 recovery head
+      - name: Checkout R1.2 final-authority QA head
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
@@ -25,17 +25,16 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run traced exact-recovery final review
+      - name: Run Golden R1.2 final-authority browser review
         shell: bash
-        run: bash docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-final-review-v2.sh
+        run: bash docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-final-authority-review.sh
 
       - name: Upload final or failure evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: proai-home-golden-r1-2-pr-review-${{ github.sha }}
+          name: proai-home-golden-r1-2-final-authority-${{ github.sha }}
           path: |
             docs/site-evolution/reviews/proai-home-golden-assembly-r1-2
-            docs/site-evolution/PROAI_HOME_GOLDEN_ASSEMBLY_R1_MANIFEST.md
           if-no-files-found: warn
           retention-days: 30

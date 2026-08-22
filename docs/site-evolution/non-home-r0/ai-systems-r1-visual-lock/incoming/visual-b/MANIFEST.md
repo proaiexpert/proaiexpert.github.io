@@ -5,14 +5,16 @@ Folder: `docs/site-evolution/non-home-r0/ai-systems-r1-visual-lock/incoming/visu
 Source authority: `536091991d05e8259ffdf9b5b7d1708bd36b3993`
 Artifact type: generated concept frames; **not production screenshots and not proof of implementation**.
 
+The committed PNGs are review-optimized exports of the concept frames so they remain lightweight in the shared GitHub Visual Lock workspace while preserving the authored composition and semantics.
+
 | File | Dimensions | Bytes | SHA-256 | Purpose |
 |---|---:|---:|---|---|
-| `A-hero.png` | 1600×980 | 79,446 | `daa308a0ab1f9669760dbf05df691183280c85d0bca82e047c909e3c81928fd3` | Desktop Hero / unresolved signal |
-| `B-register.png` | 1600×980 | 54,401 | `4005503682085f3fb7eb9979372566d8c1cf320dbc492bdc5cf8bc53cd59d385` | Desktop Operational Register / resolved state |
-| `C-pearl-decision.png` | 1600×980 | 72,828 | `55716b2a77b84b1af55cb9bf54756ee2ae5d232947ab5e79a423c7d580132025` | Pearl decision chapter |
-| `D-human-check-gate.png` | 1600×980 | 59,763 | `3e31c889825ea0de78cf1ead8680cbf66dbe75202d5569b626ca926af2e3c307` | Human Check authority boundary |
-| `E-mobile-390.png` | 760×1380 concept canvas containing 390px target viewport | 57,937 | `cb50ed9d74615bd15073899d657d3bbc5b1311486255fa081c11c8695851dda6` | Mobile progressive registration |
-| `board.png` | 2200×3000 | 555,714 | `7d7aad9d1708e2f12cff58e2c3f3c7e9dcb3a2aad8875c7fa3bd4d6ca870758f` | Coherent five-state visual board |
+| `A-hero.png` | 800×490 | 22,571 | `e408242d3e121dd939b0bc9b54a553e405259834e236194982d0990bc2f5f71d` | Desktop Hero / unresolved signal |
+| `B-register.png` | 800×490 | 16,766 | `03ba6eb2e36842447d63b8a66f7563a1a50c449da16a72e9fdefa8ff0d2cd7c1` | Desktop Operational Register / resolved state |
+| `C-pearl-decision.png` | 800×490 | 22,553 | `21cc0ae57537cc706a67845cc4eec56c354da42b53eb1099fd763b7906d73f6d` | Pearl decision chapter |
+| `D-human-check-gate.png` | 800×490 | 17,835 | `5165fa0f780192a2005a96d22783b80cf6a8a0460219a973074e51fc1ffa3a8e` | Human Check authority boundary |
+| `E-mobile-390.png` | 390×708 | 16,691 | `506ceff92d3365be1dc09c5196455e0efcfdcf7b6d302d61c55d0290481924b2` | 390px mobile progressive registration |
+| `board.png` | 500×682 | 30,863 | `bf94202b730e99ab9f0177caffce6e5517bbd86b70b02cd5ee2c181d205ce245` | Coherent five-state visual board |
 | `REVIEW.md` | text | — | — | Independent art-direction review and corrections |
 | `MANIFEST.md` | text | — | — | Artifact inventory and integrity data |
 

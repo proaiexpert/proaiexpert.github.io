@@ -1,2077 +1,252 @@
 ---
 layout: null
 ---
-<!DOCTYPE html>
-
+<!doctype html>
 <html lang="ru">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
-<link href="/favicon-32x32.png" rel="icon" sizes="32x32" type="image/png"/>
-<link href="/favicon-16x16.png" rel="icon" sizes="16x16" type="image/png"/>
-<link href="/favicon.ico" rel="shortcut icon"/>
-<link href="/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180"/>
-<meta content="AI-системы и автоматизация бизнеса для сервисных компаний: обработка входящих заявок, маршрутизация, сводки, быстрые ответы, меньше ручной работы и больше контроля." name="description"/><link href="https://proai-expert.com/ru/ai-systems/" rel="canonical"/><link href="https://proai-expert.com/ai-systems/" hreflang="en" rel="alternate"/><link href="https://proai-expert.com/ru/ai-systems/" hreflang="ru" rel="alternate"/><link href="https://proai-expert.com/ai-systems/" hreflang="x-default" rel="alternate"/>
-<meta content="ProAI Expert" property="og:site_name"/>
-<meta content="ru_RU" property="og:locale"/>
-<meta content="ProAI Expert | AI-системы и автоматизация бизнеса" property="og:title"/>
-<meta content="AI-системы и автоматизация бизнеса для сервисных компаний: обработка входящих заявок, маршрутизация, сводки, быстрые ответы, меньше ручной работы и больше контроля." property="og:description"/>
-<meta content="https://proai-expert.com/screenshots/proai-home-ru-desktop.png" property="og:image"/>
-<meta content="Превью главной страницы ProAI Expert" property="og:image:alt"/>
-<meta content="https://proai-expert.com/ru/ai-systems/" property="og:url"/>
-<meta content="website" property="og:type"/>
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="ProAI Expert | AI-системы и автоматизация бизнеса" name="twitter:title"/>
-<meta content="AI-системы и автоматизация бизнеса для сервисных компаний: обработка входящих заявок, маршрутизация, сводки, быстрые ответы, меньше ручной работы и больше контроля." name="twitter:description"/>
-<meta content="https://proai-expert.com/screenshots/proai-home-ru-desktop.png" name="twitter:image"/>
-<title>ProAI Expert | AI-системы и автоматизация бизнеса</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-<style>
-        :root {
-            --bg: #050506;
-            --bg-blue: #071019;
-            --bg-graphite: #0a0e14;
-            --panel: rgba(255,255,255,0.03);
-            --panel-strong: rgba(255,255,255,0.05);
-            --border: rgba(255,255,255,0.08);
-            --border-soft: rgba(150, 198, 224, 0.12);
-            --text-main: #fff;
-            --text-muted: rgba(255,255,255,0.62);
-            --text-soft: rgba(255,255,255,0.38);
-            --ai-cyan: #5DE2FF;
-            --hero-ai-accent: #86E3CB;
-            --ai-teal: #38C9D6;
-            --ai-blue: #79BFFF;
-            --ai-blue-deep: rgba(64, 118, 205, 0.28);
-            --silver: #DDE6EB;
-            --header-h: 85px;
-            --max-width: 1600px;
-            --ease: cubic-bezier(0.22, 1, 0.36, 1);
-            --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
-            --font: 'Inter', -apple-system, sans-serif;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
-        body { background: var(--bg); color: var(--text-main); font-family: var(--font); overflow-x: hidden; }
-        body.menu-open { overflow: hidden; }
-        .bg-grid, .bg-thread { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
-        .bg-grid {
-            background-image: linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
-            background-size: 44px 44px;
-            opacity: 0.14;
-            mask-image: radial-gradient(circle at center, black, transparent 82%);
-        }
-        .bg-thread {
-            background:
-                radial-gradient(circle at 20% 14%, rgba(93,226,255,0.14), transparent 24%),
-                radial-gradient(circle at 80% 32%, rgba(56,201,214,0.12), transparent 26%),
-                linear-gradient(180deg, rgba(255,255,255,0.02), transparent 24%);
-            opacity: 0.62;
-        }
-
-        header {
-            position: fixed;
-            inset: 0 0 auto 0;
-            height: var(--header-h);
-            z-index: 1000;
-            display: flex;
-            justify-content: center;
-            border-bottom: 1px solid var(--border);
-            background: rgba(5,5,6,0.55);
-            backdrop-filter: blur(25px);
-        }
-        .header-container {
-            width: 100%;
-            max-width: var(--max-width);
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 40px;
-        }
-        .logo-block { display: flex; align-items: center; gap: 12px; text-decoration: none; color: #fff; }
-        .logo-cube-container { width: 28px; height: 28px; perspective: 420px; }
-        .logo-cube { width: 18px; height: 18px; position: relative; transform-style: preserve-3d; animation: logoSpin 10s linear infinite; margin: 5px auto; }
-        .l-face { position: absolute; width: 18px; height: 18px; border: 1.5px solid var(--ai-cyan); background: rgba(93,226,255,0.1); }
-        .lf-front { transform: translateZ(9px); } .lf-back { transform: rotateY(180deg) translateZ(9px); }
-        .lf-right { transform: rotateY(90deg) translateZ(9px); } .lf-left { transform: rotateY(-90deg) translateZ(9px); }
-        .lf-top { transform: rotateX(90deg) translateZ(9px); } .lf-bottom { transform: rotateX(-90deg) translateZ(9px); }
-        @keyframes logoSpin { from { transform: rotateX(0deg) rotateY(0deg); } to { transform: rotateX(360deg) rotateY(360deg); } }
-        .logo-text { font-size: 20px; font-weight: 900; letter-spacing: -1px; text-transform: uppercase; }
-        .logo-text span { color: var(--ai-cyan); text-shadow: 0 0 15px rgba(93,226,255,0.6); }
-        .site-nav { display: flex; gap: 18px; }
-        .site-nav a {
-            color: rgba(255,255,255,0.42);
-            text-decoration: none;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.9px;
-            font-weight: 600;
-            transition: 0.3s;
-        }
-        .site-nav a:hover { color: var(--ai-cyan); text-shadow: 0 0 10px var(--ai-cyan); }
-        .site-nav a.is-active { color: var(--ai-cyan); }
-        .header-actions { display:flex; align-items:center; gap:20px; }
-        .lang-link { color: var(--ai-cyan); text-decoration: none; font-size: 13px; font-weight: 900; letter-spacing: 0.5px; }
-        .start-btn, .secondary-btn {
-            min-height: 48px;
-            padding: 12px 28px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 11px;
-            text-transform: uppercase;
-            font-weight: 800;
-            letter-spacing: 1px;
-            transition: 0.3s;
-        }
-        .start-btn { color: #fff; border: 1.5px solid var(--ai-cyan); background: rgba(93,226,255,0.06); }
-        .start-btn:hover { background: var(--ai-cyan) !important; color: #000 !important; box-shadow: 0 0 40px var(--ai-cyan); }
-        .header-actions .start-btn {
-            min-height: auto;
-            padding: 12px 28px;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 1px;
-            line-height: 1;
-            border: 1.5px solid var(--ai-cyan);
-            border-radius: 4px;
-            background: rgba(93,226,255,0.05);
-        }
-        .header-actions .start-btn:hover {
-            background: var(--ai-cyan) !important;
-            color: #000 !important;
-            box-shadow: 0 0 40px var(--ai-cyan);
-        }
-        .secondary-btn { color: rgba(255,255,255,0.82); border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.02); }
-        .secondary-btn:hover { border-color: rgba(93,226,255,0.24); color: #fff; }
-        .mobile-menu-toggle {
-            display: none;
-            width: 42px;
-            height: 42px;
-            border: 1px solid rgba(255,255,255,0.12);
-            border-radius: 999px;
-            background: rgba(255,255,255,0.04);
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 4px;
-            cursor: pointer;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            transition: 0.3s var(--ease);
-        }
-        .mobile-menu-toggle span { display:block; width:16px; height:1.5px; border-radius:99px; background:#fff; transition: transform 0.3s var(--ease), opacity 0.3s var(--ease); }
-        .mobile-menu-toggle.is-open span:nth-child(1) { transform: translateY(5.5px) rotate(45deg); }
-        .mobile-menu-toggle.is-open span:nth-child(2) { opacity: 0; }
-        .mobile-menu-toggle.is-open span:nth-child(3) { transform: translateY(-5.5px) rotate(-45deg); }
-
-        main, section { position: relative; z-index: 1; }
-        section { width: 100%; display: flex; justify-content: center; }
-        .section-shell { width: 100%; max-width: var(--max-width); padding: 0 40px; position: relative; }
-        .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            color: var(--ai-cyan);
-            font-size: 11px;
-            font-family: monospace;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            margin-bottom: 20px;
-        }
-        .eyebrow::before { content: ""; width: 36px; height: 1px; background: linear-gradient(90deg, rgba(93,226,255,0.8), transparent); }
-        .section-head {
-            max-width: 860px;
-            margin-bottom: 52px;
-            position: relative;
-            padding-bottom: 4px;
-        }
-        .section-head h2 { font-size: clamp(40px, 5vw, 72px); line-height: 0.94; letter-spacing: -3px; font-weight: 900; margin-bottom: 18px; }
-        .section-head h2,
-        .matrix-title strong,
-        .protocol-step h3,
-        .proof-panel h3,
-        .proof-flow h3,
-        .governance-card h3,
-        .cta-shell h2 {
-            background: linear-gradient(180deg, #f9fdff 0%, #e6f7ff 42%, rgba(93,226,255,0.88) 112%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .section-head p { max-width: 720px; font-size: 18px; line-height: 1.7; color: rgba(255,255,255,0.66); }
-        .section-head::after {
-            content: "";
-            position: absolute;
-            left: 0;
-            bottom: -18px;
-            width: min(120px, 20vw);
-            height: 1px;
-            background: linear-gradient(90deg, rgba(93,226,255,0.34), transparent);
-            opacity: 0.8;
-            pointer-events: none;
-        }
-        .section-block { padding: 112px 0; }
-        .reveal {
-            opacity: 0;
-            transform: translateY(22px);
-            filter: blur(8px);
-            transition: opacity 0.82s var(--ease), transform 0.82s var(--ease), filter 0.82s var(--ease);
-            transition-delay: var(--reveal-delay, 0ms);
-        }
-        .reveal.is-visible { opacity: 1; transform: translateY(0); filter: blur(0); }
-        body.theme-ai {
-            background:
-                radial-gradient(circle at 18% 10%, rgba(93,226,255,0.05), transparent 24%),
-                linear-gradient(180deg, #040506 0%, #050608 100%);
-        }
-        body.theme-ai .hero-copy h1 { text-shadow: 0 24px 64px rgba(8,18,28,0.18); }
-        body.theme-ai #hero::before {
-            background:
-                radial-gradient(circle at 16% 26%, rgba(93,226,255,0.18), transparent 28%),
-                linear-gradient(90deg, rgba(8,20,30,0.84) 0%, rgba(8,21,32,0.68) 17%, rgba(7,16,24,0.34) 33%, rgba(6,9,14,0.08) 48%, rgba(6,8,11,0) 61%);
-        }
-        body.theme-ai main > section:not(#hero) {
-            isolation: isolate;
-        }
-        body.theme-ai main > section:not(#hero)::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0.9;
-        }
-        body.theme-ai main > section:not(#hero) > * {
-            position: relative;
-            z-index: 1;
-        }
-        body.theme-ai #entropy::before {
-            background:
-                radial-gradient(circle at 24% 26%, rgba(93,226,255,0.08), transparent 26%),
-                radial-gradient(circle at 78% 54%, rgba(17,42,58,0.24), transparent 32%);
-        }
-        body.theme-ai #capabilities::before {
-            background:
-                linear-gradient(90deg, rgba(8,17,27,0.58) 0%, rgba(8,17,27,0.28) 32%, rgba(5,7,10,0.02) 62%),
-                radial-gradient(circle at 74% 44%, rgba(93,226,255,0.055), transparent 26%);
-        }
-        body.theme-ai #protocol::before {
-            background:
-                radial-gradient(circle at 80% 40%, rgba(93,226,255,0.05), transparent 24%),
-                linear-gradient(180deg, rgba(255,255,255,0.012), transparent 18%);
-        }
-        body.theme-ai #proof::before {
-            background:
-                linear-gradient(90deg, rgba(8,20,30,0.22) 0%, rgba(5,6,9,0.02) 48%, rgba(8,20,30,0.14) 100%),
-                radial-gradient(circle at 26% 56%, rgba(93,226,255,0.045), transparent 24%);
-        }
-        body.theme-ai #governance::before {
-            background:
-                radial-gradient(circle at 76% 24%, rgba(93,226,255,0.04), transparent 24%),
-                linear-gradient(180deg, rgba(255,255,255,0.01), transparent 22%);
-        }
-        body.theme-ai #cta-final::before {
-            background:
-                radial-gradient(circle at 50% 36%, rgba(93,226,255,0.05), transparent 30%),
-                linear-gradient(180deg, rgba(7,12,17,0.4), rgba(5,5,6,0.08) 46%, rgba(5,5,6,0) 100%);
-        }
-        body.theme-ai .section-head h2 em,
-        body.theme-ai .section-head h2 strong {
-            color: var(--ai-cyan);
-            font-style: normal;
-        }
-        body.theme-ai .matrix-shell,
-        body.theme-ai .protocol-summary,
-        body.theme-ai .protocol-step,
-        body.theme-ai .proof-panel,
-        body.theme-ai .proof-flow,
-        body.theme-ai .governance-card,
-        body.theme-ai .cta-shell {
-            box-shadow:
-                inset 0 0 0 1px rgba(255,255,255,0.018),
-                inset 0 0 44px rgba(93,226,255,0.018),
-                0 28px 72px rgba(0,0,0,0.18);
-        }
-        body.theme-ai .matrix-shell {
-            position: relative;
-            overflow: hidden;
-        }
-        body.theme-ai .matrix-shell::after {
-            content: "";
-            position: absolute;
-            inset: 12px;
-            border: 1px solid rgba(93,226,255,0.06);
-            border-radius: 26px;
-            pointer-events: none;
-            opacity: 0.9;
-        }
-        body.theme-ai .matrix-row,
-        body.theme-ai .protocol-step,
-        body.theme-ai .delta-item,
-        body.theme-ai .governance-card {
-            transition:
-                transform 520ms var(--ease),
-                border-color 420ms var(--ease),
-                background 420ms var(--ease),
-                box-shadow 420ms var(--ease),
-                opacity 420ms var(--ease);
-            transform: translateY(0);
-        }
-        body.theme-ai .matrix-row.is-focused,
-        body.theme-ai .matrix-row:hover {
-            background: linear-gradient(90deg, rgba(93,226,255,0.06), rgba(255,255,255,0.015));
-            box-shadow: inset 0 0 0 1px rgba(93,226,255,0.04);
-        }
-        body.theme-ai .protocol-shell {
-            overflow: hidden;
-            isolation: isolate;
-            position: relative;
-        }
-        body.theme-ai .protocol-shell::before {
-            content: none;
-            display: none;
-        }
-        body.theme-ai .protocol-step.is-active {
-            transform: translateX(8px) translateY(-8px) scale(1.014);
-            border-color: rgba(93,226,255,0.2);
-            background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018));
-            box-shadow: inset 0 0 0 1px rgba(93,226,255,0.045), 0 20px 42px rgba(2,8,14,0.18);
-        }
-        .protocol-steps.has-active .protocol-step {
-            opacity: 0.72;
-            transform: translateY(12px) scale(0.988);
-        }
-        .protocol-steps.has-active .protocol-step.is-passed {
-            opacity: 0.84;
-            transform: translateY(-4px) scale(0.994);
-        }
-        .protocol-steps.has-active .protocol-step.is-active {
-            opacity: 1;
-        }
-        body.theme-ai .proof-grid {
-            align-items: stretch;
-        }
-        body.theme-ai .proof-flow::after {
-            content: "";
-            position: absolute;
-            inset: auto 22px 22px;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(93,226,255,0), rgba(93,226,255,0.26), rgba(93,226,255,0));
-            opacity: 0.8;
-            pointer-events: none;
-        }
-        body.theme-ai .delta-item.is-active {
-            transform: translateY(-2px);
-            border-top-color: rgba(93,226,255,0.16);
-        }
-        body.theme-ai .governance-card.is-active,
-        body.theme-ai .governance-card:hover {
-            transform: translateY(-3px);
-            border-color: rgba(93,226,255,0.16);
-            background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.016));
-        }
-        body.theme-ai .cta-shell {
-            background:
-                radial-gradient(circle at 50% 10%, rgba(93,226,255,0.08), transparent 30%),
-                linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.014));
-        }
-
-        #hero {
-            min-height: 96svh;
-            padding: calc(var(--header-h) + 28px) 0 52px;
-            align-items: center;
-            position: relative;
-            overflow: hidden;
-            isolation: isolate;
-        }
-        #hero::before,
-        #hero::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-        }
-        #hero::before {
-            z-index: 0;
-            background:
-                radial-gradient(circle at 15% 27%, rgba(93,226,255,0.09), transparent 26%),
-                linear-gradient(90deg, rgba(8,20,30,0.68) 0%, rgba(8,21,32,0.42) 13%, rgba(7,16,24,0.14) 26%, rgba(6,9,14,0.03) 39%, rgba(6,8,11,0) 54%);
-        }
-        #hero::after {
-            z-index: 0;
-            background:
-                radial-gradient(circle at 76% 52%, rgba(2,4,7,0.18) 0%, rgba(2,4,7,0.42) 28%, rgba(2,4,7,0.78) 60%, rgba(2,4,7,0.94) 100%);
-        }
-        .hero-shell {
-            width: 100%;
-            max-width: var(--max-width);
-            padding: 0 40px;
-            display: grid;
-            grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
-            gap: 68px;
-            align-items: center;
-            position: relative;
-            z-index: 1;
-        }
-        .hero-copy {
-            max-width: 422px;
-            position: relative;
-            z-index: 3;
-            isolation: isolate;
-        }
-        .hero-copy h1 {
-            font-size: clamp(44px, 5.05vw, 78px);
-            line-height: 0.96;
-            letter-spacing: -3.1px;
-            font-weight: 900;
-            margin-bottom: 24px;
-            max-width: 8.7ch;
-        }
-        .hero-copy h1 { color: #fbfdff; text-shadow: 0 18px 54px rgba(11,16,24,0.16); }
-        .hero-line-nowrap {
-            white-space: nowrap;
-            display: inline-block;
-        }
-        .hero-title-line {
-            display: block;
-            overflow: visible;
-            padding-top: 0.08em;
-            margin-top: -0.08em;
-            padding-bottom: 0.12em;
-            margin-bottom: -0.12em;
-        }
-        .hero-title-line > span {
-            display: inline-block;
-            transform: translateY(108%);
-            opacity: 0;
-            animation: heroLockIn 0.78s var(--ease) forwards;
-        }
-        .hero-title-line:nth-child(2) > span { animation-delay: 0.12s; }
-        .hero-title-line em,
-        .hero-copy h1 .hero-accent {
-            font-style: normal;
-            color: var(--hero-ai-accent);
-            -webkit-text-fill-color: var(--hero-ai-accent);
-            text-shadow: 0 0 16px rgba(134,227,203,0.16);
-        }
-        .hero-copy p {
-            max-width: 418px;
-            color: var(--text-muted);
-            font-size: 16px;
-            line-height: 1.64;
-            margin-bottom: 30px;
-            opacity: 0;
-            transform: translateY(18px);
-            animation: heroCopyIn 0.72s var(--ease) 0.34s forwards;
-        }
-        .hero-copy .eyebrow {
-            opacity: 0;
-            transform: translateY(14px);
-            animation: heroCopyIn 0.58s var(--ease) 0.06s forwards;
-        }
-        .hero-actions { display: flex; gap: 15px; flex-wrap: wrap; }
-        .hero-actions > * {
-            opacity: 0;
-            transform: translateY(18px);
-            animation: heroCopyIn 0.62s var(--ease) 0.46s forwards;
-        }
-        .hero-actions > *:nth-child(2) { animation-delay: 0.56s; }
-        #hero .hero-actions .secondary-btn {
-            color: #fff;
-            border: 1.5px solid rgba(93, 226, 255, 0.2);
-            background: none;
-        }
-        #hero .hero-actions .secondary-btn:hover {
-            background: var(--ai-cyan) !important;
-            color: #000 !important;
-            box-shadow: 0 0 40px var(--ai-cyan);
-            border-color: var(--ai-cyan);
-        }
-        .hero-visual {
-            position: relative;
-            min-height: 548px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1;
-        }
-        .hero-visual::before,
-        .hero-visual::after {
-            content: "";
-            position: absolute;
-            pointer-events: none;
-        }
-        .hero-visual::before {
-            inset: 8% 1% 10%;
-            border-radius: 40px;
-            border: 1px solid rgba(255,255,255,0.05);
-            background:
-                linear-gradient(180deg, rgba(255,255,255,0.025), transparent 22%),
-                radial-gradient(circle at 50% 40%, rgba(93,226,255,0.11), transparent 48%),
-                linear-gradient(90deg, transparent 14%, rgba(255,255,255,0.03) 14.2%, transparent 14.4%, transparent 50%, rgba(255,255,255,0.03) 50.2%, transparent 50.4%, transparent 86%, rgba(255,255,255,0.03) 86.2%, transparent 86.4%);
-            mask-image: radial-gradient(circle at center, black, transparent 92%);
-        }
-        .hero-visual::after {
-            width: min(82%, 560px);
-            height: min(82%, 560px);
-            border-radius: 50%;
-            border: 1px dashed rgba(93,226,255,0.1);
-            box-shadow: 0 0 0 52px rgba(255,255,255,0.015), 0 0 0 136px rgba(255,255,255,0.01);
-        }
-        .hero-visual {
-            min-height: 580px;
-            overflow: visible;
-            isolation: isolate;
-        }
-        .hero-visual::before {
-            display: block;
-            inset: -5% -12% -10% 14%;
-            border: 0;
-            border-radius: 52px;
-            background: radial-gradient(circle at 66% 50%, rgba(2,4,7,0.18) 0%, rgba(2,4,7,0.44) 34%, rgba(2,4,7,0.82) 72%, rgba(2,4,7,0.96) 100%);
-            filter: blur(26px);
-            opacity: 0.96;
-            z-index: 0;
-        }
-        .hero-visual::after {
-            display: none;
-        }
-        .hero-embed {
-            width: 100%;
-            min-height: 580px;
-            height: 100%;
-            display: block;
-            border: 0;
-            border-radius: 28px;
-            background: transparent;
-            position: relative;
-            z-index: 1;
-        }
-        @media (max-width: 980px) {
-            .hero-embed { min-height: 500px; }
-        }
-        @media (max-width: 640px) {
-            .hero-embed { min-height: 400px; border-radius: 22px; }
-        }
-        .hero-embed {
-            width: 100% !important;
-            max-width: none;
-            min-height: 600px !important;
-            margin-left: -4%;
-            margin-top: -5%;
-            pointer-events: none;
-            transform-origin: 52% 46%;
-            will-change: auto;
-        }
-        @media (max-width: 980px) {
-            .hero-embed {
-                width: 102% !important;
-                min-height: 536px !important;
-                margin-left: -6%;
-                margin-top: -6%;
-                pointer-events: none;
-            }
-        }
-        @media (max-width: 640px) {
-            .hero-embed {
-                width: 108% !important;
-                min-height: 450px !important;
-                margin-left: -4%;
-                margin-top: -2%;
-                border-radius: 22px;
-                pointer-events: none;
-            }
-        }
-        .orchestration-core {
-            position: relative;
-            width: min(100%, 720px);
-            aspect-ratio: 1 / 1;
-            border-radius: 36px;
-            border: 1px solid rgba(255,255,255,0.07);
-            background:
-                radial-gradient(circle at 50% 50%, rgba(93,226,255,0.16) 0%, rgba(93,226,255,0.07) 16%, rgba(255,255,255,0.015) 46%, rgba(255,255,255,0.01) 100%),
-                linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-            overflow: hidden;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), inset 0 0 56px rgba(93,226,255,0.04), 0 46px 96px rgba(0,0,0,0.56);
-        }
-        .core-grid, .core-lines, .core-thread, .core-blueprint, .core-locks, .core-scan, .core-axis, .core-chaos, .core-conduits {
-            position: absolute;
-            inset: 0;
-        }
-        .core-grid {
-            background-image: linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
-            background-size: 54px 54px;
-            mask-image: radial-gradient(circle at center, black, transparent 88%);
-            opacity: 0.48;
-        }
-        .core-blueprint {
-            background:
-                linear-gradient(90deg, transparent 12%, rgba(255,255,255,0.05) 12.2%, transparent 12.4%, transparent 50%, rgba(255,255,255,0.04) 50.2%, transparent 50.4%, transparent 86%, rgba(255,255,255,0.04) 86.2%, transparent 86.4%),
-                linear-gradient(180deg, transparent 15%, rgba(255,255,255,0.04) 15.2%, transparent 15.4%, transparent 48%, rgba(255,255,255,0.045) 48.2%, transparent 48.4%, transparent 82%, rgba(255,255,255,0.04) 82.2%, transparent 82.4%);
-            opacity: 0.44;
-            mask-image: radial-gradient(circle at center, black, transparent 90%);
-        }
-        .core-lines::before, .core-lines::after {
-            content: "";
-            position: absolute;
-            border: 1px solid rgba(93,226,255,0.18);
-            border-radius: 28px;
-            inset: 16% 12%;
-        }
-        .core-lines::after {
-            inset: 25% 20%;
-            border-color: rgba(255,255,255,0.08);
-        }
-        .core-axis::before,
-        .core-axis::after {
-            content: "";
-            position: absolute;
-            background: linear-gradient(90deg, transparent, rgba(93,226,255,0.16), transparent);
-            opacity: 0.8;
-        }
-        .core-axis::before {
-            left: 18%;
-            right: 18%;
-            top: 50%;
-            height: 1px;
-        }
-        .core-axis::after {
-            top: 18%;
-            bottom: 18%;
-            left: 50%;
-            width: 1px;
-            background: linear-gradient(180deg, transparent, rgba(93,226,255,0.16), transparent);
-        }
-        .core-chaos span,
-        .core-conduits span,
-        .core-conduits i {
-            position: absolute;
-            display: block;
-        }
-        .core-chaos span {
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(93,226,255,0.48), rgba(255,255,255,0.08), transparent);
-            opacity: 0;
-            animation: chaosResolve 1s var(--ease) forwards;
-        }
-        .core-chaos .ch-1 { top: 28%; left: 12%; width: 34%; transform: rotate(-18deg) translateX(-28px); animation-delay: 0.02s; }
-        .core-chaos .ch-2 { top: 36%; right: 10%; width: 28%; transform: rotate(22deg) translateX(34px); animation-delay: 0.08s; }
-        .core-chaos .ch-3 { top: 58%; left: 18%; width: 46%; transform: rotate(9deg) translateY(22px); animation-delay: 0.14s; }
-        .core-chaos .ch-4 { bottom: 24%; right: 16%; width: 24%; transform: rotate(-24deg) translateY(-24px); animation-delay: 0.2s; }
-        .core-chaos .ch-5 { top: 50%; left: 44%; width: 20%; transform: rotate(90deg) scaleY(1); animation-delay: 0.24s; }
-        .core-chaos .ch-6 { top: 18%; left: 46%; width: 18%; transform: rotate(90deg) translateY(-18px); animation-delay: 0.28s; }
-        .core-conduits span {
-            height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(93,226,255,0.72), transparent);
-            opacity: 0;
-            animation: conduitLock 0.88s var(--ease) 0.26s forwards;
-        }
-        .core-conduits .co-1 { top: 32%; left: 25%; width: 50%; }
-        .core-conduits .co-2 { top: 50%; left: 23%; width: 54%; }
-        .core-conduits .co-3 { top: 68%; left: 30%; width: 40%; }
-        .core-conduits .co-4 {
-            top: 28%;
-            left: 49.8%;
-            width: 1px;
-            height: 44%;
-            background: linear-gradient(180deg, transparent, rgba(93,226,255,0.72), transparent);
-        }
-        .core-conduits i {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: radial-gradient(circle, #fff 0%, var(--ai-cyan) 42%, rgba(93,226,255,0.16) 100%);
-            box-shadow: 0 0 18px rgba(93,226,255,0.28);
-            opacity: 0;
-            animation: nodeLock 0.68s var(--ease) forwards;
-        }
-        .core-conduits .n-1 { top: 31.2%; left: 24.5%; animation-delay: 0.34s; }
-        .core-conduits .n-2 { top: 31.2%; right: 24.3%; animation-delay: 0.4s; }
-        .core-conduits .n-3 { top: 49.2%; left: 49.2%; animation-delay: 0.46s; }
-        .core-conduits .n-4 { bottom: 30.6%; right: 29%; animation-delay: 0.52s; }
-        .schema-node {
-            position: absolute;
-            min-width: 170px;
-            padding: 18px 18px 16px;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 18px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-            backdrop-filter: blur(18px);
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
-            opacity: 0;
-            animation: moduleSettle 0.76s var(--ease) forwards;
-        }
-        .schema-node b {
-            display: block;
-            font-size: 11px;
-            color: var(--ai-cyan);
-            text-transform: uppercase;
-            letter-spacing: 1.8px;
-            margin-bottom: 12px;
-        }
-        .schema-node span { color: rgba(255,255,255,0.76); font-size: 13px; line-height: 1.5; }
-        .node-a { top: 11%; left: 8%; }
-        .node-b { top: 16%; right: 6%; }
-        .node-c { bottom: 22%; left: 10%; }
-        .node-d { bottom: 12%; right: 8%; }
-        .node-a { animation-delay: 0.42s; }
-        .node-b { animation-delay: 0.5s; }
-        .node-c { animation-delay: 0.58s; }
-        .node-d { animation-delay: 0.66s; }
-        .schema-node::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 16px;
-            right: 16px;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(93,226,255,0.8), transparent 72%);
-            opacity: 0.7;
-        }
-        .core-center {
-            position: absolute;
-            inset: 50% auto auto 50%;
-            transform: translate(-50%, -50%);
-            width: 260px;
-            height: 260px;
-            border-radius: 32px;
-            border: 1px solid rgba(93,226,255,0.28);
-            background:
-                radial-gradient(circle at 50% 50%, rgba(93,226,255,0.16), rgba(93,226,255,0.06) 34%, rgba(255,255,255,0.02) 100%),
-                linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
-            display: grid;
-            place-items: center;
-            text-align: center;
-            box-shadow: inset 0 0 28px rgba(93,226,255,0.08), inset 0 0 0 1px rgba(255,255,255,0.04), 0 0 40px rgba(93,226,255,0.08);
-        }
-        .core-center strong {
-            display: block;
-            font-size: 12px;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            color: var(--ai-cyan);
-            margin-bottom: 10px;
-        }
-        .core-center p { width: 76%; color: rgba(255,255,255,0.84); font-size: 15px; line-height: 1.45; font-weight: 700; }
-        .core-center::before,
-        .core-center::after {
-            content: "";
-            position: absolute;
-            inset: 16px;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 24px;
-        }
-        .core-center::after {
-            inset: 34px;
-            border-style: dashed;
-            border-color: rgba(93,226,255,0.18);
-            opacity: 0.9;
-        }
-        .core-thread::before, .core-thread::after {
-            content: "";
-            position: absolute;
-            inset: 50%;
-            transform: translate(-50%, -50%);
-            width: 76%;
-            height: 76%;
-            border: 1px dashed rgba(93,226,255,0.18);
-            border-radius: 50%;
-        }
-        .core-thread::after { width: 56%; height: 56%; border-style: solid; border-color: rgba(255,255,255,0.06); }
-        .core-locks::before,
-        .core-locks::after {
-            content: "";
-            position: absolute;
-            border: 1px solid rgba(93,226,255,0.2);
-            border-radius: 18px;
-            opacity: 0.9;
-        }
-        .core-locks::before {
-            inset: 38% 22% 38% 22%;
-            box-shadow: 0 0 0 14px rgba(93,226,255,0.035);
-        }
-        .core-locks::after {
-            inset: 30% 30% 30% 30%;
-            border-color: rgba(255,255,255,0.08);
-        }
-        .core-scan::before {
-            content: "";
-            position: absolute;
-            left: 12%;
-            right: 12%;
-            top: 18%;
-            height: 22%;
-            background: linear-gradient(180deg, rgba(93,226,255,0), rgba(93,226,255,0.12), rgba(93,226,255,0));
-            opacity: 0.7;
-            filter: blur(18px);
-            animation: heroScan 8s linear infinite;
-        }
-        .thread-pulse {
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: radial-gradient(circle, #fff 0%, var(--ai-cyan) 46%, rgba(93,226,255,0.2) 100%);
-            box-shadow: 0 0 18px rgba(93,226,255,0.46);
-            animation: orbitPulse 7s linear infinite;
-        }
-        .thread-pulse.p1 { top: 18%; left: 52%; }
-        .thread-pulse.p2 { top: 54%; right: 16%; animation-duration: 8.5s; }
-        .thread-pulse.p3 { left: 22%; bottom: 28%; animation-duration: 9.5s; }
-        @keyframes orbitPulse {
-            0%, 100% { transform: scale(0.9); opacity: 0.72; }
-            50% { transform: scale(1.2); opacity: 1; }
-        }
-        @keyframes heroScan {
-            0%, 100% { transform: translateY(-12%) scaleY(0.92); opacity: 0; }
-            16% { opacity: 0.55; }
-            50% { transform: translateY(128%) scaleY(1); opacity: 0.78; }
-            84% { opacity: 0.2; }
-        }
-        @keyframes heroLockIn {
-            0% { opacity: 0; transform: translateY(108%); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes heroCopyIn {
-            0% { opacity: 0; transform: translateY(18px); }
-            100% { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes chaosResolve {
-            0% { opacity: 0; }
-            20% { opacity: 0.72; }
-            100% { opacity: 0.28; transform: rotate(0deg) translateX(0) translateY(0); }
-        }
-        @keyframes conduitLock {
-            0% { opacity: 0; transform: scaleX(0.2); transform-origin: left center; }
-            100% { opacity: 1; transform: scaleX(1); transform-origin: left center; }
-        }
-        @keyframes nodeLock {
-            0% { opacity: 0; transform: scale(0.4); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-        @keyframes moduleSettle {
-            0% { opacity: 0; transform: translateY(18px) scale(0.96); }
-            100% { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        #entropy .entropy-grid {
-            contain: paint;
-            isolation: isolate;
-            transform-style: preserve-3d;
-            will-change: transform;
-            display: grid;
-            grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
-            gap: 30px;
-            align-items: stretch;
-        }
-        .entropy-map, .entropy-list {
-            backface-visibility: hidden;
-            transform: translateZ(0);
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
-            overflow: hidden;
-        }
-        .entropy-map { position: relative; min-height: 520px; padding: 34px; }
-        .entropy-map::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-image: linear-gradient(rgba(169,210,239,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(169,210,239,0.04) 1px, transparent 1px);
-            background-size: 44px 44px;
-            opacity: 0.34;
-        }
-        .entropy-card {
-            position: absolute;
-            width: 220px;
-            padding: 18px;
-            border: 1px solid rgba(150,198,224,0.12);
-            border-radius: 18px;
-            background: linear-gradient(180deg, rgba(10,14,20,0.88), rgba(8,11,17,0.74));
-            backdrop-filter: blur(18px);
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 18px 42px rgba(2,8,15,0.22);
-        }
-        .entropy-card b {
-            display: block;
-            font-size: 10px;
-            letter-spacing: 1.6px;
-            color: var(--ai-cyan);
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-        .entropy-card span { color: rgba(255,255,255,0.82); font-size: 13px; line-height: 1.52; }
-        .e1 { top: 14%; left: 8%; } .e2 { top: 12%; right: 10%; } .e3 { bottom: 20%; left: 18%; } .e4 { bottom: 14%; right: 12%; }
-        .entropy-line { position: absolute; height: 1px; background: linear-gradient(90deg, rgba(93,226,255,0.14), rgba(121,191,255,0.3), rgba(93,226,255,0.1)); transform-origin: left center; }
-        .el1 { top: 34%; left: 28%; width: 32%; transform: rotate(12deg); }
-        .el2 { top: 55%; left: 18%; width: 56%; transform: rotate(-9deg); }
-        .el3 { top: 44%; right: 18%; width: 26%; transform: rotate(94deg); }
-        .capture-beam {
-            position: absolute;
-            inset: 50% auto auto 50%;
-            transform: translate(-50%, -50%);
-            width: 42%;
-            height: 72%;
-            border-radius: 28px;
-            border: 1px solid rgba(93,226,255,0.3);
-            background: linear-gradient(180deg, rgba(93,226,255,0.08), rgba(93,226,255,0.02));
-            box-shadow: inset 0 0 36px rgba(93,226,255,0.08);
-        }
-        .capture-beam::before {
-            content: "";
-            position: absolute;
-            inset: 18px;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 20px;
-        }
-        .entropy-list { padding: 30px; display: flex; flex-direction: column; gap: 18px; }
-        .entropy-item {
-            padding: 18px 18px 20px;
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 18px;
-            background: rgba(255,255,255,0.02);
-        }
-        .entropy-item strong { display: block; font-size: 17px; margin-bottom: 8px; letter-spacing: -0.02em; }
-        .entropy-item p { font-size: 14px; line-height: 1.65; color: var(--text-muted); }
-
-        #capabilities .matrix-shell {
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            overflow: hidden;
-            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
-            position: relative;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 24px 60px rgba(3, 9, 17, 0.18);
-        }
-        #capabilities .matrix-shell::before,
-        #protocol .protocol-summary::before,
-        .proof-panel::before,
-        .proof-flow::before,
-        .governance-card::before {
-            content: "";
-            position: absolute;
-            left: 18px;
-            right: 18px;
-            top: 0;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(93,226,255,0.34), rgba(93,226,255,0.02) 76%);
-            opacity: 0.8;
-            pointer-events: none;
-        }
-        .matrix-head {
-            display: grid;
-            grid-template-columns: 1.1fr repeat(3, 1fr);
-            padding: 16px 24px;
-            background: rgba(255,255,255,0.02);
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            color: rgba(255,255,255,0.52);
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1.6px;
-            font-weight: 700;
-        }
-        .matrix-row {
-            display: grid;
-            grid-template-columns: 1.1fr repeat(3, 1fr);
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            position: relative;
-            transition: background 260ms ease, border-color 260ms ease, transform 260ms ease, box-shadow 260ms ease;
-        }
-        .matrix-row:hover {
-            background: linear-gradient(90deg, rgba(93,226,255,0.05), rgba(121,191,255,0.02) 42%, rgba(255,255,255,0.012));
-            box-shadow: inset 0 1px 0 rgba(140,195,235,0.06);
-            transform: translateX(2px);
-        }
-        .matrix-row:last-child { border-bottom: 0; }
-        .matrix-title, .matrix-cell { padding: 24px; }
-        .matrix-title { border-right: 1px solid rgba(255,255,255,0.06); }
-        .matrix-title strong { display: block; font-size: 18px; margin-bottom: 8px; letter-spacing: -0.02em; }
-        .matrix-title p { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
-        .matrix-cell {
-            border-right: 1px solid rgba(255,255,255,0.06);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .matrix-cell:last-child { border-right: 0; }
-        .matrix-cell b { color: var(--silver); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
-        .matrix-cell span { color: rgba(255,255,255,0.74); font-size: 14px; line-height: 1.58; }
-        .matrix-foot {
-            padding: 20px 24px;
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            border-top: 1px solid rgba(255,255,255,0.06);
-            color: var(--text-soft);
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        #protocol .protocol-shell {
-            overflow: hidden;
-            isolation: isolate;
-            display: grid;
-            grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
-            gap: 38px;
-            align-items: start;
-        }
-        .protocol-summary {
-            position: sticky;
-            top: calc(var(--header-h) + 28px);
-            padding: 28px;
-            border: 1px solid var(--border);
-            border-radius: 26px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.018), 0 22px 52px rgba(3, 9, 17, 0.16);
-            overflow: hidden;
-        }
-        .protocol-summary p { color: var(--text-muted); font-size: 16px; line-height: 1.72; margin-bottom: 22px; }
-        .protocol-note {
-            padding-top: 18px;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            color: rgba(255,255,255,0.68);
-            font-size: 13px;
-            line-height: 1.7;
-        }
-        .protocol-steps { display: flex; flex-direction: column; gap: 16px; perspective: 1200px; }
-        .protocol-step {
-            padding: 26px 26px 24px;
-            border-radius: 24px;
-            border: 1px solid rgba(255,255,255,0.08);
-            background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
-            position: relative;
-            overflow: hidden;
-            transform-origin: 50% 0;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 18px 44px rgba(3, 9, 17, 0.14);
-            transition: transform 260ms ease, border-color 260ms ease, box-shadow 260ms ease;
-        }
-        .protocol-step:hover {
-            transform: translateY(-2px);
-            border-color: rgba(118,185,231,0.16);
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02), 0 22px 52px rgba(3, 9, 17, 0.22);
-        }
-        .protocol-step::before {
-            content: "";
-            position: absolute;
-            left: 18px;
-            right: 18px;
-            top: 0;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(93,226,255,0.28), transparent);
-            opacity: 0.85;
-        }
-        .protocol-step::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 26px;
-            right: 26px;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(93,226,255,0.8), rgba(255,255,255,0.08), transparent 72%);
-        }
-        .protocol-step b {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 11px;
-            letter-spacing: 2px;
-            color: var(--ai-cyan);
-            text-transform: uppercase;
-            margin-bottom: 14px;
-        }
-        .protocol-step h3 { font-size: 30px; letter-spacing: -0.03em; margin-bottom: 12px; }
-        .protocol-step p { font-size: 15px; line-height: 1.68; color: var(--text-muted); max-width: 54ch; }
-
-        #proof .proof-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
-            gap: 30px;
-        }
-        .proof-panel, .proof-flow {
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
-            padding: 30px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.018), 0 24px 58px rgba(3, 9, 17, 0.16);
-        }
-        .proof-panel h3, .proof-flow h3 { font-size: 30px; letter-spacing: -0.03em; margin-bottom: 16px; }
-        .proof-panel p, .proof-flow p { color: var(--text-muted); font-size: 15px; line-height: 1.7; }
-        .delta-stack { margin-top: 24px; display: grid; gap: 16px; }
-        .delta-item {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 16px;
-            align-items: center;
-            padding: 18px 0;
-            border-top: 1px solid rgba(255,255,255,0.06);
-        }
-        .delta-item:first-child { border-top: 0; padding-top: 0; }
-        .delta-side strong { display: block; font-size: 15px; margin-bottom: 6px; }
-        .delta-side span { display: block; color: var(--text-muted); font-size: 13px; line-height: 1.58; }
-        .delta-arrow {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            display: grid;
-            place-items: center;
-            border: 1px solid rgba(93,226,255,0.28);
-            color: var(--ai-cyan);
-            font-weight: 800;
-        }
-        .proof-flow .flow-card {
-            margin-top: 22px;
-            padding: 20px;
-            border-radius: 20px;
-            border: 1px solid rgba(255,255,255,0.08);
-            background: rgba(255,255,255,0.02);
-        }
-        .flow-line {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: rgba(255,255,255,0.8);
-            font-size: 14px;
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
-            transition: color 220ms ease, transform 220ms ease;
-        }
-        .flow-line:hover { color: rgba(255,255,255,0.94); transform: translateX(3px); }
-        .flow-line:last-child { border-bottom: 0; }
-        .flow-line i {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--ai-cyan);
-            box-shadow: 0 0 12px rgba(93,226,255,0.42);
-            display: inline-block;
-        }
-
-        #governance .governance-shell {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 18px;
-        }
-        .governance-card {
-            border-radius: 22px;
-            border: 1px solid rgba(255,255,255,0.08);
-            background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015));
-            padding: 26px 22px 24px;
-            position: relative;
-            overflow: hidden;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.016), 0 18px 42px rgba(3, 9, 17, 0.18);
-            transition: transform 240ms ease, border-color 240ms ease;
-        }
-        .governance-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(126,194,235,0.16);
-        }
-        .governance-card b {
-            display: block;
-            font-size: 11px;
-            color: var(--ai-cyan);
-            letter-spacing: 1.6px;
-            text-transform: uppercase;
-            margin-bottom: 16px;
-        }
-        .governance-card h3 { font-size: 22px; letter-spacing: -0.03em; margin-bottom: 10px; }
-        .governance-card p { color: var(--text-muted); font-size: 14px; line-height: 1.65; }
-
-        #cta-final { padding: 126px 0 118px; }
-        .cta-shell {
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 34px;
-            overflow: hidden;
-            background:
-                radial-gradient(circle at 50% 28%, rgba(93,226,255,0.12), transparent 30%),
-                linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
-            text-align: center;
-            padding: 74px 28px 78px;
-            position: relative;
-            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.018), 0 28px 64px rgba(3, 9, 17, 0.2);
-        }
-        .cta-shell::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-            background-size: 58px 58px;
-            opacity: 0.22;
-            mask-image: radial-gradient(circle at center, black, transparent 84%);
-        }
-        .cta-shell > * { position: relative; z-index: 1; }
-        .cta-shell h2 { font-size: clamp(42px, 5vw, 82px); line-height: 0.93; letter-spacing: -4px; margin-bottom: 16px; }
-        .cta-shell p { max-width: 760px; margin: 0 auto 28px; color: var(--text-muted); font-size: 18px; line-height: 1.7; }
-        .cta-actions { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
-
-        .entropy-item,
-        .matrix-shell,
-        .protocol-summary,
-        .protocol-step,
-        .proof-panel,
-        .proof-flow,
-        .governance-card,
-        .cta-shell {
-            backdrop-filter: blur(16px);
-        }
-        @keyframes text-scan {
-            0%, 76% { background-position: 145% center; }
-            100% { background-position: -25% center; }
-        }
-
-        @media (max-width: 1180px) {
-            .hero-shell,
-            #entropy .entropy-grid,
-            #protocol .protocol-shell,
-            #proof .proof-grid,
-            #governance .governance-shell { grid-template-columns: 1fr; }
-            .hero-visual { min-height: 600px; }
-            .protocol-summary { position: relative; top: auto; }
-            .governance-shell { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-
-        @media (max-width: 980px) {
-            :root { --header-h: 78px; }
-            html, body { overflow-x: clip; }
-            header { background: rgba(5,5,6,0.72); backdrop-filter: blur(18px); }
-            .header-container, .hero-shell, .section-shell { padding-left: 24px; padding-right: 24px; }
-            .site-nav { display: none; }
-            .header-actions .start-btn { display: none; }
-            .mobile-menu-toggle { display: inline-flex; position: relative; z-index: 1102; }
-            .header-actions { gap: 12px; }
-            .site-nav.is-open {
-                display: flex;
-                position: fixed;
-                inset: 0;
-                top: var(--header-h);
-                z-index: 1100;
-                flex-direction: column;
-                align-items: stretch;
-                justify-content: center;
-                gap: 6px;
-                padding: max(34px, 7svh) 24px calc(38px + env(safe-area-inset-bottom));
-                background:
-                    radial-gradient(circle at 50% 22%, rgba(93,226,255,0.09) 0%, rgba(56,201,214,0.05) 22%, transparent 52%),
-                    linear-gradient(180deg, rgba(5,5,6,0.975) 0%, rgba(5,5,6,0.955) 100%);
-                backdrop-filter: blur(26px);
-                -webkit-backdrop-filter: blur(26px);
-                box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(255,255,255,0.03), 0 24px 80px rgba(0,0,0,0.46);
-                overflow: auto;
-                min-height: calc(100svh - var(--header-h));
-                max-height: calc(100svh - var(--header-h));
-                overscroll-behavior: contain;
-                -webkit-overflow-scrolling: touch;
-            }
-            .site-nav.is-open a {
-                width: min(100%, 430px);
-                margin-inline: auto;
-                padding: 14px 0;
-                font-size: clamp(22px, 6vw, 34px);
-                line-height: 1.04;
-                letter-spacing: -0.03em;
-                text-transform: none;
-                opacity: 1;
-                transform: none;
-                animation: none;
-                opacity: 0;
-                transform: translateY(18px);
-                animation: mobileMenuReveal 0.46s var(--ease) forwards;
-            }
-            .site-nav.is-open a:nth-child(1) { animation-delay: 0.02s; }
-            .site-nav.is-open a:nth-child(2) { animation-delay: 0.06s; }
-            .site-nav.is-open a:nth-child(3) { animation-delay: 0.10s; }
-            .site-nav.is-open a:nth-child(4) { animation-delay: 0.14s; }
-            .site-nav.is-open a:nth-child(5) { animation-delay: 0.18s; }
-            .site-nav.is-open a:nth-child(6) { animation-delay: 0.22s; }
-            .site-nav.is-open a:hover { text-shadow: none; color: #fff; }
-            #hero { min-height: calc(100svh - 8px); padding-top: calc(var(--header-h) + 28px); padding-bottom: 44px; }
-            .hero-shell { gap: 22px; }
-            .hero-copy h1 { max-width: 9.2ch; font-size: clamp(38px, 9.3vw, 60px); line-height: 0.99; letter-spacing: -2.1px; }
-            .hero-copy p, .section-head p, .cta-shell p { font-size: 16px; max-width: 100%; }
-            .hero-visual { min-height: 560px; }
-            .hero-embed { min-height: 560px; }
-
-        .orchestration-core { border-radius: 26px; }
-            .schema-node { min-width: 150px; padding: 14px; }
-            .node-a { top: 10%; left: 6%; } .node-b { top: 12%; right: 5%; } .node-c { bottom: 21%; left: 8%; } .node-d { bottom: 12%; right: 6%; }
-            .core-center { width: 198px; height: 198px; }
-            .core-center::before { inset: 12px; }
-            .core-center::after { inset: 26px; }
-            #entropy .entropy-map { min-height: 520px; padding: 22px; }
-            .entropy-card {
-                width: calc(50% - 12px);
-                min-width: 0;
-                padding: 14px 14px 15px;
-                border-radius: 16px;
-            }
-            .entropy-card b { font-size: 9px; letter-spacing: 1.2px; margin-bottom: 8px; }
-            .entropy-card span { font-size: 11px; line-height: 1.45; }
-            .e1 { top: 8%; left: 5%; }
-            .e2 { top: 8%; right: 5%; }
-            .e3 { bottom: 10%; left: 5%; }
-            .e4 { bottom: 10%; right: 5%; }
-            .el1 { top: 33%; left: 23%; width: 38%; transform: rotate(11deg); }
-            .el2 { top: 58%; left: 16%; width: 56%; transform: rotate(-8deg); }
-            .el3 { top: 46%; right: 17%; width: 24%; transform: rotate(88deg); }
-            .capture-beam { width: 48%; height: 70%; }
-            .section-block { padding: 92px 0; }
-            .section-head h2, .cta-shell h2 { font-size: clamp(38px, 10vw, 62px); letter-spacing: -2.5px; }
-            .matrix-head, .matrix-row { grid-template-columns: 1fr; }
-            .matrix-title, .matrix-cell { border-right: 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
-            .matrix-row .matrix-cell:last-child { border-bottom: 0; }
-            .matrix-foot { flex-direction: column; }
-            .delta-item { grid-template-columns: 1fr; }
-            .delta-arrow { display: none; }
-            .governance-shell { grid-template-columns: 1fr; }
-        }
-
-        @media (max-width: 640px) {
-            :root { --header-h: 72px; }
-            .header-container, .hero-shell, .section-shell { padding-left: 18px; padding-right: 18px; }
-            .logo-cube-container { width: 24px; height: 24px; }
-            .logo-text { font-size: 18px; }
-            .header-actions { gap: 10px; }
-            .header-actions > a:first-child { font-size: 12px !important; }
-            .mobile-menu-toggle { width: 40px; height: 40px; }
-            .lang-link { font-size: 12px; }
-            .hero-shell { gap: 16px; }
-            .hero-copy h1 { max-width: 8.9ch; font-size: clamp(32px, 8.3vw, 48px); line-height: 0.94; letter-spacing: -1.6px; margin-bottom: 16px; }
-            .hero-copy p { font-size: 15px; line-height: 1.54; margin-bottom: 22px; }
-            .hero-actions { gap: 10px; flex-wrap: wrap; }
-            .hero-visual { min-height: 430px; margin-top: -18px; }
-            .hero-embed { min-height: 430px; }
-            .schema-node { min-width: 124px; }
-            .schema-node span { font-size: 11px; }
-            .core-center { width: 152px; height: 152px; }
-            .core-center p { font-size: 13px; }
-            .core-center::before { inset: 10px; border-radius: 18px; }
-            .core-center::after { inset: 22px; border-radius: 14px; }
-            .hero-title-line { padding-top: 0.06em; margin-top: -0.06em; padding-bottom: 0.1em; margin-bottom: -0.1em; }
-            .hero-visual::after { width: min(86%, 320px); height: min(86%, 320px); box-shadow: 0 0 0 28px rgba(255,255,255,0.015), 0 0 0 74px rgba(255,255,255,0.01); }
-            .entropy-map { min-height: 500px; padding: 18px 16px 22px; }
-            .entropy-card { width: calc(50% - 10px); padding: 12px 12px 14px; }
-            .entropy-card span { font-size: 10px; line-height: 1.42; }
-            .capture-beam { width: 54%; height: 68%; }
-            .protocol-step h3, .proof-panel h3, .proof-flow h3 { font-size: 26px; }
-            .cta-shell { padding: 54px 20px 60px; }
-            #entropy .section-shell::before,
-            #capabilities .section-shell::before,
-            #protocol .section-shell::before,
-            #proof .section-shell::before,
-            #governance .section-shell::before { left: 18px; }
-            #entropy .section-shell::after,
-            #capabilities .section-shell::after,
-            #protocol .section-shell::after,
-            #proof .section-shell::after,
-            #governance .section-shell::after { left: 14px; }
-            .site-nav.is-open { justify-content: flex-start; padding-top: max(26px, 5svh); }
-            .site-nav.is-open a { width: 100%; padding: 12px 0; font-size: clamp(20px, 7.2vw, 28px); }
-        }
-        @media (max-width: 1100px) and (orientation: landscape), (max-height: 540px) {
-            #hero { min-height: auto; padding-top: calc(var(--header-h) + 14px); padding-bottom: 16px; }
-            .hero-shell { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 14px; }
-            .hero-copy h1 { max-width: 8.6ch; font-size: clamp(28px, 4.8vw, 40px); line-height: 0.94; letter-spacing: -1.2px; }
-            .hero-copy p { font-size: 13px; line-height: 1.5; margin-bottom: 16px; }
-            .hero-actions { gap: 8px; flex-wrap: wrap; }
-            .hero-visual { min-height: 286px; }
-            .hero-embed { min-height: 286px; }
-            #entropy .entropy-map { min-height: 300px; padding: 16px; }
-            .entropy-card { width: 148px; }
-            .entropy-card span { font-size: 10px; line-height: 1.38; }
-            .e1 { top: 9%; left: 6%; }
-            .e2 { top: 9%; right: 6%; }
-            .e3 { bottom: 12%; left: 10%; }
-            .e4 { bottom: 12%; right: 8%; }
-            .capture-beam { width: 42%; height: 70%; }
-        }
-
-        @media (max-width: 640px) {
-            .section-head h2, .cta-shell h2 {
-                font-size: clamp(30px, 7.8vw, 40px);
-                letter-spacing: -1.5px;
-                line-height: 0.97;
-            }
-        }
-
-        @media (max-width: 1100px) and (orientation: landscape), (max-height: 540px) {
-            #hero { padding-top: calc(var(--header-h) + 28px); padding-bottom: 20px; }
-            .hero-shell { align-items: start; gap: 18px; }
-            .hero-copy { padding-top: 8px; }
-            .hero-copy h1 { max-width: 9.0ch; font-size: clamp(34px, 5.4vw, 46px); line-height: 0.95; letter-spacing: -1.35px; margin-bottom: 14px; }
-            .hero-copy p { font-size: 14px; line-height: 1.52; margin-bottom: 16px; max-width: 34ch; }
-            .hero-visual { min-height: 306px; }
-            .hero-embed { min-height: 306px; }
-            .section-head h2, .cta-shell h2 { font-size: clamp(30px, 4.8vw, 38px); letter-spacing: -1.35px; line-height: 0.97; }
-            #entropy .entropy-grid { grid-template-columns: 1fr; gap: 16px; }
-            #entropy .entropy-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-content: start; min-height: 348px; padding: 18px; }
-            #entropy .entropy-map::before { opacity: 0.18; background-size: 52px 52px; }
-            .entropy-card { position: relative; top: auto; right: auto; bottom: auto; left: auto; width: auto; min-width: 0; padding: 14px 14px 15px; border-radius: 18px; z-index: 2; }
-            .entropy-card b { font-size: 9px; letter-spacing: 1.2px; margin-bottom: 8px; }
-            .entropy-card span { font-size: 11px; line-height: 1.45; }
-            .e1 { grid-column: 1; grid-row: 1; }
-            .e2 { grid-column: 2; grid-row: 1; }
-            .e3 { grid-column: 1; grid-row: 2; }
-            .e4 { grid-column: 2; grid-row: 2; }
-            .entropy-line { opacity: 0.18; }
-            .el1 { top: 36%; left: 24%; width: 54%; transform: rotate(8deg); }
-            .el2 { top: 55%; left: 16%; width: 46%; transform: rotate(-8deg); }
-            .el3 { top: 47%; right: 18%; width: 20%; transform: rotate(86deg); }
-            .capture-beam { width: 34%; height: 62%; border-radius: 24px; opacity: 0.8; }
-            .capture-beam::before { inset: 14px; border-radius: 16px; }
-            .entropy-list { padding: 22px; gap: 14px; }
-            .entropy-item { padding: 16px 16px 18px; border-radius: 18px; }
-            .entropy-item strong { font-size: 18px; margin-bottom: 7px; }
-            .entropy-item p { font-size: 13.5px; line-height: 1.58; }
-        }
-        @keyframes mobileMenuReveal {
-            from { opacity: 0; transform: translateY(18px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-
-/* HEADER_NORMALIZATION_V74 */
-.header-container{width:100%;max-width:var(--max-width, var(--max));height:100%;display:flex;align-items:center;justify-content:space-between;padding:0 40px}
-.site-nav{display:flex;gap:18px}
-.header-actions{display:flex;align-items:center;gap:20px}
-.lang-link{color:var(--ai-cyan);text-decoration:none;font-size:13px;font-weight:900;letter-spacing:.5px;line-height:1;white-space:nowrap}
-.start-btn{min-height:48px;padding:12px 28px;display:inline-flex;align-items:center;justify-content:center;border-radius:4px;text-decoration:none;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;line-height:1;white-space:nowrap;border:1.5px solid var(--ai-cyan);background:rgba(93,226,255,.06);color:#fff;transition:.3s}
-.start-btn:hover{background:rgba(93,226,255,.14);box-shadow:0 0 20px rgba(93,226,255,.18)}
-@media (max-width:980px){.header-container{padding-left:24px;padding-right:24px}.header-actions{gap:12px}.header-actions .start-btn{display:none}.mobile-menu-toggle{display:inline-flex}}
-
-
-.svc-motion-section {
-    padding-top: 12px;
-}
-.svc-motion-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 28px;
-    align-items: start;
-}
-.svc-motion-card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-}
-.svc-motion-frame {
-    position: relative;
-    aspect-ratio: 1.28 / 0.81;
-    min-height: 238px;
-    overflow: hidden;
-    border-radius: 28px;
-    background:
-        radial-gradient(circle at 74% 18%, rgba(93,226,255,0.055), transparent 34%),
-        linear-gradient(180deg, rgba(6,11,18,0.96), rgba(4,8,14,0.96));
-    border: 1px solid rgba(255,255,255,0.05);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.032), 0 20px 56px rgba(0,0,0,0.26);
-}
-.svc-motion-frame::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, rgba(255,255,255,0.014), transparent 24%, transparent 78%, rgba(255,255,255,0.012));
-    pointer-events: none;
-}
-.svc-motion-frame iframe {
-    width: 100%;
-    height: 100%;
-    display: block;
-    border: 0;
-    background: transparent;
-    pointer-events: none;
-}
-.svc-motion-card:nth-of-type(2) .svc-motion-frame iframe {
-    transform: scale(1.10);
-    transform-origin: center center;
-}
-.svc-motion-copy {
-    padding: 2px 4px 0;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.svc-motion-kicker {
-    color: var(--ai-cyan);
-    font-size: 10px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    font-weight: 700;
-    opacity: 0.9;
-}
-.svc-motion-copy h3 {
-    font-size: clamp(24px, 2.3vw, 30px);
-    line-height: 1.08;
-    letter-spacing: -0.03em;
-    font-weight: 800;
-    margin: 0;
-    color: rgba(247,252,255,0.96);
-    text-wrap: balance;
-}
-.svc-motion-copy p {
-    margin: 0;
-    font-size: 16px;
-    line-height: 1.68;
-    color: rgba(255,255,255,0.68);
-    max-width: 40ch;
-    text-wrap: pretty;
-}
-@media (max-width: 980px) {
-    .svc-motion-grid { grid-template-columns: 1fr; gap: 24px; }
-    .svc-motion-frame { min-height: 220px; }
-}
-@media (max-width: 640px) {
-    .svc-motion-frame { min-height: 193px; }
-    .svc-motion-copy { padding: 0; }
-    .svc-motion-copy h3 { font-size: 24px; }
-    .svc-motion-copy p { font-size: 15px; line-height: 1.62; }
-}
-
-</style>
-<style id="mobile-header-global-fix">
-@media (max-width: 1100px), ((max-height: 540px) and (orientation: landscape)) {
-  header {
-    transition: transform 0.28s ease, opacity 0.28s ease !important;
-    will-change: transform;
-  }
-  header.header-hidden {
-    transform: translateY(calc(-100% - 2px)) !important;
-  }
-  .header-container {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-    gap: 12px !important;
-  }
-  .logo-block {
-    min-width: 0;
-    flex: 1 1 auto;
-    gap: 10px !important;
-  }
-  .logo-cube-container {
-    width: 24px !important;
-    height: 24px !important;
-    flex: 0 0 24px;
-  }
-  .logo-text {
-    font-size: clamp(15px, 5vw, 20px) !important;
-    line-height: 0.92 !important;
-    letter-spacing: -0.8px !important;
-  }
-  .site-nav {
-    display: none !important;
-  }
-  .site-nav.is-open {
-    display: flex !important;
-    position: fixed !important;
-    inset: 0 !important;
-    top: var(--header-h) !important;
-    z-index: 1100 !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    padding: max(30px, 6svh) 20px calc(34px + env(safe-area-inset-bottom)) !important;
-    background: linear-gradient(180deg, rgba(5,5,6,0.98) 0%, rgba(5,5,6,0.96) 100%) !important;
-    backdrop-filter: blur(22px) !important;
-    -webkit-backdrop-filter: blur(22px) !important;
-    overflow: auto !important;
-    min-height: calc(100svh - var(--header-h)) !important;
-  }
-  .site-nav.is-open a {
-    width: min(100%, 420px) !important;
-    margin-inline: auto !important;
-    font-size: clamp(22px, 6vw, 34px) !important;
-    line-height: 1.05 !important;
-    letter-spacing: -0.03em !important;
-    text-transform: none !important;
-    padding: 12px 0 !important;
-    opacity: 1 !important;
-  }
-  .header-actions {
-    flex: 0 0 auto !important;
-    margin-left: auto !important;
-    gap: 12px !important;
-  }
-  .header-actions .start-btn {
-    display: none !important;
-  }
-  .lang-link {
-    font-size: 14px !important;
-    font-weight: 900 !important;
-    letter-spacing: 0.4px !important;
-  }
-  .mobile-menu-toggle {
-    display: inline-flex !important;
-    position: relative !important;
-    z-index: 1102 !important;
-    width: 44px !important;
-    height: 44px !important;
-    flex: 0 0 44px !important;
-  }
-}
-</style>
-
-<link href="/mobile-behavior-v123.css" rel="stylesheet"/>
-<link href="/mobile-pass-v141.css?v=20260428" rel="stylesheet"/>
-
-
-<style id="hero-ai-final-pass-v307">
-.hero-embed{
-  width:100.8% !important;
-  max-width:none !important;
-  min-height:604px !important;
-  margin-left:-4.6% !important;
-  margin-top:-7.6% !important;
-  transform-origin:52% 43% !important;
-  pointer-events:none !important;
-}
-@media (max-width: 980px){
-  .hero-embed{
-    width:101.2% !important;
-    min-height:532px !important;
-    margin-left:-5.6% !important;
-    margin-top:-7.4% !important;
-    pointer-events:none !important;
-  }
-}
-@media (max-width: 640px){
-  .hero-visual{ min-height:430px !important; }
-  .hero-embed{
-    width:104% !important;
-    min-height:444px !important;
-    margin-left:-3% !important;
-    margin-top:-3.4% !important;
-    border-radius:22px !important;
-  }
-}
-@media (hover: hover) and (pointer: fine){
-  .hero-embed{ pointer-events:auto !important; }
-}
-@media (hover: none), (pointer: coarse){
-  .hero-embed{ pointer-events:none !important; }
-}
-</style>
-
-
-
-<link rel="stylesheet" href="/assets/css/global-header-parity-v2.css">
-<link rel="stylesheet" href="/assets/css/footer-system-v1.css?v=20260804.1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI-системы и автоматизация бизнеса | ProAI Expert</title>
+<meta name="description" content="ProAI Expert проектирует управляемые AI-системы и автоматизацию бизнеса: от входящей информации и контекста до маршрута, человеческого контроля и разрешённого действия.">
+<link rel="canonical" href="https://proai-expert.com/ru/ai-systems/">
+<link rel="alternate" hreflang="en" href="https://proai-expert.com/ai-systems/">
+<link rel="alternate" hreflang="ru" href="https://proai-expert.com/ru/ai-systems/">
+<link rel="alternate" hreflang="x-default" href="https://proai-expert.com/ai-systems/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ProAI Expert">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="AI-системы и автоматизация бизнеса | ProAI Expert">
+<meta property="og:description" content="От входящей информации — к управляемому действию: процесс, автоматизация, AI и человеческие границы как единая рабочая система.">
+<meta property="og:url" content="https://proai-expert.com/ru/ai-systems/">
+<meta name="twitter:card" content="summary_large_image">
+<link href="/favicon.svg" rel="icon" type="image/svg+xml">
+<link href="/favicon-32x32.png" rel="icon" sizes="32x32" type="image/png">
+<link href="/apple-touch-icon.png" rel="apple-touch-icon" sizes="180x180">
+<style>@font-face{font-family:"Inter ProAI";font-style:normal;font-weight:100 900;font-display:swap;src:url("/assets/fonts/inter-variable-latin.woff2") format("woff2");unicode-range:U+0000-024F,U+1E00-1EFF,U+2000-206F}@font-face{font-family:"Inter ProAI";font-style:normal;font-weight:100 900;font-display:swap;src:url("/assets/fonts/inter-variable-cyrillic.woff2") format("woff2");unicode-range:U+0400-052F,U+2DE0-2DFF,U+A640-A69F}body.ai-r1-page{font-family:"Inter ProAI",Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}</style>
+<link rel="stylesheet" href="/assets/css/header-system-v1.css">
+<link rel="stylesheet" href="/assets/css/footer-system-v1.css">
+<link rel="stylesheet" href="/assets/css/ai-systems-r1.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Service","name":"AI-системы и автоматизация бизнеса","provider":{"@type":"Organization","name":"ProAI Expert","url":"https://proai-expert.com/"},"url":"https://proai-expert.com/ru/ai-systems/","description":"Управляемые AI-системы и автоматизация бизнеса, спроектированные вокруг процесса, маршрутизации, человеческих границ и разрешённых действий."}</script>
 </head>
-<body class="theme-ai lang-ru footer-primary-mobile page-standard mobile-pass-v123">
-<div class="bg-grid"></div>
-<div class="bg-thread"></div>
-<header class="global-header"><div class="header-container"><a aria-label="ProAI Expert" class="logo-block" href="/ru/"><div aria-hidden="true" class="logo-cube-container"><div class="logo-cube"><div class="l-face lf-front"></div><div class="l-face lf-back"></div><div class="l-face lf-right"></div><div class="l-face lf-left"></div><div class="l-face lf-top"></div><div class="l-face lf-bottom"></div></div></div><div class="logo-text">PROAI <span>EXPERT</span></div></a><nav class="site-nav" id="site-navigation" aria-label="Основная навигация"><a href="/ru/">Главная</a><a class="is-active" aria-current="page" href="/ru/ai-systems/">AI-системы</a><a href="/ru/websites-branding/">Сайты и брендинг</a><a href="/ru/case-studies/">Кейсы</a><a href="/ru/about/">О нас</a><a href="/ru/insights/">Материалы</a><a href="/ru/contact/">Контакты</a></nav><div class="header-actions"><a class="lang-link" href="/ai-systems/">EN</a><a class="start-btn" href="/ru/contact/#project-intake">Обсудить проект</a><button aria-expanded="false" aria-label="Открыть меню" class="mobile-menu-toggle" type="button" aria-controls="site-navigation"><span></span><span></span><span></span></button></div></div></header>
+<body class="ai-r1-page">
+{% include header-system/header.html lang='ru' current_page='ai-systems' locale_url='/ai-systems/' %}
 <main>
-<section id="hero">
-<div class="hero-shell">
-<div class="hero-copy reveal">
-<span class="eyebrow">AI системы</span>
-<h1>
-<span class="hero-title-line"><span>AI-системы и автоматизация</span></span>
-<span class="hero-title-line"><span><em>для сервисного бизнеса.</em></span></span>
-</h1>
-<p>Помогаем компаниям сокращать ручную рутину, наводить порядок во внутренних процессах и выстраивать рабочие AI-сценарии, которые действительно помогают в операционной работе, а не создают новый шум.</p>
-<div class="hero-actions"><a class="start-btn" href="/ru/contact/#project-intake">Обсудить систему</a><a class="secondary-btn" href="#capabilities">Посмотреть, как это работает</a></div>
-</div>
-<div class="hero-visual reveal">
-<iframe class="hero-embed" loading="lazy" src="/assets/service-embeds/ai-hero-ru.html" title="AI Systems orchestration visual"></iframe>
-</div>
-</div>
-</section>
-<section class="section-block" id="entropy">
-<div class="section-shell">
-<div class="section-head reveal">
-<span class="eyebrow">Первичная рамка</span>
-<h2>С чего обычно начинается работа</h2>
-<p>Перед внедрением фиксируем базовую рабочую рамку: где сейчас теряется скорость, как устроен входящий поток и какие AI-сценарии должны поддерживать операционную работу без лишнего шума.</p>
-</div>
-<div class="entropy-grid">
-<div class="entropy-map reveal">
-<div class="entropy-card e1"><b>Разбор AI-архитектуры</b><span>Определяем, где AI действительно полезен в операционной работе и как выстроить систему без лишнего усложнения.</span></div>
-<div class="entropy-card e2"><b>Аудит входящих заявок и маршрутизации</b><span>Проверяем, как принимаются обращения, где теряется темп и как навести порядок в маршрутизации.</span></div>
-<div class="entropy-card e3"><b>Система доступа к знаниям и внутреннему контексту</b><span>Выстраиваем рабочий слой контекста, чтобы команде не приходилось каждый раз восстанавливать историю вручную.</span></div>
-<div class="entropy-card e4"><b>Поддержка коммуникаций и рабочих AI-сценариев</b><span>Настраиваем сценарии, которые помогают в реальной ежедневной работе и поддерживают стабильный следующий шаг.</span></div>
-<div class="entropy-line el1"></div>
-<div class="entropy-line el2"></div>
-<div class="entropy-line el3"></div>
-<div class="capture-beam"></div>
-</div>
-<div class="entropy-list reveal">
-<div class="entropy-item">
-<strong>AI-система — не эффектная надстройка</strong>
-<p>Когда входящий поток устроен слабо, страдает качество ответа, а хорошие обращения теряют темп ещё до нормального включения команды.</p>
-</div>
-<div class="entropy-item">
-<strong>Хорошая система поддерживает следующий шаг</strong>
-<p>Если системы не делятся контекстом, люди компенсируют это вручную. Одни и те же детали приходится переносить, перепроверять и объяснять заново.</p>
-</div>
-<div class="entropy-item">
-<strong>Первый реальный эффект появляется в повторяющихся рабочих зонах</strong>
-<p>Без понятной рабочей логики трудно увидеть, где именно процесс буксует, что стоит исправлять в первую очередь и где бизнес теряет управляемость.</p>
-</div>
-</div>
-</div>
-</div>
-</section>
-<section class="section-block" id="capabilities">
-<div class="section-shell">
-<div class="section-head reveal">
-<span class="eyebrow">Матрица сценариев</span>
-<h2>Практичный AI для реальных проблем бизнеса, а не ради моды.</h2>
-<p>Для нас AI — это не набор эффектных инструментов, а рабочая система, которая помогает принимать обращения, направлять задачи, использовать контекст и убирать лишнюю ручную нагрузку.</p>
-</div>
-<div class="matrix-shell reveal">
-<div class="matrix-head">
-<div>Сценарий</div>
-<div>Базовая логика</div>
-<div>Практический эффект</div>
-<div>Форма внедрения</div>
-</div>
-<div class="matrix-row">
-<div class="matrix-title"><strong>Входящие обращения и первичная обработка</strong><p>Собирать входящие обращения в понятный поток, выделять важные детали и быстрее определять следующий шаг.</p></div>
-<div class="matrix-cell"><b>Базовая логика</b><span>Единый intake-слой, выделение деталей, определение типа обращения, первичная квалификация.</span></div>
-<div class="matrix-cell"><b>Практический эффект</b><span>Быстрее и аккуратнее первый слой процесса, меньше потерь на старте.</span></div>
-<div class="matrix-cell"><b>Форма внедрения</b><span>Потоки обращений, правила обработки, внутренняя база для следующего шага.</span></div>
-</div>
-<div class="matrix-row">
-<div class="matrix-title"><strong>Роутинг и внутреннее движение задач</strong><p>Поддерживать распределение задач, приоритизацию и передачу между этапами без лишней путаницы.</p></div>
-<div class="matrix-cell"><b>Базовая логика</b><span>Правила распределения, приоритеты, внутренние передачи, условия маршрутизации.</span></div>
-<div class="matrix-cell"><b>Практический эффект</b><span>Меньше задержек, меньше потерянных шагов и меньше путаницы.</span></div>
-<div class="matrix-cell"><b>Форма внедрения</b><span>Внутренние маршруты задач, очереди, статусы и условия перехода между этапами.</span></div>
-</div>
-<div class="matrix-row">
-<div class="matrix-title"><strong>Краткие сводки и видимость процесса</strong><p>Превращать письма, формы, заметки, сообщения и звонки в более удобный рабочий контекст для команды.</p></div>
-<div class="matrix-cell"><b>Базовая логика</b><span>Сводки, статусные обзоры, восстановление контекста, картина следующего шага.</span></div>
-<div class="matrix-cell"><b>Практический эффект</b><span>Команда тратит меньше времени на восстановление истории и работает стабильнее.</span></div>
-<div class="matrix-cell"><b>Форма внедрения</b><span>Краткие сводки, обзор статусов, внутренняя видимость для владельца, менеджера и команды.</span></div>
-</div>
-<div class="matrix-row">
-<div class="matrix-title"><strong>Следующий шаг и устойчивость процесса</strong><p>Делать движение после обращения или диалога менее зависимым от памяти, случайного контроля и ручных напоминаний.</p></div>
-<div class="matrix-cell"><b>Базовая логика</b><span>Напоминания, отслеживание зависших запросов, подсказка действия, логика сроков и очередности.</span></div>
-<div class="matrix-cell"><b>Практический эффект</b><span>Меньше потерянных возможностей и более стабильный следующий шаг.</span></div>
-<div class="matrix-cell"><b>Форма внедрения</b><span>Слои follow-up, внутренние напоминания, контроль зависших диалогов.</span></div>
-</div>
-<div class="matrix-row">
-<div class="matrix-title"><strong>Повторяющиеся административные действия</strong><p>Снимать фоновую нагрузку там, где постоянно повторяются подтверждения, уведомления, обновления статусов и перенос данных.</p></div>
-<div class="matrix-cell"><b>Базовая логика</b><span>Триггеры после формы, подтверждения обращений, обновления статусов, типовые черновики ответов.</span></div>
-<div class="matrix-cell"><b>Практический эффект</b><span>Меньше ручной рутины и меньше усталости от мелких повторяющихся действий.</span></div>
-<div class="matrix-cell"><b>Форма внедрения</b><span>Автоматизированные уведомления, статусные обновления, связки между системами и рутинные пост-обращения.</span></div>
-</div>
-<div class="matrix-foot">
-<span>Практичные AI-системы полезны там, где нужно уменьшить повторяющиеся потери времени без лишней сложности и без попытки автоматизировать весь бизнес сразу.</span>
-<span>Первый сильный результат обычно приходит не из «вау-магии», а из более чистого движения по процессу.</span>
-</div>
-</div>
-</div>
-</section>
-<section class="section-block" id="protocol">
-<div class="section-shell">
-<div class="section-head reveal">
-<span class="eyebrow">Как мы работаем</span>
-<h2>Мы начинаем не с AI, а с процесса.</h2>
-<p>Сначала смотрим, как работа устроена сейчас, где она ломается и что действительно стоит усиливать.</p>
-</div>
-<div class="protocol-shell">
-<div class="protocol-summary reveal">
-<p>Порядок внедрения важен. Хорошая система должна рано давать пользу и понимание процесса, а не добавлять новый слой сложности.</p>
-<div class="protocol-note">Наша задача — не сделать «что-то умное». Наша задача — собрать систему, которая реально облегчает работу, поддерживает рост и остаётся коммерчески полезной в реальном использовании.</div>
-</div>
-<div class="protocol-steps">
-<div class="protocol-step reveal"><b>Шаг 01</b><h3>Разбор</h3><p>Разбираем, где начинается работа, как она движется и где бизнес теряет время, качество и контроль.</p></div>
-<div class="protocol-step reveal"><b>Шаг 02</b><h3>Проблемные участки</h3><p>Находим реальные точки потерь: где пропадает контекст, где процесс тормозит и где команда уже живёт на ручной компенсации.</p></div>
-<div class="protocol-step reveal"><b>Шаг 03</b><h3>Точки AI</h3><p>Определяем, где автоматизация и AI дадут реальную пользу, а где сначала нужно навести порядок в самой логике.</p></div>
-<div class="protocol-step reveal"><b>Шаг 04</b><h3>Система</h3><p>Проектируем рабочую систему под конкретный бизнес: маршруты, статусы, правила, границы и следующий шаг.</p></div>
-<div class="protocol-step reveal"><b>Шаг 05</b><h3>Внедрение</h3><p>Внедряем, тестируем и доводим решение до состояния, в котором оно действительно снимает нагрузку.</p></div>
-</div>
-</div>
-</div>
+<section class="ai-hero" aria-labelledby="ai-hero-title">
+  <div class="ai-shell ai-hero__grid">
+    <div class="ai-hero__copy">
+      <p class="ai-hero__category">AI-СИСТЕМЫ + АВТОМАТИЗАЦИЯ БИЗНЕСА</p>
+      <h1 id="ai-hero-title">От входящей информации — к управляемому действию.</h1>
+      <p class="ai-hero__lead">Мы создаём рабочий слой между входящей информацией и следующим действием бизнеса: обычная автоматизация берёт на себя стабильные правила, AI — задачи, где нужен контекст, а человеческое решение остаётся обязательным там, где проходит граница полномочий.</p>
+      <div class="ai-actions">
+        <a class="ai-btn" href="/ru/contact/#project-intake">Обсудить систему</a>
+        <a class="ai-btn ai-btn--quiet" href="#operational-register">Посмотреть, как она работает</a>
+      </div>
+    </div>
+    <div class="ai-signal-field" aria-label="Неупорядоченная входящая информация до регистрации">
+      <div class="ai-signal" style="--x:2%;--y:5%;--w:74%;--dx:18px;--dy:6px;--rot:-.4deg"><span class="ai-signal__label">ИСТОЧНИК</span><span class="ai-signal__value">Запрос с сайта · 09:42</span></div>
+      <div class="ai-signal" style="--x:20%;--y:25%;--w:68%;--dx:-12px;--dy:13px;--rot:.3deg"><span class="ai-signal__label">ТИП УСЛУГИ</span><span class="ai-signal__value">Ещё не определён</span></div>
+      <div class="ai-signal" style="--x:7%;--y:45%;--w:82%;--dx:28px;--dy:-6px"><span class="ai-signal__label">КОНТЕКСТ СООБЩЕНИЯ</span><span class="ai-signal__value">Клиент уже обращался · история хранится отдельно</span></div>
+      <div class="ai-signal" style="--x:31%;--y:64%;--w:63%;--dx:-24px;--dy:8px;--rot:-.25deg"><span class="ai-signal__label">ОТВЕТСТВЕННЫЙ</span><span class="ai-signal__value">Не назначен</span></div>
+      <div class="ai-signal" style="--x:12%;--y:82%;--w:72%;--dx:12px;--dy:-8px"><span class="ai-signal__label">ПОЛНОМОЧИЕ</span><span class="ai-signal__value">Граница проверки не определена</span></div>
+      <div class="ai-signal" style="--x:74%;--y:12%;--w:52%;--dx:24px;--dy:4px"><span class="ai-signal__label">СЛЕДУЮЩЕЕ ДЕЙСТВИЕ</span><span class="ai-signal__value">Неизвестно</span></div>
+    </div>
+  </div>
 </section>
 
-<section class="section-block svc-motion-section" id="system-objects">
-<div class="section-shell">
-<div class="section-head reveal">
-<span class="eyebrow">Системная ясность</span>
-<h2>Сильная AI-система должна считываться как один согласованный рабочий слой.</h2>
-<p>Смысл не в количестве инструментов, а в ясной структуре, чистой маршрутизации и системе, которая даёт больше контроля и меньше ручной нагрузки.</p>
-</div>
-<div class="svc-motion-grid">
-<article class="svc-motion-card reveal">
-<div class="svc-motion-frame"><iframe loading="lazy" src="/assets/motion-refined4/ai-orchestration-prism.html" title="AI-системы — понятная рабочая структура"></iframe></div>
-<div class="svc-motion-copy"><span class="svc-motion-kicker">AI-сценарий 1</span><h3>Разбор и маршрутизация входящих обращений</h3><p>AI может брать на себя первый слой обработки входящих запросов: собирать обращения из формы, почты или мессенджеров, определять тему, приоритет и тип запроса, а затем направлять их по нужному маршруту. Человек остаётся в центре решения: он проверяет спорные случаи, задаёт тон ответа и принимает финальные решения. В итоге команда тратит меньше времени на ручной разбор, быстрее реагирует на входящий поток и реже теряет важные обращения.</p></div>
-</article>
-<article class="svc-motion-card reveal">
-<div class="svc-motion-frame"><iframe loading="lazy" src="/assets/motion-refined4/ai-routed-mesh.html" title="AI-системы — связанная логика системы"></iframe></div>
-<div class="svc-motion-copy"><span class="svc-motion-kicker">AI-сценарий 2</span><h3>Контекст для ответа и следующего шага</h3><p>AI может собирать рабочий контекст перед ответом: историю общения, внутренние заметки, нужные материалы и возможный следующий шаг. Это не заменяет человека и не ведёт коммуникацию автономно: команда проверяет смысл, утверждает важные формулировки и решает, как двигаться дальше. В результате ответы становятся быстрее и ровнее, а продолжение коммуникации меньше зависит от памяти, ручной рутины и потери контекста.</p></div>
-</article>
-</div>
-</div>
+<section class="ai-section ai-section--graphite" aria-labelledby="loss-title">
+  <div class="ai-shell ai-diagnosis">
+    <div data-ai-reveal>
+      <p class="ai-kicker">01 · ДО СИСТЕМЫ — ТОЛЬКО СИГНАЛ</p>
+      <h2 class="ai-h2" id="loss-title">Работа замедляется, когда теряет состояние.</h2>
+      <p class="ai-lead">Часто проблема не в отсутствии AI. Информация просто теряет контекст, ответственного, маршрут или понятное следующее действие по дороге между системами и людьми.</p>
+    </div>
+    <div class="ai-loss-list" data-ai-reveal>
+      <article class="ai-loss"><span class="ai-loss__index">01</span><div><strong>Нет ответственного</strong><p>Запрос поступил, но ответственность не закреплена в момент приёма.</p></div></article>
+      <article class="ai-loss"><span class="ai-loss__index">02</span><div><strong>Контекст отделён</strong><p>История клиента существует, но её нет там, где принимается решение об ответе.</p></div></article>
+      <article class="ai-loss"><span class="ai-loss__index">03</span><div><strong>Маршрут неясен</strong><p>Приоритет и направление зависят от догадки, а не от видимого рабочего правила.</p></div></article>
+      <article class="ai-loss"><span class="ai-loss__index">04</span><div><strong>Нет границы действия</strong><p>Система технически может действовать, но полномочие на это не определено явно.</p></div></article>
+    </div>
+  </div>
 </section>
 
-<section class="section-block" id="proof">
-<div class="section-shell">
-<div class="section-head reveal">
-<span class="eyebrow">Практическая польза</span>
-<h2>Польза важнее громких обещаний.</h2>
-<p>Мы не продаём AI ради впечатления. Нас интересуют реальная польза, понятная логика, аккуратное внедрение и результат, который помогает бизнесу работать лучше.</p>
-</div>
-<div class="proof-grid">
-<div class="proof-panel reveal">
-<h3>Кому это подходит</h3>
-<p>Такой подход особенно полезен для сервисных бизнесов, где важны скорость ответа, понятный процесс и стабильный следующий шаг.</p>
-<div class="delta-stack">
-<div class="delta-item"><div class="delta-side"><strong>Скорость первичной обработки</strong><span>Быстрее понять, что за запрос пришёл и как его правильно взять в работу.</span></div><div class="delta-arrow">→</div><div class="delta-side"><strong>Практический эффект</strong><span>Меньше потерь на старте и чище первое движение по процессу.</span></div></div>
-<div class="delta-item"><div class="delta-side"><strong>Чистый внутренний процесс</strong><span>Меньше ручных передач, меньше путаницы и меньше скрытого трения.</span></div><div class="delta-arrow">→</div><div class="delta-side"><strong>Практический эффект</strong><span>Команда тратит меньше энергии на восстановление контекста и больше — на реальную работу.</span></div></div>
-<div class="delta-item"><div class="delta-side"><strong>Стабильный следующий шаг</strong><span>Меньше зависших диалогов, забытых обращений и случайных провалов в follow-up.</span></div><div class="delta-arrow">→</div><div class="delta-side"><strong>Практический эффект</strong><span>Бизнес теряет меньше хороших возможностей из-за операционного смещения.</span></div></div>
-</div>
-</div>
-<div class="proof-flow reveal">
-<h3>Что для нас важно</h3>
-<p>Хорошая AI-система не обязана выглядеть эффектно. Она должна экономить время, снижать путаницу и помогать команде работать стабильнее.</p>
-<div class="flow-card">
-<div class="flow-line"><i></i><span>Реальная польза вместо абстрактной инновационности.</span></div>
-<div class="flow-line"><i></i><span>Рабочая логика вместо «AI ради AI».</span></div>
-<div class="flow-line"><i></i><span>Понятная система вместо хаотичного набора инструментов.</span></div>
-<div class="flow-line"><i></i><span>Аккуратное внедрение вместо шумной технической демонстрации.</span></div>
-</div>
-</div>
-</div>
-</div>
+<section class="ai-section" id="operational-register" aria-labelledby="register-title">
+  <div class="ai-shell">
+    <div data-ai-reveal>
+      <p class="ai-kicker ai-kicker--indigo">02 · ОПЕРАЦИОННЫЙ РЕЕСТР</p>
+      <h2 class="ai-h2" id="register-title">Сигнал становится полезным только после регистрации.</h2>
+      <p class="ai-lead">Реестр — не интерфейс программы. Это модель управления: зафиксировать вход, восстановить контекст, определить маршрут, остановиться на границе человеческого полномочия и только после этого разрешить следующее действие.</p>
+    </div>
+    <div class="ai-register-wrap">
+      <div class="ai-register" aria-label="Операционный реестр: Capture, Context, Route, Human Check и Action">
+        <div class="ai-register__stages" aria-hidden="true">
+          <span class="ai-register__stage" style="--left:4%">CAPTURE</span>
+          <span class="ai-register__stage" style="--left:22%">CONTEXT</span>
+          <span class="ai-register__stage" style="--left:48%">ROUTE</span>
+          <span class="ai-register__stage ai-register__stage--gate" style="--left:73%">HUMAN CHECK</span>
+          <span class="ai-register__stage ai-register__stage--action" style="--left:87%">ACTION</span>
+        </div>
+        <div class="ai-register__rows">
+          <div class="ai-register__row" style="--start:4%;--len:51%;--text-left:5%"><span class="ai-register__text">источник / запрос с сайта / 09:42</span></div>
+          <div class="ai-register__row" style="--start:17%;--len:45%;--text-left:22%"><span class="ai-register__text">история клиента / найдена</span></div>
+          <div class="ai-register__row" style="--start:28%;--len:43%;--text-left:40%"><span class="ai-register__text">тип услуги / контекстная классификация</span></div>
+          <div class="ai-register__row" style="--start:9%;--len:64%;--text-left:49%"><span class="ai-register__text">ответственный / маршрут / правило эскалации</span></div>
+          <div class="ai-register__row" style="--start:38%;--len:35%;--text-left:58%"><span class="ai-register__text">полномочие / нужна проверка</span></div>
+          <div class="ai-register__row" style="--start:14%;--len:59%;--text-left:31%"><span class="ai-register__text">не хватает данных / запросить до действия</span></div>
+          <div class="ai-register__row" style="--start:5%;--len:68%;--text-left:12%"><span class="ai-register__text">след состояния / сохранён</span></div>
+          <div class="ai-register__row" style="--start:52%;--len:21%;--text-left:55%"><span class="ai-register__text">следующее действие / удерживается</span></div>
+        </div>
+        <div class="ai-register__machine" aria-hidden="true"></div>
+        <div class="ai-register__void" aria-hidden="true"></div>
+        <div class="ai-register__threshold" aria-hidden="true"></div>
+        <div class="ai-register__action" aria-hidden="true"></div>
+      </div>
+      <div class="ai-register__mobile" aria-label="Мобильная последовательность операционного реестра">
+        <div class="ai-mobile-stage"><span>ИСХОДНЫЙ ЗАПРОС</span><strong>Информация приходит без надёжного рабочего состояния.</strong></div>
+        <div class="ai-mobile-stage ai-mobile-stage--machine"><span>CAPTURE</span><strong>Фиксируем, что именно поступило.</strong><p>Источник, время, запрос и известные идентификаторы становятся явными.</p></div>
+        <div class="ai-mobile-stage ai-mobile-stage--machine"><span>CONTEXT</span><strong>Возвращаем в работу то, что бизнес уже знает.</strong><p>История, недостающие данные и нужные знания входят в текущее решение.</p></div>
+        <div class="ai-mobile-stage ai-mobile-stage--machine"><span>ROUTE</span><strong>Определяем владельца и допустимый маршрут.</strong><p>Правила и интерпретация решают, куда относится эта работа.</p></div>
+        <div class="ai-mobile-stage ai-mobile-stage--gate"><span>HUMAN CHECK</span><strong>Машинная логика здесь останавливается.</strong><p>Полномочие, исключение или эскалация проходят через отдельную человеческую границу.</p></div>
+        <div class="ai-mobile-stage ai-mobile-stage--action"><span>ACTION</span><strong>Дальше идёт только разрешённое действие.</strong></div>
+      </div>
+    </div>
+  </div>
 </section>
-<section class="section-block" id="governance">
-<div class="section-shell">
-<div class="section-head reveal">
-<span class="eyebrow">Границы автоматизации</span>
-<h2>Что не стоит автоматизировать в первую очередь.</h2>
-<p>Если основная логика процесса ещё не выстроена, автоматизация не создаст порядок. Она только сделает беспорядок сложнее и дороже.</p>
-</div>
-<div class="governance-shell">
-<div class="governance-card reveal"><b>Неясный процесс</b><h3>Сначала должна появиться логика.</h3><p>Плохой старт — автоматизировать процесс, который сам по себе неясен и не даёт команде устойчивого маршрута.</p></div>
-<div class="governance-card reveal"><b>Всё сразу</b><h3>Не нужно охватывать весь бизнес на старте.</h3><p>Попытка автоматизировать всё сразу почти всегда перегружает команду и размывает реальную пользу.</p></div>
-<div class="governance-card reveal"><b>AI поверх хаоса</b><h3>Сложность не заменяет порядок.</h3><p>Если поверх уже запутанного процесса добавить AI без внутреннего порядка, система станет не сильнее, а более хрупкой.</p></div>
-<div class="governance-card reveal"><b>Ради впечатления</b><h3>Внешняя «инновационность» не равна пользе.</h3><p>Сложный внешний сценарий и AI ради впечатления редко дают хороший первый результат.</p></div>
-</div>
-</div>
+
+<section class="ai-section ai-section--graphite" aria-labelledby="builds-title">
+  <div class="ai-shell">
+    <div data-ai-reveal>
+      <p class="ai-kicker">03 · ЧТО СТРОИТ PROAI</p>
+      <h2 class="ai-h2" id="builds-title">Возможности привязаны к рабочим этапам, а не к списку инструментов.</h2>
+    </div>
+    <div class="ai-cap-grid">
+      <p class="ai-copy" data-ai-reveal>Мы соединяем детерминированную логику процессов, контекстную интерпретацию и явные границы проверки в зависимости от задачи. Конкретная технология выбирается после того, как понятна рабочая модель.</p>
+      <div class="ai-cap-list" data-ai-reveal>
+        <div class="ai-cap"><strong>Приём / Квалификация</strong><p>Структурируем входящие запросы, обязательные данные, критерии и первичную классификацию.</p><span>CAPTURE</span></div>
+        <div class="ai-cap"><strong>Контекст / Знания</strong><p>Возвращаем в рабочее состояние историю клиента, внутренние знания и недостающие данные.</p><span>CONTEXT</span></div>
+        <div class="ai-cap"><strong>Маршрутизация / Workflow</strong><p>Определяем ответственного, приоритет, путь и эскалацию по видимым правилам бизнеса.</p><span>ROUTE</span></div>
+        <div class="ai-cap"><strong>Поддержка коммуникации</strong><p>Готовим черновики, сводки и ответы, сохраняя обязательную границу согласования.</p><span>CONTEXT → ACTION</span></div>
+        <div class="ai-cap"><strong>Follow-up / Повторяемая работа</strong><p>Выполняем стабильные повторяющиеся действия и сохраняем видимым следующее состояние.</p><span>ACTION</span></div>
+        <div class="ai-cap"><strong>Отчётность / Эскалация</strong><p>Выводим исключения, нерешённые состояния и ситуации обязательной проверки нужному человеку.</p><span>CHECK → ACTION</span></div>
+      </div>
+    </div>
+  </div>
 </section>
-<section id="cta-final">
-<div class="section-shell">
-<div class="cta-shell reveal">
-<span class="eyebrow">Финальный шаг</span>
-<h2>Если хотите понять, где <span style="color: var(--ai-cyan);">AI и автоматизация дадут результат</span> вашему бизнесу.</h2>
-<p>Мы можем помочь определить правильный первый шаг и собрать систему без лишней сложности.</p>
-<div class="cta-actions"><a class="start-btn" href="/ru/contact/#project-intake">Обсудить проект</a><a class="secondary-btn" href="/ru/">Вернуться на главную</a></div>
 
-<script>
-    const body = document.body;
-    
-    const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
-    const siteNav = document.querySelector('.site-nav');
+<section class="ai-pearl" aria-labelledby="decision-title">
+  <div class="ai-shell ai-pearl__grid">
+    <div data-ai-reveal>
+      <p class="ai-kicker">04 · СНАЧАЛА РЕШЕНИЕ, ПОТОМ ТЕХНОЛОГИЯ</p>
+      <h2 id="decision-title">Мы начинаем не с AI, а с процесса.</h2>
+      <p class="ai-pearl__intro">Правильным ответом иногда будет меньше AI. Сначала мы отделяем проблемы самого процесса, стабильные правила и действительно контекстную работу — и только после этого выбираем способ реализации.</p>
+    </div>
+    <div class="ai-decisions" data-ai-reveal>
+      <article class="ai-decision"><span class="ai-decision__n">01</span><div><strong>ИСПРАВИТЬ ПРОЦЕСС</strong><p>Когда неясны ответственность, последовательность, полномочия или само рабочее правило.</p></div></article>
+      <article class="ai-decision"><span class="ai-decision__n">02</span><div><strong>АВТОМАТИЗИРОВАТЬ ПРАВИЛО</strong><p>Когда входные данные, условия и решения стабильны и могут быть описаны явно.</p></div></article>
+      <article class="ai-decision"><span class="ai-decision__n">03</span><div><strong>ИСПОЛЬЗОВАТЬ AI</strong><p>Когда реальную ценность создают язык, контекст, классификация или синтез, а граница риска понятна.</p></div></article>
+    </div>
+  </div>
+</section>
 
-    function closeMobileMenu() {
-        if (!siteNav || !mobileMenuToggle) return;
-        siteNav.classList.remove('is-open');
-        mobileMenuToggle.classList.remove('is-open');
-        mobileMenuToggle.setAttribute('aria-expanded', 'false');
-        body.classList.remove('menu-open');
-    }
+<section class="ai-section ai-section--chrome" aria-labelledby="gate-title">
+  <div class="ai-shell">
+    <div data-ai-reveal>
+      <p class="ai-kicker">05 · ЧЕЛОВЕЧЕСКИЙ КОНТРОЛЬ</p>
+      <h2 class="ai-h2" id="gate-title">Автоматизация действует только в заданных границах.</h2>
+      <p class="ai-lead">Human Check — не четвёртый равноправный шаг процесса. Это граница полномочия, которая физически прерывает машинную логику до чувствительного, нестандартного или запрещённого действия.</p>
+    </div>
+    <div class="ai-gate" aria-label="Граница человеческого полномочия">
+      <div class="ai-gate__field">
+        <div class="ai-gate__machine"><span class="ai-meta">МАШИНА / INDIGO</span><strong>Маршрут определён.</strong><p>Системе достаточно контекста, чтобы понять, куда относится работа, но этого ещё недостаточно для права действовать.</p></div>
+        <div class="ai-gate__void" aria-hidden="true"></div>
+        <div class="ai-gate__threshold" aria-hidden="true"></div>
+        <div class="ai-gate__action"><span class="ai-meta">РАЗРЕШЁННОЕ СОСТОЯНИЕ</span><strong>Действие.</strong><p>Продолжить, удержать, эскалировать или передать человеку — в зависимости от разрешённой границы.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    function openMobileMenu() {
-        if (!siteNav || !mobileMenuToggle) return;
-        siteNav.classList.add('is-open');
-        mobileMenuToggle.classList.add('is-open');
-        mobileMenuToggle.setAttribute('aria-expanded', 'true');
-        body.classList.add('menu-open');
-    }
+<section class="ai-section" aria-labelledby="protocol-title">
+  <div class="ai-shell">
+    <div data-ai-reveal>
+      <p class="ai-kicker">06 · ПРОТОКОЛ ВНЕДРЕНИЯ</p>
+      <h2 class="ai-h2" id="protocol-title">Контролируемый production начинается с решений, а не с запуска.</h2>
+    </div>
+    <div class="ai-protocol" data-ai-reveal>
+      <div class="ai-protocol__step"><span>01</span><strong>AUDIT</strong><p>Разбираем текущий процесс, узкое место, потерю состояния и реальные ограничения.</p></div>
+      <div class="ai-protocol__step"><span>02</span><strong>ARCHITECTURE</strong><p>Определяем маршруты, данные, полномочия, обычные правила, роль AI и человеческие границы.</p></div>
+      <div class="ai-protocol__step"><span>03</span><strong>BUILD</strong><p>Собираем работающий управляемый workflow с понятным fallback и поведением при ошибке.</p></div>
+      <div class="ai-protocol__step"><span>04</span><strong>CONTROLLED LAUNCH</strong><p>Запускаем ограниченный production-контур с проверкой, fallback и наблюдаемыми рабочими состояниями.</p></div>
+      <div class="ai-protocol__step"><span>05</span><strong>REFINE</strong><p>Корректируем правила, промпты, знания, маршруты и контроль на основе реальной эксплуатации.</p></div>
+    </div>
+  </div>
+</section>
 
-    if (mobileMenuToggle && siteNav) {
-        mobileMenuToggle.addEventListener('click', () => {
-            if (siteNav.classList.contains('is-open')) closeMobileMenu();
-            else openMobileMenu();
-        });
+<section class="ai-section ai-section--graphite" aria-labelledby="evidence-title">
+  <div class="ai-shell">
+    <div data-ai-reveal>
+      <p class="ai-kicker">07 · ДОКАЗАТЕЛЬСТВА / СТАТУС ИСТИНЫ</p>
+      <h2 class="ai-h2" id="evidence-title">Доказательство полезно только тогда, когда его статус назван точно.</h2>
+      <p class="ai-lead">Клиентский результат, артефакт, метод и референсный сценарий — не одно и то же. Мы разделяем эти классы, вместо того чтобы превращать любой пример в обещание результата.</p>
+    </div>
+    <div class="ai-evidence">
+      <article class="ai-evidence__featured" data-ai-reveal>
+        <div>
+          <p class="ai-evidence__class">ПОДТВЕРЖДЁННАЯ КЛИЕНТСКАЯ РЕАЛИЗАЦИЯ</p>
+          <h3>Financial Stream</h3>
+          <p>Реальный двуязычный клиентский сайт и текущая production-работа. Данные Search Console ниже подтверждают поисковую видимость и объём индексирования. Они не представлены как результат AI, рост лидов, выручки, конверсии или ROI.</p>
+        </div>
+        <div>
+          <div class="ai-metrics">
+            <div class="ai-metric"><strong>63</strong><span>Перехода из поиска</span></div>
+            <div class="ai-metric"><strong>8,36K</strong><span>Показов в поиске</span></div>
+            <div class="ai-metric"><strong>52</strong><span>Страницы в индексе</span></div>
+          </div>
+          <p class="ai-provenance">Google Search Console · период 6 месяцев · август 2026 · индексирование обновлено 16 августа 2026</p>
+        </div>
+      </article>
+      <div class="ai-evidence__classes" data-ai-reveal>
+        <div class="ai-class-row"><strong>ПОДТВЕРЖДЁННЫЙ АРТЕФАКТ</strong><p>Репозиторий, workflow, интерфейс, документ или системный объект, который можно проверить напрямую.</p></div>
+        <div class="ai-class-row"><strong>ПОДТВЕРЖДЁННЫЙ МЕТОД</strong><p>Документированная практика реализации или контроля, используемая в работе.</p></div>
+        <div class="ai-class-row"><strong>СИСТЕМНЫЙ ПАТТЕРН</strong><p>Повторяемая рабочая модель, показывающая, как может быть устроен определённый класс систем.</p></div>
+        <div class="ai-class-row"><strong>РЕФЕРЕНСНЫЙ СЦЕНАРИЙ</strong><p>Иллюстративный пример. Он не выдаётся за клиентский результат или развернутую production-систему.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
 
-        siteNav.querySelectorAll('a').forEach((link) => {
-            link.addEventListener('click', () => closeMobileMenu());
-        });
-    }
+<section class="ai-section" aria-labelledby="context-title">
+  <div class="ai-shell">
+    <div data-ai-reveal>
+      <p class="ai-kicker">08 · КОНТЕКСТ ВНЕДРЕНИЯ</p>
+      <h2 class="ai-h2" id="context-title">Интеграции — это контекст реализации, а не ценностное предложение.</h2>
+    </div>
+    <div class="ai-context-grid">
+      <p class="ai-copy" data-ai-reveal>Система может соединять инструменты, в которых уже живёт рабочее состояние бизнеса. Сначала мы определяем функциональную роль, а конкретный сервис выбираем только тогда, когда он подходит процессу.</p>
+      <div class="ai-context-list" data-ai-reveal>
+        <div><strong>Каналы входа</strong><p>Формы, почта, сообщения и структурированные запросы.</p></div>
+        <div><strong>Рабочие данные</strong><p>CRM, история клиента, файлы и операционная информация.</p></div>
+        <div><strong>Знания</strong><p>Правила, услуги, внутренние материалы и источники для поиска контекста.</p></div>
+        <div><strong>Поверхности действия</strong><p>Расписание, коммуникации, задачи, отчётность и контролируемые действия.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
 
-    const reveals = document.querySelectorAll('.reveal');
-    document.querySelectorAll('main > section:not(#hero)').forEach((section) => {
-        section.querySelectorAll('.reveal').forEach((el, index) => {
-            el.style.setProperty('--reveal-delay', `${(index % 4) * 55}ms`);
-        });
-    });
-    const shortLandscapeReveal = window.matchMedia('(orientation: landscape) and (max-height: 540px)').matches;
-    if (shortLandscapeReveal) {
-        reveals.forEach((el) => el.classList.add('is-visible'));
-    } else {
-        const revealObserver = new IntersectionObserver((entries) => {
-            entries.forEach((entry) => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('is-visible');
-                    revealObserver.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.06, rootMargin: '0px 0px -12px 0px' });
-
-        reveals.forEach((el) => revealObserver.observe(el));
-    }
-
-    const themedBody = document.body;
-    const activeObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-            entry.target.classList.toggle('is-active', entry.isIntersecting && entry.intersectionRatio > 0.42);
-        });
-    }, { threshold: [0.42, 0.68], rootMargin: '-6% 0px -10% 0px' });
-
-    document.querySelectorAll('.delta-item, .governance-card').forEach((el) => activeObserver.observe(el));
-
-    const protocolGroups = document.querySelectorAll('.protocol-steps');
-    if (protocolGroups.length) {
-        let protocolTicking = false;
-        const updateProtocolGroups = () => {
-            const anchor = window.innerHeight * 0.48;
-            protocolGroups.forEach((group) => {
-                const steps = Array.from(group.querySelectorAll('.protocol-step'));
-                let activeIndex = -1;
-                let bestDistance = Number.POSITIVE_INFINITY;
-                steps.forEach((step, index) => {
-                    const rect = step.getBoundingClientRect();
-                    const visible = rect.bottom > window.innerHeight * 0.18 && rect.top < window.innerHeight * 0.86;
-                    if (!visible) return;
-                    const center = rect.top + rect.height * 0.5;
-                    const distance = Math.abs(center - anchor);
-                    if (distance < bestDistance) {
-                        bestDistance = distance;
-                        activeIndex = index;
-                    }
-                });
-                group.classList.toggle('has-active', activeIndex !== -1);
-                steps.forEach((step, index) => {
-                    step.classList.toggle('is-active', index === activeIndex);
-                    step.classList.toggle('is-passed', activeIndex !== -1 && index < activeIndex);
-                });
-            });
-            protocolTicking = false;
-        };
-        const queueProtocolUpdate = () => {
-            if (protocolTicking) return;
-            protocolTicking = true;
-            window.requestAnimationFrame(updateProtocolGroups);
-        };
-        queueProtocolUpdate();
-        window.addEventListener('scroll', queueProtocolUpdate, { passive: true });
-        window.addEventListener('resize', queueProtocolUpdate);
-    }
-
-    document.querySelectorAll('.matrix-row').forEach((row) => {
-        row.addEventListener('mouseenter', () => {
-            row.parentElement?.querySelectorAll('.matrix-row').forEach((item) => item.classList.remove('is-focused'));
-            row.classList.add('is-focused');
-        });
-        row.addEventListener('mouseleave', () => row.classList.remove('is-focused'));
-    });
-
-    const entropyStage = document.querySelector('#entropy .entropy-grid');
-    if (entropyStage) {
-        let entropyFrame = null;
-        let ex = 0;
-        let ey = 0;
-        let tx = 0;
-        let ty = 0;
-        const strength = themedBody.classList.contains('theme-ai') ? 8 : 6;
-        const renderEntropy = () => {
-            ex += (tx - ex) * 0.08;
-            ey += (ty - ey) * 0.08;
-            entropyStage.style.transform = `translate3d(${ex * 0.55}px, ${ey * 0.4}px, 0) rotateX(${(-ey / strength).toFixed(2)}deg) rotateY(${(ex / strength).toFixed(2)}deg)`;
-            if (Math.abs(tx - ex) > 0.02 || Math.abs(ty - ey) > 0.02) {
-                entropyFrame = requestAnimationFrame(renderEntropy);
-            } else {
-                entropyFrame = null;
-            }
-        };
-        const onEntropyMove = (event) => {
-            const rect = entropyStage.getBoundingClientRect();
-            tx = ((event.clientX - rect.left) / rect.width - 0.5) * 10;
-            ty = ((event.clientY - rect.top) / rect.height - 0.5) * 8;
-            if (!entropyFrame) entropyFrame = requestAnimationFrame(renderEntropy);
-        };
-        const resetEntropy = () => {
-            tx = 0;
-            ty = 0;
-            if (!entropyFrame) entropyFrame = requestAnimationFrame(renderEntropy);
-        };
-        entropyStage.style.transformStyle = 'preserve-3d';
-        entropyStage.style.willChange = 'transform';
-        entropyStage.addEventListener('mousemove', onEntropyMove, { passive: true });
-        entropyStage.addEventListener('mouseleave', resetEntropy, { passive: true });
-    }
-</script>
-<script id="mobile-header-global-fix-script">
-(function(){
-  const header = document.querySelector('header');
-  const siteNav = document.querySelector('.site-nav');
-  const menuToggle = document.querySelector('.mobile-menu-toggle');
-  if (!header) return;
-
-  const mobileQuery = window.matchMedia('(max-width: 1100px), ((max-height: 540px) and (orientation: landscape))');
-  let lastY = window.scrollY || 0;
-  let ticking = false;
-  const threshold = 10;
-
-  function syncHeaderVisibility(force){
-    if (!mobileQuery.matches) {
-      header.classList.remove('header-hidden');
-      lastY = window.scrollY || 0;
-      return;
-    }
-
-    const currentY = window.scrollY || 0;
-    const delta = currentY - lastY;
-    const menuOpen = !!(siteNav && siteNav.classList.contains('is-open'));
-
-    if (force || menuOpen || currentY < 20) {
-      header.classList.remove('header-hidden');
-      lastY = currentY;
-      return;
-    }
-
-    if (delta > threshold) {
-      header.classList.add('header-hidden');
-    } else if (delta < -threshold) {
-      header.classList.remove('header-hidden');
-    }
-
-    lastY = currentY;
-  }
-
-  function onScroll(){
-    if (!ticking) {
-      ticking = true;
-      window.requestAnimationFrame(function(){
-        syncHeaderVisibility(false);
-        ticking = false;
-      });
-    }
-  }
-
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('touchmove', onScroll, { passive: true });
-  window.addEventListener('orientationchange', function(){ setTimeout(function(){ syncHeaderVisibility(true); }, 120); });
-  window.addEventListener('resize', function(){ syncHeaderVisibility(true); });
-
-  syncHeaderVisibility(true);
-})();
-</script>
-</div></div></section></main>
-{% include footer-system/footer.html lang="ru" variant="service" locale_href="/ai-systems/" %}<script src="/mobile-behavior-v123.js?v=124"></script>
-<script>
-(function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="crIDC47ojqNdsypO4J7Lx";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
-</script>
-  <script src="/assets/js/global-case-studies-navigation-v1.js?v=20260725.1" defer></script>
+<section class="ai-cta" aria-labelledby="cta-title">
+  <div class="ai-shell ai-cta__grid">
+    <div data-ai-reveal>
+      <p class="ai-kicker">09 · КОММЕРЧЕСКОЕ РЕШЕНИЕ</p>
+      <h2 id="cta-title">Опишите узкое место. Мы определим правильный первый шаг.</h2>
+    </div>
+    <div class="ai-cta__side" data-ai-reveal>
+      <p>Первым шагом может быть изменение процесса, обычная автоматизация, AI или их сочетание. Нужен не максимальный объём технологии, а минимальная управляемая система, которая действительно устраняет рабочую проблему.</p>
+      <a class="ai-btn" href="/ru/contact/#project-intake">Описать узкое место</a>
+    </div>
+  </div>
+</section>
+</main>
+{% include footer-system/commercial.html lang='ru' variant='service' locale_href='/ai-systems/' %}
+<script src="/assets/js/header-system-v1.js" defer></script>
+<script src="/assets/js/ai-systems-r1.js" defer></script>
 </body>
 </html>

@@ -1,0 +1,42 @@
+name: ProAI Golden Assembly R1.2 Final Review
+
+on:
+  push:
+    branches:
+      - agent/proai-home-golden-assembly-r1-2-recovery
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  final-review:
+    if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'review-final-run:') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - name: Checkout isolated recovery branch
+        uses: actions/checkout@v6
+        with:
+          ref: agent/proai-home-golden-assembly-r1-2-recovery
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run traced exact-recovery review
+        shell: bash
+        run: bash docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-final-review-v2.sh
+
+      - name: Upload final or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-home-golden-r1-2-final-review
+          path: |
+            docs/site-evolution/reviews/proai-home-golden-assembly-r1-2
+            docs/site-evolution/PROAI_HOME_GOLDEN_ASSEMBLY_R1_MANIFEST.md
+          if-no-files-found: warn
+          retention-days: 30

@@ -1,0 +1,181 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+PRODUCT_SHA='a45b1c31ded37909849fc7cccd6d553672c9583a'
+PRODUCT_PARENT='667998c81618c27f8efd99f0eacd9f5ff94a3ac0'
+PRODUCTION_MAIN='c945084e1952c05c686494091f7dbca0f7acdf08'
+REVIEW_DIR='docs/site-evolution/reviews/proai-home-golden-assembly-r1-2'
+LOG="$REVIEW_DIR/final-review-run.log"
+STATUS="$REVIEW_DIR/final-run-status.json"
+CURRENT_STAGE='bootstrap'
+mkdir -p "$REVIEW_DIR/media"
+: > "$LOG"
+exec > >(tee -a "$LOG") 2>&1
+
+write_status(){
+  local result="$1" code="$2"
+  RESULT="$result" CODE="$code" STAGE="$CURRENT_STAGE" python - <<'PY'
+from pathlib import Path
+import json, os
+p=Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/final-run-status.json')
+p.write_text(json.dumps({'result':os.environ['RESULT'],'stage':os.environ['STAGE'],'exitCode':int(os.environ['CODE'])},indent=2),encoding='utf-8')
+PY
+}
+
+persist_failure(){
+  local code=$?
+  set +e
+  write_status FAIL "$code"
+  git config user.name 'proai-golden-review-bot'
+  git config user.email 'actions@users.noreply.github.com'
+  git add "$REVIEW_DIR" docs/site-evolution/PROAI_HOME_GOLDEN_ASSEMBLY_R1_MANIFEST.md 2>/dev/null || true
+  git add -f "$REVIEW_DIR"/*.json "$REVIEW_DIR"/*.log "$REVIEW_DIR"/media/*.png 2>/dev/null || true
+  if ! git diff --cached --quiet; then
+    git commit -m "qa-final-evidence: Golden R1.2 failed at ${CURRENT_STAGE}"
+    git push origin HEAD:agent/proai-home-golden-assembly-r1-2-recovery || true
+  fi
+  exit "$code"
+}
+trap persist_failure ERR
+
+CURRENT_STAGE='authority-hashes'
+test "$(git rev-parse origin/main)" = "$PRODUCTION_MAIN"
+git merge-base --is-ancestor "$PRODUCT_SHA" HEAD
+test "$(git rev-parse ${PRODUCT_SHA}^)" = "$PRODUCT_PARENT"
+python - <<'PY'
+from pathlib import Path
+import json, subprocess, sys
+expected={
+'_includes/header-system/header.html':'6edc924df1df630a69379dfd746d161bab2fbe98','assets/css/header-system-v1.css':'1e7651d5014b4b7b2e6f3d6a662b5431a7692f71','assets/js/header-system-v1.js':'bb107dd6054ba5210b4f77568e04014cdb239c55','assets/css/header-footer-logo-r1.css':'b9cf2f5c0ba7a21dfedc2b41ccbcbf015fd4a71b','assets/js/header-footer-logo-r1.js':'c13acce20f36ea4804c35e8ba9faedba3d3e5cbf','assets/css/homepage-hero-signature-r3.css':'5dde833560aac0958875842a598f622942597b74','assets/js/proai-hero-cube-r1/source-final-motion-r2-touch-auto-45-r1.js':'fc2c0ba13692c94f5838008d09f05dda9859e9d2','assets/js/proai-hero-cube-r1/source-final-motion-r2.js':'67ca618cf10a47561d351715968187d2e4c50351','assets/js/proai-hero-cube-r1/source-materials-r1.js':'f9298b0b00feaae4123eb5a7161f24f669ae0eca','_includes/homepage-connected-system-en.html':'6bf4b0c236ab9063b7588faf5c59f660f64b71aa','_includes/homepage-connected-system-ru.html':'92081f9f98f43a9f794d2c5a49b7bce19aafae16','assets/css/homepage-connected-system-r13.css':'b99dfc19739070fee88d47c94c202d60feab7619','assets/js/homepage-connected-system-r13.js':'8fba38d49366bb69b7e06f9527dd4d07d8d05279','_includes/homepage-two-worlds-golden-r1-en.html':'ee48db8f844f61e3abb10f603bf8dabb3987dbc3','_includes/homepage-two-worlds-golden-r1-ru.html':'3bf645d3d999b9d9bd13b97515b8c2133775bcc0','assets/css/homepage-two-worlds-golden-r1.css':'671813c61cf63e941ecf993f46cd385100c7ed2a','assets/js/homepage-two-worlds-golden-r1.js':'e2927f804003882f2218aa4b86741c6aae32d5a9','_includes/home-technology-transition-r2.html':'a05749f9a7f96a42b7f4b84eb2fb822fae13d310','assets/css/home-technology-transition-r2.css':'f76f8b931c3ad0667c50a5b474b09c793af7e08d','assets/js/home-technology-transition-r2.js':'230b4b6ded23fe66509f774641fa50eadfbdfa4e','_includes/home-work-proof-financial-stream-r1-1-en.html':'4724a9e92fcd9665223138c36ca1c02861cc90f2','_includes/home-work-proof-financial-stream-r1-1-ru.html':'4adc36687ef1a7071eb711d19bb2db3f0f8da49a','assets/css/home-work-proof-financial-stream-r1-1.css':'47ca0005843248f4ceb5997a97f3c7d2cb0cc996','assets/js/home-work-proof-financial-stream-r1-1.js':'925221226fdb2f94b117a10dfd0fdb75b2151cee','assets/css/home-work-proof-financial-stream-r1-2.css':'415cda550dfb9e5bef316be29f56bece9e1e0299','assets/css/home-work-proof-financial-stream-r1-3.css':'f43cca476d2468425de230ed6b6a6b071e1aa20e','assets/css/home-work-proof-financial-stream-r1-3-1.css':'2bda2f705a878526c70f7054ee669374916832db','_includes/home-footer-watermark-r2.html':'2b46cfdf096391b928aff5ec1d513b9445900f8d','assets/css/home-footer-watermark-r2.css':'21b4bd3d700019b29b3ca1d856f1e228945ba86c','assets/js/home-footer-watermark-r2.js':'295df8717a2d7d23e88eedb43b714869242aa797'}
+rows=[]
+for path,want in expected.items():
+    got=subprocess.check_output(['git','hash-object',path],text=True).strip(); rows.append({'path':path,'expected':want,'actual':got,'match':got==want})
+out={'productSha':'a45b1c31ded37909849fc7cccd6d553672c9583a','rows':rows,'pass':all(r['match'] for r in rows)}
+root=Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1-2');(root/'component-hashes.json').write_text(json.dumps(out,indent=2),encoding='utf-8')
+md=['# Golden Assembly R1.2 — Hash / Authority Evidence','','| Product file | Expected | Actual | Result |','|---|---|---|---|']+[f"| `{r['path']}` | `{r['expected']}` | `{r['actual']}` | {'MATCH' if r['match'] else 'FAIL'} |" for r in rows];(root/'HASH_AUTHORITY_EVIDENCE.md').write_text('\n'.join(md)+'\n',encoding='utf-8')
+if not out['pass']: sys.exit('frozen hash mismatch')
+PY
+
+git diff --exit-code "$PRODUCT_SHA" HEAD -- _includes/header-system/header.html assets/css/header-system-v1.css assets/js/header-system-v1.js assets/css/header-footer-logo-r1.css assets/js/header-footer-logo-r1.js assets/css/homepage-hero-signature-r3.css assets/js/proai-hero-cube-r1/source-final-motion-r2-touch-auto-45-r1.js assets/js/proai-hero-cube-r1/source-final-motion-r2.js assets/js/proai-hero-cube-r1/source-materials-r1.js _includes/homepage-connected-system-en.html _includes/homepage-connected-system-ru.html assets/css/homepage-connected-system-r13.css assets/js/homepage-connected-system-r13.js _includes/homepage-two-worlds-golden-r1-en.html _includes/homepage-two-worlds-golden-r1-ru.html assets/css/homepage-two-worlds-golden-r1.css assets/js/homepage-two-worlds-golden-r1.js _includes/home-technology-transition-r2.html assets/css/home-technology-transition-r2.css assets/js/home-technology-transition-r2.js _includes/home-work-proof-financial-stream-r1-1-en.html _includes/home-work-proof-financial-stream-r1-1-ru.html assets/css/home-work-proof-financial-stream-r1-1.css assets/js/home-work-proof-financial-stream-r1-1.js assets/css/home-work-proof-financial-stream-r1-2.css assets/css/home-work-proof-financial-stream-r1-3.css assets/css/home-work-proof-financial-stream-r1-3-1.css _includes/home-footer-watermark-r2.html assets/css/home-footer-watermark-r2.css assets/js/home-footer-watermark-r2.js
+
+CURRENT_STAGE='downstream-donor'
+python - <<'PY'
+from pathlib import Path
+import subprocess
+donor='c945084e1952c05c686494091f7dbca0f7acdf08'
+for source,current in [('index.html','_includes/homepage-golden-r12-downstream-en.html'),('ru/index.html','_includes/homepage-golden-r12-downstream-ru.html')]:
+    text=subprocess.check_output(['git','show',f'{donor}:{source}'],text=True);start=text.index('<section class="homepage-founder-proof"');end=text.index('{{ homepage_after_insights }}',start);want=text[start:end].strip().replace('\r\n','\n');cur=Path(current).read_text(encoding='utf-8').replace('\r\n','\n').strip().splitlines();got='\n'.join(cur[1:-1]).strip();assert got==want,current
+PY
+
+CURRENT_STAGE='jekyll-build'
+export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+gem install --user-install jekyll -v 4.3.4 --no-document
+gem install --user-install webrick --no-document
+jekyll build --source . --destination _site
+python - <<'PY'
+from pathlib import Path
+for route in ('index.html','ru/index.html'):
+    t=(Path('_site')/route).read_text(encoding='utf-8');assert t.count('data-connected-system')==1;assert t.count('data-tw-golden-r1')==1;assert 'tw-tech-r2' not in t;assert t.count('data-home-tech-r2')==1;assert t.count('data-fs-showcase-r11')==1;assert 'id="core-split"' not in t and 'id="section-trigger"' not in t;assert 'homepage-two-worlds-r2.js' not in t;assert 'homepage-core-hardening-v1' not in t and 'homepage-commercial-refinement-v1' not in t;head=t[:t.index('</head>')];assert '<script type="importmap">' in head;assert '<canvas id="cube-canvas"' in t and '<span id="runtime-status"' in t
+PY
+
+CURRENT_STAGE='playwright-install'
+npm install --no-save playwright@1.55.0
+npx playwright install --with-deps chromium webkit
+
+CURRENT_STAGE='serve'
+python3 -m http.server 4173 --directory _site >/tmp/product.log 2>&1 & PRODUCT_PID=$!
+python3 -m http.server 4175 --directory . >/tmp/donor.log 2>&1 & DONOR_PID=$!
+for port in 4173 4175; do ok=0; for i in {1..30}; do if curl -fsS "http://127.0.0.1:${port}/" >/dev/null; then ok=1; break; fi; sleep 1; done; test "$ok" = 1; done
+
+CURRENT_STAGE='mobile-390'
+node "$REVIEW_DIR/run-mobile-gate.mjs"
+
+CURRENT_STAGE='full-qa'
+PRODUCT_SHA="$PRODUCT_SHA" node "$REVIEW_DIR/run-qa.mjs"
+
+CURRENT_STAGE='hero-donor-parity'
+node "$REVIEW_DIR/hero-donor-parity.mjs"
+
+CURRENT_STAGE='immutable-generate'
+PRODUCT_SHA="$PRODUCT_SHA" python "$REVIEW_DIR/generate-owner-review.py"
+python3 -m http.server 4174 --directory . >/tmp/review.log 2>&1 & REVIEW_PID=$!
+sleep 1
+
+CURRENT_STAGE='immutable-local-verify'
+node "$REVIEW_DIR/verify-owner-review.mjs"
+
+CURRENT_STAGE='reports'
+python - <<'PY'
+from pathlib import Path
+import json
+root=Path('docs/site-evolution/reviews/proai-home-golden-assembly-r1-2');hashes=json.loads((root/'component-hashes.json').read_text());qa=json.loads((root/'qa-report.json').read_text());hero=json.loads((root/'hero-donor-parity.json').read_text());mobile=json.loads((root/'mobile-gate.json').read_text());rev=json.loads((root/'owner-review-check.json').read_text())
+(root/'DEPENDENCY_MATRIX.md').write_text('''# Golden Assembly R1.2 — Dependency Matrix
+
+| Donor dependency | Class | Recovery treatment |
+|---|---|---|
+| `header-system-v1.css` | A REQUIRED | exact frozen Header CSS |
+| `header-footer-logo-r1.css` + Instrument Sans variable font | A REQUIRED | exact Header/Footer logo dependency |
+| `homepage-hero-signature-r3.css` | A REQUIRED | exact Hero R3 CSS |
+| static Three r180 importmap in `<head>` | A REQUIRED | restored before module evaluation |
+| `homepage-materials-editorial-v2.css` | B for Hero / A for preserved Insights | retained only for exact current Insights |
+| `homepage-core-hardening-v1.css` | C unsafe legacy global | excluded |
+| `homepage-commercial-refinement-v1.css` | C globally; scoped Founder donor required | broad file excluded; exact Founder declarations isolated in downstream compatibility CSS |
+| `footer-commercial-v1.css` | A REQUIRED | Footer R2 base |
+| `footer-commercial-v1-polish.css` | A REQUIRED | frozen Footer dependency |
+| `footer-system-foundation-v1.css` | A REQUIRED | frozen Footer dependency |
+| `home-footer-watermark-r2.css/js` | A REQUIRED | exact Footer R2 product |
+
+Cube dependency correction: `497308fd...` actually resolves materials blob `f9298b0...`; stale `bab6b00...` is incompatible with the frozen base R2 guard.
+''',encoding='utf-8')
+intervals=qa.get('connected',{}).get('autonomous',{}).get('intervals',[]);fs=qa.get('financialStream',{}).get('mobile390',{});vpass=all(x.get('pass') for lang in qa.get('viewports',{}).values() for x in lang.values())
+(root/'PARITY_REPORT.md').write_text(f'''# Golden Assembly R1.2 — Parity Report
+
+- 390x844 hard gate: **{'PASS' if mobile.get('pass') else 'FAIL'}**
+- Hero donor parity: **{'PASS' if hero.get('pass') else 'FAIL'}**
+- Full EN/RU viewport matrix: **{'PASS' if vpass else 'FAIL'}**
+- Connected cadence ms: `{intervals}`
+- Two Worlds progression: **{'PASS' if qa.get('twoWorlds',{}).get('progression',{}).get('pass') else 'FAIL'}**
+- Embedded Technology: **ABSENT**
+- Standalone Technology: **{'PASS' if qa.get('technology',{}).get('state',{}).get('pass') else 'FAIL'}**
+- Financial 390: primary `{fs.get('primaryPct')}%`; secondary `{fs.get('secondaryPct')}%`; right `{fs.get('rightPct')}%`; text overlap `{fs.get('textOverlap')}`
+- Immutable EN/RU review: **{'PASS' if rev.get('pass') else 'FAIL'}**
+- Full QA: **{'PASS' if qa.get('pass') else 'FAIL'}**
+''',encoding='utf-8')
+p=Path('docs/site-evolution/PROAI_HOME_GOLDEN_ASSEMBLY_R1_MANIFEST.md');old=p.read_text(encoding='utf-8') if p.exists() else '# PROAI HOME GOLDEN ASSEMBLY R1 MANIFEST\n';marker='## R1.2 FORENSIC EXACT RECOVERY';old=old.split(marker,1)[0].rstrip()+'\n\n' if marker in old else old.rstrip()+'\n\n';p.write_text(old+f'''{marker}
+
+- R1.1: REJECTED OWNER REVIEW due assembly contamination / unsafe review packaging.
+- R1.2 clean shell `eac0959950cb5e900296f811f1d92027ed2003e1`: correct direction, provisional.
+- Pre-recovery diagnostics: `0f3995770acaf22b284615f8121a4be6e03baac5`.
+- Cube product authority: `497308fd5e9add24d4fa4254287cbd17f9c0112c`; source/base unchanged.
+- Exact Cube dependency correction: materials blob `f9298b0b00feaae4123eb5a7161f24f669ae0eca` as present at product authority.
+- Root cause of blank Cube: stale `bab6b00...` materials lacked the frozen `quaternion-editorial-spatial-r1.2-premium` marker required by base R2, so runtime creation stopped before ready.
+- Boot topology recovered: static importmap in head; donor canvas/status mount; direct frozen module boot; runtime.ready wait; mounted=true; two frames; resize.
+- Final recovery product: `a45b1c31ded37909849fc7cccd6d553672c9583a`.
+- Component product files after product commit: UNCHANGED.
+- Hero donor parity: {'PASS' if hero.get('pass') else 'FAIL'}.
+- Full QA: {'PASS' if qa.get('pass') else 'FAIL'}.
+- Immutable review: {'PASS' if rev.get('pass') else 'FAIL'}.
+- Selected Thinking: NOT INTEGRATED.
+- Main unchanged; no merge; no deploy.
+''',encoding='utf-8')
+PY
+
+CURRENT_STAGE='review-commit'
+write_status PASS 0
+git config user.name 'proai-golden-review-bot'
+git config user.email 'actions@users.noreply.github.com'
+git add "$REVIEW_DIR" docs/site-evolution/PROAI_HOME_GOLDEN_ASSEMBLY_R1_MANIFEST.md
+git add -f "$REVIEW_DIR"/*.json "$REVIEW_DIR"/*.log "$REVIEW_DIR"/media/*.png
+git commit -m 'review: finalize Golden Assembly R1.2 exact recovery [review-final]'
+git push origin HEAD:agent/proai-home-golden-assembly-r1-2-recovery
+REVIEW_SHA="$(git rev-parse HEAD)"
+
+CURRENT_STAGE='immutable-raw-verify'
+export REVIEW_BASE="https://raw.githack.com/proaiexpert/proaiexpert.github.io/${REVIEW_SHA}/${REVIEW_DIR}/"
+ok=0
+for i in {1..18}; do if curl -fsSL "${REVIEW_BASE}owner-review-en.html" | grep -q 'data-owner-review="golden-r1-2"'; then ok=1; break; fi; sleep 5; done
+test "$ok" = 1
+node "$REVIEW_DIR/verify-owner-review.mjs" --verify-only
+
+echo "FINAL_REVIEW_SHA=${REVIEW_SHA}"
+kill "$PRODUCT_PID" "$DONOR_PID" "$REVIEW_PID" >/dev/null 2>&1 || true

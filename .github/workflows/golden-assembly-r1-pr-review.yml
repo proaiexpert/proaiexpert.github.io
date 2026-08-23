@@ -10,11 +10,11 @@ permissions:
 
 jobs:
   review:
-    if: github.event.pull_request.head.ref == 'qa/proai-home-golden-r1-2-final-owner-correction'
+    if: github.event.pull_request.head.ref == 'qa/proai-home-golden-r1-2-final-bounded'
     runs-on: ubuntu-24.04
-    timeout-minutes: 55
+    timeout-minutes: 18
     steps:
-      - name: Checkout R1.2 final-authority QA head
+      - name: Checkout R1.2 bounded final-authority QA head
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run Golden R1.2 final-authority browser review
+      - name: Run bounded Golden R1.2 final-authority browser review
         shell: bash
         run: bash docs/site-evolution/reviews/proai-home-golden-assembly-r1-2/run-final-authority-review.sh
 
@@ -33,7 +33,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: proai-home-golden-r1-2-final-authority-${{ github.sha }}
+          name: proai-home-golden-r1-2-final-bounded-${{ github.sha }}
           path: |
             docs/site-evolution/reviews/proai-home-golden-assembly-r1-2
           if-no-files-found: warn

@@ -62,6 +62,32 @@ const PRESENTATION_R1_2 = Object.freeze({
   review360TargetSec: 18.0,
 });
 
+// Runtime whole-object presentation authority — R1.2 premium editorial spatial motion.
+const PRESENTATION_SPATIAL_R1_2 = Object.freeze({
+  cycleMs: 66000,
+  motionAuthority: 'quaternion-editorial-spatial-r1.2-premium',
+  keyframes: Object.freeze([
+    Object.freeze({ timeMs: 0, poseDeg: Object.freeze([0, 0, 0]), motion: 'sweep', label: 'natural-3q' }),
+    Object.freeze({ timeMs: 5600, poseDeg: Object.freeze([24, 58, -23]), motion: 'breath', label: 'top-side-3q' }),
+    Object.freeze({ timeMs: 8200, poseDeg: Object.freeze([22, 64, -21]), motion: 'sweep', label: 'top-side-breath' }),
+    Object.freeze({ timeMs: 13900, poseDeg: Object.freeze([-42, 38, -23]), motion: 'breath', label: 'lower-side-inspection' }),
+    Object.freeze({ timeMs: 16400, poseDeg: Object.freeze([-40, 45, -21]), motion: 'sweep', label: 'lower-side-breath' }),
+    Object.freeze({ timeMs: 22000, poseDeg: Object.freeze([9, 87, 6]), motion: 'breath', label: 'opposite-3q-a' }),
+    Object.freeze({ timeMs: 24700, poseDeg: Object.freeze([7, 94, 8]), motion: 'sweep', label: 'opposite-3q-a-breath' }),
+    Object.freeze({ timeMs: 30900, poseDeg: Object.freeze([-18, 178, -16]), motion: 'breath', label: 'deep-opposite-3q' }),
+    Object.freeze({ timeMs: 33700, poseDeg: Object.freeze([-16, 184, -14]), motion: 'sweep', label: 'deep-opposite-breath' }),
+    Object.freeze({ timeMs: 38600, poseDeg: Object.freeze([24, 138, 23]), motion: 'breath', label: 'high-opposite-return' }),
+    Object.freeze({ timeMs: 41200, poseDeg: Object.freeze([22, 144, 21]), motion: 'sweep', label: 'high-opposite-breath' }),
+    Object.freeze({ timeMs: 46900, poseDeg: Object.freeze([-27, 96, 31]), motion: 'breath', label: 'diagonal-return-inspection' }),
+    Object.freeze({ timeMs: 49400, poseDeg: Object.freeze([-24, 102, 29]), motion: 'sweep', label: 'diagonal-return-breath' }),
+    Object.freeze({ timeMs: 55500, poseDeg: Object.freeze([19, 42, -14]), motion: 'breath', label: 'front-side-3q' }),
+    Object.freeze({ timeMs: 58100, poseDeg: Object.freeze([17, 48, -12]), motion: 'sweep', label: 'front-side-breath' }),
+    Object.freeze({ timeMs: 66000, poseDeg: Object.freeze([0, 0, 0]), motion: 'sweep', label: 'natural-3q-loop' }),
+  ]),
+  easing: Object.freeze({ sweepLinearWeight: 0.14, breathLinearWeight: 0.72, sweepSettleBias: 0.075 }),
+  targetBreathSpeedDegPerSec: Object.freeze([2, 6]),
+});
+
 const SLICE_R1_2 = Object.freeze({
   turnDurationRangeMs: [1080, 1420],
   typicalGapRangeMs: [180, 420],
@@ -297,10 +323,6 @@ let motionState = 'loading';
 let sliceSchedulerEnabled = !captureMode && !prefersReducedMotion;
 let sliceSchedulerRunning = false;
 let interactionActive = false;
-let manualResumeAt = 0;
-let sliceResumeAt = 0;
-let presentationResumeStart = 0;
-let presentationResumeFrom = new THREE.Quaternion();
 let frozenPresentationQuaternion = new THREE.Quaternion();
 let lastTurnResult = null;
 let lastTurnResults = [];
@@ -312,20 +334,27 @@ let sliceSeed = SLICE_R1_2.seed >>> 0;
 let sliceEventSerial = 0;
 let eventsUntilBreath = 4;
 let presentationSimTimeMs = 0;
-let presentationYawRad = 0;
-let presentationSignedYawDeg = 0;
-let presentationCumulativeYawDeg = 0;
-let presentationYawVelocityDegPerSec = 0;
 let presentationLastNow = 0;
 let presentationFrameDeltaRad = 0;
+let presentationAngularTravelDeg = 0;
+let presentationAngularVelocityDegPerSec = 0;
+let presentationPhase = PRESENTATION_SPATIAL_R1_2.keyframes[0].motion;
+let presentationPoseLabel = PRESENTATION_SPATIAL_R1_2.keyframes[0].label;
 let lastPresentationQuaternion = new THREE.Quaternion();
+const presentationPoseEuler = new THREE.Euler();
+const presentationPoseQuaternionA = new THREE.Quaternion();
+const presentationPoseQuaternionB = new THREE.Quaternion();
+const presentationInverseQuaternion = new THREE.Quaternion();
+const presentationRelativeQuaternion = new THREE.Quaternion();
+const presentationTargetQuaternion = new THREE.Quaternion();
+const presentationAxis = new THREE.Vector3();
 
 const api = {
   ready: false,
   motionState,
   motionConfig: MOTION,
   geometryConfig: GEOMETRY_R1,
-  presentationConfig: PRESENTATION_R1_2,
+  presentationConfig: PRESENTATION_SPATIAL_R1_2,
   sliceConfig: SLICE_R1_2,
   geometry: null,
   hierarchy: null,
@@ -359,6 +388,9 @@ const api = {
 window.__PROAI_CUBE_R1_2 = api;
 window.__PROAI_CUBE_R1 = api;
 window.__PROAI_CUBE_ML_R1 = api;
+window.__PROAI_CUBE_SPATIAL_R1 = api;
+window.__PROAI_CUBE_SPATIAL_R1_1 = api;
+window.__PROAI_CUBE_SPATIAL_R1_2 = api;
 
 function setMotionState(next) {
   motionState = next;
@@ -932,11 +964,11 @@ function finalizeTurn(turnOrId) {
 }
 
 function presentationAutonomyBlocked() {
-  return interactionActive || performance.now() < manualResumeAt;
+  return false;
 }
 
 function sliceAutonomyBlocked() {
-  return interactionActive || performance.now() < sliceResumeAt;
+  return false;
 }
 
 function autonomyBlocked() {
@@ -1173,63 +1205,162 @@ async function runAutomatedQA() {
   };
 }
 
-function presentationVelocityAt(timeMs) {
-  const cycle = PRESENTATION_R1_2.velocityCycleMs;
+function presentationPoseQuaternion(poseDeg, outQuaternion = presentationTargetQuaternion) {
+  presentationPoseEuler.set(
+    THREE.MathUtils.degToRad(poseDeg[0]),
+    THREE.MathUtils.degToRad(poseDeg[1]),
+    THREE.MathUtils.degToRad(poseDeg[2]),
+    'YXZ',
+  );
+  return outQuaternion.setFromEuler(presentationPoseEuler).normalize();
+}
+
+function presentationSegmentAt(timeMs) {
+  const cycle = PRESENTATION_SPATIAL_R1_2.cycleMs;
   let local = timeMs % cycle;
   if (local < 0) local += cycle;
-  const keys = PRESENTATION_R1_2.velocityKeyframes;
-  for (let i = 0; i < keys.length - 1; i += 1) {
-    const a = keys[i];
-    const b = keys[i + 1];
+  const keys = PRESENTATION_SPATIAL_R1_2.keyframes;
+  for (let index = 0; index < keys.length - 1; index += 1) {
+    const a = keys[index];
+    const b = keys[index + 1];
     if (local <= b.timeMs) {
-      const p = smoothstep((local - a.timeMs) / Math.max(1, b.timeMs - a.timeMs));
-      return THREE.MathUtils.lerp(a.velocityDegPerSec, b.velocityDegPerSec, p);
+      return {
+        index,
+        a,
+        b,
+        local,
+        durationMs: Math.max(1, b.timeMs - a.timeMs),
+        progress: THREE.MathUtils.clamp((local - a.timeMs) / Math.max(1, b.timeMs - a.timeMs), 0, 1),
+      };
     }
   }
-  return keys[0].velocityDegPerSec;
+  const a = keys[keys.length - 2];
+  const b = keys[keys.length - 1];
+  return { index: keys.length - 2, a, b, local, durationMs: b.timeMs - a.timeMs, progress: 1 };
 }
 
-function presentationPitchRollAt(timeMs) {
-  const pitch = THREE.MathUtils.degToRad(
-    8.65 * Math.sin((timeMs / PRESENTATION_R1_2.pitchPrimaryPeriodMs) * Math.PI * 2 + 0.42)
-    + 1.55 * Math.sin((timeMs / PRESENTATION_R1_2.pitchSecondaryPeriodMs) * Math.PI * 2 + 1.18),
-  );
-  const roll = THREE.MathUtils.degToRad(
-    1.92 * Math.sin((timeMs / PRESENTATION_R1_2.rollPrimaryPeriodMs) * Math.PI * 2 + 1.35)
-    + 0.48 * Math.sin((timeMs / PRESENTATION_R1_2.rollSecondaryPeriodMs) * Math.PI * 2 + 2.20),
-  );
-  return { pitch, roll };
+function presentationEditorialEase(progress, phase) {
+  const p = THREE.MathUtils.clamp(progress, 0, 1);
+  const linearWeight = phase === 'breath' ? PRESENTATION_SPATIAL_R1_2.easing.breathLinearWeight : PRESENTATION_SPATIAL_R1_2.easing.sweepLinearWeight;
+  if (phase === 'breath') return THREE.MathUtils.lerp(smoothstep(p), p, linearWeight);
+  const biased = THREE.MathUtils.clamp(p + PRESENTATION_SPATIAL_R1_2.easing.sweepSettleBias * Math.sin(Math.PI * p), 0, 1);
+  return THREE.MathUtils.lerp(smoothstep(biased), biased, linearWeight);
 }
 
-function presentationQuaternionAt(timeMs, yawRad) {
-  const { pitch, roll } = presentationPitchRollAt(timeMs);
-  return new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yawRad, roll, 'YXZ')).normalize();
+function presentationEditorialEaseDerivative(progress, phase) {
+  const p = THREE.MathUtils.clamp(progress, 0, 1);
+  const e = 0.001, lo = Math.max(0, p - e), hi = Math.min(1, p + e);
+  return hi <= lo ? 0 : (presentationEditorialEase(hi, phase) - presentationEditorialEase(lo, phase)) / (hi - lo);
 }
 
-function integratePresentationYawDeg(timeMs) {
-  const stepMs = 10;
-  let elapsed = 0;
-  let yawDeg = 0;
-  while (elapsed < timeMs) {
-    const dt = Math.min(stepMs, timeMs - elapsed);
-    yawDeg += presentationVelocityAt(elapsed + dt * 0.5) * (dt / 1000);
-    elapsed += dt;
+function presentationSegmentGeometry(a, b) {
+  const qa = presentationPoseQuaternion(a.poseDeg, presentationPoseQuaternionA);
+  const qb = presentationPoseQuaternion(b.poseDeg, presentationPoseQuaternionB);
+  presentationInverseQuaternion.copy(qa).invert();
+  presentationRelativeQuaternion.copy(qb).multiply(presentationInverseQuaternion).normalize();
+  if (presentationRelativeQuaternion.w < 0) {
+    presentationRelativeQuaternion.x *= -1;
+    presentationRelativeQuaternion.y *= -1;
+    presentationRelativeQuaternion.z *= -1;
+    presentationRelativeQuaternion.w *= -1;
   }
-  return yawDeg;
+  const w = THREE.MathUtils.clamp(presentationRelativeQuaternion.w, -1, 1);
+  const angleRad = 2 * Math.acos(w);
+  const sinHalf = Math.sqrt(Math.max(0, 1 - w * w));
+  if (sinHalf > 1e-6) {
+    presentationAxis.set(
+      presentationRelativeQuaternion.x / sinHalf,
+      presentationRelativeQuaternion.y / sinHalf,
+      presentationRelativeQuaternion.z / sinHalf,
+    ).normalize();
+  } else {
+    presentationAxis.set(0, 1, 0);
+  }
+  return { qa, qb, axis: presentationAxis, angleRad, angleDeg: THREE.MathUtils.radToDeg(angleRad) };
+}
+
+function presentationQuaternionAt(timeMs, outQuaternion = presentationTargetQuaternion) {
+  const segment = presentationSegmentAt(timeMs);
+  const geometry = presentationSegmentGeometry(segment.a, segment.b);
+  const eased = presentationEditorialEase(segment.progress, segment.a.motion);
+  return outQuaternion.slerpQuaternions(geometry.qa, geometry.qb, eased).normalize();
+}
+
+function presentationCycleTravelDeg() {
+  const keys = PRESENTATION_SPATIAL_R1_2.keyframes;
+  let total = 0;
+  for (let index = 0; index < keys.length - 1; index += 1) {
+    total += presentationSegmentGeometry(keys[index], keys[index + 1]).angleDeg;
+  }
+  return total;
+}
+
+const PRESENTATION_SPATIAL_R1_2_CYCLE_TRAVEL_DEG = presentationCycleTravelDeg();
+
+function presentationTravelAt(timeMs) {
+  const target = Math.max(0, timeMs);
+  const cycle = PRESENTATION_SPATIAL_R1_2.cycleMs;
+  const completeCycles = Math.floor(target / cycle);
+  const local = target % cycle;
+  const keys = PRESENTATION_SPATIAL_R1_2.keyframes;
+  let travelDeg = completeCycles * PRESENTATION_SPATIAL_R1_2_CYCLE_TRAVEL_DEG;
+  for (let index = 0; index < keys.length - 1; index += 1) {
+    const a = keys[index];
+    const b = keys[index + 1];
+    const geometry = presentationSegmentGeometry(a, b);
+    if (local >= b.timeMs) {
+      travelDeg += geometry.angleDeg;
+      continue;
+    }
+    if (local > a.timeMs) {
+      const progress = (local - a.timeMs) / Math.max(1, b.timeMs - a.timeMs);
+      travelDeg += geometry.angleDeg * presentationEditorialEase(progress, a.motion);
+    }
+    break;
+  }
+  return travelDeg;
+}
+
+function spatialDominantAxis(axis) {
+  const components = [Math.abs(axis.x), Math.abs(axis.y), Math.abs(axis.z)];
+  return AXES[components.indexOf(Math.max(...components))];
+}
+
+function presentationMetricsAt(timeMs) {
+  const segment = presentationSegmentAt(timeMs);
+  const geometry = presentationSegmentGeometry(segment.a, segment.b);
+  const durationSec = segment.durationMs / 1000;
+  const derivative = presentationEditorialEaseDerivative(segment.progress, segment.a.motion);
+  const speedDegPerSec = (geometry.angleDeg / Math.max(0.001, durationSec)) * derivative;
+  return {
+    segmentIndex: segment.index,
+    phase: segment.a.motion,
+    poseLabel: segment.a.label,
+    axis: geometry.axis.clone(),
+    dominantAxis: spatialDominantAxis(geometry.axis),
+    speedDegPerSec,
+    segmentArcDeg: geometry.angleDeg,
+  };
 }
 
 function getReviewPresentationSample(timeSec = 0) {
   const timeMs = Math.max(0, timeSec) * 1000;
-  const signedYawDeg = integratePresentationYawDeg(timeMs);
-  const velocityDegPerSec = presentationVelocityAt(timeMs);
-  const { pitch, roll } = presentationPitchRollAt(timeMs);
+  const target = presentationQuaternionAt(timeMs, presentationTargetQuaternion);
+  const euler = new THREE.Euler().setFromQuaternion(target, 'YXZ');
+  const metrics = presentationMetricsAt(timeMs);
   return {
     timeSec,
-    signedYawDeg,
-    cumulativeYawDeg: Math.abs(signedYawDeg),
-    velocityDegPerSec,
-    pitchDeg: THREE.MathUtils.radToDeg(pitch),
-    rollDeg: THREE.MathUtils.radToDeg(roll),
+    signedYawDeg: THREE.MathUtils.radToDeg(euler.y),
+    cumulativeYawDeg: presentationTravelAt(timeMs),
+    velocityDegPerSec: metrics.speedDegPerSec,
+    pitchDeg: THREE.MathUtils.radToDeg(euler.x),
+    rollDeg: THREE.MathUtils.radToDeg(euler.z),
+    angularTravelDeg: presentationTravelAt(timeMs),
+    dominantAxis: metrics.dominantAxis,
+    rotationAxis: metrics.axis.toArray(),
+    phase: metrics.phase,
+    poseLabel: metrics.poseLabel,
+    engine: PRESENTATION_SPATIAL_R1_2.motionAuthority,
   };
 }
 
@@ -1242,28 +1373,16 @@ function updatePresentationMotion(now) {
   }
   const deltaMs = Math.min(80, Math.max(0, now - presentationLastNow));
   presentationLastNow = now;
-  if (presentationAutonomyBlocked()) {
-    presentationFrameDeltaRad = 0;
-    lastPresentationQuaternion.copy(presentationRig.quaternion);
-    return;
-  }
-
   presentationSimTimeMs += deltaMs;
-  presentationYawVelocityDegPerSec = presentationVelocityAt(presentationSimTimeMs);
-  const yawStepDeg = presentationYawVelocityDegPerSec * (deltaMs / 1000);
-  presentationYawRad += THREE.MathUtils.degToRad(yawStepDeg);
-  presentationSignedYawDeg += yawStepDeg;
-  presentationCumulativeYawDeg += Math.abs(yawStepDeg);
-  const target = presentationQuaternionAt(presentationSimTimeMs, presentationYawRad);
+  presentationQuaternionAt(presentationSimTimeMs, presentationTargetQuaternion);
+  const metrics = presentationMetricsAt(presentationSimTimeMs);
+  presentationAngularVelocityDegPerSec = metrics.speedDegPerSec;
+  presentationAngularTravelDeg += metrics.speedDegPerSec * (deltaMs / 1000);
+  presentationPhase = metrics.phase;
+  presentationPoseLabel = metrics.poseLabel;
   const before = presentationRig.quaternion.clone();
 
-  if (presentationResumeStart > 0 && now < presentationResumeStart + MOTION.manualResumeBlendMs) {
-    const progress = smoothstep((now - presentationResumeStart) / MOTION.manualResumeBlendMs);
-    presentationRig.quaternion.slerpQuaternions(presentationResumeFrom, target, progress).normalize();
-  } else {
-    presentationRig.quaternion.copy(target);
-    if (presentationResumeStart > 0) presentationResumeStart = 0;
-  }
+  presentationRig.quaternion.copy(presentationTargetQuaternion);
   presentationFrameDeltaRad = before.angleTo(presentationRig.quaternion);
   lastPresentationQuaternion.copy(presentationRig.quaternion);
 }
@@ -1376,14 +1495,17 @@ async function sliceSchedulerLoop() {
 }
 
 function getInteractionState() {
-  const now = performance.now();
   return {
     interactionActive,
-    autonomyBlocked: presentationAutonomyBlocked(),
-    sliceAutonomyBlocked: sliceAutonomyBlocked(),
-    resumeDelayRemainingMs: Math.max(0, manualResumeAt - now),
-    sliceResumeDelayRemainingMs: Math.max(0, sliceResumeAt - now),
-    presentationResumeActive: presentationResumeStart > 0 && now >= presentationResumeStart && now < presentationResumeStart + MOTION.manualResumeBlendMs,
+    autonomyBlocked: false,
+    sliceAutonomyBlocked: false,
+    resumeDelayRemainingMs: 0,
+    sliceResumeDelayRemainingMs: 0,
+    presentationResumeActive: false,
+    presentationSimTimeMs,
+    sliceEventSerial,
+    activeTurnCount: activeTurns.size,
+    activeTurnProgress: activeTurnList().map((turn) => ({ id: turn.id, linear: turn.linear, eased: turn.eased })),
     cameraPosition: camera.position.toArray(),
     presentationQuaternion: presentationRig.quaternion.toArray(),
   };
@@ -1392,19 +1514,10 @@ function getInteractionState() {
 controls.addEventListener('start', () => {
   interactionActive = true;
   frozenPresentationQuaternion.copy(presentationRig.quaternion);
-  presentationResumeFrom.copy(presentationRig.quaternion);
-  manualResumeAt = Infinity;
-  sliceResumeAt = Infinity;
-  presentationResumeStart = 0;
 });
 
 controls.addEventListener('end', () => {
   interactionActive = false;
-  const now = performance.now();
-  manualResumeAt = now + MOTION.manualResumeDelayMs;
-  sliceResumeAt = manualResumeAt + MOTION.sliceResumeStaggerMs;
-  presentationResumeStart = manualResumeAt;
-  presentationResumeFrom.copy(presentationRig.quaternion);
 });
 
 function beginReviewTurn(axis, layer, direction) {
@@ -1446,7 +1559,7 @@ function setReviewPairProgress(turnIds, progressA, progressB = progressA) {
 function setReviewPresentation(timeSec = 0, resumeProgress = 1, renderFrame = true) {
   if (!captureMode || !api.ready) return false;
   const sample = getReviewPresentationSample(timeSec);
-  const target = presentationQuaternionAt(sample.timeSec * 1000, THREE.MathUtils.degToRad(sample.signedYawDeg));
+  const target = presentationQuaternionAt(sample.timeSec * 1000, presentationTargetQuaternion);
   if (resumeProgress < 1) {
     const progress = smoothstep(resumeProgress);
     presentationRig.quaternion.slerpQuaternions(frozenPresentationQuaternion, target, progress).normalize();
@@ -1484,22 +1597,30 @@ function frameCamera() {
 }
 
 function getDiagnostics() {
+  const presentationSample = getReviewPresentationSample(presentationSimTimeMs / 1000);
   return {
     ready: api.ready,
     motionState,
     hierarchy: api.hierarchy,
     mechanics: api.mechanics,
     motionConfig: MOTION,
-    presentationConfig: PRESENTATION_R1_2,
+    presentationConfig: PRESENTATION_SPATIAL_R1_2,
     sliceConfig: SLICE_R1_2,
     presentation: {
-      simTimeMs: presentationSimTimeMs,
-      signedYawDeg: presentationSignedYawDeg,
-      cumulativeYawDeg: presentationCumulativeYawDeg,
-      yawVelocityDegPerSec: presentationYawVelocityDegPerSec,
-      frameAngularDeltaRad: presentationFrameDeltaRad,
-      quaternion: presentationRig.quaternion.toArray(),
-    },
+    simTimeMs: presentationSimTimeMs,
+    angularTravelDeg: presentationAngularTravelDeg,
+    angularVelocityDegPerSec: presentationAngularVelocityDegPerSec,
+    rotationAxis: presentationSample.rotationAxis,
+    dominantAxis: presentationSample.dominantAxis,
+    pitchDeg: presentationSample.pitchDeg,
+    yawDeg: presentationSample.signedYawDeg,
+    rollDeg: presentationSample.rollDeg,
+    phase: presentationPhase,
+    poseLabel: presentationPoseLabel,
+    frameAngularDeltaRad: presentationFrameDeltaRad,
+    quaternion: presentationRig.quaternion.toArray(),
+    engine: PRESENTATION_SPATIAL_R1_2.motionAuthority,
+  },
     activeTurns: activeTurnList().map((turn) => ({
       id: turn.id,
       serial: turn.serial,

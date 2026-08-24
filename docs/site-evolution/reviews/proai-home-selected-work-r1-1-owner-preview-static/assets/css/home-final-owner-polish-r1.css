@@ -1,0 +1,198 @@
+/* ProAI Expert — Homepage final Owner micro-polish R1
+   1) Selected Work: remove multiline title underline artifact on hover.
+   2) Footer signature: quiet watermark at rest, premium local reflectance on hover,
+      and an ultra-slow ambient breath. No layout or content changes. */
+
+/* ------------------------------------------------------------
+   SELECTED WORK — single bottom hairline only
+   ------------------------------------------------------------ */
+.selected-work-r11__identity h3 a {
+  position: relative;
+  text-decoration: none !important;
+}
+
+.selected-work-r11__identity h3 a::after {
+  content: "";
+  position: absolute;
+  left: .02em;
+  bottom: -.12em;
+  width: clamp(38px, 4.1vw, 62px);
+  height: 1px;
+  background: linear-gradient(90deg,
+    rgba(239, 239, 235, .42),
+    rgba(181, 188, 194, .20) 58%,
+    transparent 100%);
+  opacity: .34;
+  transform: scaleX(.72);
+  transform-origin: left center;
+  pointer-events: none;
+  transition:
+    width 420ms cubic-bezier(.2,.72,.2,1),
+    opacity 320ms ease,
+    transform 420ms cubic-bezier(.2,.72,.2,1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .selected-work-r11__identity h3 a:hover,
+  .selected-work-r11__identity h3 a:focus-visible {
+    text-decoration: none !important;
+  }
+
+  .selected-work-r11__record:hover .selected-work-r11__identity h3 a::after,
+  .selected-work-r11__record:focus-within .selected-work-r11__identity h3 a::after {
+    width: clamp(48px, 5vw, 78px);
+    opacity: .62;
+    transform: scaleX(1);
+  }
+}
+
+/* ------------------------------------------------------------
+   FOOTER SIGNATURE — black-chrome watermark / living reflectance
+   ------------------------------------------------------------ */
+.home-footer-golden-r3__signature {
+  --pointer-x: 50%;
+  --pointer-y: 50%;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 52%, rgba(227, 229, 227, .018), transparent 54%),
+    linear-gradient(180deg, rgba(255,255,255,.004), transparent 42%);
+}
+
+.home-footer-golden-r3__signature::before {
+  background:
+    radial-gradient(ellipse at 50% 52%, rgba(238, 239, 236, .030), transparent 29%),
+    linear-gradient(105deg,
+      transparent 0 38%,
+      rgba(216, 220, 221, .018) 46%,
+      rgba(246, 244, 238, .038) 50%,
+      rgba(181, 189, 197, .014) 55%,
+      transparent 64%);
+  background-size: 100% 100%, 220% 100%;
+  background-position: 50% 50%, 26% 50%;
+  opacity: .30;
+  animation: proaiFooterHaloBreath 11s ease-in-out infinite alternate;
+}
+
+.home-footer-golden-r3__signature::after {
+  background:
+    radial-gradient(circle at var(--pointer-x) var(--pointer-y),
+      rgba(248, 247, 242, .115) 0%,
+      rgba(220, 225, 228, .060) 8%,
+      rgba(157, 169, 181, .025) 17%,
+      transparent 34%);
+  opacity: 0;
+  mix-blend-mode: screen;
+  transition: opacity 620ms cubic-bezier(.2,.72,.2,1);
+}
+
+.home-footer-golden-r3__signature-light {
+  background:
+    radial-gradient(ellipse at 50% 54%, rgba(239, 239, 235, .020), transparent 46%);
+  opacity: .36;
+  animation: proaiFooterLightBreath 12.5s ease-in-out infinite alternate;
+}
+
+.home-footer-golden-r3__signature-text {
+  background:
+    radial-gradient(ellipse 18% 78% at var(--pointer-x) 52%,
+      rgba(246, 245, 240, .68) 0%,
+      rgba(214, 219, 221, .34) 22%,
+      rgba(133, 143, 153, .13) 48%,
+      transparent 72%),
+    linear-gradient(180deg,
+      rgba(48, 51, 55, .80) 0%,
+      rgba(27, 29, 32, .88) 44%,
+      rgba(13, 14, 16, .96) 100%);
+  background-size: 100% 100%;
+  background-position: center;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: .7px rgba(228, 231, 230, .105);
+  opacity: .42;
+  filter:
+    brightness(.88)
+    contrast(1.055)
+    drop-shadow(0 0 1px rgba(244, 243, 238, .018))
+    drop-shadow(0 10px 34px rgba(0, 0, 0, .18));
+  font-weight: 520 !important;
+  font-variation-settings: "wght" 520;
+  letter-spacing: -.055em !important;
+  animation: proaiFooterWordmarkBreath 10.5s ease-in-out infinite;
+  transition:
+    opacity 560ms ease,
+    filter 620ms cubic-bezier(.2,.72,.2,1),
+    -webkit-text-stroke-color 560ms ease,
+    transform 620ms cubic-bezier(.2,.72,.2,1);
+}
+
+.home-footer-golden-r3__signature.is-awake::before {
+  opacity: .50;
+  animation-play-state: paused;
+}
+
+.home-footer-golden-r3__signature.is-awake::after {
+  opacity: .72;
+}
+
+.home-footer-golden-r3__signature.is-awake .home-footer-golden-r3__signature-light {
+  opacity: .52;
+  animation-play-state: paused;
+}
+
+.home-footer-golden-r3__signature.is-awake .home-footer-golden-r3__signature-text {
+  opacity: .70;
+  -webkit-text-stroke-color: rgba(239, 241, 239, .22);
+  filter:
+    brightness(1.03)
+    contrast(1.07)
+    drop-shadow(0 0 1px rgba(248, 247, 242, .055))
+    drop-shadow(0 8px 30px rgba(203, 210, 216, .035));
+  transform: translateX(.012em) translateY(-.5px);
+  animation-play-state: paused;
+}
+
+@keyframes proaiFooterWordmarkBreath {
+  0%, 100% {
+    opacity: .36;
+    filter: brightness(.82) contrast(1.05) drop-shadow(0 10px 34px rgba(0,0,0,.18));
+  }
+  50% {
+    opacity: .45;
+    filter: brightness(.94) contrast(1.06) drop-shadow(0 8px 32px rgba(205,211,214,.018));
+  }
+}
+
+@keyframes proaiFooterHaloBreath {
+  0% { opacity: .22; transform: scale(.995); }
+  100% { opacity: .36; transform: scale(1.008); }
+}
+
+@keyframes proaiFooterLightBreath {
+  0% { opacity: .28; transform: translate3d(-.4%,0,0); }
+  100% { opacity: .42; transform: translate3d(.4%,0,0); }
+}
+
+@media (max-width: 640px) {
+  .home-footer-golden-r3__signature-text {
+    opacity: .38;
+    -webkit-text-stroke-width: .55px;
+  }
+
+  .home-footer-golden-r3__signature.is-awake .home-footer-golden-r3__signature-text {
+    opacity: .62;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-footer-golden-r3__signature::before,
+  .home-footer-golden-r3__signature::after,
+  .home-footer-golden-r3__signature-light,
+  .home-footer-golden-r3__signature-text,
+  .selected-work-r11__identity h3 a::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

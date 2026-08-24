@@ -1,6 +1,7 @@
 /* Golden Assembly R1.2 — Two Worlds short-landscape scroll stabilization.
    Runs after the canonical Golden R1 runtime and becomes the sole geometry
-   authority inside coarse-pointer phone landscape. */
+   authority inside coarse-pointer phone landscape. The 3D turn stays continuous,
+   while visible content switches through a hysteresis band with no blank state. */
 (function () {
   'use strict';
 
@@ -9,20 +10,21 @@
   if (!sections.length) return;
 
   var raf = 0;
-  var START_TURN = 0.20;
-  var END_TURN = 0.56;
-  var HYSTERESIS = 0.025;
+  var MOVE_START = 0.20;
+  var MOVE_END = 0.56;
+  var SWITCH_TO_WEB = 0.405;
+  var SWITCH_TO_AI = 0.355;
 
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   function smoothstep(value) { return value * value * (3 - (2 * value)); }
 
+  /* Schmitt-trigger style focus switching. Between the two thresholds we keep
+     the current world, so tiny scroll/viewport fluctuations cannot flip state. */
   function focusFor(section, raw) {
     var current = section.getAttribute('data-focus') || 'neutral';
-    if (current === 'web' && raw >= END_TURN - HYSTERESIS) return 'web';
-    if (current === 'ai' && raw <= START_TURN + HYSTERESIS) return 'ai';
-    if (raw < START_TURN) return 'ai';
-    if (raw > END_TURN) return 'web';
-    return 'turn';
+    if (current === 'ai') return raw >= SWITCH_TO_WEB ? 'web' : 'ai';
+    if (current === 'web') return raw <= SWITCH_TO_AI ? 'ai' : 'web';
+    return raw >= ((SWITCH_TO_AI + SWITCH_TO_WEB) / 2) ? 'web' : 'ai';
   }
 
   function apply(section) {
@@ -33,15 +35,15 @@
 
     /* Use the CSS-controlled sticky viewport height instead of window.innerHeight.
        Browser chrome can change innerHeight while the user is not actually moving,
-       which used to perturb the normalized progress near TURN -> WEB. */
+       which must not perturb normalized progress. */
     var viewportHeight = Math.max(1, viewport.getBoundingClientRect().height || viewport.offsetHeight || window.innerHeight);
     var travel = Math.max(1, experience.offsetHeight - viewportHeight);
     var rect = experience.getBoundingClientRect();
     var absoluteTop = rect.top + window.scrollY;
     var raw = clamp((window.scrollY - absoluteTop) / travel, 0, 1);
+    var t = clamp((raw - MOVE_START) / (MOVE_END - MOVE_START), 0, 1);
+    var p = smoothstep(t);
     var focus = focusFor(section, raw);
-    var t = clamp((raw - START_TURN) / (END_TURN - START_TURN), 0, 1);
-    var p = focus === 'ai' ? 0 : (focus === 'web' ? 1 : smoothstep(t));
 
     section.style.setProperty('--tw-mobile-ai-x', (-82 * p).toFixed(2) + '%');
     section.style.setProperty('--tw-mobile-ai-ry', (-3 - (69 * p)).toFixed(2) + 'deg');
@@ -54,7 +56,11 @@
     section.style.setProperty('--tw-golden-landscape-raw', raw.toFixed(3));
 
     if (section.getAttribute('data-focus') !== focus) section.setAttribute('data-focus', focus);
-    if (focus === 'ai' || focus === 'web') section.setAttribute('data-tw-landscape-settled', focus);
+
+    /* Settled means the physical plate is actually at an endpoint, not merely
+       that one world's content currently owns the focus state. */
+    if (p <= 0.001) section.setAttribute('data-tw-landscape-settled', 'ai');
+    else if (p >= 0.999) section.setAttribute('data-tw-landscape-settled', 'web');
     else section.removeAttribute('data-tw-landscape-settled');
   }
 

@@ -57,7 +57,7 @@ jobs:
             for i in {1..20}; do curl -fsS "http://127.0.0.1:${port}/" >/dev/null && break; sleep 1; done
             curl -fsS "http://127.0.0.1:${port}/" >/dev/null
           done
-          cat >/tmp/capture.mjs <<'NODE'
+          cat >capture.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
           const out='capture-output';
@@ -129,7 +129,7 @@ jobs:
           await browser.close();
           if(!report.pass){console.error(JSON.stringify(checks.filter(x=>!x.pass),null,2));process.exit(1)}
           NODE
-          node /tmp/capture.mjs
+          node capture.mjs
 
       - name: Commit evidence to temporary PR head
         if: always()

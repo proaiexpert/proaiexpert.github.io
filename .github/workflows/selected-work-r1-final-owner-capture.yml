@@ -88,16 +88,31 @@ jobs:
             page.on('console',m=>{if(m.type()==='error')report.consoleErrors.push({url,type:'console',message:m.text()})});
             await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
             await page.waitForSelector('body',{state:'attached'});
-            await page.waitForTimeout(2600);
+            await page.waitForTimeout(2200);
             return page;
           }
 
           const en=await open('http://127.0.0.1:4174/',{width:1440,height:900});
+          await en.evaluate(async()=>{
+            const imgs=[...document.querySelectorAll('.home-fs-showcase-r11__stage img')];
+            await Promise.all(imgs.map(async img=>{try{await img.decode()}catch{}}));
+          });
+          await en.waitForTimeout(800);
           const enData=await en.evaluate(()=>{
             const fsRoot=document.querySelector('[data-fs-showcase-r11]');
             const thinking=document.querySelector('[data-selected-thinking-r1]');
             const fsImg=document.querySelector('.home-fs-showcase-r11__primary img');
             const r=fsImg?.getBoundingClientRect();
+            let uniqueColors=0;
+            if(fsImg?.naturalWidth){
+              const c=document.createElement('canvas'); c.width=96; c.height=67;
+              const ctx=c.getContext('2d',{willReadFrequently:true});
+              ctx.drawImage(fsImg,0,0,c.width,c.height);
+              const d=ctx.getImageData(0,0,c.width,c.height).data;
+              const colors=new Set();
+              for(let y=3;y<c.height;y+=8){for(let x=3;x<c.width;x+=8){const i=(y*c.width+x)*4;colors.add(`${Math.round(d[i]/16)}-${Math.round(d[i+1]/16)}-${Math.round(d[i+2]/16)}`)}}
+              uniqueColors=colors.size;
+            }
             return {
               viewport:{width:innerWidth,height:innerHeight},
               reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -109,7 +124,9 @@ jobs:
               fsNaturalHeight:fsImg?.naturalHeight||0,
               fsRenderedWidth:r?.width||0,
               fsRenderedHeight:r?.height||0,
-              fsOpacity:fsImg?Number(getComputedStyle(fsImg).opacity):0
+              fsOpacity:fsImg?Number(getComputedStyle(fsImg).opacity):0,
+              fsDecoded:fsImg?.complete&&fsImg?.naturalWidth>0,
+              fsSourceUniqueColorBins:uniqueColors
             };
           });
           report.checks.en1440Loads=true;
@@ -120,7 +137,9 @@ jobs:
           report.checks.financialStreamRevealLive=enData.fsIsLive;
           report.checks.selectedThinkingRevealVisible=enData.selectedThinkingVisible;
           report.checks.financialStreamImageNaturalWidth=enData.fsNaturalWidth;
-          report.checks.financialStreamImageVisible=enData.fsNaturalWidth>0&&enData.fsNaturalHeight>0&&enData.fsRenderedWidth>0&&enData.fsRenderedHeight>0&&enData.fsOpacity>0;
+          report.checks.financialStreamImageDecoded=enData.fsDecoded;
+          report.checks.financialStreamSourceUniqueColorBins=enData.fsSourceUniqueColorBins;
+          report.checks.financialStreamImageVisible=enData.fsNaturalWidth>0&&enData.fsNaturalHeight>0&&enData.fsRenderedWidth>0&&enData.fsRenderedHeight>0&&enData.fsOpacity>0&&enData.fsDecoded&&enData.fsSourceUniqueColorBins>4;
           const screenshotPath=`${out}/02-new-golden-candidate-en-full.png`;
           await en.screenshot({path:screenshotPath,fullPage:true,timeout:120000,animations:'disabled'});
           const png=fs.readFileSync(screenshotPath);

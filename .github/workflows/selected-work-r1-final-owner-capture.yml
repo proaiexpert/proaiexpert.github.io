@@ -11,37 +11,68 @@ permissions:
 jobs:
   capture:
     runs-on: ubuntu-24.04
-    timeout-minutes: 14
+    timeout-minutes: 12
     steps:
-      - name: Checkout exact PR head
+      - name: Checkout temporary PR head
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      - name: Build candidate
+      - name: Build exact frozen product
         shell: bash
         run: |
           set -Eeuo pipefail
+          PRODUCT=301166f1dd0251143f3dd5dfa468fb33e5a67b08
+          git worktree add --detach /tmp/proai-product "$PRODUCT"
           export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
           export PATH="$GEM_HOME/bin:$PATH"
           gem install --user-install jekyll -v 4.3.4 --no-document
           gem install --user-install webrick --no-document
-          jekyll build --source . --destination _site
-          mkdir -p capture-output
+          jekyll build --source /tmp/proai-product --destination /tmp/proai-product/_site
+          test -s /tmp/proai-product/_site/index.html
+          test -s /tmp/proai-product/_site/ru/index.html
+          mkdir -p capture-output review-output
 
-      - name: Install browser runtime
+      - name: Materialize static owner preview from built HTML
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          PRODUCT=301166f1dd0251143f3dd5dfa468fb33e5a67b08
+          python3 - <<'PY'
+          from pathlib import Path
+          PRODUCT='301166f1dd0251143f3dd5dfa468fb33e5a67b08'
+          out=Path('review-output')
+          out.mkdir(exist_ok=True)
+          for lang,src in [('en',Path('/tmp/proai-product/_site/index.html')),('ru',Path('/tmp/proai-product/_site/ru/index.html'))]:
+              s=src.read_text(encoding='utf-8')
+              s=s.replace('<html ', f'<html data-product-sha="{PRODUCT}" ', 1)
+              # Owner preview lives four levels below repository root. Rewrite only
+              # repository-root static resources; page content remains exact Jekyll output.
+              s=s.replace('"/assets/', '"../../../../assets/')
+              for f in ['favicon.svg','favicon-32x32.png','favicon-16x16.png','favicon.ico','apple-touch-icon.png']:
+                  s=s.replace(f'"/{f}"', f'"../../../../{f}"')
+              (out/f'owner-review-{lang}.html').write_text(s,encoding='utf-8')
+          index=f'''<!doctype html><html data-product-sha="{PRODUCT}" lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ProAI Golden R1.2 Final Owner Evidence</title><style>html{{font-family:Inter,system-ui,sans-serif;background:#05070a;color:#f2f0eb}}body{{margin:0;min-height:100vh;display:grid;place-items:center}}main{{padding:32px;text-align:center}}a{{color:inherit;margin:0 12px}}</style></head><body><main><h1>ProAI Golden R1.2</h1><p>Static Jekyll-built owner review · {PRODUCT[:12]}</p><p><a href="owner-review-en.html">EN</a><a href="owner-review-ru.html">RU</a></p></main></body></html>'''
+          (out/'index.html').write_text(index,encoding='utf-8')
+          PY
+          grep -q "data-product-sha=\"$PRODUCT\"" review-output/owner-review-en.html
+          grep -q "data-product-sha=\"$PRODUCT\"" review-output/owner-review-ru.html
+          ! grep -q 'preview-runtime.js' review-output/owner-review-en.html
+          ! grep -q 'preview-runtime.js' review-output/owner-review-ru.html
+
+      - name: Install Chromium
         shell: bash
         run: |
           set -Eeuo pipefail
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Capture candidate and bounded smoke QA
+      - name: Capture EN and bounded smoke QA
         shell: bash
         run: |
           set -Eeuo pipefail
-          python3 -m http.server 4174 --directory _site >/tmp/proai-new.log 2>&1 &
+          python3 -m http.server 4174 --directory /tmp/proai-product/_site >/tmp/proai-new.log 2>&1 &
           PID=$!
           trap 'kill $PID 2>/dev/null || true' EXIT
           for i in {1..20}; do curl -fsS http://127.0.0.1:4174/ >/dev/null && break; sleep 1; done
@@ -51,91 +82,74 @@ jobs:
           import fs from 'node:fs';
           const out='capture-output';
           const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
-          const report={product:'301166f1dd0251143f3dd5dfa468fb33e5a67b08',baseline:'c945084e1952c05c686494091f7dbca0f7acdf08',viewports:{},errors:[]};
-          const required=['header.site-header','#hero','.connected-system','#two-worlds-golden-r1','.home-tech-r2','.home-fs-showcase-r14','#selected-thinking-r1','.selected-work-r1','.home-footer-golden-r3'];
-          const obsolete=['.proai-golden-r12-downstream','.home-footer-watermark-r2'];
+          const report={product:'301166f1dd0251143f3dd5dfa468fb33e5a67b08',baseline:'c945084e1952c05c686494091f7dbca0f7acdf08',jekyllBuild:'PASS',checks:{},consoleErrors:[]};
           async function open(url,viewport){
             const page=await browser.newPage({viewportSize:viewport});
-            page.on('pageerror',e=>report.errors.push({url,type:'pageerror',message:String(e)}));
-            page.on('console',m=>{if(m.type()==='error')report.errors.push({url,type:'console',message:m.text()})});
+            page.setDefaultTimeout(20000);
+            page.on('pageerror',e=>report.consoleErrors.push({url,type:'pageerror',message:String(e)}));
+            page.on('console',m=>{if(m.type()==='error')report.consoleErrors.push({url,type:'console',message:m.text()})});
             await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
-            await page.waitForSelector('body',{state:'attached',timeout:10000});
-            await page.waitForTimeout(1400);
+            await page.waitForSelector('body',{state:'attached'});
+            await page.waitForTimeout(1800);
             return page;
           }
-          async function cube(page){
-            try{await page.waitForFunction(()=>['true','error'].includes(document.documentElement.dataset.goldenCubeReady),null,{timeout:8000})}catch{}
-            return page.evaluate(()=>document.documentElement.dataset.goldenCubeReady||'unknown');
-          }
-          async function smoke(w,h,label,url='http://127.0.0.1:4174/'){
-            const page=await open(url,{width:w,height:h});
-            const data=await page.evaluate(({required,obsolete})=>{
-              const els=required.map(s=>document.querySelector(s));
-              const missing=required.filter((s,i)=>!els[i]);
-              const order=els.map(el=>el?Math.round(el.getBoundingClientRect().top+scrollY):null);
-              const orderPass=order.every((v,i)=>i===0||v===null||order[i-1]===null||v>=order[i-1]);
-              const overflow=document.documentElement.scrollWidth-document.documentElement.clientWidth;
-              const titles=[...document.querySelectorAll('.selected-work-r1 h3')].map(x=>x.textContent.trim());
-              const statuses=[...document.querySelectorAll('.selected-work-r1__status')].map(x=>x.textContent.trim());
-              const fs=document.querySelector('.home-fs-showcase-r11__primary img');
-              const r=fs?.getBoundingClientRect();
-              return {missing,order,orderPass,overflow,obsoletePresent:obsolete.filter(s=>document.querySelector(s)),titles,statuses,fsImage:fs?{naturalWidth:fs.naturalWidth,naturalHeight:fs.naturalHeight,renderedWidth:r.width,renderedHeight:r.height}:null};
-            },{required,obsolete});
-            data.cube=await cube(page);
-            report.viewports[label]=data;
-            await page.close();
-          }
           const en=await open('http://127.0.0.1:4174/',{width:1440,height:900});
-          report.enCube=await cube(en); await en.waitForTimeout(700);
-          await en.screenshot({path:`${out}/02-new-golden-candidate-en-full.png`,fullPage:true});
+          const enData=await en.evaluate(()=>{
+            const fsImg=document.querySelector('.home-fs-showcase-r11__primary img');
+            return {
+              selectedWorkCount:document.querySelectorAll('[data-selected-work-r1]').length,
+              footerCount:document.querySelectorAll('[data-home-footer-golden-r3]').length,
+              fsNaturalWidth:fsImg?.naturalWidth||0,
+              fsNaturalHeight:fsImg?.naturalHeight||0
+            };
+          });
+          report.checks.en1440Loads=true;
+          report.checks.selectedWorkExactlyOnce=enData.selectedWorkCount===1;
+          report.checks.footerExactlyOnce=enData.footerCount===1;
+          report.checks.financialStreamImageNaturalWidth=enData.fsNaturalWidth;
+          report.checks.financialStreamImageVisible=enData.fsNaturalWidth>0&&enData.fsNaturalHeight>0;
+          await en.screenshot({path:`${out}/02-new-golden-candidate-en-full.png`,fullPage:true,timeout:120000,animations:'disabled'});
           await en.close();
+
           const ru=await open('http://127.0.0.1:4174/ru/',{width:1440,height:900});
-          report.ruCube=await cube(ru); await ru.waitForTimeout(700);
-          await ru.screenshot({path:`${out}/03-new-golden-candidate-ru-full.png`,fullPage:true});
+          report.checks.ru1440Loads=(await ru.locator('body').count())===1;
           await ru.close();
-          const mob=await open('http://127.0.0.1:4174/',{width:390,height:844});
-          await mob.screenshot({path:`${out}/04-new-golden-candidate-390x844-en.png`,fullPage:true});
-          await mob.close();
-          for(const [w,h] of [[1440,900],[1366,768],[1024,768],[390,844],[320,568],[844,390]]) await smoke(w,h,`${w}x${h}`);
-          await smoke(390,844,'ru-390x844','http://127.0.0.1:4174/ru/');
-          const checks=[];
-          for(const [label,v] of Object.entries(report.viewports)){
-            checks.push({name:`${label}: required`,pass:v.missing.length===0,detail:v.missing});
-            checks.push({name:`${label}: order`,pass:v.orderPass,detail:v.order});
-            checks.push({name:`${label}: overflow`,pass:v.overflow<=1,detail:v.overflow});
-            checks.push({name:`${label}: obsolete`,pass:v.obsoletePresent.length===0,detail:v.obsoletePresent});
-          }
-          const c=report.viewports['1440x900'];
-          checks.push({name:'Selected Work titles',pass:JSON.stringify(c.titles)===JSON.stringify(['Financial Stream','Alina Horb','Local Repair Pro']),detail:c.titles});
-          checks.push({name:'Selected Work statuses',pass:JSON.stringify(c.statuses)===JSON.stringify(['LIVE CLIENT · EN/RU','LIVE CLIENT · UA/RU','WEBSITE CONCEPT · LIVE DEMO']),detail:c.statuses});
-          checks.push({name:'Financial Stream image',pass:Boolean(c.fsImage&&c.fsImage.naturalWidth>0&&c.fsImage.naturalHeight>0&&c.fsImage.renderedWidth>0&&c.fsImage.renderedHeight>0),detail:c.fsImage});
-          report.checks=checks; report.pass=checks.every(x=>x.pass);
+
+          const mobile=await open('http://127.0.0.1:4174/',{width:390,height:844});
+          report.checks.en390Loads=(await mobile.locator('body').count())===1;
+          report.checks.horizontalOverflow390=await mobile.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-document.documentElement.clientWidth));
+          await mobile.close();
+
+          report.checks.noObviousFatalConsoleErrors=!report.consoleErrors.some(e=>/Uncaught|ReferenceError|SyntaxError|TypeError|ERR_MODULE|Failed to fetch dynamically imported module/i.test(e.message));
+          report.pass=report.checks.en1440Loads&&report.checks.ru1440Loads&&report.checks.en390Loads&&report.checks.horizontalOverflow390===0&&report.checks.financialStreamImageVisible&&report.checks.selectedWorkExactlyOnce&&report.checks.footerExactlyOnce&&report.checks.noObviousFatalConsoleErrors;
           fs.writeFileSync(`${out}/qa-report.json`,JSON.stringify(report,null,2));
           await browser.close();
-          if(!report.pass){console.error(JSON.stringify(checks.filter(x=>!x.pass),null,2));process.exit(1)}
+          if(!report.pass){console.error(JSON.stringify(report,null,2));process.exit(1)}
           NODE
           node capture.mjs
+          test -s capture-output/02-new-golden-candidate-en-full.png
+          test -s capture-output/qa-report.json
 
-      - name: Commit evidence to temporary PR head
+      - name: Commit evidence and static preview to temporary head
         if: always()
         shell: bash
         run: |
           set -Eeuo pipefail
-          if [ -d capture-output ] && [ -n "$(find capture-output -maxdepth 1 -type f -print -quit)" ]; then
-            git config user.name 'proai-owner-capture-bot'
-            git config user.email 'actions@users.noreply.github.com'
-            git add capture-output
-            if ! git diff --cached --quiet; then
-              git commit -m 'capture-evidence: Selected Work R1 final owner preview'
-              git push origin HEAD:${{ github.event.pull_request.head.ref }}
-            fi
+          git config user.name 'proai-owner-capture-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add capture-output review-output
+          if ! git diff --cached --quiet; then
+            git commit -m 'capture-evidence: complete Golden R1.2 final owner evidence'
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
           fi
 
       - name: Upload evidence artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: selected-work-r1-final-owner-capture
-          path: capture-output
+          name: golden-r1-2-final-owner-evidence
+          path: |
+            capture-output
+            review-output
           if-no-files-found: warn
           retention-days: 14

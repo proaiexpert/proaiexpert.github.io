@@ -11,7 +11,7 @@ permissions:
 jobs:
   capture:
     runs-on: ubuntu-24.04
-    timeout-minutes: 18
+    timeout-minutes: 14
     steps:
       - name: Checkout exact PR head
         uses: actions/checkout@v6
@@ -19,12 +19,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Build old and new Jekyll sites
+      - name: Build candidate
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -33,30 +28,24 @@ jobs:
           gem install --user-install jekyll -v 4.3.4 --no-document
           gem install --user-install webrick --no-document
           jekyll build --source . --destination _site
-          git worktree add --detach /tmp/proai-old c945084e1952c05c686494091f7dbca0f7acdf08
-          jekyll build --source /tmp/proai-old --destination /tmp/proai-old-site
           mkdir -p capture-output
 
-      - name: Install Chromium
+      - name: Install browser runtime
         shell: bash
         run: |
           set -Eeuo pipefail
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Capture and smoke QA
+      - name: Capture candidate and bounded smoke QA
         shell: bash
         run: |
           set -Eeuo pipefail
           python3 -m http.server 4174 --directory _site >/tmp/proai-new.log 2>&1 &
-          NEW_PID=$!
-          python3 -m http.server 4175 --directory /tmp/proai-old-site >/tmp/proai-old.log 2>&1 &
-          OLD_PID=$!
-          trap 'kill $NEW_PID $OLD_PID 2>/dev/null || true' EXIT
-          for port in 4174 4175; do
-            for i in {1..20}; do curl -fsS "http://127.0.0.1:${port}/" >/dev/null && break; sleep 1; done
-            curl -fsS "http://127.0.0.1:${port}/" >/dev/null
-          done
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in {1..20}; do curl -fsS http://127.0.0.1:4174/ >/dev/null && break; sleep 1; done
+          curl -fsS http://127.0.0.1:4174/ >/dev/null
           cat >capture.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
@@ -69,12 +58,13 @@ jobs:
             const page=await browser.newPage({viewportSize:viewport});
             page.on('pageerror',e=>report.errors.push({url,type:'pageerror',message:String(e)}));
             page.on('console',m=>{if(m.type()==='error')report.errors.push({url,type:'console',message:m.text()})});
-            await page.goto(url,{waitUntil:'networkidle',timeout:60000});
-            await page.waitForTimeout(1500);
+            await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForSelector('body',{state:'attached',timeout:10000});
+            await page.waitForTimeout(1400);
             return page;
           }
           async function cube(page){
-            try{await page.waitForFunction(()=>['true','error'].includes(document.documentElement.dataset.goldenCubeReady),null,{timeout:18000})}catch{}
+            try{await page.waitForFunction(()=>['true','error'].includes(document.documentElement.dataset.goldenCubeReady),null,{timeout:8000})}catch{}
             return page.evaluate(()=>document.documentElement.dataset.goldenCubeReady||'unknown');
           }
           async function smoke(w,h,label,url='http://127.0.0.1:4174/'){
@@ -95,20 +85,15 @@ jobs:
             report.viewports[label]=data;
             await page.close();
           }
-          const old=await open('http://127.0.0.1:4175/',{width:1440,height:900});
-          await old.waitForTimeout(1200);
-          await old.screenshot({path:`${out}/01-old-production-homepage-en-full.png`,fullPage:true});
-          await old.close();
           const en=await open('http://127.0.0.1:4174/',{width:1440,height:900});
-          await cube(en);await en.waitForTimeout(900);
+          report.enCube=await cube(en); await en.waitForTimeout(700);
           await en.screenshot({path:`${out}/02-new-golden-candidate-en-full.png`,fullPage:true});
           await en.close();
           const ru=await open('http://127.0.0.1:4174/ru/',{width:1440,height:900});
-          await cube(ru);await ru.waitForTimeout(900);
+          report.ruCube=await cube(ru); await ru.waitForTimeout(700);
           await ru.screenshot({path:`${out}/03-new-golden-candidate-ru-full.png`,fullPage:true});
           await ru.close();
           const mob=await open('http://127.0.0.1:4174/',{width:390,height:844});
-          await mob.waitForTimeout(700);
           await mob.screenshot({path:`${out}/04-new-golden-candidate-390x844-en.png`,fullPage:true});
           await mob.close();
           for(const [w,h] of [[1440,900],[1366,768],[1024,768],[390,844],[320,568],[844,390]]) await smoke(w,h,`${w}x${h}`);
@@ -124,7 +109,7 @@ jobs:
           checks.push({name:'Selected Work titles',pass:JSON.stringify(c.titles)===JSON.stringify(['Financial Stream','Alina Horb','Local Repair Pro']),detail:c.titles});
           checks.push({name:'Selected Work statuses',pass:JSON.stringify(c.statuses)===JSON.stringify(['LIVE CLIENT · EN/RU','LIVE CLIENT · UA/RU','WEBSITE CONCEPT · LIVE DEMO']),detail:c.statuses});
           checks.push({name:'Financial Stream image',pass:Boolean(c.fsImage&&c.fsImage.naturalWidth>0&&c.fsImage.naturalHeight>0&&c.fsImage.renderedWidth>0&&c.fsImage.renderedHeight>0),detail:c.fsImage});
-          report.checks=checks;report.pass=checks.every(x=>x.pass);report.cubeState=c.cube;
+          report.checks=checks; report.pass=checks.every(x=>x.pass);
           fs.writeFileSync(`${out}/qa-report.json`,JSON.stringify(report,null,2));
           await browser.close();
           if(!report.pass){console.error(JSON.stringify(checks.filter(x=>!x.pass),null,2));process.exit(1)}

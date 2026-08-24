@@ -1,0 +1,185 @@
+name: Selected Work R1.1 diagnostic QA
+
+on:
+  push:
+    branches:
+      - qa/proai-home-selected-work-r11-bounded
+
+permissions:
+  contents: write
+
+jobs:
+  bounded-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      PRODUCT_SHA: f409f2cbe928760f53a861a0455c4362d211dd4d
+      BASE_SHA: 301166f1dd0251143f3dd5dfa468fb33e5a67b08
+      REVIEW_BRANCH: review/proai-home-selected-work-r1-1-owner-review
+      STATUS_BRANCH: qa/proai-home-selected-work-r11-status
+      REVIEW_DIR: docs/site-evolution/reviews/proai-home-selected-work-r1-1-owner-review
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run bounded QA and package review
+        shell: bash
+        run: |
+          set +e
+          exec > >(tee /tmp/sw-qa.log) 2>&1
+          STATUS=PASS
+          mkdir -p /tmp/sw-qa /tmp/review-out
+
+          echo '[1/5] diff boundary'
+          git diff --name-only "$BASE_SHA" "$PRODUCT_SHA" | sort > /tmp/actual.txt
+          cat > /tmp/expected.txt <<'EOF'
+          _includes/home-selected-work-r1-en.html
+          _includes/home-selected-work-r1-ru.html
+          assets/css/home-selected-work-r1.css
+          EOF
+          sort -o /tmp/expected.txt /tmp/expected.txt
+          diff -u /tmp/expected.txt /tmp/actual.txt || STATUS=FAIL
+          test "$(git rev-list --count "$BASE_SHA..$PRODUCT_SHA")" = "1" || STATUS=FAIL
+
+          echo '[2/5] jekyll build'
+          gem install jekyll -v 4.3.4 --no-document || STATUS=FAIL
+          gem install webrick --no-document || STATUS=FAIL
+          if [ "$STATUS" = PASS ]; then
+            jekyll build || STATUS=FAIL
+          fi
+          test -s _site/index.html || STATUS=FAIL
+          test -s _site/ru/index.html || STATUS=FAIL
+
+          echo '[3/5] browser dependency'
+          if [ "$STATUS" = PASS ]; then
+            cd /tmp/sw-qa
+            npm init -y >/dev/null 2>&1 || STATUS=FAIL
+            npm install --no-save playwright@1.55.0 >/dev/null 2>&1 || STATUS=FAIL
+            npx playwright install --with-deps chromium >/dev/null 2>&1 || STATUS=FAIL
+            cd "$GITHUB_WORKSPACE"
+          fi
+
+          echo '[4/5] responsive runtime QA'
+          if [ "$STATUS" = PASS ]; then
+            python3 -m http.server 4000 --directory _site >/tmp/sw-server.log 2>&1 &
+            SERVER_PID=$!
+            for i in {1..25}; do curl -fsS http://127.0.0.1:4000/ >/dev/null && break; sleep 1; done
+            cat > /tmp/sw-qa/qa.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          const viewports = [[1440,900],[1366,768],[1024,768],[430,932],[390,844],[320,568]];
+          const locales = [
+            {name:'EN', path:'/', cases:['/case-studies/financial-stream/','/case-studies/alina-horb/','/case-studies/local-repair-pro/']},
+            {name:'RU', path:'/ru/', cases:['/ru/case-studies/financial-stream/','/ru/case-studies/alina-horb/','/ru/case-studies/local-repair-pro/']}
+          ];
+          const statuses = ['LIVE CLIENT · EN/RU','LIVE CLIENT · UA/RU','WEBSITE CONCEPT · LIVE DEMO'];
+          const live = ['https://financialstreamllc.com/','https://alinahorb.com/','/handyman-vancouver-portland-demo/'];
+          const failures = [], results = [];
+          const browser = await chromium.launch({headless:true, args:['--use-gl=swiftshader']});
+          for (const loc of locales) for (const [width,height] of viewports) {
+            const context = await browser.newContext({viewport:{width,height}});
+            const page = await context.newPage();
+            const fatal = [];
+            page.on('pageerror', e => fatal.push(String(e)));
+            page.on('console', m => {
+              if (m.type()==='error' && /Uncaught|TypeError|ReferenceError|SyntaxError/i.test(m.text())) fatal.push(m.text());
+            });
+            const resp = await page.goto('http://127.0.0.1:4000'+loc.path,{waitUntil:'domcontentloaded',timeout:30000});
+            await page.waitForTimeout(900);
+            await page.evaluate(async()=>{if(document.fonts?.ready) await document.fonts.ready;});
+            const data = await page.evaluate(({statuses,live,cases,mobile})=>{
+              const records=[...document.querySelectorAll('.selected-work-r11__record')];
+              const statusEls=[...document.querySelectorAll('.selected-work-r11__status')];
+              const actionPairs=records.map(r=>[...r.querySelectorAll('.selected-work-r11__actions a')].map(a=>a.getAttribute('href')));
+              const caseLinks=records.map(r=>r.querySelector('.selected-work-r11__identity h3 a')?.getAttribute('href'));
+              const overflow=Math.max(0,document.documentElement.scrollWidth-document.documentElement.clientWidth);
+              const clipped=records.some(r=>{const b=r.getBoundingClientRect();return b.left < -1 || b.right > innerWidth+1 || b.width<=0;});
+              const touch=!mobile || [...document.querySelectorAll('.selected-work-r11__actions a')].every(a=>a.getBoundingClientRect().height>=44);
+              const statusReadable=statusEls.every(e=>{const b=e.getBoundingClientRect();return b.width>0&&b.height>0&&parseFloat(getComputedStyle(e).fontSize)>=8.5;});
+              return {
+                selectedCount:document.querySelectorAll('#selected-work').length,
+                newClassCount:document.querySelectorAll('.selected-work-r11').length,
+                obsoleteCount:document.querySelectorAll('.selected-work-r1').length,
+                footerCount:document.querySelectorAll('footer').length,
+                recordCount:records.length,
+                statuses:statusEls.map(e=>e.textContent.trim()),
+                statusMatch:JSON.stringify(statusEls.map(e=>e.textContent.trim()))===JSON.stringify(statuses),
+                caseMatch:JSON.stringify(caseLinks)===JSON.stringify(cases),
+                liveMatch:actionPairs.every((p,i)=>p?.[1]===live[i]), overflow, clipped, touch, statusReadable
+              };
+            },{statuses,live,cases:loc.cases,mobile:width<=430});
+            const focusOk = await page.locator('.selected-work-r11__actions a').first().evaluate(el=>{el.focus();const cs=getComputedStyle(el);return document.activeElement===el&&cs.outlineStyle!=='none'&&parseFloat(cs.outlineWidth)>=1;});
+            const checks={load:!!resp&&resp.ok(),selectedOnce:data.selectedCount===1,newClassOnce:data.newClassCount===1,obsoleteGone:data.obsoleteCount===0,footerOnce:data.footerCount===1,threeRecords:data.recordCount===3,statusMatch:data.statusMatch,caseMatch:data.caseMatch,liveMatch:data.liveMatch,overflow:data.overflow===0,notClipped:!data.clipped,touchTargets:data.touch,statusReadable:data.statusReadable,focus:focusOk,fatalConsole:fatal.length===0};
+            for(const [k,v] of Object.entries(checks)) if(!v) failures.push(`${loc.name} ${width}x${height}: ${k}`);
+            results.push({locale:loc.name,viewport:{width,height},checks,data,fatal});
+            await context.close();
+          }
+          const reduced=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+          const rp=await reduced.newPage(); await rp.goto('http://127.0.0.1:4000/',{waitUntil:'domcontentloaded'}); await rp.waitForTimeout(250);
+          const reducedOk=await rp.locator('.selected-work-r11__record').first().evaluate(el=>getComputedStyle(el,'::before').transitionDuration.split(',').every(v=>(parseFloat(v)||0)<=0.001));
+          if(!reducedOk) failures.push('reduced-motion');
+          await reduced.close(); await browser.close();
+          fs.writeFileSync('/tmp/sw-qa/qa-report.json',JSON.stringify({failures,reducedOk,results},null,2));
+          console.log(JSON.stringify({failures,tested:results.length,reducedOk},null,2));
+          if(failures.length) process.exit(2);
+          NODE
+            cd /tmp/sw-qa && node qa.mjs || STATUS=FAIL
+            cd "$GITHUB_WORKSPACE"
+            kill "$SERVER_PID" 2>/dev/null || true
+          fi
+
+          echo '[5/5] owner review package'
+          if [ "$STATUS" = PASS ]; then
+            cat > /tmp/build-review.py <<'PY'
+          from pathlib import Path
+          import os,re
+          sha=os.environ['PRODUCT_SHA']; cdn=f'https://cdn.jsdelivr.net/gh/proaiexpert/proaiexpert.github.io@{sha}'
+          csspat=re.compile(r'<link\s+rel="stylesheet"\s+href="(/assets/css/[^"?]+)(?:\?[^\"]*)?">')
+          def build(src,out):
+              h=Path(src).read_text(encoding='utf-8')
+              def css(m):
+                  p=Path('_site')/m.group(1).lstrip('/')
+                  if not p.exists(): return m.group(0)
+                  s=p.read_text(encoding='utf-8')
+                  s=s.replace('url("/assets/',f'url("{cdn}/assets/').replace("url('/assets/",f"url('{cdn}/assets/").replace('url(/assets/',f'url({cdn}/assets/')
+                  return '<style data-review-source="'+m.group(1)+'">\n'+s+'\n</style>'
+              h=csspat.sub(css,h)
+              h=h.replace('"/assets/',f'"{cdn}/assets/').replace("'/assets/",f"'{cdn}/assets/")
+              h=h.replace('href="/favicon',f'href="{cdn}/favicon').replace('href="/apple-touch-icon',f'href="{cdn}/apple-touch-icon')
+              h=h.replace('<head>','<head>\n<meta name="robots" content="noindex,nofollow">')
+              Path(out).write_text(h,encoding='utf-8')
+          build('_site/index.html','/tmp/review-out/owner-review-en.html'); build('_site/ru/index.html','/tmp/review-out/owner-review-ru.html')
+          PY
+            python3 /tmp/build-review.py || STATUS=FAIL
+          fi
+
+          printf '%s\n' "$STATUS" > /tmp/sw-qa/STATUS.txt
+          echo "FINAL_STATUS=$STATUS"
+
+          git config user.name "ProAI QA Bot"
+          git config user.email "qa-bot@users.noreply.github.com"
+
+          if [ "$STATUS" = PASS ]; then
+            git switch --detach "$PRODUCT_SHA"
+            git switch -C "$REVIEW_BRANCH"
+            mkdir -p "$REVIEW_DIR"
+            cp /tmp/review-out/owner-review-en.html "$REVIEW_DIR/owner-review-en.html"
+            cp /tmp/review-out/owner-review-ru.html "$REVIEW_DIR/owner-review-ru.html"
+            git add "$REVIEW_DIR"
+            git commit -m "review: add Selected Work R1.1 owner preview"
+            git push --force origin "HEAD:refs/heads/$REVIEW_BRANCH"
+            git rev-parse HEAD > /tmp/sw-qa/review-sha.txt
+          fi
+
+          git switch --detach "$PRODUCT_SHA"
+          git switch -C "$STATUS_BRANCH"
+          mkdir -p docs/site-evolution/reviews/proai-home-selected-work-r1-1-qa-status
+          cp /tmp/sw-qa/STATUS.txt docs/site-evolution/reviews/proai-home-selected-work-r1-1-qa-status/STATUS.txt
+          cp /tmp/sw-qa.log docs/site-evolution/reviews/proai-home-selected-work-r1-1-qa-status/qa.log
+          [ -f /tmp/sw-qa/qa-report.json ] && cp /tmp/sw-qa/qa-report.json docs/site-evolution/reviews/proai-home-selected-work-r1-1-qa-status/qa-report.json
+          [ -f /tmp/sw-qa/review-sha.txt ] && cp /tmp/sw-qa/review-sha.txt docs/site-evolution/reviews/proai-home-selected-work-r1-1-qa-status/review-sha.txt
+          git add docs/site-evolution/reviews/proai-home-selected-work-r1-1-qa-status
+          git commit -m "chore: record Selected Work R1.1 bounded QA"
+          git push --force origin "HEAD:refs/heads/$STATUS_BRANCH"
+          exit 0

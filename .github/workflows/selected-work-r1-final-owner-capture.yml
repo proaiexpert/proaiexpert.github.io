@@ -94,8 +94,9 @@ jobs:
 
           const en=await open('http://127.0.0.1:4174/',{width:1440,height:900});
           await en.evaluate(async()=>{
-            const imgs=[...document.querySelectorAll('.home-fs-showcase-r11__stage img')];
-            await Promise.all(imgs.map(async img=>{try{await img.decode()}catch{}}));
+            const img=document.querySelector('.home-fs-showcase-r11__primary img');
+            if(!img) throw new Error('Financial Stream primary image missing');
+            await img.decode();
           });
           await en.waitForTimeout(800);
           const enData=await en.evaluate(()=>{

@@ -47,8 +47,6 @@ jobs:
           for lang,src in [('en',Path('/tmp/proai-product/_site/index.html')),('ru',Path('/tmp/proai-product/_site/ru/index.html'))]:
               s=src.read_text(encoding='utf-8')
               s=s.replace('<html ', f'<html data-product-sha="{PRODUCT}" ', 1)
-              # Owner preview lives four levels below repository root. Rewrite only
-              # repository-root static resources; page content remains exact Jekyll output.
               s=s.replace('"/assets/', '"../../../../assets/')
               for f in ['favicon.svg','favicon-32x32.png','favicon-16x16.png','favicon.ico','apple-touch-icon.png']:
                   s=s.replace(f'"/{f}"', f'"../../../../{f}"')
@@ -84,7 +82,7 @@ jobs:
           const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-webgl','--ignore-gpu-blocklist']});
           const report={product:'301166f1dd0251143f3dd5dfa468fb33e5a67b08',baseline:'c945084e1952c05c686494091f7dbca0f7acdf08',jekyllBuild:'PASS',checks:{},consoleErrors:[]};
           async function open(url,viewport){
-            const page=await browser.newPage({viewportSize:viewport});
+            const page=await browser.newPage({viewport});
             page.setDefaultTimeout(20000);
             page.on('pageerror',e=>report.consoleErrors.push({url,type:'pageerror',message:String(e)}));
             page.on('console',m=>{if(m.type()==='error')report.consoleErrors.push({url,type:'console',message:m.text()})});
@@ -93,35 +91,56 @@ jobs:
             await page.waitForTimeout(1800);
             return page;
           }
+          async function activateScrollReveal(page){
+            await page.evaluate(async()=>{
+              const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+              const step=Math.max(420,Math.floor(innerHeight*0.72));
+              const max=document.documentElement.scrollHeight-innerHeight;
+              for(let y=0;y<=max;y+=step){scrollTo(0,y);await sleep(90)}
+              scrollTo(0,max);await sleep(180);scrollTo(0,0);await sleep(250);
+            });
+          }
+
           const en=await open('http://127.0.0.1:4174/',{width:1440,height:900});
+          await activateScrollReveal(en);
           const enData=await en.evaluate(()=>{
             const fsImg=document.querySelector('.home-fs-showcase-r11__primary img');
+            const r=fsImg?.getBoundingClientRect();
             return {
+              viewport:{width:innerWidth,height:innerHeight},
               selectedWorkCount:document.querySelectorAll('[data-selected-work-r1]').length,
               footerCount:document.querySelectorAll('[data-home-footer-golden-r3]').length,
               fsNaturalWidth:fsImg?.naturalWidth||0,
-              fsNaturalHeight:fsImg?.naturalHeight||0
+              fsNaturalHeight:fsImg?.naturalHeight||0,
+              fsRenderedWidth:r?.width||0,
+              fsRenderedHeight:r?.height||0,
+              fsOpacity:fsImg?Number(getComputedStyle(fsImg).opacity):0
             };
           });
           report.checks.en1440Loads=true;
+          report.checks.enViewport=enData.viewport;
           report.checks.selectedWorkExactlyOnce=enData.selectedWorkCount===1;
           report.checks.footerExactlyOnce=enData.footerCount===1;
           report.checks.financialStreamImageNaturalWidth=enData.fsNaturalWidth;
-          report.checks.financialStreamImageVisible=enData.fsNaturalWidth>0&&enData.fsNaturalHeight>0;
-          await en.screenshot({path:`${out}/02-new-golden-candidate-en-full.png`,fullPage:true,timeout:120000,animations:'disabled'});
+          report.checks.financialStreamImageVisible=enData.fsNaturalWidth>0&&enData.fsNaturalHeight>0&&enData.fsRenderedWidth>0&&enData.fsRenderedHeight>0&&enData.fsOpacity>0;
+          const screenshotPath=`${out}/02-new-golden-candidate-en-full.png`;
+          await en.screenshot({path:screenshotPath,fullPage:true,timeout:120000,animations:'disabled'});
+          const png=fs.readFileSync(screenshotPath);
+          report.checks.enScreenshotWidth=png.readUInt32BE(16);
+          report.checks.enScreenshotHeight=png.readUInt32BE(20);
           await en.close();
 
           const ru=await open('http://127.0.0.1:4174/ru/',{width:1440,height:900});
-          report.checks.ru1440Loads=(await ru.locator('body').count())===1;
+          report.checks.ru1440Loads=(await ru.locator('body').count())===1&&(await ru.evaluate(()=>innerWidth))===1440;
           await ru.close();
 
           const mobile=await open('http://127.0.0.1:4174/',{width:390,height:844});
-          report.checks.en390Loads=(await mobile.locator('body').count())===1;
+          report.checks.en390Loads=(await mobile.locator('body').count())===1&&(await mobile.evaluate(()=>innerWidth))===390;
           report.checks.horizontalOverflow390=await mobile.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-document.documentElement.clientWidth));
           await mobile.close();
 
           report.checks.noObviousFatalConsoleErrors=!report.consoleErrors.some(e=>/Uncaught|ReferenceError|SyntaxError|TypeError|ERR_MODULE|Failed to fetch dynamically imported module/i.test(e.message));
-          report.pass=report.checks.en1440Loads&&report.checks.ru1440Loads&&report.checks.en390Loads&&report.checks.horizontalOverflow390===0&&report.checks.financialStreamImageVisible&&report.checks.selectedWorkExactlyOnce&&report.checks.footerExactlyOnce&&report.checks.noObviousFatalConsoleErrors;
+          report.pass=report.checks.en1440Loads&&report.checks.enViewport.width===1440&&report.checks.enViewport.height===900&&report.checks.enScreenshotWidth===1440&&report.checks.ru1440Loads&&report.checks.en390Loads&&report.checks.horizontalOverflow390===0&&report.checks.financialStreamImageVisible&&report.checks.selectedWorkExactlyOnce&&report.checks.footerExactlyOnce&&report.checks.noObviousFatalConsoleErrors;
           fs.writeFileSync(`${out}/qa-report.json`,JSON.stringify(report,null,2));
           await browser.close();
           if(!report.pass){console.error(JSON.stringify(report,null,2));process.exit(1)}

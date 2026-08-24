@@ -1,0 +1,219 @@
+name: Selected Work R1.1 Final Instrumented Browser Gate
+
+on:
+  push:
+    branches:
+      - review/proai-home-selected-work-r1-1-owner-preview
+
+permissions:
+  contents: write
+
+jobs:
+  browser-final:
+    if: ${{ startsWith(github.event.head_commit.message, 'review-browser-final:') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PRODUCT_SHA: f409f2cbe928760f53a861a0455c4362d211dd4d
+      PRODUCT_PARENT: 301166f1dd0251143f3dd5dfa468fb33e5a67b08
+      REVIEW_BRANCH: review/proai-home-selected-work-r1-1-owner-preview
+      REVIEW_DIR: docs/site-evolution/reviews/selected-work-r1-1-owner-preview
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Exact build, browser QA, and deterministic package
+        shell: bash
+        run: |
+          set -u
+          mkdir -p "$REVIEW_DIR"
+          git config user.name 'proai-review-bot'
+          git config user.email 'actions@users.noreply.github.com'
+
+          checkpoint() {
+            local stage="$1"
+            printf '%s\n' "$stage" > "$REVIEW_DIR/runner-stage.txt"
+            git add "$REVIEW_DIR/runner-stage.txt"
+            if [ -f "$REVIEW_DIR/qa-report.json" ]; then git add "$REVIEW_DIR/qa-report.json"; fi
+            if [ -f "$REVIEW_DIR/failure.txt" ]; then git add "$REVIEW_DIR/failure.txt"; fi
+            git commit -m "review-stage: $stage" >/dev/null 2>&1 || true
+            git push origin HEAD:"$REVIEW_BRANCH" >/dev/null
+            echo "STAGE=$stage"
+          }
+
+          fail_with() {
+            local stage="$1"; shift
+            printf '%s\n' "$*" > "$REVIEW_DIR/failure.txt"
+            checkpoint "$stage"
+            exit 1
+          }
+
+          checkpoint BROWSER_FINAL_STARTED
+
+          gem install jekyll -v 4.3.4 --no-document >/tmp/jekyll-install.log 2>&1 || fail_with JEKYLL_INSTALL_FAIL "$(tail -80 /tmp/jekyll-install.log)"
+          gem install webrick --no-document >>/tmp/jekyll-install.log 2>&1 || fail_with JEKYLL_INSTALL_FAIL "$(tail -80 /tmp/jekyll-install.log)"
+
+          mapfile -t changed < <(git diff --name-only "$PRODUCT_PARENT" "$PRODUCT_SHA" | sort)
+          printf '%s\n' "${changed[@]}" >/tmp/product-diff.txt
+          cat >/tmp/expected-diff.txt <<'EOF'
+          _includes/home-selected-work-r1-en.html
+          _includes/home-selected-work-r1-ru.html
+          assets/css/home-selected-work-r1.css
+          EOF
+          diff -u /tmp/expected-diff.txt /tmp/product-diff.txt >/tmp/diff-check.log 2>&1 || fail_with AUTHORITY_FAIL "$(cat /tmp/diff-check.log)"
+
+          rm -rf /tmp/proai-product /tmp/proai-site
+          git worktree add --detach /tmp/proai-product "$PRODUCT_SHA" >/tmp/worktree.log 2>&1 || fail_with WORKTREE_FAIL "$(cat /tmp/worktree.log)"
+          (cd /tmp/proai-product && jekyll build --destination /tmp/proai-site) >/tmp/jekyll-build.log 2>&1 || fail_with JEKYLL_FAIL "$(tail -120 /tmp/jekyll-build.log)"
+          checkpoint JEKYLL_PASS
+
+          npm install --no-save playwright@1.55.0 >/tmp/npm-install.log 2>&1 || fail_with PLAYWRIGHT_NPM_FAIL "$(tail -120 /tmp/npm-install.log)"
+          npx playwright install chromium >/tmp/playwright-install.log 2>&1 || fail_with PLAYWRIGHT_INSTALL_FAIL "$(tail -120 /tmp/playwright-install.log)"
+
+          python3 -m http.server 4173 --directory /tmp/proai-site >/tmp/sw-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          ready=0
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then ready=1; break; fi
+            sleep 1
+          done
+          [ "$ready" = 1 ] || fail_with HTTP_SERVER_FAIL "$(cat /tmp/sw-http.log)"
+
+          cat >/tmp/sw-final-qa.mjs <<'NODE'
+          import { chromium, request } from 'playwright';
+          import fs from 'node:fs';
+          const base='http://127.0.0.1:4173';
+          const productSha=process.env.PRODUCT_SHA;
+          const cases=[
+            {key:'EN_1440',path:'/',width:1440,height:900},
+            {key:'RU_1440',path:'/ru/',width:1440,height:900},
+            {key:'EN_390',path:'/',width:390,height:844},
+            {key:'EN_320',path:'/',width:320,height:568},
+          ];
+          const report={product_sha:productSha,jekyll:'PASS',cases:{},selected_work_links:[],broken_links:[],fatal_console_errors:[],frozen_component_files_changed:0};
+          const failures=[];
+          const allLinks=new Set();
+          let browser;
+          try {
+            browser=await chromium.launch({headless:true});
+          } catch(e) {
+            report.acceptance='FAIL'; report.failures=['chromium launch: '+String(e)];
+            fs.writeFileSync('/tmp/sw-final-qa.json',JSON.stringify(report,null,2));
+            process.exit(2);
+          }
+          for(const tc of cases){
+            const ctx=await browser.newContext({viewport:{width:tc.width,height:tc.height},deviceScaleFactor:1,reducedMotion:'reduce'});
+            const page=await ctx.newPage();
+            const pageErrors=[]; const consoleErrors=[];
+            page.on('pageerror',e=>pageErrors.push(String(e)));
+            page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
+            const response=await page.goto(base+tc.path,{waitUntil:'domcontentloaded',timeout:30000});
+            if(!response||!response.ok()) failures.push(`${tc.key}: homepage HTTP not OK`);
+            await page.waitForTimeout(1800);
+            const m=await page.evaluate(()=>{
+              const sw=document.querySelector('[data-selected-work-r11]');
+              const thinking=document.querySelector('[data-selected-thinking-r1]');
+              const footer=document.querySelector('[data-home-footer-golden-r3]');
+              const concept=document.querySelector('.selected-work-r11__record--concept');
+              const statuses=[...document.querySelectorAll('.selected-work-r11__status')];
+              const actions=[...document.querySelectorAll('.selected-work-r11__actions a')];
+              const statusRects=statuses.map(el=>{const r=el.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width,height:r.height}});
+              const doc=document.documentElement;
+              return {
+                selectedWorkCount:document.querySelectorAll('[data-selected-work-r11]').length,
+                afterThinking:!!(thinking&&sw&&(thinking.compareDocumentPosition(sw)&Node.DOCUMENT_POSITION_FOLLOWING)),
+                beforeFooter:!!(sw&&footer&&(sw.compareDocumentPosition(footer)&Node.DOCUMENT_POSITION_FOLLOWING)),
+                overflow:Math.max(0,doc.scrollWidth-doc.clientWidth),
+                statusTexts:statuses.map(el=>el.textContent.trim()),
+                statusReadable:statusRects.length===3&&statusRects.every(r=>r.width>0&&r.height>0&&r.left>=-0.5&&r.right<=innerWidth+0.5),
+                minActionHeight:actions.length?Math.min(...actions.map(el=>el.getBoundingClientRect().height)):0,
+                conceptDifferentiated:!!(concept&&concept.dataset.projectStatus==='website-concept'&&concept.querySelector('.selected-work-r11__kind')?.textContent.includes('CONCEPT / DEMO RECORD')&&concept.querySelector('.selected-work-r11__status')?.textContent.trim()==='WEBSITE CONCEPT · LIVE DEMO'&&document.querySelectorAll('.selected-work-r11__record[data-project-status="live-client"]').length===2),
+                selectedWorkLinks:sw?[...new Set([...sw.querySelectorAll('a')].map(a=>a.href))]:[],
+              };
+            });
+            m.selectedWorkLinks.forEach(x=>allLinks.add(x));
+            const fatalConsole=consoleErrors.filter(t=>!(/Failed to load resource|ERR_|favicon|WebGL.*software fallback/i.test(t)));
+            report.fatal_console_errors.push(...pageErrors.map(x=>`${tc.key} pageerror: ${x}`),...fatalConsole.map(x=>`${tc.key} console: ${x}`));
+            report.cases[tc.key]={...m,pageErrors,fatalConsole};
+            if(m.selectedWorkCount!==1)failures.push(`${tc.key}: Selected Work count=${m.selectedWorkCount}`);
+            if(!m.afterThinking)failures.push(`${tc.key}: Selected Thinking -> Selected Work`);
+            if(!m.beforeFooter)failures.push(`${tc.key}: Selected Work -> Footer`);
+            if(m.overflow!==0)failures.push(`${tc.key}: horizontal overflow=${m.overflow}`);
+            if(!m.conceptDifferentiated)failures.push(`${tc.key}: concept differentiation`);
+            if(m.statusTexts.join('|')!=='LIVE CLIENT · EN/RU|LIVE CLIENT · UA/RU|WEBSITE CONCEPT · LIVE DEMO')failures.push(`${tc.key}: status copy`);
+            if(tc.width<=390&&!m.statusReadable)failures.push(`${tc.key}: mobile status readability`);
+            if(tc.width<=390&&m.minActionHeight<44)failures.push(`${tc.key}: touch target=${m.minActionHeight}`);
+            if(pageErrors.length||fatalConsole.length)failures.push(`${tc.key}: fatal console/page errors`);
+            await ctx.close();
+          }
+          const api=await request.newContext({userAgent:'Mozilla/5.0 (ProAI QA)'});
+          for(const url of allLinks){
+            let status=0,ok=false,error=null;
+            try{
+              const r=await api.get(url,{timeout:20000,maxRedirects:8,failOnStatusCode:false});
+              status=r.status(); ok=status>=200&&status<400;
+            }catch(e){error=String(e)}
+            const item={url,status,ok,error}; report.selected_work_links.push(item); if(!ok)report.broken_links.push(item);
+          }
+          await api.dispose(); await browser.close();
+          if(report.broken_links.length)failures.push(`broken Selected Work links=${report.broken_links.length}`);
+          if(report.fatal_console_errors.length)failures.push(`fatal console errors=${report.fatal_console_errors.length}`);
+          report.acceptance=failures.length?'FAIL':'PASS'; report.failures=failures;
+          fs.writeFileSync('/tmp/sw-final-qa.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify(report,null,2));
+          if(failures.length)process.exit(1);
+          NODE
+
+          PRODUCT_SHA="$PRODUCT_SHA" node /tmp/sw-final-qa.mjs >/tmp/browser-qa.log 2>&1
+          QA_RC=$?
+          cp /tmp/sw-final-qa.json "$REVIEW_DIR/qa-report.json" 2>/dev/null || true
+          if [ "$QA_RC" -ne 0 ]; then
+            if [ -f /tmp/sw-final-qa.json ]; then cat /tmp/sw-final-qa.json > "$REVIEW_DIR/failure.txt"; else tail -160 /tmp/browser-qa.log > "$REVIEW_DIR/failure.txt"; fi
+            checkpoint BROWSER_FAIL
+            exit 1
+          fi
+          checkpoint BROWSER_PASS
+
+          rm -rf /tmp/sw-review-final
+          git worktree add --detach /tmp/sw-review-final "$PRODUCT_SHA" >/tmp/final-worktree.log 2>&1 || fail_with FINAL_WORKTREE_FAIL "$(cat /tmp/final-worktree.log)"
+          mkdir -p "/tmp/sw-review-final/$REVIEW_DIR"
+          python3 - <<'PY'
+          from pathlib import Path
+          import os,re
+          p=os.environ['PRODUCT_SHA']; repo='proaiexpert/proaiexpert.github.io'
+          asset=f'https://raw.githack.com/{repo}/{p}/'; prod='https://proai-expert.com/'
+          out=Path('/tmp/sw-review-final')/os.environ['REVIEW_DIR']
+          def make(src,dst):
+              h=Path(src).read_text(encoding='utf-8')
+              h=h.replace('<body ',f'<body data-product-sha="{p}" ',1)
+              h=h.replace('<head>','<head>\n<meta name="proai-product-sha" content="'+p+'">',1)
+              h=h.replace('"/assets/',f'"{asset}assets/').replace("'/assets/",f"'{asset}assets/")
+              h=h.replace('"/favicon',f'"{asset}favicon').replace('"/apple-touch-icon',f'"{asset}apple-touch-icon')
+              h=re.sub(r'href="/(?!/)',f'href="{prod}',h)
+              h=re.sub(r'src="/(?!/)',f'src="{asset}',h)
+              Path(dst).write_text(h,encoding='utf-8')
+          make('/tmp/proai-site/index.html',out/'owner-review-en.html')
+          make('/tmp/proai-site/ru/index.html',out/'owner-review-ru.html')
+          PY
+          cp /tmp/sw-final-qa.json "/tmp/sw-review-final/$REVIEW_DIR/qa-report.json"
+          mkdir -p /tmp/sw-review-final/.github/workflows
+          cp "$GITHUB_WORKSPACE/.github/workflows/selected-work-r1-1-browser-final.yml" /tmp/sw-review-final/.github/workflows/selected-work-r1-1-browser-final.yml
+          cd /tmp/sw-review-final
+          git config user.name 'proai-review-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add ".github/workflows/selected-work-r1-1-browser-final.yml" "$REVIEW_DIR/owner-review-en.html" "$REVIEW_DIR/owner-review-ru.html" "$REVIEW_DIR/qa-report.json"
+          git commit -m 'review: Selected Work R1.1 final QA + Owner preview'
+          FINAL_SHA="$(git rev-parse HEAD)"
+          git push --force origin HEAD:"$REVIEW_BRANCH"
+          echo "FINAL_REVIEW_SHA=$FINAL_SHA"

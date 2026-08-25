@@ -1,0 +1,72 @@
+name: AI Systems R3 isolated QA
+
+on:
+  push:
+    branches:
+      - agent/proai-ai-systems-r3-qa-run
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout QA branch
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Run controlled-agent reference tests
+        run: node --test tests/controlled-agent-reference.test.mjs | tee reference-tests.txt
+
+      - name: Install Jekyll
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          echo "$GEM_HOME/bin" >> "$GITHUB_PATH"
+
+      - name: Build immutable product locally
+        run: jekyll build --source . --destination _site
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.54.1
+          npx playwright install --with-deps chromium
+
+      - name: Serve built product
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory _site > /tmp/r3-server.log 2>&1 &
+          echo $! > /tmp/r3-server.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ai-systems/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/r3-server.log
+          exit 1
+
+      - name: Browser matrix + screenshots
+        run: node .github/r3-qa.mjs
+
+      - name: Attach test log
+        if: always()
+        run: |
+          mkdir -p artifacts/r3-qa
+          cp reference-tests.txt artifacts/r3-qa/reference-tests.txt || true
+          cp /tmp/r3-server.log artifacts/r3-qa/server.log || true
+
+      - name: Upload QA artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-systems-r3-qa
+          path: artifacts/r3-qa
+          if-no-files-found: error

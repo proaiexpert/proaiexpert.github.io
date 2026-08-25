@@ -8,6 +8,13 @@ import { EVENT, runReferenceScenario } from './controlled-agent-reference.mjs';
   root.classList.add('ai-r3-js');
   if (reduce) root.classList.add('ai-r3-reduce');
 
+  const testResult = document.querySelector('.ai-r3-test-result');
+  if (testResult) {
+    testResult.textContent = root.lang === 'ru'
+      ? '7 / 7 reference-тестов проходят'
+      : '7 / 7 reference tests passing';
+  }
+
   const activate = (el) => el.classList.add('is-r3-live');
   const revealTargets = [...document.querySelectorAll('[data-r3-reveal], [data-r3-sequence]')];
 

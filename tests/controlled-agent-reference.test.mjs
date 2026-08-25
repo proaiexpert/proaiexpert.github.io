@@ -68,3 +68,21 @@ test('reference trace ordering is deterministic', async () => {
   assert.deepEqual(first.trace.map((event) => event.seq), first.trace.map((_, index) => index + 1));
   assert.ok(types(first).indexOf(EVENT.AUTHORITY_APPROVED) < types(first).indexOf(EVENT.ACTION));
 });
+
+test('persistent primary tool failure falls back and still completes under control', async () => {
+  const result = await runControlledAgent(
+    { id: 'T-7', subject: 'Persistent primary failure', action: 'classify_only' },
+    { registry: createReferenceRegistry({ failPreviewAttempts: 99 }), approval: false, retryLimit: 2 },
+  );
+  const traceTypes = types(result);
+  const fallbackIndex = traceTypes.indexOf(EVENT.FALLBACK);
+  const actionIndex = traceTypes.indexOf(EVENT.ACTION);
+
+  assert.equal(result.status, 'COMPLETED');
+  assert.equal(result.usedFallback, true);
+  assert.equal(traceTypes.filter((type) => type === EVENT.RETRY).length, 2);
+  assert.equal(traceTypes.filter((type) => type === EVENT.TOOL_FAILURE).length, 3);
+  assert.ok(fallbackIndex > traceTypes.lastIndexOf(EVENT.TOOL_FAILURE));
+  assert.ok(actionIndex > fallbackIndex);
+  assert.equal(result.action.status, 'reference-action-applied');
+});

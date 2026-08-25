@@ -10,8 +10,8 @@
   if (!sections.length) return;
 
   var raf = 0;
-  var MOVE_START = 0.20;
-  var MOVE_END = 0.56;
+  var MOVE_START = 0.07;
+  var MOVE_END = 0.69;
   var SWITCH_TO_WEB = 0.405;
   var SWITCH_TO_AI = 0.355;
 
@@ -42,7 +42,7 @@
     var absoluteTop = rect.top + window.scrollY;
     var raw = clamp((window.scrollY - absoluteTop) / travel, 0, 1);
     var t = clamp((raw - MOVE_START) / (MOVE_END - MOVE_START), 0, 1);
-    var p = smoothstep(t);
+    var p = (0.70 * t) + (0.30 * smoothstep(t));
     var focus = focusFor(section, raw);
 
     section.style.setProperty('--tw-mobile-ai-x', (-82 * p).toFixed(2) + '%');

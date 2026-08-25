@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - agent/proai-ai-systems-r3-qa-run
+    paths-ignore:
+      - 'artifacts/r3-qa/**'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   qa:
@@ -15,6 +17,8 @@ jobs:
     steps:
       - name: Checkout QA branch
         uses: actions/checkout@v6
+        with:
+          ref: agent/proai-ai-systems-r3-qa-run
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -54,14 +58,33 @@ jobs:
           exit 1
 
       - name: Browser matrix + screenshots
+        id: browserqa
+        continue-on-error: true
         run: node .github/r3-qa.mjs
 
-      - name: Attach test log
+      - name: Attach test and server logs
         if: always()
         run: |
           mkdir -p artifacts/r3-qa
           cp reference-tests.txt artifacts/r3-qa/reference-tests.txt || true
           cp /tmp/r3-server.log artifacts/r3-qa/server.log || true
+          printf '%s\n' "PRODUCT_UNDER_TEST=f433b9696eb7643554b7731051fb7345192cf179" > artifacts/r3-qa/RUN.txt
+          printf '%s\n' "WORKFLOW_HEAD=${GITHUB_SHA}" >> artifacts/r3-qa/RUN.txt
+          printf '%s\n' "BROWSER_QA_OUTCOME=${{ steps.browserqa.outcome }}" >> artifacts/r3-qa/RUN.txt
+
+      - name: Persist QA evidence to isolated branch
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "ProAI QA Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -f artifacts/r3-qa
+          if git diff --cached --quiet; then
+            echo "No QA artifact changes to persist."
+          else
+            git commit -m "chore(ai-systems): persist R3 QA evidence [qa-artifacts]"
+            git push origin HEAD:agent/proai-ai-systems-r3-qa-run
+          fi
 
       - name: Upload QA artifact
         if: always()
@@ -70,3 +93,7 @@ jobs:
           name: ai-systems-r3-qa
           path: artifacts/r3-qa
           if-no-files-found: error
+
+      - name: Fail job if browser QA failed
+        if: steps.browserqa.outcome != 'success'
+        run: exit 1

@@ -2,6 +2,28 @@
 (function () {
   'use strict';
 
+  function addPsychologyPracticeStyles() {
+    if (document.getElementById('proai-psychology-practice-title-style')) return;
+    const style = document.createElement('style');
+    style.id = 'proai-psychology-practice-title-style';
+    style.textContent = `
+      @media (max-width: 760px) {
+        .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          max-width: 100%;
+          font-size: clamp(30px, 8.8vw, 36px);
+          line-height: .98;
+          letter-spacing: -.045em;
+        }
+        .selected-work-r11__record--client .selected-work-r11__identity h3 a {
+          max-width: 100%;
+          overflow-wrap: normal;
+          word-break: normal;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   function applyPsychologyPracticePositioning() {
     const isRu = (document.documentElement.lang || '').toLowerCase().startsWith('ru') || document.body.classList.contains('lang-ru');
     const records = Array.from(document.querySelectorAll('.selected-work-r11__record'));
@@ -17,7 +39,7 @@
     if (domain) domain.textContent = isRu
       ? 'ПСИХОЛОГИЧЕСКАЯ ПРАКТИКА · АЛИНА ГОРБ'
       : 'PSYCHOLOGY PRACTICE · ALINA HORB';
-    if (titleLink) titleLink.textContent = isRu ? 'Сайт психологической практики' : 'Psychology Practice Website';
+    if (titleLink) titleLink.textContent = isRu ? 'Психологическая практика' : 'Psychology Practice';
     if (descriptor) descriptor.textContent = isRu
       ? 'Двуязычный сайт психологической практики — с акцентом на личное доверие, понятную подачу подхода и ясный первый шаг к консультации.'
       : 'A bilingual website for a psychology practice — built to establish personal trust, explain the approach and make the first consultation step clear.';
@@ -56,6 +78,7 @@
     insights.classList.add('is-visible');
   }
 
+  addPsychologyPracticeStyles();
   applyPsychologyPracticePositioning();
 
   window.__PROAI_HOME_GOLDEN_R12 = Object.freeze({

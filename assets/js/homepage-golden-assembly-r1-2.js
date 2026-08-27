@@ -2,6 +2,32 @@
 (function () {
   'use strict';
 
+  function applyPsychologyPracticePositioning() {
+    const isRu = (document.documentElement.lang || '').toLowerCase().startsWith('ru') || document.body.classList.contains('lang-ru');
+    const records = Array.from(document.querySelectorAll('.selected-work-r11__record'));
+    const record = records.find((item) => item.querySelector('a[href="/case-studies/alina-horb/"], a[href="/ru/case-studies/alina-horb/"]'));
+    if (!record) return;
+
+    const domain = record.querySelector('.selected-work-r11__domain');
+    const titleLink = record.querySelector('.selected-work-r11__identity h3 a');
+    const descriptor = record.querySelector('.selected-work-r11__descriptor');
+    const values = record.querySelectorAll('.selected-work-r11__facts dd');
+    const actions = record.querySelector('.selected-work-r11__actions');
+
+    if (domain) domain.textContent = isRu
+      ? 'ПСИХОЛОГИЧЕСКАЯ ПРАКТИКА · АЛИНА ГОРБ'
+      : 'PSYCHOLOGY PRACTICE · ALINA HORB';
+    if (titleLink) titleLink.textContent = isRu ? 'Сайт психологической практики' : 'Psychology Practice Website';
+    if (descriptor) descriptor.textContent = isRu
+      ? 'Двуязычный сайт психологической практики — с акцентом на личное доверие, понятную подачу подхода и ясный первый шаг к консультации.'
+      : 'A bilingual website for a psychology practice — built to establish personal trust, explain the approach and make the first consultation step clear.';
+    if (values[0]) values[0].textContent = isRu ? 'Двуязычный сайт психологической практики' : 'Bilingual psychology-practice website';
+    if (values[1]) values[1].textContent = isRu
+      ? 'Структура сайта · UA/RU-контент · Редакционная система'
+      : 'Site structure · UA/RU content · Editorial system';
+    if (actions) actions.setAttribute('aria-label', isRu ? 'Ссылки сайта психологической практики Алины Горб' : 'Psychology Practice Website links for Alina Horb');
+  }
+
   const revealNodes = Array.from(document.querySelectorAll('.homepage-founder-proof .reveal, .materials-editorial .reveal'));
   if ('IntersectionObserver' in window) {
     const revealObserver = new IntersectionObserver((entries) => {
@@ -29,6 +55,8 @@
   } else if (insights) {
     insights.classList.add('is-visible');
   }
+
+  applyPsychologyPracticePositioning();
 
   window.__PROAI_HOME_GOLDEN_R12 = Object.freeze({
     cleanShell: true,

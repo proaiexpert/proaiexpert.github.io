@@ -36,6 +36,19 @@
           letter-spacing: 0;
           transform: translateY(-.06em);
         }
+        @media (max-width: 760px) {
+          .selected-work-r11__record--client .selected-work-r11__identity h3 {
+            max-width: 100%;
+            font-size: clamp(30px, 8.8vw, 36px);
+            line-height: .98;
+            letter-spacing: -.045em;
+          }
+          .selected-work-r11__record--client .selected-work-r11__identity h3 a {
+            max-width: 100%;
+            overflow-wrap: normal;
+            word-break: normal;
+          }
+        }
         @media (max-width: 600px) {
           .home-fs-showcase-r11__metric--bilingual strong {
             font-size: 25px;
@@ -121,8 +134,8 @@
           ? 'ПСИХОЛОГИЧЕСКАЯ ПРАКТИКА · АЛИНА ГОРБ'
           : 'PSYCHOLOGY PRACTICE · ALINA HORB');
         setText(record, '.selected-work-r11__identity h3 a', isRu
-          ? 'Сайт психологической практики'
-          : 'Psychology Practice Website');
+          ? 'Психологическая практика'
+          : 'Psychology Practice');
         const actions = record.querySelector('.selected-work-r11__actions');
         if (actions) actions.setAttribute('aria-label', isRu
           ? 'Ссылки сайта психологической практики Алины Горб'
@@ -144,6 +157,16 @@
     setText(section, '.home-fs-showcase-r11__thesis', isRu
       ? 'Двуязычный сайт для финансовой компании — с понятной подачей услуг, удобным путём к заявке, поисковой видимостью и поддержкой после запуска.'
       : 'A bilingual website for a financial-services business — designed to explain services clearly, guide inquiries, support search visibility and stay useful after launch.');
+
+    const primaryPicture = section.querySelector('.home-fs-showcase-r11__primary picture');
+    if (primaryPicture) {
+      const language = isRu ? 'ru' : 'en';
+      const source = primaryPicture.querySelector('source');
+      const image = primaryPicture.querySelector('img');
+      const base = `./assets/img/cases/financial-stream/delivery-v2/${language}/fs-${language}-01-home-hero`;
+      if (source) source.srcset = `${base}-640.webp 640w, ${base}-1120.webp 1120w`;
+      if (image) image.src = `${base}-1920.webp`;
+    }
 
     const depth = section.querySelector('.home-fs-showcase-r11__depth');
     if (depth) {

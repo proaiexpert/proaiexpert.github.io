@@ -8,9 +8,12 @@
     style.id = 'proai-psychology-practice-title-style';
     style.textContent = `
       @media (max-width: 760px) {
+        .selected-work-r11__record--client .selected-work-r11__record-body {
+          padding-left: 44px;
+        }
         .selected-work-r11__record--client .selected-work-r11__identity h3 {
           max-width: 100%;
-          font-size: clamp(30px, 8.8vw, 36px);
+          font-size: clamp(30px, 8.5vw, 36px);
           line-height: .98;
           letter-spacing: -.045em;
         }
@@ -18,6 +21,12 @@
           max-width: 100%;
           overflow-wrap: normal;
           word-break: normal;
+        }
+      }
+      @media (max-width: 360px) {
+        .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: 28px;
+          letter-spacing: -.05em;
         }
       }
     `;

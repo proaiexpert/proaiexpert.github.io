@@ -76,9 +76,9 @@
       },
       {
         kind: 'КЛИЕНТСКИЙ ПРОЕКТ',
-        descriptor: 'Двуязычный сайт эксперта, где услуги, подход и следующий шаг понятны с первых экранов.',
-        type: 'Двуязычный сайт эксперта',
-        built: 'Структура сайта · UA/RU-контент · Редакционная подача'
+        descriptor: 'Двуязычный сайт психологической практики — с акцентом на личное доверие, понятную подачу подхода и ясный первый шаг к консультации.',
+        type: 'Двуязычный сайт психологической практики',
+        built: 'Структура сайта · UA/RU-контент · Редакционная система'
       },
       {
         kind: 'РАБОЧИЙ КОНЦЕПТ / ДЕМО',
@@ -95,8 +95,8 @@
       },
       {
         kind: 'CLIENT PROJECT',
-        descriptor: 'A bilingual expert website that makes services, perspective and next steps easy to understand.',
-        type: 'Bilingual expert website',
+        descriptor: 'A bilingual website for a psychology practice — built to establish personal trust, explain the approach and make the first consultation step clear.',
+        type: 'Bilingual psychology-practice website',
         built: 'Site structure · UA/RU content · Editorial system'
       },
       {
@@ -115,6 +115,19 @@
       const values = record.querySelectorAll('.selected-work-r11__facts dd');
       if (values[0]) values[0].textContent = item.type;
       if (values[1]) values[1].textContent = item.built;
+
+      if (i === 1) {
+        setText(record, '.selected-work-r11__domain', isRu
+          ? 'ПСИХОЛОГИЧЕСКАЯ ПРАКТИКА · АЛИНА ГОРБ'
+          : 'PSYCHOLOGY PRACTICE · ALINA HORB');
+        setText(record, '.selected-work-r11__identity h3 a', isRu
+          ? 'Сайт психологической практики'
+          : 'Psychology Practice Website');
+        const actions = record.querySelector('.selected-work-r11__actions');
+        if (actions) actions.setAttribute('aria-label', isRu
+          ? 'Ссылки сайта психологической практики Алины Горб'
+          : 'Psychology Practice Website links for Alina Horb');
+      }
     });
 
     const close = section.querySelector('.selected-work-r11__close');

@@ -2,9 +2,10 @@
   'use strict';
 
   const lang = document.documentElement.lang === 'ru' ? 'ru' : 'en';
+  const asset = (relativePath) => new URL(relativePath, import.meta.url).href;
 
   const ensureStylesheet = (href) => {
-    if (document.querySelector(`link[href^="${href}"]`)) return;
+    if ([...document.styleSheets].some((sheet) => sheet.href === href) || document.querySelector(`link[href="${href}"]`)) return;
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
@@ -12,20 +13,23 @@
   };
 
   [
-    '/assets/css/header-footer-logo-r1.css',
-    '/assets/css/home-footer-golden-r3.css',
-    '/assets/css/home-footer-golden-r3-1.css',
-    '/assets/css/home-footer-golden-r3-2-polish.css',
-    '/assets/css/home-footer-golden-r3-3-micro-polish.css',
-    '/assets/css/home-footer-signature-r4.css',
-  ].forEach(ensureStylesheet);
+    '../css/header-footer-logo-r1.css',
+    '../css/home-footer-golden-r3.css',
+    '../css/home-footer-golden-r3-1.css',
+    '../css/home-footer-golden-r3-2-polish.css',
+    '../css/home-footer-golden-r3-3-micro-polish.css',
+    '../css/home-footer-signature-r4.css',
+  ].map(asset).forEach(ensureStylesheet);
+
+  const headerCube = asset('../brand/proai-logo-r341/proai-header-r111-static-cube-320.png');
+  const footerCube = asset('../brand/proai-logo-r341/proai-logo-r341-static-cube-320.png');
 
   const brand = document.querySelector('.site-header__brand');
   if (brand) {
     brand.innerHTML = `
       <span class="proai-logo-r341 proai-logo-r341--header" style="--logo-cube:40px;--logo-word:20px;--logo-gap:9px">
         <span class="proai-logo-r341__cube" aria-hidden="true">
-          <img class="proai-logo-r341__static" src="/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png" alt="" width="320" height="320" decoding="async">
+          <img class="proai-logo-r341__static" src="${headerCube}" alt="" width="320" height="320" decoding="async">
         </span>
         <span class="proai-logo-r341__wordmark" aria-hidden="true"><span class="proai-logo-r341__proai">ProAI</span><span class="proai-logo-r341__expert">Expert</span></span>
       </span>`;
@@ -107,7 +111,7 @@
         <div class="home-footer-golden-r3__bottom">
           <a class="home-footer-golden-r3__logo" href="${copy.homeHref}" aria-label="${copy.homeLabel}">
             <span class="proai-logo-r341 proai-logo-r341--footer">
-              <span class="proai-logo-r341__cube" aria-hidden="true"><img class="proai-logo-r341__static" src="/assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png" alt="" width="320" height="320" loading="lazy" decoding="async"></span>
+              <span class="proai-logo-r341__cube" aria-hidden="true"><img class="proai-logo-r341__static" src="${footerCube}" alt="" width="320" height="320" loading="lazy" decoding="async"></span>
               <span class="proai-logo-r341__wordmark" aria-hidden="true"><span class="proai-logo-r341__proai">ProAI</span><span class="proai-logo-r341__expert">Expert</span></span>
             </span>
           </a>
@@ -122,8 +126,8 @@
       </div>
     </footer>`;
 
-  ['/assets/js/home-footer-golden-r3.js', '/assets/js/home-footer-signature-r4.js'].forEach((src) => {
-    if (document.querySelector(`script[src^="${src}"]`)) return;
+  [asset('./home-footer-golden-r3.js'), asset('./home-footer-signature-r4.js')].forEach((src) => {
+    if (document.querySelector(`script[src="${src}"]`)) return;
     const script = document.createElement('script');
     script.src = src;
     script.defer = true;

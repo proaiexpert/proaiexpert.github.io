@@ -108,6 +108,22 @@
         ? 'ГЛУБЖЕ ИНТЕРФЕЙСА <span>EN/RU · ПОДАЧА ЗАЯВКИ · КОНТЕНТ / ПОИСК · ПОДДЕРЖКА ПОСЛЕ ЗАПУСКА</span>'
         : 'BEYOND THE INTERFACE <span>EN/RU · STRUCTURED INQUIRY · CONTENT / SEARCH · ONGOING SUPPORT</span>';
     }
+
+    const proof = section.querySelector('.home-fs-showcase-r11__proof');
+    if (proof) {
+      proof.setAttribute('aria-label', isRu ? 'Подтверждение реализации и поисковой видимости Financial Stream' : 'Financial Stream delivery and search proof');
+      const metrics = proof.querySelectorAll('.home-fs-showcase-r11__metric');
+      if (metrics[0]) {
+        setText(metrics[0], 'strong', '2');
+        setText(metrics[0], 'span', isRu ? 'ВЕРСИИ EN / RU' : 'EN / RU EXPERIENCES');
+      }
+      const provenance = proof.querySelector('.home-fs-showcase-r11__provenance');
+      if (provenance) {
+        provenance.innerHTML = isRu
+          ? 'ДВУЯЗЫЧНАЯ РЕАЛИЗАЦИЯ · GOOGLE SEARCH CONSOLE · СРЕЗ ЗА 6 МЕСЯЦЕВ · АВГУСТ 2026 <span>ИНДЕКСАЦИЯ ОБНОВЛЕНА 16 АВГУСТА 2026</span>'
+          : 'BILINGUAL DELIVERY · GOOGLE SEARCH CONSOLE · 6-MONTH PERFORMANCE SNAPSHOT · AUG 2026 <span>INDEXING UPDATED AUG 16, 2026</span>';
+      }
+    }
   }
 
   function applyFooterCopy(isRu) {

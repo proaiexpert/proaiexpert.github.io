@@ -58,10 +58,10 @@
 
   const copy = lang === 'ru'
     ? {
-        eyebrow: 'СЛЕДУЮЩИЙ ШАГ',
-        title: 'Покажите, где работа теряет время, контекст или контроль.',
-        summary: 'Начнём с процесса. Разберём, что исправить обычным правилом, где нужен AI, где оправдан агент, а где действительно нужен собственный код или интеграционный слой.',
-        action: 'Обсудить задачу',
+        eyebrow: 'PROAI EXPERT · AI SYSTEMS',
+        title: 'Строим системы, которые знают, когда действовать — и когда остановиться.',
+        summary: 'Архитектура процессов, автоматизация, агенты, API и собственная разработка для бизнеса, которому уже мало ещё одного изолированного AI-инструмента.',
+        action: 'Обсудить проект',
         actionHref: '/ru/contact/#project-intake',
         homeHref: '/ru/', homeLabel: 'Главная страница ProAI Expert',
         contactTitle: 'СВЯЗАТЬСЯ', capabilitiesTitle: 'НАПРАВЛЕНИЯ',
@@ -71,10 +71,10 @@
         copyright: '© 2026 PROAI EXPERT. ВСЕ ПРАВА ЗАЩИЩЕНЫ.',
       }
     : {
-        eyebrow: 'NEXT MOVE',
-        title: 'Show us where work loses time, context or control.',
-        summary: 'We will start with the operating problem, decide what should remain deterministic, where AI is justified, where an agent needs tools, and where custom engineering is the right layer.',
-        action: 'Discuss the system',
+        eyebrow: 'PROAI EXPERT · AI SYSTEMS',
+        title: 'Build the system that knows when to act — and when to stop.',
+        summary: 'Process architecture, automation, agents, APIs and custom engineering for businesses that need more than another isolated AI tool.',
+        action: 'Discuss a project',
         actionHref: '/contact/#project-intake',
         homeHref: '/', homeLabel: 'ProAI Expert homepage',
         contactTitle: 'CONTACT', capabilitiesTitle: 'CAPABILITIES',

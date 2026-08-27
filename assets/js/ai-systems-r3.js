@@ -1,4 +1,5 @@
 import { EVENT, runReferenceScenario } from './controlled-agent-reference.mjs';
+import './ai-systems-r3-shell-metrics-fix.js';
 
 (() => {
   'use strict';

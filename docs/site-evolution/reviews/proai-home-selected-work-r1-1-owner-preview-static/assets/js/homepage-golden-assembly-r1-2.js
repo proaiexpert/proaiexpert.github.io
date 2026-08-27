@@ -172,7 +172,7 @@
       const language = isRu ? 'ru' : 'en';
       const source = primaryPicture.querySelector('source');
       const image = primaryPicture.querySelector('img');
-      const base = `./assets/img/cases/financial-stream/delivery-v2/${language}/fs-${language}-01-home-hero`;
+      const base = `../../../../assets/img/cases/financial-stream/delivery-v2/${language}/fs-${language}-01-home-hero`;
       if (source) source.srcset = `${base}-640.webp 640w, ${base}-1120.webp 1120w`;
       if (image) image.src = `${base}-1920.webp`;
     }

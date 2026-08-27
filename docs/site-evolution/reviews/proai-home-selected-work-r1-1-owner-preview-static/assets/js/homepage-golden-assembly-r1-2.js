@@ -15,6 +15,36 @@
       link.href = href;
       document.head.appendChild(link);
     });
+
+    if (!document.getElementById('proai-fs-proof-bilingual-style')) {
+      const style = document.createElement('style');
+      style.id = 'proai-fs-proof-bilingual-style';
+      style.textContent = `
+        .home-fs-showcase-r11__metric--bilingual strong {
+          font-size: clamp(30px, 3vw, 46px);
+          letter-spacing: -.045em;
+          font-weight: 620;
+          white-space: nowrap;
+        }
+        .home-fs-showcase-r11__metric--bilingual .home-fs-showcase-r11__plus {
+          display: inline-block;
+          margin: 0 .08em;
+          color: rgba(231, 239, 244, .52);
+          font-size: .72em;
+          font-style: normal;
+          font-weight: 300;
+          letter-spacing: 0;
+          transform: translateY(-.06em);
+        }
+        @media (max-width: 600px) {
+          .home-fs-showcase-r11__metric--bilingual strong {
+            font-size: 25px;
+            letter-spacing: -.035em;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
   }
 
   function setText(root, selector, value) {
@@ -114,14 +144,19 @@
       proof.setAttribute('aria-label', isRu ? 'Подтверждение реализации и поисковой видимости Financial Stream' : 'Financial Stream delivery and search proof');
       const metrics = proof.querySelectorAll('.home-fs-showcase-r11__metric');
       if (metrics[0]) {
-        setText(metrics[0], 'strong', '2');
-        setText(metrics[0], 'span', isRu ? 'ВЕРСИИ EN / RU' : 'EN / RU EXPERIENCES');
+        metrics[0].classList.add('home-fs-showcase-r11__metric--bilingual');
+        const value = metrics[0].querySelector('strong');
+        if (value) {
+          value.setAttribute('aria-label', isRu ? 'EN плюс RU' : 'EN plus RU');
+          value.innerHTML = 'EN <i class="home-fs-showcase-r11__plus" aria-hidden="true">+</i> RU';
+        }
+        setText(metrics[0], 'span', isRu ? 'ДВУЯЗЫЧНАЯ РЕАЛИЗАЦИЯ' : 'BILINGUAL DELIVERY');
       }
       const provenance = proof.querySelector('.home-fs-showcase-r11__provenance');
       if (provenance) {
-        provenance.innerHTML = isRu
-          ? 'ДВУЯЗЫЧНАЯ РЕАЛИЗАЦИЯ · GOOGLE SEARCH CONSOLE · СРЕЗ ЗА 6 МЕСЯЦЕВ · АВГУСТ 2026 <span>ИНДЕКСАЦИЯ ОБНОВЛЕНА 16 АВГУСТА 2026</span>'
-          : 'BILINGUAL DELIVERY · GOOGLE SEARCH CONSOLE · 6-MONTH PERFORMANCE SNAPSHOT · AUG 2026 <span>INDEXING UPDATED AUG 16, 2026</span>';
+        provenance.textContent = isRu
+          ? 'EN + RU — факт двуязычной реализации · 8,36K показов и 52 страницы в индексе — данные Google Search Console · период 6 месяцев · август 2026 · индексирование обновлено 16 августа 2026'
+          : 'EN + RU is a delivery fact · 8.36K impressions and 52 indexed pages are from Google Search Console · 6-month window · August 2026 · Indexing updated August 16, 2026';
       }
     }
   }

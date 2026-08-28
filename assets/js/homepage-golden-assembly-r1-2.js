@@ -8,21 +8,32 @@
     style.id = 'proai-psychology-practice-title-style';
     style.textContent = `
       @media (min-width: 761px) {
-        .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
-          font-size: clamp(43px, 4.95vw, 69px);
-          line-height: .94;
+        body.lang-ru .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: clamp(47px, 5.3vw, 76px);
+          line-height: .93;
           letter-spacing: -.058em;
+        }
+        body.lang-en .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: clamp(50px, 5.65vw, 82px);
+          line-height: .93;
+          letter-spacing: -.06em;
         }
       }
       @media (max-width: 760px) {
         .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__record-body {
           padding-left: 40px;
         }
-        .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+        body.lang-ru .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
           max-width: 100%;
-          font-size: clamp(36px, 9.9vw, 42px);
-          line-height: .96;
+          font-size: clamp(40px, 10.9vw, 46px);
+          line-height: .94;
           letter-spacing: -.058em;
+        }
+        body.lang-en .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          max-width: 100%;
+          font-size: clamp(42px, 11.7vw, 50px);
+          line-height: .94;
+          letter-spacing: -.06em;
         }
         .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 a {
           display: inline-block;
@@ -36,15 +47,23 @@
         .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__record-body {
           padding-left: 36px;
         }
-        .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
-          font-size: clamp(32px, 9.6vw, 35px);
+        body.lang-ru .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: clamp(34px, 10.4vw, 38px);
           letter-spacing: -.06em;
+        }
+        body.lang-en .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: clamp(36px, 11.2vw, 42px);
+          letter-spacing: -.062em;
         }
       }
       @media (min-width: 761px) and (max-height: 520px) and (orientation: landscape) {
-        .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
-          font-size: clamp(40px, 5vw, 46px);
-          line-height: .94;
+        body.lang-ru .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: clamp(44px, 5.5vw, 52px);
+          line-height: .93;
+        }
+        body.lang-en .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: clamp(48px, 6vw, 58px);
+          line-height: .93;
         }
       }
     `;

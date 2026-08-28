@@ -56,6 +56,16 @@
           letter-spacing: -.062em;
         }
       }
+      @media (max-width: 760px) and (orientation: portrait) {
+        body.lang-ru .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: clamp(38px, 10.2vw, 44px);
+        }
+      }
+      @media (max-width: 360px) and (orientation: portrait) {
+        body.lang-ru .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: clamp(33px, 9.9vw, 37px);
+        }
+      }
       @media (min-width: 761px) and (max-height: 520px) and (orientation: landscape) {
         body.lang-ru .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
           font-size: clamp(44px, 5.5vw, 52px);

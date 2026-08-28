@@ -7,26 +7,44 @@
     const style = document.createElement('style');
     style.id = 'proai-psychology-practice-title-style';
     style.textContent = `
+      @media (min-width: 761px) {
+        .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: clamp(43px, 4.95vw, 69px);
+          line-height: .94;
+          letter-spacing: -.058em;
+        }
+      }
       @media (max-width: 760px) {
-        .selected-work-r11__record--client .selected-work-r11__record-body {
-          padding-left: 44px;
+        .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__record-body {
+          padding-left: 40px;
         }
-        .selected-work-r11__record--client .selected-work-r11__identity h3 {
+        .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
           max-width: 100%;
-          font-size: clamp(30px, 8.5vw, 36px);
-          line-height: .98;
-          letter-spacing: -.045em;
+          font-size: clamp(36px, 9.9vw, 42px);
+          line-height: .96;
+          letter-spacing: -.058em;
         }
-        .selected-work-r11__record--client .selected-work-r11__identity h3 a {
+        .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 a {
+          display: inline-block;
           max-width: 100%;
+          white-space: normal;
           overflow-wrap: normal;
           word-break: normal;
         }
       }
       @media (max-width: 360px) {
-        .selected-work-r11__record--client .selected-work-r11__identity h3 {
-          font-size: 28px;
-          letter-spacing: -.05em;
+        .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__record-body {
+          padding-left: 36px;
+        }
+        .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: clamp(32px, 9.6vw, 35px);
+          letter-spacing: -.06em;
+        }
+      }
+      @media (min-width: 761px) and (max-height: 520px) and (orientation: landscape) {
+        .selected-work-r11 .selected-work-r11__record--client .selected-work-r11__identity h3 {
+          font-size: clamp(40px, 5vw, 46px);
+          line-height: .94;
         }
       }
     `;

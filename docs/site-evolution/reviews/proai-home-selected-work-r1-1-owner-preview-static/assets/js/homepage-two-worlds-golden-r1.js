@@ -100,14 +100,15 @@
 
     if (mobileQuery.matches) {
       if (focus !== world) return;
-      var ratio = isLandscape() ? .60 : .66;
+      var ratio = isLandscape() ? .66 : .72;
       targetCenter = vr.left + vr.width / 2;
       targetWidth = vr.width * ratio;
       limits = [32,132];
     } else {
       var territory = desktopTerritory(focus, world);
+      var territoryTarget = window.innerWidth <= 1200 ? Math.min(.79, territory.target + .06) : territory.target;
       targetCenter = vr.left + vr.width * ((territory.start + territory.end) / 2);
-      targetWidth = vr.width * (territory.end - territory.start) * territory.target;
+      targetWidth = vr.width * (territory.end - territory.start) * territoryTarget;
       limits = [48,220];
     }
 

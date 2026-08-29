@@ -42,19 +42,22 @@ jobs:
         working-directory: /tmp/xylophone
         run: npm ci
 
-      - name: Development runtime smoke test
+      - name: Development runtime server smoke test
         working-directory: /tmp/xylophone
         run: |
           npm run dev -- --host 127.0.0.1 > /tmp/xylophone-vite.log 2>&1 &
           VITE_PID=$!
           trap 'kill $VITE_PID || true' EXIT
+          OK=0
           for i in {1..30}; do
             if curl --fail --silent http://127.0.0.1:5173/ > /tmp/xylophone-dev.html; then
+              OK=1
               break
             fi
             sleep 1
           done
-          grep -q "Interactive Glass Xylophone" /tmp/xylophone-dev.html
+          test "$OK" = "1"
+          grep -q "WebGL Xylophone" /tmp/xylophone-dev.html
           kill $VITE_PID
           wait $VITE_PID || true
           trap - EXIT

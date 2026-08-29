@@ -1,0 +1,130 @@
+name: Donor A ProAI Material R2 Final Gate
+
+on:
+  push:
+    branches:
+      - agent/proai-ai-systems-donor-xylophone-adaptation-r2
+    paths:
+      - .github/workflows/donor-a-xylophone-proai-material-r2.yml
+      - labs/donor-a-xylophone-proai-material-r2/apply-proai-material-r2.py
+
+permissions:
+  contents: write
+
+jobs:
+  material-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated R2 branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/proai-ai-systems-donor-xylophone-adaptation-r2
+
+      - name: Clone pinned donor authority
+        run: |
+          rm -rf /tmp/xylophone
+          git clone https://github.com/Sujenphea/xylophone.git /tmp/xylophone
+          cd /tmp/xylophone
+          git checkout --detach 8e4f9a8c7729f52edc006ca02c6c377921c4f1b7
+          test "$(git rev-parse HEAD)" = "8e4f9a8c7729f52edc006ca02c6c377921c4f1b7"
+
+      - name: Apply final R2 material-only overlay
+        run: |
+          python labs/donor-a-xylophone-proai-material-r2/apply-proai-material-r2.py
+          cd /tmp/xylophone
+          git diff --check
+          git diff > /tmp/R2-ADAPTATION-PATCH.diff
+          printf '%s\n' \
+            src/js/components/XylophoneBg.ts \
+            src/js/components/xylophone/Xylophone.ts \
+            src/shaders/xylophone/xylophoneFrag.glsl \
+            src/shaders/xylophoneBg/xylophoneBgFrag.glsl > /tmp/allowed.txt
+          git diff --name-only | sort > /tmp/actual.txt
+          sort /tmp/allowed.txt -o /tmp/allowed.txt
+          diff -u /tmp/allowed.txt /tmp/actual.txt
+          test -z "$(git status --porcelain -- src/assets/models/xylophone-09.glb src/js/components/xylophone/helix.ts src/shaders/xylophone/xylophoneVert.glsl src/js/main.ts src/js/configs/XylophoneConfig.ts)"
+
+      - name: Install exact locked donor dependencies
+        working-directory: /tmp/xylophone
+        run: npm ci
+
+      - name: Build R2
+        working-directory: /tmp/xylophone
+        run: npm run build
+
+      - name: Verify build assets
+        run: |
+          test -f /tmp/xylophone/dist/index.html
+          find /tmp/xylophone/dist -type f -name '*.js' | grep -q .
+          find /tmp/xylophone/dist -type f -name '*.css' | grep -q .
+          find /tmp/xylophone/dist -type f -name '*.glb' | grep -q .
+          find /tmp/xylophone/dist -type f -name '*.wav' | grep -q .
+          grep -q './assets/' /tmp/xylophone/dist/index.html
+
+      - name: Real Chrome WebGL QA and screenshots
+        run: |
+          cd /tmp/xylophone
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill $PREVIEW_PID || true' EXIT
+          for i in {1..30}; do curl --fail --silent http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          CHROME=$(command -v chromium || command -v chromium-browser || command -v google-chrome)
+          test -n "$CHROME"
+          FLAGS='--headless=new --no-sandbox --disable-dev-shm-usage --use-gl=angle --use-angle=swiftshader --enable-webgl --ignore-gpu-blocklist --hide-scrollbars --virtual-time-budget=7000'
+          $CHROME $FLAGS --window-size=1440,900 --screenshot=/tmp/PROAI-R2-RUNTIME-1440x900.png 'http://127.0.0.1:4173/?theme=proai'
+          $CHROME $FLAGS --window-size=1440,900 --dump-dom 'http://127.0.0.1:4173/?theme=proai' > /tmp/proai-desktop-dom.html
+          grep -q '<body class="demo-1">' /tmp/proai-desktop-dom.html
+          test -s /tmp/PROAI-R2-RUNTIME-1440x900.png
+          $CHROME $FLAGS --window-size=1440,900 --screenshot=/tmp/ORIGINAL-R2-RUNTIME-1440x900.png 'http://127.0.0.1:4173/?theme=original'
+          $CHROME $FLAGS --window-size=1440,900 --dump-dom 'http://127.0.0.1:4173/?theme=original' > /tmp/original-dom.html
+          grep -q '<body class="demo-1">' /tmp/original-dom.html
+          $CHROME $FLAGS --window-size=390,844 --screenshot=/tmp/PROAI-R2-RUNTIME-390x844.png 'http://127.0.0.1:4173/?theme=proai'
+          $CHROME $FLAGS --window-size=390,844 --dump-dom 'http://127.0.0.1:4173/?theme=proai' > /tmp/proai-mobile-dom.html
+          grep -q '<body class="demo-1">' /tmp/proai-mobile-dom.html
+          test -s /tmp/PROAI-R2-RUNTIME-390x844.png
+          kill $PREVIEW_PID; wait $PREVIEW_PID || true; trap - EXIT
+
+      - name: Package immutable R2 review
+        run: |
+          TARGET=labs/donor-a-xylophone-proai-material-r2
+          rm -rf "$TARGET/assets"
+          rm -f "$TARGET/index.html" "$TARGET/LICENSE.donor.txt" "$TARGET/PROVENANCE.txt" "$TARGET/R2-ADAPTATION-PATCH.diff" "$TARGET"/PROAI-R2-RUNTIME-*.png "$TARGET"/ORIGINAL-R2-RUNTIME-*.png
+          cp -a /tmp/xylophone/dist/. "$TARGET/"
+          cp /tmp/xylophone/LICENSE "$TARGET/LICENSE.donor.txt"
+          cp /tmp/R2-ADAPTATION-PATCH.diff "$TARGET/R2-ADAPTATION-PATCH.diff"
+          cp /tmp/PROAI-R2-RUNTIME-1440x900.png "$TARGET/PROAI-R2-RUNTIME-1440x900.png"
+          cp /tmp/PROAI-R2-RUNTIME-390x844.png "$TARGET/PROAI-R2-RUNTIME-390x844.png"
+          cp /tmp/ORIGINAL-R2-RUNTIME-1440x900.png "$TARGET/ORIGINAL-R2-RUNTIME-1440x900.png"
+          cat > "$TARGET/PROVENANCE.txt" <<'EOF'
+          ORIGINAL DONOR: Sujenphea/xylophone
+          DONOR SHA: 8e4f9a8c7729f52edc006ca02c6c377921c4f1b7
+          LICENSE: MIT
+          R1 AUTHORITY: a82080a1c595a49b141de0a536bca6b745d023d2
+          R2 BASE: a82080a1c595a49b141de0a536bca6b745d023d2
+          ORIGINAL GEOMETRY: UNCHANGED
+          GLB: UNCHANGED
+          BAR COUNT: UNCHANGED
+          HELIX: UNCHANGED
+          CAMERA: UNCHANGED
+          COMPOSITION: UNCHANGED
+          MOTION: UNCHANGED
+          DEPENDENCIES: UNCHANGED; npm ci from pinned donor lockfile
+          AUDIO: INTACT / ORIGINAL BEHAVIOR
+          PROAI MODIFICATIONS: FINAL MATERIAL / COLOR / ENVIRONMENT CORRECTION ONLY
+          REVIEW MODE: ?theme=proai (default) / ?theme=original
+          ADAPTED DONOR SOURCE FILES:
+          - src/js/components/xylophone/Xylophone.ts
+          - src/shaders/xylophone/xylophoneFrag.glsl
+          - src/js/components/XylophoneBg.ts
+          - src/shaders/xylophoneBg/xylophoneBgFrag.glsl
+          QA: Chrome WebGL loading state exit PASS at 1440x900 and 390x844
+          EOF
+
+      - name: Commit R2 package to isolated branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add labs/donor-a-xylophone-proai-material-r2
+          if git diff --cached --quiet; then echo 'No package changes.'; exit 0; fi
+          git commit -m 'lab: package donor A ProAI material R2 final runtime review'
+          git push origin HEAD:agent/proai-ai-systems-donor-xylophone-adaptation-r2

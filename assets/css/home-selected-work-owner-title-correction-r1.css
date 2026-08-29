@@ -98,3 +98,46 @@
     display: inline;
   }
 }
+
+/* Approved desktop/fine-pointer hover hairline. */
+.selected-work-r11__identity h3 a {
+  position: relative;
+  text-decoration: none !important;
+}
+
+@media (min-width: 981px) and (hover: hover) and (pointer: fine) {
+  .selected-work-r11__identity h3 a::after {
+    content: "";
+    position: absolute;
+    left: .02em;
+    bottom: -.12em;
+    width: clamp(38px, 4.1vw, 62px);
+    height: 1px;
+    background: linear-gradient(90deg, rgba(239, 239, 235, .42), rgba(181, 188, 194, .20) 58%, transparent 100%);
+    opacity: .34;
+    transform: scaleX(.72);
+    transform-origin: left center;
+    pointer-events: none;
+    transition: width 420ms cubic-bezier(.2,.72,.2,1), opacity 320ms ease, transform 420ms cubic-bezier(.2,.72,.2,1);
+  }
+
+  .selected-work-r11__identity h3 a:hover,
+  .selected-work-r11__identity h3 a:focus-visible {
+    text-decoration: none !important;
+  }
+
+  .selected-work-r11__record:hover .selected-work-r11__identity h3 a::after,
+  .selected-work-r11__record:focus-within .selected-work-r11__identity h3 a::after {
+    width: clamp(48px, 5vw, 78px);
+    opacity: .62;
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selected-work-r11__identity h3 a::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

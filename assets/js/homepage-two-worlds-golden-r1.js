@@ -9,6 +9,7 @@
 
   var finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
   var mobileQuery = window.matchMedia('(max-width: 980px), ((hover: none) and (pointer: coarse))');
+  var shortLandscapeQuery = window.matchMedia('(orientation: landscape) and (max-height: 540px) and (max-width: 980px) and (hover: none) and (pointer: coarse)');
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   var meters = new Map();
   var states = new WeakMap();
@@ -100,7 +101,7 @@
 
     if (mobileQuery.matches) {
       if (focus !== world) return;
-      var ratio = isLandscape() ? .66 : .72;
+      var ratio = isLandscape() ? .75 : .72;
       targetCenter = vr.left + vr.width / 2;
       targetWidth = vr.width * ratio;
       limits = [32,132];
@@ -170,7 +171,7 @@
   }
 
   function updateMobileSection(section) {
-    if (!mobileQuery.matches || reducedMotion.matches) return;
+    if (!mobileQuery.matches || reducedMotion.matches || shortLandscapeQuery.matches) return;
     var experience = section.querySelector('[data-tw-experience]');
     if (!experience) return;
     var rect = experience.getBoundingClientRect();
@@ -285,7 +286,7 @@
   window.addEventListener('scroll', scheduleScroll, { passive:true });
   window.addEventListener('resize', function () { syncMode(); scheduleScroll(); }, { passive:true });
   if (window.visualViewport) window.visualViewport.addEventListener('resize', syncMode, { passive:true });
-  [finePointer,mobileQuery,reducedMotion].forEach(function (query) {
+  [finePointer,mobileQuery,shortLandscapeQuery,reducedMotion].forEach(function (query) {
     if (typeof query.addEventListener === 'function') query.addEventListener('change', syncMode);
     else if (typeof query.addListener === 'function') query.addListener(syncMode);
   });

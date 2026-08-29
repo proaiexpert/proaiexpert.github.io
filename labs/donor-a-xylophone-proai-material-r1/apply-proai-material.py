@@ -1,0 +1,46 @@
+from pathlib import Path
+
+ROOT = Path('/tmp/xylophone')
+
+# 1) Review theme + controlled interaction ramp + material optical parameters.
+p = ROOT / 'src/js/components/xylophone/Xylophone.ts'
+s = p.read_text()
+s = s.replace('/* -------------------------------------------------------------------------- */\n/*                                    utils                                   */\n/* -------------------------------------------------------------------------- */\n/** 1px-tall spectrum ramp the bars sample for their hover tint. */', '''/* -------------------------------------------------------------------------- */\n/*                              review material mode                           */\n/* -------------------------------------------------------------------------- */\nconst REVIEW_THEME = new URLSearchParams(window.location.search).get("theme") === "original" ? "original" : "proai"\n\n/* -------------------------------------------------------------------------- */\n/*                                    utils                                   */\n/* -------------------------------------------------------------------------- */\n/** 1px-tall interaction ramp. Original remains exact; ProAI constrains it to cool optical indigo. */''')
+s = s.replace('''  grad.addColorStop(0.0, "#ff0033")\n  grad.addColorStop(0.3, "#ff00d4")\n  grad.addColorStop(0.5, "#6a00ff")\n  grad.addColorStop(0.8, "#0090ff")\n  grad.addColorStop(1.0, "#00ffe1")''', '''  if (REVIEW_THEME === "original") {\n    grad.addColorStop(0.0, "#ff0033")\n    grad.addColorStop(0.3, "#ff00d4")\n    grad.addColorStop(0.5, "#6a00ff")\n    grad.addColorStop(0.8, "#0090ff")\n    grad.addColorStop(1.0, "#00ffe1")\n  } else {\n    grad.addColorStop(0.0, "#181D23")\n    grad.addColorStop(0.28, "#C9CDD1")\n    grad.addColorStop(0.50, "#676BFF")\n    grad.addColorStop(0.72, "#5B50FF")\n    grad.addColorStop(1.0, "#9BA8FF")\n  }''')
+s = s.replace('''    u_tintWrap: { value: XYLOPHONE.tintWrap },\n\n    // frosted transmission\n    u_tBackdrop: { value: null as Texture | null },\n    u_transmission: { value: 0.84 },\n    u_refractStrength: { value: 0.2 },\n    u_fresnelPower: { value: 3.0 },\n\n    // iridescence\n    u_iridStrength: { value: 0.6 },\n    u_iridCycles: { value: 3.0 },\n    u_iridShift: { value: 0.0 },\n    u_iridPower: { value: 2.5 },\n    u_iridBody: { value: 0.12 },''', '''    u_tintWrap: { value: XYLOPHONE.tintWrap },\n    u_proaiMode: { value: REVIEW_THEME === "proai" ? 1.0 : 0.0 },\n\n    // frosted transmission — original values preserved in control mode\n    u_tBackdrop: { value: null as Texture | null },\n    u_transmission: { value: REVIEW_THEME === "proai" ? 0.76 : 0.84 },\n    u_refractStrength: { value: REVIEW_THEME === "proai" ? 0.14 : 0.2 },\n    u_fresnelPower: { value: REVIEW_THEME === "proai" ? 2.35 : 3.0 },\n\n    // iridescence — constrained optical edge response in ProAI mode\n    u_iridStrength: { value: REVIEW_THEME === "proai" ? 0.16 : 0.6 },\n    u_iridCycles: { value: REVIEW_THEME === "proai" ? 1.15 : 3.0 },\n    u_iridShift: { value: 0.0 },\n    u_iridPower: { value: REVIEW_THEME === "proai" ? 3.2 : 2.5 },\n    u_iridBody: { value: REVIEW_THEME === "proai" ? 0.018 : 0.12 },''')
+p.write_text(s)
+
+# 2) Bar fragment shader: preserve original branch byte-for-byte in behavior, add ProAI material branch only.
+p = ROOT / 'src/shaders/xylophone/xylophoneFrag.glsl'
+s = p.read_text()
+s = s.replace('uniform float u_tintWrap;\n', 'uniform float u_tintWrap;\nuniform float u_proaiMode;\n')
+needle = '''  vec3 tint = texture2D(u_tGradient, vec2(fract(vTintOffset * u_tintWrap), 0.5)).rgb;\n\n  // white body on rest\n'''
+insert = '''  vec3 tint = texture2D(u_tGradient, vec2(fract(vTintOffset * u_tintWrap), 0.5)).rgb;\n\n  if (u_proaiMode > 0.5) {\n    // Existing instance identity only: no geometry/count/helix changes. Two fixed existing bars become Pearl tests.\n    float instanceIndex = floor(vTintOffset * 64.0 + 0.5);\n    float family = mod(instanceIndex, 10.0);\n\n    const vec3 BLACK_CHROME = vec3(0.0941, 0.1137, 0.1373); // #181D23\n    const vec3 GRAPHITE = vec3(0.1412, 0.1647, 0.1922);    // #242A31\n    const vec3 GUNMETAL = vec3(0.1686, 0.1961, 0.2275);    // #2B323A\n    const vec3 SILVER = vec3(0.7882, 0.8039, 0.8196);      // #C9CDD1\n    const vec3 PEARL = vec3(0.9490, 0.9412, 0.9216);       // #F2F0EB\n    const vec3 INDIGO = vec3(0.4039, 0.4196, 1.0);         // #676BFF\n    const vec3 INDIGO_DEEP = vec3(0.3569, 0.3137, 1.0);    // #5B50FF\n    const vec3 INDIGO_EDGE = vec3(0.6078, 0.6588, 1.0);    // #9BA8FF\n\n    vec3 base = BLACK_CHROME;\n    if (family >= 4.0 && family < 7.0) base = GRAPHITE;\n    else if (family >= 7.0 && family < 9.0) base = GUNMETAL;\n    else if (family >= 9.0) base = SILVER * 0.72;\n\n    float pearlMask = step(abs(instanceIndex - 17.0), 0.25) + step(abs(instanceIndex - 49.0), 0.25);\n    pearlMask = clamp(pearlMask, 0.0, 1.0);\n    base = mix(base, PEARL, pearlMask);\n\n    // Local interaction energy is indigo only; rest-state hue remains overwhelmingly neutral/dark.\n    vec3 activeIndigo = mix(INDIGO_DEEP, INDIGO_EDGE, clamp(dot(N, normalize(LIGHT_DIR)) * 0.5 + 0.5, 0.0, 1.0));\n    vec3 activeBase = mix(base, activeIndigo, reveal * (pearlMask > 0.5 ? 0.18 : 0.62));\n    vec3 bodyP = lighting * (activeBase * 1.18 + vec3(0.012));\n\n    vec2 buvP = vScreenUv + N.xy * u_refractStrength;\n    vec3 transP = texture2D(u_tBackdrop, buvP).rgb;\n    transP = mix(transP, activeBase * 1.08, 0.18 + reveal * 0.42);\n    vec3 frostedP = mix(bodyP, transP, u_transmission * (1.0 - 0.38 * reveal));\n\n    float edgeP = clamp(1.0 - max(dot(N, V), 0.0), 0.0, 1.0);\n    float fresP = pow(edgeP, u_fresnelPower);\n    vec3 sheenP = proceduralEnv(reflect(-V, N));\n    vec3 colorP = mix(frostedP, sheenP, fresP * 0.50);\n    colorP += fresP * vec3(0.072, 0.078, 0.09);\n\n    // Controlled optical iridescence: silver -> cool white -> restrained indigo, never full-spectrum rainbow.\n    float optical = 0.5 + 0.5 * cos(2.0 * PI * (edgeP * u_iridCycles + N.y * 0.12 + u_iridShift));\n    vec3 opticalTint = mix(SILVER, INDIGO_EDGE, optical * 0.48);\n    colorP += opticalTint * (pow(edgeP, u_iridPower) * u_iridStrength + u_iridBody * edgeP);\n    colorP += INDIGO * reveal * 0.055;\n\n    // Pearl is reflective/optical, not emissive. Give it only a neutral Fresnel lift.\n    colorP = mix(colorP, colorP + SILVER * fresP * 0.16, pearlMask);\n\n    gl_FragColor = vec4(colorP, 1.0);\n    return;\n  }\n\n  // white body on rest\n'''
+if needle not in s:
+    raise SystemExit('xylophone fragment insertion point not found')
+s = s.replace(needle, insert)
+# Translate procedural environment only when in ProAI mode, while original branch keeps original ramp.
+s = s.replace('''  vec3 ground = vec3(0.12, 0.12, 0.14);\n  vec3 horizon = vec3(0.60, 0.62, 0.68);\n  vec3 sky = vec3(0.95, 0.97, 1.0);\n  return t < 0.5 ? mix(ground, horizon, t * 2.0) : mix(horizon, sky, (t - 0.5) * 2.0);''', '''  if (u_proaiMode > 0.5) {\n    vec3 groundP = vec3(0.0078, 0.0118, 0.0157); // #020304\n    vec3 horizonP = vec3(0.1412, 0.1647, 0.1922); // Graphite\n    vec3 skyP = vec3(0.7882, 0.8039, 0.8196); // Silver\n    vec3 envP = t < 0.5 ? mix(groundP, horizonP, t * 2.0) : mix(horizonP, skyP, (t - 0.5) * 2.0);\n    return mix(envP, vec3(0.4039, 0.4196, 1.0), smoothstep(0.82, 1.0, t) * 0.055);\n  }\n  vec3 ground = vec3(0.12, 0.12, 0.14);\n  vec3 horizon = vec3(0.60, 0.62, 0.68);\n  vec3 sky = vec3(0.95, 0.97, 1.0);\n  return t < 0.5 ? mix(ground, horizon, t * 2.0) : mix(horizon, sky, (t - 0.5) * 2.0);''')
+p.write_text(s)
+
+# 3) Background wrapper: same geometry, material uniforms only.
+p = ROOT / 'src/js/components/XylophoneBg.ts'
+s = p.read_text()
+s = s.replace('''export class XylophoneBg {\n  readonly uniforms = {\n    u_color: { value: new Color(0xa391d3) },''', '''const REVIEW_THEME = new URLSearchParams(window.location.search).get("theme") === "original" ? "original" : "proai"\n\nexport class XylophoneBg {\n  readonly uniforms = {\n    u_color: { value: new Color(REVIEW_THEME === "proai" ? 0x020304 : 0xa391d3) },\n    u_proaiMode: { value: REVIEW_THEME === "proai" ? 1.0 : 0.0 },''')
+p.write_text(s)
+
+# 4) Background shader: original formula untouched in control mode; ProAI uses obsidian technical ramp.
+p = ROOT / 'src/shaders/xylophoneBg/xylophoneBgFrag.glsl'
+s = p.read_text()
+s = s.replace('uniform float u_debugPattern;\n', 'uniform float u_debugPattern;\nuniform float u_proaiMode;\n')
+s = s.replace('''  vec3 color = mix(u_color, vec3(1.0), t - 0.3);''', '''  vec3 color;\n  if (u_proaiMode > 0.5) {\n    vec3 obsidian = vec3(0.0078, 0.0118, 0.0157); // #020304\n    vec3 upper = vec3(0.0549, 0.0706, 0.0902);    // restrained cool-black separation\n    color = mix(obsidian, upper, smoothstep(0.08, 0.92, t) * 0.72);\n    color = mix(color, vec3(0.3569, 0.3137, 1.0), smoothstep(0.92, 1.0, t) * 0.018);\n  } else {\n    color = mix(u_color, vec3(1.0), t - 0.3);\n  }''')
+p.write_text(s)
+
+print('Applied ProAI material translation to:')
+for rel in [
+    'src/js/components/xylophone/Xylophone.ts',
+    'src/shaders/xylophone/xylophoneFrag.glsl',
+    'src/js/components/XylophoneBg.ts',
+    'src/shaders/xylophoneBg/xylophoneBgFrag.glsl',
+]:
+    print(rel)

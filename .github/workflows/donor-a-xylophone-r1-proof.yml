@@ -1,0 +1,104 @@
+name: Donor A Xylophone R1 Proof
+
+on:
+  push:
+    branches:
+      - review/ai-systems-donor-a-xylophone-r1
+
+permissions:
+  contents: write
+
+jobs:
+  reproduce-donor:
+    if: ${{ !startsWith(github.event.head_commit.message, 'chore: package donor A build') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ProAI review branch
+        uses: actions/checkout@v4
+        with:
+          ref: review/ai-systems-donor-a-xylophone-r1
+
+      - name: Clone exact donor authority
+        run: |
+          rm -rf /tmp/xylophone
+          git clone https://github.com/Sujenphea/xylophone.git /tmp/xylophone
+          cd /tmp/xylophone
+          git checkout --detach 8e4f9a8c7729f52edc006ca02c6c377921c4f1b7
+          test "$(git rev-parse HEAD)" = "8e4f9a8c7729f52edc006ca02c6c377921c4f1b7"
+
+      - name: Verify donor source gate
+        run: |
+          cd /tmp/xylophone
+          test -f LICENSE
+          grep -q "MIT License" LICENSE
+          test -f package.json
+          test -f package-lock.json
+          test -f src/assets/models/xylophone-09.glb
+          test -f src/assets/audio/do.wav
+          test -d src/shaders
+          test -f src/js/main.ts
+          test -f src/js/components/xylophone/Xylophone.ts
+
+      - name: Install exact locked dependencies
+        working-directory: /tmp/xylophone
+        run: npm ci
+
+      - name: Development runtime smoke test
+        working-directory: /tmp/xylophone
+        run: |
+          npm run dev -- --host 127.0.0.1 > /tmp/xylophone-vite.log 2>&1 &
+          VITE_PID=$!
+          trap 'kill $VITE_PID || true' EXIT
+          for i in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:5173/ > /tmp/xylophone-dev.html; then
+              break
+            fi
+            sleep 1
+          done
+          grep -q "Interactive Glass Xylophone" /tmp/xylophone-dev.html
+          kill $VITE_PID
+          wait $VITE_PID || true
+          trap - EXIT
+
+      - name: Build original donor
+        working-directory: /tmp/xylophone
+        run: npm run build
+
+      - name: Verify production output
+        run: |
+          test -f /tmp/xylophone/dist/index.html
+          find /tmp/xylophone/dist -type f -name '*.js' | grep -q .
+          find /tmp/xylophone/dist -type f -name '*.css' | grep -q .
+          find /tmp/xylophone/dist -type f -name '*.glb' | grep -q .
+          find /tmp/xylophone/dist -type f -name '*.wav' | grep -q .
+          grep -q './assets/' /tmp/xylophone/dist/index.html
+
+      - name: Package immutable review build
+        run: |
+          rm -rf labs/donor-a-xylophone-r1
+          mkdir -p labs/donor-a-xylophone-r1
+          cp -a /tmp/xylophone/dist/. labs/donor-a-xylophone-r1/
+          cp /tmp/xylophone/LICENSE labs/donor-a-xylophone-r1/LICENSE.donor.txt
+          cat > labs/donor-a-xylophone-r1/DONOR-PROOF.txt <<'EOF'
+          DONOR: Endless Interactive Glass Xylophone — Sujen Phea / Codrops
+          SOURCE: https://github.com/Sujenphea/xylophone
+          OFFICIAL LIVE: https://tympanus.net/Tutorials/Xylophone/
+          DONOR COMMIT: 8e4f9a8c7729f52edc006ca02c6c377921c4f1b7
+          LICENSE: MIT (preserved as LICENSE.donor.txt)
+          INSTALL: npm ci
+          DEV: npm run dev -- --host 127.0.0.1
+          BUILD: npm run build
+          BUILD BASE OVERRIDE: NONE (donor vite.config.js already uses base: './')
+          VISUAL SOURCE CHANGES: NONE
+          BEHAVIOR SOURCE CHANGES: NONE
+          PROAI ADAPTATION: NONE
+          EOF
+
+      - name: Commit packaged donor build to review branch only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add labs/donor-a-xylophone-r1
+          git diff --cached --quiet && exit 0
+          git commit -m "chore: package donor A build 1:1"
+          git push origin HEAD:review/ai-systems-donor-a-xylophone-r1

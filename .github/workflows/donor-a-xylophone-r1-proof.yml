@@ -75,12 +75,48 @@ jobs:
           find /tmp/xylophone/dist -type f -name '*.wav' | grep -q .
           grep -q './assets/' /tmp/xylophone/dist/index.html
 
+      - name: Headless Chrome WebGL runtime proof
+        working-directory: /tmp/xylophone
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/xylophone-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill $PREVIEW_PID || true' EXIT
+          for i in {1..30}; do
+            curl --fail --silent http://127.0.0.1:4173/ >/dev/null && break
+            sleep 1
+          done
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          "$CHROME" \
+            --headless=new \
+            --no-sandbox \
+            --disable-dev-shm-usage \
+            --use-angle=swiftshader \
+            --enable-webgl \
+            --ignore-gpu-blocklist \
+            --window-size=1440,900 \
+            --virtual-time-budget=8000 \
+            --screenshot=/tmp/xylophone-runtime-1440x900.png \
+            --dump-dom \
+            http://127.0.0.1:4173/ > /tmp/xylophone-runtime-dom.html
+          test -s /tmp/xylophone-runtime-1440x900.png
+          test "$(stat -c%s /tmp/xylophone-runtime-1440x900.png)" -gt 10000
+          grep -q '<body class="demo-1">' /tmp/xylophone-runtime-dom.html
+          if grep -q '<body class="demo-1 loading">' /tmp/xylophone-runtime-dom.html; then
+            echo 'Donor remained in loading state; WebGL scene did not initialize.' >&2
+            exit 1
+          fi
+          kill $PREVIEW_PID
+          wait $PREVIEW_PID || true
+          trap - EXIT
+
       - name: Package immutable review build
         run: |
           rm -rf labs/donor-a-xylophone-r1
           mkdir -p labs/donor-a-xylophone-r1
           cp -a /tmp/xylophone/dist/. labs/donor-a-xylophone-r1/
           cp /tmp/xylophone/LICENSE labs/donor-a-xylophone-r1/LICENSE.donor.txt
+          cp /tmp/xylophone-runtime-1440x900.png labs/donor-a-xylophone-r1/RUNTIME-PROOF-1440x900.png
           printf '%s\n' \
             'DONOR: Endless Interactive Glass Xylophone — Sujen Phea / Codrops' \
             'SOURCE: https://github.com/Sujenphea/xylophone' \
@@ -91,6 +127,8 @@ jobs:
             'DEV: npm run dev -- --host 127.0.0.1' \
             'BUILD: npm run build' \
             "BUILD BASE OVERRIDE: NONE (donor vite.config.js already uses base: './')" \
+            'HEADLESS WEBGL PROOF: PASS — loading class removed in Chrome runtime' \
+            'DESKTOP SCREENSHOT: RUNTIME-PROOF-1440x900.png' \
             'VISUAL SOURCE CHANGES: NONE' \
             'BEHAVIOR SOURCE CHANGES: NONE' \
             'PROAI ADAPTATION: NONE' \
@@ -105,5 +143,5 @@ jobs:
             echo "Packaged build already matches; no commit required."
             exit 0
           fi
-          git commit -m "chore: package donor A build 1:1"
+          git commit -m "chore: package donor A build 1:1 with runtime proof"
           git push origin HEAD:review/ai-systems-donor-a-xylophone-r1

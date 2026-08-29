@@ -44,7 +44,6 @@ jobs:
           from pathlib import Path
 
           commercial = [
-              'index.html', 'ru/index.html',
               'about/index.html', 'ru/about/index.html',
               'contact/index.html', 'ru/contact/index.html',
               'ai-systems/index.html', 'ru/ai-systems/index.html',
@@ -83,6 +82,7 @@ jobs:
               'ru/insights/konstruktor-sayta-ili-sayt-na-zakaz-chto-vybrat-servisnomu-biznesu/index.html',
               'ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html',
           ]
+          golden_homepage = ['index.html', 'ru/index.html']
 
           families = {
               'commercial': commercial,
@@ -90,7 +90,7 @@ jobs:
               'editorial': editorial,
           }
           pulse_href = '/assets/css/footer-title-pulse-v1.css?v=20260804.1'
-          count = 0
+          unified_count = 0
 
           for family, routes in families.items():
               for route in routes:
@@ -105,7 +105,7 @@ jobs:
                   assert 'https://t.me/proAiexpert' in text, route
                   assert 'https://github.com/proaiexpert' in text, route
                   assert text.index('site-footer-contact-') < text.index('site-footer__services'), route
-                  count += 1
+                  unified_count += 1
 
           pulse = Path('_site/assets/css/footer-title-pulse-v1.css').read_text(encoding='utf-8')
           assert pulse.count('@keyframes siteFooterTitlePulseV5') == 1
@@ -119,8 +119,45 @@ jobs:
           polish = Path('_site/assets/css/footer-commercial-v1-polish.css').read_text(encoding='utf-8')
           assert 'siteFooterTitlePulseV4' not in polish
 
-          assert count == 44, count
-          print(f'Unified Footer System and shared title pulse verified for {count} routes.')
+          golden_css = [
+              '/assets/css/home-footer-golden-r3.css',
+              '/assets/css/home-footer-golden-r3-1.css',
+              '/assets/css/home-footer-golden-r3-2-polish.css',
+              '/assets/css/home-footer-golden-r3-3-micro-polish.css',
+          ]
+          golden_runtime = '/assets/js/home-footer-golden-r3.js'
+          golden_count = 0
+
+          for route in golden_homepage:
+              text = (Path('_site') / route).read_text(encoding='utf-8')
+              assert text.count('data-home-footer-golden-r3') == 1, route
+              assert text.count('home-footer-golden-r3__main') == 1, route
+              assert text.count('home-footer-golden-r3__signature') == 1, route
+              assert text.count('home-footer-golden-r3__signature-text') == 1, route
+              assert text.count('home-footer-golden-r3__bottom') == 1, route
+              for href in golden_css:
+                  assert text.count(href) == 1, (route, href)
+              assert text.count(golden_runtime) == 1, route
+              assert 'mailto:hello@proai-expert.com' in text, route
+              assert 'https://t.me/proAiexpert' in text, route
+              assert 'https://github.com/proaiexpert' in text, route
+              assert '{% include footer-system/' not in text, route
+              assert '{% include home-footer-golden-r3' not in text, route
+              assert '{{ footer_' not in text, route
+              golden_count += 1
+
+          unified_expected = sum(len(routes) for routes in families.values())
+          golden_expected = len(golden_homepage)
+          total_count = unified_count + golden_count
+          total_expected = unified_expected + golden_expected
+
+          assert unified_count == unified_expected, (unified_count, unified_expected)
+          assert golden_count == golden_expected, (golden_count, golden_expected)
+          assert total_count == total_expected, (total_count, total_expected)
+
+          print(f'Unified Footer System verified for {unified_count} routes.')
+          print(f'Golden Homepage Footer verified for {golden_count} routes.')
+          print(f'Footer verification passed for {total_count} routes total.')
           PY
 
       - name: Upload generated site artifact

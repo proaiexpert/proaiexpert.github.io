@@ -59,15 +59,14 @@ The current focus is on service businesses where trust, clear communication, and
 
 ## Verified project signals
 
-Financial Stream includes current, dated Google Search Console evidence:
+Financial Stream currently presents dated Google Search Console evidence together with verified delivery facts:
 
-- **57 organic clicks** in the selected six-month window captured August 4, 2026;
-- **7.24K search impressions**, **0.8% average CTR**, and **35.2 average position** in the same snapshot;
-- **50 indexed pages** and **13 pages not indexed across four reason groups** in the separate July 23, 2026 indexing snapshot;
-- several new practical articles continue to be published each month as the bilingual content system develops;
+- **EN + RU** bilingual delivery;
+- **8.36K search impressions** in the selected six-month window, August 2026;
+- **52 indexed pages**, with indexing updated August 16, 2026;
 - no claim that these signals alone prove lead growth, conversion improvement, revenue, SEO ROI, guaranteed rankings, or future performance.
 
-Full evidence and limitations are documented in the [Financial Stream case study](https://proai-expert.com/case-studies/financial-stream/).
+The current evidence framing and limitations are documented in the [Financial Stream case study](https://proai-expert.com/case-studies/financial-stream/).
 
 ## Website architecture
 
@@ -101,12 +100,16 @@ The site is built as a static production system using:
 
 - semantic HTML5;
 - CSS and responsive media queries;
-- minimal vanilla JavaScript;
+- minimal vanilla JavaScript plus targeted Three.js where the product requires it;
 - optimized responsive imagery;
-- GitHub-based source control and review workflows;
+- GitHub-based source control and controlled review;
 - GitHub Pages and custom-domain deployment.
 
-The repository also contains project documentation, portfolio case packs, QA records, current handoffs, and implementation standards.
+## Production authority
+
+The sole current product authority is [`PRODUCTION-AUTHORITY.md`](PRODUCTION-AUTHORITY.md).
+
+`main` is the current production source. Historical commits, old manifests, donor branches, review copies and checkpoint branches are evidence only and must not be treated as current design authority.
 
 ## Public repository standard
 
@@ -132,7 +135,7 @@ Working in English, Russian, and Ukrainian.
 
 ## Repository status
 
-This repository is the production source for the ProAI Expert website. The website is live and continues to evolve through controlled feature branches, pull requests, evidence review, EN/RU parity checks, and responsive QA.
+This repository is the production source for the ProAI Expert website. The website is live and evolves through narrow, reversible, evidence-backed changes with EN/RU parity and responsive QA.
 
 Major changes should preserve:
 

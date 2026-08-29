@@ -1,0 +1,81 @@
+{% assign footer_lang = include.lang | default: 'en' %}
+{% assign footer_copy = site.data.footer[footer_lang] %}
+{% assign social_data = site.data['social-links'] %}
+{% assign social_keys = social_data.by_language[footer_lang] %}
+{% if footer_lang == 'ru' %}
+  {% assign footer_cta_eyebrow = 'СЛЕДУЮЩИЙ ШАГ' %}
+  {% assign footer_cta_title = 'Готовы построить более сильную систему?' %}
+  {% assign footer_cta_summary = 'Если хотите сократить ручную работу, усилить сайт и связать обращения с дальнейшими действиями — обсудим, что стоит сделать в первую очередь.' %}
+  {% assign footer_cta_label = 'Обсудить проект' %}
+  {% assign footer_cta_href = '/ru/contact/' %}
+  {% assign footer_contact_title = 'СВЯЗАТЬСЯ' %}
+  {% assign footer_capabilities_title = 'НАПРАВЛЕНИЯ' %}
+{% else %}
+  {% assign footer_cta_eyebrow = 'NEXT STEP' %}
+  {% assign footer_cta_title = 'Ready to build a stronger system?' %}
+  {% assign footer_cta_summary = 'If you want less manual work, a stronger website, and a clearer path from inquiry to action, let’s discuss what should be built first.' %}
+  {% assign footer_cta_label = 'Discuss your project' %}
+  {% assign footer_cta_href = '/contact/' %}
+  {% assign footer_contact_title = 'CONTACT' %}
+  {% assign footer_capabilities_title = 'CAPABILITIES' %}
+{% endif %}
+<link rel="stylesheet" href="/assets/css/home-footer-golden-r3.css?v=20260819.1">
+<link rel="stylesheet" href="/assets/css/home-footer-golden-r3-1.css?v=20260820.1">
+<link rel="stylesheet" href="/assets/css/home-footer-golden-r3-2-polish.css?v=20260828.2">
+<link rel="stylesheet" href="/assets/css/home-footer-golden-r3-3-micro-polish.css?v=20260828.2">
+<footer class="home-footer-golden-r3" data-home-footer-golden-r3 data-lang="{{ footer_lang }}">
+  <div class="home-footer-golden-r3__shell">
+    <div class="home-footer-golden-r3__main">
+      <section class="home-footer-golden-r3__cta" aria-labelledby="home-footer-golden-r3-title-{{ footer_lang }}">
+        <p class="home-footer-golden-r3__eyebrow">{{ footer_cta_eyebrow }}</p>
+        <h2 id="home-footer-golden-r3-title-{{ footer_lang }}">{{ footer_cta_title }}</h2>
+        <p class="home-footer-golden-r3__summary">{{ footer_cta_summary }}</p>
+        <a class="home-footer-golden-r3__action" href="{{ footer_cta_href }}">{{ footer_cta_label }} <span aria-hidden="true">→</span></a>
+      </section>
+
+      <div class="home-footer-golden-r3__utility">
+        <section class="home-footer-golden-r3__group home-footer-golden-r3__contact" aria-labelledby="home-footer-golden-r3-contact-{{ footer_lang }}">
+          <h3 id="home-footer-golden-r3-contact-{{ footer_lang }}">{{ footer_contact_title }}</h3>
+          {% include footer-system/contact-links.html lang=footer_lang %}
+        </section>
+
+        <nav class="home-footer-golden-r3__group home-footer-golden-r3__capabilities" aria-label="{{ footer_capabilities_title }}">
+          <h3>{{ footer_capabilities_title }}</h3>
+          {% for service in footer_copy.services %}
+            <a href="{{ service.href }}">{{ service.label }}</a>
+          {% endfor %}
+        </nav>
+      </div>
+    </div>
+
+    <a class="home-footer-golden-r3__signature" href="{{ footer_copy.home_href }}" aria-label="{{ footer_copy.home_label }}" data-footer-material-zone>
+      <span class="home-footer-golden-r3__signature-light" aria-hidden="true"></span>
+      <span class="home-footer-golden-r3__signature-text" aria-hidden="true">PROAI EXPERT</span>
+    </a>
+
+    <div class="home-footer-golden-r3__bottom">
+      <a class="home-footer-golden-r3__logo" href="{{ footer_copy.home_href }}" aria-label="{{ footer_copy.home_label }}">
+        <span class="proai-logo-r341 proai-logo-r341--footer">
+          <span class="proai-logo-r341__cube" aria-hidden="true"><img class="proai-logo-r341__static" src="/assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png" alt="" width="320" height="320" loading="lazy" decoding="async"></span>
+          <span class="proai-logo-r341__wordmark" aria-hidden="true"><span class="proai-logo-r341__proai">ProAI</span><span class="proai-logo-r341__expert">Expert</span></span>
+        </span>
+      </a>
+
+      <nav class="home-footer-golden-r3__social-rail" aria-label="{{ footer_copy.social_label }}">
+        {% for social_key in social_keys %}
+          {% unless social_key == 'telegram' %}
+            {% assign social = social_data.profiles[social_key] %}
+            <a href="{{ social.href }}" target="_blank" rel="noopener noreferrer" aria-label="{{ social.labels[footer_lang] }}">{{ social.name }}</a>
+          {% endunless %}
+        {% endfor %}
+      </nav>
+
+      <nav class="home-footer-golden-r3__locale" aria-label="{{ footer_copy.locale_label }}">
+        <a href="{% if footer_lang == 'ru' %}/{% else %}/ru/{% endif %}" lang="{{ footer_copy.locale_lang }}" hreflang="{{ footer_copy.locale_lang }}">{{ footer_copy.locale_text }}</a>
+      </nav>
+
+      <p class="home-footer-golden-r3__copyright">{{ footer_copy.copyright }}</p>
+    </div>
+  </div>
+</footer>
+<script src="/assets/js/home-footer-golden-r3.js?v=20260819.1" defer></script>

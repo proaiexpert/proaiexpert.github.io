@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>PROAI — Form + Material Gate</title>
+  <style>
+    :root { color-scheme: dark; background: #020304; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #020304; }
+    body { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    #stage { display: block; width: 100%; height: 100%; touch-action: none; }
+    .gate-label {
+      position: fixed; left: max(18px, env(safe-area-inset-left)); top: max(16px, env(safe-area-inset-top));
+      z-index: 2; margin: 0; color: rgba(220, 224, 228, .43); font-size: 9px; line-height: 1;
+      font-weight: 600; letter-spacing: .22em; text-transform: uppercase; pointer-events: none; user-select: none;
+    }
+    .material-review {
+      position: fixed; right: max(18px, env(safe-area-inset-right)); top: max(14px, env(safe-area-inset-top));
+      z-index: 3; display: flex; align-items: center; gap: 5px; padding: 4px; border: 1px solid rgba(201,205,209,.14);
+      background: rgba(2,3,4,.64); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    }
+    .material-review a {
+      color: rgba(220,224,228,.48); text-decoration: none; font-size: 8px; line-height: 1; font-weight: 650;
+      letter-spacing: .14em; padding: 7px 8px; border: 1px solid transparent; text-transform: uppercase;
+    }
+    .material-review a[aria-current="true"] { color: #f2f0eb; border-color: rgba(201,205,209,.28); background: rgba(201,205,209,.07); }
+    .review-default { color: rgba(155,168,255,.62); font-size: 7px; letter-spacing: .12em; margin: 0 4px 0 3px; text-transform: uppercase; }
+    @media (max-width: 520px) {
+      .gate-label { left: 14px; top: 14px; font-size: 8px; }
+      .material-review { right: 10px; top: 10px; }
+      .review-default { display: none; }
+      .material-review a { padding: 6px 7px; }
+    }
+  </style>
+</head>
+<body>
+  <p class="gate-label">FORM + MATERIAL GATE</p>
+  <nav class="material-review" aria-label="Material review mode">
+    <span class="review-default">PBR default for review</span>
+    <a href="?material=pbr" data-material="PBR">PBR</a>
+    <a href="?material=matcap" data-material="MATCAP">MATCAP</a>
+  </nav>
+  <canvas id="stage" aria-label="PROAI form and metallic material study"></canvas>
+
+  <script type="module">
+    import * as THREE from '../../../../assets/vendor/three-r180/build/three.module.min.js';
+
+    const QA = window.__PROAI_QA__ = {
+      ready: false,
+      threeRevision: THREE.REVISION,
+      materialMode: new URLSearchParams(location.search).get('material') === 'matcap' ? 'MATCAP' : 'PBR',
+      errors: [],
+      bloom: false,
+      forms: ['Process Block', 'Route Wedge', 'Control Bridge', 'Pearl Authority']
+    };
+    addEventListener('error', (event) => QA.errors.push(String(event.message || event.error || 'window error')));
+    addEventListener('unhandledrejection', (event) => QA.errors.push(String(event.reason || 'unhandled rejection')));
+    document.querySelectorAll('[data-material]').forEach((link) => {
+      link.setAttribute('aria-current', String(link.dataset.material === QA.materialMode));
+    });
+
+    const canvas = document.querySelector('#stage');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.93;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('#020304');
+
+    const camera = new THREE.PerspectiveCamera(33, 1, 0.1, 80);
+    camera.position.set(10.7, 7.6, 15.6);
+    const cameraTarget = new THREE.Vector3(0.55, 1.05, -0.15);
+    camera.lookAt(cameraTarget);
+
+    function addStudioEnvironment() {
+      const studio = new THREE.Scene();
+      studio.background = new THREE.Color('#050607');
+      const cards = [
+        { size:[3.2, 9.0, .08], pos:[-6.2, 2.6, 1.5], rot:[0, .46, 0], color:'#d6d8da' },
+        { size:[1.2, 8.0, .08], pos:[5.4, 1.4, -3.8], rot:[0, -1.0, 0], color:'#8f969d' },
+        { size:[9.0, 1.1, .08], pos:[.2, 6.0, -1.2], rot:[1.18, 0, 0], color:'#f0eee8' },
+        { size:[5.0, .55, .08], pos:[1.5, 2.3, 6.0], rot:[0, 0, 0], color:'#5f666d' },
+        { size:[3.5, 2.0, .08], pos:[-1.0, -3.4, -3.5], rot:[-.6, .3, 0], color:'#171c22' }
+      ];
+      for (const c of cards) {
+        const mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(...c.size),
+          new THREE.MeshBasicMaterial({ color: c.color, side: THREE.DoubleSide })
+        );
+        mesh.position.set(...c.pos); mesh.rotation.set(...c.rot); studio.add(mesh);
+      }
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      const envRT = pmrem.fromScene(studio, 0.045, 0.1, 40);
+      scene.environment = envRT.texture;
+      pmrem.dispose();
+      studio.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+      return envRT;
+    }
+    const studioEnvironment = addStudioEnvironment();
+
+    function createMatcap(kind = 'dark') {
+      const size = 256;
+      const c = document.createElement('canvas'); c.width = c.height = size;
+      const ctx = c.getContext('2d');
+      const bg = kind === 'pearl' ? '#6e7276' : '#090b0e';
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, size, size);
+      const g = ctx.createRadialGradient(size*.34, size*.26, size*.02, size*.48, size*.50, size*.74);
+      if (kind === 'pearl') {
+        g.addColorStop(0, '#ffffff'); g.addColorStop(.18, '#e9e7e2'); g.addColorStop(.44, '#a9adb1');
+        g.addColorStop(.68, '#f0eee8'); g.addColorStop(1, '#494e54');
+      } else {
+        g.addColorStop(0, '#f4f5f6'); g.addColorStop(.09, '#8d949b'); g.addColorStop(.28, '#20262c');
+        g.addColorStop(.56, '#626a73'); g.addColorStop(.73, '#12161b'); g.addColorStop(1, '#030405');
+      }
+      ctx.fillStyle = g; ctx.fillRect(0, 0, size, size);
+      const band = ctx.createLinearGradient(0, 0, size, size);
+      band.addColorStop(.40, 'rgba(255,255,255,0)');
+      band.addColorStop(.49, kind === 'pearl' ? 'rgba(255,255,255,.46)' : 'rgba(255,255,255,.24)');
+      band.addColorStop(.54, 'rgba(255,255,255,0)');
+      ctx.fillStyle = band; ctx.fillRect(0, 0, size, size);
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; return t;
+    }
+    const matcapDark = createMatcap('dark');
+    const matcapPearl = createMatcap('pearl');
+
+    const pbr = {
+      blackChrome: new THREE.MeshPhysicalMaterial({ color:'#181D23', metalness:1.0, roughness:.14, clearcoat:.36, clearcoatRoughness:.10, envMapIntensity:1.42 }),
+      graphite: new THREE.MeshPhysicalMaterial({ color:'#242A31', metalness:.86, roughness:.31, clearcoat:.18, clearcoatRoughness:.22, envMapIntensity:1.05 }),
+      gunmetal: new THREE.MeshPhysicalMaterial({ color:'#2B323A', metalness:.95, roughness:.22, clearcoat:.20, clearcoatRoughness:.16, envMapIntensity:1.20 }),
+      pearl: new THREE.MeshPhysicalMaterial({ color:'#F2F0EB', metalness:.76, roughness:.17, clearcoat:.55, clearcoatRoughness:.09, envMapIntensity:1.52 })
+    };
+    const matcap = {
+      blackChrome: new THREE.MeshMatcapMaterial({ color:'#8c9299', matcap:matcapDark }),
+      graphite: new THREE.MeshMatcapMaterial({ color:'#9aa0a6', matcap:matcapDark }),
+      gunmetal: new THREE.MeshMatcapMaterial({ color:'#adb2b7', matcap:matcapDark }),
+      pearl: new THREE.MeshMatcapMaterial({ color:'#F2F0EB', matcap:matcapPearl })
+    };
+    const materials = QA.materialMode === 'MATCAP' ? matcap : pbr;
+
+    const indigoMaterial = new THREE.MeshStandardMaterial({ color:'#676BFF', metalness:.72, roughness:.27, emissive:'#000000' });
+
+    function shapeFrom(points) {
+      const shape = new THREE.Shape();
+      shape.moveTo(points[0][0], points[0][1]);
+      for (let i=1; i<points.length; i++) shape.lineTo(points[i][0], points[i][1]);
+      shape.closePath(); return shape;
+    }
+    function extrude(shape, depth, bevel=.08, segments=3) {
+      const g = new THREE.ExtrudeGeometry(shape, { depth, steps:1, bevelEnabled:true, bevelThickness:bevel, bevelSize:bevel, bevelSegments:segments, curveSegments:8 });
+      g.computeVertexNormals(); return g;
+    }
+    function planGeometry(points, depth, bevel=.08) {
+      const g = extrude(shapeFrom(points), depth, bevel, 3);
+      g.rotateX(-Math.PI/2);
+      return g;
+    }
+    function prep(mesh) {
+      mesh.castShadow = true; mesh.receiveShadow = true; return mesh;
+    }
+
+    // A — PROCESS BLOCK: low asymmetric plan, deep bite, interrupted corner.
+    const processPoints = [
+      [-2.72,-.98],[-.94,-1.04],[-.66,-.74],[.40,-.76],[.57,-1.06],[2.34,-.84],[2.62,-.36],
+      [2.40,.63],[1.56,.98],[.70,.72],[.34,.36],[-.32,.43],[-.52,.84],[-2.22,.72],[-2.63,.26]
+    ];
+    const process = prep(new THREE.Mesh(planGeometry(processPoints, 1.12, .105), materials.blackChrome));
+    process.position.set(-3.25,.03,1.62); process.rotation.y = .16; scene.add(process);
+
+    // Tiny recessed indigo compatibility check — intentionally sub-5% of visual area, no emission.
+    const indigoSlot = prep(new THREE.Mesh(new THREE.BoxGeometry(.58,.034,.095), indigoMaterial));
+    indigoSlot.position.set(-3.63,1.17,1.50); indigoSlot.rotation.y = process.rotation.y + .03; scene.add(indigoSlot);
+
+    // B — ROUTE WEDGE: tapered directional mass with concave side cut; not an arrow.
+    const routePoints = [
+      [-2.12,-.86],[-.32,-.95],[.22,-.68],[1.74,-.62],[2.28,-.10],[1.46,.92],[.44,.69],
+      [.05,.34],[-.54,.52],[-1.54,.72],[-2.25,.18]
+    ];
+    const route = prep(new THREE.Mesh(planGeometry(routePoints, .92, .09), materials.gunmetal));
+    route.position.set(.05,.025,-1.92); route.rotation.y = -.17; scene.add(route);
+
+    // C — CONTROL BRIDGE: one architectural solid with a true channel/void.
+    const bridgeShape = shapeFrom([[-2.10,0],[2.02,0],[2.30,.46],[2.06,3.10],[1.64,3.34],[-1.62,3.34],[-2.25,2.72]]);
+    const bridgeHole = new THREE.Path();
+    bridgeHole.moveTo(-1.12,.58); bridgeHole.lineTo(1.02,.58); bridgeHole.lineTo(1.28,1.02);
+    bridgeHole.lineTo(1.02,2.28); bridgeHole.lineTo(.66,2.53); bridgeHole.lineTo(-.88,2.53);
+    bridgeHole.lineTo(-1.22,2.18); bridgeHole.closePath(); bridgeShape.holes.push(bridgeHole);
+    const bridge = prep(new THREE.Mesh(extrude(bridgeShape, 1.00, .085, 3), materials.graphite));
+    bridge.position.set(2.30,.08,.82); bridge.rotation.y = -.27; scene.add(bridge);
+
+    // D — PEARL AUTHORITY: thick stepped spine/blade, deliberately distinct but restrained.
+    const pearlShape = shapeFrom([
+      [-.48,0],[.38,0],[.40,1.54],[.69,1.92],[.42,2.31],[.37,4.32],[-.20,4.58],
+      [-.40,3.36],[-.66,3.05],[-.43,2.66],[-.70,2.30],[-.46,1.92]
+    ]);
+    const pearl = prep(new THREE.Mesh(extrude(pearlShape, .58, .075, 4), materials.pearl));
+    pearl.position.set(4.56,.07,-2.30); pearl.rotation.y = -.43; pearl.rotation.z = -.035; scene.add(pearl);
+
+    // Near-black contact surface only. No grid, markings, UI floor, or environment storytelling.
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(34, 26),
+      new THREE.MeshStandardMaterial({ color:'#030405', metalness:.10, roughness:.92, envMapIntensity:.15 })
+    );
+    floor.rotation.x = -Math.PI/2; floor.position.y = -.075; floor.receiveShadow = true; scene.add(floor);
+
+    if (QA.materialMode === 'PBR') {
+      const hemi = new THREE.HemisphereLight(0xc9cdd1, 0x020304, .42); scene.add(hemi);
+      const key = new THREE.DirectionalLight(0xf2f0eb, 3.15); key.position.set(-5.4,8.8,7.5); key.castShadow = true;
+      key.shadow.mapSize.set(2048,2048); key.shadow.camera.left=-11; key.shadow.camera.right=11; key.shadow.camera.top=9; key.shadow.camera.bottom=-5;
+      key.shadow.bias = -.00035; scene.add(key);
+      const rim = new THREE.DirectionalLight(0xc9cdd1, 2.45); rim.position.set(8.5,4.6,-7.0); scene.add(rim);
+      const fill = new THREE.DirectionalLight(0x7f8790, .72); fill.position.set(-7.0,2.0,-4.0); scene.add(fill);
+      const pearlEdge = new THREE.PointLight(0xf2f0eb, 16, 11, 2.0); pearlEdge.position.set(5.0,5.5,1.8); scene.add(pearlEdge);
+    }
+
+    const allMainForms = [process, route, bridge, pearl];
+
+    function frameForViewport() {
+      const w = innerWidth, h = innerHeight;
+      camera.aspect = w / Math.max(h, 1);
+      if (w <= 520) {
+        // Basic safe crop only; desktop remains the art-direction authority for this gate.
+        camera.position.set(12.8, 8.6, 20.4);
+        camera.fov = 39;
+        cameraTarget.set(.55,1.02,-.15);
+      } else {
+        camera.position.set(10.7,7.6,15.6);
+        camera.fov = 33;
+        cameraTarget.set(.55,1.05,-.15);
+      }
+      camera.lookAt(cameraTarget); camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+      render();
+    }
+    function render() { renderer.render(scene, camera); }
+    addEventListener('resize', frameForViewport, { passive:true });
+    frameForViewport();
+
+    // Two stable frames are enough to compile the real WebGL runtime; there is intentionally no motion loop.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      render();
+      QA.ready = true;
+      QA.viewport = `${innerWidth}x${innerHeight}`;
+      QA.mainObjectCount = allMainForms.length;
+      document.documentElement.dataset.qa = 'ready';
+    }));
+  </script>
+</body>
+</html>

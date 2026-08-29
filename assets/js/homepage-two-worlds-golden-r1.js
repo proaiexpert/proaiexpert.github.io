@@ -101,7 +101,7 @@
 
     if (mobileQuery.matches) {
       if (focus !== world) return;
-      var ratio = isLandscape() ? .66 : .72;
+      var ratio = isLandscape() ? .75 : .72;
       targetCenter = vr.left + vr.width / 2;
       targetWidth = vr.width * ratio;
       limits = [32,132];

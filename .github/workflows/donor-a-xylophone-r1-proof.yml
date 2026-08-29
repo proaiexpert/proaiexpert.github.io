@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   reproduce-donor:
-    if: ${{ !startsWith(github.event.head_commit.message, 'chore: package donor A build') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ProAI review branch
@@ -79,26 +78,29 @@ jobs:
           mkdir -p labs/donor-a-xylophone-r1
           cp -a /tmp/xylophone/dist/. labs/donor-a-xylophone-r1/
           cp /tmp/xylophone/LICENSE labs/donor-a-xylophone-r1/LICENSE.donor.txt
-          cat > labs/donor-a-xylophone-r1/DONOR-PROOF.txt <<'EOF'
-          DONOR: Endless Interactive Glass Xylophone — Sujen Phea / Codrops
-          SOURCE: https://github.com/Sujenphea/xylophone
-          OFFICIAL LIVE: https://tympanus.net/Tutorials/Xylophone/
-          DONOR COMMIT: 8e4f9a8c7729f52edc006ca02c6c377921c4f1b7
-          LICENSE: MIT (preserved as LICENSE.donor.txt)
-          INSTALL: npm ci
-          DEV: npm run dev -- --host 127.0.0.1
-          BUILD: npm run build
-          BUILD BASE OVERRIDE: NONE (donor vite.config.js already uses base: './')
-          VISUAL SOURCE CHANGES: NONE
-          BEHAVIOR SOURCE CHANGES: NONE
-          PROAI ADAPTATION: NONE
-          EOF
+          printf '%s\n' \
+            'DONOR: Endless Interactive Glass Xylophone — Sujen Phea / Codrops' \
+            'SOURCE: https://github.com/Sujenphea/xylophone' \
+            'OFFICIAL LIVE: https://tympanus.net/Tutorials/Xylophone/' \
+            'DONOR COMMIT: 8e4f9a8c7729f52edc006ca02c6c377921c4f1b7' \
+            'LICENSE: MIT (preserved as LICENSE.donor.txt)' \
+            'INSTALL: npm ci' \
+            'DEV: npm run dev -- --host 127.0.0.1' \
+            'BUILD: npm run build' \
+            "BUILD BASE OVERRIDE: NONE (donor vite.config.js already uses base: './')" \
+            'VISUAL SOURCE CHANGES: NONE' \
+            'BEHAVIOR SOURCE CHANGES: NONE' \
+            'PROAI ADAPTATION: NONE' \
+            > labs/donor-a-xylophone-r1/DONOR-PROOF.txt
 
       - name: Commit packaged donor build to review branch only
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add labs/donor-a-xylophone-r1
-          git diff --cached --quiet && exit 0
+          if git diff --cached --quiet; then
+            echo "Packaged build already matches; no commit required."
+            exit 0
+          fi
           git commit -m "chore: package donor A build 1:1"
           git push origin HEAD:review/ai-systems-donor-a-xylophone-r1

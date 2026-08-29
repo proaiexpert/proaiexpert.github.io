@@ -1,0 +1,35 @@
+name: Export Donor A Material Screens
+
+on:
+  push:
+    branches:
+      - agent/proai-ai-systems-donor-xylophone-adaptation-r1
+    paths:
+      - .github/workflows/export-donor-a-material-screens.yml
+
+permissions:
+  contents: read
+
+jobs:
+  export-screens:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/proai-ai-systems-donor-xylophone-adaptation-r1
+      - name: Verify screenshots exist
+        run: |
+          test -s labs/donor-a-xylophone-proai-material-r1/PROAI-RUNTIME-1440x900.png
+          test -s labs/donor-a-xylophone-proai-material-r1/ORIGINAL-RUNTIME-1440x900.png
+          test -s labs/donor-a-xylophone-proai-material-r1/PROAI-RUNTIME-390x844.png
+      - name: Upload runtime screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: donor-a-proai-material-r1-screens
+          path: |
+            labs/donor-a-xylophone-proai-material-r1/PROAI-RUNTIME-1440x900.png
+            labs/donor-a-xylophone-proai-material-r1/ORIGINAL-RUNTIME-1440x900.png
+            labs/donor-a-xylophone-proai-material-r1/PROAI-RUNTIME-390x844.png
+          if-no-files-found: error
+          retention-days: 7

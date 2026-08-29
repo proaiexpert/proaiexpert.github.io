@@ -1,13 +1,15 @@
-/* ProAI Homepage Golden Assembly R1.2 — clean-shell coordination + final Owner preview overlay. */
+/* ProAI Homepage Golden R1.2 — static Owner-preview parity adapter.
+   Canonical product source: commit 69055c112603014152c66abec02332b8fed32b67.
+   This adapter only mirrors canonical copy/styles and rewrites asset paths for raw.githack. */
 (function () {
   'use strict';
 
-  const PREVIEW_PRODUCT = '9e986a8dfc2fda3f8d59d5b06ecea4cfd7106c9f';
+  const PREVIEW_PRODUCT = '69055c112603014152c66abec02332b8fed32b67';
 
   function addPreviewStyles() {
     [
-      'assets/css/home-selected-work-r1-2-polish.css?v=20260823.1',
-      'assets/css/home-footer-golden-r3-2-polish.css?v=20260823.1'
+      'assets/css/home-selected-work-r1-2-polish.css?v=20260828.2',
+      'assets/css/home-footer-golden-r3-2-polish.css?v=20260828.2'
     ].forEach((href) => {
       if (document.querySelector(`link[href="${href}"]`)) return;
       const link = document.createElement('link');
@@ -15,58 +17,6 @@
       link.href = href;
       document.head.appendChild(link);
     });
-
-    if (!document.getElementById('proai-fs-proof-bilingual-style')) {
-      const style = document.createElement('style');
-      style.id = 'proai-fs-proof-bilingual-style';
-      style.textContent = `
-        .home-fs-showcase-r11__metric--bilingual strong {
-          font-size: clamp(30px, 3vw, 46px);
-          letter-spacing: -.045em;
-          font-weight: 620;
-          white-space: nowrap;
-        }
-        .home-fs-showcase-r11__metric--bilingual .home-fs-showcase-r11__plus {
-          display: inline-block;
-          margin: 0 .08em;
-          color: rgba(231, 239, 244, .52);
-          font-size: .72em;
-          font-style: normal;
-          font-weight: 300;
-          letter-spacing: 0;
-          transform: translateY(-.06em);
-        }
-        @media (max-width: 760px) {
-          .selected-work-r11__record--client .selected-work-r11__record-body {
-            padding-left: 44px;
-          }
-          .selected-work-r11__record--client .selected-work-r11__identity h3 {
-            max-width: 100%;
-            font-size: clamp(30px, 8.5vw, 36px);
-            line-height: .98;
-            letter-spacing: -.045em;
-          }
-          .selected-work-r11__record--client .selected-work-r11__identity h3 a {
-            max-width: 100%;
-            overflow-wrap: normal;
-            word-break: normal;
-          }
-        }
-        @media (max-width: 360px) {
-          .selected-work-r11__record--client .selected-work-r11__identity h3 {
-            font-size: 28px;
-            letter-spacing: -.05em;
-          }
-        }
-        @media (max-width: 600px) {
-          .home-fs-showcase-r11__metric--bilingual strong {
-            font-size: 25px;
-            letter-spacing: -.035em;
-          }
-        }
-      `;
-      document.head.appendChild(style);
-    }
   }
 
   function setText(root, selector, value) {
@@ -163,6 +113,7 @@
   function applyFinancialStreamCopy(isRu) {
     const section = document.querySelector('[data-fs-showcase-r11]');
     if (!section) return;
+
     setText(section, '.home-fs-showcase-r11__thesis', isRu
       ? 'Двуязычный сайт для финансовой компании — с понятной подачей услуг, удобным путём к заявке, поисковой видимостью и поддержкой после запуска.'
       : 'A bilingual website for a financial-services business — designed to explain services clearly, guide inquiries, support search visibility and stay useful after launch.');
@@ -212,7 +163,7 @@
       : 'If you want less manual work, a stronger website, and a clearer path from inquiry to action, let’s discuss what should be built first.');
   }
 
-  function applyFinalOwnerPreview() {
+  function applyStaticParity() {
     const isRu = (document.documentElement.lang || '').toLowerCase().startsWith('ru') || document.body.classList.contains('lang-ru');
     document.documentElement.dataset.productSha = PREVIEW_PRODUCT;
     document.body.dataset.productSha = PREVIEW_PRODUCT;
@@ -250,7 +201,7 @@
     insights.classList.add('is-visible');
   }
 
-  applyFinalOwnerPreview();
+  applyStaticParity();
 
   window.__PROAI_HOME_GOLDEN_R12 = Object.freeze({
     cleanShell: true,
@@ -262,6 +213,6 @@
     financialStreamCount: document.querySelectorAll('[data-fs-showcase-r11]').length,
     legacyCoreSplitCount: document.querySelectorAll('#core-split').length,
     legacyFinancialCount: document.querySelectorAll('#section-trigger').length,
-    footerCount: document.querySelectorAll('footer[data-footer-watermark-r2]').length
+    footerCount: document.querySelectorAll('footer[data-home-footer-golden-r3]').length
   });
 }());

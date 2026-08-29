@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ProAI Control Object R4 — 3D Lab</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+:root{color-scheme:dark;background:#020304;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#020304;color:#d8d9dc}body{overflow:hidden}
+.lab{position:relative;width:100vw;height:100svh;min-height:520px;overflow:hidden;background:radial-gradient(120% 100% at 65% 48%,#0b0d11 0%,#050607 42%,#020304 78%)}
+#control-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;outline:none;touch-action:manipulation}
+#control-canvas:focus-visible{outline:1px solid rgba(242,240,235,.65);outline-offset:-8px}
+.lab__fallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:24px;background:#050607}
+.lab__fallback[aria-hidden="false"]{display:flex}.fallback-mark{width:min(82vw,880px);aspect-ratio:16/7;position:relative}
+.fallback-core,.fallback-authority,.fallback-action{position:absolute;top:20%;height:60%;border:1px solid rgba(255,255,255,.18);background:#0b0d10}.fallback-core{left:5%;width:55%;clip-path:polygon(0 8%,12% 0,100% 0,94% 20%,100% 36%,95% 100%,8% 100%,0 88%)}.fallback-authority{left:64%;width:4.5%;background:#e7e5df;border-color:#f2f0eb}.fallback-action{left:81%;width:14%;height:38%;top:31%;clip-path:polygon(12% 0,100% 8%,100% 85%,82% 100%,0 92%,0 14%)}
+.lab__meta{position:absolute;top:20px;left:22px;z-index:3;pointer-events:none;color:#868b93;font:600 10px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.11em;text-transform:uppercase}.lab__meta strong{display:block;margin-top:5px;color:#d7d8da;font-size:11px;font-weight:650}.lab__meta [data-state]{color:#9ba8ff}
+.debug{position:absolute;left:50%;bottom:max(16px,env(safe-area-inset-bottom));z-index:4;transform:translateX(-50%);display:flex;align-items:center;gap:7px;padding:7px;border:1px solid rgba(255,255,255,.09);background:rgba(3,4,5,.78);backdrop-filter:blur(12px)}.debug::before{content:"DEBUG / REVIEW ONLY";margin:0 5px;color:#747a82;font:600 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.08em;white-space:nowrap}.debug button{appearance:none;border:1px solid rgba(255,255,255,.12);border-radius:2px;background:#0b0d10;color:#c7c9ce;padding:7px 9px;font:600 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}.debug button:hover,.debug button:focus-visible{border-color:rgba(242,240,235,.5);color:#f2f0eb;outline:none}.debug button[data-primary]{border-color:rgba(242,240,235,.35);color:#f2f0eb}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+@media(max-width:600px){.lab__meta{top:14px;left:14px}.debug{left:10px;right:10px;transform:none;justify-content:center;flex-wrap:wrap}.debug::before{flex-basis:100%;text-align:center;margin-bottom:2px}.debug button{padding:6px 7px;font-size:8px}}
+@media(prefers-reduced-motion:reduce){.debug button[data-motion]{display:none}}
+</style>
+<script type="importmap">{"imports":{"three":"../../../../assets/vendor/three-r180/build/three.module.min.js"}}</script>
+</head>
+<body>
+<main class="lab" aria-label="ProAI Control Object R4 isolated 3D laboratory">
+  <canvas id="control-canvas" tabindex="0" role="img" aria-label="A sculptural processing core stops an indigo system signal at a solid pearl authority spine. A real gap separates the authority boundary from a smaller inactive action module. Press Enter or Space while held to authorize action."></canvas>
+  <div id="fallback" class="lab__fallback" aria-hidden="true"><div><div class="fallback-mark" aria-hidden="true"><span class="fallback-core"></span><span class="fallback-authority"></span><span class="fallback-action"></span></div><p class="sr-only">Static fallback: processing core, pearl authority boundary, unresolved gap, and separate action module.</p></div></div>
+  <div class="lab__meta" aria-hidden="true">PROAI / CONTROL OBJECT R4<strong>Runtime state · <span data-state>BOOT</span></strong></div>
+  <div class="debug" aria-label="Debug review controls">
+    <button type="button" data-command="processing" data-motion>Processing</button>
+    <button type="button" data-command="held" data-primary>Held</button>
+    <button type="button" data-command="authorize">Authorize</button>
+    <button type="button" data-command="reset">Reset</button>
+  </div>
+</main>
+<script type="module">
+import * as THREE from 'three';
+
+const canvas = document.getElementById('control-canvas');
+const fallback = document.getElementById('fallback');
+const stateLabel = document.querySelector('[data-state]');
+const lab = document.querySelector('.lab');
+const params = new URLSearchParams(location.search);
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const finePointer = matchMedia('(hover:hover) and (pointer:fine)').matches;
+const captureMode = params.has('capture');
+const requestedState = params.get('state');
+
+const STATE = Object.freeze({ PROCESSING:'PROCESSING', HELD:'HELD_FOR_AUTHORITY', AUTHORIZING:'AUTHORIZING', ACTION:'ACTION', SETTLED:'SETTLED' });
+let state = STATE.HELD;
+let stateStarted = performance.now();
+let running = true;
+let intersecting = true;
+let frame = 0;
+let hoveredAuthority = false;
+let pointerTargetYaw = 0;
+let pointerTargetPitch = 0;
+let pointerYaw = 0;
+let pointerPitch = 0;
+
+function failWebGL(error){ console.error('[ProAI Control Object R4] WebGL initialization failed', error); fallback.setAttribute('aria-hidden','false'); canvas.style.display='none'; stateLabel.textContent='WEBGL FALLBACK'; }
+
+let renderer;
+try{
+  renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance',preserveDrawingBuffer:captureMode});
+}catch(error){ failWebGL(error); throw error; }
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.93;
+renderer.setClearColor(0x020304,1);
+renderer.setPixelRatio(Math.min(devicePixelRatio||1, innerWidth<600?1.35:1.75));
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x020304);
+scene.fog = new THREE.FogExp2(0x020304,0.018);
+const camera = new THREE.PerspectiveCamera(31,1,0.1,100);
+
+const rig = new THREE.Group();
+rig.name='PROAI_CONTROL_OBJECT_R4';
+scene.add(rig);
+
+const C={obsidian:0x050607,graphite:0x242a31,gunmetal:0x2b323a,chrome:0x181d23,pearl:0xf2f0eb,silver:0xc9cdd1,indigo:0x676bff,indigo2:0x9ba8ff};
+const mat={
+  shell:new THREE.MeshPhysicalMaterial({color:C.obsidian,metalness:.78,roughness:.29,clearcoat:.18,clearcoatRoughness:.22}),
+  chrome:new THREE.MeshPhysicalMaterial({color:C.chrome,metalness:.94,roughness:.19,clearcoat:.25,clearcoatRoughness:.12}),
+  graphite:new THREE.MeshPhysicalMaterial({color:C.graphite,metalness:.58,roughness:.46,clearcoat:.05}),
+  gunmetal:new THREE.MeshPhysicalMaterial({color:C.gunmetal,metalness:.82,roughness:.31,clearcoat:.10}),
+  recess:new THREE.MeshStandardMaterial({color:0x080a0d,metalness:.28,roughness:.72}),
+  pearl:new THREE.MeshPhysicalMaterial({color:C.pearl,metalness:.28,roughness:.26,clearcoat:.10,clearcoatRoughness:.24}),
+  pearlSide:new THREE.MeshPhysicalMaterial({color:C.silver,metalness:.72,roughness:.32}),
+  signal:new THREE.MeshStandardMaterial({color:C.indigo2,emissive:C.indigo,emissiveIntensity:1.35,metalness:.12,roughness:.25}),
+  signalDim:new THREE.MeshStandardMaterial({color:0x1a2048,emissive:C.indigo,emissiveIntensity:.20,metalness:.24,roughness:.44}),
+  inactive:new THREE.MeshPhysicalMaterial({color:0x0b0d10,metalness:.72,roughness:.38,clearcoat:.06})
+};
+
+function extrudedPolygon(points,depth,bevel=.08){
+  const shape=new THREE.Shape();
+  shape.moveTo(points[0][0],points[0][1]);
+  for(let i=1;i<points.length;i++) shape.lineTo(points[i][0],points[i][1]);
+  shape.closePath();
+  const g=new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:bevel,bevelThickness:bevel,curveSegments:4});
+  g.translate(0,0,-depth/2); g.computeVertexNormals(); return g;
+}
+function mesh(geometry,material,name){const m=new THREE.Mesh(geometry,material);m.name=name;return m;}
+function addEdges(target,color=0x67707a,opacity=.18){const e=new THREE.LineSegments(new THREE.EdgesGeometry(target.geometry,28),new THREE.LineBasicMaterial({color,transparent:true,opacity,toneMapped:false}));target.add(e);return e;}
+
+const core=new THREE.Group(); core.name='01_PROCESSING_CORE'; rig.add(core);
+const outerPts=[[-4.65,-3.05],[-4.65,2.10],[-3.88,3.10],[.25,3.10],[1.08,2.45],[.78,1.78],[1.28,1.20],[1.15,-2.32],[.28,-3.10],[-3.82,-3.10]];
+const shell=mesh(extrudedPolygon(outerPts,1.42,.10),mat.shell,'core_shell'); shell.position.z=-.12; core.add(shell); addEdges(shell,0x86909a,.22);
+const cavity=mesh(extrudedPolygon([[-3.52,-2.18],[-3.52,1.72],[-2.94,2.24],[-.30,2.24],[.42,1.62],[.32,-1.78],[-.25,-2.28],[-2.92,-2.28]],.48,.07),mat.recess,'cutaway_cavity'); cavity.position.set(-.52,-.02,.72); core.add(cavity);
+
+const structure=new THREE.Group(); structure.name='02_INTERNAL_STRUCTURE'; core.add(structure);
+[[[-2.82,1.35,.98],[3.18,.38,.26],-.045],[[-2.55,-1.42,1.02],[3.05,.34,.28],.035],[[-3.10,-.12,1.10],[.38,2.24,.32],-.02]].forEach(([p,s,r],i)=>{const m=mesh(new THREE.BoxGeometry(...s),i===2?mat.gunmetal:mat.graphite,'structural_plate_'+i);m.position.set(...p);m.rotation.z=r;structure.add(m);addEdges(m,0x8b949d,.14)});
+
+const chamber=new THREE.Group(); chamber.name='03_INFERENCE_CHAMBER'; core.add(chamber);
+const chamberBody=mesh(extrudedPolygon([[-1.22,-1.12],[-1.40,.88],[-.98,1.30],[1.02,1.12],[1.30,.62],[1.18,-.98],[.72,-1.34],[-.82,-1.36]],.92,.10),mat.chrome,'inference_chamber'); chamberBody.position.set(-1.02,.08,1.42);chamber.add(chamberBody);addEdges(chamberBody,0x9aa4ad,.25);
+const chamberInset=mesh(new THREE.BoxGeometry(1.75,1.45,.10),mat.signalDim,'inference_state_surface'); chamberInset.position.set(-1.00,.02,1.91); chamber.add(chamberInset);
+
+const stateSpine=new THREE.Group(); stateSpine.name='04_STATE_SPINE'; core.add(stateSpine);
+const spine=mesh(new THREE.BoxGeometry(.36,2.55,.48),mat.gunmetal,'state_spine');spine.position.set(-3.12,.02,1.36);stateSpine.add(spine);
+for(let i=0;i<4;i++){const s=mesh(new THREE.BoxGeometry(.44,.08,.58),mat.chrome,'state_index_'+i);s.position.set(-3.12,-.82+i*.55,1.38);stateSpine.add(s)}
+
+const tools=new THREE.Group(); tools.name='05_TOOL_CHANNELS'; core.add(tools);
+[.62,.05,-.55].forEach((yy,i)=>{const curve=new THREE.CatmullRomCurve3([new THREE.Vector3(.15,yy,1.42),new THREE.Vector3(.72,yy+(i-1)*.06,1.46),new THREE.Vector3(1.58,yy*.70,1.48),new THREE.Vector3(2.16,yy*.48,1.48)]);const tube=mesh(new THREE.TubeGeometry(curve,32,.035,8,false),i===1?mat.signalDim:mat.gunmetal,'tool_channel_'+i);tools.add(tube)});
+
+const authority=new THREE.Group(); authority.name='06_PEARL_AUTHORITY'; rig.add(authority);
+const authPts=[[-.38,-2.72],[-.54,2.18],[-.12,2.74],[.33,2.48],[.44,.95],[.29,-2.45],[.05,-2.78]];
+const authorityBlade=mesh(extrudedPolygon(authPts,.66,.065),mat.pearl,'authority_spine');authorityBlade.position.set(2.92,.08,.44);authorityBlade.rotation.z=-.035;authority.add(authorityBlade);addEdges(authorityBlade,0xb7bcc1,.32);
+const authoritySide=mesh(new THREE.BoxGeometry(.14,4.12,.74),mat.pearlSide,'authority_mechanism');authoritySide.position.set(2.55,-.05,.43);authority.add(authoritySide);
+
+const signalGroup=new THREE.Group(); signalGroup.name='07_SIGNAL_PATH'; rig.add(signalGroup);
+const signalCurve=new THREE.CatmullRomCurve3([new THREE.Vector3(-1.18,.08,2.00),new THREE.Vector3(-.28,.10,1.78),new THREE.Vector3(.78,.11,1.62),new THREE.Vector3(1.72,.10,1.55),new THREE.Vector3(2.36,.09,1.48)]);
+const signalTrack=mesh(new THREE.TubeGeometry(signalCurve,64,.055,10,false),mat.signalDim,'signal_channel');signalGroup.add(signalTrack);
+const carrier=mesh(new THREE.SphereGeometry(.115,24,16),mat.signal,'signal_carrier');signalGroup.add(carrier);
+const stopDisc=mesh(new THREE.CylinderGeometry(.13,.13,.055,24),mat.signal,'signal_stop');stopDisc.rotation.z=Math.PI/2;stopDisc.position.set(2.39,.09,1.48);signalGroup.add(stopDisc);
+
+const action=new THREE.Group(); action.name='08_ACTION_MODULE'; rig.add(action);
+const actionPts=[[-.92,-1.45],[-1.04,.82],[-.66,1.42],[.56,1.42],[.96,1.02],[.90,-.96],[.46,-1.45]];
+const actionBody=mesh(extrudedPolygon(actionPts,.94,.10),mat.inactive,'action_module');actionBody.position.set(5.18,.02,.36);action.add(actionBody);addEdges(actionBody,0x77808a,.18);
+const actuator=mesh(new THREE.CylinderGeometry(.34,.34,.18,32),mat.chrome,'action_actuator');actuator.rotation.x=Math.PI/2;actuator.position.set(4.28,.08,.88);action.add(actuator);
+const actionInset=mesh(new THREE.BoxGeometry(.68,1.28,.08),mat.graphite,'action_inset');actionInset.position.set(5.16,.03,.86);action.add(actionInset);
+
+rig.rotation.set(-.035,-.20,.012); rig.position.set(-.38,.02,0);
+
+const hemi=new THREE.HemisphereLight(0x8c96a2,0x050607,.48);scene.add(hemi);
+const key=new THREE.DirectionalLight(0xe8edf2,4.6);key.position.set(5.5,7.5,8.5);scene.add(key);
+const rim=new THREE.DirectionalLight(0xc9cdd1,3.8);rim.position.set(-6,3.5,-4.5);scene.add(rim);
+const fill=new THREE.DirectionalLight(0x76808a,1.15);fill.position.set(-2,-4,7);scene.add(fill);
+const pearlKicker=new THREE.SpotLight(0xf2f0eb,12,20,.38,.55,1.4);pearlKicker.position.set(5.0,4.0,7.0);pearlKicker.target=authorityBlade;scene.add(pearlKicker,pearlKicker.target);
+
+const pmrem=new THREE.PMREMGenerator(renderer);
+const envScene=new THREE.Scene();
+[[[4.5,2.6,5.8],[7.0,4.5],0xe6eaee,1.05],[[-5,1,4],[3.6,6.0],0xa7afb8,.70],[[0,5,-4],[5.0,2.0],0xd8dde2,.60]].forEach(([pos,size,color,intensity])=>{const g=new THREE.PlaneGeometry(...size);const m=new THREE.MeshBasicMaterial({color:new THREE.Color(color).multiplyScalar(intensity),side:THREE.DoubleSide,toneMapped:false});const card=new THREE.Mesh(g,m);card.position.set(...pos);card.lookAt(0,0,0);envScene.add(card)});
+scene.environment=pmrem.fromScene(envScene,.08,.1,30).texture;pmrem.dispose();
+
+function frameCamera(){
+  const mobile=innerWidth<600;
+  if(mobile){camera.fov=36;camera.position.set(8.6,2.6,15.8);camera.lookAt(1.15,.05,.65);rig.scale.setScalar(.88);rig.position.x=-.72;}
+  else{camera.fov=31;camera.position.set(10.8,3.9,16.4);camera.lookAt(.72,.02,.65);rig.scale.setScalar(1.0);rig.position.x=-.38;}
+  camera.updateProjectionMatrix();
+}
+frameCamera();
+
+const raycaster=new THREE.Raycaster(); const pointer=new THREE.Vector2(9,9);
+function pointerToNDC(e){const r=canvas.getBoundingClientRect();pointer.x=((e.clientX-r.left)/r.width)*2-1;pointer.y=-((e.clientY-r.top)/r.height)*2+1}
+function hitAuthority(e){pointerToNDC(e);raycaster.setFromCamera(pointer,camera);return raycaster.intersectObject(authorityBlade,true).length>0}
+
+function setState(next,now=performance.now()){
+  state=next;stateStarted=now;stateLabel.textContent=next;
+  if(next===STATE.HELD){carrier.position.copy(signalCurve.getPointAt(.995));authority.position.x=0;authority.rotation.z=0;action.position.x=0;action.scale.set(1,1,1);mat.signal.emissiveIntensity=1.35;mat.inactive.color.setHex(0x0b0d10)}
+  if(next===STATE.PROCESSING){carrier.position.copy(signalCurve.getPointAt(0));authority.position.x=0;authority.rotation.z=0;action.position.x=0;action.scale.set(1,1,1);mat.signal.emissiveIntensity=1.15;mat.inactive.color.setHex(0x0b0d10)}
+  if(next===STATE.ACTION){authority.position.x=.34;authority.rotation.z=-.045;carrier.position.set(4.08,.08,1.15);action.position.x=.12;action.scale.set(1.025,.995,1.025);mat.inactive.color.setHex(0x171c22)}
+}
+function beginProcessing(){if(reducedMotion){setState(STATE.HELD);return}setState(STATE.PROCESSING)}
+function authorize(){if(state!==STATE.HELD)return; if(reducedMotion){setState(STATE.ACTION);return}setState(STATE.AUTHORIZING)}
+function reset(){beginProcessing()}
+
+const actionStart=new THREE.Vector3(2.40,.09,1.48),actionEnd=new THREE.Vector3(4.18,.08,1.10),inactiveColor=new THREE.Color(0x0b0d10),activeColor=new THREE.Color(0x171c22);
+function updateState(now){
+  const t=(now-stateStarted)/1000;
+  if(state===STATE.PROCESSING){const u=Math.min(1,t/2.15);const eased=1-Math.pow(1-u,3);carrier.position.copy(signalCurve.getPointAt(.995*eased));mat.signal.emissiveIntensity=1.0+.45*Math.sin(Math.min(u,1)*Math.PI);if(u>=1)setState(STATE.HELD,now)}
+  else if(state===STATE.HELD){carrier.position.copy(signalCurve.getPointAt(.995));mat.signal.emissiveIntensity=1.25+(hoveredAuthority?.18:0)}
+  else if(state===STATE.AUTHORIZING){const u=Math.min(1,t/.52);const e=u*u*(3-2*u);authority.position.x=.34*e;authority.rotation.z=-.045*e;carrier.position.copy(signalCurve.getPointAt(.995));if(u>=1){state=STATE.ACTION;stateStarted=now;stateLabel.textContent=STATE.ACTION}}
+  else if(state===STATE.ACTION){const u=Math.min(1,t/.72);const e=u*u*(3-2*u);carrier.position.lerpVectors(actionStart,actionEnd,e);action.position.x=.12*e;const pulse=1+.025*Math.sin(Math.PI*e);action.scale.set(pulse,1-.008*Math.sin(Math.PI*e),pulse);mat.inactive.color.lerpColors(inactiveColor,activeColor,e);if(u>=1){state=STATE.SETTLED;stateStarted=now;stateLabel.textContent=STATE.SETTLED}}
+  else if(state===STATE.SETTLED){authority.position.x=.34;authority.rotation.z=-.045;carrier.position.copy(actionEnd);action.position.x=.12;action.scale.set(1,1,1)}
+}
+
+canvas.addEventListener('pointermove',e=>{
+  hoveredAuthority=hitAuthority(e);canvas.style.cursor=hoveredAuthority&&state===STATE.HELD?'pointer':'default';
+  if(!finePointer||reducedMotion)return;const r=canvas.getBoundingClientRect();const nx=((e.clientX-r.left)/r.width-.5)*2;const ny=((e.clientY-r.top)/r.height-.5)*2;pointerTargetYaw=THREE.MathUtils.degToRad(nx*1.5);pointerTargetPitch=THREE.MathUtils.degToRad(-ny*.65);
+},{passive:true});
+canvas.addEventListener('pointerleave',()=>{hoveredAuthority=false;pointerTargetYaw=0;pointerTargetPitch=0;canvas.style.cursor='default'});
+canvas.addEventListener('click',e=>{if(hitAuthority(e))authorize()});
+canvas.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&state===STATE.HELD){e.preventDefault();authorize()}});
+document.querySelectorAll('[data-command]').forEach(btn=>btn.addEventListener('click',()=>{const c=btn.dataset.command;if(c==='processing')beginProcessing();if(c==='held')setState(STATE.HELD);if(c==='authorize')authorize();if(c==='reset')reset()}));
+
+const clock=new THREE.Clock();
+function render(now){
+  frame=requestAnimationFrame(render);if(!running||!intersecting)return;
+  const dt=Math.min(clock.getDelta(),.05);
+  if(!reducedMotion)updateState(now);
+  if(finePointer&&!reducedMotion){const k=1-Math.exp(-dt*5.2);pointerYaw+=(pointerTargetYaw-pointerYaw)*k;pointerPitch+=(pointerTargetPitch-pointerPitch)*k;rig.rotation.y=-.20+pointerYaw;rig.rotation.x=-.035+pointerPitch}else{rig.rotation.y=-.20;rig.rotation.x=-.035}
+  renderer.render(scene,camera);
+}
+
+function resize(){const r=lab.getBoundingClientRect();renderer.setPixelRatio(Math.min(devicePixelRatio||1,r.width<600?1.35:1.75));renderer.setSize(Math.max(1,r.width),Math.max(1,r.height),false);camera.aspect=r.width/r.height;frameCamera();camera.aspect=r.width/r.height;camera.updateProjectionMatrix()}
+new ResizeObserver(resize).observe(lab);resize();
+new IntersectionObserver(entries=>{intersecting=entries[0]?.isIntersecting??true;if(intersecting)clock.getDelta()},{threshold:.01}).observe(lab);
+document.addEventListener('visibilitychange',()=>{running=!document.hidden;if(running)clock.getDelta()});
+window.addEventListener('pagehide',()=>{running=false});
+
+if(reducedMotion||requestedState==='held'||captureMode&&requestedState!=='processing'&&requestedState!=='action'){setState(STATE.HELD)}
+else if(requestedState==='action'){setState(STATE.ACTION)}
+else beginProcessing();
+window.__PROAI_CONTROL_OBJECT_R4=Object.freeze({get state(){return state},states:STATE,setHeld:()=>setState(STATE.HELD),beginProcessing,authorize,reset,groups:8,renderer});
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

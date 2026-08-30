@@ -1,0 +1,120 @@
+name: Donor B Geometry Painter R1 1to1 Proof
+
+on:
+  push:
+    branches: [agent/proai-ai-systems-donor-b-geometry-painter-r1-1to1]
+    paths: [.github/workflows/donor-b-geometry-painter-r1-1to1-proof.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-ai-systems-donor-b-geometry-painter-r1-1to1
+
+      - name: Clone pinned donor, install, verify, build
+        run: |
+          rm -rf /tmp/gp
+          git clone https://github.com/achrefelouafi/GeometryPainterThreeJS.git /tmp/gp
+          cd /tmp/gp
+          git checkout --detach 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1
+          test "$(git rev-parse HEAD)" = 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1
+          grep -q '^MIT License$' LICENSE
+          for f in src/modes/crystals.ts src/modes/fissures.ts src/modes/aurora.ts src/modes/reef.ts; do test -f "$f"; done
+          npm ci
+          npm audit --json >/tmp/audit.json || true
+          node - <<'NODE' >/tmp/security.txt
+          const j=require('/tmp/audit.json'),v=j.metadata?.vulnerabilities||{};for(const k of ['total','info','low','moderate','high','critical'])console.log(`${k}=${v[k]??0}`)
+          NODE
+          npm run build
+          test -f dist/index.html
+          rm -rf dist
+          npm run build -- --base=./
+          grep -q 'src="\./assets/' dist/index.html
+          git status --porcelain | test ! -s /dev/stdin
+
+      - name: Dev runtime proof
+        working-directory: /tmp/gp
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 >/tmp/dev.log 2>&1 & P=$!
+          trap 'kill $P || true' EXIT
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          C=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          $C --headless=new --no-sandbox --disable-dev-shm-usage --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --enable-webgl --ignore-gpu-blocklist --window-size=1440,900 --virtual-time-budget=7000 --screenshot=/tmp/DEV.png http://127.0.0.1:4173/
+          test $(stat -c%s /tmp/DEV.png) -gt 50000
+          kill $P; wait $P || true; trap - EXIT
+
+      - name: Write CDP proof harness
+        run: |
+          cat >/tmp/qa.mjs <<'NODE'
+          import fs from 'node:fs';import path from 'node:path';
+          const [,,portS,out,wS,hS,...modes]=process.argv,port=+portS,w=+wS,h=+hS,sleep=ms=>new Promise(r=>setTimeout(r,ms));fs.mkdirSync(out,{recursive:true});
+          let tabs=[];for(let i=0;i<60;i++){try{tabs=await(await fetch(`http://127.0.0.1:${port}/json`)).json()}catch{}if(tabs.some(t=>t.type==='page'&&t.url.includes('127.0.0.1:4174')))break;await sleep(200)}
+          const tab=tabs.find(t=>t.type==='page'&&t.url.includes('127.0.0.1:4174'));if(!tab)throw Error('preview target absent');
+          const ws=new WebSocket(tab.webSocketDebuggerUrl);await new Promise((r,j)=>{ws.onopen=r;ws.onerror=j});let id=0;const pending=new Map(),fatal=[];
+          ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.id&&pending.has(m.id)){const p=pending.get(m.id);pending.delete(m.id);m.error?p.j(Error(JSON.stringify(m.error))):p.r(m.result);return}if(m.method==='Runtime.exceptionThrown')fatal.push('exception:'+m.params.exceptionDetails.text);if(m.method==='Log.entryAdded'&&m.params.entry.level==='error')fatal.push('console:'+m.params.entry.text)};
+          const send=(method,params={})=>new Promise((r,j)=>{const n=++id;pending.set(n,{r,j});ws.send(JSON.stringify({id:n,method,params}))});
+          const ev=async expression=>{const x=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(x.exceptionDetails)throw Error(x.exceptionDetails.text);return x.result?.value};
+          await send('Runtime.enable');await send('Log.enable');await send('Page.enable');await send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile:false});
+          for(let i=0;i<120;i++){if(await ev(`!!document.querySelector('canvas')&&!!document.querySelector('.lil-gui select')`))break;if(i===119)throw Error('renderer/ui absent: '+await ev('document.body.innerText.slice(0,300)'));await sleep(250)}
+          const meta=await ev(`({webgpu:!!navigator.gpu,canvas:!!document.querySelector('canvas'),options:[...document.querySelectorAll('.lil-gui select')].flatMap(s=>[...s.options].map(o=>o.value)),ua:navigator.userAgent})`);fs.writeFileSync(path.join(out,'backend.json'),JSON.stringify(meta,null,2));
+          const clear=()=>ev(`(()=>{const b=[...document.querySelectorAll('.lil-gui button')].find(x=>x.textContent?.includes('Clear all'));if(b)b.click();return!!b})()`);
+          async function mode(name){const got=await ev(`(()=>{const s=[...document.querySelectorAll('.lil-gui select')].find(x=>[...x.options].some(o=>o.value===${JSON.stringify(name)}));if(!s)return null;s.value=${JSON.stringify(name)};s.dispatchEvent(new Event('change',{bubbles:true}));return s.value})()`);if(got!==name)throw Error('mode failed '+name);await sleep(500)}
+          async function paint(){const r=await ev(`(()=>{const r=document.querySelector('canvas').getBoundingClientRect();return{x:r.left,y:r.top,w:r.width,h:r.height}})()`);const p=[];for(let i=0;i<42;i++){const t=i/41;p.push({x:r.x+r.w*(.39+.18*t),y:r.y+r.h*(.48+.055*Math.sin(t*Math.PI*1.8))})}await send('Input.dispatchMouseEvent',{type:'mousePressed',x:p[0].x,y:p[0].y,button:'left',buttons:1,clickCount:1});for(const q of p.slice(1)){await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:q.x,y:q.y,button:'left',buttons:1});await sleep(20)}const q=p.at(-1);await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:q.x,y:q.y,button:'left',buttons:0,clickCount:1});await sleep(3000)}
+          async function shot(n){const s=await send('Page.captureScreenshot',{format:'png',fromSurface:true});const f=path.join(out,n);fs.writeFileSync(f,Buffer.from(s.data,'base64'));if(fs.statSync(f).size<50000)throw Error('small screenshot '+n)}
+          for(const name of modes){await clear();await sleep(250);await mode(name);await paint();const safe=name.toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'');await shot(`RUNTIME-${safe}-${w}x${h}.png`)}
+          fs.writeFileSync(path.join(out,'console.json'),JSON.stringify(fatal,null,2));if(fatal.length)throw Error(fatal.join(' | '));ws.close();
+          NODE
+
+      - name: Production real-browser all-mode proof
+        working-directory: /tmp/gp
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4174 >/tmp/preview.log 2>&1 & P=$!
+          trap 'kill $P || true' EXIT
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4174/ >/dev/null && break; sleep 1; done
+          C=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          F='--headless=new --no-sandbox --disable-dev-shm-usage --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --enable-webgl --ignore-gpu-blocklist'
+          $C $F --remote-debugging-port=9222 --window-size=1440,900 http://127.0.0.1:4174/ >/tmp/c1.log 2>&1 & C1=$!
+          node /tmp/qa.mjs 9222 /tmp/desktop 1440 900 'Crystals' 'Molten fissures' 'Aurora silk' 'Bioluminescent reef'
+          kill $C1; wait $C1 || true
+          $C $F --remote-debugging-port=9223 --window-size=390,844 http://127.0.0.1:4174/ >/tmp/c2.log 2>&1 & C2=$!
+          node /tmp/qa.mjs 9223 /tmp/mobile 390 844 'Crystals'
+          kill $C2; wait $C2 || true
+          kill $P; wait $P || true; trap - EXIT
+
+      - name: Package and commit immutable review
+        run: |
+          T=labs/donor-b-geometry-painter-r1;rm -rf "$T";mkdir -p "$T"
+          cp -a /tmp/gp/dist/. "$T/";cp /tmp/gp/LICENSE "$T/LICENSE.donor.txt";cp /tmp/security.txt "$T/SECURITY-WARNINGS.txt"
+          cp /tmp/desktop/RUNTIME-CRYSTALS-1440x900.png "$T/RUNTIME-CRYSTALS-1440x900.png"
+          cp /tmp/desktop/RUNTIME-MOLTEN-FISSURES-1440x900.png "$T/RUNTIME-MOLTEN-FISSURES-1440x900.png"
+          cp /tmp/desktop/RUNTIME-AURORA-SILK-1440x900.png "$T/RUNTIME-AURORA-SILK-1440x900.png"
+          cp /tmp/desktop/RUNTIME-BIOLUMINESCENT-REEF-1440x900.png "$T/RUNTIME-BIOLUMINESCENT-REEF-1440x900.png"
+          cp /tmp/mobile/RUNTIME-CRYSTALS-390x844.png "$T/RUNTIME-MOBILE-390x844.png"
+          cp /tmp/desktop/backend.json "$T/QA-BACKEND-DESKTOP.json";cp /tmp/mobile/backend.json "$T/QA-BACKEND-MOBILE.json";cp /tmp/desktop/console.json "$T/QA-CONSOLE-DESKTOP.json";cp /tmp/mobile/console.json "$T/QA-CONSOLE-MOBILE.json"
+          cat >"$T/DONOR-PROVENANCE.md" <<'EOF'
+          # Donor provenance
+          DONOR: Geometry Painter — Chiro Visuals
+          SOURCE: https://github.com/achrefelouafi/GeometryPainterThreeJS
+          DONOR SHA: 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1
+          LICENSE: MIT
+          ORIGINAL LIVE: https://tympanus.net/Tutorials/GeometryPainterThreeJS/
+          INSTALL COMMAND: npm ci
+          DEV COMMAND: npm run dev
+          BUILD COMMAND: npm run build
+          RENDERER: Three.js WebGPURenderer; WebGL fallback used for CI software-rendering proof if native WebGPU unavailable.
+          MAJOR MODES: Crystals; Molten fissures; Aurora silk; Bioluminescent reef
+          VISUAL MODIFICATIONS: NONE
+          GEOMETRY MODIFICATIONS: NONE
+          MATERIAL MODIFICATIONS: NONE
+          CAMERA MODIFICATIONS: NONE
+          MOTION MODIFICATIONS: NONE
+          BEHAVIORAL MODIFICATIONS: NONE
+          INFRASTRUCTURE-ONLY MODIFICATIONS: Donor source NONE. Immutable transport build rerun with `npm run build -- --base=./` only to emit relative asset URLs after original `npm run build` passed unchanged.
+          EOF
+          git config user.name 'github-actions[bot]';git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$T";git diff --cached --check;git commit -m 'lab: package donor B Geometry Painter R1 1to1 runtime review';git push origin HEAD:agent/proai-ai-systems-donor-b-geometry-painter-r1-1to1

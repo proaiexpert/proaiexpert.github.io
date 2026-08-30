@@ -11,5 +11,10 @@ new_tick = """    const elapsed = Math.min((time - this.lastTime) / 1000, 0.5);\
 if old_tick not in s:
     raise SystemExit('damping marker not found')
 s = s.replace(old_tick, new_tick)
+old_rotation = "    if (!this.reducedMotion) this.autoY += dt * 0.026;"
+new_rotation = "    if (!this.reducedMotion) this.autoY += elapsed * 0.026;"
+if old_rotation not in s:
+    raise SystemExit('rotation marker not found')
+s = s.replace(old_rotation, new_rotation)
 p.write_text(s)
-print('pointer event attachment + frame-rate-independent damping hardened')
+print('pointer damping and autonomous rotation are elapsed-time based')

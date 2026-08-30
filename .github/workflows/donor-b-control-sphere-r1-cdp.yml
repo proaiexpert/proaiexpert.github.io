@@ -1,0 +1,163 @@
+name: Donor B Control Sphere R1 CDP
+
+on:
+  push:
+    branches: [agent/proai-ai-systems-donor-b-control-sphere-r1]
+    paths: [.github/workflows/donor-b-control-sphere-r1-cdp.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  cdp-build-qa-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-ai-systems-donor-b-control-sphere-r1
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Exact donor acquisition and locked adaptation build
+        run: |
+          rm -rf /tmp/donor
+          git clone https://github.com/achrefelouafi/GeometryPainterThreeJS.git /tmp/donor
+          cd /tmp/donor
+          git checkout --detach 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1
+          test "$(git rev-parse HEAD)" = 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1
+          npm ci
+          cp "$GITHUB_WORKSPACE/tools/donor-b-control-sphere-r1/patch.py" ./patch.py
+          python3 patch.py
+          git diff -- src/app.ts index.html >/tmp/control-sphere-source.patch
+          git diff --name-only | sort >/tmp/modified-source.txt
+          diff -u <(printf 'index.html\nsrc/app.ts\n') /tmp/modified-source.txt
+          npm run build -- --base=./
+          test -f dist/index.html
+          ! grep -R -E '(localhost|127\.0\.0\.1)' dist --include='*.html' --include='*.js'
+
+      - name: Write CDP runtime harness
+        run: |
+          cat >/tmp/sphere-qa.mjs <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          const [,,portS,out,wS,hS,kind]=process.argv;
+          const port=+portS,w=+wS,h=+hS,sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          fs.mkdirSync(out,{recursive:true});
+          let tabs=[];
+          for(let i=0;i<80;i++){
+            try{tabs=await(await fetch(`http://127.0.0.1:${port}/json`)).json()}catch{}
+            if(tabs.some(t=>t.type==='page'))break;
+            await sleep(150);
+          }
+          const tab=tabs.find(t=>t.type==='page'); if(!tab) throw Error('CDP page target absent');
+          const ws=new WebSocket(tab.webSocketDebuggerUrl); await new Promise((r,j)=>{ws.onopen=r;ws.onerror=j});
+          let id=0; const pending=new Map(),exceptions=[],consoleErrors=[];
+          ws.onmessage=e=>{const m=JSON.parse(e.data); if(m.id&&pending.has(m.id)){const p=pending.get(m.id);pending.delete(m.id);m.error?p.j(Error(JSON.stringify(m.error))):p.r(m.result);return;} if(m.method==='Runtime.exceptionThrown') exceptions.push(m.params.exceptionDetails.text); if(m.method==='Log.entryAdded'&&m.params.entry.level==='error') consoleErrors.push(m.params.entry.text);};
+          const send=(method,params={})=>new Promise((r,j)=>{const n=++id;pending.set(n,{r,j});ws.send(JSON.stringify({id:n,method,params}));});
+          const ev=async expression=>{const x=await send('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true}); if(x.exceptionDetails) throw Error(x.exceptionDetails.text); return x.result?.value;};
+          await send('Runtime.enable'); await send('Log.enable'); await send('Page.enable');
+          await send('Emulation.setDeviceMetricsOverride',{width:w,height:h,deviceScaleFactor:1,mobile:kind==='mobile'});
+          if(kind==='reduce') await send('Emulation.setEmulatedMedia',{media:'',features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+          await send('Page.navigate',{url:'http://127.0.0.1:4174/'});
+          let state=null;
+          for(let i=0;i<120;i++){ state=await ev(`window.__PROAI_QA||null`); if(state) break; await sleep(200); }
+          const body=await ev(`document.body.innerText`);
+          if(!state){fs.writeFileSync(path.join(out,'diagnostic.json'),JSON.stringify({exceptions,consoleErrors,body},null,2)); throw Error('PROAI runtime state absent');}
+          const shot=async name=>{const x=await send('Page.captureScreenshot',{format:'png',fromSurface:true});fs.writeFileSync(path.join(out,name),Buffer.from(x.data,'base64'));};
+          const result={initial:state,exceptions,consoleErrors,body};
+          if(kind==='desktop'){
+            await sleep(1100); const rest=await ev(`window.__PROAI_QA`); await shot('RUNTIME-DESKTOP-REST-1440x900.png');
+            const rot0=rest.autoY; await sleep(1400); const rot1=(await ev(`window.__PROAI_QA`)).autoY;
+            await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:840,y:390,button:'none',buttons:0}); await sleep(1500); const engaged=await ev(`window.__PROAI_QA`); await shot('RUNTIME-DESKTOP-ENGAGED-1440x900.png');
+            await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:1430,y:890,button:'none',buttons:0}); await sleep(1900); const returned=await ev(`window.__PROAI_QA`);
+            Object.assign(result,{rest,engaged,returned,rotationDelta:rot1-rot0});
+            if(!(engaged.engaged>0.75)) throw Error('engaged state did not activate');
+            if(!(returned.engaged<0.15)) throw Error('engaged state did not decay');
+            if(!(rot1-rot0>0.01)) throw Error('rotation did not advance');
+          } else if(kind==='mobile'){
+            await sleep(1000); result.mobile=await ev(`window.__PROAI_QA`); await shot(`RUNTIME-MOBILE-${w}x${h}.png`);
+          } else if(kind==='reduce'){
+            const a=(await ev(`window.__PROAI_QA`)).autoY; await sleep(1400); const b=(await ev(`window.__PROAI_QA`)).autoY; result.reducedMotionDelta=b-a; if(Math.abs(b-a)>0.001) throw Error('reduced-motion rotation not frozen');
+          }
+          fs.writeFileSync(path.join(out,'QA.json'),JSON.stringify(result,null,2));
+          if(exceptions.length) throw Error('Runtime exceptions: '+exceptions.join(' | '));
+          const fatalConsole=consoleErrors.filter(x=>!x.includes('Failed to load resource: the server responded with a status of 404'));
+          if(fatalConsole.length) throw Error('Fatal console errors: '+fatalConsole.join(' | '));
+          ws.close();
+          NODE
+
+      - name: Real production browser proof desktop mobile reduced-motion
+        working-directory: /tmp/donor
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4174 >/tmp/preview.log 2>&1 & P=$!
+          trap 'kill $P || true' EXIT
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4174/ >/dev/null && break; sleep 1; done
+          C=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          test -n "$C"
+          F='--headless=new --no-sandbox --disable-dev-shm-usage --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --enable-webgl --ignore-gpu-blocklist'
+          $C $F --remote-debugging-port=9222 --window-size=1440,900 about:blank >/tmp/c1.log 2>&1 & C1=$!
+          node /tmp/sphere-qa.mjs 9222 /tmp/desktop 1440 900 desktop
+          kill $C1; wait $C1 || true
+          $C $F --remote-debugging-port=9223 --window-size=390,844 about:blank >/tmp/c2.log 2>&1 & C2=$!
+          node /tmp/sphere-qa.mjs 9223 /tmp/mobile390 390 844 mobile
+          kill $C2; wait $C2 || true
+          $C $F --remote-debugging-port=9224 --window-size=320,700 about:blank >/tmp/c3.log 2>&1 & C3=$!
+          node /tmp/sphere-qa.mjs 9224 /tmp/mobile320 320 700 mobile
+          kill $C3; wait $C3 || true
+          $C $F --remote-debugging-port=9225 --window-size=1440,900 about:blank >/tmp/c4.log 2>&1 & C4=$!
+          node /tmp/sphere-qa.mjs 9225 /tmp/reduce 1440 900 reduce
+          kill $C4; wait $C4 || true
+          kill $P; wait $P || true; trap - EXIT
+
+      - name: Package isolated immutable review
+        run: |
+          T=labs/donor-b-control-sphere-r1
+          rm -rf "$T"; mkdir -p "$T/source"
+          cp -a /tmp/donor/dist/. "$T/"
+          cp /tmp/desktop/RUNTIME-DESKTOP-REST-1440x900.png "$T/"
+          cp /tmp/desktop/RUNTIME-DESKTOP-ENGAGED-1440x900.png "$T/"
+          cp /tmp/mobile390/RUNTIME-MOBILE-390x844.png "$T/"
+          cp /tmp/mobile320/RUNTIME-MOBILE-320x700.png "$T/"
+          cp /tmp/desktop/QA.json "$T/QA-DESKTOP.json"
+          cp /tmp/mobile390/QA.json "$T/QA-MOBILE-390.json"
+          cp /tmp/mobile320/QA.json "$T/QA-MOBILE-320.json"
+          cp /tmp/reduce/QA.json "$T/QA-REDUCED-MOTION.json"
+          cp /tmp/donor/LICENSE "$T/LICENSE.donor.txt"
+          cp /tmp/donor/src/app.ts "$T/source/app.ts"
+          cp /tmp/donor/index.html "$T/source/index.source.html"
+          cp /tmp/control-sphere-source.patch "$T/SOURCE-PATCH.diff"
+          cat >"$T/DONOR-PROVENANCE.md" <<'EOF'
+          # DONOR PROVENANCE — CONTROL SPHERE R1
+          DONOR: Geometry Painter — Chiro Visuals
+          DONOR SHA: 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1
+          LICENSE: MIT
+          SOURCE SPHERE GEOMETRY: UNCHANGED — SphereGeometry(1, 96, 64)
+          NEW CONTROL-OBJECT GEOMETRY: NONE
+          DONOR MODES USED: NONE / SPHERE BASE ONLY
+          MATERIAL: PROAI ADAPTED
+          STUDIO LIGHTING: PROAI ADAPTED using donor PMREM/light architecture
+          ROTATION: ADDED / ADAPTED
+          POINTER LIGHT RESPONSE: ADDED / ADAPTED
+          FISSURE: NOT USED
+          CRYSTALS: NOT USED
+          AURORA: NOT USED
+          REEF: NOT USED
+          EXACT MODIFIED DONOR SOURCE FILES: src/app.ts; index.html
+          BUILD: npm ci; npm run build -- --base=./
+          DEPENDENCY UPGRADES: NONE
+          KNOWN SECURITY FINDINGS: 1 moderate; 1 high; 0 critical; not remediated in this gate.
+          EOF
+
+      - name: Commit isolated LAB package
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add labs/donor-b-control-sphere-r1
+          git diff --cached --check
+          git commit -m 'lab: package donor B control sphere R1 review'
+          git push origin HEAD:agent/proai-ai-systems-donor-b-control-sphere-r1
+          git rev-parse HEAD

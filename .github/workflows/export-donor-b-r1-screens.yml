@@ -1,0 +1,31 @@
+name: Export Donor B R1 Screens
+
+on:
+  push:
+    branches: [agent/proai-ai-systems-donor-b-geometry-painter-r1-1to1]
+    paths: [.github/workflows/export-donor-b-r1-screens.yml]
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-ai-systems-donor-b-geometry-painter-r1-1to1
+      - name: Verify screenshots
+        run: |
+          test -s labs/donor-b-geometry-painter-r1/RUNTIME-CRYSTALS-1440x900.png
+          test -s labs/donor-b-geometry-painter-r1/RUNTIME-MOLTEN-FISSURES-1440x900.png
+          test -s labs/donor-b-geometry-painter-r1/RUNTIME-AURORA-SILK-1440x900.png
+          test -s labs/donor-b-geometry-painter-r1/RUNTIME-BIOLUMINESCENT-REEF-1440x900.png
+          test -s labs/donor-b-geometry-painter-r1/RUNTIME-MOBILE-390x844.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: donor-b-r1-runtime-screens
+          retention-days: 7
+          path: |
+            labs/donor-b-geometry-painter-r1/RUNTIME-CRYSTALS-1440x900.png
+            labs/donor-b-geometry-painter-r1/RUNTIME-MOLTEN-FISSURES-1440x900.png
+            labs/donor-b-geometry-painter-r1/RUNTIME-AURORA-SILK-1440x900.png
+            labs/donor-b-geometry-painter-r1/RUNTIME-BIOLUMINESCENT-REEF-1440x900.png
+            labs/donor-b-geometry-painter-r1/RUNTIME-MOBILE-390x844.png

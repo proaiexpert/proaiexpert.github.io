@@ -492,3 +492,92 @@
   from { transform: translateX(-100%); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
+
+/* Technology relay signal R1 — targeted micro-polish only.
+   Extends the existing R2 state architecture; no layout or content ownership. */
+.home-tech-r2__relay-signal {
+  fill: none;
+  vector-effect: non-scaling-stroke;
+  stroke: rgba(231,231,227,.9);
+  stroke-width: 1.55;
+  stroke-dasharray: .068 .932;
+  stroke-dashoffset: 0;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease, stroke 220ms ease;
+}
+
+.home-tech-r2.is-assembling .home-tech-r2__relay-signal {
+  animation: home-tech-r2-signal-pass 1320ms cubic-bezier(.32,.02,.2,1) 90ms both;
+}
+
+.home-tech-r2.is-assembling .home-tech-r2__handoff span,
+.home-tech-r2.is-settled .home-tech-r2__handoff span {
+  animation-delay: 1180ms;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .home-tech-r2.is-settled.is-local-active .home-tech-r2__relay--desktop .home-tech-r2__relay-active {
+    opacity: .29;
+    transition: opacity 220ms ease;
+  }
+
+  .home-tech-r2.is-settled.is-local-active .home-tech-r2__relay--desktop .home-tech-r2__relay-signal {
+    stroke: rgba(177,173,194,.9);
+    stroke-dashoffset: var(--tech-r2-local-offset, -.44);
+    animation: home-tech-r2-local-relay-catch 380ms var(--tech-r2-ease) both;
+  }
+}
+
+@media (max-width:700px) {
+  .home-tech-r2__relay--mobile .home-tech-r2__relay-signal {
+    stroke: rgba(220,220,217,.76);
+    stroke-width: 1.25;
+    stroke-dasharray: .052 .948;
+  }
+
+  .home-tech-r2.is-assembling .home-tech-r2__relay--mobile .home-tech-r2__relay-signal {
+    animation: home-tech-r2-signal-pass-mobile 1160ms cubic-bezier(.32,.02,.2,1) 80ms both;
+  }
+}
+
+@media (hover:none), (pointer:coarse) {
+  .home-tech-r2__relay-signal { transition: none; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .home-tech-r2__relay-signal {
+    animation: none !important;
+    transition: none !important;
+    stroke-dashoffset: 0 !important;
+    opacity: 0 !important;
+  }
+
+  .home-tech-r2.is-local-active .home-tech-r2__relay-active { opacity: .18; }
+}
+
+@keyframes home-tech-r2-signal-pass {
+  0% { stroke-dashoffset: .02; opacity: 0; }
+  8% { opacity: .2; }
+  19% { opacity: .76; }
+  76% { opacity: .8; }
+  92% { opacity: .3; }
+  100% { stroke-dashoffset: -1; opacity: 0; }
+}
+
+@keyframes home-tech-r2-signal-pass-mobile {
+  0% { stroke-dashoffset: .02; opacity: 0; }
+  10% { opacity: .16; }
+  22% { opacity: .56; }
+  76% { opacity: .6; }
+  92% { opacity: .22; }
+  100% { stroke-dashoffset: -1; opacity: 0; }
+}
+
+@keyframes home-tech-r2-local-relay-catch {
+  0% { opacity: 0; }
+  48% { opacity: .62; }
+  100% { opacity: .3; }
+}

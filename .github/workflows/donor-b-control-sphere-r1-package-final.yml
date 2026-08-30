@@ -1,0 +1,100 @@
+name: Donor B Control Sphere R1 Package Final
+
+on:
+  push:
+    branches: [agent/proai-ai-systems-donor-b-control-sphere-r1]
+    paths: [.github/workflows/donor-b-control-sphere-r1-package-final.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  package-final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-ai-systems-donor-b-control-sphere-r1
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build exact donor adaptation
+        run: |
+          rm -rf /tmp/donor
+          git clone https://github.com/achrefelouafi/GeometryPainterThreeJS.git /tmp/donor
+          cd /tmp/donor
+          git checkout --detach 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1
+          test "$(git rev-parse HEAD)" = 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1
+          npm ci
+          cp "$GITHUB_WORKSPACE/tools/donor-b-control-sphere-r1/patch.py" ./patch.py
+          cp "$GITHUB_WORKSPACE/tools/donor-b-control-sphere-r1/pointer-hotfix.py" ./pointer-hotfix.py
+          python3 patch.py
+          python3 pointer-hotfix.py
+          git diff -- src/app.ts index.html >/tmp/control-sphere-source.patch
+          test "$(git diff --name-only | sort | tr '\n' ' ')" = "index.html src/app.ts "
+          npm run build -- --base=./
+          test -f dist/index.html
+          ! grep -R -E '(localhost|127\.0\.0\.1)' dist --include='*.html' --include='*.js'
+      - name: Real browser proof
+        working-directory: /tmp/donor
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4174 >/tmp/preview.log 2>&1 & P=$!
+          trap 'kill $P || true' EXIT
+          for i in {1..30}; do curl -fsS http://127.0.0.1:4174/ >/dev/null && break; sleep 1; done
+          C=$(command -v google-chrome || command -v chromium || command -v chromium-browser); test -n "$C"
+          F='--headless=new --no-sandbox --disable-dev-shm-usage --use-gl=angle --use-angle=swiftshader --enable-unsafe-swiftshader --enable-webgl --ignore-gpu-blocklist'
+          runqa(){ local port=$1 out=$2 w=$3 h=$4 kind=$5; $C $F --remote-debugging-port=$port --window-size=$w,$h about:blank >/tmp/chrome-$port.log 2>&1 & local pid=$!; node "$GITHUB_WORKSPACE/tools/donor-b-control-sphere-r1/qa.mjs" $port $out $w $h $kind; kill $pid; wait $pid || true; }
+          runqa 9222 /tmp/desktop 1440 900 desktop
+          runqa 9223 /tmp/mobile390 390 844 mobile
+          runqa 9224 /tmp/mobile320 320 700 mobile
+          runqa 9225 /tmp/reduce 1440 900 reduce
+          kill $P; wait $P || true; trap - EXIT
+      - name: Package isolated LAB
+        run: |
+          T=labs/donor-b-control-sphere-r1
+          rm -rf "$T"; mkdir -p "$T/source"
+          cp -a /tmp/donor/dist/. "$T/"
+          cp /tmp/desktop/RUNTIME-DESKTOP-REST-1440x900.png "$T/"
+          cp /tmp/desktop/RUNTIME-DESKTOP-ENGAGED-1440x900.png "$T/"
+          cp /tmp/mobile390/RUNTIME-MOBILE-390x844.png "$T/"
+          cp /tmp/mobile320/RUNTIME-MOBILE-320x700.png "$T/"
+          cp /tmp/desktop/QA.json "$T/QA-DESKTOP.json"
+          cp /tmp/mobile390/QA.json "$T/QA-MOBILE-390.json"
+          cp /tmp/mobile320/QA.json "$T/QA-MOBILE-320.json"
+          cp /tmp/reduce/QA.json "$T/QA-REDUCED-MOTION.json"
+          cp /tmp/donor/LICENSE "$T/LICENSE.donor.txt"
+          cp /tmp/donor/src/app.ts "$T/source/app.ts"
+          cp /tmp/donor/index.html "$T/source/index.source.html"
+          cp /tmp/control-sphere-source.patch "$T/SOURCE-PATCH.diff"
+          cat >"$T/DONOR-PROVENANCE.md" <<'EOF'
+          # DONOR PROVENANCE — CONTROL SPHERE R1
+          DONOR: Geometry Painter — Chiro Visuals
+          DONOR SHA: 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1
+          LICENSE: MIT
+          SOURCE SPHERE GEOMETRY: UNCHANGED — SphereGeometry(1, 96, 64)
+          NEW CONTROL-OBJECT GEOMETRY: NONE
+          DONOR MODES USED: NONE / SPHERE BASE ONLY
+          MATERIAL: PROAI ADAPTED
+          STUDIO LIGHTING: PROAI ADAPTED using donor PMREM/light architecture
+          ROTATION: ADDED / ADAPTED
+          POINTER LIGHT RESPONSE: ADDED / ADAPTED
+          FISSURE: NOT USED
+          CRYSTALS: NOT USED
+          AURORA: NOT USED
+          REEF: NOT USED
+          EXACT MODIFIED DONOR SOURCE FILES: src/app.ts; index.html
+          BUILD: npm ci; npm run build -- --base=./
+          DEPENDENCY UPGRADES: NONE
+          KNOWN SECURITY FINDINGS: 1 moderate; 1 high; 0 critical; not remediated.
+          EOF
+      - name: Commit immutable LAB
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add labs/donor-b-control-sphere-r1
+          git diff --cached --check -- . ':(exclude)labs/donor-b-control-sphere-r1/SOURCE-PATCH.diff'
+          git commit -m 'lab: package donor B control sphere R1 review'
+          git push origin HEAD:agent/proai-ai-systems-donor-b-control-sphere-r1
+          git rev-parse HEAD

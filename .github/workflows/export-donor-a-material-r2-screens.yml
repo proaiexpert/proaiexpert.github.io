@@ -1,0 +1,25 @@
+name: Export Donor A Material R2 Screens
+on:
+  push:
+    branches: [agent/proai-ai-systems-donor-xylophone-adaptation-r2]
+    paths: [.github/workflows/export-donor-a-material-r2-screens.yml]
+jobs:
+  export-screens:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-ai-systems-donor-xylophone-adaptation-r2
+      - name: Verify R2 screenshots
+        run: |
+          test -s labs/donor-a-xylophone-proai-material-r2/PROAI-R2-RUNTIME-1440x900.png
+          test -s labs/donor-a-xylophone-proai-material-r2/PROAI-R2-RUNTIME-390x844.png
+          test -s labs/donor-a-xylophone-proai-material-r2/ORIGINAL-R2-RUNTIME-1440x900.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: donor-a-proai-material-r2-screens
+          path: |
+            labs/donor-a-xylophone-proai-material-r2/PROAI-R2-RUNTIME-1440x900.png
+            labs/donor-a-xylophone-proai-material-r2/PROAI-R2-RUNTIME-390x844.png
+            labs/donor-a-xylophone-proai-material-r2/ORIGINAL-R2-RUNTIME-1440x900.png
+          retention-days: 7

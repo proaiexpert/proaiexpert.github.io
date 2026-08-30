@@ -1,0 +1,215 @@
+diff --git a/src/js/components/XylophoneBg.ts b/src/js/components/XylophoneBg.ts
+index 458ca17..6f8384f 100644
+--- a/src/js/components/XylophoneBg.ts
++++ b/src/js/components/XylophoneBg.ts
+@@ -4,9 +4,12 @@ import xylophoneBgVert from "../../shaders/xylophoneBg/xylophoneBgVert.glsl?raw"
+ import { BG_LAYER } from "../configs/XylophoneConfig"
+ 
+ /** Fullscreen gradient behind the bars — also what the frosted transmission samples. */
++const REVIEW_THEME = new URLSearchParams(window.location.search).get("theme") === "original" ? "original" : "proai"
++
+ export class XylophoneBg {
+   readonly uniforms = {
+-    u_color: { value: new Color(0xa391d3) },
++    u_color: { value: new Color(REVIEW_THEME === "proai" ? 0x020304 : 0xa391d3) },
++    u_proaiMode: { value: REVIEW_THEME === "proai" ? 1.0 : 0.0 },
+     u_debugPattern: { value: 0 }, // dev only: high-contrast checkerboard to read the transmission
+   }
+ 
+diff --git a/src/js/components/xylophone/Xylophone.ts b/src/js/components/xylophone/Xylophone.ts
+index 9d492bb..ce4cbda 100644
+--- a/src/js/components/xylophone/Xylophone.ts
++++ b/src/js/components/xylophone/Xylophone.ts
+@@ -28,10 +28,15 @@ import { XylophoneAudio } from "./XylophoneAudio"
+ import { buildInstancedGeometry, writeHelixTransforms, type BuiltGeometry } from "./helix"
+ import { createHitWorkspace, hitBarIndex, type InstanceAttributes } from "./picking"
+ 
++/* -------------------------------------------------------------------------- */
++/*                              review material mode                           */
++/* -------------------------------------------------------------------------- */
++const REVIEW_THEME = new URLSearchParams(window.location.search).get("theme") === "original" ? "original" : "proai"
++
+ /* -------------------------------------------------------------------------- */
+ /*                                    utils                                   */
+ /* -------------------------------------------------------------------------- */
+-/** 1px-tall spectrum ramp the bars sample for their hover tint. */
++/** 1px-tall interaction ramp. Original remains exact; ProAI constrains it to cool optical indigo. */
+ function buildGradientTexture(): Texture {
+   const width = 256
+   const canvas = document.createElement("canvas")
+@@ -40,11 +45,19 @@ function buildGradientTexture(): Texture {
+ 
+   const ctx = canvas.getContext("2d")!
+   const grad = ctx.createLinearGradient(0, 0, width, 0)
+-  grad.addColorStop(0.0, "#ff0033")
+-  grad.addColorStop(0.3, "#ff00d4")
+-  grad.addColorStop(0.5, "#6a00ff")
+-  grad.addColorStop(0.8, "#0090ff")
+-  grad.addColorStop(1.0, "#00ffe1")
++  if (REVIEW_THEME === "original") {
++    grad.addColorStop(0.0, "#ff0033")
++    grad.addColorStop(0.3, "#ff00d4")
++    grad.addColorStop(0.5, "#6a00ff")
++    grad.addColorStop(0.8, "#0090ff")
++    grad.addColorStop(1.0, "#00ffe1")
++  } else {
++    grad.addColorStop(0.0, "#181D23")
++    grad.addColorStop(0.42, "#242A31")
++    grad.addColorStop(0.76, "#2B323A")
++    grad.addColorStop(0.94, "#676BFF")
++    grad.addColorStop(1.0, "#5B50FF")
++  }
+   ctx.fillStyle = grad
+   ctx.fillRect(0, 0, width, 1)
+ 
+@@ -80,19 +93,20 @@ export class Xylophone {
+     u_tintStrength: { value: 1.0 },
+     u_tintGlow: { value: 0.15 },
+     u_tintWrap: { value: XYLOPHONE.tintWrap },
++    u_proaiMode: { value: REVIEW_THEME === "proai" ? 1.0 : 0.0 },
+ 
+-    // frosted transmission
++    // frosted transmission — original values preserved in control mode
+     u_tBackdrop: { value: null as Texture | null },
+-    u_transmission: { value: 0.84 },
+-    u_refractStrength: { value: 0.2 },
+-    u_fresnelPower: { value: 3.0 },
++    u_transmission: { value: REVIEW_THEME === "proai" ? 0.44 : 0.84 },
++    u_refractStrength: { value: REVIEW_THEME === "proai" ? 0.075 : 0.2 },
++    u_fresnelPower: { value: REVIEW_THEME === "proai" ? 1.85 : 3.0 },
+ 
+-    // iridescence
+-    u_iridStrength: { value: 0.6 },
+-    u_iridCycles: { value: 3.0 },
++    // iridescence — constrained optical edge response in ProAI mode
++    u_iridStrength: { value: REVIEW_THEME === "proai" ? 0.055 : 0.6 },
++    u_iridCycles: { value: REVIEW_THEME === "proai" ? 0.72 : 3.0 },
+     u_iridShift: { value: 0.0 },
+-    u_iridPower: { value: 2.5 },
+-    u_iridBody: { value: 0.12 },
++    u_iridPower: { value: REVIEW_THEME === "proai" ? 4.6 : 2.5 },
++    u_iridBody: { value: REVIEW_THEME === "proai" ? 0.003 : 0.12 },
+   }
+ 
+   // mesh
+diff --git a/src/shaders/xylophone/xylophoneFrag.glsl b/src/shaders/xylophone/xylophoneFrag.glsl
+index 788b095..ae226c8 100644
+--- a/src/shaders/xylophone/xylophoneFrag.glsl
++++ b/src/shaders/xylophone/xylophoneFrag.glsl
+@@ -8,6 +8,7 @@ uniform float u_fluidStrength;
+ uniform float u_tintStrength;
+ uniform float u_tintGlow;
+ uniform float u_tintWrap;
++uniform float u_proaiMode;
+ 
+ // background
+ uniform sampler2D u_tBackdrop;
+@@ -64,6 +65,13 @@ vec3 iridescence(float t) {
+  */
+ vec3 proceduralEnv(vec3 dir) {
+   float t = clamp(dir.y * 0.5 + 0.5, 0.0, 1.0);
++  if (u_proaiMode > 0.5) {
++    vec3 groundP = vec3(0.0078, 0.0118, 0.0157); // #020304
++    vec3 horizonP = vec3(0.0549, 0.0706, 0.0902); // #0E1217
++    vec3 skyP = vec3(0.7882, 0.8039, 0.8196); // narrow Silver highlight
++    vec3 envP = t < 0.78 ? mix(groundP, horizonP, smoothstep(0.0, 0.78, t)) : mix(horizonP, skyP, smoothstep(0.78, 1.0, t));
++    return mix(envP, vec3(0.3569, 0.3137, 1.0), smoothstep(0.975, 1.0, t) * 0.008);
++  }
+   vec3 ground = vec3(0.12, 0.12, 0.14);
+   vec3 horizon = vec3(0.60, 0.62, 0.68);
+   vec3 sky = vec3(0.95, 0.97, 1.0);
+@@ -92,6 +100,68 @@ void main() {
+   float reveal = clamp(velocity * u_fluidStrength, 0.0, 1.0);
+   vec3 tint = texture2D(u_tGradient, vec2(fract(vTintOffset * u_tintWrap), 0.5)).rgb;
+ 
++  if (u_proaiMode > 0.5) {
++    // Existing instance identity only: no geometry/count/helix changes. Two fixed existing bars become Pearl tests.
++    float instanceIndex = floor(vTintOffset * 64.0 + 0.5);
++    float family = mod(instanceIndex, 10.0);
++
++    const vec3 BLACK_CHROME = vec3(0.0941, 0.1137, 0.1373); // #181D23
++    const vec3 GRAPHITE = vec3(0.1412, 0.1647, 0.1922);    // #242A31
++    const vec3 GUNMETAL = vec3(0.1686, 0.1961, 0.2275);    // #2B323A
++    const vec3 SILVER = vec3(0.7882, 0.8039, 0.8196);      // #C9CDD1
++    const vec3 PEARL = vec3(0.9490, 0.9412, 0.9216);       // #F2F0EB
++    const vec3 INDIGO = vec3(0.4039, 0.4196, 1.0);         // #676BFF
++    const vec3 INDIGO_DEEP = vec3(0.3569, 0.3137, 1.0);    // #5B50FF
++    const vec3 INDIGO_EDGE = vec3(0.6078, 0.6588, 1.0);    // #9BA8FF
++
++    vec3 base = BLACK_CHROME;
++    if (family >= 6.0 && family < 8.5) base = GUNMETAL;
++    else if (family >= 8.5 && family < 9.5) base = GRAPHITE;
++    else if (family >= 9.5) base = mix(GRAPHITE, SILVER, 0.28);
++
++    float pearlMask = step(abs(instanceIndex - 17.0), 0.25) + step(abs(instanceIndex - 49.0), 0.25);
++    pearlMask = clamp(pearlMask, 0.0, 1.0);
++    base = mix(base, PEARL, pearlMask);
++
++    // Local interaction energy is indigo only; rest-state hue remains overwhelmingly neutral/dark.
++    vec3 activeIndigo = mix(INDIGO_DEEP, INDIGO, clamp(dot(N, normalize(LIGHT_DIR)) * 0.5 + 0.5, 0.0, 1.0));
++    float indigoState = reveal * reveal * (pearlMask > 0.5 ? 0.015 : 0.16);
++    vec3 activeBase = mix(base, activeIndigo, indigoState);
++    vec3 bodyP = lighting * (activeBase * 0.92 + vec3(0.004));
++
++    vec2 buvP = vScreenUv + N.xy * u_refractStrength;
++    vec3 transP = texture2D(u_tBackdrop, buvP).rgb;
++    transP = mix(transP, activeBase * 0.82, 0.52 + reveal * 0.12);
++    vec3 frostedP = mix(bodyP, transP, u_transmission * (1.0 - 0.22 * reveal));
++
++    float edgeP = clamp(1.0 - max(dot(N, V), 0.0), 0.0, 1.0);
++    float fresP = pow(edgeP, u_fresnelPower);
++    vec3 sheenP = proceduralEnv(reflect(-V, N));
++    float chromeFamily = 1.0 - step(6.0, family);
++    float gunmetalFamily = step(6.0, family) * (1.0 - step(8.5, family));
++    vec3 chromeSheen = mix(sheenP, SILVER, 0.58);
++    vec3 satinSheen = mix(sheenP, SILVER * 0.72, 0.30);
++    vec3 materialSheen = mix(sheenP, chromeSheen, chromeFamily);
++    materialSheen = mix(materialSheen, satinSheen, gunmetalFamily);
++    vec3 colorP = mix(frostedP, materialSheen, fresP * (0.72 * chromeFamily + 0.46 * gunmetalFamily + 0.38));
++    colorP += fresP * SILVER * (0.16 * chromeFamily + 0.07 * gunmetalFamily + 0.035);
++
++    // Controlled optical iridescence: silver -> cool white -> restrained indigo, never full-spectrum rainbow.
++    float optical = 0.5 + 0.5 * cos(2.0 * PI * (edgeP * u_iridCycles + N.y * 0.12 + u_iridShift));
++    vec3 opticalTint = mix(SILVER, INDIGO, optical * 0.09);
++    colorP += opticalTint * (pow(edgeP, u_iridPower) * u_iridStrength + u_iridBody * edgeP);
++    colorP += INDIGO_DEEP * reveal * reveal * 0.008;
++
++    // Pearl is reflective/optical, not emissive. Give it only a neutral Fresnel lift.
++    vec3 pearlBody = lighting * (PEARL * 0.88 + vec3(0.018, 0.016, 0.012));
++    vec3 pearlOptical = mix(pearlBody, mix(PEARL, SILVER, 0.34), fresP * 0.46);
++    pearlOptical += PEARL * pow(edgeP, 3.6) * 0.07;
++    colorP = mix(colorP, pearlOptical, pearlMask);
++
++    gl_FragColor = vec4(colorP, 1.0);
++    return;
++  }
++
+   // white body on rest
+   vec3 albedo = mix(vec3(1.0), tint, reveal * u_tintStrength);
+   vec3 body = lighting * albedo;
+diff --git a/src/shaders/xylophoneBg/xylophoneBgFrag.glsl b/src/shaders/xylophoneBg/xylophoneBgFrag.glsl
+index e5086cd..7b600a9 100644
+--- a/src/shaders/xylophoneBg/xylophoneBgFrag.glsl
++++ b/src/shaders/xylophoneBg/xylophoneBgFrag.glsl
+@@ -1,12 +1,20 @@
+ uniform vec3 u_color;
+ uniform float u_debugPattern;
++uniform float u_proaiMode;
+ 
+ varying vec2 v_uv;
+ 
+ void main() {
+   // diagonal ramp, bottom-left -> top-right
+   float t = smoothstep(0.0, 1.0, v_uv.y * 0.5 + (1.0 - v_uv.x) * 0.5);
+-  vec3 color = mix(u_color, vec3(1.0), t - 0.3);
++  vec3 color;
++  if (u_proaiMode > 0.5) {
++    vec3 obsidian = vec3(0.0078, 0.0118, 0.0157); // #020304
++    vec3 upper = vec3(0.0196, 0.0235, 0.0275);    // #050607 near-black separation
++    color = mix(obsidian, upper, smoothstep(0.22, 0.96, t) * 0.62);
++  } else {
++    color = mix(u_color, vec3(1.0), t - 0.3);
++  }
+ 
+   /* ----------------------------------- dev ---------------------------------- */
+   // checkerboard — makes the frosted transmission obvious while tuning

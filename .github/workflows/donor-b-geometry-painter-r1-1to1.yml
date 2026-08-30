@@ -1,0 +1,273 @@
+name: Donor B Geometry Painter R1 1to1 Gate
+
+on:
+  push:
+    branches:
+      - agent/proai-ai-systems-donor-b-geometry-painter-r1-1to1
+    paths:
+      - .github/workflows/donor-b-geometry-painter-r1-1to1.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reproduce:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated ProAI branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/proai-ai-systems-donor-b-geometry-painter-r1-1to1
+
+      - name: Clone and pin exact donor
+        run: |
+          rm -rf /tmp/geometry-painter
+          git clone https://github.com/achrefelouafi/GeometryPainterThreeJS.git /tmp/geometry-painter
+          cd /tmp/geometry-painter
+          git checkout --detach 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1
+          test "$(git rev-parse HEAD)" = "79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1"
+          test -f LICENSE
+          test -f package.json
+          test -f package-lock.json
+          test -f src/app.ts
+          test -f src/modes/crystals.ts
+          test -f src/modes/fissures.ts
+          test -f src/modes/aurora.ts
+          test -f src/modes/reef.ts
+          git status --porcelain | test ! -s /dev/stdin
+
+      - name: Verify actual MIT license and source architecture
+        working-directory: /tmp/geometry-painter
+        run: |
+          grep -q '^MIT License$' LICENSE
+          grep -q 'Permission is hereby granted, free of charge' LICENSE
+          grep -q 'use, copy, modify, merge, publish, distribute, sublicense' LICENSE
+          grep -q "'Crystals'" src/app.ts
+          grep -q "'Molten fissures'" src/app.ts
+          grep -q "'Aurora silk'" src/app.ts
+          grep -q "'Bioluminescent reef'" src/app.ts
+          grep -q 'new THREE.WebGPURenderer' src/app.ts
+          grep -q 'three/webgpu' src/app.ts
+          ! grep -R -E '(patreon|private registry|npm.pkg.github.com|api[_-]?key|secret[_-]?key)' package.json package-lock.json src README.md
+
+      - name: Locked install and security inventory
+        working-directory: /tmp/geometry-painter
+        run: |
+          npm ci 2>&1 | tee /tmp/npm-ci.log
+          npm audit --json > /tmp/npm-audit.json || true
+          node - <<'NODE' > /tmp/security-summary.txt
+          const fs = require('fs');
+          const j = JSON.parse(fs.readFileSync('/tmp/npm-audit.json','utf8'));
+          const v = j.metadata?.vulnerabilities || {};
+          console.log(`total=${v.total ?? 0}`);
+          console.log(`info=${v.info ?? 0}`);
+          console.log(`low=${v.low ?? 0}`);
+          console.log(`moderate=${v.moderate ?? 0}`);
+          console.log(`high=${v.high ?? 0}`);
+          console.log(`critical=${v.critical ?? 0}`);
+          NODE
+          cat /tmp/security-summary.txt
+          git status --porcelain | test ! -s /dev/stdin
+
+      - name: Original dev server and real browser smoke
+        working-directory: /tmp/geometry-painter
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/dev.log 2>&1 &
+          DEV_PID=$!
+          trap 'kill $DEV_PID || true' EXIT
+          for i in {1..40}; do curl --fail --silent http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          CHROME=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          test -n "$CHROME"
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-gl=angle --use-angle=swiftshader --enable-webgl --ignore-gpu-blocklist --window-size=1440,900 --virtual-time-budget=6000 --screenshot=/tmp/DEV-RUNTIME-1440x900.png http://127.0.0.1:4173/
+          test -s /tmp/DEV-RUNTIME-1440x900.png
+          test $(stat -c%s /tmp/DEV-RUNTIME-1440x900.png) -gt 50000
+          kill $DEV_PID; wait $DEV_PID || true; trap - EXIT
+
+      - name: Original production build
+        working-directory: /tmp/geometry-painter
+        run: |
+          rm -rf dist
+          npm run build
+          test -f dist/index.html
+          find dist -type f -name '*.js' | grep -q .
+          find dist -type f -name '*.css' | grep -q .
+          cp -a dist /tmp/original-dist
+          git status --porcelain | test ! -s /dev/stdin
+
+      - name: Nested-path review transport build only
+        working-directory: /tmp/geometry-painter
+        run: |
+          rm -rf dist
+          npm run build -- --base=./
+          test -f dist/index.html
+          grep -q 'src="\./assets/' dist/index.html
+          grep -q 'href="\./assets/' dist/index.html
+          ! grep -R -E '(localhost|127\.0\.0\.1)' dist
+          git status --porcelain | test ! -s /dev/stdin
+
+      - name: Create CDP runtime QA harness
+        run: |
+          cat > /tmp/runtime-qa.mjs <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const port = Number(process.argv[2]);
+          const outDir = process.argv[3];
+          const width = Number(process.argv[4]);
+          const height = Number(process.argv[5]);
+          const modes = process.argv.slice(6);
+          fs.mkdirSync(outDir,{recursive:true});
+
+          const tabs = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
+          const tab = tabs.find(t => t.type === 'page');
+          if (!tab) throw new Error('No Chrome page target');
+          const ws = new WebSocket(tab.webSocketDebuggerUrl);
+          await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject});
+          let id=0; const pending=new Map(); const fatal=[];
+          ws.onmessage=(ev)=>{
+            const m=JSON.parse(ev.data);
+            if(m.id && pending.has(m.id)){const {resolve,reject}=pending.get(m.id);pending.delete(m.id);m.error?reject(new Error(JSON.stringify(m.error))):resolve(m.result);return;}
+            if(m.method==='Runtime.exceptionThrown') fatal.push(`exception:${m.params.exceptionDetails.text}`);
+            if(m.method==='Log.entryAdded' && m.params.entry.level==='error') fatal.push(`console:${m.params.entry.text}`);
+          };
+          const send=(method,params={})=>new Promise((resolve,reject)=>{const n=++id;pending.set(n,{resolve,reject});ws.send(JSON.stringify({id:n,method,params}));});
+          const evalJs=async(expression)=>{const r=await send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true}); if(r.exceptionDetails) throw new Error(r.exceptionDetails.text); return r.result?.result?.value;};
+          const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+          await send('Runtime.enable'); await send('Log.enable'); await send('Page.enable');
+          await send('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:false});
+          for(let i=0;i<60;i++){const ok=await evalJs(`!!document.querySelector('canvas') && !!document.querySelector('.lil-gui select')`); if(ok) break; await sleep(250); if(i===59) throw new Error('Renderer/UI did not initialize');}
+          const backend=await evalJs(`({webgpu:!!navigator.gpu, canvas:!!document.querySelector('canvas'), selects:[...document.querySelectorAll('.lil-gui select')].map(s=>[...s.options].map(o=>o.value))})`);
+          fs.writeFileSync(path.join(outDir,'backend.json'),JSON.stringify(backend,null,2));
+
+          async function clear(){
+            await evalJs(`(()=>{const c=[...document.querySelectorAll('.lil-gui button')].find(b=>b.textContent?.includes('Clear all')); if(c)c.click();})()`);
+            await sleep(350);
+          }
+          async function setMode(mode){
+            const changed=await evalJs(`(()=>{const s=[...document.querySelectorAll('.lil-gui select')].find(x=>[...x.options].some(o=>o.value===${JSON.stringify(mode)})); if(!s)return false; s.value=${JSON.stringify(mode)}; s.dispatchEvent(new Event('change',{bubbles:true})); return s.value;})()`);
+            if(changed!==mode) throw new Error(`Could not activate mode ${mode}`);
+            await sleep(400);
+          }
+          async function paint(){
+            const rect=await evalJs(`(()=>{const c=document.querySelector('canvas');const r=c.getBoundingClientRect();return {x:r.left,y:r.top,w:r.width,h:r.height}})()`);
+            const pts=[];
+            for(let i=0;i<28;i++){
+              const t=i/27;
+              pts.push({x:rect.x+rect.w*(0.34+0.24*t), y:rect.y+rect.h*(0.48+0.06*Math.sin(t*Math.PI*2))});
+            }
+            await send('Input.dispatchMouseEvent',{type:'mousePressed',x:pts[0].x,y:pts[0].y,button:'left',buttons:1,clickCount:1});
+            for(const p of pts.slice(1)){await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:p.x,y:p.y,button:'left',buttons:1}); await sleep(18);}
+            const e=pts.at(-1); await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:e.x,y:e.y,button:'left',buttons:0,clickCount:1});
+            await sleep(2200);
+          }
+          async function shot(name){
+            const r=await send('Page.captureScreenshot',{format:'png',fromSurface:true});
+            const f=path.join(outDir,name);fs.writeFileSync(f,Buffer.from(r.data,'base64'));
+            if(fs.statSync(f).size<50000) throw new Error(`Screenshot too small: ${name}`);
+          }
+
+          for(const mode of modes){
+            await clear(); await setMode(mode); await paint();
+            const safe=mode.toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'');
+            await shot(`RUNTIME-${safe}-${width}x${height}.png`);
+          }
+          fs.writeFileSync(path.join(outDir,'fatal-console.json'),JSON.stringify(fatal,null,2));
+          if(fatal.length) throw new Error(`Fatal browser console entries: ${fatal.join(' | ')}`);
+          ws.close();
+          NODE
+
+      - name: Production runtime QA all modes at 1440 and default at 390
+        working-directory: /tmp/geometry-painter
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4174 > /tmp/preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill $PREVIEW_PID || true' EXIT
+          for i in {1..40}; do curl --fail --silent http://127.0.0.1:4174/ >/dev/null && break; sleep 1; done
+          CHROME=$(command -v google-chrome || command -v chromium || command -v chromium-browser)
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-gl=angle --use-angle=swiftshader --enable-webgl --ignore-gpu-blocklist --remote-debugging-port=9222 --window-size=1440,900 http://127.0.0.1:4174/ > /tmp/chrome-desktop.log 2>&1 &
+          CHROME_PID=$!
+          for i in {1..30}; do curl --fail --silent http://127.0.0.1:9222/json >/dev/null && break; sleep 1; done
+          node /tmp/runtime-qa.mjs 9222 /tmp/qa-desktop 1440 900 'Crystals' 'Molten fissures' 'Aurora silk' 'Bioluminescent reef'
+          kill $CHROME_PID; wait $CHROME_PID || true
+          "$CHROME" --headless=new --no-sandbox --disable-dev-shm-usage --use-gl=angle --use-angle=swiftshader --enable-webgl --ignore-gpu-blocklist --remote-debugging-port=9223 --window-size=390,844 http://127.0.0.1:4174/ > /tmp/chrome-mobile.log 2>&1 &
+          CHROME_PID=$!
+          for i in {1..30}; do curl --fail --silent http://127.0.0.1:9223/json >/dev/null && break; sleep 1; done
+          node /tmp/runtime-qa.mjs 9223 /tmp/qa-mobile 390 844 'Crystals'
+          kill $CHROME_PID; wait $CHROME_PID || true
+          kill $PREVIEW_PID; wait $PREVIEW_PID || true; trap - EXIT
+
+      - name: Package immutable 1to1 review
+        run: |
+          TARGET=labs/donor-b-geometry-painter-r1
+          rm -rf "$TARGET"
+          mkdir -p "$TARGET"
+          cp -a /tmp/geometry-painter/dist/. "$TARGET/"
+          cp /tmp/geometry-painter/LICENSE "$TARGET/LICENSE.donor.txt"
+          cp /tmp/qa-desktop/RUNTIME-CRYSTALS-1440x900.png "$TARGET/RUNTIME-CRYSTALS-1440x900.png"
+          cp /tmp/qa-desktop/RUNTIME-MOLTEN-FISSURES-1440x900.png "$TARGET/RUNTIME-MOLTEN-FISSURES-1440x900.png"
+          cp /tmp/qa-desktop/RUNTIME-AURORA-SILK-1440x900.png "$TARGET/RUNTIME-AURORA-SILK-1440x900.png"
+          cp /tmp/qa-desktop/RUNTIME-BIOLUMINESCENT-REEF-1440x900.png "$TARGET/RUNTIME-BIOLUMINESCENT-REEF-1440x900.png"
+          cp /tmp/qa-mobile/RUNTIME-CRYSTALS-390x844.png "$TARGET/RUNTIME-MOBILE-390x844.png"
+          cp /tmp/qa-desktop/backend.json "$TARGET/QA-BACKEND-DESKTOP.json"
+          cp /tmp/qa-mobile/backend.json "$TARGET/QA-BACKEND-MOBILE.json"
+          cp /tmp/qa-desktop/fatal-console.json "$TARGET/QA-CONSOLE-DESKTOP.json"
+          cp /tmp/qa-mobile/fatal-console.json "$TARGET/QA-CONSOLE-MOBILE.json"
+          cp /tmp/security-summary.txt "$TARGET/SECURITY-WARNINGS.txt"
+          cat > "$TARGET/DONOR-PROVENANCE.md" <<'EOF'
+          # Donor provenance
+
+          DONOR: Geometry Painter — Chiro Visuals
+
+          SOURCE: https://github.com/achrefelouafi/GeometryPainterThreeJS
+
+          DONOR SHA: 79c7556ab8c5d7bcf92fa92d7fc8063db298b5e1
+
+          LICENSE: MIT
+
+          ORIGINAL LIVE: https://tympanus.net/Tutorials/GeometryPainterThreeJS/
+
+          INSTALL COMMAND: npm ci
+
+          DEV COMMAND: npm run dev
+
+          BUILD COMMAND: npm run build
+
+          RENDERER: Three.js WebGPURenderer; repository documents WebGL2 fallback
+
+          MAJOR MODES:
+          1. Crystals
+          2. Molten fissures
+          3. Aurora silk
+          4. Bioluminescent reef
+
+          VISUAL MODIFICATIONS: NONE
+
+          GEOMETRY MODIFICATIONS: NONE
+
+          MATERIAL MODIFICATIONS: NONE
+
+          CAMERA MODIFICATIONS: NONE
+
+          MOTION MODIFICATIONS: NONE
+
+          BEHAVIORAL MODIFICATIONS: NONE
+
+          INFRASTRUCTURE-ONLY MODIFICATIONS: Packaging build rerun as `npm run build -- --base=./` so Vite emits relative asset URLs for nested immutable RawCDN review transport. Donor source files were not edited.
+          EOF
+
+      - name: Verify package and commit isolated review only
+        run: |
+          test -f labs/donor-b-geometry-painter-r1/index.html
+          test -f labs/donor-b-geometry-painter-r1/LICENSE.donor.txt
+          test -f labs/donor-b-geometry-painter-r1/DONOR-PROVENANCE.md
+          test -f labs/donor-b-geometry-painter-r1/RUNTIME-CRYSTALS-1440x900.png
+          test -f labs/donor-b-geometry-painter-r1/RUNTIME-MOLTEN-FISSURES-1440x900.png
+          test -f labs/donor-b-geometry-painter-r1/RUNTIME-AURORA-SILK-1440x900.png
+          test -f labs/donor-b-geometry-painter-r1/RUNTIME-BIOLUMINESCENT-REEF-1440x900.png
+          test -f labs/donor-b-geometry-painter-r1/RUNTIME-MOBILE-390x844.png
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add labs/donor-b-geometry-painter-r1
+          git diff --cached --check
+          git commit -m 'lab: package donor B Geometry Painter R1 1to1 runtime review'
+          git push origin HEAD:agent/proai-ai-systems-donor-b-geometry-painter-r1-1to1

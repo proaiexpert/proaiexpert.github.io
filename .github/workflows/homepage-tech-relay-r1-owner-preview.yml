@@ -1,0 +1,479 @@
+name: Homepage Technology Z-Relay R1 Owner Preview
+
+on:
+  push:
+    branches:
+      - review/homepage-tech-relay-signal-r1-preview
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: homepage-tech-relay-r1-owner-preview
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: github.ref == 'refs/heads/review/homepage-tech-relay-signal-r1-preview'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      PRODUCT_SHA: 9794ad94235311d0002e6c005e31b3e447cc6048
+      INFRA_SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout exact approved product
+        uses: actions/checkout@v4
+        with:
+          ref: 9794ad94235311d0002e6c005e31b3e447cc6048
+          fetch-depth: 1
+
+      - name: Verify frozen product identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          echo "PRODUCT_SHA_VERIFIED=$PRODUCT_SHA"
+
+      - name: Build exact Jekyll runtime and install Chromium QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared --version
+
+      - name: Start exact generated site
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/proai-tech-preview-server.log 2>&1 &
+          echo $! >/tmp/proai-tech-preview-server.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ -o /tmp/local-en.html && \
+               curl -fsS http://127.0.0.1:4173/ru/ -o /tmp/local-ru.html && \
+               grep -q '04 / TECHNOLOGY ECOSYSTEM' /tmp/local-en.html && \
+               grep -q '04 / ТЕХНОЛОГИЧЕСКАЯ ЭКОСИСТЕМА' /tmp/local-ru.html; then
+              echo 'LOCAL_JEKYLL_RUNTIME_PASS'
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/proai-tech-preview-server.log
+          exit 1
+
+      - name: Publish HTTPS preview, run runtime QA, and hold review window
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          post_status() {
+            local state="$1"
+            local target="$2"
+            local description="$3"
+            gh api --method POST "repos/$REPO/statuses/$INFRA_SHA" \
+              -f state="$state" \
+              -f target_url="$target" \
+              -f context='owner-preview/technology-z-relay-r1' \
+              -f description="$description" >/dev/null
+          }
+
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared-tech-preview.log 2>&1 &
+          TUNNEL_PID=$!
+          trap 'kill "$TUNNEL_PID" 2>/dev/null || true; kill "$(cat /tmp/proai-tech-preview-server.pid 2>/dev/null)" 2>/dev/null || true' EXIT
+
+          URL=''
+          for i in $(seq 1 90); do
+            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared-tech-preview.log | tail -1 || true)
+            if [ -n "$URL" ]; then break; fi
+            if ! kill -0 "$TUNNEL_PID" 2>/dev/null; then
+              cat /tmp/cloudflared-tech-preview.log
+              exit 1
+            fi
+            sleep 1
+          done
+          if [ -z "$URL" ]; then
+            cat /tmp/cloudflared-tech-preview.log
+            exit 1
+          fi
+
+          echo "OWNER_REVIEW_URL=$URL"
+          post_status pending "$URL" 'Preview live; runtime QA running'
+
+          PUBLIC_OK=0
+          for i in $(seq 1 60); do
+            if curl -fsSL --max-time 15 "$URL/" -o /tmp/public-en.html && \
+               curl -fsSL --max-time 15 "$URL/ru/" -o /tmp/public-ru.html && \
+               grep -q '04 / TECHNOLOGY ECOSYSTEM' /tmp/public-en.html && \
+               grep -q '04 / ТЕХНОЛОГИЧЕСКАЯ ЭКОСИСТЕМА' /tmp/public-ru.html; then
+              PUBLIC_OK=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$PUBLIC_OK" -ne 1 ]; then
+            post_status failure "$URL" 'Public Jekyll runtime failed'
+            exit 1
+          fi
+          echo 'PUBLIC_JEKYLL_RUNTIME_PASS'
+
+          cat >/tmp/technology-runtime-qa.mjs <<'NODE'
+          import { chromium } from 'playwright';
+
+          const base = process.env.PUBLIC_URL.replace(/\/$/, '');
+          const origin = new URL(base).origin;
+          const brands = ['openai','claude','gemini','n8n','make','twilio','vercel','gmail','zapier','github'];
+          const names = ['OpenAI','Claude','Gemini','n8n','Make','Twilio','Vercel','Gmail','Zapier','GitHub'];
+          const offsets = [-0.44,-0.37,-0.30,-0.23,-0.16,-0.68,-0.73,-0.78,-0.83,-0.88];
+          const logoPaths = new Set(brands.map((b) => `/assets/brand/platforms/${b}-mark.svg`));
+
+          function assert(value, message) {
+            if (!value) throw new Error(message);
+          }
+
+          function diagnostics(page, label) {
+            const state = { label, pageErrors: [], badSameOrigin: [], logoResponses: new Map() };
+            page.on('pageerror', (error) => state.pageErrors.push(String(error)));
+            page.on('response', (response) => {
+              const u = new URL(response.url());
+              if (u.origin === origin && response.status() >= 400) {
+                state.badSameOrigin.push({ url: response.url(), status: response.status() });
+              }
+              if (u.origin === origin && logoPaths.has(u.pathname)) {
+                state.logoResponses.set(u.pathname, response.status());
+              }
+            });
+            return state;
+          }
+
+          async function goto(page, route) {
+            await page.goto(`${base}${route}`, { waitUntil: 'domcontentloaded', timeout: 120000 });
+            await page.waitForSelector('[data-home-tech-r2]', { timeout: 30000 });
+            await page.waitForTimeout(1200);
+          }
+
+          async function assertRegressionBoundary(page, label) {
+            const result = await page.evaluate(() => {
+              const selectors = {
+                hero: '#hero',
+                cube: '#cube-canvas',
+                connected: '[data-connected-system]',
+                twoWorlds: '[data-tw-r2]',
+                technology: '[data-home-tech-r2]',
+                financialStream: '[data-fs-showcase-r11]',
+                selectedThinking: '[data-selected-thinking-r1]',
+                selectedWork: '[data-selected-work-r11]',
+                footer: '[data-home-footer-golden-r3]',
+              };
+              const counts = Object.fromEntries(Object.entries(selectors).map(([key, selector]) => [key, document.querySelectorAll(selector).length]));
+              const canvas = document.querySelector('#cube-canvas');
+              const rect = canvas?.getBoundingClientRect();
+              let webgl = false;
+              try {
+                webgl = Boolean(canvas?.getContext('webgl2') || canvas?.getContext('webgl'));
+              } catch (_) {}
+              return {
+                counts,
+                cube: {
+                  rectWidth: rect?.width || 0,
+                  rectHeight: rect?.height || 0,
+                  bufferWidth: canvas?.width || 0,
+                  bufferHeight: canvas?.height || 0,
+                  webgl,
+                },
+                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+              };
+            });
+            for (const [key, count] of Object.entries(result.counts)) {
+              assert(count === 1, `${label}: regression boundary ${key} count=${count}`);
+            }
+            assert(result.cube.rectWidth > 20 && result.cube.rectHeight > 20, `${label}: cube canvas has no visible size`);
+            assert(result.cube.bufferWidth > 20 && result.cube.bufferHeight > 20, `${label}: cube canvas buffer not initialized`);
+            assert(result.cube.webgl, `${label}: cube WebGL context unavailable`);
+            assert(result.overflow <= 1, `${label}: horizontal overflow=${result.overflow}`);
+          }
+
+          async function scrollTechnology(page) {
+            await page.evaluate(() => document.querySelector('[data-home-tech-r2]').scrollIntoView({ block: 'center', behavior: 'auto' }));
+          }
+
+          async function assertLogos(page, diag, label) {
+            await page.waitForFunction(() => {
+              const imgs = [...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__mark img')];
+              return imgs.length === 10 && imgs.every((img) => img.complete && img.naturalWidth > 0 && img.naturalHeight > 0);
+            }, null, { timeout: 30000 });
+
+            const runtime = await page.evaluate(() => [...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map((item) => {
+              const img = item.querySelector('img');
+              const name = item.querySelector('.home-tech-r2__name');
+              const rect = img.getBoundingClientRect();
+              return {
+                brand: item.dataset.brand,
+                name: name?.textContent?.trim(),
+                complete: img.complete,
+                naturalWidth: img.naturalWidth,
+                naturalHeight: img.naturalHeight,
+                visibleWidth: rect.width,
+                visibleHeight: rect.height,
+                nameClientWidth: name?.clientWidth || 0,
+                nameScrollWidth: name?.scrollWidth || 0,
+              };
+            }));
+
+            assert(runtime.length === 10, `${label}: logo DOM count=${runtime.length}`);
+            assert(JSON.stringify(runtime.map((x) => x.brand)) === JSON.stringify(brands), `${label}: brand order mismatch`);
+            assert(JSON.stringify(runtime.map((x) => x.name)) === JSON.stringify(names), `${label}: vendor names mismatch`);
+            for (const item of runtime) {
+              assert(item.complete && item.naturalWidth > 0 && item.naturalHeight > 0, `${label}: broken logo ${item.brand}`);
+              assert(item.visibleWidth > 0 && item.visibleHeight > 0, `${label}: invisible logo ${item.brand}`);
+              assert(item.nameClientWidth > 0 && item.nameScrollWidth <= item.nameClientWidth + 1, `${label}: unreadable/truncated vendor name ${item.brand}`);
+            }
+
+            assert(diag.logoResponses.size === 10, `${label}: logo network count=${diag.logoResponses.size}; seen=${JSON.stringify([...diag.logoResponses.entries()])}`);
+            for (const path of logoPaths) {
+              const status = diag.logoResponses.get(path);
+              assert(status >= 200 && status < 400, `${label}: logo request failed ${path} status=${status}`);
+            }
+          }
+
+          async function assertNormalOnePass(page, label, mode) {
+            await scrollTechnology(page);
+            await page.waitForFunction(() => document.querySelector('[data-home-tech-r2]')?.dataset.techR2State === 'assembling', null, { timeout: 2500 });
+            await page.waitForTimeout(300);
+
+            const mid = await page.evaluate((mode) => {
+              const section = document.querySelector('[data-home-tech-r2]');
+              const relay = section.querySelector(mode === 'mobile' ? '.home-tech-r2__relay--mobile' : '.home-tech-r2__relay--desktop');
+              const signal = relay.querySelector('.home-tech-r2__relay-signal');
+              const style = getComputedStyle(signal);
+              return {
+                state: section.dataset.techR2State,
+                assembling: section.classList.contains('is-assembling'),
+                signalReady: section.dataset.techR2SignalReady,
+                signalCount: section.querySelectorAll('.home-tech-r2__relay-signal').length,
+                relayDisplay: getComputedStyle(relay).display,
+                animationName: style.animationName,
+                iterationCount: style.animationIterationCount,
+                opacity: Number(style.opacity),
+              };
+            }, mode);
+
+            assert(mid.state === 'assembling' && mid.assembling, `${label}: assembly state missing`);
+            assert(mid.signalReady === 'true' && mid.signalCount === 2, `${label}: relay signal installation failed`);
+            assert(mid.relayDisplay !== 'none', `${label}: intended ${mode} relay hidden`);
+            assert(mid.animationName.includes(mode === 'mobile' ? 'home-tech-r2-signal-pass-mobile' : 'home-tech-r2-signal-pass'), `${label}: travelling signal animation missing (${mid.animationName})`);
+            assert(mid.iterationCount !== 'infinite', `${label}: travelling signal loops infinitely`);
+            assert(mid.opacity > 0, `${label}: travelling signal not visibly active during pass`);
+
+            await page.waitForFunction(() => document.querySelector('[data-home-tech-r2]')?.dataset.techR2State === 'settled', null, { timeout: 5000 });
+            await page.waitForTimeout(120);
+            const settled = await page.evaluate((mode) => {
+              const section = document.querySelector('[data-home-tech-r2]');
+              const relay = section.querySelector(mode === 'mobile' ? '.home-tech-r2__relay--mobile' : '.home-tech-r2__relay--desktop');
+              const signal = relay.querySelector('.home-tech-r2__relay-signal');
+              const active = relay.querySelector('.home-tech-r2__relay-active');
+              const signalStyle = getComputedStyle(signal);
+              return {
+                state: section.dataset.techR2State,
+                assembling: section.classList.contains('is-assembling'),
+                settled: section.classList.contains('is-settled'),
+                signalOpacity: Number(signalStyle.opacity),
+                signalAnimation: signalStyle.animationName,
+                activeOpacity: Number(getComputedStyle(active).opacity),
+              };
+            }, mode);
+            assert(settled.state === 'settled' && settled.settled && !settled.assembling, `${label}: section did not settle`);
+            assert(settled.signalOpacity <= 0.01, `${label}: travelling signal persists after pass opacity=${settled.signalOpacity}`);
+            assert(settled.signalAnimation === 'none', `${label}: travelling signal still animating after settle`);
+            assert(settled.activeOpacity <= 0.3, `${label}: relay remains too strongly activated opacity=${settled.activeOpacity}`);
+
+            await page.waitForTimeout(1200);
+            const noLoop = await page.evaluate((mode) => {
+              const section = document.querySelector('[data-home-tech-r2]');
+              const relay = section.querySelector(mode === 'mobile' ? '.home-tech-r2__relay--mobile' : '.home-tech-r2__relay--desktop');
+              const signalStyle = getComputedStyle(relay.querySelector('.home-tech-r2__relay-signal'));
+              return { state: section.dataset.techR2State, opacity: Number(signalStyle.opacity), animation: signalStyle.animationName };
+            }, mode);
+            assert(noLoop.state === 'settled' && noLoop.opacity <= 0.01 && noLoop.animation === 'none', `${label}: signal restarted or persisted after settled state`);
+          }
+
+          async function assertDesktopLocalResponses(page, label) {
+            const media = await page.evaluate(() => matchMedia('(hover: hover) and (pointer: fine)').matches);
+            assert(media, `${label}: desktop fine-pointer media query not active`);
+
+            const items = page.locator('[data-home-tech-r2] .home-tech-r2__identity');
+            for (let i = 0; i < 10; i += 1) {
+              await items.nth(i).hover();
+              await page.waitForFunction(() => document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'), null, { timeout: 1200 });
+              const local = await page.evaluate(() => {
+                const section = document.querySelector('[data-home-tech-r2]');
+                const signal = section.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');
+                const active = section.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active');
+                return {
+                  offset: parseFloat(section.style.getPropertyValue('--tech-r2-local-offset')),
+                  assembling: section.classList.contains('is-assembling'),
+                  signalAnimation: getComputedStyle(signal).animationName,
+                  activeOpacity: Number(getComputedStyle(active).opacity),
+                };
+              });
+              assert(Math.abs(local.offset - offsets[i]) < 0.001, `${label}: local relay offset mismatch index=${i} actual=${local.offset}`);
+              assert(!local.assembling, `${label}: global assembly restarted on local hover index=${i}`);
+              assert(local.signalAnimation.includes('home-tech-r2-local-relay-catch'), `${label}: local relay response missing index=${i}`);
+              assert(local.activeOpacity <= 0.35, `${label}: local hover globally over-activates relay index=${i} opacity=${local.activeOpacity}`);
+
+              await page.locator('[data-home-tech-r2] .home-tech-r2__heading').hover();
+              await page.waitForFunction(() => !document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'), null, { timeout: 1200 });
+            }
+          }
+
+          async function assertMobileForm(page, label) {
+            const state = await page.evaluate(() => {
+              const section = document.querySelector('[data-home-tech-r2]');
+              const desktop = section.querySelector('.home-tech-r2__relay--desktop');
+              const mobile = section.querySelector('.home-tech-r2__relay--mobile');
+              return {
+                desktopDisplay: getComputedStyle(desktop).display,
+                mobileDisplay: getComputedStyle(mobile).display,
+                finePointer: matchMedia('(hover: hover) and (pointer: fine)').matches,
+                coarsePointer: matchMedia('(hover: none), (pointer: coarse)').matches,
+                localReady: section.dataset.techR2LocalReady || '',
+                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+              };
+            });
+            assert(state.desktopDisplay === 'none', `${label}: desktop relay visible on mobile`);
+            assert(state.mobileDisplay !== 'none', `${label}: mobile vertical relay hidden`);
+            assert(!state.finePointer && state.coarsePointer, `${label}: touch pointer media state incorrect`);
+            assert(state.localReady !== 'true', `${label}: fake desktop hover listeners installed on touch`);
+            assert(state.overflow <= 1, `${label}: horizontal overflow=${state.overflow}`);
+
+            await page.locator('[data-home-tech-r2] .home-tech-r2__identity').first().tap();
+            await page.waitForTimeout(100);
+            const fakeHover = await page.evaluate(() => document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'));
+            assert(!fakeHover, `${label}: touch tap created fake local hover activation`);
+          }
+
+          async function assertReducedMotion(page, label) {
+            await scrollTechnology(page);
+            await page.waitForFunction(() => document.querySelector('[data-home-tech-r2]')?.dataset.techR2State === 'settled', null, { timeout: 2500 });
+            const state = await page.evaluate(() => {
+              const section = document.querySelector('[data-home-tech-r2]');
+              const identity = section.querySelector('.home-tech-r2__identity');
+              const signal = section.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');
+              const material = section.querySelector('.home-tech-r2__material');
+              return {
+                reduce: matchMedia('(prefers-reduced-motion: reduce)').matches,
+                state: section.dataset.techR2State,
+                assembling: section.classList.contains('is-assembling'),
+                localActive: section.classList.contains('is-local-active'),
+                signalAnimation: getComputedStyle(signal).animationName,
+                signalOpacity: Number(getComputedStyle(signal).opacity),
+                identityAnimation: getComputedStyle(identity).animationName,
+                identityTransition: getComputedStyle(identity).transitionDuration,
+                identityOpacity: Number(getComputedStyle(identity).opacity),
+                materialAnimation: getComputedStyle(material).animationName,
+                overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+              };
+            });
+            assert(state.reduce, `${label}: reduced-motion media query not active`);
+            assert(state.state === 'settled' && !state.assembling, `${label}: reduced-motion did not settle immediately`);
+            assert(!state.localActive, `${label}: reduced-motion local activation present`);
+            assert(state.signalAnimation === 'none' && state.signalOpacity <= 0.01, `${label}: travelling signal not disabled in reduced motion`);
+            assert(state.identityAnimation === 'none' && state.identityOpacity >= 0.99, `${label}: identities not fully visible/static in reduced motion`);
+            assert(state.materialAnimation === 'none', `${label}: material animation active in reduced motion`);
+            assert(state.overflow <= 1, `${label}: reduced-motion layout overflow=${state.overflow}`);
+          }
+
+          async function finishDiagnostics(diag) {
+            assert(diag.pageErrors.length === 0, `${diag.label}: JS page errors ${JSON.stringify(diag.pageErrors)}`);
+            assert(diag.badSameOrigin.length === 0, `${diag.label}: same-origin HTTP failures ${JSON.stringify(diag.badSameOrigin)}`);
+          }
+
+          const browser = await chromium.launch({ headless: true });
+          const summary = { desktop: {}, mobile: {}, reducedMotion: {}, logos: {} };
+
+          for (const route of ['/', '/ru/']) {
+            const label = route === '/' ? 'EN desktop' : 'RU desktop';
+            const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'no-preference', hasTouch: false, isMobile: false });
+            const page = await context.newPage();
+            const diag = diagnostics(page, label);
+            await goto(page, route);
+            await assertRegressionBoundary(page, label);
+            await assertNormalOnePass(page, label, 'desktop');
+            await assertLogos(page, diag, label);
+            await assertDesktopLocalResponses(page, label);
+            await finishDiagnostics(diag);
+            summary.desktop[route] = 'PASS';
+            summary.logos[`${route}desktop`] = [...diag.logoResponses.entries()];
+            await context.close();
+          }
+
+          for (const width of [430, 390, 375, 360, 320]) {
+            for (const route of ['/', '/ru/']) {
+              const lang = route === '/' ? 'EN' : 'RU';
+              const label = `${lang} mobile ${width}`;
+              const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'no-preference', hasTouch: true, isMobile: true });
+              const page = await context.newPage();
+              const diag = diagnostics(page, label);
+              await goto(page, route);
+              await assertRegressionBoundary(page, label);
+              await assertNormalOnePass(page, label, 'mobile');
+              await assertLogos(page, diag, label);
+              await assertMobileForm(page, label);
+              await finishDiagnostics(diag);
+              summary.mobile[`${lang}-${width}`] = 'PASS';
+              await context.close();
+            }
+          }
+
+          for (const route of ['/', '/ru/']) {
+            const label = route === '/' ? 'EN reduced-motion' : 'RU reduced-motion';
+            const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, reducedMotion: 'reduce', hasTouch: false, isMobile: false });
+            const page = await context.newPage();
+            const diag = diagnostics(page, label);
+            await goto(page, route);
+            await assertRegressionBoundary(page, label);
+            await assertReducedMotion(page, label);
+            await assertLogos(page, diag, label);
+            await finishDiagnostics(diag);
+            summary.reducedMotion[route] = 'PASS';
+            await context.close();
+          }
+
+          await browser.close();
+          console.log('TECHNOLOGY_RUNTIME_QA_PASS', JSON.stringify(summary));
+          NODE
+
+          if ! PUBLIC_URL="$URL" node /tmp/technology-runtime-qa.mjs; then
+            post_status failure "$URL" 'Technology runtime QA failed'
+            exit 1
+          fi
+
+          post_status success "$URL" 'Runtime QA PASS; preview live'
+          echo 'TECHNOLOGY_RUNTIME=PASS'
+          echo 'LOGOS=PASS_10_OF_10'
+          echo 'EN=PASS'
+          echo 'RU=PASS'
+          echo 'DESKTOP=PASS'
+          echo 'MOBILE_430=PASS'
+          echo 'MOBILE_390=PASS'
+          echo 'MOBILE_375=PASS'
+          echo 'MOBILE_360=PASS'
+          echo 'MOBILE_320=PASS'
+          echo 'REDUCED_MOTION=PASS'
+          echo 'REGRESSION_BOUNDARY=PASS'
+          echo "OWNER_REVIEW_URL=$URL"
+          echo 'REVIEW_WINDOW_SECONDS=3600'
+
+          sleep 3600

@@ -66,7 +66,6 @@ jobs:
             fi
             sleep 1
           done
-          cat /tmp/proai-tech-preview-server.log || true
           exit 1
 
       - name: Run staged Google Chrome desktop EN RU gate
@@ -76,258 +75,54 @@ jobs:
           set -euo pipefail
           cat >.technology-desktop-closeout.mjs <<'NODE'
           import { chromium } from 'playwright-core';
+          const base=process.env.QA_BASE.replace(/\/$/,'');
+          const origin=new URL(base).origin;
+          const chromePath=process.env.CHROME_PATH;
+          const brands=['openai','claude','gemini','n8n','make','twilio','vercel','gmail','zapier','github'];
+          const names=['OpenAI','Claude','Gemini','n8n','Make','Twilio','Vercel','Gmail','Zapier','GitHub'];
+          const offsets=[-.44,-.37,-.30,-.23,-.16,-.68,-.73,-.78,-.83,-.88];
+          const logoPaths=new Set(brands.map(b=>`/assets/brand/platforms/${b}-mark.svg`));
+          const techAssets=new Set(['/assets/css/home-technology-transition-r2.css','/assets/css/home-technology-transition-r2-golden-mobile.css','/assets/js/home-technology-transition-r2.js',...logoPaths]);
+          const results={};
+          function assert(v,m){if(!v)throw new Error(m);}
 
-          const base = process.env.QA_BASE.replace(/\/$/, '');
-          const origin = new URL(base).origin;
-          const chromePath = process.env.CHROME_PATH;
-          const brands = ['openai','claude','gemini','n8n','make','twilio','vercel','gmail','zapier','github'];
-          const names = ['OpenAI','Claude','Gemini','n8n','Make','Twilio','Vercel','Gmail','Zapier','GitHub'];
-          const offsets = [-.44,-.37,-.30,-.23,-.16,-.68,-.73,-.78,-.83,-.88];
-          const logoPaths = new Set(brands.map(b => `/assets/brand/platforms/${b}-mark.svg`));
-          const techAssets = new Set([
-            '/assets/css/home-technology-transition-r2.css',
-            '/assets/css/home-technology-transition-r2-golden-mobile.css',
-            '/assets/js/home-technology-transition-r2.js',
-            ...logoPaths
-          ]);
-          const results = {};
+          async function snap(page){return page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');if(!s)return{section:false};const d=s.querySelector('.home-tech-r2__relay--desktop'),m=s.querySelector('.home-tech-r2__relay--mobile'),sig=d?.querySelector('.home-tech-r2__relay-signal'),act=d?.querySelector('.home-tech-r2__relay-active'),r=s.getBoundingClientRect();return{section:true,state:s.dataset.techR2State||'',signalReady:s.dataset.techR2SignalReady||'',localReady:s.dataset.techR2LocalReady||'',assembling:s.classList.contains('is-assembling'),settled:s.classList.contains('is-settled'),local:s.classList.contains('is-local-active'),rect:{top:r.top,bottom:r.bottom,width:r.width,height:r.height},viewport:{w:innerWidth,h:innerHeight,scrollY},fine:matchMedia('(hover:hover) and (pointer:fine)').matches,reduced:matchMedia('(prefers-reduced-motion:reduce)').matches,events:(window.__techEvents||[]).slice(),desktopDisplay:d?getComputedStyle(d).display:null,mobileDisplay:m?getComputedStyle(m).display:null,signalCount:s.querySelectorAll('.home-tech-r2__relay-signal').length,signalAnimation:sig?getComputedStyle(sig).animationName:null,signalOpacity:sig?Number(getComputedStyle(sig).opacity):null,activeOpacity:act?Number(getComputedStyle(act).opacity):null,localOffset:s.style.getPropertyValue('--tech-r2-local-offset')};});}
+          async function stage(page,lang,name,fn){const label=`${lang}_${name}`;console.log(`STAGE_START ${label}`);try{const x=await fn();console.log(`STAGE_PASS ${label} ${JSON.stringify(x??{})}`);return x;}catch(e){const s=await snap(page).catch(()=>({snapshot:'unavailable'}));console.log(`STAGE_FAIL ${label} ${String(e?.message||e)} SNAPSHOT ${JSON.stringify(s)}`);await page.screenshot({path:`/tmp/${lang.toLowerCase()}-desktop-fail.png`,fullPage:false,timeout:3000}).catch(()=>{});throw new Error(`${label}: ${String(e?.message||e)}`);}}
 
-          function assert(v, m) { if (!v) throw new Error(m); }
-
-          async function snapshot(page) {
-            return await page.evaluate(() => {
-              const s = document.querySelector('[data-home-tech-r2]');
-              if (!s) return { section:false };
-              const desktop = s.querySelector('.home-tech-r2__relay--desktop');
-              const mobile = s.querySelector('.home-tech-r2__relay--mobile');
-              const sig = desktop?.querySelector('.home-tech-r2__relay-signal');
-              const active = desktop?.querySelector('.home-tech-r2__relay-active');
-              const r = s.getBoundingClientRect();
-              return {
-                section:true,
-                state:s.dataset.techR2State || '',
-                signalReady:s.dataset.techR2SignalReady || '',
-                localReady:s.dataset.techR2LocalReady || '',
-                assembling:s.classList.contains('is-assembling'),
-                settled:s.classList.contains('is-settled'),
-                local:s.classList.contains('is-local-active'),
-                rect:{top:r.top,bottom:r.bottom,width:r.width,height:r.height},
-                viewport:{w:innerWidth,h:innerHeight,scrollY},
-                fine:matchMedia('(hover:hover) and (pointer:fine)').matches,
-                reduced:matchMedia('(prefers-reduced-motion:reduce)').matches,
-                events:(window.__techEvents || []).slice(),
-                desktopDisplay:desktop ? getComputedStyle(desktop).display : null,
-                mobileDisplay:mobile ? getComputedStyle(mobile).display : null,
-                signalCount:s.querySelectorAll('.home-tech-r2__relay-signal').length,
-                signalAnimation:sig ? getComputedStyle(sig).animationName : null,
-                signalOpacity:sig ? Number(getComputedStyle(sig).opacity) : null,
-                activeOpacity:active ? Number(getComputedStyle(active).opacity) : null,
-                localOffset:s.style.getPropertyValue('--tech-r2-local-offset')
-              };
-            });
-          }
-
-          async function stage(page, lang, name, fn) {
-            const label = `${lang}_${name}`;
-            console.log(`STAGE_START ${label}`);
-            try {
-              const detail = await fn();
-              console.log(`STAGE_PASS ${label} ${JSON.stringify(detail ?? {})}`);
-              return detail;
-            } catch (e) {
-              const snap = await snapshot(page).catch(() => ({snapshot:'unavailable'}));
-              console.log(`STAGE_FAIL ${label} ${String(e?.message || e)} SNAPSHOT ${JSON.stringify(snap)}`);
-              await page.screenshot({path:`/tmp/${lang.toLowerCase()}-desktop-fail.png`,fullPage:false}).catch(()=>{});
-              throw new Error(`${label}: ${String(e?.message || e)}`);
-            }
-          }
-
-          async function runDesktop(lang) {
-            const context = await browser.newContext({
-              viewport:{width:1440,height:900},
-              hasTouch:false,
-              isMobile:false,
-              reducedMotion:'no-preference'
-            });
-            const page = await context.newPage();
-            page.setDefaultNavigationTimeout(15000);
-            const diag = { techErrors:[], techBad:[], logoStatus:new Map() };
-
-            page.on('pageerror', e => {
-              const text = String(e?.stack || e || '');
-              if (/home-technology-transition-r2|techR2|home-tech-r2/i.test(text)) diag.techErrors.push(text);
-            });
-            page.on('response', r => {
-              const u = new URL(r.url());
-              if (u.origin !== origin) return;
-              if (techAssets.has(u.pathname) && r.status() >= 400) diag.techBad.push({url:r.url(),status:r.status()});
-              if (logoPaths.has(u.pathname)) diag.logoStatus.set(u.pathname,r.status());
-            });
-            page.on('requestfailed', r => {
-              const u = new URL(r.url());
-              if (u.origin === origin && techAssets.has(u.pathname)) diag.techBad.push({url:r.url(),failure:r.failure()?.errorText || 'requestfailed'});
-            });
-            await page.addInitScript(() => {
-              window.__techEvents = [];
-              document.addEventListener('animationstart', e => {
-                if (e.target?.classList?.contains('home-tech-r2__relay-signal')) {
-                  window.__techEvents.push({type:'start',name:e.animationName,elapsed:e.elapsedTime,time:performance.now()});
-                }
-              }, true);
-              document.addEventListener('animationend', e => {
-                if (e.target?.classList?.contains('home-tech-r2__relay-signal')) {
-                  window.__techEvents.push({type:'end',name:e.animationName,elapsed:e.elapsedTime,time:performance.now()});
-                }
-              }, true);
-            });
-
-            try {
-              await stage(page,lang,'DESKTOP_SETUP',async()=>{
-                await page.goto(`${base}${lang === 'EN' ? '/' : '/ru/'}`,{waitUntil:'domcontentloaded'});
-                await page.waitForSelector('[data-home-tech-r2]',{state:'attached',timeout:10000});
-                return {url:page.url(),viewport:await page.evaluate(()=>({w:innerWidth,h:innerHeight}))};
-              });
-
-              await stage(page,lang,'DESKTOP_SIGNAL_INSTALL',async()=>{
-                await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2SignalReady === 'true',null,{timeout:10000});
-                const x = await snapshot(page);
-                assert(x.signalReady === 'true',`${lang}: signal-ready missing`);
-                assert(x.signalCount === 2,`${lang}: installed signal count ${x.signalCount}`);
-                return x;
-              });
-
-              await stage(page,lang,'DESKTOP_ENTER_VIEWPORT',async()=>{
-                const before = await snapshot(page);
-                await page.evaluate(()=>{
-                  const s=document.querySelector('[data-home-tech-r2]');
-                  const y=window.scrollY+s.getBoundingClientRect().top-Math.round(innerHeight*.25);
-                  window.scrollTo({top:Math.max(0,y),behavior:'auto'});
-                });
-                await page.waitForFunction(()=>{const s=document.querySelector('[data-home-tech-r2]');const r=s.getBoundingClientRect();return r.top<innerHeight&&r.bottom>0;},null,{timeout:4000});
-                return {before,after:await snapshot(page)};
-              });
-
-              await stage(page,lang,'DESKTOP_INITIAL_STATE',async()=>{
-                await page.waitForFunction(()=>['assembling','settled'].includes(document.querySelector('[data-home-tech-r2]')?.dataset.techR2State),null,{timeout:4000});
-                const x=await snapshot(page);
-                assert(['assembling','settled'].includes(x.state),`${lang}: state ${x.state}`);
-                assert(x.desktopDisplay !== 'none',`${lang}: desktop relay hidden`);
-                return x;
-              });
-
+          async function run(lang){
+            const context=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'});
+            const page=await context.newPage();page.setDefaultNavigationTimeout(15000);
+            const diag={techErrors:[],techBad:[],logoStatus:new Map()};
+            page.on('pageerror',e=>{const t=String(e?.stack||e||'');if(/home-technology-transition-r2|techR2|home-tech-r2/i.test(t))diag.techErrors.push(t);});
+            page.on('response',r=>{const u=new URL(r.url());if(u.origin!==origin)return;if(techAssets.has(u.pathname)&&r.status()>=400)diag.techBad.push({url:r.url(),status:r.status()});if(logoPaths.has(u.pathname))diag.logoStatus.set(u.pathname,r.status());});
+            page.on('requestfailed',r=>{const u=new URL(r.url());if(u.origin===origin&&techAssets.has(u.pathname))diag.techBad.push({url:r.url(),failure:r.failure()?.errorText||'requestfailed'});});
+            await page.addInitScript(()=>{window.__techEvents=[];document.addEventListener('animationstart',e=>{if(e.target?.classList?.contains('home-tech-r2__relay-signal'))window.__techEvents.push({type:'start',name:e.animationName,elapsed:e.elapsedTime,time:performance.now()});},true);document.addEventListener('animationend',e=>{if(e.target?.classList?.contains('home-tech-r2__relay-signal'))window.__techEvents.push({type:'end',name:e.animationName,elapsed:e.elapsedTime,time:performance.now()});},true);});
+            try{
+              await stage(page,lang,'DESKTOP_SETUP',async()=>{await page.goto(`${base}${lang==='EN'?'/':'/ru/'}`,{waitUntil:'domcontentloaded'});await page.waitForSelector('[data-home-tech-r2]',{state:'attached',timeout:10000});return{url:page.url(),viewport:await page.evaluate(()=>({w:innerWidth,h:innerHeight}))};});
+              await stage(page,lang,'DESKTOP_SIGNAL_INSTALL',async()=>{await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2SignalReady==='true',null,{timeout:10000});const x=await snap(page);assert(x.signalCount===2,`${lang}: installed signal count ${x.signalCount}`);return x;});
+              await stage(page,lang,'DESKTOP_ENTER_VIEWPORT',async()=>{const before=await snap(page);const target=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');const y=Math.max(0,window.scrollY+s.getBoundingClientRect().top-Math.round(innerHeight*.25));window.scrollTo({top:y,behavior:'instant'});return y;});await page.waitForFunction(y=>Math.abs(window.scrollY-y)<=2,target,{timeout:3000});await page.waitForFunction(()=>{const r=document.querySelector('[data-home-tech-r2]').getBoundingClientRect();return r.top<innerHeight&&r.bottom>0;},null,{timeout:3000});return{target,before,after:await snap(page)};});
+              await stage(page,lang,'DESKTOP_INITIAL_STATE',async()=>{await page.waitForFunction(()=>['assembling','settled'].includes(document.querySelector('[data-home-tech-r2]')?.dataset.techR2State),null,{timeout:3000});const x=await snap(page);assert(x.desktopDisplay!=='none',`${lang}: desktop relay hidden`);return x;});
               const expected='home-tech-r2-signal-pass';
-              await stage(page,lang,'DESKTOP_ANIMATION_START',async()=>{
-                await page.waitForFunction(n=>(window.__techEvents||[]).some(e=>e.type==='start'&&e.name===n),expected,{timeout:3000});
-                const events=await page.evaluate(n=>(window.__techEvents||[]).filter(e=>e.name===n),expected);
-                return {events};
-              });
-
-              await stage(page,lang,'DESKTOP_ANIMATION_END',async()=>{
-                await page.waitForFunction(n=>(window.__techEvents||[]).some(e=>e.type==='end'&&e.name===n),expected,{timeout:3500});
-                const events=await page.evaluate(n=>(window.__techEvents||[]).filter(e=>e.name===n),expected);
-                return {events};
-              });
-
-              await stage(page,lang,'DESKTOP_SETTLED',async()=>{
-                await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State === 'settled',null,{timeout:3500});
-                const x=await snapshot(page);
-                assert(x.settled && !x.assembling,`${lang}: settled classes wrong`);
-                assert(x.signalOpacity <= .01,`${lang}: signal opacity ${x.signalOpacity}`);
-                assert(x.signalAnimation === 'none',`${lang}: signal animation ${x.signalAnimation}`);
-                assert(x.activeOpacity <= .30,`${lang}: global active opacity ${x.activeOpacity}`);
-                const counts=await page.evaluate(n=>({starts:(window.__techEvents||[]).filter(e=>e.type==='start'&&e.name===n).length,ends:(window.__techEvents||[]).filter(e=>e.type==='end'&&e.name===n).length}),expected);
-                assert(counts.starts===1&&counts.ends===1,`${lang}: signal pass count ${counts.starts}/${counts.ends}`);
-                await page.waitForTimeout(900);
-                const startsAfter=await page.evaluate(n=>(window.__techEvents||[]).filter(e=>e.type==='start'&&e.name===n).length,expected);
-                assert(startsAfter===1,`${lang}: signal restarted ${startsAfter}`);
-                return {...x,counts,startsAfter};
-              });
-
-              await stage(page,lang,'DESKTOP_LOGOS',async()=>{
-                await page.waitForFunction(()=>{const imgs=[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__mark img')];return imgs.length===10&&imgs.every(i=>i.complete&&i.naturalWidth>0&&i.naturalHeight>0);},null,{timeout:10000});
-                const logos=await page.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(i=>{const img=i.querySelector('img'),n=i.querySelector('.home-tech-r2__name'),r=img.getBoundingClientRect();return{brand:i.dataset.brand,name:n.textContent.trim(),complete:img.complete,nw:img.naturalWidth,nh:img.naturalHeight,vw:r.width,vh:r.height};}));
-                assert(logos.length===10,`${lang}: identity count ${logos.length}`);
-                assert(JSON.stringify(logos.map(x=>x.brand))===JSON.stringify(brands),`${lang}: brand order mismatch`);
-                assert(JSON.stringify(logos.map(x=>x.name))===JSON.stringify(names),`${lang}: name order mismatch`);
-                logos.forEach(x=>{assert(x.complete&&x.nw>0&&x.nh>0,`${lang}: broken ${x.brand}`);assert(x.vw>0&&x.vh>0,`${lang}: zero rendered size ${x.brand}`);});
-                assert(diag.logoStatus.size===10,`${lang}: Chrome logo network count ${diag.logoStatus.size}`);
-                for(const p of logoPaths){const status=diag.logoStatus.get(p);assert(status>=200&&status<400,`${lang}: ${p} status ${status}`);}
-                return logos;
-              });
-
-              await stage(page,lang,'DESKTOP_FINE_POINTER',async()=>{
-                const x=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{fine:matchMedia('(hover:hover) and (pointer:fine)').matches,localReady:s.dataset.techR2LocalReady||''};});
-                if(!x.fine) throw new Error(`TEST_HARNESS_FALSE_NEGATIVE: fine-pointer media false`);
-                assert(x.localReady==='true',`${lang}: local response listeners not installed`);
-                return x;
-              });
-
-              await stage(page,lang,'DESKTOP_LOCAL_RESPONSE',async()=>{
-                const items=page.locator('[data-home-tech-r2] .home-tech-r2__identity');
-                const out=[];
-                for(let i=0;i<10;i++){
-                  await items.nth(i).hover({timeout:3000});
-                  await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'),null,{timeout:2000});
-                  const x=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal')),act=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active'));return{offset:parseFloat(s.style.getPropertyValue('--tech-r2-local-offset')),rawOffset:s.style.getPropertyValue('--tech-r2-local-offset'),animation:sig.animationName,assembling:s.classList.contains('is-assembling'),active:Number(act.opacity),local:s.classList.contains('is-local-active')};});
-                  assert(x.local,`${lang}: ${brands[i]} local class missing`);
-                  assert(Math.abs(x.offset-offsets[i])<.001,`${lang}: ${brands[i]} offset ${x.rawOffset}`);
-                  assert(x.animation.includes('home-tech-r2-local-relay-catch'),`${lang}: ${brands[i]} local relay animation ${x.animation}`);
-                  assert(!x.assembling,`${lang}: ${brands[i]} restarted assembly`);
-                  assert(x.active<=.35,`${lang}: ${brands[i]} global opacity ${x.active}`);
-                  await page.mouse.move(2,2);
-                  await page.waitForFunction(()=>!document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'),null,{timeout:2000});
-                  const cleared=await page.evaluate(()=>({local:document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'),offset:document.querySelector('[data-home-tech-r2]').style.getPropertyValue('--tech-r2-local-offset')}));
-                  assert(!cleared.local&&cleared.offset==='',`${lang}: ${brands[i]} did not clear`);
-                  out.push({brand:brands[i],offset:x.offset,leaveCleared:true});
-                  console.log(`LOCAL_PASS ${lang} ${brands[i]} ${JSON.stringify(out[out.length-1])}`);
-                }
-                return out;
-              });
-
-              await stage(page,lang,'DESKTOP_LAYOUT',async()=>{
-                const x=await page.evaluate(()=>{const d=document.documentElement,s=document.querySelector('[data-home-tech-r2]');return{docClient:d.clientWidth,docScroll:d.scrollWidth,techClient:s.clientWidth,techScroll:s.scrollWidth,count:s.querySelectorAll('.home-tech-r2__identity').length,desktop:getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop')).display,mobile:getComputedStyle(s.querySelector('.home-tech-r2__relay--mobile')).display};});
-                assert(x.docScroll<=x.docClient+1,`${lang}: document overflow ${x.docScroll-x.docClient}`);
-                assert(x.techScroll<=x.techClient+1,`${lang}: Technology overflow ${x.techScroll-x.techClient}`);
-                assert(x.count===10,`${lang}: identities ${x.count}`);
-                assert(x.desktop!=='none',`${lang}: desktop relay hidden`);
-                assert(x.mobile==='none',`${lang}: mobile relay visible`);
-                return x;
-              });
-
-              await stage(page,lang,'DESKTOP_REGRESSION',async()=>{
-                const x=await page.evaluate(()=>{const selectors={hero:'#hero',cubeMount:'#proai-hero-cube-mount',cubeCanvas:'#cube-canvas',connected:'[data-connected-system]',twoWorlds:'[data-tw-r2]',financial:'[data-fs-showcase-r11]',thinking:'[data-selected-thinking-r1]',work:'[data-selected-work-r11]',footer:'[data-home-footer-golden-r3]'};const counts=Object.fromEntries(Object.entries(selectors).map(([k,v])=>[k,document.querySelectorAll(v).length]));const cubeRuntime=[...document.scripts].some(s=>/proai-hero-cube-r1\/bootstrap-golden-r1-2\.js/.test(s.src));return{counts,cubeRuntime};});
-                for(const[k,v]of Object.entries(x.counts))assert(v===1,`${lang}: ${k} count ${v}`);
-                assert(x.cubeRuntime,`${lang}: cube runtime missing`);
-                return x;
-              });
-
-              await stage(page,lang,'DESKTOP_NETWORK',async()=>{
-                assert(diag.techBad.length===0,`${lang}: Technology asset failures ${JSON.stringify(diag.techBad)}`);
-                return {techBad:diag.techBad,logoStatuses:Object.fromEntries(diag.logoStatus)};
-              });
-
-              await stage(page,lang,'DESKTOP_JS_ERRORS',async()=>{
-                assert(diag.techErrors.length===0,`${lang}: Technology JS errors ${JSON.stringify(diag.techErrors)}`);
-                return {techErrors:diag.techErrors};
-              });
-
-              results[lang]={status:'PASS'};
-              console.log(`DESKTOP_PASS ${lang}`);
-            } catch(e) {
-              results[lang]={status:'FAIL',error:String(e?.message||e)};
-              console.log(`DESKTOP_FAIL ${lang} ${results[lang].error}`);
-            } finally {
-              await context.close();
-            }
+              await stage(page,lang,'DESKTOP_ANIMATION_START',async()=>{await page.waitForFunction(n=>(window.__techEvents||[]).some(e=>e.type==='start'&&e.name===n),expected,{timeout:2500});return{events:await page.evaluate(n=>(window.__techEvents||[]).filter(e=>e.name===n),expected)};});
+              await stage(page,lang,'DESKTOP_ANIMATION_END',async()=>{await page.waitForFunction(n=>(window.__techEvents||[]).some(e=>e.type==='end'&&e.name===n),expected,{timeout:3000});return{events:await page.evaluate(n=>(window.__techEvents||[]).filter(e=>e.name===n),expected)};});
+              await stage(page,lang,'DESKTOP_SETTLED',async()=>{await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled',null,{timeout:3000});const x=await snap(page);assert(x.settled&&!x.assembling,`${lang}: settled classes wrong`);assert(x.signalOpacity<=.01,`${lang}: signal opacity ${x.signalOpacity}`);assert(x.signalAnimation==='none',`${lang}: signal animation ${x.signalAnimation}`);assert(x.activeOpacity<=.30,`${lang}: global active opacity ${x.activeOpacity}`);const counts=await page.evaluate(n=>({starts:(window.__techEvents||[]).filter(e=>e.type==='start'&&e.name===n).length,ends:(window.__techEvents||[]).filter(e=>e.type==='end'&&e.name===n).length}),expected);assert(counts.starts===1&&counts.ends===1,`${lang}: pass count ${counts.starts}/${counts.ends}`);await page.waitForTimeout(900);const startsAfter=await page.evaluate(n=>(window.__techEvents||[]).filter(e=>e.type==='start'&&e.name===n).length,expected);assert(startsAfter===1,`${lang}: signal restarted ${startsAfter}`);return{...x,counts,startsAfter};});
+              await stage(page,lang,'DESKTOP_LOGOS',async()=>{await page.waitForFunction(()=>{const a=[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__mark img')];return a.length===10&&a.every(i=>i.complete&&i.naturalWidth>0&&i.naturalHeight>0);},null,{timeout:10000});const logos=await page.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(i=>{const img=i.querySelector('img'),n=i.querySelector('.home-tech-r2__name'),r=img.getBoundingClientRect();return{brand:i.dataset.brand,name:n.textContent.trim(),complete:img.complete,nw:img.naturalWidth,nh:img.naturalHeight,vw:r.width,vh:r.height};}));assert(logos.length===10,`${lang}: identities ${logos.length}`);assert(JSON.stringify(logos.map(x=>x.brand))===JSON.stringify(brands),`${lang}: brand order`);assert(JSON.stringify(logos.map(x=>x.name))===JSON.stringify(names),`${lang}: names`);logos.forEach(x=>{assert(x.complete&&x.nw>0&&x.nh>0,`${lang}: broken ${x.brand}`);assert(x.vw>0&&x.vh>0,`${lang}: zero size ${x.brand}`);});assert(diag.logoStatus.size===10,`${lang}: Chrome logo network count ${diag.logoStatus.size}`);for(const p of logoPaths){const s=diag.logoStatus.get(p);assert(s>=200&&s<400,`${lang}: ${p} status ${s}`);}return logos;});
+              await stage(page,lang,'DESKTOP_FINE_POINTER',async()=>{const x=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{fine:matchMedia('(hover:hover) and (pointer:fine)').matches,localReady:s.dataset.techR2LocalReady||''};});if(!x.fine)throw new Error('TEST_HARNESS_FALSE_NEGATIVE: fine-pointer media false');assert(x.localReady==='true',`${lang}: local listeners not installed`);return x;});
+              await stage(page,lang,'DESKTOP_LOCAL_RESPONSE',async()=>{const items=page.locator('[data-home-tech-r2] .home-tech-r2__identity'),out=[];for(let i=0;i<10;i++){await items.nth(i).hover({timeout:3000});await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'),null,{timeout:2000});const x=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal')),act=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active'));return{offset:parseFloat(s.style.getPropertyValue('--tech-r2-local-offset')),animation:sig.animationName,assembling:s.classList.contains('is-assembling'),active:Number(act.opacity),local:s.classList.contains('is-local-active')};});assert(x.local,`${lang}: ${brands[i]} local class`);assert(Math.abs(x.offset-offsets[i])<.001,`${lang}: ${brands[i]} offset ${x.offset}`);assert(x.animation.includes('home-tech-r2-local-relay-catch'),`${lang}: ${brands[i]} animation ${x.animation}`);assert(!x.assembling,`${lang}: ${brands[i]} restarted assembly`);assert(x.active<=.35,`${lang}: ${brands[i]} global opacity ${x.active}`);await page.mouse.move(2,2);await page.waitForFunction(()=>!document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'),null,{timeout:2000});const cleared=await page.evaluate(()=>({local:document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'),offset:document.querySelector('[data-home-tech-r2]').style.getPropertyValue('--tech-r2-local-offset')}));assert(!cleared.local&&cleared.offset==='',`${lang}: ${brands[i]} leave clear`);out.push({brand:brands[i],offset:x.offset,leaveCleared:true});console.log(`LOCAL_PASS ${lang} ${brands[i]} ${JSON.stringify(out[out.length-1])}`);}return out;});
+              await stage(page,lang,'DESKTOP_LAYOUT',async()=>{const x=await page.evaluate(()=>{const d=document.documentElement,s=document.querySelector('[data-home-tech-r2]');return{docClient:d.clientWidth,docScroll:d.scrollWidth,techClient:s.clientWidth,techScroll:s.scrollWidth,count:s.querySelectorAll('.home-tech-r2__identity').length,desktop:getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop')).display,mobile:getComputedStyle(s.querySelector('.home-tech-r2__relay--mobile')).display};});assert(x.docScroll<=x.docClient+1,`${lang}: document overflow ${x.docScroll-x.docClient}`);assert(x.techScroll<=x.techClient+1,`${lang}: Technology overflow ${x.techScroll-x.techClient}`);assert(x.count===10,`${lang}: count ${x.count}`);assert(x.desktop!=='none',`${lang}: desktop relay hidden`);assert(x.mobile==='none',`${lang}: mobile relay visible`);return x;});
+              await stage(page,lang,'DESKTOP_REGRESSION',async()=>{const x=await page.evaluate(()=>{const selectors={hero:'#hero',cubeMount:'#proai-hero-cube-mount',cubeCanvas:'#cube-canvas',connected:'[data-connected-system]',twoWorlds:'[data-tw-r2]',financial:'[data-fs-showcase-r11]',thinking:'[data-selected-thinking-r1]',work:'[data-selected-work-r11]',footer:'[data-home-footer-golden-r3]'};const counts=Object.fromEntries(Object.entries(selectors).map(([k,v])=>[k,document.querySelectorAll(v).length]));const cubeRuntime=[...document.scripts].some(s=>/proai-hero-cube-r1\/bootstrap-golden-r1-2\.js/.test(s.src));return{counts,cubeRuntime};});for(const[k,v]of Object.entries(x.counts))assert(v===1,`${lang}: ${k} count ${v}`);assert(x.cubeRuntime,`${lang}: cube runtime missing`);return x;});
+              await stage(page,lang,'DESKTOP_NETWORK',async()=>{assert(diag.techBad.length===0,`${lang}: Technology asset failures ${JSON.stringify(diag.techBad)}`);return{techBad:diag.techBad,logoStatuses:Object.fromEntries(diag.logoStatus)};});
+              await stage(page,lang,'DESKTOP_JS_ERRORS',async()=>{assert(diag.techErrors.length===0,`${lang}: Technology JS errors ${JSON.stringify(diag.techErrors)}`);return{techErrors:diag.techErrors};});
+              results[lang]={status:'PASS'};console.log(`DESKTOP_PASS ${lang}`);
+            }catch(e){results[lang]={status:'FAIL',error:String(e?.message||e)};console.log(`DESKTOP_FAIL ${lang} ${results[lang].error}`);}finally{await context.close();}
           }
 
           const browser=await chromium.launch({executablePath:chromePath,headless:true,args:['--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist']});
-          for(const lang of ['EN','RU']) await runDesktop(lang);
+          for(const lang of ['EN','RU'])await run(lang);
           await browser.close();
           console.log('DESKTOP_RESULTS '+JSON.stringify(results));
           process.exit(Object.values(results).every(x=>x.status==='PASS')?0:2);
           NODE
-
           set +e
           QA_BASE="$QA_BASE" CHROME_PATH="$CHROME_PATH" node .technology-desktop-closeout.mjs
           QA_RC=$?
@@ -368,7 +163,6 @@ jobs:
         with:
           name: technology-r5-generated-site
           path: _site
-
       - name: Publish HTTPS Owner preview and hold review window
         shell: bash
         run: |
@@ -383,18 +177,10 @@ jobs:
           trap 'kill "$TUNNEL_PID" 2>/dev/null || true; kill "$SERVER_PID" 2>/dev/null || true' EXIT
           post_status(){ gh api --method POST "repos/$REPO/statuses/$INFRA_SHA" -f state="$1" -f target_url="$2" -f context='owner-preview/technology-z-relay-r1' -f description="$3" >/dev/null; }
           URL=''
-          for i in $(seq 1 90); do
-            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)
-            [ -n "$URL" ] && break
-            kill -0 "$TUNNEL_PID" 2>/dev/null || { cat /tmp/cloudflared.log; exit 1; }
-            sleep 1
-          done
+          for i in $(seq 1 90); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true); [ -n "$URL" ] && break; kill -0 "$TUNNEL_PID" 2>/dev/null || { cat /tmp/cloudflared.log; exit 1; }; sleep 1; done
           test -n "$URL"
           READY=0
-          for i in $(seq 1 90); do
-            if curl -fsSL --max-time 10 "$URL/" -o /tmp/public-en.html && curl -fsSL --max-time 10 "$URL/ru/" -o /tmp/public-ru.html; then READY=1; break; fi
-            sleep 1
-          done
+          for i in $(seq 1 90); do if curl -fsSL --max-time 10 "$URL/" -o /tmp/public-en.html && curl -fsSL --max-time 10 "$URL/ru/" -o /tmp/public-ru.html; then READY=1; break; fi; sleep 1; done
           test "$READY" -eq 1
           echo "OWNER_REVIEW_URL=$URL"
           post_status success "$URL" 'Desktop Chrome QA PASS; Owner preview live'

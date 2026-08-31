@@ -13,18 +13,15 @@ concurrency:
   group: homepage-tech-relay-r1-owner-preview-r5
   cancel-in-progress: true
 
-jobs:
-  preview:
-    if: github.ref == 'refs/heads/review/homepage-tech-relay-signal-r1-preview-r5'
-    runs-on: ubuntu-latest
-    timeout-minutes: 130
-    env:
-      PRODUCT_SHA: 9794ad94235311d0002e6c005e31b3e447cc6048
-      INFRA_SHA: ${{ github.sha }}
-      REPO: ${{ github.repository }}
-      GH_TOKEN: ${{ github.token }}
-      QA_BASE: http://127.0.0.1:4173
+env:
+  PRODUCT_SHA: 9794ad94235311d0002e6c005e31b3e447cc6048
+  QA_BASE: http://127.0.0.1:4173
 
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    outputs:
+      qa_rc: ${{ steps.chrome.outputs.qa_rc }}
     steps:
       - name: Checkout exact approved product
         uses: actions/checkout@v4
@@ -53,8 +50,6 @@ jobs:
           test -n "$CHROME"
           echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
           "$CHROME" --version
-          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
-          chmod +x /tmp/cloudflared
 
       - name: Start exact generated Jekyll site
         shell: bash
@@ -63,228 +58,86 @@ jobs:
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/proai-tech-preview-server.log 2>&1 &
           echo $! >/tmp/proai-tech-preview-server.pid
           for i in $(seq 1 30); do
-            if curl -fsS "$QA_BASE/" -o /tmp/en.html && \
-               curl -fsS "$QA_BASE/ru/" -o /tmp/ru.html && \
-               grep -q '04 / TECHNOLOGY ECOSYSTEM' /tmp/en.html && \
-               grep -q '04 / ТЕХНОЛОГИЧЕСКАЯ ЭКОСИСТЕМА' /tmp/ru.html; then
+            if curl -fsS "$QA_BASE/" -o /tmp/en.html && curl -fsS "$QA_BASE/ru/" -o /tmp/ru.html; then
+              grep -q '04 / TECHNOLOGY ECOSYSTEM' /tmp/en.html
+              grep -q '04 / ТЕХНОЛОГИЧЕСКАЯ ЭКОСИСТЕМА' /tmp/ru.html
               echo LOCAL_JEKYLL_RUNTIME_PASS
               exit 0
             fi
             sleep 1
           done
-          cat /tmp/proai-tech-preview-server.log || true
           exit 1
 
       - name: Run complete Google Chrome Technology runtime gate
+        id: chrome
         shell: bash
         run: |
           set -euo pipefail
           cat >.technology-r5-qa.mjs <<'NODE'
           import { chromium } from 'playwright-core';
 
-          const base = process.env.QA_BASE.replace(/\/$/, '');
-          const origin = new URL(base).origin;
-          const chromePath = process.env.CHROME_PATH;
-          const brands = ['openai','claude','gemini','n8n','make','twilio','vercel','gmail','zapier','github'];
-          const names = ['OpenAI','Claude','Gemini','n8n','Make','Twilio','Vercel','Gmail','Zapier','GitHub'];
-          const offsets = [-.44,-.37,-.30,-.23,-.16,-.68,-.73,-.78,-.83,-.88];
-          const logoPaths = new Set(brands.map(b => `/assets/brand/platforms/${b}-mark.svg`));
-          const techAssets = new Set([
-            '/assets/css/home-technology-transition-r2.css',
-            '/assets/css/home-technology-transition-r2-golden-mobile.css',
-            '/assets/js/home-technology-transition-r2.js',
-            ...logoPaths
-          ]);
-          const results = {};
-          const evidence = {};
+          const base=process.env.QA_BASE.replace(/\/$/,'');
+          const origin=new URL(base).origin;
+          const chromePath=process.env.CHROME_PATH;
+          const brands=['openai','claude','gemini','n8n','make','twilio','vercel','gmail','zapier','github'];
+          const names=['OpenAI','Claude','Gemini','n8n','Make','Twilio','Vercel','Gmail','Zapier','GitHub'];
+          const offsets=[-.44,-.37,-.30,-.23,-.16,-.68,-.73,-.78,-.83,-.88];
+          const logoPaths=new Set(brands.map(b=>`/assets/brand/platforms/${b}-mark.svg`));
+          const techAssets=new Set(['/assets/css/home-technology-transition-r2.css','/assets/css/home-technology-transition-r2-golden-mobile.css','/assets/js/home-technology-transition-r2.js',...logoPaths]);
+          const results={};
+          const evidence={};
+          function assert(v,m){if(!v)throw new Error(m);}
+          async function record(key,fn){try{evidence[key]=await fn();results[key]='PASS';console.log(`CASE_PASS ${key} ${JSON.stringify(evidence[key])}`);}catch(e){results[key]='FAIL';evidence[key]={error:String(e?.message||e)};console.log(`CASE_FAIL ${key} ${evidence[key].error}`);}}
 
-          function assert(v,m){ if(!v) throw new Error(m); }
-          async function record(key,fn){
-            try { evidence[key]=await fn(); results[key]='PASS'; console.log(`CASE_PASS ${key} ${JSON.stringify(evidence[key])}`); }
-            catch(e){ results[key]='FAIL'; evidence[key]={error:String(e?.message||e)}; console.log(`CASE_FAIL ${key} ${evidence[key].error}`); }
-          }
-
-          const browser = await chromium.launch({executablePath:chromePath,headless:true,args:['--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist']});
-
-          async function withPage(options,fn){
-            const context=await browser.newContext(options);
-            const page=await context.newPage();
-            page.setDefaultTimeout(5000);
-            page.setDefaultNavigationTimeout(15000);
-            try { return await fn(page); }
-            finally { await context.close(); }
-          }
+          const browser=await chromium.launch({executablePath:chromePath,headless:true,args:['--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist']});
+          async function withPage(options,fn){const context=await browser.newContext(options);const page=await context.newPage();page.setDefaultTimeout(5000);page.setDefaultNavigationTimeout(15000);try{return await fn(page);}finally{await context.close();}}
 
           async function setup(page,label){
             const diag={techErrors:[],techBad:[],logoStatus:new Map()};
-            page.on('pageerror',e=>{
-              const t=String(e?.stack||e||'');
-              if(/home-technology-transition-r2|techR2|home-tech-r2/i.test(t)) diag.techErrors.push(t);
-            });
-            page.on('response',r=>{
-              const u=new URL(r.url());
-              if(u.origin!==origin) return;
-              if(techAssets.has(u.pathname)&&r.status()>=400) diag.techBad.push({url:r.url(),status:r.status()});
-              if(logoPaths.has(u.pathname)) diag.logoStatus.set(u.pathname,r.status());
-            });
-            page.on('requestfailed',r=>{
-              const u=new URL(r.url());
-              if(u.origin===origin&&techAssets.has(u.pathname)) diag.techBad.push({url:r.url(),failure:r.failure()?.errorText||'requestfailed'});
-            });
-            await page.addInitScript(()=>{
-              window.__techEvents=[];
-              document.addEventListener('animationstart',e=>{
-                if(e.target?.classList?.contains('home-tech-r2__relay-signal')) window.__techEvents.push({type:'start',name:e.animationName,elapsed:e.elapsedTime});
-              },true);
-              document.addEventListener('animationend',e=>{
-                if(e.target?.classList?.contains('home-tech-r2__relay-signal')) window.__techEvents.push({type:'end',name:e.animationName,elapsed:e.elapsedTime});
-              },true);
-            });
+            page.on('pageerror',e=>{const t=String(e?.stack||e||'');if(/home-technology-transition-r2|techR2|home-tech-r2/i.test(t))diag.techErrors.push(t);});
+            page.on('response',r=>{const u=new URL(r.url());if(u.origin!==origin)return;if(techAssets.has(u.pathname)&&r.status()>=400)diag.techBad.push({url:r.url(),status:r.status()});if(logoPaths.has(u.pathname))diag.logoStatus.set(u.pathname,r.status());});
+            page.on('requestfailed',r=>{const u=new URL(r.url());if(u.origin===origin&&techAssets.has(u.pathname))diag.techBad.push({url:r.url(),failure:r.failure()?.errorText||'requestfailed'});});
+            await page.addInitScript(()=>{window.__techEvents=[];document.addEventListener('animationstart',e=>{if(e.target?.classList?.contains('home-tech-r2__relay-signal'))window.__techEvents.push({type:'start',name:e.animationName,elapsed:e.elapsedTime});},true);document.addEventListener('animationend',e=>{if(e.target?.classList?.contains('home-tech-r2__relay-signal'))window.__techEvents.push({type:'end',name:e.animationName,elapsed:e.elapsedTime});},true);});
             await page.goto(`${base}${label==='EN'?'/':'/ru/'}`,{waitUntil:'domcontentloaded'});
             await page.waitForSelector('[data-home-tech-r2]');
             await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2SignalReady==='true');
             return diag;
           }
 
-          async function enterTech(page){
-            await page.evaluate(()=>{
-              const s=document.querySelector('[data-home-tech-r2]');
-              window.scrollTo({top:Math.max(0,window.scrollY+s.getBoundingClientRect().top-Math.round(innerHeight*.25)),behavior:'instant'});
-            });
-            await page.waitForFunction(()=>{const r=document.querySelector('[data-home-tech-r2]').getBoundingClientRect();return r.top<innerHeight&&r.bottom>0;});
-          }
+          async function enterTech(page){await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');window.scrollTo({top:Math.max(0,window.scrollY+s.getBoundingClientRect().top-Math.round(innerHeight*.25)),behavior:'instant'});});await page.waitForFunction(()=>{const r=document.querySelector('[data-home-tech-r2]').getBoundingClientRect();return r.top<innerHeight&&r.bottom>0;});}
 
           async function logoGate(page,diag,label){
-            await page.waitForFunction(()=>{
-              const imgs=[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__mark img')];
-              return imgs.length===10&&imgs.every(i=>i.complete&&i.naturalWidth>0&&i.naturalHeight>0);
-            });
-            const logos=await page.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(i=>{
-              const img=i.querySelector('img'),n=i.querySelector('.home-tech-r2__name'),r=img.getBoundingClientRect();
-              return{brand:i.dataset.brand,name:n.textContent.trim(),complete:img.complete,nw:img.naturalWidth,nh:img.naturalHeight,vw:r.width,vh:r.height,cw:n.clientWidth,sw:n.scrollWidth};
-            }));
-            assert(logos.length===10,`${label}: identity count ${logos.length}`);
-            assert(JSON.stringify(logos.map(x=>x.brand))===JSON.stringify(brands),`${label}: brand order`);
-            assert(JSON.stringify(logos.map(x=>x.name))===JSON.stringify(names),`${label}: names/order`);
-            for(const x of logos){
-              assert(x.complete&&x.nw>0&&x.nh>0,`${label}: broken ${x.brand}`);
-              assert(x.vw>0&&x.vh>0,`${label}: invisible ${x.brand}`);
-              assert(x.sw<=x.cw+1,`${label}: truncated ${x.brand}`);
-            }
-            assert(diag.logoStatus.size===10,`${label}: Chrome network logo count ${diag.logoStatus.size}`);
-            for(const p of logoPaths){const s=diag.logoStatus.get(p);assert(s>=200&&s<400,`${label}: ${p} status ${s}`);}
+            await page.waitForFunction(()=>{const imgs=[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__mark img')];return imgs.length===10&&imgs.every(i=>i.complete&&i.naturalWidth>0&&i.naturalHeight>0);});
+            const logos=await page.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(i=>{const img=i.querySelector('img'),n=i.querySelector('.home-tech-r2__name'),r=img.getBoundingClientRect();return{brand:i.dataset.brand,name:n.textContent.trim(),complete:img.complete,nw:img.naturalWidth,nh:img.naturalHeight,vw:r.width,vh:r.height,cw:n.clientWidth,sw:n.scrollWidth};}));
+            assert(logos.length===10,`${label}: identity count ${logos.length}`);assert(JSON.stringify(logos.map(x=>x.brand))===JSON.stringify(brands),`${label}: brand order`);assert(JSON.stringify(logos.map(x=>x.name))===JSON.stringify(names),`${label}: names/order`);
+            for(const x of logos){assert(x.complete&&x.nw>0&&x.nh>0,`${label}: broken ${x.brand}`);assert(x.vw>0&&x.vh>0,`${label}: invisible ${x.brand}`);assert(x.sw<=x.cw+1,`${label}: truncated ${x.brand}`);}
+            assert(diag.logoStatus.size===10,`${label}: Chrome network logo count ${diag.logoStatus.size}`);for(const p of logoPaths){const s=diag.logoStatus.get(p);assert(s>=200&&s<400,`${label}: ${p} status ${s}`);}
             return logos.map(({brand,name,complete,nw,nh})=>({brand,name,complete,nw,nh}));
           }
 
           async function initialPass(page,mode,label){
-            await enterTech(page);
-            const expected=mode==='mobile'?'home-tech-r2-signal-pass-mobile':'home-tech-r2-signal-pass';
+            await enterTech(page);const expected=mode==='mobile'?'home-tech-r2-signal-pass-mobile':'home-tech-r2-signal-pass';
             await page.waitForFunction(()=>['assembling','settled'].includes(document.querySelector('[data-home-tech-r2]')?.dataset.techR2State));
-            await page.waitForFunction(n=>window.__techEvents.some(e=>e.type==='start'&&e.name===n),expected);
-            await page.waitForFunction(n=>window.__techEvents.some(e=>e.type==='end'&&e.name===n),expected);
-            await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled');
-            const x=await page.evaluate(({expected,mode})=>{
-              const s=document.querySelector('[data-home-tech-r2]');
-              const relay=s.querySelector(mode==='mobile'?'.home-tech-r2__relay--mobile':'.home-tech-r2__relay--desktop');
-              const sig=getComputedStyle(relay.querySelector('.home-tech-r2__relay-signal'));
-              const active=getComputedStyle(relay.querySelector('.home-tech-r2__relay-active'));
-              return{starts:window.__techEvents.filter(e=>e.type==='start'&&e.name===expected).length,ends:window.__techEvents.filter(e=>e.type==='end'&&e.name===expected).length,state:s.dataset.techR2State,assembling:s.classList.contains('is-assembling'),signalOpacity:Number(sig.opacity),signalAnimation:sig.animationName,activeOpacity:Number(active.opacity),relayDisplay:getComputedStyle(relay).display};
-            },{expected,mode});
-            assert(x.relayDisplay!=='none',`${label}: intended relay hidden`);
-            assert(x.starts===1&&x.ends===1,`${label}: one-pass ${x.starts}/${x.ends}`);
-            assert(x.state==='settled'&&!x.assembling,`${label}: not settled`);
-            assert(x.signalOpacity<=.01&&x.signalAnimation==='none',`${label}: signal persists`);
-            assert(x.activeOpacity<=.30,`${label}: settled path too bright ${x.activeOpacity}`);
-            await page.waitForTimeout(800);
-            const starts=await page.evaluate(n=>window.__techEvents.filter(e=>e.type==='start'&&e.name===n).length,expected);
-            assert(starts===1,`${label}: signal loop/restart ${starts}`);
-            return x;
+            await page.waitForFunction(n=>window.__techEvents.some(e=>e.type==='start'&&e.name===n),expected);await page.waitForFunction(n=>window.__techEvents.some(e=>e.type==='end'&&e.name===n),expected);await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled');
+            const x=await page.evaluate(({expected,mode})=>{const s=document.querySelector('[data-home-tech-r2]'),relay=s.querySelector(mode==='mobile'?'.home-tech-r2__relay--mobile':'.home-tech-r2__relay--desktop'),sig=getComputedStyle(relay.querySelector('.home-tech-r2__relay-signal')),active=getComputedStyle(relay.querySelector('.home-tech-r2__relay-active'));return{starts:window.__techEvents.filter(e=>e.type==='start'&&e.name===expected).length,ends:window.__techEvents.filter(e=>e.type==='end'&&e.name===expected).length,state:s.dataset.techR2State,assembling:s.classList.contains('is-assembling'),signalOpacity:Number(sig.opacity),signalAnimation:sig.animationName,activeOpacity:Number(active.opacity),relayDisplay:getComputedStyle(relay).display};},{expected,mode});
+            assert(x.relayDisplay!=='none',`${label}: intended relay hidden`);assert(x.starts===1&&x.ends===1,`${label}: one-pass ${x.starts}/${x.ends}`);assert(x.state==='settled'&&!x.assembling,`${label}: not settled`);assert(x.signalOpacity<=.01&&x.signalAnimation==='none',`${label}: signal persists`);assert(x.activeOpacity<=.30,`${label}: settled path too bright ${x.activeOpacity}`);await page.waitForTimeout(800);const starts=await page.evaluate(n=>window.__techEvents.filter(e=>e.type==='start'&&e.name===n).length,expected);assert(starts===1,`${label}: signal loop/restart ${starts}`);return x;
           }
 
           async function localGate(page,label){
-            assert(await page.evaluate(()=>matchMedia('(hover:hover) and (pointer:fine)').matches),`${label}: fine pointer unavailable`);
-            const items=page.locator('[data-home-tech-r2] .home-tech-r2__identity');
-            const out=[];
-            for(let i=0;i<10;i++){
-              await items.nth(i).hover({timeout:3000});
-              await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'));
-              const x=await page.evaluate(()=>{
-                const s=document.querySelector('[data-home-tech-r2]');
-                const sig=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'));
-                const act=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active'));
-                return{offset:parseFloat(s.style.getPropertyValue('--tech-r2-local-offset')),animation:sig.animationName,assembling:s.classList.contains('is-assembling'),active:Number(act.opacity)};
-              });
-              assert(Math.abs(x.offset-offsets[i])<.001,`${label}: offset ${i+1} ${x.offset}`);
-              assert(x.animation.includes('home-tech-r2-local-relay-catch'),`${label}: local response ${i+1}`);
-              assert(!x.assembling,`${label}: assembly restarted ${i+1}`);
-              assert(x.active<=.35,`${label}: global overactivation ${i+1}`);
-              out.push({brand:brands[i],offset:x.offset});
-              await page.mouse.move(2,2);
-              await page.waitForFunction(()=>!document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'));
-              assert(!await page.evaluate(()=>document.querySelector('[data-home-tech-r2]').style.getPropertyValue('--tech-r2-local-offset')),`${label}: offset not cleared ${i+1}`);
-            }
-            return out;
+            assert(await page.evaluate(()=>matchMedia('(hover:hover) and (pointer:fine)').matches),`${label}: fine pointer unavailable`);const items=page.locator('[data-home-tech-r2] .home-tech-r2__identity'),out=[];
+            for(let i=0;i<10;i++){await items.nth(i).hover({timeout:3000});await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'));const x=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal')),act=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active'));return{offset:parseFloat(s.style.getPropertyValue('--tech-r2-local-offset')),animation:sig.animationName,assembling:s.classList.contains('is-assembling'),active:Number(act.opacity)};});assert(Math.abs(x.offset-offsets[i])<.001,`${label}: offset ${i+1} ${x.offset}`);assert(x.animation.includes('home-tech-r2-local-relay-catch'),`${label}: local response ${i+1}`);assert(!x.assembling,`${label}: assembly restarted ${i+1}`);assert(x.active<=.35,`${label}: global overactivation ${i+1}`);out.push({brand:brands[i],offset:x.offset});await page.mouse.move(2,2);await page.waitForFunction(()=>!document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'));assert(!await page.evaluate(()=>document.querySelector('[data-home-tech-r2]').style.getPropertyValue('--tech-r2-local-offset')),`${label}: offset not cleared ${i+1}`);}return out;
           }
 
-          async function layoutGate(page,label,mobile){
-            const x=await page.evaluate(()=>{
-              const d=document.documentElement,s=document.querySelector('[data-home-tech-r2]');
-              return{docClient:d.clientWidth,docScroll:d.scrollWidth,techClient:s.clientWidth,techScroll:s.scrollWidth,count:s.querySelectorAll('.home-tech-r2__identity').length,desktop:getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop')).display,mobile:getComputedStyle(s.querySelector('.home-tech-r2__relay--mobile')).display,fine:matchMedia('(hover:hover) and (pointer:fine)').matches,localReady:s.dataset.techR2LocalReady||''};
-            });
-            assert(x.docScroll<=x.docClient+1,`${label}: document overflow ${x.docScroll-x.docClient}`);
-            assert(x.techScroll<=x.techClient+1,`${label}: Technology overflow ${x.techScroll-x.techClient}`);
-            assert(x.count===10,`${label}: identities ${x.count}`);
-            if(mobile){assert(x.desktop==='none'&&x.mobile!=='none',`${label}: relay form`);assert(!x.fine&&x.localReady!=='true',`${label}: fake desktop hover`);}
-            else assert(x.desktop!=='none',`${label}: desktop relay hidden`);
-            return x;
-          }
+          async function layoutGate(page,label,mobile){const x=await page.evaluate(()=>{const d=document.documentElement,s=document.querySelector('[data-home-tech-r2]');return{docClient:d.clientWidth,docScroll:d.scrollWidth,techClient:s.clientWidth,techScroll:s.scrollWidth,count:s.querySelectorAll('.home-tech-r2__identity').length,desktop:getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop')).display,mobile:getComputedStyle(s.querySelector('.home-tech-r2__relay--mobile')).display,fine:matchMedia('(hover:hover) and (pointer:fine)').matches,localReady:s.dataset.techR2LocalReady||''};});assert(x.docScroll<=x.docClient+1,`${label}: document overflow ${x.docScroll-x.docClient}`);assert(x.techScroll<=x.techClient+1,`${label}: Technology overflow ${x.techScroll-x.techClient}`);assert(x.count===10,`${label}: identities ${x.count}`);if(mobile){assert(x.desktop==='none'&&x.mobile!=='none',`${label}: relay form`);assert(!x.fine&&x.localReady!=='true',`${label}: fake desktop hover`);}else assert(x.desktop!=='none',`${label}: desktop relay hidden`);return x;}
 
-          async function regression(page,label){
-            const x=await page.evaluate(()=>{
-              const selectors={hero:'#hero',cubeMount:'#proai-hero-cube-mount',cubeCanvas:'#cube-canvas',connected:'[data-connected-system]',twoWorlds:'[data-tw-r2]',financial:'[data-fs-showcase-r11]',thinking:'[data-selected-thinking-r1]',work:'[data-selected-work-r11]',footer:'[data-home-footer-golden-r3]'};
-              const counts=Object.fromEntries(Object.entries(selectors).map(([k,v])=>[k,document.querySelectorAll(v).length]));
-              const cubeRuntime=[...document.scripts].some(s=>/proai-hero-cube-r1\/bootstrap-golden-r1-2\.js/.test(s.src));
-              return{counts,cubeRuntime};
-            });
-            for(const[k,v]of Object.entries(x.counts)) assert(v===1,`${label}: ${k} count ${v}`);
-            assert(x.cubeRuntime,`${label}: cube runtime missing`);
-            return x;
-          }
+          async function regression(page,label){const x=await page.evaluate(()=>{const selectors={hero:'#hero',cubeMount:'#proai-hero-cube-mount',cubeCanvas:'#cube-canvas',connected:'[data-connected-system]',twoWorlds:'[data-tw-r2]',financial:'[data-fs-showcase-r11]',thinking:'[data-selected-thinking-r1]',work:'[data-selected-work-r11]',footer:'[data-home-footer-golden-r3]'};const counts=Object.fromEntries(Object.entries(selectors).map(([k,v])=>[k,document.querySelectorAll(v).length]));const cubeRuntime=[...document.scripts].some(s=>/proai-hero-cube-r1\/bootstrap-golden-r1-2\.js/.test(s.src));return{counts,cubeRuntime};});for(const[k,v]of Object.entries(x.counts))assert(v===1,`${label}: ${k} count ${v}`);assert(x.cubeRuntime,`${label}: cube runtime missing`);return x;}
+          function diagGate(diag,label){assert(diag.techErrors.length===0,`${label}: Technology JS errors ${JSON.stringify(diag.techErrors)}`);assert(diag.techBad.length===0,`${label}: Technology asset failures ${JSON.stringify(diag.techBad)}`);return{techErrors:diag.techErrors,techBad:diag.techBad};}
 
-          function diagGate(diag,label){
-            assert(diag.techErrors.length===0,`${label}: Technology JS errors ${JSON.stringify(diag.techErrors)}`);
-            assert(diag.techBad.length===0,`${label}: Technology asset failures ${JSON.stringify(diag.techBad)}`);
-            return{techErrors:diag.techErrors,techBad:diag.techBad};
-          }
+          for(const lang of ['EN','RU'])await record(`${lang}_DESKTOP`,()=>withPage({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'},async page=>{const d=await setup(page,lang),initial=await initialPass(page,'desktop',`${lang} desktop`),logos=await logoGate(page,d,`${lang} desktop`),local=await localGate(page,`${lang} desktop`),layout=await layoutGate(page,`${lang} desktop`,false),reg=await regression(page,`${lang} desktop`),diag=diagGate(d,`${lang} desktop`);return{initial,logos,local,layout,reg,diag};}));
+          for(const width of [430,390,375,360,320])for(const lang of ['EN','RU'])await record(`${lang}_MOBILE_${width}`,()=>withPage({viewport:{width,height:900},hasTouch:true,isMobile:true,reducedMotion:'no-preference'},async page=>{const d=await setup(page,lang),initial=await initialPass(page,'mobile',`${lang} mobile ${width}`),logos=await logoGate(page,d,`${lang} mobile ${width}`),layout=await layoutGate(page,`${lang} mobile ${width}`,true),reg=await regression(page,`${lang} mobile ${width}`),diag=diagGate(d,`${lang} mobile ${width}`);return{initial,logos,layout,reg,diag};}));
+          for(const lang of ['EN','RU'])await record(`${lang}_REDUCED_MOTION`,()=>withPage({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'reduce'},async page=>{const d=await setup(page,lang);await enterTech(page);await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled');const state=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal')),id=getComputedStyle(s.querySelector('.home-tech-r2__identity')),mat=getComputedStyle(s.querySelector('.home-tech-r2__material'));return{reduce:matchMedia('(prefers-reduced-motion:reduce)').matches,assembling:s.classList.contains('is-assembling'),local:s.classList.contains('is-local-active'),events:window.__techEvents.length,sigAnim:sig.animationName,sigOpacity:Number(sig.opacity),sigTrans:sig.transitionDuration,idAnim:id.animationName,idOpacity:Number(id.opacity),idTrans:id.transitionDuration,matAnim:mat.animationName,matTrans:mat.transitionDuration};});assert(state.reduce&&!state.assembling&&!state.local,`${lang} reduce: state`);assert(state.events===0&&state.sigAnim==='none'&&state.sigOpacity<=.01,`${lang} reduce: signal`);assert(state.idAnim==='none'&&state.idOpacity>=.99,`${lang} reduce: content`);assert(state.matAnim==='none',`${lang} reduce: material`);assert(state.sigTrans==='0s'&&state.idTrans==='0s'&&state.matTrans==='0s',`${lang} reduce: transitions`);const logos=await logoGate(page,d,`${lang} reduced`),layout=await layoutGate(page,`${lang} reduced`,false),reg=await regression(page,`${lang} reduced`),diag=diagGate(d,`${lang} reduced`);return{state,logos,layout,reg,diag};}));
 
-          for(const lang of ['EN','RU']){
-            await record(`${lang}_DESKTOP`,()=>withPage({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'},async page=>{
-              const d=await setup(page,lang); const initial=await initialPass(page,'desktop',`${lang} desktop`); const logos=await logoGate(page,d,`${lang} desktop`); const local=await localGate(page,`${lang} desktop`); const layout=await layoutGate(page,`${lang} desktop`,false); const reg=await regression(page,`${lang} desktop`); const diag=diagGate(d,`${lang} desktop`); return{initial,logos,local,layout,reg,diag};
-            }));
-          }
-
-          for(const width of [430,390,375,360,320]){
-            for(const lang of ['EN','RU']){
-              await record(`${lang}_MOBILE_${width}`,()=>withPage({viewport:{width,height:900},hasTouch:true,isMobile:true,reducedMotion:'no-preference'},async page=>{
-                const d=await setup(page,lang); const initial=await initialPass(page,'mobile',`${lang} mobile ${width}`); const logos=await logoGate(page,d,`${lang} mobile ${width}`); const layout=await layoutGate(page,`${lang} mobile ${width}`,true); const reg=await regression(page,`${lang} mobile ${width}`); const diag=diagGate(d,`${lang} mobile ${width}`); return{initial,logos,layout,reg,diag};
-              }));
-            }
-          }
-
-          for(const lang of ['EN','RU']){
-            await record(`${lang}_REDUCED_MOTION`,()=>withPage({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'reduce'},async page=>{
-              const d=await setup(page,lang); await enterTech(page); await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled');
-              const state=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal')),id=getComputedStyle(s.querySelector('.home-tech-r2__identity')),mat=getComputedStyle(s.querySelector('.home-tech-r2__material'));return{reduce:matchMedia('(prefers-reduced-motion:reduce)').matches,assembling:s.classList.contains('is-assembling'),local:s.classList.contains('is-local-active'),events:window.__techEvents.length,sigAnim:sig.animationName,sigOpacity:Number(sig.opacity),sigTrans:sig.transitionDuration,idAnim:id.animationName,idOpacity:Number(id.opacity),idTrans:id.transitionDuration,matAnim:mat.animationName,matTrans:mat.transitionDuration};});
-              assert(state.reduce&&!state.assembling&&!state.local,`${lang} reduce: state`); assert(state.events===0&&state.sigAnim==='none'&&state.sigOpacity<=.01,`${lang} reduce: signal`); assert(state.idAnim==='none'&&state.idOpacity>=.99,`${lang} reduce: content`); assert(state.matAnim==='none',`${lang} reduce: material`); assert(state.sigTrans==='0s'&&state.idTrans==='0s'&&state.matTrans==='0s',`${lang} reduce: transitions`);
-              const logos=await logoGate(page,d,`${lang} reduced`); const layout=await layoutGate(page,`${lang} reduced`,false); const reg=await regression(page,`${lang} reduced`); const diag=diagGate(d,`${lang} reduced`); return{state,logos,layout,reg,diag};
-            }));
-          }
-
-          await browser.close();
-          console.log('QA_RESULTS '+JSON.stringify(results));
-          console.log('QA_EVIDENCE '+JSON.stringify(evidence));
-          const failed=Object.entries(results).filter(([,v])=>v!=='PASS');
-          process.exit(failed.length?2:0);
+          await browser.close();console.log('QA_RESULTS '+JSON.stringify(results));console.log('QA_EVIDENCE '+JSON.stringify(evidence));process.exit(Object.values(results).every(v=>v==='PASS')?0:2);
           NODE
 
           set +e
@@ -292,48 +145,54 @@ jobs:
           QA_RC=$?
           set -e
           rm -f .technology-r5-qa.mjs
-          echo "$QA_RC" >/tmp/technology-r5-qa-rc
+          echo "qa_rc=$QA_RC" >> "$GITHUB_OUTPUT"
           if [ "$QA_RC" -eq 0 ]; then echo TECHNOLOGY_RUNTIME=PASS; else echo TECHNOLOGY_RUNTIME=FAIL; fi
-          exit 0
+
+      - name: Upload exact generated site for Owner preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-r5-generated-site
+          path: _site
+          retention-days: 1
+
+  preview:
+    needs: qa
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 125
+    env:
+      QA_RC: ${{ needs.qa.outputs.qa_rc }}
+      INFRA_SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download exact generated site
+        uses: actions/download-artifact@v4
+        with:
+          name: technology-r5-generated-site
+          path: _site
 
       - name: Publish HTTPS Owner preview and hold review window
         shell: bash
         run: |
           set -euo pipefail
-          QA_RC=$(cat /tmp/technology-r5-qa-rc)
-          post_status() {
-            gh api --method POST "repos/$REPO/statuses/$INFRA_SHA" \
-              -f state="$1" -f target_url="$2" \
-              -f context='owner-preview/technology-z-relay-r1' \
-              -f description="$3" >/dev/null
-          }
-
-          /tmp/cloudflared tunnel --no-autoupdate --url "$QA_BASE" >/tmp/cloudflared.log 2>&1 &
+          test -n "$QA_RC"
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/proai-tech-preview-server.log 2>&1 &
+          SERVER_PID=$!
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared.log 2>&1 &
           TUNNEL_PID=$!
-          trap 'kill "$TUNNEL_PID" 2>/dev/null || true; kill "$(cat /tmp/proai-tech-preview-server.pid 2>/dev/null)" 2>/dev/null || true' EXIT
+          trap 'kill "$TUNNEL_PID" 2>/dev/null || true; kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          post_status(){ gh api --method POST "repos/$REPO/statuses/$INFRA_SHA" -f state="$1" -f target_url="$2" -f context='owner-preview/technology-z-relay-r1' -f description="$3" >/dev/null; }
           URL=''
-          for i in $(seq 1 60); do
-            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)
-            [ -n "$URL" ] && break
-            kill -0 "$TUNNEL_PID" 2>/dev/null || { cat /tmp/cloudflared.log; exit 1; }
-            sleep 1
-          done
+          for i in $(seq 1 60); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true); [ -n "$URL" ] && break; sleep 1; done
           test -n "$URL"
-
           READY=0
-          for i in $(seq 1 30); do
-            if curl -fsSL --max-time 8 "$URL/" -o /tmp/public-en.html && curl -fsSL --max-time 8 "$URL/ru/" -o /tmp/public-ru.html; then READY=1; break; fi
-            sleep 1
-          done
+          for i in $(seq 1 30); do if curl -fsSL --max-time 8 "$URL/" -o /tmp/en.html && curl -fsSL --max-time 8 "$URL/ru/" -o /tmp/ru.html; then READY=1; break; fi; sleep 1; done
           test "$READY" -eq 1
           echo "OWNER_REVIEW_URL=$URL"
-          echo OWNER_HTTPS_PREVIEW_PASS
-
-          if [ "$QA_RC" -eq 0 ]; then
-            post_status success "$URL" 'Chrome runtime QA PASS; Owner preview live'
-          else
-            post_status failure "$URL" 'Chrome runtime QA FAIL; Owner preview live for evidence'
-          fi
+          if [ "$QA_RC" = "0" ]; then post_status success "$URL" 'Chrome runtime QA PASS; Owner preview live'; else post_status failure "$URL" 'Chrome runtime QA FAIL; Owner preview live for evidence'; fi
           echo REVIEW_WINDOW_SECONDS=7200
           sleep 7200
           exit "$QA_RC"

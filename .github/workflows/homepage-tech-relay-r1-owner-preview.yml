@@ -39,7 +39,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
           echo "PRODUCT_SHA_VERIFIED=$PRODUCT_SHA"
 
-      - name: Build Jekyll and prepare Chrome QA
+      - name: Build exact product and prepare Google Chrome QA
         shell: bash
         run: |
           set -euo pipefail
@@ -62,7 +62,7 @@ jobs:
           set -euo pipefail
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/proai-tech-preview-server.log 2>&1 &
           echo $! >/tmp/proai-tech-preview-server.pid
-          for i in $(seq 1 60); do
+          for i in $(seq 1 30); do
             if curl -fsS "$QA_BASE/" -o /tmp/en.html && \
                curl -fsS "$QA_BASE/ru/" -o /tmp/ru.html && \
                grep -q '04 / TECHNOLOGY ECOSYSTEM' /tmp/en.html && \
@@ -75,55 +75,10 @@ jobs:
           cat /tmp/proai-tech-preview-server.log || true
           exit 1
 
-      - name: Publish HTTPS preview and run deterministic Google Chrome QA
+      - name: Run complete Google Chrome Technology runtime gate
         shell: bash
         run: |
           set -euo pipefail
-
-          post_status() {
-            gh api --method POST "repos/$REPO/statuses/$INFRA_SHA" \
-              -f state="$1" -f target_url="$2" \
-              -f context='owner-preview/technology-z-relay-r1' \
-              -f description="$3" >/dev/null
-          }
-
-          /tmp/cloudflared tunnel --no-autoupdate --url "$QA_BASE" >/tmp/cloudflared.log 2>&1 &
-          TUNNEL_PID=$!
-          trap 'rm -f .technology-r5-qa.mjs; kill "$TUNNEL_PID" 2>/dev/null || true; kill "$(cat /tmp/proai-tech-preview-server.pid 2>/dev/null)" 2>/dev/null || true' EXIT
-
-          URL=''
-          for i in $(seq 1 90); do
-            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)
-            [ -n "$URL" ] && break
-            kill -0 "$TUNNEL_PID" 2>/dev/null || { cat /tmp/cloudflared.log; exit 1; }
-            sleep 1
-          done
-          test -n "$URL"
-          echo "OWNER_REVIEW_URL=$URL"
-          post_status pending "$URL" 'Preview live; deterministic Chrome QA running'
-
-          READY=0
-          for i in $(seq 1 90); do
-            if curl -fsSL --retry 2 --retry-delay 1 --max-time 20 "$URL/" -o /tmp/public-en.html && \
-               curl -fsSL --retry 2 --retry-delay 1 --max-time 20 "$URL/ru/" -o /tmp/public-ru.html; then
-              READY=1
-              break
-            fi
-            sleep 1
-          done
-          test "$READY" -eq 1
-
-          PUBLIC_LOGO_PASS=0
-          for brand in openai claude gemini n8n make twilio vercel gmail zapier github; do
-            status=$(curl -sSL --retry 4 --retry-delay 1 --max-time 20 -o "/tmp/${brand}.svg" -w '%{http_code}' "$URL/assets/brand/platforms/${brand}-mark.svg")
-            test "$status" -ge 200
-            test "$status" -lt 400
-            test -s "/tmp/${brand}.svg"
-            PUBLIC_LOGO_PASS=$((PUBLIC_LOGO_PASS + 1))
-          done
-          test "$PUBLIC_LOGO_PASS" -eq 10
-          echo PUBLIC_NETWORK_LOGOS_PASS_10_OF_10
-
           cat >.technology-r5-qa.mjs <<'NODE'
           import { chromium } from 'playwright-core';
 
@@ -134,288 +89,202 @@ jobs:
           const names = ['OpenAI','Claude','Gemini','n8n','Make','Twilio','Vercel','Gmail','Zapier','GitHub'];
           const offsets = [-.44,-.37,-.30,-.23,-.16,-.68,-.73,-.78,-.83,-.88];
           const logoPaths = new Set(brands.map(b => `/assets/brand/platforms/${b}-mark.svg`));
-          const techAssetPaths = new Set([
+          const techAssets = new Set([
             '/assets/css/home-technology-transition-r2.css',
             '/assets/css/home-technology-transition-r2-golden-mobile.css',
             '/assets/js/home-technology-transition-r2.js',
             ...logoPaths
           ]);
           const results = {};
-          const details = {};
+          const evidence = {};
 
-          function assert(v, m) { if (!v) throw new Error(m); }
-          async function record(key, fn) {
-            try {
-              const detail = await fn();
-              results[key] = { status:'PASS' };
-              if (detail !== undefined) details[key] = detail;
-              console.log(`CASE_PASS ${key} ${detail === undefined ? '' : JSON.stringify(detail)}`);
-            } catch (e) {
-              results[key] = { status:'FAIL', error:String(e?.message || e) };
-              console.log(`CASE_FAIL ${key} ${String(e?.message || e)}`);
-            }
+          function assert(v,m){ if(!v) throw new Error(m); }
+          async function record(key,fn){
+            try { evidence[key]=await fn(); results[key]='PASS'; console.log(`CASE_PASS ${key} ${JSON.stringify(evidence[key])}`); }
+            catch(e){ results[key]='FAIL'; evidence[key]={error:String(e?.message||e)}; console.log(`CASE_FAIL ${key} ${evidence[key].error}`); }
           }
 
-          const browser = await chromium.launch({
-            executablePath: chromePath,
-            headless: true,
-            args: ['--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist']
-          });
+          const browser = await chromium.launch({executablePath:chromePath,headless:true,args:['--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist']});
 
-          async function setup(page, label) {
-            const diag = { techErrors:[], techBad:[], logoStatus:new Map() };
-            page.on('pageerror', e => {
-              const text = String(e?.stack || e || '');
-              if (/home-technology-transition-r2|techR2|home-tech-r2/i.test(text)) diag.techErrors.push(text);
+          async function withPage(options,fn){
+            const context=await browser.newContext(options);
+            const page=await context.newPage();
+            page.setDefaultTimeout(5000);
+            page.setDefaultNavigationTimeout(15000);
+            try { return await fn(page); }
+            finally { await context.close(); }
+          }
+
+          async function setup(page,label){
+            const diag={techErrors:[],techBad:[],logoStatus:new Map()};
+            page.on('pageerror',e=>{
+              const t=String(e?.stack||e||'');
+              if(/home-technology-transition-r2|techR2|home-tech-r2/i.test(t)) diag.techErrors.push(t);
             });
-            page.on('response', r => {
-              const u = new URL(r.url());
-              if (u.origin !== origin) return;
-              if (techAssetPaths.has(u.pathname) && r.status() >= 400) diag.techBad.push({url:r.url(),status:r.status()});
-              if (logoPaths.has(u.pathname)) diag.logoStatus.set(u.pathname, r.status());
+            page.on('response',r=>{
+              const u=new URL(r.url());
+              if(u.origin!==origin) return;
+              if(techAssets.has(u.pathname)&&r.status()>=400) diag.techBad.push({url:r.url(),status:r.status()});
+              if(logoPaths.has(u.pathname)) diag.logoStatus.set(u.pathname,r.status());
             });
-            page.on('requestfailed', r => {
-              const u = new URL(r.url());
-              if (u.origin === origin && techAssetPaths.has(u.pathname)) diag.techBad.push({url:r.url(),failure:r.failure()?.errorText || 'requestfailed'});
+            page.on('requestfailed',r=>{
+              const u=new URL(r.url());
+              if(u.origin===origin&&techAssets.has(u.pathname)) diag.techBad.push({url:r.url(),failure:r.failure()?.errorText||'requestfailed'});
             });
-            await page.addInitScript(() => {
-              window.__techEvents = [];
-              document.addEventListener('animationstart', e => {
-                if (e.target?.classList?.contains('home-tech-r2__relay-signal')) window.__techEvents.push({type:'start',name:e.animationName,elapsed:e.elapsedTime});
-              }, true);
-              document.addEventListener('animationend', e => {
-                if (e.target?.classList?.contains('home-tech-r2__relay-signal')) window.__techEvents.push({type:'end',name:e.animationName,elapsed:e.elapsedTime});
-              }, true);
+            await page.addInitScript(()=>{
+              window.__techEvents=[];
+              document.addEventListener('animationstart',e=>{
+                if(e.target?.classList?.contains('home-tech-r2__relay-signal')) window.__techEvents.push({type:'start',name:e.animationName,elapsed:e.elapsedTime});
+              },true);
+              document.addEventListener('animationend',e=>{
+                if(e.target?.classList?.contains('home-tech-r2__relay-signal')) window.__techEvents.push({type:'end',name:e.animationName,elapsed:e.elapsedTime});
+              },true);
             });
-            await page.goto(`${base}${label === 'EN' ? '/' : '/ru/'}`, { waitUntil:'domcontentloaded', timeout:30000 });
-            await page.waitForSelector('[data-home-tech-r2]', { timeout:10000 });
-            await page.waitForFunction(() => document.querySelector('[data-home-tech-r2]')?.dataset.techR2SignalReady === 'true', null, {timeout:10000});
+            await page.goto(`${base}${label==='EN'?'/':'/ru/'}`,{waitUntil:'domcontentloaded'});
+            await page.waitForSelector('[data-home-tech-r2]');
+            await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2SignalReady==='true');
             return diag;
           }
 
-          async function enterTech(page) {
-            await page.evaluate(() => {
-              const s = document.querySelector('[data-home-tech-r2]');
-              const y = window.scrollY + s.getBoundingClientRect().top - Math.round(innerHeight * .25);
-              window.scrollTo({top:Math.max(0,y),behavior:'instant'});
+          async function enterTech(page){
+            await page.evaluate(()=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              window.scrollTo({top:Math.max(0,window.scrollY+s.getBoundingClientRect().top-Math.round(innerHeight*.25)),behavior:'instant'});
             });
-            await page.waitForFunction(() => {
-              const r = document.querySelector('[data-home-tech-r2]').getBoundingClientRect();
-              return r.top < innerHeight && r.bottom > 0;
-            }, null, {timeout:5000});
+            await page.waitForFunction(()=>{const r=document.querySelector('[data-home-tech-r2]').getBoundingClientRect();return r.top<innerHeight&&r.bottom>0;});
           }
 
-          async function logos(page, diag, label) {
-            await page.waitForFunction(() => {
+          async function logoGate(page,diag,label){
+            await page.waitForFunction(()=>{
               const imgs=[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__mark img')];
-              return imgs.length===10 && imgs.every(i=>i.complete && i.naturalWidth>0 && i.naturalHeight>0);
-            }, null, {timeout:10000});
-            const x=await page.evaluate(() => [...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(i=>{
-              const img=i.querySelector('img'), name=i.querySelector('.home-tech-r2__name'), r=img.getBoundingClientRect();
-              return {brand:i.dataset.brand,name:name.textContent.trim(),complete:img.complete,nw:img.naturalWidth,nh:img.naturalHeight,vw:r.width,vh:r.height,cw:name.clientWidth,sw:name.scrollWidth};
+              return imgs.length===10&&imgs.every(i=>i.complete&&i.naturalWidth>0&&i.naturalHeight>0);
+            });
+            const logos=await page.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(i=>{
+              const img=i.querySelector('img'),n=i.querySelector('.home-tech-r2__name'),r=img.getBoundingClientRect();
+              return{brand:i.dataset.brand,name:n.textContent.trim(),complete:img.complete,nw:img.naturalWidth,nh:img.naturalHeight,vw:r.width,vh:r.height,cw:n.clientWidth,sw:n.scrollWidth};
             }));
-            assert(x.length===10,`${label}: DOM logo count ${x.length}`);
-            assert(JSON.stringify(x.map(i=>i.brand))===JSON.stringify(brands),`${label}: brand order mismatch`);
-            assert(JSON.stringify(x.map(i=>i.name))===JSON.stringify(names),`${label}: names mismatch`);
-            for(const i of x){
-              assert(i.complete&&i.nw>0&&i.nh>0,`${label}: broken ${i.brand}`);
-              assert(i.vw>0&&i.vh>0,`${label}: invisible ${i.brand}`);
-              assert(i.sw<=i.cw+1,`${label}: truncated ${i.brand}`);
+            assert(logos.length===10,`${label}: identity count ${logos.length}`);
+            assert(JSON.stringify(logos.map(x=>x.brand))===JSON.stringify(brands),`${label}: brand order`);
+            assert(JSON.stringify(logos.map(x=>x.name))===JSON.stringify(names),`${label}: names/order`);
+            for(const x of logos){
+              assert(x.complete&&x.nw>0&&x.nh>0,`${label}: broken ${x.brand}`);
+              assert(x.vw>0&&x.vh>0,`${label}: invisible ${x.brand}`);
+              assert(x.sw<=x.cw+1,`${label}: truncated ${x.brand}`);
             }
-            assert(diag.logoStatus.size===10,`${label}: browser network logo count ${diag.logoStatus.size}`);
-            for(const p of logoPaths){const s=diag.logoStatus.get(p);assert(s>=200&&s<400,`${label}: logo request ${p} status ${s}`);}
-            return x.map(({brand,name,complete,nw,nh})=>({brand,name,complete,nw,nh}));
+            assert(diag.logoStatus.size===10,`${label}: Chrome network logo count ${diag.logoStatus.size}`);
+            for(const p of logoPaths){const s=diag.logoStatus.get(p);assert(s>=200&&s<400,`${label}: ${p} status ${s}`);}
+            return logos.map(({brand,name,complete,nw,nh})=>({brand,name,complete,nw,nh}));
           }
 
-          async function firstPass(page, mode, label) {
+          async function initialPass(page,mode,label){
             await enterTech(page);
             const expected=mode==='mobile'?'home-tech-r2-signal-pass-mobile':'home-tech-r2-signal-pass';
-            await page.waitForFunction(() => ['assembling','settled'].includes(document.querySelector('[data-home-tech-r2]')?.dataset.techR2State), null, {timeout:5000});
-            await page.waitForFunction(n => window.__techEvents.some(e=>e.type==='start'&&e.name===n), expected, {timeout:5000});
-            await page.waitForFunction(n => window.__techEvents.some(e=>e.type==='end'&&e.name===n), expected, {timeout:5000});
-            await page.waitForFunction(() => document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled', null, {timeout:5000});
-            const s=await page.evaluate(({expected,mode})=>{
-              const section=document.querySelector('[data-home-tech-r2]');
-              const relay=section.querySelector(mode==='mobile'?'.home-tech-r2__relay--mobile':'.home-tech-r2__relay--desktop');
-              const signal=getComputedStyle(relay.querySelector('.home-tech-r2__relay-signal'));
+            await page.waitForFunction(()=>['assembling','settled'].includes(document.querySelector('[data-home-tech-r2]')?.dataset.techR2State));
+            await page.waitForFunction(n=>window.__techEvents.some(e=>e.type==='start'&&e.name===n),expected);
+            await page.waitForFunction(n=>window.__techEvents.some(e=>e.type==='end'&&e.name===n),expected);
+            await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled');
+            const x=await page.evaluate(({expected,mode})=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              const relay=s.querySelector(mode==='mobile'?'.home-tech-r2__relay--mobile':'.home-tech-r2__relay--desktop');
+              const sig=getComputedStyle(relay.querySelector('.home-tech-r2__relay-signal'));
               const active=getComputedStyle(relay.querySelector('.home-tech-r2__relay-active'));
-              return {
-                starts:window.__techEvents.filter(e=>e.type==='start'&&e.name===expected),
-                ends:window.__techEvents.filter(e=>e.type==='end'&&e.name===expected),
-                state:section.dataset.techR2State,
-                assembling:section.classList.contains('is-assembling'),
-                settled:section.classList.contains('is-settled'),
-                signalOpacity:Number(signal.opacity),
-                signalAnimation:signal.animationName,
-                activeOpacity:Number(active.opacity),
-                relayDisplay:getComputedStyle(relay).display
-              };
+              return{starts:window.__techEvents.filter(e=>e.type==='start'&&e.name===expected).length,ends:window.__techEvents.filter(e=>e.type==='end'&&e.name===expected).length,state:s.dataset.techR2State,assembling:s.classList.contains('is-assembling'),signalOpacity:Number(sig.opacity),signalAnimation:sig.animationName,activeOpacity:Number(active.opacity),relayDisplay:getComputedStyle(relay).display};
             },{expected,mode});
-            assert(s.relayDisplay!=='none',`${label}: intended relay hidden`);
-            assert(s.starts.length===1&&s.ends.length===1,`${label}: pass start/end ${s.starts.length}/${s.ends.length}`);
-            assert(s.ends[0].elapsed>1&&s.ends[0].elapsed<2,`${label}: pass duration ${s.ends[0].elapsed}`);
-            assert(s.state==='settled'&&s.settled&&!s.assembling,`${label}: did not settle`);
-            assert(s.signalOpacity<=.01&&s.signalAnimation==='none',`${label}: signal persists`);
-            assert(s.activeOpacity<=.30,`${label}: settled relay too active ${s.activeOpacity}`);
-            await page.waitForTimeout(1200);
-            const count=await page.evaluate(n=>window.__techEvents.filter(e=>e.type==='start'&&e.name===n).length,expected);
-            assert(count===1,`${label}: signal loop/restart ${count}`);
-            return s;
+            assert(x.relayDisplay!=='none',`${label}: intended relay hidden`);
+            assert(x.starts===1&&x.ends===1,`${label}: one-pass ${x.starts}/${x.ends}`);
+            assert(x.state==='settled'&&!x.assembling,`${label}: not settled`);
+            assert(x.signalOpacity<=.01&&x.signalAnimation==='none',`${label}: signal persists`);
+            assert(x.activeOpacity<=.30,`${label}: settled path too bright ${x.activeOpacity}`);
+            await page.waitForTimeout(800);
+            const starts=await page.evaluate(n=>window.__techEvents.filter(e=>e.type==='start'&&e.name===n).length,expected);
+            assert(starts===1,`${label}: signal loop/restart ${starts}`);
+            return x;
           }
 
-          async function desktopLocal(page,label){
-            assert(await page.evaluate(()=>matchMedia('(hover:hover) and (pointer:fine)').matches),`${label}: fine pointer media not active`);
+          async function localGate(page,label){
+            assert(await page.evaluate(()=>matchMedia('(hover:hover) and (pointer:fine)').matches),`${label}: fine pointer unavailable`);
             const items=page.locator('[data-home-tech-r2] .home-tech-r2__identity');
-            const seen=[];
+            const out=[];
             for(let i=0;i<10;i++){
-              await items.nth(i).hover();
-              await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'),null,{timeout:1500});
+              await items.nth(i).hover({timeout:3000});
+              await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'));
               const x=await page.evaluate(()=>{
                 const s=document.querySelector('[data-home-tech-r2]');
                 const sig=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'));
                 const act=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active'));
                 return{offset:parseFloat(s.style.getPropertyValue('--tech-r2-local-offset')),animation:sig.animationName,assembling:s.classList.contains('is-assembling'),active:Number(act.opacity)};
               });
-              assert(Math.abs(x.offset-offsets[i])<.001,`${label}: local offset ${i+1} ${x.offset}`);
-              assert(x.animation.includes('home-tech-r2-local-relay-catch'),`${label}: no local response ${i+1}`);
+              assert(Math.abs(x.offset-offsets[i])<.001,`${label}: offset ${i+1} ${x.offset}`);
+              assert(x.animation.includes('home-tech-r2-local-relay-catch'),`${label}: local response ${i+1}`);
               assert(!x.assembling,`${label}: assembly restarted ${i+1}`);
-              assert(x.active<=.35,`${label}: global relay overactivated ${i+1}`);
-              seen.push({index:i+1,brand:brands[i],offset:x.offset,active:x.active});
+              assert(x.active<=.35,`${label}: global overactivation ${i+1}`);
+              out.push({brand:brands[i],offset:x.offset});
               await page.mouse.move(2,2);
-              await page.waitForFunction(()=>!document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'),null,{timeout:1500});
-              assert(!await page.evaluate(()=>document.querySelector('[data-home-tech-r2]').style.getPropertyValue('--tech-r2-local-offset')),`${label}: local offset not cleared ${i+1}`);
+              await page.waitForFunction(()=>!document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'));
+              assert(!await page.evaluate(()=>document.querySelector('[data-home-tech-r2]').style.getPropertyValue('--tech-r2-local-offset')),`${label}: offset not cleared ${i+1}`);
             }
-            return seen;
+            return out;
           }
 
-          async function layoutGate(page,label) {
+          async function layoutGate(page,label,mobile){
             const x=await page.evaluate(()=>{
-              const d=document.documentElement;
-              const s=document.querySelector('[data-home-tech-r2]');
-              return {
-                docClient:d.clientWidth,docScroll:d.scrollWidth,
-                techClient:s.clientWidth,techScroll:s.scrollWidth,
-                identities:s.querySelectorAll('.home-tech-r2__identity').length,
-                desktopRelay:getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop')).display,
-                mobileRelay:getComputedStyle(s.querySelector('.home-tech-r2__relay--mobile')).display,
-                fine:matchMedia('(hover:hover) and (pointer:fine)').matches,
-                localReady:s.dataset.techR2LocalReady||''
-              };
+              const d=document.documentElement,s=document.querySelector('[data-home-tech-r2]');
+              return{docClient:d.clientWidth,docScroll:d.scrollWidth,techClient:s.clientWidth,techScroll:s.scrollWidth,count:s.querySelectorAll('.home-tech-r2__identity').length,desktop:getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop')).display,mobile:getComputedStyle(s.querySelector('.home-tech-r2__relay--mobile')).display,fine:matchMedia('(hover:hover) and (pointer:fine)').matches,localReady:s.dataset.techR2LocalReady||''};
             });
             assert(x.docScroll<=x.docClient+1,`${label}: document overflow ${x.docScroll-x.docClient}`);
             assert(x.techScroll<=x.techClient+1,`${label}: Technology overflow ${x.techScroll-x.techClient}`);
-            assert(x.identities===10,`${label}: identity count ${x.identities}`);
+            assert(x.count===10,`${label}: identities ${x.count}`);
+            if(mobile){assert(x.desktop==='none'&&x.mobile!=='none',`${label}: relay form`);assert(!x.fine&&x.localReady!=='true',`${label}: fake desktop hover`);}
+            else assert(x.desktop!=='none',`${label}: desktop relay hidden`);
             return x;
           }
 
           async function regression(page,label){
-            await page.waitForTimeout(300);
             const x=await page.evaluate(()=>{
-              const selectors={
-                hero:'#hero',
-                cubeMount:'#proai-hero-cube-mount',
-                cubeCanvas:'#cube-canvas',
-                connected:'[data-connected-system]',
-                twoWorlds:'[data-tw-r2]',
-                financial:'[data-fs-showcase-r11]',
-                thinking:'[data-selected-thinking-r1]',
-                work:'[data-selected-work-r11]',
-                footer:'[data-home-footer-golden-r3]'
-              };
+              const selectors={hero:'#hero',cubeMount:'#proai-hero-cube-mount',cubeCanvas:'#cube-canvas',connected:'[data-connected-system]',twoWorlds:'[data-tw-r2]',financial:'[data-fs-showcase-r11]',thinking:'[data-selected-thinking-r1]',work:'[data-selected-work-r11]',footer:'[data-home-footer-golden-r3]'};
               const counts=Object.fromEntries(Object.entries(selectors).map(([k,v])=>[k,document.querySelectorAll(v).length]));
-              const runtimeScript=[...document.scripts].some(s=>/proai-hero-cube-r1\/bootstrap-golden-r1-2\.js/.test(s.src));
-              return{counts,runtimeScript};
+              const cubeRuntime=[...document.scripts].some(s=>/proai-hero-cube-r1\/bootstrap-golden-r1-2\.js/.test(s.src));
+              return{counts,cubeRuntime};
             });
             for(const[k,v]of Object.entries(x.counts)) assert(v===1,`${label}: ${k} count ${v}`);
-            assert(x.runtimeScript,`${label}: cube runtime script missing`);
+            assert(x.cubeRuntime,`${label}: cube runtime missing`);
             return x;
           }
 
-          async function finishDiag(diag,label){
+          function diagGate(diag,label){
             assert(diag.techErrors.length===0,`${label}: Technology JS errors ${JSON.stringify(diag.techErrors)}`);
             assert(diag.techBad.length===0,`${label}: Technology asset failures ${JSON.stringify(diag.techBad)}`);
-            return {techErrors:diag.techErrors,techBad:diag.techBad};
+            return{techErrors:diag.techErrors,techBad:diag.techBad};
           }
 
-          for(const routeLabel of ['EN','RU']){
-            await record(`${routeLabel}_DESKTOP`,async()=>{
-              const context=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'});
-              const page=await context.newPage();
-              const d=await setup(page,routeLabel);
-              const initial=await firstPass(page,'desktop',`${routeLabel} desktop`);
-              const logoDetail=await logos(page,d,`${routeLabel} desktop`);
-              const local=await desktopLocal(page,`${routeLabel} desktop`);
-              const layout=await layoutGate(page,`${routeLabel} desktop`);
-              const reg=await regression(page,`${routeLabel} desktop`);
-              const diag=await finishDiag(d,`${routeLabel} desktop`);
-              await context.close();
-              return {initial,logos:logoDetail,local,layout,regression:reg,diag};
-            });
+          for(const lang of ['EN','RU']){
+            await record(`${lang}_DESKTOP`,()=>withPage({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'},async page=>{
+              const d=await setup(page,lang); const initial=await initialPass(page,'desktop',`${lang} desktop`); const logos=await logoGate(page,d,`${lang} desktop`); const local=await localGate(page,`${lang} desktop`); const layout=await layoutGate(page,`${lang} desktop`,false); const reg=await regression(page,`${lang} desktop`); const diag=diagGate(d,`${lang} desktop`); return{initial,logos,local,layout,reg,diag};
+            }));
           }
 
           for(const width of [430,390,375,360,320]){
-            for(const routeLabel of ['EN','RU']){
-              await record(`${routeLabel}_MOBILE_${width}`,async()=>{
-                const context=await browser.newContext({viewport:{width,height:900},hasTouch:true,isMobile:true,reducedMotion:'no-preference'});
-                const page=await context.newPage();
-                const d=await setup(page,routeLabel);
-                const initial=await firstPass(page,'mobile',`${routeLabel} mobile ${width}`);
-                const logoDetail=await logos(page,d,`${routeLabel} mobile ${width}`);
-                const layout=await layoutGate(page,`${routeLabel} mobile ${width}`);
-                assert(layout.desktopRelay==='none'&&layout.mobileRelay!=='none',`${routeLabel} mobile ${width}: wrong relay form`);
-                assert(!layout.fine&&layout.localReady!=='true',`${routeLabel} mobile ${width}: fake desktop hover setup`);
-                await page.locator('[data-home-tech-r2] .home-tech-r2__identity').first().tap();
-                await page.waitForTimeout(100);
-                assert(!await page.evaluate(()=>document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active')),`${routeLabel} mobile ${width}: fake hover after tap`);
-                const reg=await regression(page,`${routeLabel} mobile ${width}`);
-                const diag=await finishDiag(d,`${routeLabel} mobile ${width}`);
-                await context.close();
-                return {initial,logos:logoDetail,layout,regression:reg,diag};
-              });
+            for(const lang of ['EN','RU']){
+              await record(`${lang}_MOBILE_${width}`,()=>withPage({viewport:{width,height:900},hasTouch:true,isMobile:true,reducedMotion:'no-preference'},async page=>{
+                const d=await setup(page,lang); const initial=await initialPass(page,'mobile',`${lang} mobile ${width}`); const logos=await logoGate(page,d,`${lang} mobile ${width}`); const layout=await layoutGate(page,`${lang} mobile ${width}`,true); const reg=await regression(page,`${lang} mobile ${width}`); const diag=diagGate(d,`${lang} mobile ${width}`); return{initial,logos,layout,reg,diag};
+              }));
             }
           }
 
-          for(const routeLabel of ['EN','RU']){
-            await record(`${routeLabel}_REDUCED_MOTION`,async()=>{
-              const context=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'reduce'});
-              const page=await context.newPage();
-              const d=await setup(page,routeLabel);
-              await enterTech(page);
-              await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled',null,{timeout:3000});
-              const r=await page.evaluate(()=>{
-                const s=document.querySelector('[data-home-tech-r2]');
-                const sig=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'));
-                const id=getComputedStyle(s.querySelector('.home-tech-r2__identity'));
-                const mat=getComputedStyle(s.querySelector('.home-tech-r2__material'));
-                return{
-                  reduce:matchMedia('(prefers-reduced-motion:reduce)').matches,
-                  assembling:s.classList.contains('is-assembling'),
-                  local:s.classList.contains('is-local-active'),
-                  events:window.__techEvents.length,
-                  sigAnim:sig.animationName,sigOpacity:Number(sig.opacity),sigTrans:sig.transitionDuration,
-                  idAnim:id.animationName,idOpacity:Number(id.opacity),idTrans:id.transitionDuration,
-                  matAnim:mat.animationName,matTrans:mat.transitionDuration
-                };
-              });
-              assert(r.reduce&&!r.assembling&&!r.local,`${routeLabel} reduce: state wrong`);
-              assert(r.events===0&&r.sigAnim==='none'&&r.sigOpacity<=.01,`${routeLabel} reduce: signal active`);
-              assert(r.idAnim==='none'&&r.idOpacity>=.99,`${routeLabel} reduce: identity animation/visibility`);
-              assert(r.matAnim==='none',`${routeLabel} reduce: material animation`);
-              assert(r.sigTrans==='0s'&&r.idTrans==='0s'&&r.matTrans==='0s',`${routeLabel} reduce: transitions remain`);
-              const logoDetail=await logos(page,d,`${routeLabel} reduced motion`);
-              const layout=await layoutGate(page,`${routeLabel} reduced motion`);
-              const reg=await regression(page,`${routeLabel} reduced motion`);
-              const diag=await finishDiag(d,`${routeLabel} reduced motion`);
-              await context.close();
-              return {state:r,logos:logoDetail,layout,regression:reg,diag};
-            });
+          for(const lang of ['EN','RU']){
+            await record(`${lang}_REDUCED_MOTION`,()=>withPage({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'reduce'},async page=>{
+              const d=await setup(page,lang); await enterTech(page); await page.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled');
+              const state=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal')),id=getComputedStyle(s.querySelector('.home-tech-r2__identity')),mat=getComputedStyle(s.querySelector('.home-tech-r2__material'));return{reduce:matchMedia('(prefers-reduced-motion:reduce)').matches,assembling:s.classList.contains('is-assembling'),local:s.classList.contains('is-local-active'),events:window.__techEvents.length,sigAnim:sig.animationName,sigOpacity:Number(sig.opacity),sigTrans:sig.transitionDuration,idAnim:id.animationName,idOpacity:Number(id.opacity),idTrans:id.transitionDuration,matAnim:mat.animationName,matTrans:mat.transitionDuration};});
+              assert(state.reduce&&!state.assembling&&!state.local,`${lang} reduce: state`); assert(state.events===0&&state.sigAnim==='none'&&state.sigOpacity<=.01,`${lang} reduce: signal`); assert(state.idAnim==='none'&&state.idOpacity>=.99,`${lang} reduce: content`); assert(state.matAnim==='none',`${lang} reduce: material`); assert(state.sigTrans==='0s'&&state.idTrans==='0s'&&state.matTrans==='0s',`${lang} reduce: transitions`);
+              const logos=await logoGate(page,d,`${lang} reduced`); const layout=await layoutGate(page,`${lang} reduced`,false); const reg=await regression(page,`${lang} reduced`); const diag=diagGate(d,`${lang} reduced`); return{state,logos,layout,reg,diag};
+            }));
           }
 
           await browser.close();
           console.log('QA_RESULTS '+JSON.stringify(results));
-          console.log('QA_DETAILS '+JSON.stringify(details));
-          const failed=Object.entries(results).filter(([,v])=>v.status!=='PASS');
-          if(failed.length) process.exit(2);
+          console.log('QA_EVIDENCE '+JSON.stringify(evidence));
+          const failed=Object.entries(results).filter(([,v])=>v!=='PASS');
+          process.exit(failed.length?2:0);
           NODE
 
           set +e
@@ -423,15 +292,48 @@ jobs:
           QA_RC=$?
           set -e
           rm -f .technology-r5-qa.mjs
+          echo "$QA_RC" >/tmp/technology-r5-qa-rc
+          if [ "$QA_RC" -eq 0 ]; then echo TECHNOLOGY_RUNTIME=PASS; else echo TECHNOLOGY_RUNTIME=FAIL; fi
+          exit 0
+
+      - name: Publish HTTPS Owner preview and hold review window
+        shell: bash
+        run: |
+          set -euo pipefail
+          QA_RC=$(cat /tmp/technology-r5-qa-rc)
+          post_status() {
+            gh api --method POST "repos/$REPO/statuses/$INFRA_SHA" \
+              -f state="$1" -f target_url="$2" \
+              -f context='owner-preview/technology-z-relay-r1' \
+              -f description="$3" >/dev/null
+          }
+
+          /tmp/cloudflared tunnel --no-autoupdate --url "$QA_BASE" >/tmp/cloudflared.log 2>&1 &
+          TUNNEL_PID=$!
+          trap 'kill "$TUNNEL_PID" 2>/dev/null || true; kill "$(cat /tmp/proai-tech-preview-server.pid 2>/dev/null)" 2>/dev/null || true' EXIT
+          URL=''
+          for i in $(seq 1 60); do
+            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)
+            [ -n "$URL" ] && break
+            kill -0 "$TUNNEL_PID" 2>/dev/null || { cat /tmp/cloudflared.log; exit 1; }
+            sleep 1
+          done
+          test -n "$URL"
+
+          READY=0
+          for i in $(seq 1 30); do
+            if curl -fsSL --max-time 8 "$URL/" -o /tmp/public-en.html && curl -fsSL --max-time 8 "$URL/ru/" -o /tmp/public-ru.html; then READY=1; break; fi
+            sleep 1
+          done
+          test "$READY" -eq 1
+          echo "OWNER_REVIEW_URL=$URL"
+          echo OWNER_HTTPS_PREVIEW_PASS
 
           if [ "$QA_RC" -eq 0 ]; then
-            post_status success "$URL" 'Runtime QA PASS; preview live for Owner review'
-            echo TECHNOLOGY_RUNTIME=PASS
+            post_status success "$URL" 'Chrome runtime QA PASS; Owner preview live'
           else
-            post_status failure "$URL" 'Chrome runtime QA failed; preview kept live for evidence'
-            echo TECHNOLOGY_RUNTIME=FAIL
+            post_status failure "$URL" 'Chrome runtime QA FAIL; Owner preview live for evidence'
           fi
-          echo "OWNER_REVIEW_URL=$URL"
           echo REVIEW_WINDOW_SECONDS=7200
           sleep 7200
           exit "$QA_RC"

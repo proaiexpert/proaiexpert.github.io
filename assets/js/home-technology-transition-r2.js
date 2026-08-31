@@ -7,16 +7,31 @@
   var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
   var finePointer = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)');
   var desktopViewport = window.matchMedia && window.matchMedia('(min-width: 701px)');
+  var shortLandscapeTouch = window.matchMedia && window.matchMedia('(min-width: 701px) and (max-width: 932px) and (max-height: 500px) and (orientation: landscape) and (pointer: coarse)');
   var localOffsets = ['-.44', '-.37', '-.30', '-.23', '-.16', '-.68', '-.73', '-.78', '-.83', '-.88'];
   var DESKTOP_SIGNAL_DURATION = 1900;
   var DESKTOP_HANDOFF_DELAY = 1680;
   var DESKTOP_SETTLE_DELAY = 2260;
+  var LANDSCAPE_SIGNAL_DURATION = 1680;
+  var LANDSCAPE_SETTLE_DELAY = 2040;
   var DEFAULT_SETTLE_DELAY = 1760;
   var LOCAL_RESPONSE_DURATION = 680;
   var LOCAL_LEAVE_DURATION = 220;
+  var PORTRAIT_MOBILE_VIEWBOX = '0 0 400 520';
+  var PORTRAIT_MOBILE_PATH = 'M200 0 V520';
+  var LANDSCAPE_MOBILE_VIEWBOX = '0 0 560 300';
+  var LANDSCAPE_MOBILE_PATH = 'M332 0 V18 Q332 34 314 34 H300 Q280 34 280 54 V244 Q280 262 298 262 H354 Q372 262 372 280 V300';
+
+  function isShortLandscapeTouch() {
+    return !!(shortLandscapeTouch && shortLandscapeTouch.matches);
+  }
 
   function desktopSignal(section) {
     return section.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');
+  }
+
+  function mobileSignal(section) {
+    return section.querySelector('.home-tech-r2__relay--mobile .home-tech-r2__relay-signal');
   }
 
   function installRelaySignal(section) {
@@ -34,6 +49,24 @@
     });
 
     section.dataset.techR2SignalReady = 'true';
+  }
+
+  function configureMobileRelayGeometry(section) {
+    var relay = section.querySelector('.home-tech-r2__relay--mobile');
+    if (!relay) return;
+
+    var landscape = isShortLandscapeTouch();
+    var viewBox = landscape ? LANDSCAPE_MOBILE_VIEWBOX : PORTRAIT_MOBILE_VIEWBOX;
+    var pathData = landscape ? LANDSCAPE_MOBILE_PATH : PORTRAIT_MOBILE_PATH;
+    var base = relay.querySelector('.home-tech-r2__relay-base');
+    var active = relay.querySelector('.home-tech-r2__relay-active');
+    var signal = relay.querySelector('.home-tech-r2__relay-signal');
+
+    relay.setAttribute('viewBox', viewBox);
+    if (base) base.setAttribute('d', pathData);
+    if (active) active.setAttribute('d', pathData);
+    if (signal) signal.setAttribute('d', pathData);
+    section.dataset.techR2RelayMode = landscape ? 'landscape' : 'portrait';
   }
 
   function resetLocalSignal(section) {
@@ -189,13 +222,21 @@
   }
 
   function configureDesktopAssembly(section) {
-    if (!desktopViewport || !desktopViewport.matches) return;
+    if (!desktopViewport || !desktopViewport.matches || isShortLandscapeTouch()) return;
 
     var signal = desktopSignal(section);
     if (signal) signal.style.animationDuration = DESKTOP_SIGNAL_DURATION + 'ms';
 
     var handoff = section.querySelector('.home-tech-r2__handoff span');
     if (handoff) handoff.style.animationDelay = DESKTOP_HANDOFF_DELAY + 'ms';
+  }
+
+  function configureLandscapeAssembly(section) {
+    if (!isShortLandscapeTouch()) return;
+    configureMobileRelayGeometry(section);
+
+    var signal = mobileSignal(section);
+    if (signal) signal.style.animationDuration = LANDSCAPE_SIGNAL_DURATION + 'ms';
   }
 
   function settle(section) {
@@ -218,11 +259,16 @@
       return;
     }
 
+    configureMobileRelayGeometry(section);
+    configureLandscapeAssembly(section);
     configureDesktopAssembly(section);
     section.dataset.techR2State = 'assembling';
     section.classList.add('is-assembling');
 
-    var settleDelay = desktopViewport && desktopViewport.matches ? DESKTOP_SETTLE_DELAY : DEFAULT_SETTLE_DELAY;
+    var settleDelay = DEFAULT_SETTLE_DELAY;
+    if (isShortLandscapeTouch()) settleDelay = LANDSCAPE_SETTLE_DELAY;
+    else if (desktopViewport && desktopViewport.matches) settleDelay = DESKTOP_SETTLE_DELAY;
+
     window.setTimeout(function () {
       settle(section);
     }, settleDelay);
@@ -241,7 +287,16 @@
 
   sections.forEach(function (section) {
     installRelaySignal(section);
+    configureMobileRelayGeometry(section);
   });
+
+  if (shortLandscapeTouch && shortLandscapeTouch.addEventListener) {
+    shortLandscapeTouch.addEventListener('change', function () {
+      sections.forEach(function (section) {
+        configureMobileRelayGeometry(section);
+      });
+    });
+  }
 
   if (reducedMotion && reducedMotion.matches) {
     sections.forEach(function (section) { settle(section); });
@@ -278,6 +333,7 @@
 
   window.addEventListener('pageshow', function () {
     sections.forEach(function (section) {
+      configureMobileRelayGeometry(section);
       if (!section.dataset.techR2State && materiallyVisible(section)) assemble(section);
     });
   }, { passive: true });

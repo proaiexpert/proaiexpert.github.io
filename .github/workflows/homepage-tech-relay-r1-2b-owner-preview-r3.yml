@@ -1,0 +1,235 @@
+name: Homepage Technology Z-Relay R1.2B Final Visual Gate
+
+on:
+  push:
+    branches:
+      - review/homepage-tech-relay-signal-r1-2b-owner-preview-r3
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: homepage-tech-relay-r1-2b-owner-preview-r3
+  cancel-in-progress: true
+
+env:
+  PRODUCT_SHA: ba41083fc4091207fae5253967bbe7d13eba0e07
+  QA_BASE: http://127.0.0.1:4173
+
+jobs:
+  final_visual_qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact R1.2B product
+        uses: actions/checkout@v4
+        with:
+          ref: ba41083fc4091207fae5253967bbe7d13eba0e07
+          fetch-depth: 1
+
+      - name: Verify exact product
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          echo "PRODUCT_SHA_VERIFIED=$PRODUCT_SHA"
+
+      - name: Build and prepare Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          npm install --no-save --package-lock=false playwright-core@1.55.0
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || true)
+          test -n "$CHROME"
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+
+      - name: Start exact generated site
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/r12b-r3-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS "$QA_BASE/" >/dev/null && curl -fsS "$QA_BASE/ru/" >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Prove 844 landscape runtime and capture required visuals
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >.r12b-r3.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          import fs from 'node:fs';
+
+          const base=process.env.QA_BASE.replace(/\/$/,'');
+          const chromePath=process.env.CHROME_PATH;
+          const LANDSCAPE_PATH='M332 0 V18 Q332 34 314 34 H300 Q280 34 280 54 V244 Q280 262 298 262 H354 Q372 262 372 280 V300';
+          const PORTRAIT_PATH='M200 0 V520';
+          const assert=(v,m)=>{if(!v)throw new Error(m);};
+
+          async function ready(page){
+            await page.evaluate(()=>new Promise((resolve,reject)=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              const done=()=>{if(s?.dataset.techR2SignalReady==='true'){mo.disconnect();clearTimeout(to);resolve(true);return true;}return false;};
+              const mo=new MutationObserver(done);if(s)mo.observe(s,{attributes:true});
+              const to=setTimeout(()=>{mo.disconnect();reject(new Error('ready timeout'));},15000);done();
+            }));
+          }
+
+          async function state(page,target){
+            await page.evaluate(target=>new Promise((resolve,reject)=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              const done=()=>{if(s?.dataset.techR2State===target){mo.disconnect();clearTimeout(to);resolve(true);return true;}return false;};
+              const mo=new MutationObserver(done);if(s)mo.observe(s,{attributes:true,attributeFilter:['class','data-tech-r2-state']});
+              const to=setTimeout(()=>{mo.disconnect();reject(new Error(`${target} timeout`));},30000);done();
+            }),target);
+          }
+
+          async function logos(page){
+            await page.evaluate(()=>new Promise((resolve,reject)=>{
+              const imgs=[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__mark img')];
+              const done=()=>imgs.length===10&&imgs.every(i=>i.complete&&i.naturalWidth>0&&i.naturalHeight>0);
+              if(done())return resolve(true);
+              const poll=setInterval(()=>{if(done()){clearInterval(poll);clearTimeout(to);resolve(true);}},100);
+              const to=setTimeout(()=>{clearInterval(poll);reject(new Error('logo timeout'));},15000);
+            }));
+          }
+
+          async function scrollRatio(page,ratio){
+            return page.evaluate(ratio=>{
+              const s=document.querySelector('[data-home-tech-r2]'),r=s.getBoundingClientRect(),limit=innerHeight*.92;
+              const desired=limit-r.height*ratio,target=Math.max(0,scrollY+r.top-desired);scrollTo({top:target,behavior:'instant'});
+              const a=s.getBoundingClientRect(),visible=Math.max(0,Math.min(a.bottom,limit)-Math.max(a.top,0));
+              return{ratio:visible/a.height,top:a.top,bottom:a.bottom,height:a.height};
+            },ratio);
+          }
+
+          async function arm(page,selector,name,freeze=false){
+            await page.evaluate(({selector,name,freeze})=>{
+              const match=e=>e.target?.matches?.(selector)&&e.animationName===name;
+              window.__start=new Promise((resolve,reject)=>{
+                const h=e=>{if(!match(e))return;document.removeEventListener('animationstart',h,true);clearTimeout(to);const anim=e.target.getAnimations().find(a=>a.animationName===name)||e.target.getAnimations()[0];if(freeze&&anim){anim.pause();anim.currentTime=Number(anim.effect?.getTiming?.().duration||1000)*.42;window.__frozen=anim;}resolve({name:e.animationName,elapsed:e.elapsedTime,inlineDuration:e.target.style.animationDuration});};
+                document.addEventListener('animationstart',h,true);const to=setTimeout(()=>{document.removeEventListener('animationstart',h,true);reject(new Error('start timeout'));},30000);
+              });
+              if(!freeze){
+                window.__end=new Promise((resolve,reject)=>{
+                  const h=e=>{if(!match(e))return;document.removeEventListener('animationend',h,true);clearTimeout(to);resolve({name:e.animationName,elapsed:e.elapsedTime});};
+                  document.addEventListener('animationend',h,true);const to=setTimeout(()=>{document.removeEventListener('animationend',h,true);reject(new Error('end timeout'));},35000);
+                });
+              }
+            },{selector,name,freeze});
+          }
+
+          async function capture(page,path){
+            const cdp=await page.context().newCDPSession(page);
+            const shot=await cdp.send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
+            fs.writeFileSync(path,Buffer.from(shot.data,'base64'));
+            await cdp.detach();
+          }
+
+          async function layout(page,key){
+            await logos(page);
+            const x=await page.evaluate(()=>{const d=document.documentElement,s=document.querySelector('[data-home-tech-r2]');return{doc:[d.clientWidth,d.scrollWidth],tech:[s.clientWidth,s.scrollWidth],count:s.querySelectorAll('.home-tech-r2__identity').length,loaded:[...s.querySelectorAll('.home-tech-r2__mark img')].every(i=>i.complete&&i.naturalWidth>0)};});
+            assert(x.doc[1]<=x.doc[0]+1&&x.tech[1]<=x.tech[0]+1&&x.count===10&&x.loaded,`${key}: layout/logos ${JSON.stringify(x)}`);
+          }
+
+          const browser=await chromium.launch({executablePath:chromePath,headless:true,args:['--disable-dev-shm-usage','--ignore-gpu-blocklist']});
+
+          // 844x390 runtime proof without QA animation interference.
+          {
+            const context=await browser.newContext({viewport:{width:844,height:390},hasTouch:true,isMobile:true,reducedMotion:'no-preference'});const page=await context.newPage();
+            await page.goto(`${base}/`,{waitUntil:'domcontentloaded',timeout:20000});await page.waitForSelector('[data-home-tech-r2]',{timeout:10000});await ready(page);
+            const pre=await scrollRatio(page,.48);await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,120)))));
+            const idle=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),m=s.querySelector('.home-tech-r2__relay--mobile'),d=s.querySelector('.home-tech-r2__relay--desktop'),b=m.querySelector('.home-tech-r2__relay-base');return{state:s.dataset.techR2State||'',mode:s.dataset.techR2RelayMode,viewBox:m.getAttribute('viewBox'),path:b.getAttribute('d'),mobile:getComputedStyle(m).display,desktop:getComputedStyle(d).display,stroke:getComputedStyle(b).stroke,strokeWidth:getComputedStyle(b).strokeWidth,localReady:s.dataset.techR2LocalReady||'',fine:matchMedia('(hover:hover) and (pointer:fine)').matches};});
+            assert(idle.state===''&&idle.mode==='landscape'&&idle.viewBox==='0 0 560 300'&&idle.path===LANDSCAPE_PATH,`844 runtime idle ${JSON.stringify(idle)}`);
+            assert(idle.mobile!=='none'&&idle.desktop==='none'&&Number.parseFloat(idle.strokeWidth)>=1&&!idle.fine&&idle.localReady!=='true',`844 runtime isolation ${JSON.stringify(idle)}`);
+            const selector='.home-tech-r2__relay--mobile .home-tech-r2__relay-signal';await arm(page,selector,'home-tech-r2-signal-pass-landscape',false);const material=await scrollRatio(page,.68);const start=await page.evaluate(async()=>await window.__start);const end=await page.evaluate(async()=>await window.__end);
+            assert(start.inlineDuration==='1680ms'&&end.elapsed>1.62&&end.elapsed<1.74,`844 runtime timing ${JSON.stringify({start,end})}`);await state(page,'settled');await layout(page,'844x390');
+            console.log('LANDSCAPE_RUNTIME_PASS 844x390 '+JSON.stringify({pre,material,start,end,idle}));await context.close();
+          }
+
+          // Portrait runtime proof without freeze.
+          {
+            const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,reducedMotion:'no-preference'});const page=await context.newPage();
+            await page.goto(`${base}/`,{waitUntil:'domcontentloaded',timeout:20000});await page.waitForSelector('[data-home-tech-r2]',{timeout:10000});await ready(page);await scrollRatio(page,.48);await logos(page);
+            const selector='.home-tech-r2__relay--mobile .home-tech-r2__relay-signal';await arm(page,selector,'home-tech-r2-signal-pass-mobile',false);await scrollRatio(page,.68);const start=await page.evaluate(async()=>await window.__start);const end=await page.evaluate(async()=>await window.__end);assert(end.elapsed>1.10&&end.elapsed<1.22,`portrait timing ${JSON.stringify({start,end})}`);await state(page,'settled');
+            const mode=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),m=s.querySelector('.home-tech-r2__relay--mobile'),b=m.querySelector('.home-tech-r2__relay-base');return{mode:s.dataset.techR2RelayMode,viewBox:m.getAttribute('viewBox'),path:b.getAttribute('d')};});assert(mode.mode==='portrait'&&mode.viewBox==='0 0 400 520'&&mode.path===PORTRAIT_PATH,`portrait isolation ${JSON.stringify(mode)}`);await layout(page,'390x844');console.log('PORTRAIT_RUNTIME_PASS 390x844 '+JSON.stringify({start,end,mode}));await context.close();
+          }
+
+          // Landscape idle + active visual evidence. Freeze is visual-only; no animationend assertion.
+          {
+            const context=await browser.newContext({viewport:{width:844,height:390},hasTouch:true,isMobile:true,reducedMotion:'no-preference'});const page=await context.newPage();
+            await page.goto(`${base}/`,{waitUntil:'domcontentloaded',timeout:20000});await page.waitForSelector('[data-home-tech-r2]',{timeout:10000});await ready(page);await scrollRatio(page,.48);await logos(page);await capture(page,'/tmp/r12b-landscape-idle-844x390-en.png');
+            const selector='.home-tech-r2__relay--mobile .home-tech-r2__relay-signal';await arm(page,selector,'home-tech-r2-signal-pass-landscape',true);await scrollRatio(page,.68);const start=await page.evaluate(async()=>await window.__start);assert(start.inlineDuration==='1680ms',`landscape visual start ${JSON.stringify(start)}`);await capture(page,'/tmp/r12b-landscape-active-844x390-en.png');console.log('LANDSCAPE_VISUAL_PASS');await context.close();
+          }
+
+          // Portrait active visual evidence. Freeze is visual-only.
+          {
+            const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,reducedMotion:'no-preference'});const page=await context.newPage();
+            await page.goto(`${base}/`,{waitUntil:'domcontentloaded',timeout:20000});await page.waitForSelector('[data-home-tech-r2]',{timeout:10000});await ready(page);await scrollRatio(page,.48);await logos(page);
+            const selector='.home-tech-r2__relay--mobile .home-tech-r2__relay-signal';await arm(page,selector,'home-tech-r2-signal-pass-mobile',true);await scrollRatio(page,.68);const start=await page.evaluate(async()=>await window.__start);await capture(page,'/tmp/r12b-portrait-active-390x844-en.png');console.log('PORTRAIT_VISUAL_PASS '+JSON.stringify(start));await context.close();
+          }
+
+          await browser.close();
+          for(const f of ['/tmp/r12b-landscape-idle-844x390-en.png','/tmp/r12b-landscape-active-844x390-en.png','/tmp/r12b-portrait-active-390x844-en.png'])assert(fs.existsSync(f)&&fs.statSync(f).size>1000,`missing visual ${f}`);
+          console.log('R12B_FINAL_VISUAL_GATE=PASS');
+          NODE
+          QA_BASE="$QA_BASE" CHROME_PATH="$CHROME_PATH" node .r12b-r3.mjs
+          rm -f .r12b-r3.mjs
+
+      - name: Upload exact generated site
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-r12b-r3-generated-site
+          path: _site
+          retention-days: 1
+
+      - name: Upload required R1.2B visual evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-r12b-r3-visual-evidence
+          path: /tmp/r12b-*.png
+          retention-days: 1
+
+  preview:
+    needs: final_visual_qa
+    runs-on: ubuntu-latest
+    timeout-minutes: 125
+    env:
+      INFRA_SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: technology-r12b-r3-generated-site
+          path: _site
+
+      - name: Publish HTTPS Owner preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/r12b-preview.log 2>&1 & SERVER_PID=$!
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared.log 2>&1 & TUNNEL_PID=$!
+          trap 'kill "$TUNNEL_PID" 2>/dev/null || true; kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          URL=''
+          for i in $(seq 1 90); do URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true); [ -n "$URL" ] && break; sleep 1; done
+          test -n "$URL"
+          READY=0
+          for i in $(seq 1 90); do if curl -fsSL --max-time 10 "$URL/" -o /tmp/en && curl -fsSL --max-time 10 "$URL/ru/" -o /tmp/ru; then READY=1; break; fi; sleep 1; done
+          test "$READY" -eq 1
+          grep -q '04 / TECHNOLOGY ECOSYSTEM' /tmp/en
+          grep -q '04 / ТЕХНОЛОГИЧЕСКАЯ ЭКОСИСТЕМА' /tmp/ru
+          gh api --method POST "repos/$REPO/statuses/$INFRA_SHA" -f state=success -f target_url="$URL" -f context='owner-preview/technology-z-relay-r1-2b' -f description='R1.2B QA PASS; Owner preview live' >/dev/null
+          echo "OWNER_REVIEW_URL=$URL"
+          sleep 7200

@@ -1,0 +1,349 @@
+name: Homepage Technology Z-Relay R1.1 Owner Review
+
+on:
+  push:
+    branches:
+      - review/homepage-tech-relay-signal-r1-1-owner-preview
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: homepage-tech-relay-r1-1-owner-preview
+  cancel-in-progress: true
+
+env:
+  PRODUCT_SHA: c8c772d5523dd5047a479ba3980b6c3498fff508
+  QA_BASE: http://127.0.0.1:4173
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    outputs:
+      qa_rc: ${{ steps.runtime.outputs.qa_rc }}
+    steps:
+      - name: Checkout exact R1.1 product
+        uses: actions/checkout@v4
+        with:
+          ref: c8c772d5523dd5047a479ba3980b6c3498fff508
+          fetch-depth: 1
+
+      - name: Verify exact R1.1 product
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          echo "PRODUCT_SHA_VERIFIED=$PRODUCT_SHA"
+
+      - name: Build exact product and prepare Chrome QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          npm install --no-save --package-lock=false playwright-core@1.55.0
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || true)
+          test -n "$CHROME"
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+
+      - name: Start exact generated Jekyll site
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/proai-tech-r11-server.log 2>&1 &
+          echo $! >/tmp/proai-tech-r11-server.pid
+          for i in $(seq 1 30); do
+            if curl -fsS "$QA_BASE/" -o /tmp/en.html && curl -fsS "$QA_BASE/ru/" -o /tmp/ru.html; then
+              grep -q '04 / TECHNOLOGY ECOSYSTEM' /tmp/en.html
+              grep -q '04 / ТЕХНОЛОГИЧЕСКАЯ ЭКОСИСТЕМА' /tmp/ru.html
+              echo LOCAL_JEKYLL_RUNTIME_PASS
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Run R1.1 Chrome runtime matrix
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >.technology-r11-qa.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+
+          const base=process.env.QA_BASE.replace(/\/$/,'');
+          const origin=new URL(base).origin;
+          const chromePath=process.env.CHROME_PATH;
+          const brands=['openai','claude','gemini','n8n','make','twilio','vercel','gmail','zapier','github'];
+          const names=['OpenAI','Claude','Gemini','n8n','Make','Twilio','Vercel','Gmail','Zapier','GitHub'];
+          const offsets=[-.44,-.37,-.30,-.23,-.16,-.68,-.73,-.78,-.83,-.88];
+          const logoPaths=new Set(brands.map(b=>`/assets/brand/platforms/${b}-mark.svg`));
+          const techAssets=new Set(['/assets/css/home-technology-transition-r2.css','/assets/css/home-technology-transition-r2-golden-mobile.css','/assets/js/home-technology-transition-r2.js',...logoPaths]);
+          const results={desktop:{},mobile:{},reduced:{}};
+          const expectedSignal='home-tech-r2-signal-pass';
+          function assert(v,m){if(!v)throw new Error(m);}
+          function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+          async function waitState(page,target,timeout=30000){
+            return page.evaluate(({target,timeout})=>new Promise((resolve,reject)=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              if(!s)return reject(new Error('Technology missing'));
+              const done=()=>{if(s.dataset.techR2State===target){mo.disconnect();clearTimeout(to);resolve({state:target,time:performance.now()});return true;}return false;};
+              const mo=new MutationObserver(done);mo.observe(s,{attributes:true,attributeFilter:['class','data-tech-r2-state']});
+              const to=setTimeout(()=>{mo.disconnect();reject(new Error(`${target} state timeout`));},timeout);
+              done();
+            }),{target,timeout});
+          }
+
+          async function waitReady(page,timeout=15000){
+            return page.evaluate(timeout=>new Promise((resolve,reject)=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              if(!s)return reject(new Error('Technology missing'));
+              const done=()=>{if(s.dataset.techR2SignalReady==='true'){mo.disconnect();clearTimeout(to);resolve(true);return true;}return false;};
+              const mo=new MutationObserver(done);mo.observe(s,{attributes:true});
+              const to=setTimeout(()=>{mo.disconnect();reject(new Error('signal ready timeout'));},timeout);
+              done();
+            }),timeout);
+          }
+
+          async function waitLocal(page,want,timeout=15000){
+            return page.evaluate(({want,timeout})=>new Promise((resolve,reject)=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              const done=()=>{const active=s.classList.contains('is-local-active');if(active===want){mo.disconnect();clearTimeout(to);resolve(true);return true;}return false;};
+              const mo=new MutationObserver(done);mo.observe(s,{attributes:true,attributeFilter:['class','style']});
+              const to=setTimeout(()=>{mo.disconnect();reject(new Error(`local ${want?'activate':'clear'} timeout`));},timeout);
+              done();
+            }),{want,timeout});
+          }
+
+          async function waitLogos(page){
+            return page.evaluate(()=>new Promise((resolve,reject)=>{
+              const imgs=[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__mark img')];
+              if(imgs.length!==10)return reject(new Error(`logo count ${imgs.length}`));
+              const check=()=>imgs.every(i=>i.complete&&i.naturalWidth>0&&i.naturalHeight>0);
+              if(check())return resolve(true);
+              let left=imgs.length;
+              const finish=()=>{left--;if(check())resolve(true);else if(left===0)reject(new Error('logo load failure'));};
+              imgs.forEach(i=>{if(i.complete)finish();else{i.addEventListener('load',finish,{once:true});i.addEventListener('error',finish,{once:true});}});
+              setTimeout(()=>reject(new Error('logo load timeout')),15000);
+            }));
+          }
+
+          function attachDiagnostics(page){
+            const d={errors:[],bad:[],logo:new Map()};
+            page.on('pageerror',e=>{const t=String(e?.stack||e||'');if(/home-technology-transition-r2|techR2|home-tech-r2/i.test(t))d.errors.push(t);});
+            page.on('response',r=>{const u=new URL(r.url());if(u.origin!==origin)return;if(techAssets.has(u.pathname)&&r.status()>=400)d.bad.push({url:r.url(),status:r.status()});if(logoPaths.has(u.pathname))d.logo.set(u.pathname,r.status());});
+            page.on('requestfailed',r=>{const u=new URL(r.url());if(u.origin===origin&&techAssets.has(u.pathname))d.bad.push({url:r.url(),failure:r.failure()?.errorText||'requestfailed'});});
+            return d;
+          }
+
+          async function instrument(page){
+            await page.addInitScript(()=>{
+              window.__r11Events=[];
+              document.addEventListener('animationstart',e=>{if(e.target?.closest?.('.home-tech-r2__relay--desktop')&&e.target?.classList?.contains('home-tech-r2__relay-signal'))window.__r11Events.push({type:'start',name:e.animationName,elapsed:e.elapsedTime,time:performance.now()});},true);
+              document.addEventListener('animationend',e=>{if(e.target?.closest?.('.home-tech-r2__relay--desktop')&&e.target?.classList?.contains('home-tech-r2__relay-signal'))window.__r11Events.push({type:'end',name:e.animationName,elapsed:e.elapsedTime,time:performance.now()});},true);
+            });
+          }
+
+          async function scrollRatio(page,ratio){
+            return page.evaluate(ratio=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              const r=s.getBoundingClientRect();
+              const effectiveBottom=innerHeight*.92;
+              const desiredTop=effectiveBottom-r.height*ratio;
+              const target=Math.max(0,scrollY+r.top-desiredTop);
+              scrollTo({top:target,behavior:'instant'});
+              const a=s.getBoundingClientRect();
+              const vis=Math.max(0,Math.min(a.bottom,effectiveBottom)-Math.max(a.top,0));
+              return{target,scrollY,top:a.top,bottom:a.bottom,height:a.height,ratio:vis/a.height};
+            },ratio);
+          }
+
+          async function desktop(lang){
+            const context=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'});
+            const page=await context.newPage();
+            await instrument(page);
+            const diag=attachDiagnostics(page);
+            try{
+              await page.goto(`${base}${lang==='EN'?'/':'/ru/'}`,{waitUntil:'domcontentloaded',timeout:20000});
+              await page.waitForSelector('[data-home-tech-r2]',{state:'attached',timeout:10000});
+              await waitReady(page);
+
+              const approach=await scrollRatio(page,.45);
+              await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,120)))));
+              const pre=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{state:s.dataset.techR2State||'',assembling:s.classList.contains('is-assembling')};});
+              assert(pre.state===''&&!pre.assembling,`${lang}: premature trigger at ratio ${approach.ratio}`);
+
+              const material=await scrollRatio(page,.62);
+              const assembling=await waitState(page,'assembling');
+              const start=await page.evaluate(async expected=>{
+                const prior=(window.__r11Events||[]).find(e=>e.type==='start'&&e.name===expected);if(prior)return prior;
+                return new Promise((resolve,reject)=>{const h=e=>{if(e.target?.closest?.('.home-tech-r2__relay--desktop')&&e.target?.classList?.contains('home-tech-r2__relay-signal')&&e.animationName===expected){document.removeEventListener('animationstart',h,true);clearTimeout(to);resolve({type:'start',name:e.animationName,elapsed:e.elapsedTime,time:performance.now()});}};document.addEventListener('animationstart',h,true);const to=setTimeout(()=>{document.removeEventListener('animationstart',h,true);reject(new Error('desktop signal start timeout'));},30000);});
+              },expectedSignal);
+              const live=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');return{duration:getComputedStyle(sig).animationDuration,name:getComputedStyle(sig).animationName,desktop:getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop')).display,mobile:getComputedStyle(s.querySelector('.home-tech-r2__relay--mobile')).display};});
+              assert(live.duration==='1.9s',`${lang}: signal duration ${live.duration}`);
+              assert(live.name===expectedSignal,`${lang}: signal animation ${live.name}`);
+              assert(live.desktop!=='none'&&live.mobile==='none',`${lang}: relay visibility`);
+              const end=await page.evaluate(async expected=>{
+                const prior=(window.__r11Events||[]).find(e=>e.type==='end'&&e.name===expected);if(prior)return prior;
+                return new Promise((resolve,reject)=>{const h=e=>{if(e.target?.closest?.('.home-tech-r2__relay--desktop')&&e.target?.classList?.contains('home-tech-r2__relay-signal')&&e.animationName===expected){document.removeEventListener('animationend',h,true);clearTimeout(to);resolve({type:'end',name:e.animationName,elapsed:e.elapsedTime,time:performance.now()});}};document.addEventListener('animationend',h,true);const to=setTimeout(()=>{document.removeEventListener('animationend',h,true);reject(new Error('desktop signal end timeout'));},35000);});
+              },expectedSignal);
+              assert(end.elapsed>1.84&&end.elapsed<1.96,`${lang}: elapsed ${end.elapsed}`);
+              const settled=await waitState(page,'settled');
+              const stable=await page.evaluate(expected=>{const s=document.querySelector('[data-home-tech-r2]'),sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');const ev=(window.__r11Events||[]).filter(e=>e.name===expected);return{state:s.dataset.techR2State,assembling:s.classList.contains('is-assembling'),settled:s.classList.contains('is-settled'),opacity:Number(getComputedStyle(sig).opacity),animation:getComputedStyle(sig).animationName,starts:ev.filter(e=>e.type==='start').length,ends:ev.filter(e=>e.type==='end').length};},expectedSignal);
+              assert(stable.state==='settled'&&stable.settled&&!stable.assembling,`${lang}: settled state`);
+              assert(stable.opacity<=.01&&stable.animation==='none',`${lang}: signal cleanup ${JSON.stringify(stable)}`);
+              assert(stable.starts===1&&stable.ends===1,`${lang}: signal count ${stable.starts}/${stable.ends}`);
+              await sleep(900);
+              const startsAfter=await page.evaluate(expected=>(window.__r11Events||[]).filter(e=>e.type==='start'&&e.name===expected).length,expectedSignal);
+              assert(startsAfter===1,`${lang}: signal restarted ${startsAfter}`);
+
+              await waitLogos(page);
+              const logos=await page.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(i=>{const img=i.querySelector('img'),n=i.querySelector('.home-tech-r2__name'),r=img.getBoundingClientRect();return{brand:i.dataset.brand,name:n.textContent.trim(),complete:img.complete,nw:img.naturalWidth,nh:img.naturalHeight,w:r.width,h:r.height};}));
+              assert(JSON.stringify(logos.map(x=>x.brand))===JSON.stringify(brands),`${lang}: logo order`);
+              assert(JSON.stringify(logos.map(x=>x.name))===JSON.stringify(names),`${lang}: logo names`);
+              logos.forEach(x=>assert(x.complete&&x.nw>0&&x.nh>0&&x.w>0&&x.h>0,`${lang}: logo ${x.brand}`));
+              assert(diag.logo.size===10,`${lang}: logo network count ${diag.logo.size}`);
+              for(const p of logoPaths){const st=diag.logo.get(p);assert(st>=200&&st<400,`${lang}: ${p} ${st}`);}
+
+              if(lang==='EN')await page.screenshot({path:'/tmp/technology-r11-settled-en.png',fullPage:false,timeout:10000});
+
+              const fine=await page.evaluate(()=>({fine:matchMedia('(hover:hover) and (pointer:fine)').matches,localReady:document.querySelector('[data-home-tech-r2]').dataset.techR2LocalReady||''}));
+              assert(fine.fine&&fine.localReady==='true',`${lang}: fine pointer ${JSON.stringify(fine)}`);
+              const geometry=await page.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(i=>{const r=i.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,hit=document.elementFromPoint(x,y);return{brand:i.dataset.brand,x,y,w:r.width,h:r.height,hit:hit?.closest?.('.home-tech-r2__identity')?.dataset?.brand||''};}));
+              assert(geometry.length===10,`${lang}: identity count ${geometry.length}`);
+              for(let i=0;i<10;i++){
+                const g=geometry[i];assert(g.hit===brands[i]&&g.w>0&&g.h>0,`${lang}: hit ${brands[i]} -> ${g.hit}`);
+                await page.mouse.move(g.x,g.y);await waitLocal(page,true);
+                const active=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),a=sig.getAnimations();return{local:s.classList.contains('is-local-active'),offset:parseFloat(s.style.getPropertyValue('--tech-r2-local-offset')),raw:s.style.getPropertyValue('--tech-r2-local-offset'),dash:sig.style.strokeDasharray,filter:sig.style.filter,assembling:s.classList.contains('is-assembling'),durations:a.map(x=>x.effect?.getTiming?.().duration).filter(Boolean)};});
+                assert(active.local&&Math.abs(active.offset-offsets[i])<.001,`${lang}: local ${brands[i]} ${active.raw}`);
+                assert(active.dash==='.14 .86',`${lang}: local trail ${brands[i]} ${active.dash}`);
+                assert(active.filter.includes('drop-shadow'),`${lang}: reflectance ${brands[i]}`);
+                assert(active.durations.some(d=>Number(d)===680),`${lang}: local duration ${brands[i]} ${active.durations}`);
+                assert(!active.assembling,`${lang}: assembly restart ${brands[i]}`);
+                if(lang==='EN'&&i===2)await page.screenshot({path:'/tmp/technology-r11-hover-en.png',fullPage:false,timeout:10000});
+                await page.mouse.move(2,2);await waitLocal(page,false);
+                const cleared=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{local:s.classList.contains('is-local-active'),offset:s.style.getPropertyValue('--tech-r2-local-offset')};});
+                assert(!cleared.local&&cleared.offset==='',`${lang}: leave clear ${brands[i]}`);
+                console.log(`LOCAL_PASS ${lang} ${brands[i]} offset=${offsets[i]}`);
+              }
+
+              const layout=await page.evaluate(()=>{const d=document.documentElement,s=document.querySelector('[data-home-tech-r2]');const selectors=['#hero','#proai-hero-cube-mount','#cube-canvas','[data-connected-system]','[data-tw-r2]','[data-fs-showcase-r11]','[data-selected-thinking-r1]','[data-selected-work-r11]','[data-home-footer-golden-r3]'];return{doc:[d.clientWidth,d.scrollWidth],tech:[s.clientWidth,s.scrollWidth],count:s.querySelectorAll('.home-tech-r2__identity').length,reg:selectors.map(q=>document.querySelectorAll(q).length),cube:[...document.scripts].some(x=>/proai-hero-cube-r1\/bootstrap-golden-r1-2\.js/.test(x.src))};});
+              assert(layout.doc[1]<=layout.doc[0]+1&&layout.tech[1]<=layout.tech[0]+1,`${lang}: desktop overflow ${JSON.stringify(layout)}`);
+              assert(layout.count===10&&layout.reg.every(x=>x===1)&&layout.cube,`${lang}: regression ${JSON.stringify(layout)}`);
+              assert(diag.bad.length===0,`${lang}: assets ${JSON.stringify(diag.bad)}`);
+              assert(diag.errors.length===0,`${lang}: JS ${JSON.stringify(diag.errors)}`);
+              results.desktop[lang]={status:'PASS',approach,material,assembling,start,end,settled,logos:10,local:10};
+              console.log(`DESKTOP_PASS ${lang}`);
+            }catch(e){results.desktop[lang]={status:'FAIL',error:String(e?.message||e)};console.log(`DESKTOP_FAIL ${lang} ${results.desktop[lang].error}`);}finally{await context.close();}
+          }
+
+          async function mobile(lang,width){
+            const key=`${width}_${lang}`;
+            const context=await browser.newContext({viewport:{width,height:900},hasTouch:true,isMobile:true,reducedMotion:'no-preference'});
+            const page=await context.newPage();const diag=attachDiagnostics(page);
+            try{
+              await page.goto(`${base}${lang==='EN'?'/':'/ru/'}`,{waitUntil:'domcontentloaded',timeout:20000});await page.waitForSelector('[data-home-tech-r2]',{timeout:10000});await waitReady(page);await waitLogos(page);
+              await page.evaluate(()=>document.querySelector('[data-home-tech-r2]').scrollIntoView({block:'center',behavior:'instant'}));await waitState(page,'settled');
+              const x=await page.evaluate(()=>{const d=document.documentElement,s=document.querySelector('[data-home-tech-r2]');return{doc:[d.clientWidth,d.scrollWidth],tech:[s.clientWidth,s.scrollWidth],count:s.querySelectorAll('.home-tech-r2__identity').length,desktop:getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop')).display,mobile:getComputedStyle(s.querySelector('.home-tech-r2__relay--mobile')).display,fine:matchMedia('(hover:hover) and (pointer:fine)').matches,localReady:s.dataset.techR2LocalReady||'',logos:[...s.querySelectorAll('.home-tech-r2__mark img')].every(i=>i.complete&&i.naturalWidth>0&&i.naturalHeight>0)};});
+              assert(x.doc[1]<=x.doc[0]+1&&x.tech[1]<=x.tech[0]+1,`${key}: overflow ${JSON.stringify(x)}`);assert(x.count===10&&x.desktop==='none'&&x.mobile!=='none',`${key}: mobile architecture ${JSON.stringify(x)}`);assert(!x.fine&&x.localReady!=='true',`${key}: fake hover ${JSON.stringify(x)}`);assert(x.logos,`${key}: logos`);assert(diag.bad.length===0&&diag.errors.length===0,`${key}: diagnostics`);
+              results.mobile[key]={status:'PASS'};console.log(`MOBILE_PASS ${key}`);
+            }catch(e){results.mobile[key]={status:'FAIL',error:String(e?.message||e)};console.log(`MOBILE_FAIL ${key} ${results.mobile[key].error}`);}finally{await context.close();}
+          }
+
+          async function reduced(lang){
+            const context=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'reduce'});const page=await context.newPage();const diag=attachDiagnostics(page);
+            try{
+              await page.goto(`${base}${lang==='EN'?'/':'/ru/'}`,{waitUntil:'domcontentloaded',timeout:20000});await page.waitForSelector('[data-home-tech-r2]',{timeout:10000});await waitReady(page);await waitLogos(page);await waitState(page,'settled');
+              const x=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),ids=[...s.querySelectorAll('.home-tech-r2__identity')];return{state:s.dataset.techR2State,localReady:s.dataset.techR2LocalReady||'',signalAnimation:getComputedStyle(sig).animationName,signalOpacity:Number(getComputedStyle(sig).opacity),idsVisible:ids.every(i=>Number(getComputedStyle(i).opacity)>=.99),logos:[...s.querySelectorAll('.home-tech-r2__mark img')].every(i=>i.complete&&i.naturalWidth>0&&i.naturalHeight>0)};});
+              assert(x.state==='settled'&&x.localReady!=='true',`${lang}: reduced state ${JSON.stringify(x)}`);assert(x.signalAnimation==='none'&&x.signalOpacity<=.01,`${lang}: reduced signal ${JSON.stringify(x)}`);assert(x.idsVisible&&x.logos,`${lang}: reduced content`);assert(diag.bad.length===0&&diag.errors.length===0,`${lang}: reduced diagnostics`);results.reduced[lang]={status:'PASS'};console.log(`REDUCED_PASS ${lang}`);
+            }catch(e){results.reduced[lang]={status:'FAIL',error:String(e?.message||e)};console.log(`REDUCED_FAIL ${lang} ${results.reduced[lang].error}`);}finally{await context.close();}
+          }
+
+          const browser=await chromium.launch({executablePath:chromePath,headless:true,args:['--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist']});
+          for(const lang of ['EN','RU'])await desktop(lang);
+          for(const width of [430,390,375,360,320])for(const lang of ['EN','RU'])await mobile(lang,width);
+          for(const lang of ['EN','RU'])await reduced(lang);
+          await browser.close();
+          console.log('R11_QA_RESULTS '+JSON.stringify(results));
+          const all=[...Object.values(results.desktop),...Object.values(results.mobile),...Object.values(results.reduced)].every(x=>x.status==='PASS');
+          process.exit(all?0:2);
+          NODE
+
+          set +e
+          QA_BASE="$QA_BASE" CHROME_PATH="$CHROME_PATH" node .technology-r11-qa.mjs
+          QA_RC=$?
+          set -e
+          rm -f .technology-r11-qa.mjs
+          echo "qa_rc=$QA_RC" >> "$GITHUB_OUTPUT"
+          if [ "$QA_RC" -eq 0 ]; then echo R11_RUNTIME=PASS; else echo R11_RUNTIME=FAIL; fi
+
+      - name: Upload exact generated site
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-r11-generated-site
+          path: _site
+          retention-days: 1
+
+      - name: Upload R1.1 visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-r11-visual-evidence
+          path: /tmp/technology-r11-*.png
+          retention-days: 1
+          if-no-files-found: ignore
+
+  preview:
+    needs: qa
+    if: needs.qa.outputs.qa_rc == '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 125
+    env:
+      INFRA_SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download exact generated site
+        uses: actions/download-artifact@v4
+        with:
+          name: technology-r11-generated-site
+          path: _site
+
+      - name: Publish HTTPS Owner preview and hold review window
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/proai-tech-r11-preview-server.log 2>&1 &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared.log 2>&1 &
+          TUNNEL_PID=$!
+          trap 'kill "$TUNNEL_PID" 2>/dev/null || true; kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          post_status(){ gh api --method POST "repos/$REPO/statuses/$INFRA_SHA" -f state="$1" -f target_url="$2" -f context='owner-preview/technology-z-relay-r1-1' -f description="$3" >/dev/null; }
+          URL=''
+          for i in $(seq 1 90); do
+            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)
+            [ -n "$URL" ] && break
+            kill -0 "$TUNNEL_PID" 2>/dev/null || { cat /tmp/cloudflared.log; exit 1; }
+            sleep 1
+          done
+          test -n "$URL"
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsSL --max-time 10 "$URL/" -o /tmp/public-en.html && curl -fsSL --max-time 10 "$URL/ru/" -o /tmp/public-ru.html; then READY=1; break; fi
+            sleep 1
+          done
+          test "$READY" -eq 1
+          echo "OWNER_REVIEW_URL=$URL"
+          post_status success "$URL" 'R1.1 Chrome QA PASS; Owner preview live'
+          echo REVIEW_WINDOW_SECONDS=7200
+          sleep 7200

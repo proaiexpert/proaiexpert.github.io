@@ -1,0 +1,311 @@
+name: Homepage Technology Z-Relay R1.1 Desktop Closeout
+
+on:
+  push:
+    branches:
+      - review/homepage-tech-relay-signal-r1-1-owner-preview-r2
+
+permissions:
+  contents: read
+  statuses: write
+
+concurrency:
+  group: homepage-tech-relay-r1-1-owner-preview-r2
+  cancel-in-progress: true
+
+env:
+  PRODUCT_SHA: c8c772d5523dd5047a479ba3980b6c3498fff508
+  QA_BASE: http://127.0.0.1:4173
+
+jobs:
+  desktop_qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact R1.1 product
+        uses: actions/checkout@v4
+        with:
+          ref: c8c772d5523dd5047a479ba3980b6c3498fff508
+          fetch-depth: 1
+
+      - name: Verify exact R1.1 product
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          echo "PRODUCT_SHA_VERIFIED=$PRODUCT_SHA"
+
+      - name: Build exact product and prepare Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          npm install --no-save --package-lock=false playwright-core@1.55.0
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || true)
+          test -n "$CHROME"
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+
+      - name: Start generated site
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/proai-r11-r2-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS "$QA_BASE/" >/dev/null && curl -fsS "$QA_BASE/ru/" >/dev/null; then
+              echo LOCAL_SITE_READY
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Run deterministic desktop EN RU closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat >.r11-desktop-closeout.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+
+          const base=process.env.QA_BASE.replace(/\/$/,'');
+          const origin=new URL(base).origin;
+          const chromePath=process.env.CHROME_PATH;
+          const expected='home-tech-r2-signal-pass';
+          const brands=['openai','claude','gemini','n8n','make','twilio','vercel','gmail','zapier','github'];
+          const names=['OpenAI','Claude','Gemini','n8n','Make','Twilio','Vercel','Gmail','Zapier','GitHub'];
+          const offsets=[-.44,-.37,-.30,-.23,-.16,-.68,-.73,-.78,-.83,-.88];
+          const logoPaths=new Set(brands.map(b=>`/assets/brand/platforms/${b}-mark.svg`));
+          const techAssets=new Set(['/assets/css/home-technology-transition-r2.css','/assets/css/home-technology-transition-r2-golden-mobile.css','/assets/js/home-technology-transition-r2.js',...logoPaths]);
+          const results={};
+          const assert=(v,m)=>{if(!v)throw new Error(m);};
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+          async function waitReady(page){
+            return page.evaluate(()=>new Promise((resolve,reject)=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              if(!s)return reject(new Error('Technology missing'));
+              const check=()=>{if(s.dataset.techR2SignalReady==='true'&&s.dataset.techR2LocalReady==='true'){mo.disconnect();clearTimeout(to);resolve(true);return true;}return false;};
+              const mo=new MutationObserver(check);mo.observe(s,{attributes:true});
+              const to=setTimeout(()=>{mo.disconnect();reject(new Error('Technology listeners timeout'));},15000);
+              check();
+            }));
+          }
+
+          async function waitState(page,target,timeout=30000){
+            return page.evaluate(({target,timeout})=>new Promise((resolve,reject)=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              const check=()=>{if(s.dataset.techR2State===target){mo.disconnect();clearTimeout(to);resolve({state:target,time:performance.now()});return true;}return false;};
+              const mo=new MutationObserver(check);mo.observe(s,{attributes:true,attributeFilter:['class','data-tech-r2-state']});
+              const to=setTimeout(()=>{mo.disconnect();reject(new Error(`${target} timeout`));},timeout);
+              check();
+            }),{target,timeout});
+          }
+
+          async function waitLocal(page,want){
+            return page.evaluate(want=>new Promise((resolve,reject)=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              const check=()=>{if(s.classList.contains('is-local-active')===want){mo.disconnect();clearTimeout(to);resolve(true);return true;}return false;};
+              const mo=new MutationObserver(check);mo.observe(s,{attributes:true,attributeFilter:['class','style']});
+              const to=setTimeout(()=>{mo.disconnect();reject(new Error(`local ${want?'on':'off'} timeout`));},15000);
+              check();
+            }),want);
+          }
+
+          async function waitLogos(page){
+            return page.evaluate(()=>new Promise((resolve,reject)=>{
+              const imgs=[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__mark img')];
+              if(imgs.length!==10)return reject(new Error(`logo count ${imgs.length}`));
+              const check=()=>imgs.every(i=>i.complete&&i.naturalWidth>0&&i.naturalHeight>0);
+              if(check())return resolve(true);
+              const poll=setInterval(()=>{if(check()){clearInterval(poll);clearTimeout(to);resolve(true);}},100);
+              const to=setTimeout(()=>{clearInterval(poll);reject(new Error('logo load timeout'));},15000);
+            }));
+          }
+
+          async function scrollRatio(page,ratio){
+            return page.evaluate(ratio=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              const r=s.getBoundingClientRect();
+              const effectiveBottom=innerHeight*.92;
+              const desiredTop=effectiveBottom-r.height*ratio;
+              const target=Math.max(0,scrollY+r.top-desiredTop);
+              scrollTo({top:target,behavior:'instant'});
+              const a=s.getBoundingClientRect();
+              const visible=Math.max(0,Math.min(a.bottom,effectiveBottom)-Math.max(a.top,0));
+              return{target,scrollY,top:a.top,bottom:a.bottom,height:a.height,ratio:visible/a.height};
+            },ratio);
+          }
+
+          async function run(lang){
+            const context=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'});
+            const page=await context.newPage();
+            const diag={errors:[],bad:[],logo:new Map()};
+            page.on('pageerror',e=>{const t=String(e?.stack||e||'');if(/home-technology-transition-r2|techR2|home-tech-r2/i.test(t))diag.errors.push(t);});
+            page.on('response',r=>{const u=new URL(r.url());if(u.origin!==origin)return;if(techAssets.has(u.pathname)&&r.status()>=400)diag.bad.push({url:r.url(),status:r.status()});if(logoPaths.has(u.pathname))diag.logo.set(u.pathname,r.status());});
+            page.on('requestfailed',r=>{const u=new URL(r.url());if(u.origin===origin&&techAssets.has(u.pathname))diag.bad.push({url:r.url(),failure:r.failure()?.errorText||'requestfailed'});});
+            await page.addInitScript(()=>{
+              window.__r11Events=[];
+              document.addEventListener('animationstart',e=>{if(e.target?.closest?.('.home-tech-r2__relay--desktop')&&e.target?.classList?.contains('home-tech-r2__relay-signal'))window.__r11Events.push({type:'start',name:e.animationName,elapsed:e.elapsedTime,time:performance.now()});},true);
+              document.addEventListener('animationend',e=>{if(e.target?.closest?.('.home-tech-r2__relay--desktop')&&e.target?.classList?.contains('home-tech-r2__relay-signal'))window.__r11Events.push({type:'end',name:e.animationName,elapsed:e.elapsedTime,time:performance.now()});},true);
+            });
+
+            try{
+              console.log(`STAGE ${lang} SETUP`);
+              await page.goto(`${base}${lang==='EN'?'/':'/ru/'}`,{waitUntil:'domcontentloaded',timeout:20000});
+              await page.waitForSelector('[data-home-tech-r2]',{timeout:10000});
+              await waitReady(page);
+              const media=await page.evaluate(()=>({fine:matchMedia('(hover:hover) and (pointer:fine)').matches,w:innerWidth,h:innerHeight}));
+              assert(media.fine&&media.w===1440&&media.h===900,`${lang}: fine desktop media ${JSON.stringify(media)}`);
+
+              console.log(`STAGE ${lang} PRETRIGGER`);
+              const approach=await scrollRatio(page,.45);
+              await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,150)))));
+              const pre=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{state:s.dataset.techR2State||'',assembling:s.classList.contains('is-assembling')};});
+              assert(pre.state===''&&!pre.assembling,`${lang}: premature trigger ratio=${approach.ratio}`);
+
+              console.log(`STAGE ${lang} MATERIAL_TRIGGER`);
+              await page.evaluate(()=>{
+                const s=document.querySelector('[data-home-tech-r2]');
+                window.__r11Assembling=new Promise((resolve,reject)=>{
+                  const capture=()=>{if(s.dataset.techR2State==='assembling'){const sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');mo.disconnect();clearTimeout(to);resolve({inlineDuration:sig.style.animationDuration,animationName:getComputedStyle(sig).animationName,waapi:sig.getAnimations().map(a=>a.effect?.getTiming?.().duration).filter(Boolean),time:performance.now()});return true;}return false;};
+                  const mo=new MutationObserver(capture);mo.observe(s,{attributes:true,attributeFilter:['class','data-tech-r2-state']});
+                  const to=setTimeout(()=>{mo.disconnect();reject(new Error('assembling capture timeout'));},30000);
+                  capture();
+                });
+              });
+              const material=await scrollRatio(page,.62);
+              const assembling=await page.evaluate(async()=>await window.__r11Assembling);
+              assert(assembling.inlineDuration==='1900ms',`${lang}: configured duration ${assembling.inlineDuration}`);
+              assert(assembling.animationName===expected,`${lang}: animation name ${assembling.animationName}`);
+              if(assembling.waapi.length)assert(assembling.waapi.some(d=>Number(d)===1900),`${lang}: WAAPI duration ${assembling.waapi}`);
+
+              console.log(`STAGE ${lang} SETTLE`);
+              await waitState(page,'settled',35000);
+              await sleep(800);
+              const settled=await page.evaluate(expected=>{const s=document.querySelector('[data-home-tech-r2]'),sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),ev=(window.__r11Events||[]).filter(e=>e.name===expected);return{state:s.dataset.techR2State,settled:s.classList.contains('is-settled'),assembling:s.classList.contains('is-assembling'),signalOpacity:Number(getComputedStyle(sig).opacity),animation:getComputedStyle(sig).animationName,starts:ev.filter(e=>e.type==='start'),ends:ev.filter(e=>e.type==='end')};},expected);
+              assert(settled.state==='settled'&&settled.settled&&!settled.assembling,`${lang}: settled state ${JSON.stringify(settled)}`);
+              assert(settled.signalOpacity<=.01&&settled.animation==='none',`${lang}: signal cleanup`);
+              assert(settled.starts.length===1,`${lang}: signal starts ${settled.starts.length}`);
+              if(settled.ends.length)assert(settled.ends.length===1&&settled.ends[0].elapsed>1.84&&settled.ends[0].elapsed<1.96,`${lang}: signal end ${JSON.stringify(settled.ends)}`);
+              await sleep(900);
+              const startsAfter=await page.evaluate(expected=>(window.__r11Events||[]).filter(e=>e.type==='start'&&e.name===expected).length,expected);
+              assert(startsAfter===1,`${lang}: signal restarted ${startsAfter}`);
+
+              console.log(`STAGE ${lang} LOGOS`);
+              await waitLogos(page);
+              const logos=await page.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(i=>{const img=i.querySelector('img'),n=i.querySelector('.home-tech-r2__name'),r=img.getBoundingClientRect();return{brand:i.dataset.brand,name:n.textContent.trim(),complete:img.complete,nw:img.naturalWidth,nh:img.naturalHeight,w:r.width,h:r.height};}));
+              assert(JSON.stringify(logos.map(x=>x.brand))===JSON.stringify(brands),`${lang}: logo brand/order`);
+              assert(JSON.stringify(logos.map(x=>x.name))===JSON.stringify(names),`${lang}: logo names/order`);
+              logos.forEach(x=>assert(x.complete&&x.nw>0&&x.nh>0&&x.w>0&&x.h>0,`${lang}: logo ${x.brand}`));
+              assert(diag.logo.size===10,`${lang}: logo network count ${diag.logo.size}`);
+              for(const p of logoPaths){const st=diag.logo.get(p);assert(st>=200&&st<400,`${lang}: logo status ${p}=${st}`);}
+
+              if(lang==='EN')await page.screenshot({path:'/tmp/technology-r11-settled-en.png',fullPage:false,timeout:10000});
+
+              console.log(`STAGE ${lang} LOCAL_RESPONSE`);
+              const geometry=await page.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(i=>{const r=i.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,hit=document.elementFromPoint(x,y);return{brand:i.dataset.brand,x,y,w:r.width,h:r.height,hit:hit?.closest?.('.home-tech-r2__identity')?.dataset?.brand||''};}));
+              assert(geometry.length===10,`${lang}: identities ${geometry.length}`);
+              for(let i=0;i<10;i++){
+                const g=geometry[i];assert(g.hit===brands[i]&&g.w>0&&g.h>0,`${lang}: hit ${brands[i]} -> ${g.hit}`);
+                await page.mouse.move(g.x,g.y);await waitLocal(page,true);
+                const active=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),animations=sig.getAnimations();return{local:s.classList.contains('is-local-active'),offset:parseFloat(s.style.getPropertyValue('--tech-r2-local-offset')),raw:s.style.getPropertyValue('--tech-r2-local-offset'),dash:sig.style.strokeDasharray,filter:sig.style.filter,assembling:s.classList.contains('is-assembling'),durations:animations.map(a=>a.effect?.getTiming?.().duration).filter(Boolean)};});
+                assert(active.local&&Math.abs(active.offset-offsets[i])<.001,`${lang}: ${brands[i]} offset ${active.raw}`);
+                assert(active.dash==='.14 .86',`${lang}: ${brands[i]} trail ${active.dash}`);
+                assert(active.filter.includes('drop-shadow'),`${lang}: ${brands[i]} reflectance missing`);
+                assert(active.durations.some(d=>Number(d)===680),`${lang}: ${brands[i]} duration ${active.durations}`);
+                assert(!active.assembling,`${lang}: ${brands[i]} assembly restart`);
+                if(lang==='EN'&&i===2)await page.screenshot({path:'/tmp/technology-r11-hover-en.png',fullPage:false,timeout:10000});
+                await page.mouse.move(2,2);await waitLocal(page,false);
+                const cleared=await page.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{local:s.classList.contains('is-local-active'),offset:s.style.getPropertyValue('--tech-r2-local-offset')};});
+                assert(!cleared.local&&cleared.offset==='',`${lang}: ${brands[i]} leave clear`);
+                console.log(`LOCAL_PASS ${lang} ${brands[i]} ${offsets[i]}`);
+              }
+
+              console.log(`STAGE ${lang} LAYOUT_REGRESSION`);
+              const layout=await page.evaluate(()=>{const d=document.documentElement,s=document.querySelector('[data-home-tech-r2]');const selectors=['#hero','#proai-hero-cube-mount','#cube-canvas','[data-connected-system]','[data-tw-r2]','[data-fs-showcase-r11]','[data-selected-thinking-r1]','[data-selected-work-r11]','[data-home-footer-golden-r3]'];return{doc:[d.clientWidth,d.scrollWidth],tech:[s.clientWidth,s.scrollWidth],count:s.querySelectorAll('.home-tech-r2__identity').length,desktop:getComputedStyle(s.querySelector('.home-tech-r2__relay--desktop')).display,mobile:getComputedStyle(s.querySelector('.home-tech-r2__relay--mobile')).display,reg:selectors.map(q=>document.querySelectorAll(q).length),cube:[...document.scripts].some(x=>/proai-hero-cube-r1\/bootstrap-golden-r1-2\.js/.test(x.src))};});
+              assert(layout.doc[1]<=layout.doc[0]+1&&layout.tech[1]<=layout.tech[0]+1,`${lang}: overflow ${JSON.stringify(layout)}`);
+              assert(layout.count===10&&layout.desktop!=='none'&&layout.mobile==='none',`${lang}: desktop layout ${JSON.stringify(layout)}`);
+              assert(layout.reg.every(x=>x===1)&&layout.cube,`${lang}: shallow regression ${JSON.stringify(layout)}`);
+              assert(diag.errors.length===0,`${lang}: Technology JS errors ${JSON.stringify(diag.errors)}`);
+              assert(diag.bad.length===0,`${lang}: Technology asset failures ${JSON.stringify(diag.bad)}`);
+
+              results[lang]={status:'PASS',approach,material,configuredDuration:assembling.inlineDuration,signalStarts:1,signalEnds:settled.ends.length,logos:10,localResponses:10};
+              console.log(`DESKTOP_PASS ${lang} ${JSON.stringify(results[lang])}`);
+            }catch(e){
+              results[lang]={status:'FAIL',error:String(e?.message||e)};
+              console.log(`DESKTOP_FAIL ${lang} ${results[lang].error}`);
+            }finally{await context.close();}
+          }
+
+          const browser=await chromium.launch({executablePath:chromePath,headless:true,args:['--disable-dev-shm-usage','--enable-webgl','--ignore-gpu-blocklist']});
+          for(const lang of ['EN','RU'])await run(lang);
+          await browser.close();
+          console.log('DESKTOP_R11_CLOSEOUT '+JSON.stringify(results));
+          if(!Object.values(results).every(x=>x.status==='PASS'))process.exit(2);
+          NODE
+          QA_BASE="$QA_BASE" CHROME_PATH="$CHROME_PATH" node .r11-desktop-closeout.mjs
+          rm -f .r11-desktop-closeout.mjs
+
+      - name: Upload exact generated site
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-r11-r2-generated-site
+          path: _site
+          retention-days: 1
+
+      - name: Upload R1.1 visual evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-r11-r2-visual-evidence
+          path: /tmp/technology-r11-*.png
+          retention-days: 1
+          if-no-files-found: error
+
+  preview:
+    needs: desktop_qa
+    runs-on: ubuntu-latest
+    timeout-minutes: 125
+    env:
+      INFRA_SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download exact generated site
+        uses: actions/download-artifact@v4
+        with:
+          name: technology-r11-r2-generated-site
+          path: _site
+
+      - name: Publish HTTPS Owner preview and hold review window
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/proai-r11-r2-preview.log 2>&1 &
+          SERVER_PID=$!
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared.log 2>&1 &
+          TUNNEL_PID=$!
+          trap 'kill "$TUNNEL_PID" 2>/dev/null || true; kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          URL=''
+          for i in $(seq 1 90); do
+            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)
+            [ -n "$URL" ] && break
+            kill -0 "$TUNNEL_PID" 2>/dev/null || { cat /tmp/cloudflared.log; exit 1; }
+            sleep 1
+          done
+          test -n "$URL"
+          READY=0
+          for i in $(seq 1 90); do
+            if curl -fsSL --max-time 10 "$URL/" >/tmp/public-en.html && curl -fsSL --max-time 10 "$URL/ru/" >/tmp/public-ru.html; then READY=1; break; fi
+            sleep 1
+          done
+          test "$READY" -eq 1
+          echo "OWNER_REVIEW_URL=$URL"
+          gh api --method POST "repos/$REPO/statuses/$INFRA_SHA" -f state=success -f target_url="$URL" -f context='owner-preview/technology-z-relay-r1-1' -f description='R1.1 desktop closeout PASS; Owner preview live' >/dev/null
+          echo REVIEW_WINDOW_SECONDS=7200
+          sleep 7200

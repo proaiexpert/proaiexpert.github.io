@@ -1,0 +1,119 @@
+name: Homepage Technology Z-Relay R1.3 Final Visual Preview
+
+on:
+  push:
+    branches:
+      - review/homepage-tech-relay-signal-r1-3-owner-preview-r7
+
+permissions:
+  contents: read
+  statuses: write
+
+env:
+  PRODUCT_SHA: 7b0942a042ef23e10cd74592208eeae94479b45e
+  QA_BASE: http://127.0.0.1:4173
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7b0942a042ef23e10cd74592208eeae94479b45e
+          fetch-depth: 1
+      - name: Verify immutable product
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          node --check assets/js/home-technology-transition-r2.js
+          grep -Fq "var LOCAL_RESPONSE_DURATION = 740;" assets/js/home-technology-transition-r2.js
+          grep -R -Fq "opacity: .29" assets/css
+      - name: Build exact product and browser harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"; export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          npm install --no-save --package-lock=false playwright-core@1.55.0
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable); test -n "$CHROME"
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          test -n "$(command -v ffmpeg)"
+      - name: Start exact generated site
+        shell: bash
+        run: |
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/r13-r7-server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS "$QA_BASE/" >/dev/null 2>&1 && curl -fsS "$QA_BASE/ru/" >/dev/null 2>&1 && exit 0; sleep 1; done
+          exit 1
+      - name: Capture visual evidence and frozen regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/r13-evidence /tmp/r13-frames
+          cat >.r13-r7.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          import fs from 'node:fs';
+          const base=process.env.QA_BASE.replace(/\/$/,'');
+          const browser=await chromium.launch({executablePath:process.env.CHROME_PATH,headless:true,args:['--disable-dev-shm-usage','--ignore-gpu-blocklist']});
+          const A=(v,m)=>{if(!v)throw new Error(m)};
+          const landscape='M332 0 V18 Q332 34 314 34 H300 Q280 34 280 54 V244 Q280 262 298 262 H354 Q372 262 372 280 V300';
+          async function ready(p){await p.waitForSelector('[data-home-tech-r2]',{timeout:10000});await p.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2SignalReady==='true',null,{timeout:15000});}
+          function diag(p){const d={errors:[],failed:[]};p.on('pageerror',e=>d.errors.push(String(e?.stack||e)));p.on('requestfailed',r=>{/home-technology-transition-r2|\/assets\/brand\/platforms\//.test(r.url())&&d.failed.push(r.url())});return d;}
+          async function shot(p,path){const cdp=await p.context().newCDPSession(p);const x=await cdp.send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});fs.writeFileSync(path,Buffer.from(x.data,'base64'));await cdp.detach();}
+          async function prepare(p){await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');s.dataset.techR2State='settled';s.classList.add('is-settled');s.classList.remove('is-assembling');if(sig)sig.style.animation='none';s.scrollIntoView({block:'center',behavior:'instant'});});}
+          async function startPulse(p,previous,current){return p.evaluate(({previous,current})=>{const s=document.querySelector('[data-home-tech-r2]'),items=s.querySelectorAll('.home-tech-r2__identity');if(previous!==null)items[previous].dispatchEvent(new PointerEvent('pointerleave',{pointerType:'mouse',isPrimary:true,bubbles:false}));items[current].dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse',isPrimary:true,bubbles:false}));const a=s.__techR2LocalAnimations||[];a.forEach(x=>x.pause());return{n:a.length,d:a.map(x=>Number(x.effect?.getTiming?.().duration)),cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length,offset:s.style.getPropertyValue('--tech-r2-local-offset')};},{previous,current});}
+          async function visual(){const c=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'}),p=await c.newPage(),d=diag(p);await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await ready(p);await prepare(p);let prev=null,frame=0;for(const current of [0,2,5,9]){const s=await startPulse(p,prev,current);A(s.n===2&&s.d.every(v=>v===740)&&s.cores===1,'visual pulse '+JSON.stringify(s));for(const t of [80,260,440,620]){await p.evaluate(t=>{const s=document.querySelector('[data-home-tech-r2]');(s.__techR2LocalAnimations||[]).forEach(a=>{a.pause();a.currentTime=t;});},t);frame++;await shot(p,`/tmp/r13-frames/frame-${String(frame).padStart(3,'0')}.png`);if(current===2&&t===260)await shot(p,'/tmp/r13-evidence/r13-hover-gemini-en.png');}prev=current;}A(!d.errors.length&&!d.failed.length,'visual diagnostics '+JSON.stringify(d));console.log('VISUAL_PASS frames='+frame);await c.close();}
+          async function mobile(label,w,h,isLandscape){const c=await browser.newContext({viewport:{width:w,height:h},hasTouch:true,isMobile:true,reducedMotion:'no-preference'}),p=await c.newPage(),d=diag(p);await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await ready(p);const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),m=s.querySelector('.home-tech-r2__relay--mobile'),desk=s.querySelector('.home-tech-r2__relay--desktop'),b=m.querySelector('.home-tech-r2__relay-base'),de=document.documentElement;return{mode:s.dataset.techR2RelayMode,v:m.getAttribute('viewBox'),path:b.getAttribute('d'),md:getComputedStyle(m).display,dd:getComputedStyle(desk).display,core:s.querySelectorAll('.home-tech-r2__relay-local-core').length,local:s.dataset.techR2LocalReady||'',n:s.querySelectorAll('.home-tech-r2__identity').length,ov:de.scrollWidth-de.clientWidth};});if(isLandscape)A(x.mode==='landscape'&&x.v==='0 0 560 300'&&x.path===landscape&&x.md!=='none'&&x.dd==='none',label+' '+JSON.stringify(x));else A(x.mode==='portrait'&&x.v==='0 0 400 520'&&x.path==='M200 0 V520',label+' '+JSON.stringify(x));A(x.core===0&&x.local!=='true'&&x.n===10&&x.ov<=1&&!d.errors.length&&!d.failed.length,label+' '+JSON.stringify({x,d}));console.log('MOBILE_PASS '+label);await c.close();}
+          async function reduced(){const c=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'reduce'}),p=await c.newPage();await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await ready(p);await p.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled',null,{timeout:5000});const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{state:s.dataset.techR2State,core:s.querySelectorAll('.home-tech-r2__relay-local-core').length,local:s.dataset.techR2LocalReady||''};});A(x.state==='settled'&&x.core===0&&x.local!=='true','reduced '+JSON.stringify(x));console.log('REDUCED_PASS');await c.close();}
+          await visual();await mobile('PORTRAIT_390x844',390,844,false);await mobile('LANDSCAPE_844x390',844,390,true);await reduced();await browser.close();A(fs.existsSync('/tmp/r13-evidence/r13-hover-gemini-en.png')&&fs.statSync('/tmp/r13-evidence/r13-hover-gemini-en.png').size>1000,'screenshot missing');console.log('R13_VISUAL_CLOSEOUT=PASS');
+          NODE
+          QA_BASE="$QA_BASE" CHROME_PATH="$CHROME_PATH" node .r13-r7.mjs
+          ffmpeg -y -loglevel error -framerate 8 -pattern_type glob -i '/tmp/r13-frames/frame-*.png' -c:v libx264 -pix_fmt yuv420p -movflags +faststart /tmp/r13-evidence/r13-hover-preview.mp4
+          test -s /tmp/r13-evidence/r13-hover-gemini-en.png
+          test -s /tmp/r13-evidence/r13-hover-preview.mp4
+          ls -lh /tmp/r13-evidence
+      - uses: actions/upload-artifact@v4
+        with:
+          name: technology-r13-owner-site
+          path: _site
+          retention-days: 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: technology-r13-visual-evidence
+          path: /tmp/r13-evidence
+          if-no-files-found: error
+          retention-days: 1
+
+  preview:
+    needs: visual
+    runs-on: ubuntu-latest
+    timeout-minutes: 125
+    env:
+      INFRA_SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: technology-r13-owner-site
+          path: _site
+      - name: Publish fresh HTTPS Owner preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/r13-preview-server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          nohup /tmp/cloudflared tunnel --url http://127.0.0.1:4173 --no-autoupdate >/tmp/r13-cloudflared.log 2>&1 &
+          URL=''
+          for i in $(seq 1 60); do URL=$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/r13-cloudflared.log | head -1 || true); [ -n "$URL" ] && break; sleep 1; done
+          test -n "$URL"
+          curl -fsSL "$URL/" >/dev/null
+          curl -fsSL "$URL/ru/" >/dev/null
+          api="https://api.github.com/repos/$REPO/statuses/$INFRA_SHA"
+          curl -fsSL -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "$api" -d "{\"state\":\"success\",\"target_url\":\"$URL\",\"description\":\"R1.3 Owner Preview ready\",\"context\":\"owner-preview/technology-z-relay-r1-3\"}"
+          echo "OWNER_REVIEW_URL=$URL"
+          sleep 7200

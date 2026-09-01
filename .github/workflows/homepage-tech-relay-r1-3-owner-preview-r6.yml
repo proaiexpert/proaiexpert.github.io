@@ -79,84 +79,26 @@ jobs:
           const assert=(v,m)=>{if(!v)throw new Error(m)};
           const dash=s=>String(s).split(/[ ,]+/).filter(Boolean).map(Number);
 
-          async function ready(p){
-            await p.waitForSelector('[data-home-tech-r2]',{timeout:10000});
-            await p.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2SignalReady==='true',{timeout:15000});
-          }
-          async function evt(p,i,type){
-            await p.evaluate(({i,type})=>{
-              const el=document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')[i];
-              if(!el)throw new Error('identity '+i+' missing');
-              el.dispatchEvent(new PointerEvent(type,{pointerType:'mouse',isPrimary:true,bubbles:false}));
-            },{i,type});
-          }
-          async function advance(p,t){
-            await p.evaluate(t=>{
-              const s=document.querySelector('[data-home-tech-r2]');
-              (s.__techR2LocalAnimations||[]).forEach(a=>{a.pause();a.currentTime=t;});
-            },t);
-          }
-          async function finishOwned(p){
-            await p.evaluate(async()=>{
-              const s=document.querySelector('[data-home-tech-r2]');
-              const arr=[...(s.__techR2LocalAnimations||[])];
-              arr.forEach(a=>{try{a.finish();}catch{}});
-              await new Promise(r=>setTimeout(r,0));
-            });
-          }
-          async function shot(p,path){
-            const cdp=await p.context().newCDPSession(p);
-            const x=await cdp.send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
-            fs.writeFileSync(path,Buffer.from(x.data,'base64'));
-            await cdp.detach();
-          }
-          function diag(p){
-            const d={errors:[],failed:[]};
-            p.on('pageerror',e=>d.errors.push(String(e?.stack||e)));
-            p.on('requestfailed',r=>{if(/home-technology-transition-r2|\/assets\/brand\/platforms\//.test(r.url()))d.failed.push(r.url());});
-            return d;
-          }
-          async function forceSettled(p){
-            await p.evaluate(()=>{
-              const s=document.querySelector('[data-home-tech-r2]');
-              const sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');
-              s.dataset.techR2State='settled';
-              s.classList.add('is-settled');
-              s.classList.remove('is-assembling');
-              if(sig)sig.style.animation='none';
-              s.scrollIntoView({block:'center',behavior:'instant'});
-            });
-          }
+          async function ready(p){await p.waitForSelector('[data-home-tech-r2]',{timeout:10000});await p.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2SignalReady==='true',{timeout:15000});}
+          async function evt(p,i,type){await p.evaluate(({i,type})=>{const el=document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')[i];if(!el)throw new Error('identity '+i+' missing');el.dispatchEvent(new PointerEvent(type,{pointerType:'mouse',isPrimary:true,bubbles:false}));},{i,type});}
+          async function advance(p,t){await p.evaluate(t=>{const s=document.querySelector('[data-home-tech-r2]');(s.__techR2LocalAnimations||[]).forEach(a=>{a.pause();a.currentTime=t;});},t);}
+          async function finishOwned(p){await p.evaluate(async()=>{const s=document.querySelector('[data-home-tech-r2]');[...(s.__techR2LocalAnimations||[])].forEach(a=>{try{a.finish();}catch{}});await new Promise(r=>setTimeout(r,0));});}
+          async function shot(p,path){const c=await p.context().newCDPSession(p),x=await c.send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});fs.writeFileSync(path,Buffer.from(x.data,'base64'));await c.detach();}
+          function diag(p){const d={errors:[],failed:[]};p.on('pageerror',e=>d.errors.push(String(e?.stack||e)));p.on('requestfailed',r=>{if(/home-technology-transition-r2|\/assets\/brand\/platforms\//.test(r.url()))d.failed.push(r.url());});return d;}
+          async function forceSettled(p){await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');s.dataset.techR2State='settled';s.classList.add('is-settled');s.classList.remove('is-assembling');if(sig)sig.style.animation='none';s.scrollIntoView({block:'center',behavior:'instant'});});}
+          async function waitInheritedOpacity(p){await p.waitForFunction(()=>{const a=document.querySelector('[data-home-tech-r2] .home-tech-r2__relay--desktop .home-tech-r2__relay-active');if(!a)return false;const op=Number(getComputedStyle(a).opacity);return op>=.28&&op<=.30;},{timeout:2500,polling:25});}
 
           async function desktop(lang,visual=false){
-            const c=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'});
-            const p=await c.newPage(),d=diag(p);
-            await p.goto(base+(lang==='EN'?'/':'/ru/'),{waitUntil:'domcontentloaded',timeout:20000});
-            await ready(p);
-            const media=await p.evaluate(()=>({fine:matchMedia('(hover:hover) and (pointer:fine)').matches,desktop:matchMedia('(min-width:701px)').matches}));
-            assert(media.fine&&media.desktop,lang+' media '+JSON.stringify(media));
+            const c=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'}),p=await c.newPage(),d=diag(p);
+            await p.goto(base+(lang==='EN'?'/':'/ru/'),{waitUntil:'domcontentloaded',timeout:20000});await ready(p);
+            const media=await p.evaluate(()=>({fine:matchMedia('(hover:hover) and (pointer:fine)').matches,desktop:matchMedia('(min-width:701px)').matches}));assert(media.fine&&media.desktop,lang+' media '+JSON.stringify(media));
             await forceSettled(p);
-
-            const order=await p.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(x=>x.dataset.brand));
-            assert(JSON.stringify(order)===JSON.stringify(brands),lang+' order '+JSON.stringify(order));
+            const order=await p.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(x=>x.dataset.brand));assert(JSON.stringify(order)===JSON.stringify(brands),lang+' order '+JSON.stringify(order));
 
             for(let i=0;i<10;i++){
               await evt(p,i,'pointerenter');
-              const x=await p.evaluate(()=>{
-                const s=document.querySelector('[data-home-tech-r2]');
-                const tail=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');
-                const core=s.querySelector('.home-tech-r2__relay-local-core');
-                const active=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active');
-                return {
-                  active:s.classList.contains('is-local-active'),
-                  offset:s.style.getPropertyValue('--tech-r2-local-offset'),
-                  tailDash:tail.style.strokeDasharray,
-                  coreDash:core.style.strokeDasharray,
-                  durations:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration)),
-                  cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length,
-                  globalOpacity:Number(getComputedStyle(active).opacity)
-                };
-              });
+              await waitInheritedOpacity(p);
+              const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),tail=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),core=s.querySelector('.home-tech-r2__relay-local-core'),active=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active');return{active:s.classList.contains('is-local-active'),offset:s.style.getPropertyValue('--tech-r2-local-offset'),tailDash:tail.style.strokeDasharray,coreDash:core.style.strokeDasharray,durations:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration)),cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length,globalOpacity:Number(getComputedStyle(active).opacity)};});
               const td=dash(x.tailDash),cd=dash(x.coreDash);
               assert(x.active&&x.offset===offsets[i],lang+' '+brands[i]+' mapping '+JSON.stringify(x));
               assert(td.length>=2&&Math.abs(td[0]-.18)<.001&&Math.abs(td[1]-2)<.001&&cd.length>=2&&Math.abs(cd[0]-.065)<.001&&Math.abs(cd[1]-2)<.001,lang+' '+brands[i]+' pulse segments '+JSON.stringify({td,cd}));
@@ -165,13 +107,10 @@ jobs:
 
               await advance(p,320);
               if(visual&&i===2)await shot(p,'/tmp/r13-evidence/r13-hover-gemini-en.png');
-
               await evt(p,i,'pointerleave');
-              const fade=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{durations:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration)),cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length};});
-              assert(fade.durations.length===2&&fade.durations.every(v=>v===220)&&fade.cores===1,lang+' '+brands[i]+' leave fade '+JSON.stringify(fade));
+              const fade=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{durations:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration)),cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length};});assert(fade.durations.length===2&&fade.durations.every(v=>v===220)&&fade.cores===1,lang+' '+brands[i]+' leave fade '+JSON.stringify(fade));
               await advance(p,220);
-              const invisible=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),tail=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),core=s.querySelector('.home-tech-r2__relay-local-core');return{tail:Number(getComputedStyle(tail).opacity),core:Number(getComputedStyle(core).opacity)};});
-              assert(invisible.tail<=.01&&invisible.core<=.01,lang+' '+brands[i]+' visible cleanup '+JSON.stringify(invisible));
+              const invisible=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),tail=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),core=s.querySelector('.home-tech-r2__relay-local-core');return{tail:Number(getComputedStyle(tail).opacity),core:Number(getComputedStyle(core).opacity)};});assert(invisible.tail<=.01&&invisible.core<=.01,lang+' '+brands[i]+' visible cleanup '+JSON.stringify(invisible));
               await finishOwned(p);
               await p.waitForFunction(()=>{const s=document.querySelector('[data-home-tech-r2]');return !s.classList.contains('is-local-active')&&(s.__techR2LocalAnimations||[]).length===0;},{timeout:2000});
             }
@@ -181,56 +120,20 @@ jobs:
               if(previous!==null)await evt(p,previous,'pointerleave');
               await evt(p,i,'pointerenter');
               previous=i;
-              const rapidStep=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{n:(s.__techR2LocalAnimations||[]).length,cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length,durations:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration))};});
-              assert(rapidStep.n===2&&rapidStep.cores===1&&rapidStep.durations.every(v=>v===740),lang+' rapid ghost overlap '+JSON.stringify(rapidStep));
+              const step=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{n:(s.__techR2LocalAnimations||[]).length,cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length,durations:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration))};});
+              assert(step.n===2&&step.cores===1&&step.durations.every(v=>v===740),lang+' rapid ghost overlap '+JSON.stringify(step));
             }
-            const rapid=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{offset:s.style.getPropertyValue('--tech-r2-local-offset'),n:(s.__techR2LocalAnimations||[]).length,cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length};});
-            assert(rapid.offset==='-.88'&&rapid.n===2&&rapid.cores===1,lang+' rapid final '+JSON.stringify(rapid));
-            await evt(p,9,'pointerleave');
-            await advance(p,220);
-            await finishOwned(p);
-            await p.waitForFunction(()=>{const s=document.querySelector('[data-home-tech-r2]');return !s.classList.contains('is-local-active')&&(s.__techR2LocalAnimations||[]).length===0;},{timeout:2000});
+            const rapid=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{offset:s.style.getPropertyValue('--tech-r2-local-offset'),n:(s.__techR2LocalAnimations||[]).length,cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length};});assert(rapid.offset==='-.88'&&rapid.n===2&&rapid.cores===1,lang+' rapid final '+JSON.stringify(rapid));
+            await evt(p,9,'pointerleave');await advance(p,220);await finishOwned(p);await p.waitForFunction(()=>{const s=document.querySelector('[data-home-tech-r2]');return !s.classList.contains('is-local-active')&&(s.__techR2LocalAnimations||[]).length===0;},{timeout:2000});
 
-            const layout=await p.evaluate(()=>{const de=document.documentElement,s=document.querySelector('[data-home-tech-r2]');return{doc:[de.clientWidth,de.scrollWidth],tech:[s.clientWidth,s.scrollWidth],count:s.querySelectorAll('.home-tech-r2__identity').length};});
-            assert(layout.doc[1]<=layout.doc[0]+1&&layout.tech[1]<=layout.tech[0]+1&&layout.count===10,lang+' layout '+JSON.stringify(layout));
-            assert(d.errors.length===0&&d.failed.length===0,lang+' diagnostics '+JSON.stringify(d));
-            console.log('DESKTOP_PASS '+lang);
+            const layout=await p.evaluate(()=>{const de=document.documentElement,s=document.querySelector('[data-home-tech-r2]');return{doc:[de.clientWidth,de.scrollWidth],tech:[s.clientWidth,s.scrollWidth],count:s.querySelectorAll('.home-tech-r2__identity').length};});assert(layout.doc[1]<=layout.doc[0]+1&&layout.tech[1]<=layout.tech[0]+1&&layout.count===10,lang+' layout '+JSON.stringify(layout));assert(d.errors.length===0&&d.failed.length===0,lang+' diagnostics '+JSON.stringify(d));console.log('DESKTOP_PASS '+lang);
 
-            if(visual){
-              let frame=0,last=null;
-              for(const i of [0,2,5,9]){
-                if(last!==null)await evt(p,last,'pointerleave');
-                await evt(p,i,'pointerenter');
-                last=i;
-                for(const t of [80,260,440,620]){
-                  await advance(p,t);frame++;
-                  await shot(p,`/tmp/r13-frames/frame-${String(frame).padStart(3,'0')}.png`);
-                }
-              }
-              if(last!==null){await evt(p,last,'pointerleave');await advance(p,220);await finishOwned(p);}
-              console.log('VISUAL_FRAMES '+frame);
-            }
+            if(visual){let frame=0,last=null;for(const i of [0,2,5,9]){if(last!==null)await evt(p,last,'pointerleave');await evt(p,i,'pointerenter');await waitInheritedOpacity(p);last=i;for(const t of [80,260,440,620]){await advance(p,t);frame++;await shot(p,`/tmp/r13-frames/frame-${String(frame).padStart(3,'0')}.png`);}}if(last!==null){await evt(p,last,'pointerleave');await advance(p,220);await finishOwned(p);}console.log('VISUAL_FRAMES '+frame);}
             await c.close();
           }
 
-          async function mobile(label,w,h,landscape){
-            const c=await browser.newContext({viewport:{width:w,height:h},hasTouch:true,isMobile:true,reducedMotion:'no-preference'}),p=await c.newPage(),d=diag(p);
-            await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await ready(p);
-            const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),m=s.querySelector('.home-tech-r2__relay--mobile'),desk=s.querySelector('.home-tech-r2__relay--desktop'),b=m.querySelector('.home-tech-r2__relay-base'),de=document.documentElement;return{mode:s.dataset.techR2RelayMode,v:m.getAttribute('viewBox'),path:b.getAttribute('d'),mobile:getComputedStyle(m).display,desktop:getComputedStyle(desk).display,core:s.querySelectorAll('.home-tech-r2__relay-local-core').length,local:s.dataset.techR2LocalReady||'',count:s.querySelectorAll('.home-tech-r2__identity').length,overflow:de.scrollWidth-de.clientWidth};});
-            if(landscape)assert(x.mode==='landscape'&&x.v==='0 0 560 300'&&x.path===landscapePath&&x.mobile!=='none'&&x.desktop==='none',label+' landscape '+JSON.stringify(x));
-            else assert(x.mode==='portrait'&&x.v==='0 0 400 520'&&x.path==='M200 0 V520',label+' portrait '+JSON.stringify(x));
-            assert(x.core===0&&x.local!=='true'&&x.count===10&&x.overflow<=1&&d.errors.length===0&&d.failed.length===0,label+' unchanged '+JSON.stringify({x,d}));
-            console.log('MOBILE_PASS '+label);await c.close();
-          }
-
-          async function reduced(){
-            const c=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'reduce'}),p=await c.newPage();
-            await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await ready(p);
-            await p.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled',{timeout:5000});
-            const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{state:s.dataset.techR2State,core:s.querySelectorAll('.home-tech-r2__relay-local-core').length,local:s.dataset.techR2LocalReady||''};});
-            assert(x.state==='settled'&&x.core===0&&x.local!=='true','reduced '+JSON.stringify(x));
-            console.log('REDUCED_PASS');await c.close();
-          }
+          async function mobile(label,w,h,landscape){const c=await browser.newContext({viewport:{width:w,height:h},hasTouch:true,isMobile:true,reducedMotion:'no-preference'}),p=await c.newPage(),d=diag(p);await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await ready(p);const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),m=s.querySelector('.home-tech-r2__relay--mobile'),desk=s.querySelector('.home-tech-r2__relay--desktop'),b=m.querySelector('.home-tech-r2__relay-base'),de=document.documentElement;return{mode:s.dataset.techR2RelayMode,v:m.getAttribute('viewBox'),path:b.getAttribute('d'),mobile:getComputedStyle(m).display,desktop:getComputedStyle(desk).display,core:s.querySelectorAll('.home-tech-r2__relay-local-core').length,local:s.dataset.techR2LocalReady||'',count:s.querySelectorAll('.home-tech-r2__identity').length,overflow:de.scrollWidth-de.clientWidth};});if(landscape)assert(x.mode==='landscape'&&x.v==='0 0 560 300'&&x.path===landscapePath&&x.mobile!=='none'&&x.desktop==='none',label+' landscape '+JSON.stringify(x));else assert(x.mode==='portrait'&&x.v==='0 0 400 520'&&x.path==='M200 0 V520',label+' portrait '+JSON.stringify(x));assert(x.core===0&&x.local!=='true'&&x.count===10&&x.overflow<=1&&d.errors.length===0&&d.failed.length===0,label+' unchanged '+JSON.stringify({x,d}));console.log('MOBILE_PASS '+label);await c.close();}
+          async function reduced(){const c=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'reduce'}),p=await c.newPage();await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await ready(p);await p.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled',{timeout:5000});const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{state:s.dataset.techR2State,core:s.querySelectorAll('.home-tech-r2__relay-local-core').length,local:s.dataset.techR2LocalReady||''};});assert(x.state==='settled'&&x.core===0&&x.local!=='true','reduced '+JSON.stringify(x));console.log('REDUCED_PASS');await c.close();}
 
           await desktop('EN',true);
           await desktop('RU',false);

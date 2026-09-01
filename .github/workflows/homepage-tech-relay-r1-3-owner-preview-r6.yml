@@ -1,0 +1,304 @@
+name: Homepage Technology Z-Relay R1.3 Owner Closeout
+
+on:
+  push:
+    branches:
+      - review/homepage-tech-relay-signal-r1-3-owner-preview-r6
+
+permissions:
+  contents: read
+  statuses: write
+
+env:
+  PRODUCT_SHA: 7b0942a042ef23e10cd74592208eeae94479b45e
+  QA_BASE: http://127.0.0.1:4173
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7b0942a042ef23e10cd74592208eeae94479b45e
+          fetch-depth: 1
+
+      - name: Verify exact immutable product
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
+          node --check assets/js/home-technology-transition-r2.js
+          grep -Fq "var DESKTOP_SIGNAL_DURATION = 1900;" assets/js/home-technology-transition-r2.js
+          grep -Fq "var DESKTOP_HANDOFF_DELAY = 1680;" assets/js/home-technology-transition-r2.js
+          grep -Fq "var LOCAL_RESPONSE_DURATION = 740;" assets/js/home-technology-transition-r2.js
+          grep -Fq "var LOCAL_LEAVE_DURATION = 220;" assets/js/home-technology-transition-r2.js
+          grep -Fq "tailAnimation.onfinish = function ()" assets/js/home-technology-transition-r2.js
+          grep -Fq "finishLocalClear(section, token);" assets/js/home-technology-transition-r2.js
+          grep -R -Fq "opacity: .29" assets/css
+
+      - name: Build exact product
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          npm install --no-save --package-lock=false playwright-core@1.55.0
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable)
+          test -n "$CHROME"
+          echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
+          if command -v ffmpeg >/dev/null 2>&1; then echo "FFMPEG_PATH=$(command -v ffmpeg)" >> "$GITHUB_ENV"; fi
+
+      - name: Start exact site
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/r13-r6-server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS "$QA_BASE/" >/dev/null && curl -fsS "$QA_BASE/ru/" >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+
+      - name: Run corrected deterministic R1.3 QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/r13-evidence /tmp/r13-frames
+          cat >.r13-r6.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          import fs from 'node:fs';
+
+          const base=process.env.QA_BASE.replace(/\/$/,'');
+          const browser=await chromium.launch({executablePath:process.env.CHROME_PATH,headless:true,args:['--disable-dev-shm-usage','--ignore-gpu-blocklist']});
+          const brands=['openai','claude','gemini','n8n','make','twilio','vercel','gmail','zapier','github'];
+          const offsets=['-.44','-.37','-.30','-.23','-.16','-.68','-.73','-.78','-.83','-.88'];
+          const landscapePath='M332 0 V18 Q332 34 314 34 H300 Q280 34 280 54 V244 Q280 262 298 262 H354 Q372 262 372 280 V300';
+          const assert=(v,m)=>{if(!v)throw new Error(m)};
+          const dash=s=>String(s).split(/[ ,]+/).filter(Boolean).map(Number);
+
+          async function ready(p){
+            await p.waitForSelector('[data-home-tech-r2]',{timeout:10000});
+            await p.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2SignalReady==='true',{timeout:15000});
+          }
+          async function evt(p,i,type){
+            await p.evaluate(({i,type})=>{
+              const el=document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')[i];
+              if(!el)throw new Error('identity '+i+' missing');
+              el.dispatchEvent(new PointerEvent(type,{pointerType:'mouse',isPrimary:true,bubbles:false}));
+            },{i,type});
+          }
+          async function advance(p,t){
+            await p.evaluate(t=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              (s.__techR2LocalAnimations||[]).forEach(a=>{a.pause();a.currentTime=t;});
+            },t);
+          }
+          async function finishOwned(p){
+            await p.evaluate(async()=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              const arr=[...(s.__techR2LocalAnimations||[])];
+              arr.forEach(a=>{try{a.finish();}catch{}});
+              await new Promise(r=>setTimeout(r,0));
+            });
+          }
+          async function shot(p,path){
+            const cdp=await p.context().newCDPSession(p);
+            const x=await cdp.send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
+            fs.writeFileSync(path,Buffer.from(x.data,'base64'));
+            await cdp.detach();
+          }
+          function diag(p){
+            const d={errors:[],failed:[]};
+            p.on('pageerror',e=>d.errors.push(String(e?.stack||e)));
+            p.on('requestfailed',r=>{if(/home-technology-transition-r2|\/assets\/brand\/platforms\//.test(r.url()))d.failed.push(r.url());});
+            return d;
+          }
+          async function forceSettled(p){
+            await p.evaluate(()=>{
+              const s=document.querySelector('[data-home-tech-r2]');
+              const sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');
+              s.dataset.techR2State='settled';
+              s.classList.add('is-settled');
+              s.classList.remove('is-assembling');
+              if(sig)sig.style.animation='none';
+              s.scrollIntoView({block:'center',behavior:'instant'});
+            });
+          }
+
+          async function desktop(lang,visual=false){
+            const c=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'});
+            const p=await c.newPage(),d=diag(p);
+            await p.goto(base+(lang==='EN'?'/':'/ru/'),{waitUntil:'domcontentloaded',timeout:20000});
+            await ready(p);
+            const media=await p.evaluate(()=>({fine:matchMedia('(hover:hover) and (pointer:fine)').matches,desktop:matchMedia('(min-width:701px)').matches}));
+            assert(media.fine&&media.desktop,lang+' media '+JSON.stringify(media));
+            await forceSettled(p);
+
+            const order=await p.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(x=>x.dataset.brand));
+            assert(JSON.stringify(order)===JSON.stringify(brands),lang+' order '+JSON.stringify(order));
+
+            for(let i=0;i<10;i++){
+              await evt(p,i,'pointerenter');
+              const x=await p.evaluate(()=>{
+                const s=document.querySelector('[data-home-tech-r2]');
+                const tail=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');
+                const core=s.querySelector('.home-tech-r2__relay-local-core');
+                const active=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active');
+                return {
+                  active:s.classList.contains('is-local-active'),
+                  offset:s.style.getPropertyValue('--tech-r2-local-offset'),
+                  tailDash:tail.style.strokeDasharray,
+                  coreDash:core.style.strokeDasharray,
+                  durations:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration)),
+                  cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length,
+                  globalOpacity:Number(getComputedStyle(active).opacity)
+                };
+              });
+              const td=dash(x.tailDash),cd=dash(x.coreDash);
+              assert(x.active&&x.offset===offsets[i],lang+' '+brands[i]+' mapping '+JSON.stringify(x));
+              assert(td.length>=2&&Math.abs(td[0]-.18)<.001&&Math.abs(td[1]-2)<.001&&cd.length>=2&&Math.abs(cd[0]-.065)<.001&&Math.abs(cd[1]-2)<.001,lang+' '+brands[i]+' pulse segments '+JSON.stringify({td,cd}));
+              assert(x.durations.length===2&&x.durations.every(v=>v===740)&&x.cores===1,lang+' '+brands[i]+' pulse timing '+JSON.stringify(x));
+              assert(x.globalOpacity>=.28&&x.globalOpacity<=.30,lang+' '+brands[i]+' inherited global opacity '+JSON.stringify(x));
+
+              await advance(p,320);
+              if(visual&&i===2)await shot(p,'/tmp/r13-evidence/r13-hover-gemini-en.png');
+
+              await evt(p,i,'pointerleave');
+              const fade=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{durations:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration)),cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length};});
+              assert(fade.durations.length===2&&fade.durations.every(v=>v===220)&&fade.cores===1,lang+' '+brands[i]+' leave fade '+JSON.stringify(fade));
+              await advance(p,220);
+              const invisible=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),tail=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),core=s.querySelector('.home-tech-r2__relay-local-core');return{tail:Number(getComputedStyle(tail).opacity),core:Number(getComputedStyle(core).opacity)};});
+              assert(invisible.tail<=.01&&invisible.core<=.01,lang+' '+brands[i]+' visible cleanup '+JSON.stringify(invisible));
+              await finishOwned(p);
+              await p.waitForFunction(()=>{const s=document.querySelector('[data-home-tech-r2]');return !s.classList.contains('is-local-active')&&(s.__techR2LocalAnimations||[]).length===0;},{timeout:2000});
+            }
+
+            let previous=null;
+            for(const i of [0,2,5,9]){
+              if(previous!==null)await evt(p,previous,'pointerleave');
+              await evt(p,i,'pointerenter');
+              previous=i;
+              const rapidStep=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{n:(s.__techR2LocalAnimations||[]).length,cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length,durations:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration))};});
+              assert(rapidStep.n===2&&rapidStep.cores===1&&rapidStep.durations.every(v=>v===740),lang+' rapid ghost overlap '+JSON.stringify(rapidStep));
+            }
+            const rapid=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{offset:s.style.getPropertyValue('--tech-r2-local-offset'),n:(s.__techR2LocalAnimations||[]).length,cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length};});
+            assert(rapid.offset==='-.88'&&rapid.n===2&&rapid.cores===1,lang+' rapid final '+JSON.stringify(rapid));
+            await evt(p,9,'pointerleave');
+            await advance(p,220);
+            await finishOwned(p);
+            await p.waitForFunction(()=>{const s=document.querySelector('[data-home-tech-r2]');return !s.classList.contains('is-local-active')&&(s.__techR2LocalAnimations||[]).length===0;},{timeout:2000});
+
+            const layout=await p.evaluate(()=>{const de=document.documentElement,s=document.querySelector('[data-home-tech-r2]');return{doc:[de.clientWidth,de.scrollWidth],tech:[s.clientWidth,s.scrollWidth],count:s.querySelectorAll('.home-tech-r2__identity').length};});
+            assert(layout.doc[1]<=layout.doc[0]+1&&layout.tech[1]<=layout.tech[0]+1&&layout.count===10,lang+' layout '+JSON.stringify(layout));
+            assert(d.errors.length===0&&d.failed.length===0,lang+' diagnostics '+JSON.stringify(d));
+            console.log('DESKTOP_PASS '+lang);
+
+            if(visual){
+              let frame=0,last=null;
+              for(const i of [0,2,5,9]){
+                if(last!==null)await evt(p,last,'pointerleave');
+                await evt(p,i,'pointerenter');
+                last=i;
+                for(const t of [80,260,440,620]){
+                  await advance(p,t);frame++;
+                  await shot(p,`/tmp/r13-frames/frame-${String(frame).padStart(3,'0')}.png`);
+                }
+              }
+              if(last!==null){await evt(p,last,'pointerleave');await advance(p,220);await finishOwned(p);}
+              console.log('VISUAL_FRAMES '+frame);
+            }
+            await c.close();
+          }
+
+          async function mobile(label,w,h,landscape){
+            const c=await browser.newContext({viewport:{width:w,height:h},hasTouch:true,isMobile:true,reducedMotion:'no-preference'}),p=await c.newPage(),d=diag(p);
+            await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await ready(p);
+            const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),m=s.querySelector('.home-tech-r2__relay--mobile'),desk=s.querySelector('.home-tech-r2__relay--desktop'),b=m.querySelector('.home-tech-r2__relay-base'),de=document.documentElement;return{mode:s.dataset.techR2RelayMode,v:m.getAttribute('viewBox'),path:b.getAttribute('d'),mobile:getComputedStyle(m).display,desktop:getComputedStyle(desk).display,core:s.querySelectorAll('.home-tech-r2__relay-local-core').length,local:s.dataset.techR2LocalReady||'',count:s.querySelectorAll('.home-tech-r2__identity').length,overflow:de.scrollWidth-de.clientWidth};});
+            if(landscape)assert(x.mode==='landscape'&&x.v==='0 0 560 300'&&x.path===landscapePath&&x.mobile!=='none'&&x.desktop==='none',label+' landscape '+JSON.stringify(x));
+            else assert(x.mode==='portrait'&&x.v==='0 0 400 520'&&x.path==='M200 0 V520',label+' portrait '+JSON.stringify(x));
+            assert(x.core===0&&x.local!=='true'&&x.count===10&&x.overflow<=1&&d.errors.length===0&&d.failed.length===0,label+' unchanged '+JSON.stringify({x,d}));
+            console.log('MOBILE_PASS '+label);await c.close();
+          }
+
+          async function reduced(){
+            const c=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'reduce'}),p=await c.newPage();
+            await p.goto(base+'/',{waitUntil:'domcontentloaded',timeout:20000});await ready(p);
+            await p.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled',{timeout:5000});
+            const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{state:s.dataset.techR2State,core:s.querySelectorAll('.home-tech-r2__relay-local-core').length,local:s.dataset.techR2LocalReady||''};});
+            assert(x.state==='settled'&&x.core===0&&x.local!=='true','reduced '+JSON.stringify(x));
+            console.log('REDUCED_PASS');await c.close();
+          }
+
+          await desktop('EN',true);
+          await desktop('RU',false);
+          await mobile('PORTRAIT_390x844',390,844,false);
+          await mobile('LANDSCAPE_844x390',844,390,true);
+          await reduced();
+          await browser.close();
+          assert(fs.existsSync('/tmp/r13-evidence/r13-hover-gemini-en.png')&&fs.statSync('/tmp/r13-evidence/r13-hover-gemini-en.png').size>1000,'screenshot missing');
+          console.log('R13_QA=PASS');
+          NODE
+          QA_BASE="$QA_BASE" CHROME_PATH="$CHROME_PATH" node .r13-r6.mjs
+          rm -f .r13-r6.mjs
+          if [ -n "${FFMPEG_PATH:-}" ] && compgen -G '/tmp/r13-frames/frame-*.png' >/dev/null; then
+            "$FFMPEG_PATH" -y -loglevel error -framerate 8 -pattern_type glob -i '/tmp/r13-frames/frame-*.png' -c:v libx264 -pix_fmt yuv420p -movflags +faststart /tmp/r13-evidence/r13-hover-preview.mp4
+          fi
+          test -s /tmp/r13-evidence/r13-hover-gemini-en.png
+          test -s /tmp/r13-evidence/r13-hover-preview.mp4
+          ls -lh /tmp/r13-evidence
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: technology-r13-owner-site
+          path: _site
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: technology-r13-visual-evidence
+          path: /tmp/r13-evidence
+          if-no-files-found: error
+          retention-days: 1
+
+  preview:
+    needs: qa
+    runs-on: ubuntu-latest
+    timeout-minutes: 125
+    env:
+      INFRA_SHA: ${{ github.sha }}
+      REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: technology-r13-owner-site
+          path: _site
+
+      - name: Publish fresh HTTPS Owner preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/r13-preview-server.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          nohup /tmp/cloudflared tunnel --url http://127.0.0.1:4173 --no-autoupdate >/tmp/r13-cloudflared.log 2>&1 &
+
+          URL=''
+          for i in $(seq 1 60); do
+            URL=$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/r13-cloudflared.log | head -1 || true)
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          test -n "$URL"
+          curl -fsSL "$URL/" >/dev/null
+          curl -fsSL "$URL/ru/" >/dev/null
+
+          api="https://api.github.com/repos/$REPO/statuses/$INFRA_SHA"
+          curl -fsSL -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "$api" -d "{\"state\":\"success\",\"target_url\":\"$URL\",\"description\":\"R1.3 Owner Preview ready\",\"context\":\"owner-preview/technology-z-relay-r1-3\"}"
+          echo "OWNER_REVIEW_URL=$URL"
+          sleep 7200

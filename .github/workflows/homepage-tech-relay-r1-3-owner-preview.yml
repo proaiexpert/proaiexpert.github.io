@@ -90,10 +90,9 @@ jobs:
             }),target);
           }
 
-          async function moveTo(p,index){
-            const box=await p.locator('[data-home-tech-r2] .home-tech-r2__identity').nth(index).boundingBox();
-            assert(box,'missing identity '+index);
-            await p.mouse.move(box.x+box.width/2,box.y+box.height/2);
+          async function hoverIdentity(p,index){
+            const item=p.locator('[data-home-tech-r2] .home-tech-r2__identity').nth(index);
+            await item.hover({force:true,timeout:5000});
           }
 
           async function capture(p,path){
@@ -124,19 +123,19 @@ jobs:
               return{duration:sig.style.animationDuration,handoff:h.style.animationDelay,coreCount:s.querySelectorAll('.home-tech-r2__relay--desktop .home-tech-r2__relay-local-core').length};
             });
             assert(initial.duration==='1900ms'&&initial.handoff==='1680ms'&&initial.coreCount===1,lang+' initial lock '+JSON.stringify(initial));
-            await waitState(p,'settled');await sleep(100);
+            await waitState(p,'settled');await sleep(120);
 
             const order=await p.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(x=>x.dataset.brand));
             assert(JSON.stringify(order)===JSON.stringify(brands),lang+' brand order '+JSON.stringify(order));
 
             for(let i=0;i<brands.length;i++){
-              await moveTo(p,i);await p.waitForFunction(()=>document.querySelector('[data-home-tech-r2]').classList.contains('is-local-active'),{timeout:3000});await sleep(95);
+              await hoverIdentity(p,i);
               const snap=await p.evaluate(()=>{
                 const s=document.querySelector('[data-home-tech-r2]'),tail=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),core=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-local-core'),active=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active');
-                return{offset:s.style.getPropertyValue('--tech-r2-local-offset'),tailDash:tail.style.strokeDasharray,coreDash:core.style.strokeDasharray,tailDuration:tail.getAnimations()[0]?.effect?.getTiming?.().duration,coreDuration:core.getAnimations()[0]?.effect?.getTiming?.().duration,coreCount:s.querySelectorAll('.home-tech-r2__relay-local-core').length,localAnimations:(s.__techR2LocalAnimations||[]).length,globalOpacity:Number(getComputedStyle(active).opacity),globalAnimations:active.getAnimations().length};
+                return{active:s.classList.contains('is-local-active'),offset:s.style.getPropertyValue('--tech-r2-local-offset'),tailDash:tail.style.strokeDasharray,coreDash:core.style.strokeDasharray,tailDuration:tail.getAnimations()[0]?.effect?.getTiming?.().duration,coreDuration:core.getAnimations()[0]?.effect?.getTiming?.().duration,coreCount:s.querySelectorAll('.home-tech-r2__relay-local-core').length,localAnimations:(s.__techR2LocalAnimations||[]).length,globalOpacity:Number(getComputedStyle(active).opacity),globalAnimations:active.getAnimations().length};
               });
-              assert(snap.offset===offsets[i],lang+' '+brands[i]+' offset '+JSON.stringify(snap));
-              assert(snap.tailDash==='.18 2'&&snap.coreDash==='.065 2',lang+' '+brands[i]+' segmented geometry '+JSON.stringify(snap));
+              assert(snap.active&&snap.offset===offsets[i],lang+' '+brands[i]+' offset '+JSON.stringify(snap));
+              assert(snap.tailDash==='.18 2'&&snap.coreDash==='.065 2',lang+' '+brands[i]+' single pulse geometry '+JSON.stringify(snap));
               assert(Number(snap.tailDuration)===740&&Number(snap.coreDuration)===740&&snap.localAnimations===2&&snap.coreCount===1,lang+' '+brands[i]+' pulse layers '+JSON.stringify(snap));
               assert(snap.globalOpacity<=.25&&snap.globalAnimations===0,lang+' '+brands[i]+' global overactivation '+JSON.stringify(snap));
 
@@ -145,12 +144,12 @@ jobs:
                 await capture(p,'/tmp/r13-hover-gemini-en.png');
               }
 
-              await p.mouse.move(8,8);await sleep(280);
+              await p.mouse.move(8,8);await sleep(300);
               const clean=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),tail=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),core=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-local-core');return{active:s.classList.contains('is-local-active'),n:(s.__techR2LocalAnimations||[]).length,tail:Number(getComputedStyle(tail).opacity),core:Number(getComputedStyle(core).opacity)};});
               assert(!clean.active&&clean.n===0&&clean.tail<=.01&&clean.core<=.01,lang+' '+brands[i]+' stale cleanup '+JSON.stringify(clean));
             }
 
-            for(const i of [0,2,5,9]){await moveTo(p,i);await sleep(105);}
+            for(const i of [0,2,5,9]){await hoverIdentity(p,i);await sleep(90);}
             const rapid=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{offset:s.style.getPropertyValue('--tech-r2-local-offset'),n:(s.__techR2LocalAnimations||[]).length,coreCount:s.querySelectorAll('.home-tech-r2__relay-local-core').length};});
             assert(rapid.offset==='-.88'&&rapid.n===2&&rapid.coreCount===1,lang+' rapid hover '+JSON.stringify(rapid));
             await sleep(820);
@@ -167,7 +166,7 @@ jobs:
               const cdp=await c.newCDPSession(p);let frameNo=0;
               cdp.on('Page.screencastFrame',async e=>{try{frameNo++;fs.writeFileSync(`/tmp/r13-frames/frame-${String(frameNo).padStart(5,'0')}.jpg`,Buffer.from(e.data,'base64'));await cdp.send('Page.screencastFrameAck',{sessionId:e.sessionId});}catch{}});
               await cdp.send('Page.startScreencast',{format:'jpeg',quality:82,maxWidth:1440,maxHeight:900,everyNthFrame:1});
-              for(const i of [0,2,5,9]){await moveTo(p,i);await sleep(520);}
+              for(const i of [0,2,5,9]){await hoverIdentity(p,i);await sleep(520);}
               await p.mouse.move(8,8);await sleep(350);await cdp.send('Page.stopScreencast');await sleep(300);await cdp.detach();
               console.log('SCREENCAST_FRAMES '+frameNo);
             }
@@ -181,7 +180,7 @@ jobs:
             const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),m=s.querySelector('.home-tech-r2__relay--mobile'),desk=s.querySelector('.home-tech-r2__relay--desktop'),b=m.querySelector('.home-tech-r2__relay-base'),de=document.documentElement;return{mode:s.dataset.techR2RelayMode,v:m.getAttribute('viewBox'),path:b.getAttribute('d'),mobile:getComputedStyle(m).display,desktop:getComputedStyle(desk).display,core:s.querySelectorAll('.home-tech-r2__relay-local-core').length,localReady:s.dataset.techR2LocalReady||'',count:s.querySelectorAll('.home-tech-r2__identity').length,overflow:de.scrollWidth-de.clientWidth};});
             if(landscape){assert(x.mode==='landscape'&&x.v==='0 0 560 300'&&x.path==='M332 0 V18 Q332 34 314 34 H300 Q280 34 280 54 V244 Q280 262 298 262 H354 Q372 262 372 280 V300'&&x.mobile!=='none'&&x.desktop==='none',label+' landscape '+JSON.stringify(x));}
             else{assert(x.mode==='portrait'&&x.v==='0 0 400 520'&&x.path==='M200 0 V520',label+' portrait '+JSON.stringify(x));}
-            assert(x.core===0&&x.localReady!== 'true'&&x.count===10&&x.overflow<=1,label+' mobile lock '+JSON.stringify(x));
+            assert(x.core===0&&x.localReady!=='true'&&x.count===10&&x.overflow<=1,label+' mobile lock '+JSON.stringify(x));
             assert(d.errors.length===0,label+' errors '+JSON.stringify(d.errors));console.log('MOBILE_PASS '+label);await c.close();
           }
 

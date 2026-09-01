@@ -21,17 +21,21 @@ jobs:
         with:
           ref: 7b0942a042ef23e10cd74592208eeae94479b45e
           fetch-depth: 1
+
       - name: Verify exact immutable product
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$PRODUCT_SHA"
           node --check assets/js/home-technology-transition-r2.js
+          grep -Fq "var DESKTOP_SIGNAL_DURATION = 1900;" assets/js/home-technology-transition-r2.js
+          grep -Fq "var DESKTOP_HANDOFF_DELAY = 1680;" assets/js/home-technology-transition-r2.js
           grep -Fq "var LOCAL_RESPONSE_DURATION = 740;" assets/js/home-technology-transition-r2.js
           grep -Fq "var LOCAL_LEAVE_DURATION = 220;" assets/js/home-technology-transition-r2.js
           grep -Fq "tailAnimation.onfinish = function ()" assets/js/home-technology-transition-r2.js
           grep -Fq "finishLocalClear(section, token);" assets/js/home-technology-transition-r2.js
           grep -R -Fq "opacity: .29" assets/css
+
       - name: Build exact product
         shell: bash
         run: |
@@ -44,64 +48,287 @@ jobs:
           CHROME=$(command -v google-chrome || command -v google-chrome-stable); test -n "$CHROME"
           echo "CHROME_PATH=$CHROME" >> "$GITHUB_ENV"
           if command -v ffmpeg >/dev/null 2>&1; then echo "FFMPEG_PATH=$(command -v ffmpeg)" >> "$GITHUB_ENV"; fi
+
       - name: Start exact site
         shell: bash
         run: |
+          set -euo pipefail
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/r13-r6-server.log 2>&1 &
-          for i in $(seq 1 30); do curl -fsS "$QA_BASE/" >/dev/null 2>&1 && curl -fsS "$QA_BASE/ru/" >/dev/null 2>&1 && exit 0; sleep 1; done
+          for i in $(seq 1 30); do
+            if curl -fsS "$QA_BASE/" >/dev/null && curl -fsS "$QA_BASE/ru/" >/dev/null; then exit 0; fi
+            sleep 1
+          done
           exit 1
-      - name: Run deterministic hover QA and capture
+
+      - name: Run scheduler-independent R1.3 QA and visual capture
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/r13-evidence /tmp/r13-frames
           cat >.r13-r6.mjs <<'NODE'
-          import { chromium } from 'playwright-core'; import fs from 'node:fs';
-          const base=process.env.QA_BASE.replace(/\/$/,'');
-          const browser=await chromium.launch({executablePath:process.env.CHROME_PATH,headless:true,args:['--disable-dev-shm-usage','--ignore-gpu-blocklist']});
-          const brands=['openai','claude','gemini','n8n','make','twilio','vercel','gmail','zapier','github'];
-          const offsets=['-.44','-.37','-.30','-.23','-.16','-.68','-.73','-.78','-.83','-.88'];
-          const landscape='M332 0 V18 Q332 34 314 34 H300 Q280 34 280 54 V244 Q280 262 298 262 H354 Q372 262 372 280 V300';
-          const A=(v,m)=>{if(!v)throw new Error(m)}, dash=s=>String(s).split(/[ ,]+/).filter(Boolean).map(Number);
-          async function ready(p){await p.waitForSelector('[data-home-tech-r2]',{timeout:10000});await p.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2SignalReady==='true',null,{timeout:15000});}
-          async function ev(p,i,t){await p.evaluate(({i,t})=>{const e=document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')[i];if(!e)throw Error('missing '+i);e.dispatchEvent(new PointerEvent(t,{pointerType:'mouse',isPrimary:true,bubbles:false}));},{i,t});}
-          async function advance(p,t){await p.evaluate(t=>{const s=document.querySelector('[data-home-tech-r2]');(s.__techR2LocalAnimations||[]).forEach(a=>{a.pause();a.currentTime=t;});},t);}
-          async function shot(p,f){const c=await p.context().newCDPSession(p),x=await c.send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});fs.writeFileSync(f,Buffer.from(x.data,'base64'));await c.detach();}
-          function diag(p){const d={e:[],f:[]};p.on('pageerror',x=>d.e.push(String(x)));p.on('requestfailed',r=>{/home-technology-transition-r2|\/assets\/brand\/platforms\//.test(r.url())&&d.f.push(r.url())});return d;}
-          async function settle(p){await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),sig=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');s.dataset.techR2State='settled';s.classList.add('is-settled');s.classList.remove('is-assembling');if(sig)sig.style.animation='none';s.scrollIntoView({block:'center',behavior:'instant'});});}
-          async function transitionOff(p,on){await p.evaluate(on=>{const a=document.querySelector('[data-home-tech-r2] .home-tech-r2__relay--desktop .home-tech-r2__relay-active');a.style.transition=on?'none':'';},on);}
-          async function visualClean(p,label){await advance(p,220);const v=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),tail=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),core=s.querySelector('.home-tech-r2__relay-local-core');return{tail:Number(getComputedStyle(tail).opacity),core:Number(getComputedStyle(core).opacity),n:(s.__techR2LocalAnimations||[]).length,c:s.querySelectorAll('.home-tech-r2__relay-local-core').length}});A(v.tail<=.01&&v.core<=.01&&v.n===2&&v.c===1,label+' visible cleanup '+JSON.stringify(v));}
+          import { chromium } from 'playwright-core';
+          import fs from 'node:fs';
 
-          async function desktop(lang,visual=false){
-            const c=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'no-preference'}),p=await c.newPage(),d=diag(p);
-            await p.goto(base+(lang==='EN'?'/':'/ru/'),{waitUntil:'domcontentloaded',timeout:20000});await ready(p);await settle(p);await transitionOff(p,true);
-            const media=await p.evaluate(()=>({fine:matchMedia('(hover:hover) and (pointer:fine)').matches,desktop:matchMedia('(min-width:701px)').matches}));A(media.fine&&media.desktop,lang+' media');
-            const order=await p.evaluate(()=>[...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(x=>x.dataset.brand));A(JSON.stringify(order)===JSON.stringify(brands),lang+' order '+JSON.stringify(order));
-            for(let i=0;i<10;i++){
-              await ev(p,i,'pointerenter');
-              const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),tail=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal'),core=s.querySelector('.home-tech-r2__relay-local-core'),act=s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active');return{active:s.classList.contains('is-local-active'),off:s.style.getPropertyValue('--tech-r2-local-offset'),td:tail.style.strokeDasharray,cd:core.style.strokeDasharray,dur:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration)),cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length,op:Number(getComputedStyle(act).opacity)};});
-              const td=dash(x.td),cd=dash(x.cd);A(x.active&&x.off===offsets[i],lang+' '+brands[i]+' mapping '+JSON.stringify(x));A(td[0]===.18&&td[1]===2&&Math.abs(cd[0]-.065)<.001&&cd[1]===2,lang+' '+brands[i]+' pulse shape '+JSON.stringify({td,cd}));A(x.dur.length===2&&x.dur.every(v=>v===740)&&x.cores===1,lang+' '+brands[i]+' timing '+JSON.stringify(x));A(x.op>=.28&&x.op<=.30,lang+' '+brands[i]+' inherited opacity contract '+JSON.stringify(x));
-              await advance(p,320);await ev(p,i,'pointerleave');const f=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{dur:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration)),cores:s.querySelectorAll('.home-tech-r2__relay-local-core').length}});A(f.dur.length===2&&f.dur.every(v=>v===220)&&f.cores===1,lang+' '+brands[i]+' leave '+JSON.stringify(f));await visualClean(p,lang+' '+brands[i]);
-            }
-            let prev=null;for(const i of [0,2,5,9]){if(prev!==null)await ev(p,prev,'pointerleave');await ev(p,i,'pointerenter');prev=i;const q=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{n:(s.__techR2LocalAnimations||[]).length,c:s.querySelectorAll('.home-tech-r2__relay-local-core').length,d:(s.__techR2LocalAnimations||[]).map(a=>Number(a.effect?.getTiming?.().duration))}});A(q.n===2&&q.c===1&&q.d.every(v=>v===740),lang+' rapid ghost '+JSON.stringify(q));}
-            const r=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{off:s.style.getPropertyValue('--tech-r2-local-offset'),n:(s.__techR2LocalAnimations||[]).length,c:s.querySelectorAll('.home-tech-r2__relay-local-core').length}});A(r.off==='-.88'&&r.n===2&&r.c===1,lang+' rapid final '+JSON.stringify(r));await ev(p,9,'pointerleave');await visualClean(p,lang+' rapid');
-            const lay=await p.evaluate(()=>{const de=document.documentElement,s=document.querySelector('[data-home-tech-r2]');return{dw:de.scrollWidth-de.clientWidth,tw:s.scrollWidth-s.clientWidth,n:s.querySelectorAll('.home-tech-r2__identity').length}});A(lay.dw<=1&&lay.tw<=1&&lay.n===10,lang+' overflow '+JSON.stringify(lay));A(!d.e.length&&!d.f.length,lang+' diagnostics '+JSON.stringify(d));console.log('DESKTOP_PASS '+lang);
-            if(visual){await transitionOff(p,false);let frame=0,last=null;for(const i of [0,2,5,9]){if(last!==null){await ev(p,last,'pointerleave');await visualClean(p,'visual '+last);}await ev(p,i,'pointerenter');last=i;for(const t of [80,260,440,620]){await advance(p,t);frame++;await shot(p,`/tmp/r13-frames/frame-${String(frame).padStart(3,'0')}.png`);if(i===2&&t===260)await shot(p,'/tmp/r13-evidence/r13-hover-gemini-en.png');}}if(last!==null){await ev(p,last,'pointerleave');await visualClean(p,'visual final');}console.log('VISUAL_FRAMES '+frame);}
-            await c.close();
+          const base = process.env.QA_BASE.replace(/\/$/, '');
+          const browser = await chromium.launch({
+            executablePath: process.env.CHROME_PATH,
+            headless: true,
+            args: ['--disable-dev-shm-usage', '--ignore-gpu-blocklist']
+          });
+          const brands = ['openai','claude','gemini','n8n','make','twilio','vercel','gmail','zapier','github'];
+          const offsets = ['-.44','-.37','-.30','-.23','-.16','-.68','-.73','-.78','-.83','-.88'];
+          const landscapePath = 'M332 0 V18 Q332 34 314 34 H300 Q280 34 280 54 V244 Q280 262 298 262 H354 Q372 262 372 280 V300';
+          const assert = (value, message) => { if (!value) throw new Error(message); };
+          const dashNums = value => String(value).split(/[ ,]+/).filter(Boolean).map(Number);
+
+          async function ready(page) {
+            await page.waitForSelector('[data-home-tech-r2]', { timeout: 10000 });
+            await page.waitForFunction(
+              () => document.querySelector('[data-home-tech-r2]')?.dataset.techR2SignalReady === 'true',
+              null,
+              { timeout: 15000 }
+            );
           }
-          async function mobile(label,w,h,isLandscape){const c=await browser.newContext({viewport:{width:w,height:h},hasTouch:true,isMobile:true,reducedMotion:'no-preference'}),p=await c.newPage(),d=diag(p);await p.goto(base+'/',{waitUntil:'domcontentloaded'});await ready(p);const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]'),m=s.querySelector('.home-tech-r2__relay--mobile'),desk=s.querySelector('.home-tech-r2__relay--desktop'),b=m.querySelector('.home-tech-r2__relay-base'),de=document.documentElement;return{mode:s.dataset.techR2RelayMode,v:m.getAttribute('viewBox'),path:b.getAttribute('d'),md:getComputedStyle(m).display,dd:getComputedStyle(desk).display,core:s.querySelectorAll('.home-tech-r2__relay-local-core').length,local:s.dataset.techR2LocalReady||'',n:s.querySelectorAll('.home-tech-r2__identity').length,ov:de.scrollWidth-de.clientWidth}});if(isLandscape)A(x.mode==='landscape'&&x.v==='0 0 560 300'&&x.path===landscape&&x.md!=='none'&&x.dd==='none',label+' '+JSON.stringify(x));else A(x.mode==='portrait'&&x.v==='0 0 400 520'&&x.path==='M200 0 V520',label+' '+JSON.stringify(x));A(x.core===0&&x.local!=='true'&&x.n===10&&x.ov<=1&&!d.e.length&&!d.f.length,label+' regression '+JSON.stringify({x,d}));console.log('MOBILE_PASS '+label);await c.close();}
-          async function reduced(){const c=await browser.newContext({viewport:{width:1440,height:900},hasTouch:false,isMobile:false,reducedMotion:'reduce'}),p=await c.newPage();await p.goto(base+'/',{waitUntil:'domcontentloaded'});await ready(p);await p.waitForFunction(()=>document.querySelector('[data-home-tech-r2]')?.dataset.techR2State==='settled',null,{timeout:5000});const x=await p.evaluate(()=>{const s=document.querySelector('[data-home-tech-r2]');return{state:s.dataset.techR2State,core:s.querySelectorAll('.home-tech-r2__relay-local-core').length,local:s.dataset.techR2LocalReady||''}});A(x.state==='settled'&&x.core===0&&x.local!=='true','reduced '+JSON.stringify(x));console.log('REDUCED_PASS');await c.close();}
-          await desktop('EN',true);await desktop('RU');await mobile('PORTRAIT_390x844',390,844,false);await mobile('LANDSCAPE_844x390',844,390,true);await reduced();await browser.close();A(fs.existsSync('/tmp/r13-evidence/r13-hover-gemini-en.png'),'screenshot missing');console.log('R13_QA=PASS');
+
+          function diagnostics(page) {
+            const d = { errors: [], failed: [] };
+            page.on('pageerror', e => d.errors.push(String(e?.stack || e)));
+            page.on('requestfailed', r => {
+              if (/home-technology-transition-r2|\/assets\/brand\/platforms\//.test(r.url())) d.failed.push(r.url());
+            });
+            return d;
+          }
+
+          async function prepareDesktop(page, disableRelayTransition) {
+            await page.evaluate(disableRelayTransition => {
+              const s = document.querySelector('[data-home-tech-r2]');
+              const sig = s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');
+              const active = s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active');
+              s.dataset.techR2State = 'settled';
+              s.classList.add('is-settled');
+              s.classList.remove('is-assembling');
+              if (sig) sig.style.animation = 'none';
+              if (active && disableRelayTransition) active.style.transition = 'none';
+              s.scrollIntoView({ block: 'center', behavior: 'instant' });
+            }, disableRelayTransition);
+          }
+
+          async function enterSnapshot(page, index) {
+            return page.evaluate(index => {
+              const s = document.querySelector('[data-home-tech-r2]');
+              const item = s.querySelectorAll('.home-tech-r2__identity')[index];
+              item.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse', isPrimary: true, bubbles: false }));
+              const owned = s.__techR2LocalAnimations || [];
+              owned.forEach(a => a.pause());
+              const tail = s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');
+              const core = s.querySelector('.home-tech-r2__relay-local-core');
+              const active = s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-active');
+              return {
+                active: s.classList.contains('is-local-active'),
+                offset: s.style.getPropertyValue('--tech-r2-local-offset'),
+                tailDash: tail.style.strokeDasharray,
+                coreDash: core.style.strokeDasharray,
+                durations: owned.map(a => Number(a.effect?.getTiming?.().duration)),
+                coreCount: s.querySelectorAll('.home-tech-r2__relay-local-core').length,
+                globalOpacity: Number(getComputedStyle(active).opacity)
+              };
+            }, index);
+          }
+
+          async function leaveSnapshot(page, index, pulseTime = 320) {
+            return page.evaluate(({ index, pulseTime }) => {
+              const s = document.querySelector('[data-home-tech-r2]');
+              (s.__techR2LocalAnimations || []).forEach(a => { a.pause(); a.currentTime = pulseTime; });
+              const item = s.querySelectorAll('.home-tech-r2__identity')[index];
+              item.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse', isPrimary: true, bubbles: false }));
+              const fades = s.__techR2LocalAnimations || [];
+              fades.forEach(a => a.pause());
+              return {
+                durations: fades.map(a => Number(a.effect?.getTiming?.().duration)),
+                coreCount: s.querySelectorAll('.home-tech-r2__relay-local-core').length
+              };
+            }, { index, pulseTime });
+          }
+
+          async function assertVisualEnd(page, label) {
+            const state = await page.evaluate(() => {
+              const s = document.querySelector('[data-home-tech-r2]');
+              const fades = s.__techR2LocalAnimations || [];
+              fades.forEach(a => { a.pause(); a.currentTime = 220; });
+              const tail = s.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');
+              const core = s.querySelector('.home-tech-r2__relay-local-core');
+              return {
+                tailOpacity: Number(getComputedStyle(tail).opacity),
+                coreOpacity: Number(getComputedStyle(core).opacity),
+                ownedCount: fades.length,
+                coreCount: s.querySelectorAll('.home-tech-r2__relay-local-core').length
+              };
+            });
+            assert(state.tailOpacity <= .01 && state.coreOpacity <= .01, label + ' visible cleanup ' + JSON.stringify(state));
+            assert(state.ownedCount === 2 && state.coreCount === 1, label + ' fade ownership ' + JSON.stringify(state));
+          }
+
+          async function rapidStep(page, previous, current) {
+            return page.evaluate(({ previous, current }) => {
+              const s = document.querySelector('[data-home-tech-r2]');
+              const items = s.querySelectorAll('.home-tech-r2__identity');
+              if (previous !== null) {
+                items[previous].dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse', isPrimary: true, bubbles: false }));
+              }
+              items[current].dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'mouse', isPrimary: true, bubbles: false }));
+              const owned = s.__techR2LocalAnimations || [];
+              owned.forEach(a => a.pause());
+              return {
+                offset: s.style.getPropertyValue('--tech-r2-local-offset'),
+                durations: owned.map(a => Number(a.effect?.getTiming?.().duration)),
+                coreCount: s.querySelectorAll('.home-tech-r2__relay-local-core').length
+              };
+            }, { previous, current });
+          }
+
+          async function desktopFunctional(lang) {
+            const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, hasTouch: false, isMobile: false, reducedMotion: 'no-preference' });
+            const page = await context.newPage();
+            const d = diagnostics(page);
+            await page.goto(base + (lang === 'EN' ? '/' : '/ru/'), { waitUntil: 'domcontentloaded', timeout: 20000 });
+            await ready(page);
+            await prepareDesktop(page, true);
+
+            const media = await page.evaluate(() => ({ fine: matchMedia('(hover:hover) and (pointer:fine)').matches, desktop: matchMedia('(min-width:701px)').matches }));
+            assert(media.fine && media.desktop, lang + ' desktop media ' + JSON.stringify(media));
+            const order = await page.evaluate(() => [...document.querySelectorAll('[data-home-tech-r2] .home-tech-r2__identity')].map(x => x.dataset.brand));
+            assert(JSON.stringify(order) === JSON.stringify(brands), lang + ' vendor order ' + JSON.stringify(order));
+
+            for (let i = 0; i < 10; i++) {
+              const enter = await enterSnapshot(page, i);
+              const td = dashNums(enter.tailDash), cd = dashNums(enter.coreDash);
+              assert(enter.active && enter.offset === offsets[i], lang + ' ' + brands[i] + ' mapping ' + JSON.stringify(enter));
+              assert(td.length >= 2 && Math.abs(td[0] - .18) < .001 && Math.abs(td[1] - 2) < .001 && cd.length >= 2 && Math.abs(cd[0] - .065) < .001 && Math.abs(cd[1] - 2) < .001, lang + ' ' + brands[i] + ' pulse shape ' + JSON.stringify({ td, cd }));
+              assert(enter.durations.length === 2 && enter.durations.every(v => v === 740) && enter.coreCount === 1, lang + ' ' + brands[i] + ' pulse timing ' + JSON.stringify(enter));
+              assert(enter.globalOpacity >= .28 && enter.globalOpacity <= .30, lang + ' ' + brands[i] + ' inherited opacity contract ' + JSON.stringify(enter));
+
+              const leave = await leaveSnapshot(page, i);
+              assert(leave.durations.length === 2 && leave.durations.every(v => v === 220) && leave.coreCount === 1, lang + ' ' + brands[i] + ' leave fade ' + JSON.stringify(leave));
+              await assertVisualEnd(page, lang + ' ' + brands[i]);
+            }
+
+            let previous = null;
+            for (const current of [0, 2, 5, 9]) {
+              const step = await rapidStep(page, previous, current);
+              assert(step.durations.length === 2 && step.durations.every(v => v === 740) && step.coreCount === 1, lang + ' rapid ghost replacement ' + JSON.stringify(step));
+              previous = current;
+            }
+            const finalRapid = await page.evaluate(() => {
+              const s = document.querySelector('[data-home-tech-r2]');
+              return { offset: s.style.getPropertyValue('--tech-r2-local-offset'), ownedCount: (s.__techR2LocalAnimations || []).length, coreCount: s.querySelectorAll('.home-tech-r2__relay-local-core').length };
+            });
+            assert(finalRapid.offset === '-.88' && finalRapid.ownedCount === 2 && finalRapid.coreCount === 1, lang + ' rapid final ' + JSON.stringify(finalRapid));
+            const rapidLeave = await leaveSnapshot(page, 9, 260);
+            assert(rapidLeave.durations.length === 2 && rapidLeave.durations.every(v => v === 220), lang + ' rapid leave ' + JSON.stringify(rapidLeave));
+            await assertVisualEnd(page, lang + ' rapid');
+
+            const layout = await page.evaluate(() => {
+              const de = document.documentElement, s = document.querySelector('[data-home-tech-r2]');
+              return { docOverflow: de.scrollWidth - de.clientWidth, techOverflow: s.scrollWidth - s.clientWidth, identities: s.querySelectorAll('.home-tech-r2__identity').length };
+            });
+            assert(layout.docOverflow <= 1 && layout.techOverflow <= 1 && layout.identities === 10, lang + ' overflow ' + JSON.stringify(layout));
+            assert(d.errors.length === 0 && d.failed.length === 0, lang + ' diagnostics ' + JSON.stringify(d));
+            console.log('DESKTOP_PASS ' + lang);
+            await context.close();
+          }
+
+          async function visualEvidence() {
+            const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, hasTouch: false, isMobile: false, reducedMotion: 'no-preference' });
+            const page = await context.newPage();
+            const d = diagnostics(page);
+            await page.goto(base + '/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+            await ready(page);
+            await prepareDesktop(page, false);
+
+            let frame = 0;
+            let previous = null;
+            for (const current of [0, 2, 5, 9]) {
+              if (previous !== null) {
+                await leaveSnapshot(page, previous, 500);
+                await assertVisualEnd(page, 'visual leave ' + previous);
+              }
+              await enterSnapshot(page, current);
+              for (const t of [80, 260, 440, 620]) {
+                await page.evaluate(t => {
+                  const s = document.querySelector('[data-home-tech-r2]');
+                  (s.__techR2LocalAnimations || []).forEach(a => { a.pause(); a.currentTime = t; });
+                }, t);
+                frame++;
+                await shot(page, `/tmp/r13-frames/frame-${String(frame).padStart(3, '0')}.png`);
+                if (current === 2 && t === 260) await shot(page, '/tmp/r13-evidence/r13-hover-gemini-en.png');
+              }
+              previous = current;
+            }
+            if (previous !== null) {
+              await leaveSnapshot(page, previous, 500);
+              await assertVisualEnd(page, 'visual final');
+            }
+            assert(d.errors.length === 0 && d.failed.length === 0, 'visual diagnostics ' + JSON.stringify(d));
+            console.log('VISUAL_FRAMES ' + frame);
+            await context.close();
+          }
+
+          async function mobile(label, width, height, landscape) {
+            const context = await browser.newContext({ viewport: { width, height }, hasTouch: true, isMobile: true, reducedMotion: 'no-preference' });
+            const page = await context.newPage();
+            const d = diagnostics(page);
+            await page.goto(base + '/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+            await ready(page);
+            const x = await page.evaluate(() => {
+              const s = document.querySelector('[data-home-tech-r2]'), m = s.querySelector('.home-tech-r2__relay--mobile'), desk = s.querySelector('.home-tech-r2__relay--desktop'), b = m.querySelector('.home-tech-r2__relay-base'), de = document.documentElement;
+              return { mode: s.dataset.techR2RelayMode, viewBox: m.getAttribute('viewBox'), path: b.getAttribute('d'), mobileDisplay: getComputedStyle(m).display, desktopDisplay: getComputedStyle(desk).display, coreCount: s.querySelectorAll('.home-tech-r2__relay-local-core').length, localReady: s.dataset.techR2LocalReady || '', identities: s.querySelectorAll('.home-tech-r2__identity').length, overflow: de.scrollWidth - de.clientWidth };
+            });
+            if (landscape) assert(x.mode === 'landscape' && x.viewBox === '0 0 560 300' && x.path === landscapePath && x.mobileDisplay !== 'none' && x.desktopDisplay === 'none', label + ' landscape ' + JSON.stringify(x));
+            else assert(x.mode === 'portrait' && x.viewBox === '0 0 400 520' && x.path === 'M200 0 V520', label + ' portrait ' + JSON.stringify(x));
+            assert(x.coreCount === 0 && x.localReady !== 'true' && x.identities === 10 && x.overflow <= 1 && d.errors.length === 0 && d.failed.length === 0, label + ' unchanged ' + JSON.stringify({ x, d }));
+            console.log('MOBILE_PASS ' + label);
+            await context.close();
+          }
+
+          async function reducedMotion() {
+            const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, hasTouch: false, isMobile: false, reducedMotion: 'reduce' });
+            const page = await context.newPage();
+            await page.goto(base + '/', { waitUntil: 'domcontentloaded', timeout: 20000 });
+            await ready(page);
+            await page.waitForFunction(() => document.querySelector('[data-home-tech-r2]')?.dataset.techR2State === 'settled', null, { timeout: 5000 });
+            const x = await page.evaluate(() => { const s = document.querySelector('[data-home-tech-r2]'); return { state: s.dataset.techR2State, coreCount: s.querySelectorAll('.home-tech-r2__relay-local-core').length, localReady: s.dataset.techR2LocalReady || '' }; });
+            assert(x.state === 'settled' && x.coreCount === 0 && x.localReady !== 'true', 'reduced motion ' + JSON.stringify(x));
+            console.log('REDUCED_PASS');
+            await context.close();
+          }
+
+          await desktopFunctional('EN');
+          await desktopFunctional('RU');
+          await visualEvidence();
+          await mobile('PORTRAIT_390x844', 390, 844, false);
+          await mobile('LANDSCAPE_844x390', 844, 390, true);
+          await reducedMotion();
+          await browser.close();
+
+          assert(fs.existsSync('/tmp/r13-evidence/r13-hover-gemini-en.png') && fs.statSync('/tmp/r13-evidence/r13-hover-gemini-en.png').size > 1000, 'hover screenshot missing');
+          console.log('R13_QA=PASS');
           NODE
+
           QA_BASE="$QA_BASE" CHROME_PATH="$CHROME_PATH" node .r13-r6.mjs
-          if [ -n "${FFMPEG_PATH:-}" ] && compgen -G '/tmp/r13-frames/frame-*.png' >/dev/null; then "$FFMPEG_PATH" -y -loglevel error -framerate 8 -pattern_type glob -i '/tmp/r13-frames/frame-*.png' -c:v libx264 -pix_fmt yuv420p -movflags +faststart /tmp/r13-evidence/r13-hover-preview.mp4; fi
+          rm -f .r13-r6.mjs
+          if [ -n "${FFMPEG_PATH:-}" ] && compgen -G '/tmp/r13-frames/frame-*.png' >/dev/null; then
+            "$FFMPEG_PATH" -y -loglevel error -framerate 8 -pattern_type glob -i '/tmp/r13-frames/frame-*.png' -c:v libx264 -pix_fmt yuv420p -movflags +faststart /tmp/r13-evidence/r13-hover-preview.mp4
+          fi
           test -s /tmp/r13-evidence/r13-hover-gemini-en.png
           test -s /tmp/r13-evidence/r13-hover-preview.mp4
+          ls -lh /tmp/r13-evidence
+
       - uses: actions/upload-artifact@v4
         with:
           name: technology-r13-owner-site
           path: _site
           retention-days: 1
+
       - uses: actions/upload-artifact@v4
         with:
           name: technology-r13-visual-evidence
@@ -122,18 +349,34 @@ jobs:
         with:
           name: technology-r13-owner-site
           path: _site
+
       - name: Publish fresh HTTPS Owner preview
         shell: bash
         run: |
           set -euo pipefail
           nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory _site >/tmp/r13-preview-server.log 2>&1 &
           for i in $(seq 1 30); do curl -fsS http://127.0.0.1:4173/ >/dev/null && break; sleep 1; done
+
           curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
           chmod +x /tmp/cloudflared
           nohup /tmp/cloudflared tunnel --url http://127.0.0.1:4173 --no-autoupdate >/tmp/r13-cloudflared.log 2>&1 &
-          URL=''; for i in $(seq 1 60); do URL=$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/r13-cloudflared.log | head -1 || true); [ -n "$URL" ] && break; sleep 1; done
-          test -n "$URL"; curl -fsSL "$URL/" >/dev/null; curl -fsSL "$URL/ru/" >/dev/null
+
+          URL=''
+          for i in $(seq 1 60); do
+            URL=$(grep -Eo 'https://[-a-z0-9]+\.trycloudflare\.com' /tmp/r13-cloudflared.log | head -1 || true)
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          test -n "$URL"
+          curl -fsSL "$URL/" >/dev/null
+          curl -fsSL "$URL/ru/" >/dev/null
+
           api="https://api.github.com/repos/$REPO/statuses/$INFRA_SHA"
-          curl -fsSL -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "$api" -d "{\"state\":\"success\",\"target_url\":\"$URL\",\"description\":\"R1.3 Owner Preview ready\",\"context\":\"owner-preview/technology-z-relay-r1-3\"}"
+          curl -fsSL -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "$api" \
+            -d "{\"state\":\"success\",\"target_url\":\"$URL\",\"description\":\"R1.3 Owner Preview ready\",\"context\":\"owner-preview/technology-z-relay-r1-3\"}"
           echo "OWNER_REVIEW_URL=$URL"
           sleep 7200

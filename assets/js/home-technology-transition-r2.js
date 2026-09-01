@@ -15,7 +15,7 @@
   var LANDSCAPE_SIGNAL_DURATION = 1680;
   var LANDSCAPE_SETTLE_DELAY = 2040;
   var DEFAULT_SETTLE_DELAY = 1760;
-  var LOCAL_RESPONSE_DURATION = 680;
+  var LOCAL_RESPONSE_DURATION = 740;
   var LOCAL_LEAVE_DURATION = 220;
   var PORTRAIT_MOBILE_VIEWBOX = '0 0 400 520';
   var PORTRAIT_MOBILE_PATH = 'M200 0 V520';
@@ -28,6 +28,29 @@
 
   function desktopSignal(section) {
     return section.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-signal');
+  }
+
+  function localCoreSignal(section) {
+    return section.querySelector('.home-tech-r2__relay--desktop .home-tech-r2__relay-local-core');
+  }
+
+  function ensureLocalCoreSignal(section) {
+    var core = localCoreSignal(section);
+    if (core) return core;
+
+    var signal = desktopSignal(section);
+    if (!signal || !signal.parentNode) return null;
+
+    core = signal.cloneNode(false);
+    core.setAttribute('class', 'home-tech-r2__relay-local-core');
+    core.setAttribute('fill', 'none');
+    core.setAttribute('vector-effect', 'non-scaling-stroke');
+    core.setAttribute('stroke-linecap', 'round');
+    core.setAttribute('stroke-linejoin', 'round');
+    core.style.animation = 'none';
+    core.style.opacity = '0';
+    signal.parentNode.insertBefore(core, signal.nextSibling);
+    return core;
   }
 
   function mobileSignal(section) {
@@ -69,17 +92,37 @@
     section.dataset.techR2RelayMode = landscape ? 'landscape' : 'portrait';
   }
 
+  function cancelLocalAnimations(section) {
+    var animations = section.__techR2LocalAnimations || [];
+    Array.prototype.forEach.call(animations, function (animation) {
+      if (animation) animation.cancel();
+    });
+    section.__techR2LocalAnimations = [];
+  }
+
   function resetLocalSignal(section) {
     var signal = desktopSignal(section);
-    if (!signal) return;
+    var core = localCoreSignal(section);
 
-    signal.style.stroke = '';
-    signal.style.strokeDasharray = '';
-    signal.style.strokeDashoffset = '';
-    signal.style.strokeWidth = '';
-    signal.style.filter = '';
-    signal.style.opacity = '';
-    signal.style.animation = 'none';
+    if (signal) {
+      signal.style.stroke = '';
+      signal.style.strokeDasharray = '';
+      signal.style.strokeDashoffset = '';
+      signal.style.strokeWidth = '';
+      signal.style.filter = '';
+      signal.style.opacity = '';
+      signal.style.animation = 'none';
+    }
+
+    if (core) {
+      core.style.stroke = '';
+      core.style.strokeDasharray = '';
+      core.style.strokeDashoffset = '';
+      core.style.strokeWidth = '';
+      core.style.filter = '';
+      core.style.opacity = '0';
+      core.style.animation = 'none';
+    }
   }
 
   function finishLocalClear(section, token) {
@@ -93,41 +136,48 @@
     section.__techR2LocalToken = (section.__techR2LocalToken || 0) + 1;
     var token = section.__techR2LocalToken;
     var signal = desktopSignal(section);
+    var core = localCoreSignal(section);
 
-    if (section.__techR2LocalAnimation) {
-      section.__techR2LocalAnimation.cancel();
-      section.__techR2LocalAnimation = null;
-    }
+    cancelLocalAnimations(section);
 
     if (!smooth || !signal || !section.classList.contains('is-local-active') || (reducedMotion && reducedMotion.matches)) {
       finishLocalClear(section, token);
       return;
     }
 
-    var computed = window.getComputedStyle(signal);
-    var currentOffset = parseFloat(computed.strokeDashoffset);
-    if (!isFinite(currentOffset)) currentOffset = parseFloat(section.style.getPropertyValue('--tech-r2-local-offset')) || 0;
+    var targets = [signal, core].filter(function (target) { return !!target; });
+    var fades = targets.map(function (target) {
+      var computed = window.getComputedStyle(target);
+      var currentOffset = parseFloat(computed.strokeDashoffset);
+      if (!isFinite(currentOffset)) currentOffset = 0;
 
-    var fade = signal.animate([
-      {
-        opacity: computed.opacity,
-        strokeDashoffset: String(currentOffset),
-        filter: computed.filter === 'none' ? 'drop-shadow(0 0 2px rgba(242,240,235,.10))' : computed.filter
-      },
-      {
-        opacity: 0,
-        strokeDashoffset: String(currentOffset - 0.025),
-        filter: 'drop-shadow(0 0 0 rgba(242,240,235,0))'
-      }
-    ], {
-      duration: LOCAL_LEAVE_DURATION,
-      easing: 'cubic-bezier(.4,0,.2,1)',
-      fill: 'forwards'
+      return target.animate([
+        {
+          opacity: computed.opacity,
+          strokeDashoffset: String(currentOffset),
+          filter: computed.filter === 'none' ? 'drop-shadow(0 0 1.5px rgba(242,240,235,.08))' : computed.filter
+        },
+        {
+          opacity: 0,
+          strokeDashoffset: String(currentOffset - 0.018),
+          filter: 'drop-shadow(0 0 0 rgba(242,240,235,0))'
+        }
+      ], {
+        duration: LOCAL_LEAVE_DURATION,
+        easing: 'cubic-bezier(.4,0,.2,1)',
+        fill: 'forwards'
+      });
     });
 
-    section.__techR2LocalAnimation = fade;
-    fade.onfinish = function () {
-      if (section.__techR2LocalAnimation === fade) section.__techR2LocalAnimation = null;
+    section.__techR2LocalAnimations = fades;
+    if (!fades.length) {
+      finishLocalClear(section, token);
+      return;
+    }
+
+    fades[0].onfinish = function () {
+      if (token !== section.__techR2LocalToken) return;
+      cancelLocalAnimations(section);
       finishLocalClear(section, token);
     };
   }
@@ -137,71 +187,104 @@
     if (reducedMotion && reducedMotion.matches) return;
 
     var signal = desktopSignal(section);
-    if (!signal) return;
+    var core = ensureLocalCoreSignal(section);
+    if (!signal || !core) return;
 
     section.__techR2LocalToken = (section.__techR2LocalToken || 0) + 1;
+    var token = section.__techR2LocalToken;
     var offset = parseFloat(localOffsets[index] || '-.44');
 
-    if (section.__techR2LocalAnimation) {
-      section.__techR2LocalAnimation.cancel();
-      section.__techR2LocalAnimation = null;
-    }
+    cancelLocalAnimations(section);
 
     section.style.setProperty('--tech-r2-local-offset', localOffsets[index] || '-.44');
     section.classList.add('is-local-active');
 
     signal.style.animation = 'none';
-    signal.style.stroke = 'rgba(238,237,232,.92)';
-    signal.style.strokeWidth = '1.6';
-    signal.style.strokeDasharray = '.14 .86';
-    signal.style.strokeDashoffset = String(offset);
-    signal.style.filter = 'drop-shadow(0 0 2.6px rgba(242,240,235,.13)) drop-shadow(0 0 5px rgba(145,137,173,.065))';
+    signal.style.opacity = '0';
+    signal.style.stroke = 'rgba(186,191,201,.72)';
+    signal.style.strokeWidth = '2.45';
+    signal.style.strokeDasharray = '.18 2';
+    signal.style.strokeDashoffset = String(offset + 0.17);
+    signal.style.filter = 'drop-shadow(0 0 2.8px rgba(207,210,218,.10)) drop-shadow(0 0 4.6px rgba(125,119,157,.045))';
 
-    var local = signal.animate([
+    core.style.animation = 'none';
+    core.style.opacity = '0';
+    core.style.stroke = 'rgba(244,242,237,.98)';
+    core.style.strokeWidth = '1.35';
+    core.style.strokeDasharray = '.065 2';
+    core.style.strokeDashoffset = String(offset + 0.055);
+    core.style.filter = 'drop-shadow(0 0 1.8px rgba(244,242,237,.14))';
+
+    var tailAnimation = signal.animate([
       {
         opacity: 0,
-        stroke: 'rgba(242,240,235,.82)',
-        strokeWidth: '1.35',
-        strokeDashoffset: String(offset + 0.045),
-        filter: 'drop-shadow(0 0 0 rgba(242,240,235,0))'
+        strokeDashoffset: String(offset + 0.17),
+        filter: 'drop-shadow(0 0 0 rgba(207,210,218,0))'
       },
       {
-        offset: 0.28,
-        opacity: 0.72,
-        stroke: 'rgba(242,240,235,.97)',
-        strokeWidth: '1.65',
-        strokeDashoffset: String(offset + 0.014),
-        filter: 'drop-shadow(0 0 2.8px rgba(242,240,235,.16)) drop-shadow(0 0 5px rgba(145,137,173,.075))'
+        offset: 0.22,
+        opacity: 0.28,
+        strokeDashoffset: String(offset + 0.135),
+        filter: 'drop-shadow(0 0 2.4px rgba(207,210,218,.08)) drop-shadow(0 0 4px rgba(125,119,157,.035))'
       },
       {
-        offset: 0.70,
-        opacity: 0.52,
-        stroke: 'rgba(207,209,216,.90)',
-        strokeWidth: '1.5',
-        strokeDashoffset: String(offset - 0.034),
-        filter: 'drop-shadow(0 0 2.4px rgba(217,219,224,.12)) drop-shadow(0 0 4px rgba(140,160,173,.055))'
+        offset: 0.58,
+        opacity: 0.34,
+        strokeDashoffset: String(offset + 0.08),
+        filter: 'drop-shadow(0 0 2.8px rgba(207,210,218,.10)) drop-shadow(0 0 4.6px rgba(125,119,157,.045))'
       },
       {
-        opacity: 0.18,
-        stroke: 'rgba(186,190,201,.76)',
-        strokeWidth: '1.35',
-        strokeDashoffset: String(offset - 0.060),
-        filter: 'drop-shadow(0 0 1.5px rgba(217,219,224,.07))'
+        opacity: 0,
+        strokeDashoffset: String(offset + 0.043),
+        filter: 'drop-shadow(0 0 0 rgba(207,210,218,0))'
       }
     ], {
       duration: LOCAL_RESPONSE_DURATION,
-      easing: 'cubic-bezier(.22,.76,.28,1)',
+      easing: 'cubic-bezier(.24,.72,.26,1)',
       fill: 'forwards'
     });
 
-    section.__techR2LocalAnimation = local;
-    local.onfinish = function () {
-      if (section.__techR2LocalAnimation === local) section.__techR2LocalAnimation = null;
+    var coreAnimation = core.animate([
+      {
+        opacity: 0,
+        strokeDashoffset: String(offset + 0.055),
+        filter: 'drop-shadow(0 0 0 rgba(244,242,237,0))'
+      },
+      {
+        offset: 0.22,
+        opacity: 0.96,
+        strokeDashoffset: String(offset + 0.02),
+        filter: 'drop-shadow(0 0 1.8px rgba(244,242,237,.14))'
+      },
+      {
+        offset: 0.58,
+        opacity: 0.86,
+        strokeDashoffset: String(offset - 0.035),
+        filter: 'drop-shadow(0 0 2px rgba(235,233,231,.12))'
+      },
+      {
+        opacity: 0,
+        strokeDashoffset: String(offset - 0.072),
+        filter: 'drop-shadow(0 0 0 rgba(244,242,237,0))'
+      }
+    ], {
+      duration: LOCAL_RESPONSE_DURATION,
+      easing: 'cubic-bezier(.24,.72,.26,1)',
+      fill: 'forwards'
+    });
+
+    section.__techR2LocalAnimations = [tailAnimation, coreAnimation];
+    tailAnimation.onfinish = function () {
+      if (token !== section.__techR2LocalToken) return;
+      cancelLocalAnimations(section);
+      finishLocalClear(section, token);
     };
   }
 
   function installLocalResponses(section) {
     if (!finePointer || !finePointer.matches || section.dataset.techR2LocalReady === 'true') return;
+
+    ensureLocalCoreSignal(section);
 
     var identities = section.querySelectorAll('.home-tech-r2__identity');
     Array.prototype.forEach.call(identities, function (identity, index) {

@@ -1,0 +1,122 @@
+/* ProAI Expert — Selected Thinking R1.5 micro-polish
+   Scoped additive correction: cooler eyebrow + one lead authority seam. */
+
+#selected-thinking-r1.selected-thinking-r1 {
+  --st-r15-polish-indigo: 145, 160, 182;
+}
+
+/* Cooler steel-indigo eyebrow; local to Selected Thinking only. */
+#selected-thinking-r1 .selected-thinking-r1__eyebrow {
+  color: rgba(var(--st-r15-polish-indigo), .72);
+}
+
+/* Lead-only authority seam: one asymmetric material edge, never a full frame. */
+#selected-thinking-r1 .selected-thinking-r1__lead {
+  position: relative;
+}
+
+#selected-thinking-r1 .selected-thinking-r1__lead::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  right: 0;
+  width: clamp(180px, 34%, 420px);
+  height: 24px;
+  opacity: .72;
+  clip-path: inset(0);
+  transform: none;
+  transform-origin: right top;
+  background:
+    linear-gradient(90deg,
+      transparent 0%,
+      rgba(var(--st-r15-pearl), .46) 38%,
+      rgba(var(--st-r15-steel), .56) 69%,
+      rgba(var(--st-r15-polish-indigo), .72) 100%) top right / 100% 1px no-repeat,
+    linear-gradient(180deg,
+      rgba(var(--st-r15-polish-indigo), .58) 0%,
+      rgba(var(--st-r15-steel), .22) 46%,
+      transparent 100%) top right / 1px 24px no-repeat;
+  pointer-events: none;
+}
+
+.st-r15-js .selected-thinking-r1:not(.st-r15-entered) .selected-thinking-r1__lead::after {
+  opacity: 0;
+  clip-path: inset(0 0 0 100%);
+}
+
+@keyframes st-r15-authority-seam {
+  0% {
+    opacity: 0;
+    clip-path: inset(0 0 0 100%);
+  }
+  58% {
+    opacity: .9;
+  }
+  100% {
+    opacity: .72;
+    clip-path: inset(0);
+  }
+}
+
+.st-r15-js .selected-thinking-r1.st-r15-entered .selected-thinking-r1__lead::after {
+  animation: st-r15-authority-seam 460ms cubic-bezier(.22,1,.36,1) 300ms both;
+}
+
+.st-r15-js .selected-thinking-r1.st-r15-calm .selected-thinking-r1__lead::after {
+  animation: none !important;
+  opacity: .72;
+  clip-path: none;
+  transform: none;
+}
+
+/* Mobile: keep the same signature, quieter; remove the legacy competing top-left tick. */
+@media (max-width: 620px) {
+  #selected-thinking-r1 .selected-thinking-r1__lead::before {
+    opacity: 0 !important;
+  }
+
+  #selected-thinking-r1 .selected-thinking-r1__lead::after {
+    width: 42%;
+    height: 16px;
+    opacity: .5;
+    background:
+      linear-gradient(90deg,
+        transparent 0%,
+        rgba(var(--st-r15-pearl), .34) 42%,
+        rgba(var(--st-r15-steel), .42) 70%,
+        rgba(var(--st-r15-polish-indigo), .55) 100%) top right / 100% 1px no-repeat,
+      linear-gradient(180deg,
+        rgba(var(--st-r15-polish-indigo), .42) 0%,
+        transparent 100%) top right / 1px 16px no-repeat;
+  }
+
+  .st-r15-js .selected-thinking-r1.st-r15-entered .selected-thinking-r1__lead::after {
+    animation-duration: 340ms;
+    animation-delay: 220ms;
+  }
+
+  .st-r15-js .selected-thinking-r1.st-r15-calm .selected-thinking-r1__lead::after {
+    opacity: .5;
+  }
+}
+
+/* Short landscape: preserve distinction without creating a frame. */
+@media (min-width: 621px) and (max-width: 932px) and (max-height: 500px) {
+  #selected-thinking-r1 .selected-thinking-r1__lead::after {
+    width: 32%;
+    height: 16px;
+    opacity: .56;
+  }
+}
+
+/* Reduced motion: immediate final premium state, zero travelling seam motion. */
+@media (prefers-reduced-motion: reduce) {
+  .st-r15-js .selected-thinking-r1 .selected-thinking-r1__lead::after {
+    animation: none !important;
+    opacity: .64 !important;
+    clip-path: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

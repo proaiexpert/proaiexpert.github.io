@@ -20,8 +20,12 @@
 - Materials and lighting: PASS; renderer diagnostics report WebGL2, 210 baseline draw calls, and 172440 baseline triangles.
 - Presentation motion: PASS; `proai-final-motion-r2` remains the active engine.
 - Desktop: PASS at 1440px owner-review viewport.
-- Mobile: UNVERIFIED; responsive CSS is present in the review harness, but this in-app browser session did not expose viewport emulation.
-- Reduced motion: UNVERIFIED in browser; source guard remains present and disables autonomous motion when `prefers-reduced-motion: reduce` matches.
+- Mobile 390px: VERIFIED PASS; actual in-app viewport `390x844`, no horizontal overflow, ready state and diagnostics available, manual PROAI reveal/rest interaction passed, and no console errors.
+- Mobile 320px: VERIFIED PASS; actual in-app viewport `320x844`, no horizontal overflow, ready state and diagnostics available, manual PROAI reveal/rest interaction passed, and no console errors.
+- Mobile landscape resize: VERIFIED PASS at `844x390`; ready state remained available with no horizontal overflow or console errors.
+- Reduced motion: VERIFIED PASS in system Chrome with actual `prefers-reduced-motion: reduce` emulation; `matchMedia` matched, scheduler remained disabled/stopped with `eventSerial=0` after 4.5 seconds, identity remained available, and no console errors occurred.
+- Not applicable: none.
+- Not verified: none.
 
 ## Owner harness
 

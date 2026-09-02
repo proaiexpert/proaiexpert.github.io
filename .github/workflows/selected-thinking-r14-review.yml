@@ -1,0 +1,155 @@
+name: Selected Thinking R1.4 Final Browser Review
+
+on:
+  push:
+    branches:
+      - preview/homepage-selected-thinking-editorial-authority-r1-4-final
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      PRODUCT_SHA: be557e2fe7144ed21fa9eb22ea04590d7e8306a9
+      REVIEW_DIR: docs/site-evolution/reviews/selected-thinking-r14
+    steps:
+      - name: Checkout exact preview branch
+        uses: actions/checkout@v6
+        with:
+          ref: preview/homepage-selected-thinking-editorial-authority-r1-4-final
+          fetch-depth: 0
+
+      - name: Verify exact product parent and source hygiene
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_SHA"
+          test "$(git rev-parse ${PRODUCT_SHA}^)" = "7b0942a042ef23e10cd74592208eeae94479b45e"
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1-2.css | git hash-object --stdin)" = "9f40b2f077de24cfbb281311e7c128efdc3e0559"
+          test "$(git diff --name-only 7b0942a042ef23e10cd74592208eeae94479b45e "$PRODUCT_SHA" | wc -l)" -eq 5
+          git diff --name-only 7b0942a042ef23e10cd74592208eeae94479b45e "$PRODUCT_SHA" | sort > /tmp/product-files.txt
+          cat > /tmp/expected-files.txt <<'EOF'
+          _includes/home-selected-thinking-r1-en.html
+          _includes/home-selected-thinking-r1-ru.html
+          assets/css/home-selected-thinking-r1-4.css
+          index.html
+          ru/index.html
+          EOF
+          sort /tmp/expected-files.txt -o /tmp/expected-files.txt
+          diff -u /tmp/expected-files.txt /tmp/product-files.txt
+          ! grep -q '<style' _includes/home-selected-thinking-r1-en.html
+          ! grep -q '<style' _includes/home-selected-thinking-r1-ru.html
+
+      - name: Install Jekyll
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+
+      - name: Build full integrated site
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          jekyll build --source . --destination _site
+          test -f _site/index.html
+          test -f _site/ru/index.html
+          test -f _site/assets/css/home-selected-thinking-r1-4.css
+          grep -q 'AI SYSTEMS / AUTOMATION / DIGITAL STRATEGY / OPERATIONS' _site/index.html
+          grep -q 'AI-СИСТЕМЫ / АВТОМАТИЗАЦИЯ / ЦИФРОВАЯ СТРАТЕГИЯ / ОПЕРАЦИИ' _site/ru/index.html
+          grep -q 'home-selected-thinking-r1-4.css?v=20260901.1' _site/index.html
+          grep -q 'home-selected-thinking-r1-4.css?v=20260901.1' _site/ru/index.html
+
+      - name: Install browser runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start full built site
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory _site >/tmp/selected-thinking-r14-http.log 2>&1 &
+          echo $! >/tmp/selected-thinking-r14-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4173/ru/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/selected-thinking-r14-http.log
+          exit 1
+
+      - name: Run real Chromium QA and capture evidence
+        id: qa
+        continue-on-error: true
+        shell: bash
+        run: node "$REVIEW_DIR/run-qa.mjs"
+
+      - name: Start temporary Cloudflare Owner preview
+        id: tunnel
+        if: steps.qa.outcome == 'success'
+        shell: bash
+        run: |
+          mkdir -p "$REVIEW_DIR/evidence"
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared.log 2>&1 &
+          echo $! >/tmp/cloudflared.pid
+          URL=""
+          for i in {1..60}; do
+            URL="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | head -n 1 || true)"
+            if [ -n "$URL" ]; then break; fi
+            sleep 1
+          done
+          if [ -z "$URL" ]; then
+            cat /tmp/cloudflared.log
+            exit 1
+          fi
+          for i in {1..30}; do
+            if curl -fsS "$URL/" >/dev/null && curl -fsS "$URL/ru/" >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS "$URL/" >/dev/null
+          curl -fsS "$URL/ru/" >/dev/null
+          printf '%s\n' "$URL" | tee "$REVIEW_DIR/evidence/OWNER_PREVIEW_URL.txt"
+          printf '%s\n' "$PRODUCT_SHA" > "$REVIEW_DIR/evidence/PRODUCT_SHA.txt"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Upload browser evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r14-final-owner-evidence
+          path: ${{ env.REVIEW_DIR }}/evidence
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce browser QA gate
+        if: always()
+        shell: bash
+        run: |
+          test "${{ steps.qa.outcome }}" = "success"
+          test "${{ steps.tunnel.outcome }}" = "success"
+
+      - name: Keep non-production Owner preview alive
+        if: steps.qa.outcome == 'success' && steps.tunnel.outcome == 'success'
+        shell: bash
+        run: |
+          URL="$(cat "$REVIEW_DIR/evidence/OWNER_PREVIEW_URL.txt")"
+          echo "OWNER REVIEW URL: $URL"
+          echo "RU: $URL/ru/"
+          END=$((SECONDS + 19800))
+          while [ "$SECONDS" -lt "$END" ]; do
+            kill -0 "$(cat /tmp/cloudflared.pid)" || { cat /tmp/cloudflared.log; exit 1; }
+            sleep 60
+          done

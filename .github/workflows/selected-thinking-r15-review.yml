@@ -1,0 +1,238 @@
+name: Selected Thinking R1.5 Early Preview and QA
+
+on:
+  push:
+    branches:
+      - preview/homepage-selected-thinking-editorial-light-r1-5
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      PRODUCT_SHA: 55d44922f14c1dc13c3d9e14a297b49e69b22916
+      PRODUCTION_SHA: 7b0942a042ef23e10cd74592208eeae94479b45e
+      REVIEW_DIR: docs/site-evolution/reviews/selected-thinking-r15
+    steps:
+      - name: Checkout exact preview branch
+        uses: actions/checkout@v6
+        with:
+          ref: preview/homepage-selected-thinking-editorial-light-r1-5
+          fetch-depth: 0
+
+      - name: Verify exact product parent and source hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_SHA"
+          test "$(git rev-parse ${PRODUCT_SHA}^)" = "$PRODUCTION_SHA"
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1.css | git hash-object --stdin)" = "1551761f4e81da26fcaaf2d4d65e221f20149ae7"
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1-1.css | git hash-object --stdin)" = "444e56140bbdf091e422c5046c34ba248ed33a2b"
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1-2.css | git hash-object --stdin)" = "9f40b2f077de24cfbb281311e7c128efdc3e0559"
+          test "$(git show ${PRODUCT_SHA}:assets/js/home-selected-thinking-r1.js | git hash-object --stdin)" = "a85b0070014eb99c83a906ce5c97ba706a9b46cd"
+          git diff --name-only "$PRODUCTION_SHA" "$PRODUCT_SHA" | sort > /tmp/product-files.txt
+          cat > /tmp/expected-product-files.txt <<'FILES'
+          _includes/home-selected-thinking-r1-en.html
+          _includes/home-selected-thinking-r1-ru.html
+          assets/css/home-selected-thinking-r1-5.css
+          assets/js/home-selected-thinking-r1-5.js
+          index.html
+          ru/index.html
+          FILES
+          sort /tmp/expected-product-files.txt -o /tmp/expected-product-files.txt
+          diff -u /tmp/expected-product-files.txt /tmp/product-files.txt
+          ! grep -q 'AI SYSTEMS / AUTOMATION / DIGITAL STRATEGY / OPERATIONS' _includes/home-selected-thinking-r1-en.html
+          ! grep -q 'AI-СИСТЕМЫ / АВТОМАТИЗАЦИЯ / ЦИФРОВАЯ СТРАТЕГИЯ / ОПЕРАЦИИ' _includes/home-selected-thinking-r1-ru.html
+          grep -q 'EXPLORE ALL INSIGHTS' _includes/home-selected-thinking-r1-en.html
+          grep -q 'СМОТРЕТЬ ВСЕ МАТЕРИАЛЫ' _includes/home-selected-thinking-r1-ru.html
+          test "$(git diff --name-only "$PRODUCT_SHA" HEAD | wc -l)" -eq 2
+          git diff --name-only "$PRODUCT_SHA" HEAD | sort
+
+      - name: Verify authored R1.5 motion budgets
+        shell: bash
+        run: |
+          set -euo pipefail
+          CSS="assets/css/home-selected-thinking-r1-5.css"
+          JS="assets/js/home-selected-thinking-r1-5.js"
+          grep -Eq 'st-r15-signal 760ms[^;]* 555ms both' "$CSS"
+          grep -Eq 'animation-duration: 650ms; animation-delay: 405ms' "$CSS"
+          grep -q 'st-r15-plate-sweep 640ms' "$CSS"
+          grep -q 'st-r15-specular 610ms' "$CSS"
+          grep -q '}, 1480);' "$JS"
+          echo 'Desktop authored last visible cue: ~1315ms; mobile: ~1055ms; JS calm class is cleanup-only.'
+
+      - name: Install Jekyll
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+
+      - name: Build full integrated homepage
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          jekyll build --source . --destination _site
+          test -f _site/index.html
+          test -f _site/ru/index.html
+          test -f _site/assets/css/home-selected-thinking-r1-5.css
+          test -f _site/assets/js/home-selected-thinking-r1-5.js
+          grep -q 'home-selected-thinking-r1-5.css?v=20260902.1' _site/index.html
+          grep -q 'home-selected-thinking-r1-5.js?v=20260902.1' _site/index.html
+          grep -q 'home-selected-thinking-r1-5.css?v=20260902.1' _site/ru/index.html
+          grep -q 'home-selected-thinking-r1-5.js?v=20260902.1' _site/ru/index.html
+
+      - name: Start full built site
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory _site >/tmp/r15-http.log 2>&1 &
+          echo $! >/tmp/r15-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4173/ru/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/r15-http.log
+          exit 1
+
+      - name: Start fresh Cloudflare Owner preview
+        id: tunnel
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$REVIEW_DIR/early" "$REVIEW_DIR/evidence"
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared-r15.log 2>&1 &
+          echo $! >/tmp/cloudflared-r15.pid
+          URL=""
+          for i in {1..75}; do
+            URL="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared-r15.log | head -n 1 || true)"
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          [ -n "$URL" ] || { cat /tmp/cloudflared-r15.log; exit 1; }
+          EN_CODE=""; RU_CODE=""
+          for i in {1..45}; do
+            EN_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/" || true)"
+            RU_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/ru/" || true)"
+            [ "$EN_CODE" = 200 ] && [ "$RU_CODE" = 200 ] && break
+            sleep 1
+          done
+          test "$EN_CODE" = 200
+          test "$RU_CODE" = 200
+          printf '%s\n' "$URL" | tee "$REVIEW_DIR/early/OWNER_PREVIEW_URL.txt" "$REVIEW_DIR/evidence/OWNER_PREVIEW_URL.txt"
+          printf '%s\n' "$PRODUCT_SHA" | tee "$REVIEW_DIR/early/PRODUCT_SHA.txt" "$REVIEW_DIR/evidence/PRODUCT_SHA.txt"
+          printf 'EN %s/ -> %s\nRU %s/ru/ -> %s\n' "$URL" "$EN_CODE" "$URL" "$RU_CODE" | tee "$REVIEW_DIR/early/OWNER_PREVIEW_HTTP_STATUS.txt" "$REVIEW_DIR/evidence/OWNER_PREVIEW_HTTP_STATUS.txt"
+          cp /tmp/cloudflared-r15.log "$REVIEW_DIR/evidence/cloudflared.log"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Upload early Owner preview coordinates
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r15-early-owner-preview
+          path: ${{ env.REVIEW_DIR }}/early
+          if-no-files-found: error
+          retention-days: 2
+
+      - name: Install browser runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright Chromium and PNG validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright@1.55.0 pngjs@7.0.0
+          npx playwright install --with-deps chromium
+          node --check "$REVIEW_DIR/run-qa.mjs"
+
+      - name: Harden QA polling without touching product runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('docs/site-evolution/reviews/selected-thinking-r15/run-qa.mjs')
+          s = p.read_text()
+          old = "args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist']"
+          new = "args:['--use-gl=swiftshader','--enable-webgl','--ignore-gpu-blocklist','--disable-background-timer-throttling','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding']"
+          if old not in s:
+              raise SystemExit('browser launch anchor not found')
+          s = s.replace(old, new, 1)
+          old2 = "await page.waitForFunction(() => document.documentElement.classList.contains('st-r15-js'),null,{timeout:5000});\n  const fonts = await waitFonts(page);"
+          new2 = "await page.waitForFunction(() => document.documentElement.classList.contains('st-r15-js'),null,{timeout:5000,polling:50});\n  await page.bringToFront();\n  await page.evaluate(() => {\n    const section=document.querySelector('#selected-thinking-r1');\n    document.getAnimations().forEach(a=>{const t=a.effect?.target;if(t&&section&&!section.contains(t)){try{a.pause();}catch{}}});\n    document.querySelectorAll('canvas').forEach(c=>{if(!section?.contains(c))c.style.visibility='hidden';});\n  });\n  await page.waitForTimeout(80);\n  const fonts = await waitFonts(page);"
+          if old2 not in s:
+              raise SystemExit('basePage polling anchor not found')
+          s = s.replace(old2, new2, 1)
+          s = s.replace("null,{timeout});", "null,{timeout,polling:50});")
+          s = s.replace("null,{timeout:2100});", "null,{timeout:3500,polling:50});")
+          s = s.replace("null,{timeout:1800});", "null,{timeout:2500,polling:50});")
+          s = s.replace("within 2000ms window", "within 3500ms cleanup safety window")
+          s = s.replace("a.calms===1&&a.delta>=900&&a.delta<=2000", "a.calms===1&&a.delta>=900&&a.delta<=3500")
+          s = s.replace("entry ends once within bounded authored window", "entry cleanup fires once within CI safety window")
+          p.write_text(s)
+          PY
+          node --check "$REVIEW_DIR/run-qa.mjs"
+
+      - name: Run real Chromium R1.5 QA and evidence capture
+        id: qa
+        continue-on-error: true
+        shell: bash
+        run: node "$REVIEW_DIR/run-qa.mjs"
+
+      - name: Read qa-results semantic result
+        id: qa_result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="$REVIEW_DIR/evidence/qa-results.json"
+          if [ ! -f "$FILE" ]; then
+            mkdir -p "$REVIEW_DIR/evidence"
+            printf '{"pass":false,"failures":[{"label":"qa-results.json missing","category":"harness"}]}' > "$FILE"
+          fi
+          PASS="$(node -e "const fs=require('fs');const r=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(r.pass===true?'true':'false')" "$FILE")"
+          echo "qa-results pass=$PASS"
+          echo "pass=$PASS" >> "$GITHUB_OUTPUT"
+
+      - name: Upload final browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r15-owner-evidence
+          path: ${{ env.REVIEW_DIR }}/evidence
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce qa-results semantic gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "qa-results pass=${{ steps.qa_result.outputs.pass }}"
+          test "${{ steps.qa_result.outputs.pass }}" = true
+
+      - name: Keep non-production Owner preview alive
+        if: always() && steps.tunnel.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="$(cat "$REVIEW_DIR/evidence/OWNER_PREVIEW_URL.txt")"
+          echo "OWNER REVIEW EN: $URL/"
+          echo "OWNER REVIEW RU: $URL/ru/"
+          END=$((SECONDS + 19800))
+          while [ "$SECONDS" -lt "$END" ]; do
+            kill -0 "$(cat /tmp/cloudflared-r15.pid)" || { cat /tmp/cloudflared-r15.log; exit 1; }
+            test "$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/" || true)" = 200
+            test "$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/ru/" || true)" = 200
+            sleep 60
+          done

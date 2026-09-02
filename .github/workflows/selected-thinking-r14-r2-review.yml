@@ -1,0 +1,196 @@
+name: Selected Thinking R1.4 Final QA Owner Preview R2
+
+on:
+  push:
+    branches:
+      - preview/homepage-selected-thinking-editorial-authority-r1-4-final-r2
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      PRODUCT_SHA: be557e2fe7144ed21fa9eb22ea04590d7e8306a9
+      PRODUCTION_SHA: 7b0942a042ef23e10cd74592208eeae94479b45e
+      R12_SHA: 9f40b2f077de24cfbb281311e7c128efdc3e0559
+      QA_SHA256: c1d78f20061e15c49d960cf8896a911ef5ffcdcfb1669c320d8ddf6948772786
+      QA_DONOR_COMMIT: 88148afe1bdee860fc9c07985b605bea1c212c56
+      REVIEW_DIR: docs/site-evolution/reviews/selected-thinking-r14-r2
+    steps:
+      - name: Checkout exact fresh preview branch
+        uses: actions/checkout@v6
+        with:
+          ref: preview/homepage-selected-thinking-editorial-authority-r1-4-final-r2
+          fetch-depth: 0
+
+      - name: Verify exact product parent and infra-only commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_SHA"
+          test "$(git rev-parse ${PRODUCT_SHA}^)" = "$PRODUCTION_SHA"
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1-2.css | git hash-object --stdin)" = "$R12_SHA"
+          git diff --name-only "$PRODUCTION_SHA" "$PRODUCT_SHA" | sort > /tmp/product-files.txt
+          cat > /tmp/expected-product-files.txt <<'FILES'
+          _includes/home-selected-thinking-r1-en.html
+          _includes/home-selected-thinking-r1-ru.html
+          assets/css/home-selected-thinking-r1-4.css
+          index.html
+          ru/index.html
+          FILES
+          sort /tmp/expected-product-files.txt -o /tmp/expected-product-files.txt
+          diff -u /tmp/expected-product-files.txt /tmp/product-files.txt
+          ! grep -q '<style' _includes/home-selected-thinking-r1-en.html
+          ! grep -q '<style' _includes/home-selected-thinking-r1-ru.html
+          git diff --name-only "$PRODUCT_SHA" HEAD | sort > /tmp/infra-files.txt
+          printf '%s\n' '.github/workflows/selected-thinking-r14-r2-review.yml' > /tmp/expected-infra-files.txt
+          diff -u /tmp/expected-infra-files.txt /tmp/infra-files.txt
+
+      - name: Install Jekyll
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+
+      - name: Build full integrated site
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          jekyll build --source . --destination _site
+          test -f _site/index.html
+          test -f _site/ru/index.html
+          test -f _site/assets/css/home-selected-thinking-r1-4.css
+          grep -q 'AI SYSTEMS / AUTOMATION / DIGITAL STRATEGY / OPERATIONS' _site/index.html
+          grep -q 'AI-СИСТЕМЫ / АВТОМАТИЗАЦИЯ / ЦИФРОВАЯ СТРАТЕГИЯ / ОПЕРАЦИИ' _site/ru/index.html
+          grep -q 'home-selected-thinking-r1-4.css?v=20260901.1' _site/index.html
+          grep -q 'home-selected-thinking-r1-4.css?v=20260901.1' _site/ru/index.html
+
+      - name: Start full built site
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory _site >/tmp/r14-r2-http.log 2>&1 &
+          echo $! >/tmp/r14-r2-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4173/ru/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/r14-r2-http.log
+          exit 1
+
+      - name: Start and verify fresh Cloudflare Owner preview
+        id: tunnel
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$REVIEW_DIR/evidence"
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared-r14-r2.log 2>&1 &
+          echo $! >/tmp/cloudflared-r14-r2.pid
+          URL=""
+          for i in {1..75}; do
+            URL="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared-r14-r2.log | head -n 1 || true)"
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          [ -n "$URL" ] || { cat /tmp/cloudflared-r14-r2.log; exit 1; }
+          EN_CODE=""; RU_CODE=""
+          for i in {1..45}; do
+            EN_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/" || true)"
+            RU_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/ru/" || true)"
+            [ "$EN_CODE" = 200 ] && [ "$RU_CODE" = 200 ] && break
+            sleep 1
+          done
+          test "$EN_CODE" = 200
+          test "$RU_CODE" = 200
+          printf '%s\n' "$URL" | tee "$REVIEW_DIR/evidence/OWNER_PREVIEW_URL.txt"
+          printf '%s\n' "$PRODUCT_SHA" > "$REVIEW_DIR/evidence/PRODUCT_SHA.txt"
+          printf 'EN %s/ -> %s\nRU %s/ru/ -> %s\n' "$URL" "$EN_CODE" "$URL" "$RU_CODE" > "$REVIEW_DIR/evidence/OWNER_PREVIEW_HTTP_STATUS.txt"
+          cp /tmp/cloudflared-r14-r2.log "$REVIEW_DIR/evidence/cloudflared.log"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Install browser runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright Chromium and PNG validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright@1.55.0 pngjs@7.0.0
+          npx playwright install --with-deps chromium
+
+      - name: Materialize verified deterministic R2 QA harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          DONOR="https://raw.githubusercontent.com/proaiexpert/proaiexpert.github.io/${QA_DONOR_COMMIT}/.github/workflows/selected-thinking-r14-r2-review.yml"
+          curl -fsSL "$DONOR" -o /tmp/r14-r2-donor.yml
+          awk '/<<'"'"'PAYLOAD'"'"'/{capture=1; next} capture && /^[[:space:]]*PAYLOAD[[:space:]]*$/{exit} capture{sub(/^          /, ""); print}' /tmp/r14-r2-donor.yml > /tmp/r14-r2-qa.b64
+          base64 -d /tmp/r14-r2-qa.b64 | gzip -d > "$GITHUB_WORKSPACE/selected-thinking-r14-r2-qa.mjs"
+          test "$(sha256sum "$GITHUB_WORKSPACE/selected-thinking-r14-r2-qa.mjs" | awk '{print $1}')" = "$QA_SHA256"
+          node --check "$GITHUB_WORKSPACE/selected-thinking-r14-r2-qa.mjs"
+
+      - name: Run deterministic real Chromium QA and capture evidence
+        id: qa
+        continue-on-error: true
+        shell: bash
+        run: node "$GITHUB_WORKSPACE/selected-thinking-r14-r2-qa.mjs"
+
+      - name: Read qa-results semantic result
+        id: qa_result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="$REVIEW_DIR/evidence/qa-results.json"
+          if [ ! -f "$FILE" ]; then
+            mkdir -p "$REVIEW_DIR/evidence"
+            printf '{"pass":false,"failures":[{"label":"qa-results.json missing","category":"harness"}]}' > "$FILE"
+          fi
+          PASS="$(node -e "const fs=require('fs');const r=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));process.stdout.write(r.pass===true?'true':'false')" "$FILE")"
+          echo "qa-results pass=$PASS"
+          echo "pass=$PASS" >> "$GITHUB_OUTPUT"
+
+      - name: Upload browser evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r14-final-r2-owner-evidence
+          path: ${{ env.REVIEW_DIR }}/evidence
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce qa-results semantic gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "qa-results pass=${{ steps.qa_result.outputs.pass }}"
+          test "${{ steps.qa_result.outputs.pass }}" = true
+
+      - name: Keep non-production Owner preview alive
+        if: always() && steps.tunnel.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="$(cat "$REVIEW_DIR/evidence/OWNER_PREVIEW_URL.txt")"
+          echo "OWNER REVIEW URL: $URL"
+          echo "OWNER REVIEW RU: $URL/ru/"
+          END=$((SECONDS + 19800))
+          while [ "$SECONDS" -lt "$END" ]; do
+            kill -0 "$(cat /tmp/cloudflared-r14-r2.pid)" || { cat /tmp/cloudflared-r14-r2.log; exit 1; }
+            test "$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/" || true)" = 200
+            test "$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/ru/" || true)" = 200
+            sleep 60
+          done

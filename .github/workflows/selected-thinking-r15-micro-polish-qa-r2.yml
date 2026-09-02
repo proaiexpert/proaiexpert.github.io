@@ -1,0 +1,179 @@
+name: Selected Thinking R1.5 Micro Polish QA R2
+
+on:
+  push:
+    branches:
+      - qa/homepage-selected-thinking-r15-micro-polish-r2
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PRODUCT_SHA: 4615e323b10cb952423615f64b81e42d924a87d8
+      BASE_SHA: 55d44922f14c1dc13c3d9e14a297b49e69b22916
+      OUT: docs/site-evolution/reviews/selected-thinking-r15-micro-polish-qa-r2
+    steps:
+      - name: Checkout exact QA branch
+        uses: actions/checkout@v6
+        with:
+          ref: qa/homepage-selected-thinking-r15-micro-polish-r2
+          fetch-depth: 0
+
+      - name: Verify exact product authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_SHA"
+          test "$(git rev-parse ${PRODUCT_SHA}^)" = "$BASE_SHA"
+          test "$(git show ${PRODUCT_SHA}:assets/js/home-selected-thinking-r1-5.js | git hash-object --stdin)" = "960abf17cb5d30221f196ef01e086a3b4a2288d7"
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1-5.css | git hash-object --stdin)" = "c17782439cbcea4b59d13e081f05a6d78cb1d094"
+          grep -q '>ИЗБРАННЫЕ МАТЕРИАЛЫ<' _includes/home-selected-thinking-r1-ru.html
+          grep -q '>SELECTED THINKING<' _includes/home-selected-thinking-r1-en.html
+          grep -q 'st-r15-authority-seam 460ms' assets/css/home-selected-thinking-r1-5-micro-polish.css
+          grep -q 'animation-duration: 340ms' assets/css/home-selected-thinking-r1-5-micro-polish.css
+          grep -q 'animation-delay: 220ms' assets/css/home-selected-thinking-r1-5-micro-polish.css
+          ! grep -Eqi 'requestAnimationFrame|webgl|canvas|box-shadow|backdrop-filter|particle|neon' assets/css/home-selected-thinking-r1-5-micro-polish.css
+
+      - name: Build integrated site
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          python3 -m http.server 4173 --directory _site >/tmp/r15-micro-r2-http.log 2>&1 &
+          echo $! >/tmp/r15-micro-r2-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4173/ru/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/r15-micro-r2-http.log
+          exit 1
+
+      - name: Install browser runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run deterministic settled-state QA
+        id: qa
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT"
+          printf '{"pass":false,"checks":[],"failures":[{"label":"QA started but did not complete","kind":"harness"}]}' > "$OUT/qa-results.json"
+          cat > "$GITHUB_WORKSPACE/r15-micro-settled-qa.cjs" <<'JS'
+          const { chromium } = require('playwright');
+          const fs = require('node:fs');
+
+          const BASE='http://127.0.0.1:4173';
+          const OUT=process.env.OUT+'/qa-results.json';
+          const result={pass:false,checks:[],failures:[],matrix:{desktop:true,mobile:true,landscape:true},reducedMotion:true};
+          const persist=()=>fs.writeFileSync(OUT,JSON.stringify(result,null,2));
+          const check=(ok,label,details=null,kind='runtime')=>{(ok?result.checks:result.failures).push({label,details,kind});persist();return !!ok;};
+          const expected={en:{route:'/',eye:'SELECTED THINKING'},ru:{route:'/ru/',eye:'ИЗБРАННЫЕ МАТЕРИАЛЫ'}};
+          const vps=[['1440x900',1440,900,'desktop'],['1280x800',1280,800,'desktop'],['1024x768',1024,768,'desktop'],['430x932',430,932,'mobile'],['390x844',390,844,'mobile'],['375x812',375,812,'mobile'],['360x800',360,800,'mobile'],['320x700',320,700,'mobile'],['852x393',852,393,'landscape']];
+
+          (async()=>{
+            let browser;
+            try {
+              browser=await chromium.launch({headless:true});
+              async function pageFor(lang,w,h,kind,reduced='no-preference'){
+                const touch=kind!=='desktop';
+                const c=await browser.newContext({viewport:{width:w,height:h},isMobile:touch,hasTouch:touch,reducedMotion:reduced});
+                const p=await c.newPage();
+                await p.route('**/*.js*',route=>route.fulfill({status:200,contentType:'application/javascript',body:''}));
+                await p.goto(BASE+expected[lang].route,{waitUntil:'domcontentloaded',timeout:30000});
+                await p.locator('#selected-thinking-r1').waitFor({state:'attached',timeout:10000});
+                await p.evaluate(()=>{
+                  document.documentElement.classList.add('st-r15-js');
+                  const s=document.querySelector('#selected-thinking-r1');
+                  s.classList.add('st-r15-entered','st-r15-calm');
+                  s.dataset.stR15Entered='true';
+                });
+                return {c,p};
+              }
+
+              for(const lang of ['en','ru']){
+                for(const [name,w,h,kind] of vps){
+                  const {c,p}=await pageFor(lang,w,h,kind);
+                  let local=true;
+                  const d=await p.evaluate(()=>{
+                    const s=document.querySelector('#selected-thinking-r1');
+                    const eye=s.querySelector('.selected-thinking-r1__eyebrow');
+                    const lead=s.querySelector('.selected-thinking-r1__lead');
+                    const seam=getComputedStyle(lead,'::after');
+                    const legacy=getComputedStyle(lead,'::before');
+                    const color=(getComputedStyle(eye).color.match(/[\d.]+/g)||[]).map(Number);
+                    const supports=[...s.querySelectorAll('.selected-thinking-r1__support-record')].map(x=>({shadow:getComputedStyle(x).boxShadow}));
+                    return {eye:eye.textContent.trim(),color,seam:{background:seam.backgroundImage,width:parseFloat(seam.width),height:parseFloat(seam.height),opacity:parseFloat(seam.opacity),animation:seam.animationName},legacyOpacity:parseFloat(legacy.opacity),overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth,taxonomy:s.querySelectorAll('.selected-thinking-r1__taxonomy').length,canvases:s.querySelectorAll('canvas').length,running:document.getAnimations().filter(a=>a.playState==='running'&&String(a.animationName||'').startsWith('st-r15-')).map(a=>a.animationName),supports};
+                  });
+                  local &= check(d.eye===expected[lang].eye,`${lang} ${name}: eyebrow exact`,d.eye);
+                  local &= check(d.color.length>=3&&d.color[2]>d.color[1]&&d.color[1]>d.color[0],`${lang} ${name}: eyebrow cooler steel-indigo`,d.color);
+                  local &= check(d.seam.background.includes('linear-gradient')&&d.seam.width>=100&&d.seam.height<=30&&d.seam.opacity>=.45,`${lang} ${name}: authority seam rendered`,d.seam);
+                  local &= check(d.overflow<=1,`${lang} ${name}: no horizontal overflow`,d.overflow);
+                  local &= check(d.taxonomy===0&&d.canvases===0,`${lang} ${name}: no taxonomy/canvas added`,{taxonomy:d.taxonomy,canvases:d.canvases});
+                  local &= check(d.running.length===0,`${lang} ${name}: settled authored motion NONE`,d.running);
+                  local &= check(d.supports.every(x=>x.shadow==='none'),`${lang} ${name}: supports remain quiet/no shadow`,d.supports);
+                  if(kind==='mobile') local &= check(d.legacyOpacity===0,`${lang} ${name}: legacy mobile tick suppressed`,d.legacyOpacity);
+                  result.matrix[kind]=result.matrix[kind]&&Boolean(local);
+                  persist();
+                  await c.close();
+                }
+              }
+
+              for(const lang of ['en','ru']){
+                const {c,p}=await pageFor(lang,1440,900,'desktop','reduce');
+                const d=await p.evaluate(()=>{
+                  const s=document.querySelector('#selected-thinking-r1');
+                  const lead=s.querySelector('.selected-thinking-r1__lead');
+                  const fw=s.querySelector('.selected-thinking-r1__framework--lead');
+                  const mat=s.querySelector('.selected-thinking-r15__material');
+                  return {seam:getComputedStyle(lead,'::after').animationName,signal:getComputedStyle(fw,'::after').animationName,material:getComputedStyle(mat,'::after').animationName,running:document.getAnimations().filter(a=>a.playState==='running'&&String(a.animationName||'').startsWith('st-r15-')).map(a=>a.animationName)};
+                });
+                result.reducedMotion=check(d.seam==='none'&&d.signal==='none'&&d.material==='none'&&d.running.length===0,`${lang}: reduced motion static / zero travelling effects`,d,'reduced-motion')&&result.reducedMotion;
+                await c.close();
+              }
+            } catch(e) {
+              check(false,'QA unhandled exception',{message:String(e),stack:e&&e.stack||null},'harness');
+            } finally {
+              if(browser) await browser.close();
+            }
+            result.pass=result.failures.length===0;
+            persist();
+            console.log(JSON.stringify({pass:result.pass,checks:result.checks.length,failures:result.failures.length,matrix:result.matrix,reducedMotion:result.reducedMotion},null,2));
+            process.exit(result.pass?0:1);
+          })();
+          JS
+          node "$GITHUB_WORKSPACE/r15-micro-settled-qa.cjs"
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r15-micro-polish-final-qa-r2
+          path: ${{ env.OUT }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce semantic result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$OUT/qa-results.json"
+          node -e "const fs=require('fs');const r=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));console.log('qa-results pass='+r.pass);process.exit(r.pass===true?0:1)" "$OUT/qa-results.json"

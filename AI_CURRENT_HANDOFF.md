@@ -90,3 +90,18 @@ Validation completed on `agent/proai-boxes-hover-native-runtime-validation-r1` a
 - Exact Viewer module `@splinetool/viewer@2.0.27` and Public Original both loaded, but REST framing and center/edge pointer response differed materially; Viewer also emitted a non-fatal `ShadowDepthTexture` WebGPU validation error.
 - Evidence: `docs/site-evolution/ai-systems/boxes-hover-native-runtime-validation-r1/`.
 - Next gate: do not start reconstruction or product adaptation; Owner must decide whether this donor remains acceptable despite the Viewer/Public mismatch.
+
+### Boxes Hover source/export reconciliation — evidence branch only
+
+Reconciled on `agent/proai-boxes-hover-native-runtime-validation-r1` against remote `main` SHA `204233b2683487433621c65b6409453503b74ba5`.
+
+- Status: **PUBLIC ORIGINAL CONFIRMED / EDITOR SOURCE DIVERGED**.
+- The Owner's logged-in Spline project `117b4cf5-47ae-497c-a445-4edea9bc604f` was run in current Editor Play Mode without scene edits. Its box topology, composition, and hover response did not match the known working Public Original.
+- Public Original remains the strongest visual/interaction authority: `https://my.spline.design/boxeshover-lql1ZGkjxCEQe8mgxeMO6mZC/`.
+- Current Viewer remains unmodified and preserved at 46,359 bytes with SHA256 `4BA4B16BDE969700AF42E63482ECDA20218CE0F7CE5728BD1968C5830E96D468`.
+- `Update Viewer` was **not** clicked. `Update Public URL` was **not** clicked. Therefore Viewer staleness/misconfiguration is not proven and synchronization is unsafe.
+- Read-only settings comparison: shared visible settings matched; Public URL exposed `Preload: Yes`, while Viewer exposed `Mouse Events: Local (Canvas Container)` in Overview and did not expose Preload.
+- Code Export was read-only: Vanilla JS/Web Content, current scene URL, empty Drafts list; no draft was generated and no paid ZIP was used.
+- Exact Public Original iframe/embed path was independently rendered and interacted with in an isolated localhost harness: **PASS**.
+- Evidence/report: `docs/site-evolution/ai-systems/boxes-hover-native-runtime-validation-r1/source-export-reconciliation-r1/SOURCE_EXPORT_RECONCILIATION_REPORT.md`.
+- Next gate: preserve Public Original as donor authority; do not update Viewer, reconstruct, adapt ProAI, or alter product code without a new Owner decision.

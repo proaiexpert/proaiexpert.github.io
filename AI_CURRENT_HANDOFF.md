@@ -79,3 +79,14 @@ Do not reintroduce old `57 clicks / 7.24K / 50 pages` or superseded `63 clicks` 
 - Preserve accessibility and reduced-motion behavior.
 - Do not invent outcomes, rankings, revenue, reviews, licenses or proof.
 - Keep EN/RU localization natural rather than mechanically mirrored.
+
+## Boxes Hover native runtime validation — evidence branch only
+
+Validation completed on `agent/proai-boxes-hover-native-runtime-validation-r1` against remote `main` SHA `55788322f7f9079da6bbe28dec9eb789a6cb337e`.
+
+- Status: **ORIGINAL RUNTIME MISMATCH**.
+- System browser: Chrome `152.0.7977.64`; GPU: Intel UHD Graphics 630 with NVIDIA GeForce GTX 1650 also installed.
+- `navigator.gpu` and `requestAdapter()`: PASS; exact `scene.splinecode`: HTTP 200, 46359 bytes, `application/json`.
+- Exact Viewer module `@splinetool/viewer@2.0.27` and Public Original both loaded, but REST framing and center/edge pointer response differed materially; Viewer also emitted a non-fatal `ShadowDepthTexture` WebGPU validation error.
+- Evidence: `docs/site-evolution/ai-systems/boxes-hover-native-runtime-validation-r1/`.
+- Next gate: do not start reconstruction or product adaptation; Owner must decide whether this donor remains acceptable despite the Viewer/Public mismatch.

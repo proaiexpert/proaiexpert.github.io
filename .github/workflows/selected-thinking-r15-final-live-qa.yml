@@ -1,0 +1,157 @@
+name: Selected Thinking R1.5 Final Live QA
+
+on:
+  push:
+    branches:
+      - qa/selected-thinking-r15-final-live
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    env:
+      PRODUCT_SHA: 1c934802a20e8410246b73e36dbaa3023f7ed8db
+    steps:
+      - name: Checkout QA branch
+        uses: actions/checkout@v6
+        with:
+          ref: qa/selected-thinking-r15-final-live
+          fetch-depth: 0
+
+      - name: Verify product parent and scoped correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_SHA"
+          test "$(git rev-parse ${PRODUCT_SHA}^)" = "90d585ef98b17cae8e45619847a5f8cf59ce0d04"
+          grep -q '>ИЗБРАННЫЕ МАТЕРИАЛЫ<' _includes/home-selected-thinking-r1-ru.html
+          grep -q '>SELECTED THINKING<' _includes/home-selected-thinking-r1-en.html
+          grep -q 'Lead CTA caption' assets/css/home-selected-thinking-r1-5-micro-polish.css
+          grep -q 'position: static;' assets/css/home-selected-thinking-r1-5-micro-polish.css
+
+      - name: Build integrated site
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          test -f _site/index.html
+          test -f _site/ru/index.html
+          python3 -m http.server 4173 --directory _site >/tmp/r15-final-http.log 2>&1 &
+          echo $! >/tmp/r15-final-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4173/ru/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/r15-final-http.log
+          exit 1
+
+      - name: Install browser runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify caption geometry and responsive matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$GITHUB_WORKSPACE/r15-final-qa.cjs" <<'JS'
+          const { chromium } = require('playwright');
+          const fs = require('node:fs');
+          const BASE = 'http://127.0.0.1:4173';
+          const cases = [
+            ['1440x900',1440,900],['1280x800',1280,800],['1024x768',1024,768],
+            ['852x393',852,393],['430x932',430,932],['390x844',390,844],
+            ['375x812',375,812],['360x800',360,800],['320x700',320,700]
+          ];
+          const langs = {
+            en: { route:'/', read:'READ THE FRAMEWORK', eye:'SELECTED THINKING' },
+            ru: { route:'/ru/', read:'РАЗОБРАТЬ СИСТЕМУ', eye:'ИЗБРАННЫЕ МАТЕРИАЛЫ' }
+          };
+          const report = { pass:false, checks:[], failures:[] };
+          const check = (ok,label,details={}) => {
+            (ok ? report.checks : report.failures).push({label,details});
+            return !!ok;
+          };
+          (async()=>{
+            const browser = await chromium.launch({headless:true});
+            try {
+              for (const [lang, exp] of Object.entries(langs)) {
+                for (const [name,width,height] of cases) {
+                  const context = await browser.newContext({viewport:{width,height},isMobile:width<=430,hasTouch:width<=430});
+                  const page = await context.newPage();
+                  await page.goto(BASE + exp.route,{waitUntil:'domcontentloaded',timeout:30000});
+                  const section = page.locator('#selected-thinking-r1');
+                  await section.scrollIntoViewIfNeeded();
+                  await page.waitForFunction(() => {
+                    const s=document.querySelector('#selected-thinking-r1');
+                    return s && s.classList.contains('st-r15-calm');
+                  }, {timeout:3500}).catch(()=>{});
+                  const d = await page.evaluate(() => {
+                    const s=document.querySelector('#selected-thinking-r1');
+                    const read=s.querySelector('.selected-thinking-r1__lead > .selected-thinking-r1__read');
+                    const fw=s.querySelector('.selected-thinking-r1__framework--lead');
+                    const first=fw.querySelector('span:first-of-type');
+                    const eye=s.querySelector('.selected-thinking-r1__eyebrow');
+                    const rr=read.getBoundingClientRect();
+                    const fr=fw.getBoundingClientRect();
+                    const sr=first.getBoundingClientRect();
+                    return {
+                      readText:read.textContent.replace('→','').trim(),
+                      eye:eye.textContent.trim(),
+                      position:getComputedStyle(read).position,
+                      read:{left:rr.left,top:rr.top,right:rr.right,bottom:rr.bottom},
+                      framework:{left:fr.left,top:fr.top,right:fr.right,bottom:fr.bottom},
+                      first:{left:sr.left,top:sr.top,right:sr.right,bottom:sr.bottom},
+                      overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth,
+                      intersects:!(rr.bottom <= fr.top || rr.top >= fr.bottom || rr.right <= fr.left || rr.left >= fr.right)
+                    };
+                  });
+                  const prefix=`${lang} ${name}`;
+                  check(d.readText===exp.read,`${prefix}: caption text exact`,d);
+                  check(d.eye===exp.eye,`${prefix}: eyebrow exact`,d);
+                  check(d.position==='static',`${prefix}: caption in normal flow`,d);
+                  check(d.read.top >= d.framework.bottom + 8,`${prefix}: caption below framework`,d);
+                  check(Math.abs(d.read.left-d.first.left)<=2.5,`${prefix}: caption aligned under first step`,d);
+                  check(!d.intersects,`${prefix}: no caption/framework overlap`,d);
+                  check(d.overflow<=1,`${prefix}: no horizontal overflow`,d);
+                  if (name==='1440x900') {
+                    await section.screenshot({path:`${lang}-1440-settled.png`});
+                  }
+                  await context.close();
+                }
+              }
+            } finally {
+              await browser.close();
+            }
+            report.pass=report.failures.length===0;
+            fs.writeFileSync('qa-results.json',JSON.stringify(report,null,2));
+            console.log(JSON.stringify({pass:report.pass,checks:report.checks.length,failures:report.failures.length},null,2));
+            process.exit(report.pass?0:1);
+          })();
+          JS
+          node "$GITHUB_WORKSPACE/r15-final-qa.cjs"
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r15-final-live-qa
+          path: |
+            qa-results.json
+            en-1440-settled.png
+            ru-1440-settled.png
+          if-no-files-found: error
+          retention-days: 14

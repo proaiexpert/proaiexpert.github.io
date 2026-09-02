@@ -3,11 +3,12 @@
 // This file does NOT chain R1.3/R1.4. It replaces the complete whole-object + slice + interaction motion layer once.
 
 const sourceUrl = new URL('./source-materials-r1.js', import.meta.url);
-const glbUrl = new URL('../../models/proai-cube/rubik_39_s_cube_animation.glb', import.meta.url);
+const glbUrl = new URL('../../models/proai-cube/proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url);
 
 const response = await fetch(sourceUrl, { cache: 'no-store' });
 if (!response.ok) throw new Error(`FINAL MOTION R2 base source HTTP ${response.status}`);
 let source = await response.text();
+source = source.replace(/\r\n?/g, '\n');
 
 const REQUIRED_BASE_MARKERS = [
   "motionAuthority: 'quaternion-editorial-spatial-r1.2-premium'",
@@ -18,14 +19,14 @@ const REQUIRED_BASE_MARKERS = [
   'const RESOLUTION_PHRASE = Object.freeze(',
   'const CHOREOGRAPHY = Object.freeze([...PRIMARY_PHRASE, ...RESOLUTION_PHRASE]);',
   "selectedPreset: 'premiumHybrid'",
-  "const GLB_URL = new URL('./rubik_39_s_cube_animation.glb', import.meta.url).href;",
+  "const GLB_URL = new URL('./proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url).href;",
 ];
 for (const marker of REQUIRED_BASE_MARKERS) {
   if (!source.includes(marker)) throw new Error(`FINAL MOTION R2 refused unexpected frozen base: ${marker}`);
 }
 
 source = source.replace(
-  "const GLB_URL = new URL('./rubik_39_s_cube_animation.glb', import.meta.url).href;",
+  "const GLB_URL = new URL('./proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url).href;",
   `const GLB_URL = '${glbUrl.href}';`,
 );
 

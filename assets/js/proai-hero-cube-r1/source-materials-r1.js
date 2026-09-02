@@ -5,9 +5,26 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 
-const GLB_URL = new URL('./rubik_39_s_cube_animation.glb', import.meta.url).href;
+const GLB_URL = new URL('./proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url).href;
+const PROAI_CUBE_IDENTITY = Object.freeze({
+  schema: 'proai.asset.provenance.v1',
+  assetId: 'PAI-CUBE-0001',
+  publicName: 'PROAI CUBE',
+  assetFamily: 'proai-cube',
+  revision: 'r1',
+  buildId: 'PAI-CUBE-R1-7B0942A0',
+  forensicId: '2D2B518012AECCAC',
+  sourceCommit: '7b0942a042ef23e10cd74592208eeae94479b45e',
+  provenanceState: 'planned',
+  plannedProvenanceUrl: 'https://proai-expert.com/provenance/proai-cube/r1',
+  signatureNodeId: 'PROAI_SIG_KINETIC_R1',
+  forensicNodeId: 'PROAI_FORENSIC_WITNESS_R1',
+  signatureReveal: 'existing-controlled-slice-turn',
+});
+const getOwnershipFingerprint = () => Object.freeze({ ...PROAI_CUBE_IDENTITY, glbUrl: GLB_URL });
 const canvas = document.getElementById('cube-canvas');
 const status = document.getElementById('runtime-status');
+canvas?.setAttribute('data-proai-asset-id', PROAI_CUBE_IDENTITY.assetId);
 const params = new URLSearchParams(location.search);
 const captureMode = params.has('capture');
 const reviewMode = params.has('review');
@@ -253,6 +270,12 @@ const faceGraphiteMaterial = physicalMaterial(LOOKDEV_R1.materialGroups.graphite
 const faceGunmetalMaterial = physicalMaterial(LOOKDEV_R1.materialGroups.gunmetalFace);
 const faceBlackChromeMaterial = physicalMaterial(LOOKDEV_R1.materialGroups.blackChromeFace);
 const coreMaterial = physicalMaterial(LOOKDEV_R1.materialGroups.smokedCore);
+const signatureMaterial = physicalMaterial({ color: '#b9f3ff', metalness: 0.86, roughness: 0.22, clearcoat: 0.22, clearcoatRoughness: 0.12, envMapIntensity: 1.34 });
+signatureMaterial.emissive.set('#0b3442');
+signatureMaterial.emissiveIntensity = 0.72;
+signatureMaterial.transparent = true;
+signatureMaterial.opacity = 0;
+signatureMaterial.side = THREE.DoubleSide;
 const faceMaterial = faceGraphiteMaterial;
 const premiumMaterials = Object.freeze({
   graphiteFace: faceGraphiteMaterial,
@@ -263,6 +286,11 @@ const premiumMaterials = Object.freeze({
 let activeLookDevPreset = LOOKDEV_R1.selectedPreset;
 let materialAssignmentCounts = { graphiteFace: 0, gunmetalFace: 0, blackChromeFace: 0, smokedCore: 0 };
 let resolvedLighting = null;
+let ownershipSignatureRoot = null;
+let forensicWitnessRoot = null;
+let ownershipSignatureReveal = 0;
+let ownershipSignatureInspection = false;
+let ownershipSignatureLastNow = 0;
 
 function applyMaterialSpec(material, spec) {
   material.color.set(spec.color);
@@ -351,6 +379,7 @@ const presentationAxis = new THREE.Vector3();
 
 const api = {
   ready: false,
+  identity: PROAI_CUBE_IDENTITY,
   motionState,
   motionConfig: MOTION,
   geometryConfig: GEOMETRY_R1,
@@ -364,6 +393,20 @@ const api = {
   runPairedTurnQA,
   getDiagnostics,
   getInteractionState,
+  getOwnershipFingerprint,
+  setSignatureInspection(enabled = false) {
+    if (!ownershipSignatureRoot) return false;
+    ownershipSignatureInspection = Boolean(enabled);
+    ownershipSignatureRoot.visible = Boolean(enabled);
+    signatureMaterial.opacity = enabled ? 0.88 : 0;
+    ownershipSignatureReveal = enabled ? 1 : 0;
+    return ownershipSignatureRoot.visible;
+  },
+  setForensicInspection(enabled = false) {
+    if (!forensicWitnessRoot) return false;
+    forensicWitnessRoot.visible = Boolean(enabled);
+    return forensicWitnessRoot.visible;
+  },
   stopChoreography() { sliceSchedulerEnabled = false; },
   stopSliceScheduler() { sliceSchedulerEnabled = false; },
   startChoreography() {
@@ -546,6 +589,57 @@ function classifyReviewMaterial(mesh) {
   return faceGraphiteMaterial;
 }
 
+function isOwnershipNode(object) {
+  return Boolean(object.userData?.proaiNodeId)
+    || object.name === 'PROAI_SIG_KINETIC_R1'
+    || object.name === 'PROAI_FORENSIC_WITNESS_R1';
+}
+
+function setupOwnershipNodes() {
+  ownershipSignatureRoot = cubeRoot.getObjectByName(PROAI_CUBE_IDENTITY.signatureNodeId);
+  forensicWitnessRoot = cubeRoot.getObjectByName(PROAI_CUBE_IDENTITY.forensicNodeId);
+  if (!ownershipSignatureRoot || !forensicWitnessRoot) {
+    throw new Error('ProAI ownership nodes missing from canonical GLB');
+  }
+  ownershipSignatureRoot.traverse((object) => {
+    if (!object.isMesh) return;
+    object.material = signatureMaterial;
+    object.renderOrder = 2;
+    object.castShadow = false;
+    object.receiveShadow = false;
+  });
+  signatureMaterial.depthTest = false;
+  signatureMaterial.depthWrite = false;
+  ownershipSignatureRoot.visible = false;
+  forensicWitnessRoot.visible = false;
+  ownershipSignatureReveal = 0;
+  ownershipSignatureInspection = false;
+  ownershipSignatureLastNow = 0;
+}
+
+function updateOwnershipSignatureReveal(now = performance.now()) {
+  if (!ownershipSignatureRoot) return;
+  if (!ownershipSignatureLastNow) ownershipSignatureLastNow = now;
+  const dt = Math.min(0.12, Math.max(0, (now - ownershipSignatureLastNow) / 1000));
+  ownershipSignatureLastNow = now;
+  const target = ownershipSignatureInspection || activeTurns.size > 0 ? 1 : 0;
+  const tau = target ? 0.34 : 0.42;
+  ownershipSignatureReveal += (target - ownershipSignatureReveal) * (1 - Math.exp(-dt / tau));
+  signatureMaterial.opacity = 0.88 * THREE.MathUtils.clamp(ownershipSignatureReveal, 0, 1);
+  ownershipSignatureRoot.visible = ownershipSignatureReveal > 0.002;
+}
+
+function ownershipNodeBounds(root) {
+  if (!root) return null;
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  return {
+    min: box.min.toArray(),
+    max: box.max.toArray(),
+    size: box.getSize(new THREE.Vector3()).toArray(),
+  };
+}
+
 function roundedRectShape(width, height, radius) {
   const w = width * 0.5;
   const h = height * 0.5;
@@ -625,7 +719,7 @@ function enhanceRenderGeometry() {
   const cache = new Map();
   const stats = { faceMeshes: 0, coreMeshes: 0, nonPlaneMeshes: 0, uniqueEnhancedGeometries: 0, faceSourceSizes: [], coreSourceSizes: [] };
   cubeRoot.traverse((object) => {
-    if (!object.isMesh || object.name === 'Plane' || !object.geometry) return;
+    if (!object.isMesh || object.name === 'Plane' || isOwnershipNode(object) || !object.geometry) return;
     stats.nonPlaneMeshes += 1;
     const sourceGeometry = object.geometry;
     const source = sourceGeometryMetrics(sourceGeometry);
@@ -1571,6 +1665,7 @@ function setReviewPresentation(timeSec = 0, resumeProgress = 1, renderFrame = tr
 }
 
 function renderReviewFrame() {
+  updateOwnershipSignatureReveal(performance.now());
   controls.update();
   renderer.render(scene, camera);
 }
@@ -1599,6 +1694,21 @@ function frameCamera() {
 function getDiagnostics() {
   const presentationSample = getReviewPresentationSample(presentationSimTimeMs / 1000);
   return {
+    ownership: {
+      ...getOwnershipFingerprint(),
+      signature: {
+        nodeId: PROAI_CUBE_IDENTITY.signatureNodeId,
+        revealProgress: ownershipSignatureReveal,
+        visible: Boolean(ownershipSignatureRoot?.visible),
+        material: 'physical-metallic-recess',
+        bounds: ownershipNodeBounds(ownershipSignatureRoot),
+      },
+      forensicWitness: {
+        nodeId: PROAI_CUBE_IDENTITY.forensicNodeId,
+        visible: Boolean(forensicWitnessRoot?.visible),
+        visibility: 'internal-inspection-only',
+      },
+    },
     ready: api.ready,
     motionState,
     hierarchy: api.hierarchy,
@@ -1672,6 +1782,7 @@ window.addEventListener('resize', resize, { passive: true });
 
 function render(now) {
   updatePresentationMotion(now);
+  updateOwnershipSignatureReveal(now);
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(render);
@@ -1700,12 +1811,13 @@ loader.load(
     materialAssignmentCounts = { graphiteFace: 0, gunmetalFace: 0, blackChromeFace: 0, smokedCore: 0 };
     cubeRoot.updateMatrixWorld(true);
     cubeRoot.traverse((object) => {
-      if (object.isMesh && object.name !== 'Plane') {
+      if (object.isMesh && object.name !== 'Plane' && !isOwnershipNode(object)) {
         object.material = classifyReviewMaterial(object);
         object.castShadow = false;
         object.receiveShadow = false;
       }
     });
+    setupOwnershipNodes();
     frameCamera();
     resize();
     if (captureMode) renderReviewFrame();

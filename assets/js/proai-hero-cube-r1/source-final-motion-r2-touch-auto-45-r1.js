@@ -5,11 +5,12 @@
 
 const baseR2Url = new URL('./source-final-motion-r2.js', import.meta.url);
 const materialsUrl = new URL('./source-materials-r1.js', import.meta.url);
-const glbUrl = new URL('../../models/proai-cube/rubik_39_s_cube_animation.glb', import.meta.url);
+const glbUrl = new URL('../../models/proai-cube/proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url);
 
 const response = await fetch(baseR2Url, { cache: 'no-store' });
 if (!response.ok) throw new Error(`FINAL MOTION R2 touch-auto base HTTP ${response.status}`);
 let source = await response.text();
+source = source.replace(/\r\n?/g, '\n');
 
 function replaceOnce(oldValue, newValue, label) {
   const count = source.split(oldValue).length - 1;
@@ -24,7 +25,7 @@ replaceOnce(
   'materials URL',
 );
 replaceOnce(
-  "const glbUrl = new URL('../../models/proai-cube/rubik_39_s_cube_animation.glb', import.meta.url);",
+  "const glbUrl = new URL('../../models/proai-cube/proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url);",
   `const glbUrl = new URL('${glbUrl.href}');`,
   'GLB URL',
 );

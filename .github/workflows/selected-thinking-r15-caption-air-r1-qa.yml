@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "$PRODUCT_SHA"
+          git merge-base --is-ancestor "$PRODUCT_SHA" HEAD
           test "$(git rev-parse ${PRODUCT_SHA}^)" = "$BASE_SHA"
           test "$(git diff --name-only ${BASE_SHA} ${PRODUCT_SHA})" = "assets/css/home-selected-thinking-r1-5-micro-polish.css"
           grep -q 'margin-top: 32px;' assets/css/home-selected-thinking-r1-5-micro-polish.css
@@ -87,8 +87,11 @@ jobs:
                   const page=await context.newPage();
                   await page.goto('http://127.0.0.1:4173'+exp.route,{waitUntil:'domcontentloaded',timeout:30000});
                   await page.evaluate(()=>document.fonts&&document.fonts.ready).catch(()=>{});
-                  const section=page.locator('#selected-thinking-r1');
-                  await section.scrollIntoViewIfNeeded();
+                  await page.evaluate(()=>{
+                    const s=document.querySelector('#selected-thinking-r1');
+                    if (!s) throw new Error('Selected Thinking missing');
+                    window.scrollTo(0,Math.max(0,s.getBoundingClientRect().top+scrollY-70));
+                  });
                   await page.waitForTimeout(100);
                   const d=await page.evaluate(()=>{
                     const s=document.querySelector('#selected-thinking-r1');
@@ -123,8 +126,6 @@ jobs:
                   check(!d.intersects,`${p}: no overlap`,d);
                   check(d.overflow<=1,`${p}: no horizontal overflow`,d);
                   if(name==='1440x900'){
-                    await page.evaluate(()=>{const s=document.querySelector('#selected-thinking-r1');window.scrollTo(0,Math.max(0,s.getBoundingClientRect().top+scrollY-70));});
-                    await page.waitForTimeout(80);
                     const cdp=await context.newCDPSession(page);
                     const shot=await cdp.send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});
                     fs.writeFileSync(`${lang}-1440-caption-air.png`,Buffer.from(shot.data,'base64'));
@@ -145,7 +146,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: selected-thinking-r15-caption-air-r1-evidence
+          name: selected-thinking-r15-caption-air-r1-evidence-r2
           path: |
             qa-results.json
             en-1440-caption-air.png

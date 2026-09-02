@@ -1,5 +1,5 @@
-const SOURCE_URL='/assets/js/proai-hero-cube-r1/source-materials-r1.js';
-const GLB_URL='/assets/models/proai-cube/proai-cube-r1.glb?sha=2A97D4671F5A';
+const SOURCE_URL='/assets/js/proai-hero-cube-r1/source-materials-r1.js?r11-visual-recovery';
+const GLB_URL='/assets/models/proai-cube/proai-cube-r1-1.glb?sha=3907E5ECB4FC';
 const HOME=Object.freeze({yaw:288,pitch:4.5,roll:-0.3,fov:27});
 const MOTION=Object.freeze({
   yawSpeed:8.5,
@@ -60,7 +60,10 @@ try{
   if(!response.ok)throw new Error(`Logo source HTTP ${response.status}`);
   let source=await response.text();
   source=source.replace(/\r\n?/g,'\n');
-  source=replaceOnce(source,"const GLB_URL = new URL('./proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url).href;",`const GLB_URL = '${GLB_URL}';`,'shared canonical GLB');
+  source=replaceOnce(source,`const GLB_URL = new URL(
+  goldenReferenceMode ? './rubik_39_s_cube_animation.glb' : './proai-cube-r1-1.glb?sha=3907E5ECB4FC',
+  import.meta.url,
+).href;`,`const GLB_URL = '${GLB_URL}';`,'shared canonical GLB');
   source=replaceOnce(source,'  alpha: false,','  alpha: true,','transparent renderer');
   source=replaceOnce(source,"renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, (captureMode || reviewMode) ? 1 : 2));","renderer.setPixelRatio(globalThis.__PROAI_HEADER_MICRO_PIXEL_RATIO || 3);",'Retina micro pixel ratio');
   source=replaceOnce(source,'renderer.toneMappingExposure = 1.0;','renderer.toneMappingExposure = 0.92;','micro exposure');
@@ -75,8 +78,8 @@ try{
   source=replaceOnce(source,"place(key, [1.62, 0.62, 1.95], 3.20, 2.50);\n  place(fill, [-1.45, 0.22, 1.72], 2.85, 2.65);\n  place(rim, [-1.28, 1.02, -1.88], 1.15, 2.65);","place(key, [1.62, 0.62, 1.95], 3.80, 3.00);\n  place(fill, [-1.45, 0.22, 1.72], 3.60, 3.20);\n  place(rim, [-1.28, 1.02, -1.88], 1.70, 3.00);",'broad micro studio lights');
   source=replaceOnce(source,'let sliceSchedulerEnabled = !captureMode && !prefersReducedMotion;','let sliceSchedulerEnabled = false;','disable slice scheduler');
   source=replaceOnce(source,'controls.enablePan = false;','controls.enablePan = false;\ncontrols.enableZoom = false;\ncontrols.enabled = false;','disable interaction');
-  source=replaceOnce(source,'  setLookDevPreset,\n  renderReviewFrame,',`  setLookDevPreset,\n  setSignatureEuler(yawDeg,pitchDeg,rollDeg,renderFrame=true){\n    presentationRig.quaternion.setFromEuler(new THREE.Euler(THREE.MathUtils.degToRad(pitchDeg),THREE.MathUtils.degToRad(yawDeg),THREE.MathUtils.degToRad(rollDeg),'YXZ')).normalize();\n    if(renderFrame) renderReviewFrame();\n    return {yaw:yawDeg,pitch:pitchDeg,roll:rollDeg};\n  },\n  setSignatureFov(fovDeg,renderFrame=true){camera.fov=fovDeg;camera.updateProjectionMatrix();if(renderFrame) renderReviewFrame();return fovDeg;},\n  renderReviewFrame,`,'signature API');
-  source=replaceOnce(source,`function render(now) {\n  updatePresentationMotion(now);\n  updateOwnershipSignatureReveal(now);\n  controls.update();\n  renderer.render(scene, camera);\n  requestAnimationFrame(render);\n}`,`function render(now) {\n  if (document.visibilityState === 'visible') {\n    globalThis.__PROAI_HEADER_LOGO_TICK?.(now);\n    updateOwnershipSignatureReveal(now);\n    controls.update();\n    renderer.render(scene, camera);\n  }\n  requestAnimationFrame(render);\n}`,'single RAF signature loop');
+  source=replaceOnce(source,'  setLookDevPreset,\n  renderReviewFrame,',`  setLookDevPreset,\n  setPresentationEuler(yawDeg,pitchDeg,rollDeg,renderFrame=true){\n    presentationRig.quaternion.setFromEuler(new THREE.Euler(THREE.MathUtils.degToRad(pitchDeg),THREE.MathUtils.degToRad(yawDeg),THREE.MathUtils.degToRad(rollDeg),'YXZ')).normalize();\n    if(renderFrame) renderReviewFrame();\n    return {yaw:yawDeg,pitch:pitchDeg,roll:rollDeg};\n  },\n  setPresentationFov(fovDeg,renderFrame=true){camera.fov=fovDeg;camera.updateProjectionMatrix();if(renderFrame) renderReviewFrame();return fovDeg;},\n  renderReviewFrame,`,'presentation API');
+  source=replaceOnce(source,`function render(now) {\n  updatePresentationMotion(now);\n  controls.update();\n  renderer.render(scene, camera);\n  requestAnimationFrame(render);\n}`,`function render(now) {\n  if (document.visibilityState === 'visible') {\n    globalThis.__PROAI_HEADER_LOGO_TICK?.(now);\n    controls.update();\n    renderer.render(scene, camera);\n  }\n  requestAnimationFrame(render);\n}`,'single RAF header loop');
   moduleUrl=URL.createObjectURL(new Blob([source],{type:'text/javascript'}));
   await import(moduleUrl);
   const api=window.__PROAI_CUBE_R1_2;
@@ -89,15 +92,16 @@ try{
   if(!api.ready)throw new Error('Logo Cube failed to become ready');
   api.stopChoreography?.();
   api.stopSliceScheduler?.();
+  api.setMicroEtchVariant?.('signature');
   api.setLookDevPreset?.('premiumHybrid');
-  api.setSignatureFov?.(HOME.fov,false);
-  api.setSignatureEuler?.(HOME.yaw,HOME.pitch,HOME.roll,false);
+  api.setPresentationFov?.(HOME.fov,false);
+  api.setPresentationEuler?.(HOME.yaw,HOME.pitch,HOME.roll,false);
   const diagnostics=api.getDiagnostics?.()||{};
   const canvas=document.getElementById('cube-canvas');
   const rect=canvas.getBoundingClientRect();
   window.__PROAI_LOGO_R341_STATE={
     ready:true,
-    revision:'HEADER_LIVING_CUBE_R1.1',
+    revision:'HEADER_LIVING_CUBE_R1.1_MICRO_ETCH',
     mode,
     reducedMotion:reduced,
     captureMode:false,
@@ -146,7 +150,7 @@ try{
       const roll=HOME.roll
         +MOTION.rollPrimaryAmplitude*Math.sin(motionElapsedSec*MOTION.rollPrimaryRate+MOTION.rollPrimaryPhase)
         +MOTION.rollSecondaryAmplitude*Math.sin(motionElapsedSec*MOTION.rollSecondaryRate+MOTION.rollSecondaryPhase);
-      api.setSignatureEuler(motionYawDeg,pitch,roll,false);
+      api.setPresentationEuler(motionYawDeg,pitch,roll,false);
       const state=window.__PROAI_LOGO_R341_STATE;
       state.frames+=1;
       state.elapsedSec=motionElapsedSec;
@@ -157,8 +161,8 @@ try{
   }
   document.documentElement.dataset.proaiLogoReady='true';
   document.documentElement.dataset.proaiAssetId='PAI-CUBE-0001';
-  document.documentElement.dataset.proaiCubeRevision='r1';
-  notify('ready',{geometryPass:Boolean((diagnostics.geometry||api.geometry)?.pass),glbUrl:GLB_URL,effectivePixelRatio,revision:'HEADER_LIVING_CUBE_R1.1'});
+  document.documentElement.dataset.proaiCubeRevision='r1.1';
+  notify('ready',{geometryPass:Boolean((diagnostics.geometry||api.geometry)?.pass),glbUrl:GLB_URL,effectivePixelRatio,revision:'HEADER_LIVING_CUBE_R1.1_MICRO_ETCH'});
 }catch(error){
   console.error('[ProAI Header Living Cube R1.1]',error);
   document.documentElement.dataset.proaiLogoReady='error';

@@ -3,7 +3,11 @@
 // This file does NOT chain R1.3/R1.4. It replaces the complete whole-object + slice + interaction motion layer once.
 
 const sourceUrl = new URL('./source-materials-r1.js', import.meta.url);
-const glbUrl = new URL('../../models/proai-cube/proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url);
+const goldenReferenceMode = new URLSearchParams(location.search).has('golden-reference');
+const glbUrl = new URL(
+  goldenReferenceMode ? '../../models/proai-cube/rubik_39_s_cube_animation.glb' : '../../models/proai-cube/proai-cube-r1-1.glb?sha=3907E5ECB4FC',
+  import.meta.url,
+);
 
 const response = await fetch(sourceUrl, { cache: 'no-store' });
 if (!response.ok) throw new Error(`FINAL MOTION R2 base source HTTP ${response.status}`);
@@ -19,14 +23,14 @@ const REQUIRED_BASE_MARKERS = [
   'const RESOLUTION_PHRASE = Object.freeze(',
   'const CHOREOGRAPHY = Object.freeze([...PRIMARY_PHRASE, ...RESOLUTION_PHRASE]);',
   "selectedPreset: 'premiumHybrid'",
-  "const GLB_URL = new URL('./proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url).href;",
+  `const GLB_URL = new URL(\n  goldenReferenceMode ? './rubik_39_s_cube_animation.glb' : './proai-cube-r1-1.glb?sha=3907E5ECB4FC',\n  import.meta.url,\n).href;`,
 ];
 for (const marker of REQUIRED_BASE_MARKERS) {
   if (!source.includes(marker)) throw new Error(`FINAL MOTION R2 refused unexpected frozen base: ${marker}`);
 }
 
 source = source.replace(
-  "const GLB_URL = new URL('./proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url).href;",
+  `const GLB_URL = new URL(\n  goldenReferenceMode ? './rubik_39_s_cube_animation.glb' : './proai-cube-r1-1.glb?sha=3907E5ECB4FC',\n  import.meta.url,\n).href;`,
   `const GLB_URL = '${glbUrl.href}';`,
 );
 

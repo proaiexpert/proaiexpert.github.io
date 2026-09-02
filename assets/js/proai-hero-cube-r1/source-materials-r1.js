@@ -5,27 +5,31 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 
-const GLB_URL = new URL('./proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url).href;
+const reviewQuery = new URLSearchParams(location.search);
+const goldenReferenceMode = reviewQuery.has('golden-reference');
+const GLB_URL = new URL(
+  goldenReferenceMode ? './rubik_39_s_cube_animation.glb' : './proai-cube-r1-1.glb?sha=3907E5ECB4FC',
+  import.meta.url,
+).href;
 const PROAI_CUBE_IDENTITY = Object.freeze({
   schema: 'proai.asset.provenance.v1',
   assetId: 'PAI-CUBE-0001',
   publicName: 'PROAI CUBE',
   assetFamily: 'proai-cube',
-  revision: 'r1',
-  buildId: 'PAI-CUBE-R1-7B0942A0',
+  revision: 'r1.1',
+  buildId: 'PAI-CUBE-R1-1-7B0942A0',
   forensicId: '2D2B518012AECCAC',
   sourceCommit: '7b0942a042ef23e10cd74592208eeae94479b45e',
   provenanceState: 'planned',
-  plannedProvenanceUrl: 'https://proai-expert.com/provenance/proai-cube/r1',
-  signatureNodeId: 'PROAI_SIG_KINETIC_R1',
+  plannedProvenanceUrl: 'https://proai-expert.com/provenance/proai-cube/r1.1',
   forensicNodeId: 'PROAI_FORENSIC_WITNESS_R1',
-  signatureReveal: 'existing-controlled-slice-turn',
+  microEtch: 'single-center-tile-surface-response',
 });
 const getOwnershipFingerprint = () => Object.freeze({ ...PROAI_CUBE_IDENTITY, glbUrl: GLB_URL });
 const canvas = document.getElementById('cube-canvas');
 const status = document.getElementById('runtime-status');
 canvas?.setAttribute('data-proai-asset-id', PROAI_CUBE_IDENTITY.assetId);
-const params = new URLSearchParams(location.search);
+const params = reviewQuery;
 const captureMode = params.has('capture');
 const reviewMode = params.has('review');
 const prefersReducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -266,16 +270,114 @@ function physicalMaterial(spec) {
   });
 }
 
+function createMicroEtchTexture() {
+  const textureCanvas = document.createElement('canvas');
+  textureCanvas.width = 1024;
+  textureCanvas.height = 384;
+  const context = textureCanvas.getContext('2d');
+  if (!context) throw new Error('PROAI micro-etch canvas unavailable');
+  context.clearRect(0, 0, textureCanvas.width, textureCanvas.height);
+  context.fillStyle = '#ffffff';
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.font = '600 284px "Instrument Sans Variable", "Instrument Sans", Arial, sans-serif';
+  context.fillText('PROAI', textureCanvas.width * 0.5, textureCanvas.height * 0.49);
+  const texture = new THREE.CanvasTexture(textureCanvas);
+  texture.colorSpace = THREE.NoColorSpace;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function applyMicroEtchVariant(name = microEtchVariant) {
+  if (!microEtchMaterial) return false;
+  if (name !== 'off' && !Object.hasOwn(MICRO_ETCH_VARIANTS, name)) return false;
+  microEtchVariant = name;
+  const variant = name === 'off' ? null : MICRO_ETCH_VARIANTS[name];
+  microEtchRoot.visible = Boolean(variant);
+  if (variant) {
+    const base = LOOKDEV_R1.materialGroups.graphiteFace;
+    const baseColor = new THREE.Color(base.color);
+    microEtchMaterial.color.setRGB(
+      Math.min(1, baseColor.r + variant.baseColorDelta),
+      Math.min(1, baseColor.g + variant.baseColorDelta),
+      Math.min(1, baseColor.b + variant.baseColorDelta),
+    );
+    microEtchMaterial.roughness = Math.max(0.12, base.roughness - variant.roughnessDelta);
+    microEtchMaterial.clearcoat = Math.min(0.30, base.clearcoat + variant.clearcoatDelta);
+    microEtchMaterial.clearcoatRoughness = Math.max(0.10, base.clearcoatRoughness - variant.roughnessDelta * 0.5);
+  }
+  microEtchMaterial.needsUpdate = true;
+  return true;
+}
+
+function createMicroEtch() {
+  if (goldenReferenceMode) return;
+  const cubie = physicalCubies.find(({ logical }) => logical.x === 0 && logical.y === 1 && logical.z === 0);
+  const member = cubie?.members[0];
+  if (!member?.object) throw new Error('PROAI micro-etch center tile unavailable');
+  const cubieParent = member.object;
+  cubieParent.updateMatrixWorld(true);
+  const center = new THREE.Vector3();
+  const outward = new THREE.Vector3(0, 1, 0);
+  const faceMeshes = cubieParent.children.filter((child) => child.isMesh && child.geometry);
+  let selectedFace = null;
+  let selectedCenter = null;
+  let selectedDot = -Infinity;
+  for (const face of faceMeshes) {
+    face.geometry.computeBoundingBox();
+    const faceCenter = face.geometry.boundingBox?.getCenter(new THREE.Vector3());
+    if (!faceCenter) continue;
+    const localCenter = cubieParent.worldToLocal(face.localToWorld(faceCenter.clone()));
+    const dot = localCenter.clone().normalize().dot(outward);
+    if (dot > selectedDot) {
+      selectedFace = face;
+      selectedCenter = localCenter;
+      selectedDot = dot;
+    }
+  }
+  if (!selectedFace || !selectedCenter || selectedDot < 0.55) throw new Error('PROAI micro-etch front center face unavailable');
+
+  microEtchTexture = createMicroEtchTexture();
+  microEtchMaterial = new THREE.MeshPhysicalMaterial({
+    color: LOOKDEV_R1.materialGroups.graphiteFace.color,
+    metalness: LOOKDEV_R1.materialGroups.graphiteFace.metalness,
+    roughness: LOOKDEV_R1.materialGroups.graphiteFace.roughness,
+    clearcoat: LOOKDEV_R1.materialGroups.graphiteFace.clearcoat,
+    clearcoatRoughness: LOOKDEV_R1.materialGroups.graphiteFace.clearcoatRoughness,
+    envMapIntensity: LOOKDEV_R1.materialGroups.graphiteFace.envMapIntensity,
+    alphaMap: microEtchTexture,
+    alphaTest: 0.5,
+    side: THREE.FrontSide,
+    depthTest: true,
+    depthWrite: true,
+    transparent: false,
+  });
+  microEtchRoot = new THREE.Mesh(new THREE.PlaneGeometry(88, 26), microEtchMaterial);
+  microEtchRoot.name = 'PROAI_MICRO_ETCH_R1_1';
+  microEtchRoot.userData.proaiMicroEtch = {
+    text: 'PROAI',
+    location: 'single center tile of selected +Y external face',
+    attachment: 'logical-cubie-parent',
+    renderMode: 'neutral roughness-clearcoat response',
+  };
+  microEtchRoot.position.copy(selectedCenter).addScaledVector(outward, 2.05);
+  microEtchRoot.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), outward);
+  microEtchRoot.renderOrder = 1;
+  microEtchRoot.castShadow = false;
+  microEtchRoot.receiveShadow = false;
+  cubieParent.add(microEtchRoot);
+  applyMicroEtchVariant(microEtchVariant);
+}
+
 const faceGraphiteMaterial = physicalMaterial(LOOKDEV_R1.materialGroups.graphiteFace);
 const faceGunmetalMaterial = physicalMaterial(LOOKDEV_R1.materialGroups.gunmetalFace);
 const faceBlackChromeMaterial = physicalMaterial(LOOKDEV_R1.materialGroups.blackChromeFace);
 const coreMaterial = physicalMaterial(LOOKDEV_R1.materialGroups.smokedCore);
-const signatureMaterial = physicalMaterial({ color: '#b9f3ff', metalness: 0.86, roughness: 0.22, clearcoat: 0.22, clearcoatRoughness: 0.12, envMapIntensity: 1.34 });
-signatureMaterial.emissive.set('#0b3442');
-signatureMaterial.emissiveIntensity = 0.72;
-signatureMaterial.transparent = true;
-signatureMaterial.opacity = 0;
-signatureMaterial.side = THREE.DoubleSide;
 const faceMaterial = faceGraphiteMaterial;
 const premiumMaterials = Object.freeze({
   graphiteFace: faceGraphiteMaterial,
@@ -286,11 +388,18 @@ const premiumMaterials = Object.freeze({
 let activeLookDevPreset = LOOKDEV_R1.selectedPreset;
 let materialAssignmentCounts = { graphiteFace: 0, gunmetalFace: 0, blackChromeFace: 0, smokedCore: 0 };
 let resolvedLighting = null;
-let ownershipSignatureRoot = null;
 let forensicWitnessRoot = null;
-let ownershipSignatureReveal = 0;
-let ownershipSignatureInspection = false;
-let ownershipSignatureLastNow = 0;
+let microEtchRoot = null;
+let microEtchMaterial = null;
+let microEtchTexture = null;
+let microEtchVariant = params.get('etch') === 'off' || goldenReferenceMode ? 'off' : (params.get('etch') || 'signature');
+
+const MICRO_ETCH_VARIANTS = Object.freeze({
+  whisper: Object.freeze({ label: 'A — WHISPER', roughnessDelta: 0.035, clearcoatDelta: 0.025, baseColorDelta: 0.002 }),
+  signature: Object.freeze({ label: 'B — SIGNATURE', roughnessDelta: 0.085, clearcoatDelta: 0.070, baseColorDelta: 0.008 }),
+  reference: Object.freeze({ label: 'C — REFERENCE', roughnessDelta: 0.130, clearcoatDelta: 0.110, baseColorDelta: 0.016 }),
+});
+if (!Object.hasOwn(MICRO_ETCH_VARIANTS, microEtchVariant)) microEtchVariant = 'signature';
 
 function applyMaterialSpec(material, spec) {
   material.color.set(spec.color);
@@ -394,14 +503,8 @@ const api = {
   getDiagnostics,
   getInteractionState,
   getOwnershipFingerprint,
-  setSignatureInspection(enabled = false) {
-    if (!ownershipSignatureRoot) return false;
-    ownershipSignatureInspection = Boolean(enabled);
-    ownershipSignatureRoot.visible = Boolean(enabled);
-    signatureMaterial.opacity = enabled ? 0.88 : 0;
-    ownershipSignatureReveal = enabled ? 1 : 0;
-    return ownershipSignatureRoot.visible;
-  },
+  setMicroEtchVariant(name = 'signature') { return applyMicroEtchVariant(name); },
+  setMicroEtchEnabled(enabled = true) { return applyMicroEtchVariant(enabled ? 'signature' : 'off'); },
   setForensicInspection(enabled = false) {
     if (!forensicWitnessRoot) return false;
     forensicWitnessRoot.visible = Boolean(enabled);
@@ -591,42 +694,17 @@ function classifyReviewMaterial(mesh) {
 
 function isOwnershipNode(object) {
   return Boolean(object.userData?.proaiNodeId)
-    || object.name === 'PROAI_SIG_KINETIC_R1'
     || object.name === 'PROAI_FORENSIC_WITNESS_R1';
 }
 
 function setupOwnershipNodes() {
-  ownershipSignatureRoot = cubeRoot.getObjectByName(PROAI_CUBE_IDENTITY.signatureNodeId);
   forensicWitnessRoot = cubeRoot.getObjectByName(PROAI_CUBE_IDENTITY.forensicNodeId);
-  if (!ownershipSignatureRoot || !forensicWitnessRoot) {
-    throw new Error('ProAI ownership nodes missing from canonical GLB');
+  if (goldenReferenceMode) {
+    if (forensicWitnessRoot) forensicWitnessRoot.visible = false;
+    return;
   }
-  ownershipSignatureRoot.traverse((object) => {
-    if (!object.isMesh) return;
-    object.material = signatureMaterial;
-    object.renderOrder = 2;
-    object.castShadow = false;
-    object.receiveShadow = false;
-  });
-  signatureMaterial.depthTest = false;
-  signatureMaterial.depthWrite = false;
-  ownershipSignatureRoot.visible = false;
+  if (!forensicWitnessRoot) throw new Error('ProAI forensic witness missing from R1.1 GLB');
   forensicWitnessRoot.visible = false;
-  ownershipSignatureReveal = 0;
-  ownershipSignatureInspection = false;
-  ownershipSignatureLastNow = 0;
-}
-
-function updateOwnershipSignatureReveal(now = performance.now()) {
-  if (!ownershipSignatureRoot) return;
-  if (!ownershipSignatureLastNow) ownershipSignatureLastNow = now;
-  const dt = Math.min(0.12, Math.max(0, (now - ownershipSignatureLastNow) / 1000));
-  ownershipSignatureLastNow = now;
-  const target = ownershipSignatureInspection || activeTurns.size > 0 ? 1 : 0;
-  const tau = target ? 0.34 : 0.42;
-  ownershipSignatureReveal += (target - ownershipSignatureReveal) * (1 - Math.exp(-dt / tau));
-  signatureMaterial.opacity = 0.88 * THREE.MathUtils.clamp(ownershipSignatureReveal, 0, 1);
-  ownershipSignatureRoot.visible = ownershipSignatureReveal > 0.002;
 }
 
 function ownershipNodeBounds(root) {
@@ -1665,7 +1743,6 @@ function setReviewPresentation(timeSec = 0, resumeProgress = 1, renderFrame = tr
 }
 
 function renderReviewFrame() {
-  updateOwnershipSignatureReveal(performance.now());
   controls.update();
   renderer.render(scene, camera);
 }
@@ -1696,12 +1773,21 @@ function getDiagnostics() {
   return {
     ownership: {
       ...getOwnershipFingerprint(),
-      signature: {
-        nodeId: PROAI_CUBE_IDENTITY.signatureNodeId,
-        revealProgress: ownershipSignatureReveal,
-        visible: Boolean(ownershipSignatureRoot?.visible),
-        material: 'physical-metallic-recess',
-        bounds: ownershipNodeBounds(ownershipSignatureRoot),
+      goldenReferenceMode,
+      microEtch: {
+        text: 'PROAI',
+        variant: goldenReferenceMode ? 'off' : microEtchVariant,
+        label: goldenReferenceMode || microEtchVariant === 'off' ? 'OFF' : MICRO_ETCH_VARIANTS[microEtchVariant].label,
+        enabled: Boolean(microEtchRoot?.visible),
+        location: 'single center tile of selected +Y external face',
+        material: 'neutral roughness-clearcoat surface response',
+        emissive: false,
+        transparent: false,
+        side: 'FrontSide',
+        depthTest: Boolean(microEtchMaterial?.depthTest),
+        depthWrite: Boolean(microEtchMaterial?.depthWrite),
+        bounds: ownershipNodeBounds(microEtchRoot),
+        parent: microEtchRoot?.parent?.name || null,
       },
       forensicWitness: {
         nodeId: PROAI_CUBE_IDENTITY.forensicNodeId,
@@ -1782,7 +1868,6 @@ window.addEventListener('resize', resize, { passive: true });
 
 function render(now) {
   updatePresentationMotion(now);
-  updateOwnershipSignatureReveal(now);
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(render);
@@ -1818,6 +1903,7 @@ loader.load(
       }
     });
     setupOwnershipNodes();
+    createMicroEtch();
     frameCamera();
     resize();
     if (captureMode) renderReviewFrame();

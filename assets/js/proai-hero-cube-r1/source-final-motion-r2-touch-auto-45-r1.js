@@ -5,7 +5,11 @@
 
 const baseR2Url = new URL('./source-final-motion-r2.js', import.meta.url);
 const materialsUrl = new URL('./source-materials-r1.js', import.meta.url);
-const glbUrl = new URL('../../models/proai-cube/proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url);
+const goldenReferenceMode = new URLSearchParams(location.search).has('golden-reference');
+const glbUrl = new URL(
+  goldenReferenceMode ? '../../models/proai-cube/rubik_39_s_cube_animation.glb' : '../../models/proai-cube/proai-cube-r1-1.glb?sha=3907E5ECB4FC',
+  import.meta.url,
+);
 
 const response = await fetch(baseR2Url, { cache: 'no-store' });
 if (!response.ok) throw new Error(`FINAL MOTION R2 touch-auto base HTTP ${response.status}`);
@@ -20,14 +24,32 @@ function replaceOnce(oldValue, newValue, label) {
 
 // Preserve the same resource semantics as the proven 30% interaction derivative.
 replaceOnce(
+  "const goldenReferenceMode = new URLSearchParams(location.search).has('golden-reference');",
+  `const goldenReferenceMode = ${goldenReferenceMode};`,
+  'review mode',
+);
+replaceOnce(
   "const sourceUrl = new URL('./source-materials-r1.js', import.meta.url);",
   `const sourceUrl = new URL('${materialsUrl.href}');`,
   'materials URL',
 );
 replaceOnce(
-  "const glbUrl = new URL('../../models/proai-cube/proai-cube-r1.glb?sha=2A97D4671F5A', import.meta.url);",
+  `const glbUrl = new URL(\n  goldenReferenceMode ? '../../models/proai-cube/rubik_39_s_cube_animation.glb' : '../../models/proai-cube/proai-cube-r1-1.glb?sha=3907E5ECB4FC',\n  import.meta.url,\n);`,
   `const glbUrl = new URL('${glbUrl.href}');`,
   'GLB URL',
+);
+replaceOnce(
+  "source = source.replace(/\\r\\n?/g, '\\n');",
+  `source = source.replace(/\\r\\n?/g, '\\n');
+source = source.replace(
+  "const reviewQuery = new URLSearchParams(location.search);",
+  \`const reviewQuery = new URLSearchParams(${JSON.stringify(location.search)});\`,
+);
+source = source.replace(
+  "const goldenReferenceMode = new URLSearchParams(location.search).has('golden-reference');",
+  "const goldenReferenceMode = ${goldenReferenceMode};",
+);`,
+  'inner review context',
 );
 
 // Same drag sensitivity and zero post-release dead window as the proven baseline.

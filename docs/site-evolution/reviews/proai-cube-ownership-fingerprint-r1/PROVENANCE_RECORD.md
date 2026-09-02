@@ -11,3 +11,5 @@ The ownership fingerprint is intended for provenance, traceability, attribution,
 The planned provenance page is `https://proai-expert.com/provenance/proai-cube/r1`. Its live availability was not verified during this local branch review, so the manifest records it as planned rather than live.
 
 Final production asset SHA256: `2A97D4671F5AED2E23E5688081C53E1E234A525CF145C6A89BA4C9909FB2B480`.
+
+Production release authority commit: `90d585ef98b17cae8e45619847a5f8cf59ce0d04` (2026-09-02). The production GLB is byte-for-byte identical to the source GLB. GitHub Pages serves the audited JavaScript files with CRLF normalized to LF; the normalized source and deployed texts are byte-for-byte equal. Source and deployed hashes are recorded separately in `SHA256SUMS.txt` and `OWNERSHIP_MANIFEST.json`.

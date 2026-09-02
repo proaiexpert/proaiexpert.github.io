@@ -48,10 +48,12 @@ Historical donor-recovery branches to preserve as evidence:
 
 - `agent/proai-ai-systems-hover-donor-fidelity-r1`
 - `agent/proai-ai-systems-hover-donor-fidelity-r1-1`
+- `agent/proai-boxes-hover-native-runtime-validation-r1`
 
-Latest forensic commit reported on R1.1:
+Latest forensic commits reported:
 
-`07d97e92e02ac48fc0dc8f586cb70ac30418166c`
+- R1.1 GLB forensic validation: `07d97e92e02ac48fc0dc8f586cb70ac30418166c`
+- native runtime validation evidence head: `2837b90`
 
 ### Acquired donor files
 
@@ -104,6 +106,54 @@ Owner-observed Spline Play Settings:
 - Hint: `None`;
 - Mouse Events: `Local (Canvas Container)`.
 
+### Native runtime validation result — 2026-09-02
+
+Codex validated both URLs on the Owner's real Windows machine using system Google Chrome `152.0.7977.64` with hardware acceleration and a working WebGPU adapter. GPU inventory reported Intel UHD Graphics 630 with NVIDIA GTX 1650 installed.
+
+Validation outcome:
+
+`ORIGINAL RUNTIME MISMATCH`
+
+Verified:
+
+- `navigator.gpu`: PASS;
+- WebGPU adapter: PASS;
+- `scene.splinecode`: HTTP 200, reported 46,359 bytes;
+- Spline Viewer `2.0.27`: loaded;
+- Public Original: loaded;
+- Official Viewer runtime: loaded, with a non-fatal WebGPU `ShadowDepthTexture` validation error;
+- no GLB/Three.js/manual reconstruction used;
+- no ProAI adaptation, Cube modification, merge or deploy.
+
+Material mismatch reported between the current Viewer runtime and Public Original at rest, center hover, edge hover, pointer movement, settling, geometry/depth, camera/composition and colors/lighting. This is **not** a WebGPU blocker and **not** evidence that the donor concept itself is wrong; both web runtimes executed successfully but did not represent the same published state.
+
+Evidence branch:
+
+`agent/proai-boxes-hover-native-runtime-validation-r1`
+
+Evidence head reported:
+
+`2837b90`
+
+### Export-versioning hypothesis / next forensic gate
+
+Do not reconstruct yet. The next gate is to determine whether Public URL and Viewer are different Spline export snapshots / Play Settings versions.
+
+Spline export behavior is versioned independently: Public URL changes require an explicit `Update Public URL`; Viewer exports require `Update`; Code Export supports Production/Draft snapshots and changes require a new/promoted production draft. Therefore a stale Viewer export or differing Play Settings is a concrete hypothesis that must be tested before abandoning the donor or rebuilding it.
+
+Required next actions:
+
+1. inspect the original Spline project Export panels for `Public URL`, `Viewer`, and `Code Export` without editing the scene;
+2. record the currently selected Main Scene, Camera, Renderer, Mouse Events and all material Play Settings separately for Public URL and Viewer;
+3. inspect Viewer/Code Drafts or production snapshot state where available;
+4. preserve the currently mismatching `scene.splinecode` URL and validation evidence before any update;
+5. determine whether `Update Viewer` would publish the current editor scene/settings to the existing Viewer URL;
+6. only after preservation, update Viewer from the exact current source scene if doing so is confirmed safe and does not alter the Public Original;
+7. rerun the exact side-by-side WebGPU validation;
+8. binary outcome: `EXPORT VERSION MISMATCH RESOLVED` or `SOURCE SCENE / PUBLIC ORIGINAL DIVERGENCE`.
+
+Do **not** buy another donor, manually reconstruct hover, or abandon this donor until this export-versioning gate is resolved.
+
 ### Hard correction / do not research again
 
 Do **not** repeat the following as primary donor-recovery approaches:
@@ -119,7 +169,7 @@ The GLB and previous reconstruction work remain forensic evidence only; do not d
 
 ### Next hard gate
 
-Run the exact `scene.splinecode` through the official Spline Viewer in a WebGPU-capable Chrome/Edge environment and compare it directly with the public original at:
+Resolve whether the mismatch is caused by independent Spline export snapshots / Play Settings. If the Viewer can be safely synchronized to the current Public Original source scene, rerun:
 
 - rest;
 - center hover;
@@ -132,8 +182,8 @@ Run the exact `scene.splinecode` through the official Spline Viewer in a WebGPU-
 
 Binary outcome only:
 
-1. `FULL ORIGINAL RUNTIME CONFIRMED` → stop manual reconstruction and use the native Spline runtime/state system as donor authority.
-2. `ORIGINAL RUNTIME MISMATCH` → document the exact mismatch before any reconstruction or donor replacement decision.
+1. `EXPORT VERSION MISMATCH RESOLVED / FULL ORIGINAL RUNTIME CONFIRMED` → stop manual reconstruction and use the synchronized native Spline runtime as donor authority.
+2. `SOURCE SCENE / PUBLIC ORIGINAL DIVERGENCE` → document exactly which published state is authoritative before any donor replacement or reconstruction decision.
 
 No ProAI adaptation, merge, or deploy before this gate passes and Owner visually approves the actual runtime.
 

@@ -105,3 +105,17 @@ Reconciled on `agent/proai-boxes-hover-native-runtime-validation-r1` against rem
 - Exact Public Original iframe/embed path was independently rendered and interacted with in an isolated localhost harness: **PASS**.
 - Evidence/report: `docs/site-evolution/ai-systems/boxes-hover-native-runtime-validation-r1/source-export-reconciliation-r1/SOURCE_EXPORT_RECONCILIATION_REPORT.md`.
 - Next gate: preserve Public Original as donor authority; do not update Viewer, reconstruct, adapt ProAI, or alter product code without a new Owner decision.
+
+### Boxes Hover editable source recovery — evidence branch only
+
+Recovery inspection completed on `agent/proai-boxes-hover-native-runtime-validation-r1` against remote `main` SHA `204233b2683487433621c65b6409453503b74ba5`.
+
+- Status: **TECHNICAL BLOCKER**.
+- Current Spline project `117b4cf5-47ae-497c-a445-4edea9bc604f` was preserved; no scene state, export, Public URL, Viewer, or current version was changed.
+- Version History contains `Current Version`, `Auto-saved Sep 1, 2026 22:41`, and `Auto-saved Sep 1, 2026 22:38`.
+- The `22:41` snapshot is a promising read-only candidate visually close to Public Original, but full hard-pass validation and independent editable preservation were not possible.
+- `22:38` preview is a materially different/empty black canvas and was rejected.
+- `Restore` and `Duplicate` actions are present but Enterprise-gated; no restore or duplicate was performed. Public Original exposes no visible Remix/Duplicate/Copy/Open-in-Spline action.
+- Public Original remains untouched and remains the strongest donor authority: `https://my.spline.design/boxeshover-lql1ZGkjxCEQe8mgxeMO6mZC/`.
+- Evidence/report: `docs/site-evolution/ai-systems/boxes-hover-native-runtime-validation-r1/editable-source-recovery-r1/EDITABLE_SOURCE_RECOVERY_REPORT.md`.
+- Next gate: obtain an officially permitted Spline path for duplicating/restoring the promising historical snapshot into a separate project; do not reconstruct, adapt ProAI, or update Public URL/Viewer.

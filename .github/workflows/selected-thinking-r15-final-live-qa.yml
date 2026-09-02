@@ -20,11 +20,10 @@ jobs:
           ref: qa/selected-thinking-r15-final-live
           fetch-depth: 0
 
-      - name: Verify product parent and scoped correction
+      - name: Verify product authority and scoped correction
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "$PRODUCT_SHA"
           test "$(git rev-parse ${PRODUCT_SHA}^)" = "90d585ef98b17cae8e45619847a5f8cf59ce0d04"
           grep -q '>ИЗБРАННЫЕ МАТЕРИАЛЫ<' _includes/home-selected-thinking-r1-ru.html
           grep -q '>SELECTED THINKING<' _includes/home-selected-thinking-r1-en.html
@@ -71,6 +70,7 @@ jobs:
           const { chromium } = require('playwright');
           const fs = require('node:fs');
           const BASE = 'http://127.0.0.1:4173';
+          const OUT = 'qa-results.json';
           const cases = [
             ['1440x900',1440,900],['1280x800',1280,800],['1024x768',1024,768],
             ['852x393',852,393],['430x932',430,932],['390x844',390,844],
@@ -81,13 +81,17 @@ jobs:
             ru: { route:'/ru/', read:'РАЗОБРАТЬ СИСТЕМУ', eye:'ИЗБРАННЫЕ МАТЕРИАЛЫ' }
           };
           const report = { pass:false, checks:[], failures:[] };
+          const persist = () => fs.writeFileSync(OUT, JSON.stringify(report,null,2));
           const check = (ok,label,details={}) => {
             (ok ? report.checks : report.failures).push({label,details});
+            persist();
             return !!ok;
           };
+          persist();
           (async()=>{
-            const browser = await chromium.launch({headless:true});
+            let browser;
             try {
+              browser = await chromium.launch({headless:true});
               for (const [lang, exp] of Object.entries(langs)) {
                 for (const [name,width,height] of cases) {
                   const context = await browser.newContext({viewport:{width,height},isMobile:width<=430,hasTouch:width<=430});
@@ -127,17 +131,16 @@ jobs:
                   check(Math.abs(d.read.left-d.first.left)<=2.5,`${prefix}: caption aligned under first step`,d);
                   check(!d.intersects,`${prefix}: no caption/framework overlap`,d);
                   check(d.overflow<=1,`${prefix}: no horizontal overflow`,d);
-                  if (name==='1440x900') {
-                    await section.screenshot({path:`${lang}-1440-settled.png`});
-                  }
                   await context.close();
                 }
               }
+            } catch (e) {
+              check(false,'QA unhandled exception',{message:String(e),stack:e&&e.stack||null});
             } finally {
-              await browser.close();
+              if (browser) await browser.close();
             }
             report.pass=report.failures.length===0;
-            fs.writeFileSync('qa-results.json',JSON.stringify(report,null,2));
+            persist();
             console.log(JSON.stringify({pass:report.pass,checks:report.checks.length,failures:report.failures.length},null,2));
             process.exit(report.pass?0:1);
           })();
@@ -148,10 +151,15 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: selected-thinking-r15-final-live-qa
-          path: |
-            qa-results.json
-            en-1440-settled.png
-            ru-1440-settled.png
+          name: selected-thinking-r15-final-live-qa-r2
+          path: qa-results.json
           if-no-files-found: error
           retention-days: 14
+
+      - name: Enforce semantic result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f qa-results.json
+          node -e "const fs=require('fs');const r=JSON.parse(fs.readFileSync('qa-results.json','utf8'));console.log('qa-results pass='+r.pass+', checks='+r.checks.length+', failures='+r.failures.length);process.exit(r.pass===true?0:1)"

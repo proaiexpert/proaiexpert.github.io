@@ -1,0 +1,289 @@
+name: Selected Thinking R1.5 Micro Polish Preview and QA
+
+on:
+  push:
+    branches:
+      - preview/homepage-selected-thinking-r1-5-micro-polish
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      PRODUCT_SHA: 4615e323b10cb952423615f64b81e42d924a87d8
+      BASE_SHA: 55d44922f14c1dc13c3d9e14a297b49e69b22916
+      REVIEW_DIR: docs/site-evolution/reviews/selected-thinking-r15-micro-polish
+    steps:
+      - name: Checkout exact preview branch
+        uses: actions/checkout@v6
+        with:
+          ref: preview/homepage-selected-thinking-r1-5-micro-polish
+          fetch-depth: 0
+
+      - name: Verify micro-polish authority and source hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_SHA"
+          test "$(git rev-parse ${PRODUCT_SHA}^)" = "$BASE_SHA"
+          git diff --name-only "$BASE_SHA" "$PRODUCT_SHA" | sort > /tmp/product-files.txt
+          cat > /tmp/expected-product-files.txt <<'FILES'
+          _includes/home-selected-thinking-r1-ru.html
+          assets/css/home-selected-thinking-r1-5-micro-polish.css
+          index.html
+          ru/index.html
+          FILES
+          sort /tmp/expected-product-files.txt -o /tmp/expected-product-files.txt
+          diff -u /tmp/expected-product-files.txt /tmp/product-files.txt
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1.css | git hash-object --stdin)" = "1551761f4e81da26fcaaf2d4d65e221f20149ae7"
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1-1.css | git hash-object --stdin)" = "444e56140bbdf091e422c5046c34ba248ed33a2b"
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1-2.css | git hash-object --stdin)" = "9f40b2f077de24cfbb281311e7c128efdc3e0559"
+          test "$(git show ${PRODUCT_SHA}:assets/js/home-selected-thinking-r1.js | git hash-object --stdin)" = "a85b0070014eb99c83a906ce5c97ba706a9b46cd"
+          test "$(git show ${PRODUCT_SHA}:assets/js/home-selected-thinking-r1-5.js | git hash-object --stdin)" = "960abf17cb5d30221f196ef01e086a3b4a2288d7"
+          grep -q '>ИЗБРАННЫЕ МАТЕРИАЛЫ<' _includes/home-selected-thinking-r1-ru.html
+          grep -q '>SELECTED THINKING<' _includes/home-selected-thinking-r1-en.html
+          ! grep -q 'AI SYSTEMS / AUTOMATION / DIGITAL STRATEGY / OPERATIONS' _includes/home-selected-thinking-r1-en.html
+          ! grep -q 'AI-СИСТЕМЫ / АВТОМАТИЗАЦИЯ / ЦИФРОВАЯ СТРАТЕГИЯ / ОПЕРАЦИИ' _includes/home-selected-thinking-r1-ru.html
+          grep -q 'st-r15-authority-seam' assets/css/home-selected-thinking-r1-5-micro-polish.css
+          ! grep -Eqi 'webgl|canvas|requestAnimationFrame|box-shadow|backdrop-filter|particle|neon' assets/css/home-selected-thinking-r1-5-micro-polish.css
+
+      - name: Install Jekyll
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+
+      - name: Build integrated homepage
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          jekyll build --source . --destination _site
+          test -f _site/index.html
+          test -f _site/ru/index.html
+          test -f _site/assets/css/home-selected-thinking-r1-5-micro-polish.css
+          grep -q 'home-selected-thinking-r1-5-micro-polish.css?v=20260902.1' _site/index.html
+          grep -q 'home-selected-thinking-r1-5-micro-polish.css?v=20260902.1' _site/ru/index.html
+          grep -q 'SELECTED THINKING' _site/index.html
+          grep -q 'ИЗБРАННЫЕ МАТЕРИАЛЫ' _site/ru/index.html
+
+      - name: Start integrated site
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory _site >/tmp/r15-micro-http.log 2>&1 &
+          echo $! >/tmp/r15-micro-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4173/ru/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/r15-micro-http.log
+          exit 1
+
+      - name: Start fresh Cloudflare Owner preview
+        id: tunnel
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$REVIEW_DIR/early" "$REVIEW_DIR/evidence"
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared-r15-micro.log 2>&1 &
+          echo $! >/tmp/cloudflared-r15-micro.pid
+          URL=""
+          for i in {1..75}; do
+            URL="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared-r15-micro.log | head -n 1 || true)"
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          [ -n "$URL" ] || { cat /tmp/cloudflared-r15-micro.log; exit 1; }
+          EN_CODE=""; RU_CODE=""
+          for i in {1..45}; do
+            EN_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/" || true)"
+            RU_CODE="$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/ru/" || true)"
+            [ "$EN_CODE" = 200 ] && [ "$RU_CODE" = 200 ] && break
+            sleep 1
+          done
+          test "$EN_CODE" = 200
+          test "$RU_CODE" = 200
+          printf '%s\n' "$URL" | tee "$REVIEW_DIR/early/OWNER_PREVIEW_URL.txt" "$REVIEW_DIR/evidence/OWNER_PREVIEW_URL.txt"
+          printf '%s\n' "$PRODUCT_SHA" | tee "$REVIEW_DIR/early/PRODUCT_SHA.txt" "$REVIEW_DIR/evidence/PRODUCT_SHA.txt"
+          printf 'EN %s/ -> %s\nRU %s/ru/ -> %s\n' "$URL" "$EN_CODE" "$URL" "$RU_CODE" | tee "$REVIEW_DIR/early/OWNER_PREVIEW_HTTP_STATUS.txt" "$REVIEW_DIR/evidence/OWNER_PREVIEW_HTTP_STATUS.txt"
+          cp /tmp/cloudflared-r15-micro.log "$REVIEW_DIR/evidence/cloudflared.log"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+
+      - name: Upload early Owner preview coordinates
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r15-micro-polish-early-preview
+          path: ${{ env.REVIEW_DIR }}/early
+          if-no-files-found: error
+          retention-days: 2
+
+      - name: Install browser runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run R1.5 micro-polish responsive QA
+        id: qa
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/r15-micro-qa.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const BASE='http://127.0.0.1:4173';
+          const OUT=process.env.REVIEW_DIR+'/evidence/qa-results.json';
+          const report={pass:false,checks:[],failures:[],matrix:{desktop:true,mobile:true,landscape:true},reducedMotion:{}};
+          const check=(ok,label,details=null,kind='runtime')=>{(ok?report.checks:report.failures).push({label,details,kind}); return !!ok;};
+          const browser=await chromium.launch({headless:true,args:['--disable-background-timer-throttling','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding']});
+          const vps=[
+            ['1440x900',1440,900,'desktop'],['1280x800',1280,800,'desktop'],['1024x768',1024,768,'desktop'],
+            ['430x932',430,932,'mobile'],['390x844',390,844,'mobile'],['375x812',375,812,'mobile'],['360x800',360,800,'mobile'],['320x700',320,700,'mobile'],
+            ['852x393',852,393,'landscape']
+          ];
+          const expected={en:['/','SELECTED THINKING'],ru:['/ru/','ИЗБРАННЫЕ МАТЕРИАЛЫ']};
+
+          async function open(lang,w,h,kind,reduced='no-preference'){
+            const touch=kind!=='desktop';
+            const c=await browser.newContext({viewport:{width:w,height:h},isMobile:touch,hasTouch:touch,reducedMotion:reduced});
+            const p=await c.newPage();
+            await p.route('**/*.js*',async route=>{
+              const u=route.request().url();
+              if(u.includes('home-selected-thinking-r1.js')||u.includes('home-selected-thinking-r1-5.js')) return route.continue();
+              return route.fulfill({status:200,contentType:'application/javascript',body:''});
+            });
+            const errors=[];
+            p.on('pageerror',e=>errors.push(String(e)));
+            p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+            await p.goto(BASE+expected[lang][0],{waitUntil:'domcontentloaded',timeout:45000});
+            await p.locator('#selected-thinking-r1').waitFor({state:'attached',timeout:10000});
+            await p.waitForFunction(()=>document.documentElement.classList.contains('st-r15-js'),null,{timeout:5000,polling:50});
+            return {c,p,errors};
+          }
+
+          for(const lang of ['en','ru']){
+            for(const [name,w,h,kind] of vps){
+              const {c,p,errors}=await open(lang,w,h,kind);
+              let local=true;
+              try{
+                await p.locator('#selected-thinking-r1').scrollIntoViewIfNeeded();
+                await p.waitForFunction(()=>document.querySelector('#selected-thinking-r1')?.dataset.stR15Entered==='true',null,{timeout:5000,polling:50});
+                await p.waitForFunction(()=>document.querySelector('#selected-thinking-r1')?.classList.contains('st-r15-calm'),null,{timeout:3000,polling:50});
+                const d=await p.evaluate(()=>{
+                  const s=document.querySelector('#selected-thinking-r1');
+                  const eye=s.querySelector('.selected-thinking-r1__eyebrow');
+                  const lead=s.querySelector('.selected-thinking-r1__lead');
+                  const seam=getComputedStyle(lead,'::after');
+                  const legacy=getComputedStyle(lead,'::before');
+                  const supports=[...s.querySelectorAll('.selected-thinking-r1__support-record')].map(x=>({bg:getComputedStyle(x).backgroundImage,border:getComputedStyle(x).borderTopWidth}));
+                  const color=getComputedStyle(eye).color.match(/[\d.]+/g)?.map(Number)||[];
+                  return {
+                    eye:eye.textContent.trim(), color,
+                    seam:{bg:seam.backgroundImage,width:parseFloat(seam.width),height:parseFloat(seam.height),opacity:parseFloat(seam.opacity),animation:seam.animationName},
+                    legacyOpacity:parseFloat(legacy.opacity),
+                    overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth,
+                    fine:matchMedia('(hover:hover) and (pointer:fine)').matches,
+                    taxonomy:s.querySelectorAll('.selected-thinking-r1__taxonomy').length,
+                    canvases:s.querySelectorAll('canvas').length,
+                    running:document.getAnimations().filter(a=>a.playState==='running'&&String(a.animationName||'').startsWith('st-r15-')).map(a=>a.animationName),
+                    supports
+                  };
+                });
+                local &= check(d.eye===expected[lang][1],`${lang} ${name}: eyebrow exact`,d.eye);
+                local &= check(d.color.length>=3 && d.color[2]>d.color[1] && d.color[1]>d.color[0],`${lang} ${name}: eyebrow is cool steel-indigo`,d.color);
+                local &= check(d.seam.bg.includes('linear-gradient')&&d.seam.width>=100&&d.seam.height<=30&&d.seam.opacity>=.45,`${lang} ${name}: lead authority seam rendered`,d.seam);
+                local &= check(d.overflow<=1,`${lang} ${name}: no horizontal overflow`,d.overflow);
+                local &= check(d.taxonomy===0&&d.canvases===0,`${lang} ${name}: no taxonomy/canvas added`,{taxonomy:d.taxonomy,canvases:d.canvases});
+                local &= check(d.running.length===0,`${lang} ${name}: idle authored motion NONE`,d.running);
+                local &= check(errors.length===0,`${lang} ${name}: console clean`,errors,'console');
+                if(kind!=='desktop') local &= check(!d.fine,`${lang} ${name}: no fake fine-pointer mode`,d.fine);
+                if(kind==='mobile') local &= check(d.legacyOpacity===0,`${lang} ${name}: legacy competing top-left tick suppressed`,d.legacyOpacity);
+              }catch(e){ local=false; check(false,`${lang} ${name}: QA exception`,String(e),'harness'); }
+              report.matrix[kind]=report.matrix[kind]&&local;
+              await c.close();
+            }
+          }
+
+          for(const lang of ['en','ru']){
+            const {c,p,errors}=await open(lang,1440,900,'desktop','reduce');
+            await p.locator('#selected-thinking-r1').scrollIntoViewIfNeeded();
+            await p.waitForFunction(()=>document.querySelector('#selected-thinking-r1')?.dataset.stR15Entered==='true',null,{timeout:3000,polling:50});
+            const d=await p.evaluate(()=>{
+              const s=document.querySelector('#selected-thinking-r1');
+              const lead=s.querySelector('.selected-thinking-r1__lead');
+              const seam=getComputedStyle(lead,'::after');
+              const fw=s.querySelector('.selected-thinking-r1__framework--lead');
+              const mat=s.querySelector('.selected-thinking-r15__material');
+              return {seam:seam.animationName,signal:getComputedStyle(fw,'::after').animationName,material:getComputedStyle(mat,'::after').animationName,running:document.getAnimations().filter(a=>a.playState==='running'&&String(a.animationName||'').startsWith('st-r15-')).map(a=>a.animationName),errors};
+            });
+            check(d.seam==='none'&&d.signal==='none'&&d.material==='none'&&d.running.length===0,`${lang}: reduced motion static, zero travelling effects`,d,'reduced-motion');
+            check(errors.length===0,`${lang}: reduced-motion console clean`,errors,'console');
+            report.reducedMotion[lang]=d;
+            await c.close();
+          }
+
+          report.pass=report.failures.length===0;
+          fs.writeFileSync(OUT,JSON.stringify(report,null,2));
+          console.log(JSON.stringify({pass:report.pass,checks:report.checks.length,failures:report.failures.length,matrix:report.matrix},null,2));
+          await browser.close();
+          if(!report.pass) process.exit(1);
+          JS
+          node /tmp/r15-micro-qa.mjs
+
+      - name: Ensure QA result exists
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="$REVIEW_DIR/evidence/qa-results.json"
+          if [ ! -f "$FILE" ]; then
+            printf '{"pass":false,"failures":[{"label":"qa-results.json missing","kind":"harness"}]}' > "$FILE"
+          fi
+
+      - name: Upload final QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r15-micro-polish-evidence
+          path: ${{ env.REVIEW_DIR }}/evidence
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce semantic QA gate
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -e "const fs=require('fs');const r=JSON.parse(fs.readFileSync(process.argv[1]));console.log('qa-results pass='+r.pass);process.exit(r.pass===true?0:1)" "$REVIEW_DIR/evidence/qa-results.json"
+
+      - name: Keep non-production Owner preview alive
+        if: always() && steps.tunnel.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="$(cat "$REVIEW_DIR/evidence/OWNER_PREVIEW_URL.txt")"
+          END=$((SECONDS + 19800))
+          while [ "$SECONDS" -lt "$END" ]; do
+            kill -0 "$(cat /tmp/cloudflared-r15-micro.pid)" || { cat /tmp/cloudflared-r15-micro.log; exit 1; }
+            test "$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/" || true)" = 200
+            test "$(curl -L -sS -o /dev/null -w '%{http_code}' "$URL/ru/" || true)" = 200
+            sleep 60
+          done

@@ -78,22 +78,22 @@ Verified GLB forensic baseline:
 - 1 orthographic camera;
 - raw GLB is **not** the visual/runtime authority for the interactive public Boxes Hover state.
 
-### Canonical web-runtime authority discovered 2026-09-02
+### Canonical web-runtime authorities discovered 2026-09-02
 
-Official Spline scene runtime:
+Public original scene — **current visual/interaction donor authority**:
+
+`https://my.spline.design/boxeshover-lql1ZGkjxCEQe8mgxeMO6mZC/`
+
+Separate Spline Viewer scene export under investigation:
 
 `https://prod.spline.design/qM1zaX9eZ9RVFr6r/scene.splinecode`
 
-Official Spline Viewer embed:
+Viewer embed:
 
 ```html
 <script type="module" src="https://cdn.spline.design/@splinetool/viewer@2.0.27/build/spline-viewer.js"></script>
 <spline-viewer url="https://prod.spline.design/qM1zaX9eZ9RVFr6r/scene.splinecode"></spline-viewer>
 ```
-
-Public original scene:
-
-`https://my.spline.design/boxeshover-lql1ZGkjxCEQe8mgxeMO6mZC/`
 
 Owner-observed Spline Play Settings:
 
@@ -108,24 +108,26 @@ Owner-observed Spline Play Settings:
 
 ### Native runtime validation result — 2026-09-02
 
-Codex validated both URLs on the Owner's real Windows machine using system Google Chrome `152.0.7977.64` with hardware acceleration and a working WebGPU adapter. GPU inventory reported Intel UHD Graphics 630 with NVIDIA GTX 1650 installed.
+Codex validated both web exports on the Owner's real Windows machine using system Google Chrome `152.0.7977.64` with hardware acceleration and a working WebGPU adapter. GPU inventory reported Intel UHD Graphics 630 with NVIDIA GTX 1650 installed.
 
-Validation outcome:
+Correct business status:
 
-`ORIGINAL RUNTIME MISMATCH`
+`PUBLIC ORIGINAL RUNTIME CONFIRMED / VIEWER EXPORT MISMATCH`
 
 Verified:
 
+- Public Original loads and runs on the real Windows/WebGPU environment;
 - `navigator.gpu`: PASS;
 - WebGPU adapter: PASS;
-- `scene.splinecode`: HTTP 200, reported 46,359 bytes;
-- Spline Viewer `2.0.27`: loaded;
-- Public Original: loaded;
-- Official Viewer runtime: loaded, with a non-fatal WebGPU `ShadowDepthTexture` validation error;
+- separate `scene.splinecode`: HTTP 200, reported 46,359 bytes;
+- Spline Viewer `2.0.27`: loads;
+- Viewer runtime loads with a non-fatal WebGPU `ShadowDepthTexture` validation error;
 - no GLB/Three.js/manual reconstruction used;
 - no ProAI adaptation, Cube modification, merge or deploy.
 
-Material mismatch reported between the current Viewer runtime and Public Original at rest, center hover, edge hover, pointer movement, settling, geometry/depth, camera/composition and colors/lighting. This is **not** a WebGPU blocker and **not** evidence that the donor concept itself is wrong; both web runtimes executed successfully but did not represent the same published state.
+The Viewer export materially does **not** match the Public Original at rest, center hover, edge hover, pointer movement, settling, geometry/depth, camera/composition and colors/lighting.
+
+This mismatch does **not** mean the donor is missing or unusable: the exact beautiful Public Original itself is a working interactive Spline runtime and is now the donor visual/interaction authority. What remains unresolved is whether the current editable Spline source matches that Public Original and whether the Viewer URL is merely a stale/differently configured export snapshot.
 
 Evidence branch:
 
@@ -135,24 +137,23 @@ Evidence head reported:
 
 `2837b90`
 
-### Export-versioning hypothesis / next forensic gate
+### Export/source synchronization hypothesis — next forensic gate
 
-Do not reconstruct yet. The next gate is to determine whether Public URL and Viewer are different Spline export snapshots / Play Settings versions.
+Do not reconstruct and do not buy another donor. The next gate is to compare three states without editing the scene:
 
-Spline export behavior is versioned independently: Public URL changes require an explicit `Update Public URL`; Viewer exports require `Update`; Code Export supports Production/Draft snapshots and changes require a new/promoted production draft. Therefore a stale Viewer export or differing Play Settings is a concrete hypothesis that must be tested before abandoning the donor or rebuilding it.
+1. Public Original runtime;
+2. current Spline editor Play Mode for the acquired project;
+3. current Viewer export.
 
-Required next actions:
+Spline export behavior can diverge by snapshot/settings: Public URL changes require an explicit `Update Public URL`; Viewer exports require `Update`; Code Export supports Production/Draft snapshots. A stale Viewer export or different Viewer Play Settings is therefore a concrete, testable explanation for the mismatch.
 
-1. inspect the original Spline project Export panels for `Public URL`, `Viewer`, and `Code Export` without editing the scene;
-2. record the currently selected Main Scene, Camera, Renderer, Mouse Events and all material Play Settings separately for Public URL and Viewer;
-3. inspect Viewer/Code Drafts or production snapshot state where available;
-4. preserve the currently mismatching `scene.splinecode` URL and validation evidence before any update;
-5. determine whether `Update Viewer` would publish the current editor scene/settings to the existing Viewer URL;
-6. only after preservation, update Viewer from the exact current source scene if doing so is confirmed safe and does not alter the Public Original;
-7. rerun the exact side-by-side WebGPU validation;
-8. binary outcome: `EXPORT VERSION MISMATCH RESOLVED` or `SOURCE SCENE / PUBLIC ORIGINAL DIVERGENCE`.
+Required decision tree:
 
-Do **not** buy another donor, manually reconstruct hover, or abandon this donor until this export-versioning gate is resolved.
+- If **Editor Play Mode matches Public Original**, then the source project is correct and the Viewer export is stale/misconfigured. Preserve current Viewer evidence, then synchronize only the Viewer export/settings and rerun comparison.
+- If **Editor Play Mode matches Viewer but not Public Original**, do **not** update Public URL or Viewer. The editable source has diverged from the working published donor; preserve the Public Original and identify/recover the published source/version before adaptation.
+- If **Editor Play Mode matches neither**, compare Public URL vs Viewer Play Settings, camera/main scene/export snapshot state and determine the exact divergence before any update.
+
+The Public Original is already a valid integration/runtime fallback via its official Spline Public URL/iframe path; Viewer parity is desirable for a native `<spline-viewer>` integration but is not evidence that the donor itself is unavailable.
 
 ### Hard correction / do not research again
 
@@ -160,32 +161,25 @@ Do **not** repeat the following as primary donor-recovery approaches:
 
 - treating the raw GLB as the complete interactive donor;
 - judging fidelity from static fallback screenshots;
-- forcing WebGL when the original Spline Viewer is configured `WebGPU Only`;
-- reconstructing a manual `13×11` / `143 boxes` field before validating the official runtime;
+- forcing WebGL when the original Spline experience is configured `WebGPU Only`;
+- reconstructing a manual `13×11` / `143 boxes` field;
 - generating substitute `BoxGeometry`, manual height falloff, invented easing, or invented hover behavior;
-- applying ProAI Indigo/Pearl semantics before the original runtime itself passes Owner visual comparison.
+- declaring the donor failed merely because the separate Viewer export differs from the working Public Original;
+- applying ProAI Indigo/Pearl semantics before source/public authority is resolved.
 
 The GLB and previous reconstruction work remain forensic evidence only; do not delete them, but do not spend more time re-proving the same limitation.
 
 ### Next hard gate
 
-Resolve whether the mismatch is caused by independent Spline export snapshots / Play Settings. If the Viewer can be safely synchronized to the current Public Original source scene, rerun:
+Use the same local Windows/Codex environment that already proved WebGPU support. Without editing the scene, compare current Spline Editor Play Mode against the Public Original first.
 
-- rest;
-- center hover;
-- edge hover;
-- live pointer movement;
-- geometry/depth;
-- materials/colors/light;
-- camera/composition;
-- motion/settling.
+Binary outcomes:
 
-Binary outcome only:
+1. `SOURCE + PUBLIC ORIGINAL CONFIRMED / VIEWER STALE` → preserve Viewer evidence, synchronize Viewer export/settings, rerun side-by-side, then stop for Owner approval.
+2. `PUBLIC ORIGINAL CONFIRMED / EDITOR SOURCE DIVERGED` → preserve working Public URL and recover the matching published source/version before any ProAI adaptation.
+3. `EXPORT SETTINGS DIVERGENCE` → reconcile only the identified export settings after preserving all prior values, then rerun validation.
 
-1. `EXPORT VERSION MISMATCH RESOLVED / FULL ORIGINAL RUNTIME CONFIRMED` → stop manual reconstruction and use the synchronized native Spline runtime as donor authority.
-2. `SOURCE SCENE / PUBLIC ORIGINAL DIVERGENCE` → document exactly which published state is authoritative before any donor replacement or reconstruction decision.
-
-No ProAI adaptation, merge, or deploy before this gate passes and Owner visually approves the actual runtime.
+No manual reconstruction, donor replacement, ProAI adaptation, merge, or deploy before this gate is resolved.
 
 ## Workstream separation — ProAI Cube
 

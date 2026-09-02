@@ -511,6 +511,71 @@
   }
 }
 
+/* R1.3 — lead material authority: local reflectance, no card edge. */
+.selected-thinking-r1__lead::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+  left: -22px;
+  top: 24px;
+  width: min(92%, 760px);
+  height: 72%;
+  opacity: .72;
+  background: linear-gradient(118deg, rgba(217, 215, 209, 0) 4%, rgba(217, 215, 209, .018) 31%, rgba(241, 240, 236, .032) 43%, rgba(156, 150, 190, .022) 55%, rgba(7, 7, 8, 0) 76%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 12%, #000 78%, transparent 100%);
+  transition: opacity 260ms ease, background 260ms ease;
+}
+
+.selected-thinking-r1__lead h3,
+.selected-thinking-r1__lead .selected-thinking-r1__summary,
+.selected-thinking-r1__lead .selected-thinking-r1__framework--lead,
+.selected-thinking-r1__lead .selected-thinking-r1__record-head,
+.selected-thinking-r1__lead .selected-thinking-r1__read {
+  z-index: 1;
+}
+
+@keyframes st-r13-specular {
+  0% { background-position: 140% 0, 0 0; }
+  62% { background-position: -38% 0, 0 0; }
+  100% { background-position: -38% 0, 0 0; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .selected-thinking-r1__lead:has(h3 a:hover)::after,
+  .selected-thinking-r1__lead:focus-within::after {
+    opacity: 1;
+    background: linear-gradient(118deg, rgba(217, 215, 209, 0) 4%, rgba(217, 215, 209, .024) 30%, rgba(241, 240, 236, .045) 43%, rgba(156, 150, 190, .028) 55%, rgba(7, 7, 8, 0) 76%);
+  }
+
+  .selected-thinking-r1__lead:has(h3 a:hover) .selected-thinking-r1__meta,
+  .selected-thinking-r1__lead:focus-within .selected-thinking-r1__meta {
+    color: rgba(235, 233, 228, .66);
+  }
+
+  .selected-thinking-r1__lead:has(h3 a:hover) .selected-thinking-r1__framework--lead::before,
+  .selected-thinking-r1__lead:focus-within .selected-thinking-r1__framework--lead::before {
+    background-image:
+      linear-gradient(90deg, transparent 0, transparent 39%, rgba(248, 247, 243, .78) 48%, rgba(210, 211, 218, .62) 52%, transparent 61%),
+      linear-gradient(rgba(217, 215, 209, .32), rgba(217, 215, 209, .32));
+    background-size: 42% 100%, 100% 100%;
+    background-repeat: no-repeat;
+    background-position: 140% 0, 0 0;
+    animation: st-r13-specular 620ms cubic-bezier(.2, .72, .24, 1) 1 both;
+  }
+}
+
+@media (max-width: 620px) {
+  .selected-thinking-r1__lead::after {
+    left: -14px;
+    top: 18px;
+    width: 104%;
+    height: 70%;
+    opacity: .58;
+    background: linear-gradient(118deg, rgba(217, 215, 209, 0) 5%, rgba(217, 215, 209, .016) 33%, rgba(241, 240, 236, .027) 45%, rgba(156, 150, 190, .018) 57%, rgba(7, 7, 8, 0) 78%);
+  }
+}
+
 /* Reduced motion: all authored states resolve immediately. */
 @media (prefers-reduced-motion: reduce) {
   .st-r1-js .selected-thinking-r1 [data-st-reveal],
@@ -532,8 +597,15 @@
   .selected-thinking-r1__support-record,
   .selected-thinking-r1__support-record .selected-thinking-r1__meta,
   .selected-thinking-r1__choice i,
-  .selected-thinking-r1__framework--compact i {
+  .selected-thinking-r1__framework--compact i,
+  .selected-thinking-r1__lead::after {
     transition: none !important;
+    animation: none !important;
+  }
+
+  .selected-thinking-r1__lead:has(h3 a:hover) .selected-thinking-r1__framework--lead::before,
+  .selected-thinking-r1__lead:focus-within .selected-thinking-r1__framework--lead::before {
+    background-image: none !important;
   }
 }
 

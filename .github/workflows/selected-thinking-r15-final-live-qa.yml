@@ -94,15 +94,17 @@ jobs:
               browser = await chromium.launch({headless:true});
               for (const [lang, exp] of Object.entries(langs)) {
                 for (const [name,width,height] of cases) {
-                  const context = await browser.newContext({viewport:{width,height},isMobile:width<=430,hasTouch:width<=430});
+                  const context = await browser.newContext({
+                    viewport:{width,height},
+                    isMobile:width<=430,
+                    hasTouch:width<=430,
+                    reducedMotion:'reduce'
+                  });
                   const page = await context.newPage();
                   await page.goto(BASE + exp.route,{waitUntil:'domcontentloaded',timeout:30000});
                   const section = page.locator('#selected-thinking-r1');
                   await section.scrollIntoViewIfNeeded();
-                  await page.waitForFunction(() => {
-                    const s=document.querySelector('#selected-thinking-r1');
-                    return s && s.classList.contains('st-r15-calm');
-                  }, {timeout:3500}).catch(()=>{});
+                  await page.waitForTimeout(80);
                   const d = await page.evaluate(() => {
                     const s=document.querySelector('#selected-thinking-r1');
                     const read=s.querySelector('.selected-thinking-r1__lead > .selected-thinking-r1__read');
@@ -120,12 +122,14 @@ jobs:
                       framework:{left:fr.left,top:fr.top,right:fr.right,bottom:fr.bottom},
                       first:{left:sr.left,top:sr.top,right:sr.right,bottom:sr.bottom},
                       overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth,
-                      intersects:!(rr.bottom <= fr.top || rr.top >= fr.bottom || rr.right <= fr.left || rr.left >= fr.right)
+                      intersects:!(rr.bottom <= fr.top || rr.top >= fr.bottom || rr.right <= fr.left || rr.left >= fr.right),
+                      reduced:matchMedia('(prefers-reduced-motion: reduce)').matches
                     };
                   });
                   const prefix=`${lang} ${name}`;
                   check(d.readText===exp.read,`${prefix}: caption text exact`,d);
                   check(d.eye===exp.eye,`${prefix}: eyebrow exact`,d);
+                  check(d.reduced===true,`${prefix}: static reduced-motion state active`,d);
                   check(d.position==='static',`${prefix}: caption in normal flow`,d);
                   check(d.read.top >= d.framework.bottom + 8,`${prefix}: caption below framework`,d);
                   check(Math.abs(d.read.left-d.first.left)<=2.5,`${prefix}: caption aligned under first step`,d);
@@ -151,7 +155,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: selected-thinking-r15-final-live-qa-r2
+          name: selected-thinking-r15-final-live-qa-r3
           path: qa-results.json
           if-no-files-found: error
           retention-days: 14

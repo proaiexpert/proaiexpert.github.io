@@ -1,0 +1,220 @@
+name: Selected Thinking R1.5 Final Isolated QA
+
+on:
+  push:
+    branches:
+      - qa/homepage-selected-thinking-editorial-light-r1-5
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PRODUCT_SHA: 55d44922f14c1dc13c3d9e14a297b49e69b22916
+      PRODUCTION_SHA: 7b0942a042ef23e10cd74592208eeae94479b45e
+      OUT: docs/site-evolution/reviews/selected-thinking-r15-final
+    steps:
+      - name: Checkout exact QA branch
+        uses: actions/checkout@v6
+        with:
+          ref: qa/homepage-selected-thinking-editorial-light-r1-5
+          fetch-depth: 0
+
+      - name: Verify clean product authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_SHA"
+          test "$(git rev-parse ${PRODUCT_SHA}^)" = "$PRODUCTION_SHA"
+          test "$(git diff --name-only "$PRODUCT_SHA" HEAD)" = ".github/workflows/selected-thinking-r15-final-isolated-qa.yml"
+          git diff --name-only "$PRODUCTION_SHA" "$PRODUCT_SHA" | sort > /tmp/product-files.txt
+          cat > /tmp/expected-product-files.txt <<'FILES'
+          _includes/home-selected-thinking-r1-en.html
+          _includes/home-selected-thinking-r1-ru.html
+          assets/css/home-selected-thinking-r1-5.css
+          assets/js/home-selected-thinking-r1-5.js
+          index.html
+          ru/index.html
+          FILES
+          sort /tmp/expected-product-files.txt -o /tmp/expected-product-files.txt
+          diff -u /tmp/expected-product-files.txt /tmp/product-files.txt
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1.css | git hash-object --stdin)" = "1551761f4e81da26fcaaf2d4d65e221f20149ae7"
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1-1.css | git hash-object --stdin)" = "444e56140bbdf091e422c5046c34ba248ed33a2b"
+          test "$(git show ${PRODUCT_SHA}:assets/css/home-selected-thinking-r1-2.css | git hash-object --stdin)" = "9f40b2f077de24cfbb281311e7c128efdc3e0559"
+          test "$(git show ${PRODUCT_SHA}:assets/js/home-selected-thinking-r1.js | git hash-object --stdin)" = "a85b0070014eb99c83a906ce5c97ba706a9b46cd"
+          ! grep -q 'AI SYSTEMS / AUTOMATION / DIGITAL STRATEGY / OPERATIONS' _includes/home-selected-thinking-r1-en.html
+          ! grep -q 'AI-СИСТЕМЫ / АВТОМАТИЗАЦИЯ / ЦИФРОВАЯ СТРАТЕГИЯ / ОПЕРАЦИИ' _includes/home-selected-thinking-r1-ru.html
+          grep -q 'EXPLORE ALL INSIGHTS' _includes/home-selected-thinking-r1-en.html
+          grep -q 'СМОТРЕТЬ ВСЕ МАТЕРИАЛЫ' _includes/home-selected-thinking-r1-ru.html
+
+      - name: Verify authored visible-motion budgets
+        shell: bash
+        run: |
+          set -euo pipefail
+          CSS=assets/css/home-selected-thinking-r1-5.css
+          JS=assets/js/home-selected-thinking-r1-5.js
+          grep -Eq 'st-r15-signal 760ms[^;]* 555ms both' "$CSS"
+          grep -Eq 'animation-duration: 650ms; animation-delay: 405ms' "$CSS"
+          grep -q 'st-r15-plate-sweep 640ms' "$CSS"
+          grep -q 'st-r15-specular 610ms' "$CSS"
+          grep -q '}, 1480);' "$JS"
+          echo 'Desktop last visible authored cue ≈1315ms; mobile ≈1055ms; calm class is cleanup-only.'
+
+      - name: Install and build Jekyll
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          test -f _site/index.html
+          test -f _site/ru/index.html
+          test -f _site/assets/css/home-selected-thinking-r1-5.css
+          test -f _site/assets/js/home-selected-thinking-r1-5.js
+
+      - name: Start integrated site
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory _site >/tmp/r15-final-http.log 2>&1 &
+          echo $! >/tmp/r15-final-http.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null && curl -fsS http://127.0.0.1:4173/ru/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/r15-final-http.log
+          exit 1
+
+      - name: Install browser
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run isolated integrated R1.5 QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUT"
+          cat > /tmp/r15-final-qa.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const BASE='http://127.0.0.1:4173';
+          const OUT=process.env.OUT;
+          fs.mkdirSync(OUT,{recursive:true});
+          const report={productSha:process.env.PRODUCT_SHA,generatedAt:new Date().toISOString(),pass:false,checks:[],failures:[],consoleErrors:[],assetFailures:[],matrix:{desktop:true,mobile:true,landscape:true},entry:{},pointer:{},reduced:{},screenshots:{}};
+          const save=()=>fs.writeFileSync(path.join(OUT,'qa-results.json'),JSON.stringify(report,null,2));
+          const check=(ok,label,details=null,category='runtime')=>{const row={label,details,category};(ok?report.checks:report.failures).push(row);save();return Boolean(ok)};
+          save();
+
+          const expected={
+            en:{route:'/',top:'/insights/',topText:'EXPLORE ALL INSIGHTS →',bottom:'/insights/',lead:'What Happens After a Lead Arrives? Building a Response System for Service Businesses',supports:['Does Your U.S. Service Business Need a Multilingual Website?','How to Evaluate a Website Proposal Before You Sign']},
+            ru:{route:'/ru/',top:'/ru/insights/',topText:'СМОТРЕТЬ ВСЕ МАТЕРИАЛЫ →',bottom:'/ru/insights/',lead:'Что происходит после заявки: как сервисному бизнесу не терять обращения',supports:['Сайт для русскоязычного бизнеса в США: только английский, отдельный русский раздел или две версии?','Как проверить подрядчика и предложение на разработку сайта']}
+          };
+          const viewports=[
+            {name:'1440x900',width:1440,height:900,kind:'desktop'},
+            {name:'1280x800',width:1280,height:800,kind:'desktop'},
+            {name:'1024x768',width:1024,height:768,kind:'desktop'},
+            {name:'430x932',width:430,height:932,kind:'mobile'},
+            {name:'390x844',width:390,height:844,kind:'mobile'},
+            {name:'375x812',width:375,height:812,kind:'mobile'},
+            {name:'360x800',width:360,height:800,kind:'mobile'},
+            {name:'320x700',width:320,height:700,kind:'mobile'},
+            {name:'852x393',width:852,height:393,kind:'landscape'}
+          ];
+          const browser=await chromium.launch({headless:true,args:['--disable-background-timer-throttling','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding']});
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          async function poll(page,fn,timeout=7000){const end=Date.now()+timeout;let last;while(Date.now()<end){try{last=await page.evaluate(fn);if(last)return last;}catch{}await sleep(50);}throw new Error('poll timeout; last='+JSON.stringify(last));}
+          function alpha(color){const m=String(color||'').match(/rgba?\(([^)]+)\)/i);if(!m)return null;const p=m[1].split(/[ ,/]+/).filter(Boolean);return p.length>=4?Number(p[3]):1;}
+          function hook(page,lang,vp){page.on('pageerror',e=>{report.consoleErrors.push({lang,vp,type:'pageerror',text:String(e)});save()});page.on('console',m=>{if(m.type()==='error'){report.consoleErrors.push({lang,vp,type:'console',text:m.text()});save()}});page.on('requestfailed',r=>{if(r.url().includes('home-selected-thinking-r1-5')){report.assetFailures.push({lang,vp,url:r.url(),error:r.failure()?.errorText||'failed'});save()}});page.on('response',r=>{if(r.status()>=400&&r.url().includes('home-selected-thinking-r1-5')){report.assetFailures.push({lang,vp,url:r.url(),error:'HTTP '+r.status()});save()}})}
+          async function makePage(lang,vp,reducedMotion='no-preference'){
+            const touch=vp.kind!=='desktop';
+            const context=await browser.newContext({viewport:{width:vp.width,height:vp.height},reducedMotion,isMobile:touch,hasTouch:touch});
+            const page=await context.newPage();hook(page,lang,vp.name);
+            await page.route('**/*',async route=>{const req=route.request();if(req.resourceType()==='script'&&!req.url().includes('home-selected-thinking-r1-5.js'))return route.fulfill({status:200,contentType:'application/javascript',body:'/* QA-stub: unrelated homepage runtime quiesced */'});return route.continue();});
+            await page.goto(BASE+expected[lang].route,{waitUntil:'load',timeout:60000});
+            await page.locator('#selected-thinking-r1').waitFor({state:'attached',timeout:10000});
+            await poll(page,()=>document.documentElement.classList.contains('st-r15-js'),5000);
+            return {context,page};
+          }
+          async function trigger(page){
+            const before=await page.evaluate(()=>{const s=document.querySelector('#selected-thinking-r1'),r=s.getBoundingClientRect();return{entered:s.dataset.stR15Entered||'',calm:s.classList.contains('st-r15-calm'),top:r.top,height:r.height}});
+            if(before.entered==='true')return before;
+            await page.evaluate(()=>{const s=document.querySelector('#selected-thinking-r1'),r=s.getBoundingClientRect();window.scrollTo(0,Math.max(0,scrollY+r.top-Math.max(24,innerHeight*.08)))});
+            await poll(page,()=>document.querySelector('#selected-thinking-r1')?.dataset.stR15Entered==='true',5000);
+            return before;
+          }
+          async function calm(page){await poll(page,()=>document.querySelector('#selected-thinking-r1')?.classList.contains('st-r15-calm'),3000);await sleep(80);return page.evaluate(()=>document.getAnimations().filter(a=>a.playState==='running'&&String(a.animationName||'').startsWith('st-r15-')).map(a=>a.animationName));}
+          async function staticCheck(lang,vp){
+            const {context,page}=await makePage(lang,vp);let ok=true;
+            try{await trigger(page);const running=await calm(page);const d=await page.evaluate(()=>{const root=document.querySelector('#selected-thinking-r1'),top=root.querySelector('.selected-thinking-r1__archive-top'),bottom=root.querySelector('.selected-thinking-r1__archive a'),lead=root.querySelector('.selected-thinking-r1__lead'),idx=root.querySelector('.selected-thinking-r15__index'),head=root.querySelector('.selected-thinking-r1__lead .selected-thinking-r1__record-head'),fw=root.querySelector('.selected-thinking-r1__framework--lead');return{sections:document.querySelectorAll('#selected-thinking-r1').length,taxonomy:root.querySelectorAll('.selected-thinking-r1__taxonomy').length,taxonomyText:/AI SYSTEMS \/ AUTOMATION \/ DIGITAL STRATEGY \/ OPERATIONS|AI-СИСТЕМЫ \/ АВТОМАТИЗАЦИЯ \/ ЦИФРОВАЯ СТРАТЕГИЯ \/ ОПЕРАЦИИ/.test(root.innerText),topTag:top?.tagName||'',topHref:top?new URL(top.href).pathname:'',topText:top?.textContent.replace(/\s+/g,' ').trim()||'',topHeight:top?.getBoundingClientRect().height||0,bottomHref:bottom?new URL(bottom.href).pathname:'',lead:root.querySelector('.selected-thinking-r1__lead h3 a')?.textContent.replace(/\s+/g,' ').trim()||'',supports:[...root.querySelectorAll('.selected-thinking-r1__support-record h3 a')].map(a=>a.textContent.replace(/\s+/g,' ').trim()),css:[...document.styleSheets].some(s=>s.href?.includes('home-selected-thinking-r1-5.css')),js:[...document.scripts].some(s=>s.src?.includes('home-selected-thinking-r1-5.js')),material:getComputedStyle(lead).backgroundImage,indexText:idx?.textContent||'',indexColor:idx?getComputedStyle(idx).color:'',spineWidth:getComputedStyle(head,'::before').width,spineBg:getComputedStyle(head,'::before').backgroundImage,signalBg:getComputedStyle(fw,'::before').backgroundImage,pulseOpacity:getComputedStyle(fw,'::after').opacity,overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth,fine:matchMedia('(hover: hover) and (pointer: fine)').matches,calm:root.classList.contains('st-r15-calm')}});
+              const a=alpha(d.indexColor),label=`${lang} ${vp.name}`;
+              ok&=check(d.sections===1,`${label}: one section`,d.sections);ok&=check(d.taxonomy===0&&!d.taxonomyText,`${label}: taxonomy absent`,d);ok&=check(d.topTag==='A'&&d.topHref===expected[lang].top&&d.topText===expected[lang].topText,`${label}: top CTA exact`,d);ok&=check(d.topHeight>=43.5,`${label}: top CTA 44px`,d.topHeight);ok&=check(d.bottomHref===expected[lang].bottom,`${label}: bottom CTA preserved`,d.bottomHref);ok&=check(d.lead===expected[lang].lead,`${label}: lead unchanged`,d.lead);ok&=check(JSON.stringify(d.supports)===JSON.stringify(expected[lang].supports),`${label}: supports unchanged`,d.supports);ok&=check(d.css&&d.js,`${label}: R1.5 assets present`,d);ok&=check(String(d.material).includes('radial-gradient'),`${label}: material rendered`,d.material);ok&=check(d.indexText==='01'&&a!==null&&a>=.035&&a<=.07,`${label}: oversized 01 restrained`,{color:d.indexColor,alpha:a});ok&=check(d.spineWidth==='1px'&&d.spineBg.includes('linear-gradient'),`${label}: spine rendered`,d);ok&=check(d.signalBg.includes('linear-gradient')&&Number(d.pulseOpacity)===0,`${label}: signal settled`,d);ok&=check(d.overflow<=1,`${label}: no horizontal overflow`,d.overflow);ok&=check(d.calm&&running.length===0,`${label}: absolute calm`,running);if(vp.kind!=='desktop')ok&=check(!d.fine,`${label}: touch has no fine pointer`,d.fine);
+            }catch(e){ok=false;check(false,`${lang} ${vp.name}: static QA exception`,String(e),'harness')}
+            report.matrix[vp.kind]=report.matrix[vp.kind]&&Boolean(ok);save();await context.close();
+          }
+          async function entryCheck(lang){
+            const vp={name:'1440-entry',width:1440,height:900,kind:'desktop'}, {context,page}=await makePage(lang,vp);
+            await page.evaluate(()=>{const s=document.querySelector('#selected-thinking-r1');window.__r15={starts:0,calms:0,startAt:null,calmAt:null,animations:[]};s.addEventListener('st:r15-start',()=>{window.__r15.starts++;window.__r15.startAt=performance.now()});s.addEventListener('st:r15-calm',()=>{window.__r15.calms++;window.__r15.calmAt=performance.now()});s.addEventListener('animationstart',e=>{if(String(e.animationName||'').startsWith('st-r15-'))window.__r15.animations.push({name:e.animationName,at:performance.now()})},true)});
+            await trigger(page);await calm(page);const a=await page.evaluate(()=>({...window.__r15,delta:window.__r15.calmAt-window.__r15.startAt,running:document.getAnimations().filter(x=>x.playState==='running'&&String(x.animationName||'').startsWith('st-r15-')).map(x=>x.animationName)}));
+            const signal=a.animations.filter(x=>x.name==='st-r15-signal').length,nodes=a.animations.filter(x=>x.name==='st-r15-node').length,sweep=a.animations.filter(x=>x.name==='st-r15-plate-sweep').length;
+            check(a.starts===1,`${lang}: entry starts once`,a,'product-entry');check(a.calms===1&&a.delta>=1200&&a.delta<=1900,`${lang}: cleanup event bounded`,a,'product-motion');check(a.running.length===0,`${lang}: no motion after calm`,a.running,'product-motion');check(signal===1,`${lang}: signal pulse once`,a.animations,'product-motion');check(nodes===4,`${lang}: four nodes once`,a.animations,'product-motion');check(sweep===1,`${lang}: material sweep once`,a.animations,'product-motion');
+            await page.evaluate(()=>window.scrollTo(0,0));await sleep(180);await page.evaluate(()=>{const s=document.querySelector('#selected-thinking-r1'),r=s.getBoundingClientRect();window.scrollTo(0,Math.max(0,scrollY+r.top-innerHeight*.08))});await sleep(350);const starts=await page.evaluate(()=>window.__r15.starts);check(starts===1,`${lang}: re-entry does not replay`,starts,'product-entry');report.entry[lang]={...a,signal,nodes,sweep,startsAfterReentry:starts};save();await context.close();
+          }
+          async function pointerCheck(){
+            const vp={name:'1440-pointer',width:1440,height:900,kind:'desktop'}, {context,page}=await makePage('en',vp);await trigger(page);await calm(page);const lead=page.locator('#selected-thinking-r1 .selected-thinking-r1__lead'),box=await lead.boundingBox();if(!box){check(false,'pointer: lead box',null,'harness');await context.close();return}await page.evaluate(()=>{window.__spec=0;document.querySelector('#selected-thinking-r1 .selected-thinking-r1__lead h3').addEventListener('animationstart',e=>{if(e.animationName==='st-r15-specular')window.__spec++},true)});await page.mouse.move(box.x+box.width*.3,box.y+box.height*.38);await sleep(300);const active=await page.evaluate(()=>{const lead=document.querySelector('#selected-thinking-r1 .selected-thinking-r1__lead'),mat=document.querySelector('.selected-thinking-r15__material');return{fine:matchMedia('(hover: hover) and (pointer: fine)').matches,pointer:lead.classList.contains('st-r15-pointer'),x:lead.style.getPropertyValue('--st-light-x'),y:lead.style.getPropertyValue('--st-light-y'),materialOpacity:Number(getComputedStyle(mat,'::before').opacity),spec:window.__spec}});check(active.fine&&active.pointer&&active.x&&active.y&&active.materialOpacity>.5,'pointer: local material light active',active,'product-pointer');check(active.spec===1,'pointer: headline specular once',active,'product-pointer');await page.mouse.move(box.x+box.width*.64,box.y+box.height*.48);await sleep(760);const held=await page.evaluate(()=>({spec:window.__spec,running:document.getAnimations().filter(a=>a.playState==='running'&&a.animationName==='st-r15-specular').length}));check(held.spec===1&&held.running===0,'pointer: no repeat while held',held,'product-pointer');await page.mouse.move(2,2);await sleep(260);const left=await page.evaluate(()=>{const l=document.querySelector('#selected-thinking-r1 .selected-thinking-r1__lead');return{pointer:l.classList.contains('st-r15-pointer'),intent:l.classList.contains('st-r15-intent'),x:l.style.getPropertyValue('--st-light-x'),y:l.style.getPropertyValue('--st-light-y')}});check(!left.pointer&&!left.intent&&!left.x&&!left.y,'pointer: clean leave reset',left,'product-pointer');report.pointer={active,held,left};save();await context.close();
+          }
+          async function keyboardCheck(){const vp={name:'1440-keyboard',width:1440,height:900,kind:'desktop'},{context,page}=await makePage('en',vp);await trigger(page);await calm(page);const top=page.locator('#selected-thinking-r1 .selected-thinking-r1__archive-top');await top.focus();let d=await page.evaluate(()=>{const e=document.querySelector('.selected-thinking-r1__archive-top'),c=getComputedStyle(e);return{active:document.activeElement===e,width:parseFloat(c.outlineWidth),style:c.outlineStyle}});check(d.active&&d.width>=1&&d.style!=='none','keyboard: top CTA focus visible',d,'a11y');const lead=page.locator('#selected-thinking-r1 .selected-thinking-r1__lead h3 a');await lead.focus();d=await page.evaluate(()=>{const e=document.querySelector('.selected-thinking-r1__lead h3 a'),c=getComputedStyle(e);return{active:document.activeElement===e,width:parseFloat(c.outlineWidth),style:c.outlineStyle}});check(d.active&&d.width>=1&&d.style!=='none','keyboard: lead focus visible',d,'a11y');await context.close()}
+          async function reducedCheck(lang){const vp={name:'1440-reduced',width:1440,height:900,kind:'desktop'},{context,page}=await makePage(lang,vp,'reduce');await poll(page,()=>document.querySelector('#selected-thinking-r1')?.classList.contains('st-r15-calm'),3000);await sleep(80);const d=await page.evaluate(()=>{const r=document.querySelector('#selected-thinking-r1'),fw=r.querySelector('.selected-thinking-r1__framework--lead'),m=r.querySelector('.selected-thinking-r15__material'),idx=r.querySelector('.selected-thinking-r15__index');return{reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,visible:r.innerText.length>100,running:document.getAnimations().filter(a=>a.playState==='running'&&String(a.animationName||'').startsWith('st-r15-')).map(a=>a.animationName),signal:getComputedStyle(fw,'::after').animationName,material:getComputedStyle(m,'::after').animationName,index:getComputedStyle(idx).color,cta:r.querySelector('.selected-thinking-r1__archive-top').getBoundingClientRect().height}});check(d.reduced&&d.visible&&alpha(d.index)>=.035&&d.cta>=43.5,`${lang}: reduced motion static authority`,d,'reduced-motion');check(d.running.length===0&&d.signal==='none'&&d.material==='none',`${lang}: reduced motion zero travelling effects`,d,'reduced-motion');report.reduced[lang]=d;save();await context.close()}
+          async function shot(lang,vp,name,mode='settled'){
+            const {context,page}=await makePage(lang,vp);await trigger(page);if(mode==='settled')await calm(page);else if(mode==='mid')await sleep(720);else if(mode==='pointer'){await calm(page);const b=await page.locator('#selected-thinking-r1 .selected-thinking-r1__lead').boundingBox();if(b){await page.mouse.move(b.x+b.width*.34,b.y+b.height*.38);await sleep(280)}}const file=path.join(OUT,name);await page.locator('#selected-thinking-r1').screenshot({path:file,animations:'allow'});const buf=fs.readFileSync(file);const width=buf.readUInt32BE(16),height=buf.readUInt32BE(20),stats={bytes:buf.length,width,height};const valid=buf.length>10000&&width>=300&&height>=300;report.screenshots[name]={valid,...stats};check(valid,`${name}: screenshot nonblank gate`,stats,'evidence');save();await context.close();
+          }
+          try{
+            for(const lang of ['en','ru'])for(const vp of viewports)await staticCheck(lang,vp);
+            await entryCheck('en');await entryCheck('ru');await pointerCheck();await keyboardCheck();await reducedCheck('en');await reducedCheck('ru');
+            await shot('en',{name:'1440-shot',width:1440,height:900,kind:'desktop'},'desktop-en-settled.png');
+            await shot('ru',{name:'1440-shot',width:1440,height:900,kind:'desktop'},'desktop-ru-settled.png');
+            await shot('en',{name:'1440-mid',width:1440,height:900,kind:'desktop'},'desktop-en-mid-entry.png','mid');
+            await shot('en',{name:'1440-pointer-shot',width:1440,height:900,kind:'desktop'},'desktop-en-pointer-material.png','pointer');
+            await shot('en',{name:'390-shot',width:390,height:844,kind:'mobile'},'mobile-390-en.png');
+            await shot('en',{name:'landscape-shot',width:852,height:393,kind:'landscape'},'landscape-852x393-en.png');
+          }catch(e){check(false,'unhandled final QA exception',{message:String(e),stack:e?.stack||''},'harness')}
+          await browser.close();
+          check(report.consoleErrors.length===0,'browser console clean',report.consoleErrors,'console');
+          check(report.assetFailures.length===0,'R1.5 assets clean',report.assetFailures,'asset');
+          const names=['desktop-en-settled.png','desktop-ru-settled.png','desktop-en-mid-entry.png','desktop-en-pointer-material.png','mobile-390-en.png','landscape-852x393-en.png'];
+          check(names.every(n=>report.screenshots[n]?.valid===true),'all six screenshot evidence files valid',report.screenshots,'evidence');
+          report.pass=report.failures.length===0;save();console.log(JSON.stringify({pass:report.pass,checks:report.checks.length,failures:report.failures,matrix:report.matrix},null,2));if(!report.pass)process.exit(1);
+          JS
+          node --check /tmp/r15-final-qa.mjs
+          node /tmp/r15-final-qa.mjs
+
+      - name: Upload final R1.5 QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r15-final-isolated-evidence
+          path: ${{ env.OUT }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Enforce semantic result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$OUT/qa-results.json"
+          node -e "const r=require('./'+process.argv[1]); console.log('pass='+r.pass,'checks='+r.checks.length,'failures='+r.failures.length); process.exit(r.pass===true?0:1)" "$OUT/qa-results.json"

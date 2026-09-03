@@ -25,7 +25,7 @@ const PROAI_CUBE_IDENTITY = Object.freeze({
 });
 const EXPECTED_GLB_SHA256 = '2A97D4671F5AED2E23E5688081C53E1E234A525CF145C6A89BA4C9909FB2B480';
 const MICRO_ETCH_ID = 'PROAI_MICRO_ETCH_R2';
-const MICRO_ETCH_TARGET = Object.freeze({ x: 0, y: 0, z: 1, face: '+Z' });
+const MICRO_ETCH_TARGET = Object.freeze({ x: 1, y: 0, z: 0, face: '+X' });
 let assetIntegrity = {
   expectedSha256: EXPECTED_GLB_SHA256,
   actualSha256: null,
@@ -698,10 +698,12 @@ function setupMicroEtch() {
   const target = physicalCubies.find((cubie) => Object.entries(MICRO_ETCH_TARGET)
     .slice(0, 3)
     .every(([axis, value]) => cubie.logical[axis] === value));
-  if (!target || !target.members[0]?.object) throw new Error('Micro-etch target cubie 0|0|1 missing');
+  if (!target || !target.members[0]?.object) throw new Error('Micro-etch target cubie 1|0|0 missing');
   const host = target.members[0].object;
   const targetCenter = sceneOne.localToWorld(logicalPosition(target.logical).clone());
-  const targetNormal = new THREE.Vector3(0, 0, 1)
+  const faceAxis = { X: 0, Y: 1, Z: 2 }[MICRO_ETCH_TARGET.face[1]];
+  const targetNormalLocal = new THREE.Vector3().setComponent(faceAxis, MICRO_ETCH_TARGET.face[0] === '+' ? 1 : -1);
+  const targetNormal = targetNormalLocal.clone()
     .applyQuaternion(sceneOne.getWorldQuaternion(new THREE.Quaternion()))
     .normalize();
   host.updateWorldMatrix(true, true);
@@ -721,7 +723,7 @@ function setupMicroEtch() {
     const score = normalAlignment * 1000 + depth;
     if (!best || score > best.score) best = { object, source, worldCenter, worldNormal, score };
   });
-  if (!best || best.worldNormal.dot(targetNormal) < 0.75) throw new Error('Micro-etch +Z outward face could not be resolved');
+  if (!best || best.worldNormal.dot(targetNormal) < 0.75) throw new Error(`Micro-etch ${MICRO_ETCH_TARGET.face} outward face could not be resolved`);
   const faceSurfaceLocal = best.source.center.clone();
   faceSurfaceLocal.setComponent(
     best.source.thinAxis,
@@ -734,9 +736,9 @@ function setupMicroEtch() {
   const localY = new THREE.Vector3(0, 1, 0).applyQuaternion(best.object.getWorldQuaternion(new THREE.Quaternion())).transformDirection(hostInverse).normalize();
   const basis = new THREE.Matrix4().makeBasis(localX, localY, localNormal);
   microEtchMaterial = new THREE.MeshPhysicalMaterial({
-    color: '#59646f',
+    color: '#252c33',
     metalness: 0.95,
-    roughness: 0.24,
+    roughness: 0.30,
     clearcoat: 0.28,
     clearcoatRoughness: 0.12,
     envMapIntensity: 1.45,
@@ -761,7 +763,7 @@ function updateMicroEtchGlint(now = performance.now()) {
   if (!microEtchMaterial) return;
   if (prefersReducedMotion) {
     microEtchGlintActive = false;
-    microEtchMaterial.roughness = 0.24;
+    microEtchMaterial.roughness = 0.30;
     microEtchMaterial.clearcoatRoughness = 0.12;
     return;
   }
@@ -773,12 +775,12 @@ function updateMicroEtchGlint(now = performance.now()) {
   if (microEtchGlintActive) {
     const progress = THREE.MathUtils.clamp((now - (microEtchGlintEndsAt - 720)) / 720, 0, 1);
     const envelope = Math.sin(progress * Math.PI);
-    microEtchMaterial.roughness = 0.24 - envelope * 0.035;
+    microEtchMaterial.roughness = 0.30 - envelope * 0.035;
     microEtchMaterial.clearcoatRoughness = 0.12 - envelope * 0.025;
     if (now >= microEtchGlintEndsAt) {
       microEtchGlintActive = false;
       microEtchGlintNextAt = now + 27000;
-      microEtchMaterial.roughness = 0.24;
+      microEtchMaterial.roughness = 0.30;
       microEtchMaterial.clearcoatRoughness = 0.12;
     }
   }

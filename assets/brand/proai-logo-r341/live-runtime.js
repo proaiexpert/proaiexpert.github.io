@@ -56,7 +56,7 @@ addEventListener('message',event=>{
   if(window.__PROAI_LOGO_R341_STATE)window.__PROAI_LOGO_R341_STATE.motionStarted=true;
 });
 try{
-  const response=await fetch(SOURCE_URL,{cache:'force-cache',credentials:'same-origin'});
+  const response=await fetch(SOURCE_URL,{cache:'no-store',credentials:'same-origin'});
   if(!response.ok)throw new Error(`Logo source HTTP ${response.status}`);
   let source=await response.text();
   source=source.replace(/\r\n?/g,'\n');

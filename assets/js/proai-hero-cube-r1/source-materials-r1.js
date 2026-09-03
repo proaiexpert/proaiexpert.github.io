@@ -2063,8 +2063,8 @@ void loadVerifiedCube().then((gltf) => {
       }
     });
     setupOwnershipNodes();
-    setupMicroEtch();
     frameCamera();
+    setupMicroEtch();
     resize();
     if (captureMode) renderReviewFrame();
 

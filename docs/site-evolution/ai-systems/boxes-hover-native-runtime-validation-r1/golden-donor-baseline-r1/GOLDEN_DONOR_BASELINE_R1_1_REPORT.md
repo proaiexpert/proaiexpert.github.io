@@ -21,7 +21,7 @@ Byte-for-byte recovered payload воспроизводит официальны�
 - Forensic authority: `4da8b751f5e46efdd7a30756fdf3b409625d2512`
 - Golden branch: `agent/proai-boxes-hover-golden-donor-baseline-r1`
 - Previous committed baseline: `cd5bcb021bd46ee45c3ea65af0385c03c9915a5d`
-- R1.1 implementation commit: recorded after evidence/report commit
+- R1.1 evidence and preview commit: `7d64d8652ea07772e7c42b1e402ff0c89bdab4f4`
 - Main, product files, Hero R1, merge and deploy: not touched
 
 ## Exact donor and runtime

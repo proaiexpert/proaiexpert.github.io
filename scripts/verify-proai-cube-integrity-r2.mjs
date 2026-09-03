@@ -20,6 +20,13 @@ function sha256(buffer) {
   return createHash('sha256').update(buffer).digest('hex').toUpperCase();
 }
 
+function sha256ProtectedFile(relativePath, buffer) {
+  if (relativePath.toLowerCase().endsWith('.js')) {
+    return sha256(Buffer.from(buffer.toString('utf8').replace(/\r\n?/g, '\n'), 'utf8'));
+  }
+  return sha256(buffer);
+}
+
 function parseGlbJson(buffer) {
   const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength);
   if (view.byteLength < 20 || view.getUint32(0, true) !== 0x46546c67 || view.getUint32(4, true) !== 2) {
@@ -71,7 +78,7 @@ const witnessPresent = (gltfJson?.nodes || []).some((node) => node.name === witn
 if (!witnessPresent) fail(`GLB hidden witness node missing: ${witnessId}`);
 
 for (const [relativePath, expected] of Object.entries(manifest.hashes || {})) {
-  const actual = sha256(await readFile(resolve(root, relativePath)));
+  const actual = sha256ProtectedFile(relativePath, await readFile(resolve(root, relativePath)));
   if (actual !== expected) fail(`protected file SHA256 mismatch for ${relativePath}: expected ${expected}, got ${actual}`);
 }
 

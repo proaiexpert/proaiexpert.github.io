@@ -1,80 +1,108 @@
-# Boxes Hover — Native Material Layer Lab R1
+# Boxes Hover — Native Material Layer Lab R1.1
 
 ## OWNER SUMMARY — RU
 
 Дата: 2026-09-03.
 
-Статус: **TARGETED LAB BLOCKER — NATIVE LAYERS ДОСТУПНЫ, НО ДОНОР НЕ ИМЕЕТ ДОПУСТИМОГО COLOR LAYER ДЛЯ ПАЛИТРЫ A/B/C**.
+Статус: **PATTERN COLOR MUTATION BLOCKER**.
 
-Это изолированный R&D lab. Product Hero materials не менялись. Exact Golden donor payload и native runtime оставлены исходными.
+R1.1 проверил существующие `pattern.colorA` / `pattern.colorB` и зафиксировал точный stop-condition: разрешённая native color mutation сохраняет доступ к runtime-объекту, но разрушает fidelity до больших плоских цветных пластин во время hover. Physical candidates, three-Cube, cluster и 143-Cube gates по ТЗ не запускались.
 
 ## Authorities
 
-- Product authority: `6fdc0a46a008c3c308c144a734d191d0c97b0473`
-- Golden donor authority: `920d0b91728859c15bcace52e7a2a0da3539e347`
+- Product / accepted Hero Phase A: `38ecb13e1a0d6b5814748d7741ba99ef58197e6b`
+- Lab start HEAD: `6fc0eeac1dd94ed9a3a68b5ae3d48add3c6b391c`
 - Forensic authority: `4da8b751f5e46efdd7a30756fdf3b409625d2512`
-- Phase A base: `38ecb13e1a0d6b5814748d7741ba99ef58197e6b`
 - Exact payload SHA-256: `c3bcabd43c232045b059704e8d4be57634314b7da2fcfa5ebbd448ee40a16798`
 - Exact payload size: `46,215` bytes
 - Runtime: `@splinetool/runtime@2.0.27`
 - Lab branch: `agent/proai-boxes-hover-material-layer-lab-r1`
 
-## Method and safety
+## Native inventory
 
-The lab uses the official Spline `Application` API and the exact recovered payload. No custom material factory and no runtime material replacement API were called. Inventory is read-only until the Owner selects a lab control. The controls mutate only one diagnostic `Cube`, then can restore its captured native values.
+The exact payload exposed `143` `Cube` mesh objects, `143` independent material identities and `1` shared layer signature. Every inspected material had three native layers in this order:
 
-No Three.js reconstruction, `BoxGeometry`, camera override, geometry edit, cube transform edit, donor animation edit or product wiring is present.
+1. `transmission`;
+2. `pattern` with `colorA` and `colorB`;
+3. `light` with `category: physical` and `metalness`, `roughness`, `reflectivity`.
 
-## Complete native material inventory
+The complete per-Cube UUID, material identity, layer type/category/key/property inventory is preserved in `material-inventory.json`. Runtime-generated Cube UUIDs changed between boots, so the inventory order and names are evidence only, not a future product selector.
 
-The runtime reported exactly `143` mesh objects named `Cube`. Every Cube had an independent material identity in this runtime boot (`143` material identities), but all 143 shared one identical native layer signature (`1` signature). The diagnostic runtime object ID from the captured boot is recorded in `material-inventory.json`; runtime-generated Cube UUIDs can differ between boots, so the complete captured list is preserved as evidence rather than used as a product selector.
+Baseline pattern colors were recorded as `colorA = {r:1,g:1,b:1,a:1}` and `colorB = {r:0,g:0,b:0,a:1}`. Baseline physical values were `metalness 0.14`, `roughness 0.35`, `reflectivity 0.33`. Transmission was not modified.
 
-Every Cube material exposed exactly three native layers, in this order:
+## Pattern color mapping
 
-1. `transmission` — keys include `alpha`, `ior`, `mode`, `roughness`, `thickness`, `visible`.
-2. `pattern` — keys include `colorA`, `colorB`, `frequency`, `projection`, `rotation`, `size`, `style`, `visible`.
-3. `light` / `physical` — keys include `metalness`, `roughness`, `reflectivity`, `emissive`, `specular`, `occlusion`, `visible`.
+Tests were performed on one diagnostic Cube after exact native baseline capture:
 
-No layer with `type === 'color'` was found. The allowed physical parameters were present on the `light` layer: baseline `metalness 0.14`, `roughness 0.35`, `reflectivity 0.33`. The exact per-Cube UUID/material/layer/property inventory is in `material-inventory.json`.
+- Red/green: `colorA = red`, `colorB = green`.
+- Swap: `colorA = green`, `colorB = red`.
 
-## One-Cube / one-family test
+Observed mapping:
 
-The test mutated only existing native properties on the first diagnostic Cube:
+- `colorB` controls the dominant broad planar / ground-like pattern region. Green in the first test and red after swap moved with `colorB`.
+- `colorA` controls the complementary cube/pattern region and interacts with the raised cube surfaces/edges.
+- The pattern is not a simple per-face cube tint: changing one Cube’s existing pattern colors produced multiple broad plate-like surfaces during hover.
 
-- A / Black Chrome: physical roughness, metalness and reflectivity values changed; scene remained renderable and native hover remained recognizable.
-- B / Champagne: same allowed physical-property path; scene remained renderable.
-- C / Violet / Indigo: same allowed physical-property path; scene remained renderable.
-- NATIVE: captured values restored on the diagnostic Cube.
+Both fields changed through the existing native `pattern` layer; no new Color layer was added and no material replacement was used.
 
-The test did not mutate `pattern.colorA` / `pattern.colorB`, because those are pattern-layer fields, not an allowed `type === 'color'` layer. Therefore this is not evidence for a valid family-wide Black Chrome / Champagne / Violet palette.
+## Pattern fidelity gate
 
-## Lab result
+The one-Cube color mutation caused the following visible failure in real Chrome secure localhost:
 
-- Native layer access: **PASS**
-- 143 Cube inventory: **PASS**
-- Shared layer signature grouping: **PASS — 1 family signature**
-- `color` layer available: **NO**
-- Allowed physical fields available: **PASS**
-- One-Cube native mutation rendered: **PASS**
-- One-Cube native restore: **PASS**
-- Family-wide palette candidates A/B/C: **NOT PRODUCED — no allowed color target; no product mutation justified**
-- Geometry/camera/native hover changed: **NO**
-- Console errors in lab boot: **NONE OBSERVED**
+- large flat green plate/ground artifacts for red/green;
+- large flat red plate/ground artifacts after swap;
+- donor depth/topology no longer read as the original Boxes Hover field;
+- native hover remained active, but the material result was not acceptable donor fidelity.
 
-## Owner preview
+Therefore:
 
-- Lab URL: `http://192.168.50.143:4183/boxes-hover-material-layer-lab-r1.html`
-- Evidence: `boxes-hover-material-layer-lab-r1-native-hover.png`, `boxes-hover-material-layer-lab-r1-a-black-chrome.png`, `boxes-hover-material-layer-lab-r1-a-black-chrome-hover.png`, `boxes-hover-material-layer-lab-r1-c-violet-hover.png`
+- pattern color mutation: **FAIL**
+- status: **PATTERN COLOR MUTATION BLOCKER**
+- physical layer pass: **NOT REACHED**
+- transmission: **NOT CHANGED**
 
-The lab controls are intentionally diagnostic and one-Cube-only. They are not a product palette and must not be wired into the Hero without a separate Owner-approved material strategy.
+The secure localhost runtime also emitted repeated Three.js/WebGPU `ShadowDepthTexture` validation errors during the diagnostic render. This is recorded as additional runtime instability, not used to override the visual stop-condition.
 
-## Non-actions
+## Restore verification
 
+Before each mutation the exact native values for the diagnostic Cube were captured. The restore routine reported `143/143` restored on the final clean run and a fresh payload reload returned the scene to the native baseline. In-session visual restore after direct nested pattern writes was not reliable: the renderer could retain the colored plate state until reload.
+
+- native value restore: **PASS at object-value level**
+- in-session visual restore: **FAIL / requires fresh payload reload**
+- clean payload reload: **PASS**
+
+Because the pattern fidelity gate failed, no further mutation was allowed.
+
+## Deferred gates
+
+- one-Cube physical metalness: **NOT REACHED**
+- one-Cube physical roughness: **NOT REACHED**
+- one-Cube physical reflectivity: **NOT REACHED**
+- three-Cube validation: **NOT REACHED**
+- 9–16 Cube cluster validation: **NOT REACHED**
+- 143-Cube candidate validation: **NOT REACHED**
+- Candidate A Black Chrome: **NOT REACHED**
+- Candidate B Champagne: **NOT REACHED**
+- Candidate C Violet / Indigo: **NOT REACHED**
+- Owner composite: **NOT PRODUCED**
+
+The normal lab URL leaves candidate buttons disabled after the blocker. QA diagnostics remain available only with `?qa=1` for reproducibility; do not use them as product material wiring.
+
+## Evidence and preview
+
+- Clean lab URL: `http://127.0.0.1:4183/boxes-hover-material-layer-lab-r1.html`
+- QA URL: `http://127.0.0.1:4183/boxes-hover-material-layer-lab-r1.html?qa=1`
+- Evidence: `diagnostic-pattern-red-green-final.png`, `diagnostic-pattern-swap-final.png`, `native-baseline-secure.png`, `native-restored-secure.png`.
+
+## Safety
+
+- Hero product modified: **NO**
+- Hero copy/framing/CTA/header/camera/geometry/hover motion modified: **NO**
+- Forbidden material replacement APIs: **NOT USED**
+- Manual reconstruction / Three.js material / BoxGeometry: **NO**
 - Main modified: **NO**
 - Merged: **NO**
 - Deployed: **NO**
-- Product Hero materials modified: **NO**
-- Manual donor reconstruction: **NO**
 - Enterprise purchased: **NO**
 
-Stop and wait for Owner review.
+Stop and wait for Owner. Do not integrate material changes into the Hero.

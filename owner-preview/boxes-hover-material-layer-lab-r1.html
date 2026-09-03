@@ -19,6 +19,11 @@
     .lab-controls button{min-height:34px;padding:0 11px;border:1px solid rgba(242,240,235,.25);border-radius:7px;color:#F2F0EB;background:#11151A;font:650 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.03em;cursor:pointer}
     .lab-controls button:hover,.lab-controls button:focus-visible{border-color:#A8B0FF;background:#1A2027;outline:2px solid #A8B0FF;outline-offset:3px}
     .lab-controls button:active{transform:translateY(1px)}
+    .lab-controls button:disabled{opacity:.42;cursor:not-allowed}
+    .lab-diagnostics{display:none;margin-top:12px;padding-top:12px;border-top:1px solid rgba(242,240,235,.12)}
+    .lab-diagnostics summary{color:#8C949D;font:600 10px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;cursor:pointer}
+    .lab-diagnostics .lab-controls{margin-top:9px}
+    html[data-material-lab-qa="1"] .lab-diagnostics{display:block}
     @media (max-width:700px){.lab-panel{top:10px;left:10px;max-width:calc(100vw - 20px);padding:13px}.lab-title{font-size:16px}.lab-status{max-height:90px;overflow:auto}}
   </style>
 </head>
@@ -30,11 +35,29 @@
     <p class="lab-status" data-material-lab-status>Loading exact payload…</p>
     <div class="lab-controls">
       <button type="button" data-material-mode="native">NATIVE</button>
-      <button type="button" data-material-mode="black">A · BLACK CHROME</button>
-      <button type="button" data-material-mode="champagne">B · CHAMPAGNE</button>
-      <button type="button" data-material-mode="violet">C · VIOLET / INDIGO</button>
+      <button type="button" data-material-mode="black" disabled aria-disabled="true" title="Disabled after pattern fidelity blocker">A · BLACK CHROME</button>
+      <button type="button" data-material-mode="champagne" disabled aria-disabled="true" title="Disabled after pattern fidelity blocker">B · CHAMPAGNE</button>
+      <button type="button" data-material-mode="violet" disabled aria-disabled="true" title="Disabled after pattern fidelity blocker">C · VIOLET / INDIGO</button>
     </div>
+    <details class="lab-diagnostics">
+      <summary>QA diagnostics</summary>
+      <div class="lab-controls">
+        <button type="button" data-material-test="diagnostic-red-green">RED / GREEN</button>
+        <button type="button" data-material-test="diagnostic-swap">SWAP</button>
+        <button type="button" data-material-test="one-black">ONE A</button>
+        <button type="button" data-material-test="one-champagne">ONE B</button>
+        <button type="button" data-material-test="one-violet">ONE C</button>
+        <button type="button" data-material-test="three-black">THREE A</button>
+        <button type="button" data-material-test="three-champagne">THREE B</button>
+        <button type="button" data-material-test="three-violet">THREE C</button>
+        <button type="button" data-material-test="cluster-black">CLUSTER A</button>
+        <button type="button" data-material-test="cluster-champagne">CLUSTER B</button>
+        <button type="button" data-material-test="cluster-violet">CLUSTER C</button>
+        <button type="button" data-material-test="restore-all">RESTORE ALL</button>
+      </div>
+    </details>
   </section>
-  <script type="module" src="./assets/boxes-hover-material-layer-lab-r1.js?r13=lab1"></script>
+  <script>if(new URLSearchParams(location.search).get('qa')==='1')document.documentElement.dataset.materialLabQa='1';</script>
+  <script type="module" src="./assets/boxes-hover-material-layer-lab-r1.js?r13=lab11"></script>
 </body>
 </html>

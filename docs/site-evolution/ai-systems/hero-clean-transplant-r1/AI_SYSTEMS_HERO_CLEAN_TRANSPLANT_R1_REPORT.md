@@ -10,6 +10,7 @@
 
 ## Authorities
 
+- `origin/main` observed at final verification: `337138fbbfde35d3424e7cc77358c5c97d65a20a` (repository reality only; not used as product authority)
 - Product authority: `6fdc0a46a008c3c308c144a734d191d0c97b0473`
 - Golden donor authority: `920d0b91728859c15bcace52e7a2a0da3539e347`
 - Exact payload SHA-256: `c3bcabd43c232045b059704e8d4be57634314b7da2fcfa5ebbd448ee40a16798`

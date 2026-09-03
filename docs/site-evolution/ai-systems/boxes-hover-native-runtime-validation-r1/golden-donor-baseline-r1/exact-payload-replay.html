@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Boxes Hover — Exact Payload Replay</title>
+  <style>
+    html, body { height: 100%; }
+    body { margin: 0; overflow: hidden; background: rgba(0, 0, 0, 1); user-select: none; }
+    canvas { outline: none; display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="canvas3d" aria-label="Boxes Hover exact recovered payload"></canvas>
+  <script type="module">
+    import { Application } from 'https://cdn.spline.design/@splinetool/runtime@2.0.27/build/runtime.js';
+
+    const canvas = document.getElementById('canvas3d');
+    const payloadUrl = './public-original-inline-scene-payload.bin';
+    const expectedSha = 'c3bcabd43c232045b059704e8d4be57634314b7da2fcfa5ebbd448ee40a16798';
+    const bytesToHex = (bytes) => [...new Uint8Array(bytes)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+
+    const response = await fetch(payloadUrl, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Payload HTTP ${response.status}`);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const actualSha = bytesToHex(await crypto.subtle.digest('SHA-256', bytes));
+    if (actualSha !== expectedSha) throw new Error(`Payload SHA mismatch: ${actualSha}`);
+
+    const app = new Application(canvas, { htmlContentMode: 'inline' });
+    app.start(Array.from(bytes)).then(() => { document.documentElement.dataset.runtime = 'ready'; });
+  </script>
+</body>
+</html>

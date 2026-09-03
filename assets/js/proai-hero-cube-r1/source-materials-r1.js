@@ -2026,7 +2026,13 @@ async function loadVerifiedCube() {
   const pass = actualSha256 === EXPECTED_GLB_SHA256;
   assetIntegrity = { ...assetIntegrity, actualSha256, status: pass ? 'pass' : 'fail' };
   if (!pass) throw new Error(`ProAI Cube GLB integrity mismatch: expected ${EXPECTED_GLB_SHA256}, got ${actualSha256}`);
-  const gltf = await loader.parseAsync(arrayBuffer, new URL('./', GLB_URL).href);
+  let basePath = document.baseURI;
+  try {
+    basePath = new URL('./', GLB_URL).href;
+  } catch {
+    // Dynamic Blob module URLs are valid fetch targets but not valid URL bases.
+  }
+  const gltf = await loader.parseAsync(arrayBuffer, basePath);
   validateRuntimeIdentity(gltf);
   return gltf;
 }

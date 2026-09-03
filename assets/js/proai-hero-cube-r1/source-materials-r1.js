@@ -2015,7 +2015,7 @@ function validateRuntimeIdentity(gltf) {
 }
 
 async function loadVerifiedCube() {
-  const response = await fetch(GLB_URL, { cache: 'no-store' });
+  const response = await fetch(GLB_URL, { cache: 'force-cache' });
   assetIntegrity = { ...assetIntegrity, requestCount: assetIntegrity.requestCount + 1 };
   if (!response.ok) {
     assetIntegrity = { ...assetIntegrity, status: 'fail' };

@@ -141,7 +141,7 @@ R1.2 evidence files:
 - `08-r12-en-desktop-material-hover.png` — native center-hover field with recognizable cubes
 - `09-r12-en-desktop-full-hero.png` — full-page composition evidence; fixed-header duplication is QA-only and not an owner-facing deliverable
 
-Implementation checkpoint: start `1a71265fcd92b5cabf232498a367a39236988574`; Phase A commit `ca3c1a78bf9d6c1fd6e9afefb67f3698de0e9642`; final R1.2 commit is the next isolated commit on `agent/proai-ai-systems-hero-clean-transplant-r1`.
+Implementation checkpoint: start `1a71265fcd92b5cabf232498a367a39236988574`; Phase A commit `ca3c1a78bf9d6c1fd6e9afefb67f3698de0e9642`; R1.2 commit `e0fe3988b6dd23305eaaab75b8f99abefaf8479f` on `agent/proai-ai-systems-hero-clean-transplant-r1`.
 
 ## Owner preview
 

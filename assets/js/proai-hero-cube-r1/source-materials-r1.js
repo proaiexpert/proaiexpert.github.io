@@ -15,12 +15,28 @@ const PROAI_CUBE_IDENTITY = Object.freeze({
   buildId: 'PAI-CUBE-R1-7B0942A0',
   forensicId: '2D2B518012AECCAC',
   sourceCommit: '7b0942a042ef23e10cd74592208eeae94479b45e',
-  provenanceState: 'planned',
+  provenanceState: 'owner-review',
   plannedProvenanceUrl: 'https://proai-expert.com/provenance/proai-cube/r1',
+  provenanceUrl: 'https://proai-expert.com/provenance/proai-cube/r1',
+  protectionProfile: 'ownership-protection-r2',
   signatureNodeId: 'PROAI_SIG_KINETIC_R1',
   forensicNodeId: 'PROAI_FORENSIC_WITNESS_R1',
-  signatureReveal: 'existing-controlled-slice-turn',
+  signatureReveal: 'disabled-production',
 });
+const EXPECTED_GLB_SHA256 = '2A97D4671F5AED2E23E5688081C53E1E234A525CF145C6A89BA4C9909FB2B480';
+const MICRO_ETCH_ID = 'PROAI_MICRO_ETCH_R2';
+const MICRO_ETCH_TARGET = Object.freeze({ x: 0, y: 0, z: 1, face: '+Z' });
+let assetIntegrity = {
+  expectedSha256: EXPECTED_GLB_SHA256,
+  actualSha256: null,
+  status: 'pending',
+  requestCount: 0,
+};
+let runtimeIdentity = {
+  status: 'pending',
+  metadata: null,
+  witnessPresent: false,
+};
 const getOwnershipFingerprint = () => Object.freeze({ ...PROAI_CUBE_IDENTITY, glbUrl: GLB_URL });
 const canvas = document.getElementById('cube-canvas');
 const status = document.getElementById('runtime-status');
@@ -288,6 +304,14 @@ let materialAssignmentCounts = { graphiteFace: 0, gunmetalFace: 0, blackChromeFa
 let resolvedLighting = null;
 let ownershipSignatureRoot = null;
 let forensicWitnessRoot = null;
+let microEtchRoot = null;
+let microEtchHost = null;
+let microEtchMaterial = null;
+let microEtchFace = null;
+let microEtchGlintActive = false;
+let microEtchGlintNextAt = 0;
+let microEtchGlintEndsAt = 0;
+let microEtchGlintCount = 0;
 let ownershipSignatureReveal = 0;
 let ownershipSignatureInspection = false;
 let ownershipSignatureLastNow = 0;
@@ -592,7 +616,8 @@ function classifyReviewMaterial(mesh) {
 function isOwnershipNode(object) {
   return Boolean(object.userData?.proaiNodeId)
     || object.name === 'PROAI_SIG_KINETIC_R1'
-    || object.name === 'PROAI_FORENSIC_WITNESS_R1';
+    || object.name === 'PROAI_FORENSIC_WITNESS_R1'
+    || object.name === MICRO_ETCH_ID;
 }
 
 function setupOwnershipNodes() {
@@ -616,6 +641,147 @@ function setupOwnershipNodes() {
   ownershipSignatureReveal = 0;
   ownershipSignatureInspection = false;
   ownershipSignatureLastNow = 0;
+}
+
+function createMicroEtchBar(group, x1, y1, x2, y2, thickness = 1.85) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const length = Math.hypot(dx, dy);
+  if (!length) return;
+  const geometry = new THREE.ExtrudeGeometry(new THREE.Shape([
+    new THREE.Vector2(-length * 0.5, -thickness * 0.5),
+    new THREE.Vector2(length * 0.5, -thickness * 0.5),
+    new THREE.Vector2(length * 0.5, thickness * 0.5),
+    new THREE.Vector2(-length * 0.5, thickness * 0.5),
+  ]), {
+    depth: 0.14,
+    bevelEnabled: false,
+    steps: 1,
+  });
+  geometry.translate(0, 0, -0.035);
+  const mesh = new THREE.Mesh(geometry, microEtchMaterial);
+  mesh.position.set((x1 + x2) * 0.5, (y1 + y2) * 0.5, 0);
+  mesh.rotation.z = Math.atan2(dy, dx);
+  mesh.name = `${MICRO_ETCH_ID}_STROKE`;
+  mesh.castShadow = false;
+  mesh.receiveShadow = false;
+  group.add(mesh);
+}
+
+function addMicroEtchGlyph(group, glyph, offsetX) {
+  const y = -4.2;
+  const strokes = {
+    P: [[0, y, 0, y + 8.4], [0, y + 8.4, 4.2, y + 8.4], [4.2, y + 8.4, 4.2, y + 4.2], [4.2, y + 4.2, 0, y + 4.2]],
+    R: [[0, y, 0, y + 8.4], [0, y + 8.4, 4.2, y + 8.4], [4.2, y + 8.4, 4.2, y + 4.2], [4.2, y + 4.2, 0, y + 4.2], [0, y + 4.2, 4.4, y]],
+    O: [[0, y, 0, y + 8.4], [0, y + 8.4, 4.2, y + 8.4], [4.2, y + 8.4, 4.2, y], [4.2, y, 0, y]],
+    A: [[0, y, 2.1, y + 8.4], [2.1, y + 8.4, 4.2, y], [0.85, y + 3.25, 3.35, y + 3.25]],
+    I: [[0, y + 8.4, 4.2, y + 8.4], [2.1, y + 8.4, 2.1, y], [0, y, 4.2, y]],
+  }[glyph];
+  if (!strokes) throw new Error(`Unsupported micro-etch glyph: ${glyph}`);
+  for (const [x1, y1, x2, y2] of strokes) createMicroEtchBar(group, x1 + offsetX, y1, x2 + offsetX, y2);
+}
+
+function buildMicroEtchGeometry() {
+  const group = new THREE.Group();
+  group.name = MICRO_ETCH_ID;
+  group.userData.proaiNodeId = MICRO_ETCH_ID;
+  group.userData.role = 'single-face-center-runtime-micro-etch';
+  const glyphs = [...'PROAI'];
+  const glyphWidth = 4.2;
+  const glyphGap = 2.2;
+  const totalWidth = glyphs.length * glyphWidth + (glyphs.length - 1) * glyphGap;
+  glyphs.forEach((glyph, index) => addMicroEtchGlyph(group, glyph, -totalWidth * 0.5 + index * (glyphWidth + glyphGap)));
+  return group;
+}
+
+function setupMicroEtch() {
+  const target = physicalCubies.find((cubie) => Object.entries(MICRO_ETCH_TARGET)
+    .slice(0, 3)
+    .every(([axis, value]) => cubie.logical[axis] === value));
+  if (!target || !target.members[0]?.object) throw new Error('Micro-etch target cubie 0|0|1 missing');
+  const host = target.members[0].object;
+  const targetCenter = sceneOne.localToWorld(logicalPosition(target.logical).clone());
+  const targetNormal = new THREE.Vector3(0, 0, 1)
+    .applyQuaternion(sceneOne.getWorldQuaternion(new THREE.Quaternion()))
+    .normalize();
+  host.updateWorldMatrix(true, true);
+  const hostInverse = host.matrixWorld.clone().invert();
+  let best = null;
+  host.traverse((object) => {
+    if (!object.isMesh || !object.geometry) return;
+    const source = sourceGeometryMetrics(object.geometry);
+    const dimensions = [Math.abs(source.size.x), Math.abs(source.size.y), Math.abs(source.size.z)].sort((a, b) => a - b);
+    if (dimensions[0] >= dimensions[2] * 0.12) return;
+    object.updateWorldMatrix(true, false);
+    const objectQuaternion = object.getWorldQuaternion(new THREE.Quaternion());
+    const worldCenter = object.localToWorld(source.center.clone());
+    const worldNormal = new THREE.Vector3(0, 0, 1).applyQuaternion(objectQuaternion).normalize();
+    const depth = worldCenter.clone().sub(targetCenter).dot(targetNormal);
+    const normalAlignment = worldNormal.dot(targetNormal);
+    const score = normalAlignment * 1000 + depth;
+    if (!best || score > best.score) best = { object, source, worldCenter, worldNormal, score };
+  });
+  if (!best || best.worldNormal.dot(targetNormal) < 0.75) throw new Error('Micro-etch +Z outward face could not be resolved');
+  const faceSurfaceLocal = best.source.center.clone();
+  faceSurfaceLocal.setComponent(
+    best.source.thinAxis,
+    faceSurfaceLocal.getComponent(best.source.thinAxis) + best.source.size.getComponent(best.source.thinAxis) * 0.5,
+  );
+  const surfaceWorldCenter = best.object.localToWorld(faceSurfaceLocal);
+  const localCenter = surfaceWorldCenter.applyMatrix4(hostInverse);
+  const localNormal = best.worldNormal.clone().transformDirection(hostInverse).normalize();
+  const localX = new THREE.Vector3(1, 0, 0).applyQuaternion(best.object.getWorldQuaternion(new THREE.Quaternion())).transformDirection(hostInverse).normalize();
+  const localY = new THREE.Vector3(0, 1, 0).applyQuaternion(best.object.getWorldQuaternion(new THREE.Quaternion())).transformDirection(hostInverse).normalize();
+  const basis = new THREE.Matrix4().makeBasis(localX, localY, localNormal);
+  microEtchMaterial = new THREE.MeshPhysicalMaterial({
+    color: '#59646f',
+    metalness: 0.95,
+    roughness: 0.24,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.12,
+    envMapIntensity: 1.45,
+    side: THREE.FrontSide,
+    depthTest: true,
+    depthWrite: true,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  });
+  microEtchRoot = buildMicroEtchGeometry();
+  microEtchRoot.scale.setScalar(1.4);
+  microEtchRoot.position.copy(localCenter).addScaledVector(localNormal, 0.01);
+  microEtchRoot.quaternion.setFromRotationMatrix(basis);
+  host.add(microEtchRoot);
+  microEtchHost = host;
+  microEtchFace = { target: { ...MICRO_ETCH_TARGET }, normal: targetNormal.toArray(), sourceMesh: best.object.name || '(unnamed)' };
+  microEtchGlintNextAt = performance.now() + 26000;
+}
+
+function updateMicroEtchGlint(now = performance.now()) {
+  if (!microEtchMaterial) return;
+  if (prefersReducedMotion) {
+    microEtchGlintActive = false;
+    microEtchMaterial.roughness = 0.24;
+    microEtchMaterial.clearcoatRoughness = 0.12;
+    return;
+  }
+  if (!microEtchGlintActive && now >= microEtchGlintNextAt) {
+    microEtchGlintActive = true;
+    microEtchGlintEndsAt = now + 720;
+    microEtchGlintCount += 1;
+  }
+  if (microEtchGlintActive) {
+    const progress = THREE.MathUtils.clamp((now - (microEtchGlintEndsAt - 720)) / 720, 0, 1);
+    const envelope = Math.sin(progress * Math.PI);
+    microEtchMaterial.roughness = 0.24 - envelope * 0.035;
+    microEtchMaterial.clearcoatRoughness = 0.12 - envelope * 0.025;
+    if (now >= microEtchGlintEndsAt) {
+      microEtchGlintActive = false;
+      microEtchGlintNextAt = now + 27000;
+      microEtchMaterial.roughness = 0.24;
+      microEtchMaterial.clearcoatRoughness = 0.12;
+    }
+  }
 }
 
 function updateOwnershipSignatureReveal(now = performance.now()) {
@@ -1662,7 +1828,9 @@ function setReviewPresentation(timeSec = 0, resumeProgress = 1, renderFrame = tr
 }
 
 function renderReviewFrame() {
-  updateOwnershipSignatureReveal(performance.now());
+  const now = performance.now();
+  updateOwnershipSignatureReveal(now);
+  updateMicroEtchGlint(now);
   controls.update();
   renderer.render(scene, camera);
 }
@@ -1693,6 +1861,16 @@ function getDiagnostics() {
   return {
     ownership: {
       ...getOwnershipFingerprint(),
+      integrity: { ...assetIntegrity },
+      identity: {
+        ...runtimeIdentity,
+        expected: {
+          schema: PROAI_CUBE_IDENTITY.schema,
+          assetId: PROAI_CUBE_IDENTITY.assetId,
+          forensicId: PROAI_CUBE_IDENTITY.forensicId,
+          hiddenWitness: PROAI_CUBE_IDENTITY.forensicNodeId,
+        },
+      },
       signature: {
         nodeId: PROAI_CUBE_IDENTITY.signatureNodeId,
         revealProgress: ownershipSignatureReveal,
@@ -1704,6 +1882,28 @@ function getDiagnostics() {
         nodeId: PROAI_CUBE_IDENTITY.forensicNodeId,
         visible: Boolean(forensicWitnessRoot?.visible),
         visibility: 'internal-inspection-only',
+      },
+      microEtch: {
+        nodeId: MICRO_ETCH_ID,
+        attached: Boolean(microEtchRoot && microEtchHost),
+        targetCubie: { ...MICRO_ETCH_TARGET },
+        targetFace: microEtchFace?.target?.face || MICRO_ETCH_TARGET.face,
+        face: microEtchFace,
+        bounds: ownershipNodeBounds(microEtchRoot),
+        hostName: microEtchHost?.name || null,
+        material: microEtchMaterial ? {
+          type: microEtchMaterial.type,
+          color: microEtchMaterial.color.getHexString(),
+          metalness: microEtchMaterial.metalness,
+          roughness: microEtchMaterial.roughness,
+          depthTest: microEtchMaterial.depthTest,
+          transparent: microEtchMaterial.transparent,
+          emissive: microEtchMaterial.emissive.getHexString(),
+        } : null,
+        glintEnabled: !prefersReducedMotion,
+        glintActive: microEtchGlintActive,
+        glintCount: microEtchGlintCount,
+        reducedMotion: prefersReducedMotion,
       },
     },
     ready: api.ready,
@@ -1780,6 +1980,7 @@ window.addEventListener('resize', resize, { passive: true });
 function render(now) {
   updatePresentationMotion(now);
   updateOwnershipSignatureReveal(now);
+  updateMicroEtchGlint(now);
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(render);
@@ -1787,9 +1988,48 @@ function render(now) {
 if (!captureMode) requestAnimationFrame(render);
 
 const loader = new GLTFLoader();
-loader.load(
-  GLB_URL,
-  (gltf) => {
+
+function sha256Hex(buffer) {
+  return crypto.subtle.digest('SHA-256', buffer).then((digest) => [...new Uint8Array(digest)]
+    .map((value) => value.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase());
+}
+
+function validateRuntimeIdentity(gltf) {
+  const metadata = gltf?.parser?.json?.asset?.extras?.proai || null;
+  const witnessPresent = Boolean(gltf?.scene?.getObjectByName(PROAI_CUBE_IDENTITY.forensicNodeId));
+  const checks = {
+    schema: metadata?.schema === PROAI_CUBE_IDENTITY.schema,
+    assetId: metadata?.asset_id === PROAI_CUBE_IDENTITY.assetId,
+    revision: metadata?.revision === PROAI_CUBE_IDENTITY.revision,
+    forensicId: metadata?.forensic_id === PROAI_CUBE_IDENTITY.forensicId,
+    hiddenWitness: witnessPresent,
+  };
+  const pass = Object.values(checks).every(Boolean);
+  runtimeIdentity = { status: pass ? 'pass' : 'fail', metadata, witnessPresent, checks };
+  if (!pass) throw new Error(`ProAI Cube identity validation failed: ${JSON.stringify(checks)}`);
+  return true;
+}
+
+async function loadVerifiedCube() {
+  const response = await fetch(GLB_URL, { cache: 'no-store' });
+  assetIntegrity = { ...assetIntegrity, requestCount: assetIntegrity.requestCount + 1 };
+  if (!response.ok) {
+    assetIntegrity = { ...assetIntegrity, status: 'fail' };
+    throw new Error(`GLB request failed with HTTP ${response.status}`);
+  }
+  const arrayBuffer = await response.arrayBuffer();
+  const actualSha256 = await sha256Hex(arrayBuffer);
+  const pass = actualSha256 === EXPECTED_GLB_SHA256;
+  assetIntegrity = { ...assetIntegrity, actualSha256, status: pass ? 'pass' : 'fail' };
+  if (!pass) throw new Error(`ProAI Cube GLB integrity mismatch: expected ${EXPECTED_GLB_SHA256}, got ${actualSha256}`);
+  const gltf = await loader.parseAsync(arrayBuffer, new URL('./', GLB_URL).href);
+  validateRuntimeIdentity(gltf);
+  return gltf;
+}
+
+void loadVerifiedCube().then((gltf) => {
     cubeRoot = gltf.scene;
     presentationRig.add(cubeRoot);
     cubeRoot.updateMatrixWorld(true);
@@ -1815,6 +2055,7 @@ loader.load(
       }
     });
     setupOwnershipNodes();
+    setupMicroEtch();
     frameCamera();
     resize();
     if (captureMode) renderReviewFrame();
@@ -1823,11 +2064,12 @@ loader.load(
     setMotionState('rest');
     status.textContent = 'Three.js GLB loaded. Geometry R1 + Motion R1.2 frozen. Materials + Lighting R1 ready.';
     if (sliceSchedulerEnabled) void sliceSchedulerLoop();
-  },
-  undefined,
-  (error) => {
-    console.error('GLB load failed', error);
+  }).catch((error) => {
+    if (cubeRoot) {
+      cubeRoot.visible = false;
+      presentationRig.remove(cubeRoot);
+    }
+    console.error('[ProAI Cube] Verified initialization failed.', error);
     setMotionState('error');
-    status.textContent = 'GLB load failed';
-  },
-);
+    status.textContent = 'Verified Cube initialization failed';
+  });

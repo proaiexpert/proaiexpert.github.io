@@ -4,7 +4,7 @@
 
 Дата проверки: 2026-09-03.
 
-Статус: **TARGETED R1.2 BLOCKER — MATERIAL PASS НЕ ПРИМЕНЁН ДЛЯ СОХРАНЕНИЯ FIDELITY**.
+Статус: **R1.3 PHASE A READY — CTA НОРМАЛИЗОВАН, DONOR SPATIAL FRAMING ПОДТВЕРЖДЁН; MATERIAL LAB ОТДЕЛЕН**.
 
 Это desktop-first checkpoint: Golden Boxes Hover transplanted в full-Hero canvas, а R1.1 demo UI очищен whitelist-ом. В R1.2 exact payload и native donor сохранены; две официальные material-стратегии были проверены, но обе разрушали визуальную fidelity в текущем Chrome runtime, поэтому финальный preview не подменяет donor materials. Semantic labels, Authority Threshold, custom motion, mobile polish и production release не выполнялись.
 
@@ -142,6 +142,32 @@ R1.2 evidence files:
 - `09-r12-en-desktop-full-hero.png` — full-page composition evidence; fixed-header duplication is QA-only and not an owner-facing deliverable
 
 Implementation checkpoint: start `1a71265fcd92b5cabf232498a367a39236988574`; Phase A commit `ca3c1a78bf9d6c1fd6e9afefb67f3698de0e9642`; R1.2 commit `e0fe3988b6dd23305eaaab75b8f99abefaf8479f` on `agent/proai-ai-systems-hero-clean-transplant-r1`.
+
+## R1.3 PHASE A — CTA NORMALIZATION + DONOR SPATIAL FRAMING
+
+Phase A was implemented on the existing clean-transplant branch before opening the isolated native material lab. The exact payload, `Application` runtime, donor camera, geometry, individual cube transforms and native hover path were not edited.
+
+### CTA gate
+
+- Primary `Discuss your challenge` / `Обсудить задачу`: premium rounded rectangle, `9px` radius, Pearl text, Black/Graphite metallic surface, restrained border and inset highlight.
+- Secondary `How we build →` / `Как мы строим →`: borderless text action with no capsule, restrained Silver/Pearl hover, and visible `focus-visible` outline.
+- Header CTA: existing Golden `8px` rectangle preserved.
+- EN/RU copy: unchanged.
+
+### Framing gate
+
+Three internal visual candidates were considered: A current baseline, B moderate right translation with minimal scale, and C right translation plus subtle scale/Y compensation. Candidate C was selected in real Chrome: `translate3d(7vw,-1.5vh,0) scale(1.04)` on the page-level full-Hero stage. The transform keeps the donor canvas full-Hero and does not alter the scene camera or donor objects. It moves the optical field toward the right visual region and preserves the recognizable raised cube topology under native hover. Mobile media rules reset the stage transform to avoid horizontal overflow.
+
+### Phase A browser result
+
+- EN runtime marker: `ready`; exact UI whitelist hidden: `11`; horizontal overflow: `false`.
+- RU runtime marker: `ready`; exact UI whitelist hidden: `11`; horizontal overflow: `false`.
+- EN primary computed radius: `9px`; secondary border: `none`; secondary radius: `0px`; header CTA radius: `8px`.
+- Keyboard focus test: visible indigo focus outline on secondary text action.
+- Native center-hover: recognizable donor cubes and depth captured after framing.
+- Phase A evidence: `10-r13-en-desktop-framed-rest.png`, `11-r13-en-desktop-framed-hover.png`.
+
+Phase A commit is intentionally limited to CTA/framing CSS, the curated owner-preview mirror, and evidence. The implementation branch remains R&D-only and is not merged or deployed.
 
 ## Owner preview
 

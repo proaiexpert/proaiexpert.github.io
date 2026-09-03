@@ -17,17 +17,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Prepare Ruby and Jekyll
+      - name: Prepare fixtures
         shell: bash
         run: |
           export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
           export PATH="$GEM_HOME/bin:$PATH"
           gem install --user-install jekyll -v 4.3.4 --no-document
           gem install --user-install webrick --no-document
-
-      - name: Build instrumented PRE R2 HOTFIX fixtures
-        shell: bash
-        run: |
           git worktree add --detach /tmp/proai-pre 1da26bb71052f3b51e68ba69726ca72a4f0f5e8f
           git worktree add --detach /tmp/proai-r2 a4d222dd16adc736677a30ef5f4f38dd367cea1c
           mkdir -p /tmp/proai-hot
@@ -36,22 +32,24 @@ jobs:
           from pathlib import Path
           roots = [Path('/tmp/proai-pre'), Path('/tmp/proai-r2'), Path('/tmp/proai-hot')]
           needle = "  configureStudioLighting(centerWorld, radius);\n  controls.update();\n}"
-          injection = """  configureStudioLighting(centerWorld, radius);
-  controls.update();
-  globalThis.__PROAI_FRAMING_AUDIT = {
-    boxMin: box.min.toArray(),
-    boxMax: box.max.toArray(),
-    sphereCenter: sphere.center.toArray(),
-    sphereRadius: radius,
-    cameraPosition: camera.position.toArray(),
-    controlsTarget: controls.target.toArray(),
-    fov: camera.fov
-  };
-  globalThis.__PROAI_AUDIT_HIDE_ETCH = () => {
-    if (typeof microEtchRoot !== 'undefined' && microEtchRoot) microEtchRoot.visible = false;
-    renderReviewFrame();
-  };
-}"""
+          injection = "\n".join([
+              "  configureStudioLighting(centerWorld, radius);",
+              "  controls.update();",
+              "  globalThis.__PROAI_FRAMING_AUDIT = {",
+              "    boxMin: box.min.toArray(),",
+              "    boxMax: box.max.toArray(),",
+              "    sphereCenter: sphere.center.toArray(),",
+              "    sphereRadius: radius,",
+              "    cameraPosition: camera.position.toArray(),",
+              "    controlsTarget: controls.target.toArray(),",
+              "    fov: camera.fov",
+              "  };",
+              "  globalThis.__PROAI_AUDIT_HIDE_ETCH = () => {",
+              "    if (typeof microEtchRoot !== 'undefined' && microEtchRoot) microEtchRoot.visible = false;",
+              "    renderReviewFrame();",
+              "  };",
+              "}",
+          ])
           for root in roots:
               path = root / 'assets/js/proai-hero-cube-r1/source-materials-r1.js'
               text = path.read_text(encoding='utf-8')
@@ -59,13 +57,11 @@ jobs:
                   raise SystemExit(f'instrumentation needle count != 1 in {path}')
               path.write_text(text.replace(needle, injection, 1), encoding='utf-8', newline='\n')
           PY
-          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
-          export PATH="$GEM_HOME/bin:$PATH"
           jekyll build --source /tmp/proai-pre --destination /tmp/proai-pre-site
           jekyll build --source /tmp/proai-r2 --destination /tmp/proai-r2-site
           jekyll build --source /tmp/proai-hot --destination /tmp/proai-hot-site
 
-      - name: Install Playwright QA dependencies
+      - name: Install browser
         shell: bash
         run: |
           mkdir -p /tmp/proai-browserqa
@@ -74,7 +70,7 @@ jobs:
           npm install --silent playwright@1.55.0 pngjs@7.0.0 pixelmatch@7.1.0
           npx playwright install --with-deps chromium
 
-      - name: Run deterministic browser QA
+      - name: Run browser QA
         shell: bash
         run: |
           python3 -m http.server 8121 --directory /tmp/proai-pre-site >/tmp/pre-http.log 2>&1 &
@@ -88,43 +84,37 @@ jobs:
 
           const browser = await chromium.launch({ headless: true });
           const errors = [];
-          const closeables = [];
-
+          const contexts = [];
           async function open(base, viewport, options = {}) {
-            const context = await browser.newContext({
-              viewport,
-              deviceScaleFactor: 1,
-              reducedMotion: options.reducedMotion || 'no-preference'
-            });
-            closeables.push(context);
+            const context = await browser.newContext({ viewport, deviceScaleFactor: 1, reducedMotion: options.reducedMotion || 'no-preference' });
+            contexts.push(context);
             const page = await context.newPage();
             page.on('console', m => { if (m.type() === 'error') errors.push(`${base} console: ${m.text()}`); });
             page.on('pageerror', e => errors.push(`${base} pageerror: ${e.message}`));
-            const suffix = options.capture === false ? '/' : '/?capture=1';
-            await page.goto(base + suffix, { waitUntil: 'networkidle', timeout: 60000 });
+            await page.goto(base + (options.capture === false ? '/' : '/?capture=1'), { waitUntil: 'networkidle', timeout: 60000 });
             await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, { timeout: 45000 });
             return page;
           }
 
-          const vp = { width: 1440, height: 900 };
-          const pre = await open('http://127.0.0.1:8121', vp);
-          const r2 = await open('http://127.0.0.1:8122', vp);
-          const hot = await open('http://127.0.0.1:8123', vp);
+          const desktop = { width: 1440, height: 900 };
+          const pre = await open('http://127.0.0.1:8121', desktop);
+          const r2 = await open('http://127.0.0.1:8122', desktop);
+          const hot = await open('http://127.0.0.1:8123', desktop);
           const framing = {
             pre: await pre.evaluate(() => window.__PROAI_FRAMING_AUDIT),
             r2: await r2.evaluate(() => window.__PROAI_FRAMING_AUDIT),
             hot: await hot.evaluate(() => window.__PROAI_FRAMING_AUDIT)
           };
           const keys = ['boxMin','boxMax','sphereCenter','sphereRadius','cameraPosition','controlsTarget','fov'];
-          function numbers(v) { return Array.isArray(v) ? v.flat(Infinity) : [v]; }
+          const vals = v => Array.isArray(v) ? v.flat(Infinity) : [v];
           let maxFramingDelta = 0;
           for (const key of keys) {
-            const a = numbers(framing.pre[key]);
-            const b = numbers(framing.hot[key]);
+            const a = vals(framing.pre[key]);
+            const b = vals(framing.hot[key]);
             if (a.length !== b.length) throw new Error(`framing shape mismatch ${key}`);
             a.forEach((x,i) => { maxFramingDelta = Math.max(maxFramingDelta, Math.abs(x-b[i])); });
           }
-          if (maxFramingDelta > 1e-8) throw new Error(`HOTFIX framing != PRE-R2, max delta ${maxFramingDelta}`);
+          if (maxFramingDelta > 1e-8) throw new Error(`HOTFIX framing != PRE-R2 maxDelta=${maxFramingDelta}`);
 
           const viewportList = [[1440,900],[1280,800],[390,844],[320,844],[844,390]];
           const pixelResults = [];
@@ -137,17 +127,17 @@ jobs:
             const pbox = await pc.boundingBox();
             const hbox = await hc.boundingBox();
             const geomDelta = Math.max(...['x','y','width','height'].map(k => Math.abs(pbox[k]-hbox[k])));
-            if (geomDelta > 1e-8) throw new Error(`canvas geometry drift at ${width}x${height}: ${geomDelta}`);
+            if (geomDelta > 1e-8) throw new Error(`canvas geometry drift ${width}x${height}: ${geomDelta}`);
             const pa = PNG.sync.read(await pc.screenshot());
             const ha = PNG.sync.read(await hc.screenshot());
             const diff = new PNG({width:pa.width,height:pa.height});
             const changed = pixelmatch(pa.data, ha.data, diff.data, pa.width, pa.height, {threshold:0.05});
             const ratio = changed / (pa.width * pa.height);
             pixelResults.push({viewport:[width,height],changed,total:pa.width*pa.height,ratio,canvas:pbox});
-            if (ratio > 0.0005) throw new Error(`visual diff ratio too high at ${width}x${height}: ${ratio}`);
+            if (ratio > 0.0005) throw new Error(`visual diff ratio ${width}x${height}: ${ratio}`);
           }
 
-          const live = await open('http://127.0.0.1:8123', vp, {capture:false});
+          const live = await open('http://127.0.0.1:8123', desktop, {capture:false});
           const canvas = live.locator('#cube-canvas');
           const box = await canvas.boundingBox();
           const x = box.x + box.width/2;
@@ -155,7 +145,7 @@ jobs:
           const before = await live.evaluate(() => ({
             q: window.__PROAI_CUBE_R1_2.getDiagnostics().presentation.quaternion,
             req: window.__PROAI_CUBE_R1_2.getDiagnostics().ownership.integrity.requestCount,
-            resources: performance.getEntriesByType('resource').map(e=>e.name)
+            resources: performance.getEntriesByType('resource').map(e => e.name)
           }));
           await live.mouse.move(x,y);
           await live.waitForTimeout(500);
@@ -174,7 +164,7 @@ jobs:
           await live.mouse.down();
           await live.mouse.move(x+120,y,{steps:2});
           await live.mouse.up();
-          for (let i=0;i<3;i++) {
+          for (let i=0; i<3; i++) {
             await live.mouse.move(x-30,y+10*i);
             await live.mouse.down();
             await live.mouse.move(x+30,y+10*i,{steps:6});
@@ -182,50 +172,49 @@ jobs:
           }
           await live.waitForTimeout(300);
           const after = await live.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
-          const quatDelta = (a,b) => Math.max(...a.map((v,i)=>Math.abs(v-b[i])));
-          const hoverMotion = quatDelta(before.q, hoverQ);
-          const hold05Motion = quatDelta(hoverQ, hold05Q);
-          const hold20Motion = quatDelta(hold05Q, hold20Q);
-          if (hoverMotion === 0) throw new Error('plain hover froze presentation motion');
-          if (hold05Motion === 0 || hold20Motion === 0) throw new Error('click-hold froze presentation motion');
-          if (after.ownership.integrity.requestCount !== 1 || before.req !== 1) throw new Error('integrity work repeated during pointer interaction');
+          const qdelta = (a,b) => Math.max(...a.map((v,i) => Math.abs(v-b[i])));
+          const hoverMotion = qdelta(before.q, hoverQ);
+          const hold05Motion = qdelta(hoverQ, hold05Q);
+          const hold20Motion = qdelta(hold05Q, hold20Q);
+          if (hoverMotion === 0) throw new Error('plain hover froze presentation');
+          if (hold05Motion === 0 || hold20Motion === 0) throw new Error('click hold froze presentation');
+          if (before.req !== 1 || after.ownership.integrity.requestCount !== 1) throw new Error('integrity repeated during pointer interaction');
           const heroGlb = before.resources.filter(n => n.includes('proai-cube-r1.glb'));
-          if (heroGlb.length !== 1) throw new Error(`parent-frame Hero GLB request count ${heroGlb.length}`);
+          if (heroGlb.length !== 1) throw new Error(`Hero GLB request count=${heroGlb.length}`);
 
           const reduced = await open('http://127.0.0.1:8123', {width:390,height:844}, {reducedMotion:'reduce'});
           const reducedDiag = await reduced.evaluate(() => window.__PROAI_CUBE_R1_2.getDiagnostics());
-          if (reducedDiag.ownership.microEtch.glintEnabled !== false) throw new Error('reduced motion did not disable glint');
-          if (!reducedDiag.ownership.microEtch.attached) throw new Error('micro-etch not attached in reduced motion');
+          if (reducedDiag.ownership.microEtch.glintEnabled !== false) throw new Error('reduced-motion glint enabled');
+          if (!reducedDiag.ownership.microEtch.attached) throw new Error('micro-etch missing reduced-motion');
 
           const ruContext = await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1});
-          closeables.push(ruContext);
+          contexts.push(ruContext);
           const ru = await ruContext.newPage();
-          ru.on('console', m => { if (m.type()==='error') errors.push(`RU console: ${m.text()}`); });
+          ru.on('console', m => { if (m.type() === 'error') errors.push(`RU console: ${m.text()}`); });
           ru.on('pageerror', e => errors.push(`RU pageerror: ${e.message}`));
-          await ru.goto('http://127.0.0.1:8123/ru/?capture=1',{waitUntil:'networkidle',timeout:60000});
-          await ru.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,{timeout:45000});
+          await ru.goto('http://127.0.0.1:8123/ru/?capture=1', {waitUntil:'networkidle',timeout:60000});
+          await ru.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, {timeout:45000});
 
+          await live.waitForTimeout(1000);
           const headerFrames = live.frames().filter(f => f.url().includes('/assets/brand/proai-logo-r341/live.html'));
           let headerReady = false;
-          if (headerFrames.length) {
-            headerReady = await headerFrames[0].evaluate(() => window.__PROAI_CUBE_R1_2?.ready === true).catch(()=>false);
-          }
-          if (!headerReady) throw new Error(`Header Living Logo frame not ready; frames=${headerFrames.length}`);
-          if (errors.some(e=>e.includes('Logo R3.4.1 source mismatch'))) throw new Error('Header Logo source mismatch');
+          if (headerFrames.length) headerReady = await headerFrames[0].evaluate(() => window.__PROAI_CUBE_R1_2?.ready === true).catch(() => false);
+          if (!headerReady) throw new Error(`Header Living Logo not ready frameCount=${headerFrames.length}`);
+          if (errors.some(e => e.includes('Logo R3.4.1 source mismatch'))) throw new Error('Header source mismatch');
 
           const report = {
             framing,
             maxFramingDelta,
             r2VsPreSphereRadiusDelta: framing.r2.sphereRadius - framing.pre.sphereRadius,
             pixelResults,
-            pointer:{hoverMotion,hold05Motion,hold20Motion,integrityRequestCount:after.ownership.integrity.requestCount,heroGlbRequestCount:heroGlb.length,interaction:after.interaction},
-            reducedMotion:{glintEnabled:reducedDiag.ownership.microEtch.glintEnabled,attached:reducedDiag.ownership.microEtch.attached},
-            header:{frameCount:headerFrames.length,ready:headerReady},
-            consoleErrors:errors
+            pointer: {hoverMotion,hold05Motion,hold20Motion,integrityRequestCount:after.ownership.integrity.requestCount,heroGlbRequestCount:heroGlb.length},
+            reducedMotion: {glintEnabled:reducedDiag.ownership.microEtch.glintEnabled,attached:reducedDiag.ownership.microEtch.attached},
+            header: {frameCount:headerFrames.length,ready:headerReady},
+            consoleErrors: errors
           };
           console.log('PROAI_HOTFIX_QA_REPORT=' + JSON.stringify(report));
-          if (errors.length) throw new Error('console errors: '+JSON.stringify(errors));
-          for (const c of closeables) await c.close();
+          if (errors.length) throw new Error('console errors: ' + JSON.stringify(errors));
+          for (const context of contexts) await context.close();
           await browser.close();
           JS
           cd /tmp/proai-browserqa

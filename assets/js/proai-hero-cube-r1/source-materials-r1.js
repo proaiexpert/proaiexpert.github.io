@@ -395,12 +395,12 @@ const api = {
   getInteractionState,
   getOwnershipFingerprint,
   setSignatureInspection(enabled = false) {
+    ownershipSignatureInspection = false;
+    ownershipSignatureReveal = 0;
+    signatureMaterial.opacity = 0;
     if (!ownershipSignatureRoot) return false;
-    ownershipSignatureInspection = Boolean(enabled);
-    ownershipSignatureRoot.visible = Boolean(enabled);
-    signatureMaterial.opacity = enabled ? 0.88 : 0;
-    ownershipSignatureReveal = enabled ? 1 : 0;
-    return ownershipSignatureRoot.visible;
+    ownershipSignatureRoot.visible = false;
+    return false;
   },
   setForensicInspection(enabled = false) {
     if (!forensicWitnessRoot) return false;
@@ -611,6 +611,7 @@ function setupOwnershipNodes() {
   signatureMaterial.depthTest = false;
   signatureMaterial.depthWrite = false;
   ownershipSignatureRoot.visible = false;
+  signatureMaterial.opacity = 0;
   forensicWitnessRoot.visible = false;
   ownershipSignatureReveal = 0;
   ownershipSignatureInspection = false;
@@ -619,14 +620,10 @@ function setupOwnershipNodes() {
 
 function updateOwnershipSignatureReveal(now = performance.now()) {
   if (!ownershipSignatureRoot) return;
-  if (!ownershipSignatureLastNow) ownershipSignatureLastNow = now;
-  const dt = Math.min(0.12, Math.max(0, (now - ownershipSignatureLastNow) / 1000));
-  ownershipSignatureLastNow = now;
-  const target = ownershipSignatureInspection || activeTurns.size > 0 ? 1 : 0;
-  const tau = target ? 0.34 : 0.42;
-  ownershipSignatureReveal += (target - ownershipSignatureReveal) * (1 - Math.exp(-dt / tau));
-  signatureMaterial.opacity = 0.88 * THREE.MathUtils.clamp(ownershipSignatureReveal, 0, 1);
-  ownershipSignatureRoot.visible = ownershipSignatureReveal > 0.002;
+  ownershipSignatureInspection = false;
+  ownershipSignatureReveal = 0;
+  signatureMaterial.opacity = 0;
+  ownershipSignatureRoot.visible = false;
 }
 
 function ownershipNodeBounds(root) {

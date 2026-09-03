@@ -1,5 +1,7 @@
 # Boxes Hover — Golden Donor Baseline R1
 
+> Historical R1 report. The provisional parity conclusion in this file is superseded by the normalized direct top-level verification in `GOLDEN_DONOR_BASELINE_R1_1_REPORT.md`.
+
 ## OWNER SUMMARY — RU
 
 Дата проверки: 2026-09-03.

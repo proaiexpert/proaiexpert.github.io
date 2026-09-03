@@ -23,6 +23,7 @@ import { Application } from 'https://cdn.spline.design/@splinetool/runtime@2.0.2
 
     const app = new Application(canvas, { htmlContentMode: 'inline' });
     await app.start(Array.from(bytes));
+
     const demoUiParentUuid = '3acae095-4a11-475a-8b70-59aac6906793';
     const demoUiWhitelist = [
       ['Ellipse', '50605cdf-cc85-46b6-874a-000a1d96b4b3'],
@@ -49,6 +50,25 @@ import { Application } from 'https://cdn.spline.design/@splinetool/runtime@2.0.2
       object.visible = false;
     }
     document.documentElement.dataset.cleanDonorUiHidden = String(demoUiWhitelist.length);
+    const boxes = app.findObjectByName('Boxes');
+    if (!boxes || boxes.type !== 'Empty' || boxes.uuid !== '006474fe-4e5b-4835-b106-89b2ec79dd71') {
+      throw new Error('Golden donor Boxes identity mismatch');
+    }
+    const cubeObjects = (app.getAllObjects?.() || [])
+      .filter((object) => object.name === 'Cube' && object.type === 'Mesh' && object.parentUuid !== boxes.uuid)
+      .sort((left, right) => left.uuid.localeCompare(right.uuid));
+    if (cubeObjects.length !== 143 || typeof app.setMaterial !== 'function' || typeof app.createCustomMaterial !== 'function') {
+      throw new Error(`Golden donor material API inventory mismatch: ${cubeObjects.length}`);
+    }
+    const webgpuAdapter = await navigator.gpu?.requestAdapter?.({ powerPreference: 'high-performance' });
+    if (!webgpuAdapter) {
+      document.documentElement.dataset.cleanDonorMaterialPass = 'blocked-no-webgpu-adapter';
+      document.documentElement.dataset.cleanDonorMaterialFamilies = '{}';
+      document.documentElement.dataset.cleanDonorRuntime = 'ready';
+      return;
+    }
+    document.documentElement.dataset.cleanDonorMaterialPass = 'blocked-runtime-fidelity-safe';
+    document.documentElement.dataset.cleanDonorMaterialFamilies = '{}';
     document.documentElement.dataset.cleanDonorRuntime = 'ready';
   };
 

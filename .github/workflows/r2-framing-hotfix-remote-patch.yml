@@ -1,0 +1,271 @@
+name: R2 framing hotfix remote patch
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-r2-zero-drift-framing-hotfix
+
+permissions:
+  contents: write
+
+jobs:
+  patch-qa-commit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout hotfix branch
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Apply minimal framing-order patch and refresh protected JS hash
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib, json
+
+          source_path = Path('assets/js/proai-hero-cube-r1/source-materials-r1.js')
+          source = source_path.read_text(encoding='utf-8')
+          old = "    setupOwnershipNodes();\n    setupMicroEtch();\n    frameCamera();\n    resize();"
+          new = "    setupOwnershipNodes();\n    frameCamera();\n    setupMicroEtch();\n    resize();"
+          if source.count(old) != 1:
+              raise SystemExit(f'Expected exactly one framing init sequence, found {source.count(old)}')
+          source = source.replace(old, new, 1)
+          source_path.write_text(source, encoding='utf-8', newline='\n')
+
+          normalized = source.replace('\r\n', '\n').replace('\r', '\n').encode('utf-8')
+          new_sha = hashlib.sha256(normalized).hexdigest().upper()
+          manifest_path = Path('provenance/proai-cube/r1/integrity-manifest.json')
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          key = 'assets/js/proai-hero-cube-r1/source-materials-r1.js'
+          manifest['hashes'][key] = new_sha
+          manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + '\n', encoding='utf-8', newline='\n')
+          print(f'HOTFIX_SOURCE_SHA256={new_sha}')
+          PY
+
+      - name: Verify exact product diff scope
+        shell: bash
+        run: |
+          git diff --check
+          git diff -- assets/js/proai-hero-cube-r1/source-materials-r1.js provenance/proai-cube/r1/integrity-manifest.json
+          python3 - <<'PY'
+          import subprocess
+          allowed = {
+            'assets/js/proai-hero-cube-r1/source-materials-r1.js',
+            'provenance/proai-cube/r1/integrity-manifest.json',
+          }
+          changed = set(subprocess.check_output(['git','diff','--name-only'], text=True).splitlines())
+          if changed != allowed:
+              raise SystemExit(f'Unexpected working-tree diff: {sorted(changed)}')
+          PY
+
+      - name: Syntax and R2 integrity QA
+        shell: bash
+        run: |
+          node --check assets/js/proai-hero-cube-r1/source-materials-r1.js
+          node --check assets/brand/proai-logo-r341/live-runtime.js
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          cp provenance/proai-cube/r1/integrity-manifest.json /tmp/bad-manifest.json
+          python3 - <<'PY'
+          import json
+          p='/tmp/bad-manifest.json'
+          d=json.load(open(p, encoding='utf-8'))
+          d['hashes']['assets/models/proai-cube/proai-cube-r1.glb']='0'*64
+          open(p,'w',encoding='utf-8').write(json.dumps(d,indent=2)+'\n')
+          PY
+          if PROAI_CUBE_MANIFEST=/tmp/bad-manifest.json node scripts/verify-proai-cube-integrity-r2.mjs; then
+            echo 'Negative SHA test unexpectedly passed' >&2
+            exit 1
+          else
+            echo 'Negative SHA test correctly failed'
+          fi
+
+      - name: Verify frozen source blob identity
+        shell: bash
+        run: |
+          for f in \
+            assets/js/proai-hero-cube-r1/source-final-motion-r2.js \
+            assets/js/proai-hero-cube-r1/source-final-motion-r2-touch-auto-45-r1.js \
+            assets/js/proai-hero-cube-r1/bootstrap-golden-r1-2.js; do
+            base=$(git rev-parse a4d222dd16adc736677a30ef5f4f38dd367cea1c:"$f")
+            now=$(git hash-object "$f")
+            echo "$f BASE=$base HOTFIX=$now"
+            test "$base" = "$now"
+          done
+          grep -F "activeAutoInfluence: 0.45" assets/js/proai-hero-cube-r1/source-final-motion-r2-touch-auto-45-r1.js
+          grep -F "resumeGraceMs: 0" assets/js/proai-hero-cube-r1/source-final-motion-r2-touch-auto-45-r1.js
+
+      - name: Build hotfix with Jekyll
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+
+      - name: Prepare deterministic PRE / R2 / HOTFIX browser fixtures
+        shell: bash
+        run: |
+          git worktree add --detach /tmp/proai-pre 1da26bb71052f3b51e68ba69726ca72a4f0f5e8f
+          git worktree add --detach /tmp/proai-r2 a4d222dd16adc736677a30ef5f4f38dd367cea1c
+          mkdir -p /tmp/proai-hot
+          rsync -a --exclude=.git --exclude=_site ./ /tmp/proai-hot/
+          python3 - <<'PY'
+          from pathlib import Path
+          roots=[Path('/tmp/proai-pre'),Path('/tmp/proai-r2'),Path('/tmp/proai-hot')]
+          for root in roots:
+              p=root/'assets/js/proai-hero-cube-r1/source-materials-r1.js'
+              s=p.read_text(encoding='utf-8')
+              needle="  configureStudioLighting(centerWorld, radius);\n  controls.update();\n}"
+              injection="""  configureStudioLighting(centerWorld, radius);
+  controls.update();
+  globalThis.__PROAI_FRAMING_AUDIT = {
+    boxMin: box.min.toArray(), boxMax: box.max.toArray(),
+    sphereCenter: sphere.center.toArray(), sphereRadius: radius,
+    cameraPosition: camera.position.toArray(), controlsTarget: controls.target.toArray(), fov: camera.fov
+  };
+  globalThis.__PROAI_AUDIT_HIDE_ETCH = () => {
+    if (typeof microEtchRoot !== 'undefined' && microEtchRoot) microEtchRoot.visible = false;
+    renderReviewFrame();
+  };
+}"""
+              if needle not in s:
+                  raise SystemExit(f'Framing instrumentation needle missing in {p}')
+              p.write_text(s.replace(needle,injection,1),encoding='utf-8',newline='\n')
+          PY
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          jekyll build --source /tmp/proai-pre --destination /tmp/proai-pre-site
+          jekyll build --source /tmp/proai-r2 --destination /tmp/proai-r2-site
+          jekyll build --source /tmp/proai-hot --destination /tmp/proai-hot-site
+
+      - name: Install browser QA dependencies
+        shell: bash
+        run: |
+          mkdir -p /tmp/proai-browserqa && cd /tmp/proai-browserqa
+          npm init -y >/dev/null 2>&1
+          npm install --silent playwright@1.55.0 pngjs@7.0.0 pixelmatch@7.1.0
+          npx playwright install chromium
+
+      - name: Run deterministic framing, visual, pointer, reduced-motion and one-fetch QA
+        shell: bash
+        run: |
+          python3 -m http.server 8121 --directory /tmp/proai-pre-site >/tmp/pre-http.log 2>&1 & echo $! >/tmp/pre-http.pid
+          python3 -m http.server 8122 --directory /tmp/proai-r2-site >/tmp/r2-http.log 2>&1 & echo $! >/tmp/r2-http.pid
+          python3 -m http.server 8123 --directory /tmp/proai-hot-site >/tmp/hot-http.log 2>&1 & echo $! >/tmp/hot-http.pid
+          sleep 2
+          cat >/tmp/proai-browserqa/qa.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          import { PNG } from 'pngjs';
+          import pixelmatch from 'pixelmatch';
+
+          const browser = await chromium.launch({headless:true});
+          const consoleErrors=[];
+          async function open(base, viewport={width:1440,height:900}, reducedMotion='no-preference') {
+            const context=await browser.newContext({viewport,reducedMotion,deviceScaleFactor:1});
+            const page=await context.newPage();
+            page.on('console',m=>{if(m.type()==='error') consoleErrors.push(`${base} ${m.text()}`)});
+            page.on('pageerror',e=>consoleErrors.push(`${base} PAGEERROR ${e.message}`));
+            await page.goto(base+'/?capture=1',{waitUntil:'networkidle',timeout:60000});
+            await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,{timeout:45000});
+            return {context,page};
+          }
+          const pre=await open('http://127.0.0.1:8121');
+          const r2=await open('http://127.0.0.1:8122');
+          const hot=await open('http://127.0.0.1:8123');
+          const framing={
+            pre:await pre.page.evaluate(()=>window.__PROAI_FRAMING_AUDIT),
+            r2:await r2.page.evaluate(()=>window.__PROAI_FRAMING_AUDIT),
+            hot:await hot.page.evaluate(()=>window.__PROAI_FRAMING_AUDIT),
+          };
+          const flat=o=>Object.values(o).flat(Infinity).filter(v=>typeof v==='number');
+          const a=flat(framing.pre), b=flat(framing.hot);
+          if(a.length!==b.length || a.some((v,i)=>Math.abs(v-b[i])>1e-8)) throw new Error('HOTFIX framing does not match PRE-R2: '+JSON.stringify(framing));
+
+          const viewports=[[1440,900],[1280,800],[390,844],[320,844],[844,390]];
+          const pixelResults=[];
+          for(const [w,h] of viewports){
+            const p=await open('http://127.0.0.1:8121',{width:w,height:h});
+            const q=await open('http://127.0.0.1:8123',{width:w,height:h});
+            await q.page.evaluate(()=>window.__PROAI_AUDIT_HIDE_ETCH?.());
+            const pc=p.page.locator('#cube-canvas'); const qc=q.page.locator('#cube-canvas');
+            const pb=await pc.boundingBox(); const qb=await qc.boundingBox();
+            if(JSON.stringify(pb)!==JSON.stringify(qb)) throw new Error(`Canvas geometry drift ${w}x${h}: ${JSON.stringify({pb,qb})}`);
+            const pbuf=await pc.screenshot(); const qbuf=await qc.screenshot();
+            const pi=PNG.sync.read(pbuf), qi=PNG.sync.read(qbuf);
+            if(pi.width!==qi.width||pi.height!==qi.height) throw new Error('Screenshot dimension drift');
+            const diff=new PNG({width:pi.width,height:pi.height});
+            const changed=pixelmatch(pi.data,qi.data,diff.data,pi.width,pi.height,{threshold:0.05});
+            pixelResults.push({viewport:[w,h],changed,total:pi.width*pi.height,ratio:changed/(pi.width*pi.height)});
+            fs.writeFileSync(`/tmp/diff-${w}x${h}.png`,PNG.sync.write(diff));
+            await p.context.close(); await q.context.close();
+          }
+
+          const normalContext=await browser.newContext({viewport:{width:1440,height:900}});
+          const normal=await normalContext.newPage();
+          const normalErrors=[];
+          normal.on('console',m=>{if(m.type()==='error') normalErrors.push(m.text())});
+          normal.on('pageerror',e=>normalErrors.push(e.message));
+          await normal.goto('http://127.0.0.1:8123/',{waitUntil:'networkidle',timeout:60000});
+          await normal.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,{timeout:45000});
+          const before=await normal.evaluate(()=>({diag:window.__PROAI_CUBE_R1_2.getDiagnostics(),resources:performance.getEntriesByType('resource').map(e=>e.name)}));
+          const canvas=normal.locator('#cube-canvas'); const box=await canvas.boundingBox();
+          const x=box.x+box.width/2,y=box.y+box.height/2;
+          await normal.mouse.move(x,y);
+          await normal.mouse.down(); await normal.waitForTimeout(500); await normal.mouse.up();
+          await normal.mouse.down(); await normal.waitForTimeout(2000); await normal.mouse.up();
+          await normal.mouse.move(x-40,y); await normal.mouse.down(); await normal.mouse.move(x+40,y,{steps:20}); await normal.mouse.up();
+          await normal.mouse.move(x-100,y); await normal.mouse.down(); await normal.mouse.move(x+100,y,{steps:2}); await normal.mouse.up();
+          for(let i=0;i<3;i++){await normal.mouse.down();await normal.mouse.move(x+(i%2?35:-35),y+10,{steps:6});await normal.mouse.up();}
+          const after=await normal.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics());
+          const heroGlbRequests=before.resources.filter(n=>n.includes('/assets/js/proai-hero-cube-r1/proai-cube-r1.glb')||n.includes('/assets/models/proai-cube/proai-cube-r1.glb'));
+          if(after.ownership.integrity.requestCount!==1) throw new Error('Integrity requestCount != 1 after pointer tests');
+          if(heroGlbRequests.length!==1) throw new Error('Parent-frame Hero GLB resource count != 1: '+JSON.stringify(heroGlbRequests));
+          if(normalErrors.some(e=>e.includes('Logo R3.4.1 source mismatch'))) throw new Error('Header source mismatch: '+JSON.stringify(normalErrors));
+
+          const rm=await open('http://127.0.0.1:8123',{width:390,height:844},'reduce');
+          const rmDiag=await rm.page.evaluate(()=>window.__PROAI_CUBE_R1_2.getDiagnostics());
+          if(rmDiag.ownership.microEtch.glintEnabled!==false) throw new Error('Reduced-motion glint is not disabled');
+
+          const ru=await browser.newContext({viewport:{width:390,height:844}}); const rup=await ru.newPage();
+          const ruErrors=[]; rup.on('console',m=>{if(m.type()==='error')ruErrors.push(m.text())}); rup.on('pageerror',e=>ruErrors.push(e.message));
+          await rup.goto('http://127.0.0.1:8123/ru/?capture=1',{waitUntil:'networkidle',timeout:60000});
+          await rup.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,{timeout:45000});
+
+          const report={framing,pixelResults,pointer:{integrityRequestCount:after.ownership.integrity.requestCount,interaction:after.interaction,heroGlbRequests},reducedMotion:{glintEnabled:rmDiag.ownership.microEtch.glintEnabled,attached:rmDiag.ownership.microEtch.attached},consoleErrors:[...consoleErrors,...normalErrors,...ruErrors]};
+          fs.writeFileSync('/tmp/proai-hotfix-qa-report.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify(report,null,2));
+          if(report.consoleErrors.length) throw new Error('Console errors present: '+JSON.stringify(report.consoleErrors));
+          await Promise.all([pre.context.close(),r2.context.close(),hot.context.close(),normalContext.close(),rm.context.close(),ru.close()]);
+          await browser.close();
+          JS
+          cd /tmp/proai-browserqa && node qa.mjs
+
+      - name: Final clean-tree scope and commit hotfix
+        shell: bash
+        run: |
+          rm -f .github/workflows/r2-framing-hotfix-remote-patch.yml
+          rm -rf _site
+          git status --short
+          python3 - <<'PY'
+          import subprocess
+          allowed={
+            'assets/js/proai-hero-cube-r1/source-materials-r1.js',
+            'provenance/proai-cube/r1/integrity-manifest.json',
+            '.github/workflows/r2-framing-hotfix-remote-patch.yml',
+          }
+          changed=set(subprocess.check_output(['git','status','--short'],text=True).splitlines())
+          paths={line[3:] for line in changed}
+          if paths != allowed:
+              raise SystemExit(f'Unexpected final status paths: {sorted(paths)}')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/js/proai-hero-cube-r1/source-materials-r1.js provenance/proai-cube/r1/integrity-manifest.json .github/workflows/r2-framing-hotfix-remote-patch.yml
+          git diff --cached --check
+          git commit -m 'fix: restore pre-R2 Cube framing authority'
+          git push origin HEAD:agent/proai-cube-r2-zero-drift-framing-hotfix

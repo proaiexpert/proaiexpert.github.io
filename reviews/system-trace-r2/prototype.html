@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ProAI Expert — System Trace R2 Prototype</title>
+<link rel="stylesheet" href="prototype.css">
+</head>
+<body>
+<section class="hst2" id="hst2" aria-labelledby="hst2-title">
+  <div class="hst2__shell">
+    <header class="hst2__intro">
+      <div>
+        <p class="hst2__eyebrow">ВНУТРИ PROAI / SYSTEM TRACE</p>
+        <h1 id="hst2-title">Один запрос. Система исполняет контекст.</h1>
+      </div>
+      <p class="hst2__support">Код задаёт оркестрацию. Контекст проходит через слои исполнения, важное решение физически останавливается на Human Review — и только после подтверждения система разрешает следующий шаг.</p>
+    </header>
+
+    <div class="hst2__instrument" aria-label="Code and execution stack prototype">
+      <span class="hst2__zone-tag hst2__zone-tag--code">CODE / ORCHESTRATION</span>
+      <span class="hst2__zone-tag hst2__zone-tag--machine">EXECUTION STACK / 01—05</span>
+      <span class="hst2__zone-tag hst2__zone-tag--output">RESOLVED / 06</span>
+
+      <section class="hst2__codezone" aria-label="Orchestration code specimen">
+        <div class="code-specimen" data-code>
+          <div class="code-line" data-code-step="capture"><span class="ln">01</span><span class="src"><span class="syn-key">const</span> request = <span class="syn-fn">capture</span>(inquiry);</span></div>
+          <div class="code-line"><span class="ln">02</span><span class="src"></span></div>
+          <div class="code-line" data-code-step="context"><span class="ln">03</span><span class="src"><span class="syn-key">const</span> context = <span class="syn-key">await</span> <span class="syn-fn">enrich</span>(request, {</span></div>
+          <div class="code-line" data-code-step="context"><span class="ln">04</span><span class="src">  source: <span class="syn-str">'website'</span>,</span></div>
+          <div class="code-line" data-code-step="context"><span class="ln">05</span><span class="src">  preserve: [<span class="syn-str">'intent'</span>, <span class="syn-str">'message'</span>],</span></div>
+          <div class="code-line" data-code-step="context"><span class="ln">06</span><span class="src">});</span></div>
+          <div class="code-line"><span class="ln">07</span><span class="src"></span></div>
+          <div class="code-line" data-code-step="intelligence"><span class="ln">08</span><span class="src"><span class="syn-key">const</span> decision = <span class="syn-key">await</span> <span class="syn-fn">assist</span>(context, {</span></div>
+          <div class="code-line" data-code-step="intelligence"><span class="ln">09</span><span class="src">  rules: <span class="syn-state">qualifyAndRoute</span>,</span></div>
+          <div class="code-line" data-code-step="intelligence"><span class="ln">10</span><span class="src">  mode: <span class="syn-str">'prepare'</span>,</span></div>
+          <div class="code-line" data-code-step="intelligence"><span class="ln">11</span><span class="src">});</span></div>
+          <div class="code-line"><span class="ln">12</span><span class="src"></span></div>
+          <div class="code-line" data-code-step="human"><span class="ln">13</span><span class="src"><span class="syn-key">if</span> (decision.<span class="syn-state">requiresHuman</span>) {</span></div>
+          <div class="code-line" data-code-step="human"><span class="ln">14</span><span class="src">  <span class="syn-key">await</span> <span class="syn-human">human.review</span>(decision);</span></div>
+          <div class="code-line" data-code-step="human"><span class="ln">15</span><span class="src">}</span></div>
+          <div class="code-line" data-code-step="action"><span class="ln">16</span><span class="src"><span class="syn-key">return</span> <span class="syn-out">action.resolve</span>(decision);</span></div>
+        </div>
+      </section>
+
+      <section class="hst2__machine" aria-label="Layered execution machine">
+        <div class="machine-field" data-machine>
+          <div class="machine-glow"></div>
+          <article class="layer layer--capture" data-layer="capture">
+            <div class="layer__plate"></div><div class="layer__meta"><strong>CAPTURE</strong><span>signal / intake</span></div><span class="layer__state">received</span>
+          </article>
+          <article class="layer layer--context" data-layer="context">
+            <div class="layer__plate"></div><div class="layer__meta"><strong>CONTEXT</strong><span>normalize / preserve</span></div><span class="layer__state">structured</span>
+          </article>
+          <article class="layer layer--intelligence" data-layer="intelligence">
+            <div class="layer__plate"></div><div class="layer__meta"><strong>INTELLIGENCE</strong><span>rules / AI assist</span></div><span class="layer__state">prepared</span>
+          </article>
+          <article class="layer layer--human" data-layer="human">
+            <div class="layer__plate"></div><div class="layer__meta"><strong>HUMAN CONTROL</strong><span>checkpoint / authority</span></div><span class="layer__state">required</span>
+            <div class="shutter" data-shutter></div><span class="shutter__label">HUMAN REVIEW</span><span class="shutter__approval">APPROVED</span>
+          </article>
+          <article class="layer layer--action" data-layer="action">
+            <div class="layer__plate"></div><div class="layer__meta"><strong>ACTION</strong><span>route / resolve</span></div><span class="layer__state">committed</span>
+          </article>
+          <div class="packet" data-packet><strong>CONTEXT PACKET</strong><span>intent: inquiry · source:web</span></div>
+        </div>
+      </section>
+
+      <aside class="hst2__output" aria-label="Resolved output">
+        <p class="output-kicker">NEXT ACTION</p>
+        <p class="output-ready">READY</p>
+        <div class="output-state"><span>context_preserved <b>TRUE</b></span><span>route_resolved <b>TRUE</b></span></div>
+        <i class="output-sigil" aria-hidden="true"></i>
+      </aside>
+    </div>
+    <footer class="hst2__foot"><span>CODE → MACHINE RESPONSE</span><span>HUMAN AUTHORITY PRESERVED</span></footer>
+  </div>
+</section>
+<script src="prototype.js" defer></script>
+</body>
+</html>

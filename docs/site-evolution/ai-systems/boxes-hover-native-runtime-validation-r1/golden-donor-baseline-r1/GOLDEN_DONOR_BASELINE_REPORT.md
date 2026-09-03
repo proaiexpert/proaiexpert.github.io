@@ -23,6 +23,7 @@
 - Forensic authority: `4da8b751f5e46efdd7a30756fdf3b409625d2512`
 - Golden branch: `agent/proai-boxes-hover-golden-donor-baseline-r1`
 - Golden base: `4da8b751f5e46efdd7a30756fdf3b409625d2512`
+- Evidence lock commit: `c29ce9b4ff47cef1a11b47f69a27b3a4702b5486`
 - Rejected Hero R1 remote branch check: not found / not pushed
 - Main, rejected Hero worktree, production files: not modified
 

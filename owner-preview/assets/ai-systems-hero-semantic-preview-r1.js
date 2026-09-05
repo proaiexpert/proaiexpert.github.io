@@ -1,0 +1,103 @@
+import { Application } from 'https://cdn.spline.design/@splinetool/runtime@2.0.27/build/runtime.js';
+
+(() => {
+  'use strict';
+
+  const canvas = document.querySelector('[data-hero-semantic-canvas]');
+  if (!canvas) return;
+
+  const params = new URLSearchParams(location.search);
+  const mode = params.get('mode') === 'r3' ? 'r3' : 'semantic';
+  const modes = {
+    r3: {
+      label: 'R3 NEUTRAL',
+      url: '/owner-preview/assets/3d/boxes-hover/neutral-light-material-r3-final.bin',
+      sha: '1269ea60eb7725e59822ba2b9e789a2d9dd8956f557ffbbedfbb39e97a12c4d0',
+    },
+    semantic: {
+      label: 'SEMANTIC INDIGO / PEARL',
+      url: '/docs/site-evolution/ai-systems/boxes-hover-semantic-instance-state-r1/boxes-hover-semantic-instance-state-r1.bin',
+      sha: 'cf72f489011f26c82379faf3000b947442f1989fd105cb5d6f3762da0bf5ff2d',
+    },
+  };
+  const selected = modes[mode];
+  const html = document.documentElement;
+  const status = document.querySelector('[data-hero-semantic-status]');
+  const setStatus = (value) => {
+    html.dataset.heroSemanticStatus = value;
+    if (status) status.textContent = `${selected.label} · ${value.toUpperCase()}`;
+  };
+  const hex = (bytes) => [...new Uint8Array(bytes)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+
+  html.dataset.heroSemanticMode = mode;
+  html.dataset.heroSemanticPayload = selected.sha;
+  setStatus('loading');
+
+  const demoUiParentUuid = '3acae095-4a11-475a-8b70-59aac6906793';
+  const demoUiWhitelist = [
+    ['Ellipse', '50605cdf-cc85-46b6-874a-000a1d96b4b3'],
+    ['Rectangle 3', 'bfc84abf-461b-4b5d-9e7d-4c0d2fe108c8'],
+    ['Text 7', '7e0d047a-c03d-4b52-a29d-b7d9775b1630'],
+    ['Rectangle 2', '2e4c9677-c23f-498d-a238-99e7346cd64a'],
+    ['Text 6', 'b27bc674-20c0-4e2e-a608-b92976b171bc'],
+    ['Rectangle', '4c080547-86bf-42e5-a23d-ce33a154bc87'],
+    ['Text 5', 'd0d28aea-11cd-4c6d-b6ff-bf7c8528dd53'],
+    ['Text 4', '85cc886f-d4fa-438a-a91c-4bf043d4555b'],
+    ['Text 3', '8ef5eb04-1102-4e8f-b237-4452fe7c6385'],
+    ['Text 2', '61f54f7d-ce88-46ea-9f45-a01825154460'],
+    ['Text', '6013b0e6-e898-4640-9d62-e088a816f69c'],
+  ];
+
+  const start = async () => {
+    if ((globalThis.__heroSemanticBootCount || 0) !== 0) throw new Error('Duplicate Hero semantic scene boot');
+    globalThis.__heroSemanticBootCount = 1;
+
+    const response = await fetch(selected.url, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`${selected.label} payload HTTP ${response.status}`);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const actualSha = globalThis.crypto?.subtle
+      ? hex(await globalThis.crypto.subtle.digest('SHA-256', bytes))
+      : selected.sha;
+    if (actualSha !== selected.sha) throw new Error(`${selected.label} SHA mismatch: ${actualSha}`);
+
+    const app = new Application(canvas, { htmlContentMode: 'inline' });
+    await app.start(Array.from(bytes));
+    globalThis.__heroSemanticApp = app;
+
+    const uiParent = app.findObjectByName('UI');
+    if (!uiParent || uiParent.type !== 'Empty' || uiParent.uuid !== demoUiParentUuid) {
+      throw new Error('Frozen demo UI parent identity mismatch');
+    }
+    for (const [name, uuid] of demoUiWhitelist) {
+      const object = app.findObjectByName(name);
+      if (!object || object.type !== 'Mesh' || object.uuid !== uuid || object.parentUuid !== demoUiParentUuid) {
+        throw new Error(`Frozen demo UI identity mismatch: ${name}`);
+      }
+      object.visible = false;
+    }
+
+    const boxes = app.findObjectByName('Boxes');
+    const objects = app.getAllObjects?.() || [];
+    const cubes = objects.filter((object) => object.name === 'Cube' && object.type === 'Mesh' && object.parentUuid !== boxes?.uuid);
+    const materialRefs = cubes.map((object) => object.material).filter(Boolean);
+    const materialIdentities = new Set(materialRefs.map((material) => material.uuid || material.id || material));
+    if (cubes.length !== 143 || materialIdentities.size !== 143) {
+      throw new Error(`Runtime invariant mismatch: cubes=${cubes.length}, materials=${materialIdentities.size}`);
+    }
+
+    html.dataset.heroSemanticCubes = String(cubes.length);
+    html.dataset.heroSemanticMaterialIdentities = String(materialIdentities.size);
+    html.dataset.heroSemanticSecureContext = String(isSecureContext);
+    html.dataset.heroSemanticNavigatorGpu = String(Boolean(navigator.gpu));
+    html.dataset.heroSemanticAdapterAvailable = String(Boolean(await navigator.gpu?.requestAdapter?.({ powerPreference: 'high-performance' })));
+    setStatus('ready');
+  };
+
+  start().catch((error) => {
+    html.dataset.heroSemanticStatus = 'error';
+    if (status) status.textContent = `${selected.label} · ERROR`;
+    console.error('[AI Systems Hero semantic preview R1]', error);
+  });
+})();

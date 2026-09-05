@@ -1,20 +1,29 @@
 /*
-  Selected Work R1.4 localization / proof-image / motion authority pass.
-  R1.3 composition stays intact; this file only corrects asset integrity, localized proof framing and restrained viewport arrival.
+  Selected Work R1.5 final copy / status / motion polish.
+  R1.4 visual authority stays intact; this file only strengthens material arrival and corrects responsive vertical rhythm caused by the shorter copy.
 */
 
-/* Mobile-visible entrance: independent viewport settles, never a staged 01/02/03 choreography. */
+/* Material arrival: each proof object enters independently, with the surface settling when its real image is ready. */
 .reveal-ready .proof-object {
-  opacity: 0;
-  transform: translateY(12px);
+  opacity: 0.72;
+  transform: translateY(18px);
   transition:
-    opacity 560ms cubic-bezier(.22, .72, .24, 1),
-    transform 560ms cubic-bezier(.22, .72, .24, 1);
+    opacity 720ms cubic-bezier(.22, .72, .24, 1),
+    transform 720ms cubic-bezier(.22, .72, .24, 1);
+  will-change: opacity, transform;
 }
 
 .reveal-ready .proof-object .proof-object__media {
-  transform: scale(.992);
-  transition: transform 620ms cubic-bezier(.22, .72, .24, 1);
+  opacity: 0.68;
+  transform: translateY(8px) scale(1.012);
+  clip-path: inset(6% 0 0 0);
+  transition:
+    opacity 740ms cubic-bezier(.22, .72, .24, 1),
+    transform 760ms cubic-bezier(.22, .72, .24, 1),
+    clip-path 760ms cubic-bezier(.22, .72, .24, 1),
+    box-shadow 420ms cubic-bezier(.22, .72, .24, 1),
+    border-color 320ms ease;
+  will-change: opacity, transform, clip-path;
 }
 
 .reveal-ready .proof-object.is-visible {
@@ -22,8 +31,10 @@
   transform: translateY(0);
 }
 
-.reveal-ready .proof-object.is-visible .proof-object__media {
-  transform: scale(1);
+.reveal-ready .proof-object.is-visible .proof-object__media.is-media-ready {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  clip-path: inset(0);
 }
 
 /* Financial Stream = operational artifact. */
@@ -34,6 +45,7 @@
   box-shadow:
     0 28px 65px rgba(0, 0, 0, 0.28),
     inset 0 0 0 1px rgba(16, 17, 20, 0.08);
+  transition: box-shadow 420ms cubic-bezier(.22, .72, .24, 1), border-color 320ms ease;
 }
 
 .proof-object--finance .proof-object__media::before,
@@ -41,6 +53,7 @@
   left: 14px;
   right: 14px;
   background: rgba(16, 17, 20, 0.25);
+  transition: opacity 320ms ease;
 }
 
 .proof-object--finance .proof-object__media img {
@@ -65,6 +78,7 @@
   box-shadow:
     14px 16px 0 rgba(205, 162, 143, 0.075),
     0 24px 58px rgba(0, 0, 0, 0.2);
+  transition: box-shadow 420ms cubic-bezier(.22, .72, .24, 1), border-color 320ms ease;
 }
 
 .proof-object--alina .proof-object__media img {
@@ -80,7 +94,7 @@
   filter: saturate(0.98) contrast(1);
 }
 
-/* Local Repair Pro = field/content-system artifact. Scenarios Overview is primary; Photo-to-Scope remains in scope/copy. */
+/* Local Repair Pro = field/content-system artifact. Scenarios Overview remains primary. */
 .proof-object--repair .proof-object__media {
   aspect-ratio: 1120 / 538;
   border-top: 1px solid rgba(156, 167, 154, 0.34);
@@ -89,6 +103,7 @@
   border-left: 3px solid rgba(156, 167, 154, 0.58);
   background: #0f1210;
   box-shadow: 0 22px 58px rgba(0, 0, 0, 0.22);
+  transition: box-shadow 420ms cubic-bezier(.22, .72, .24, 1), border-color 320ms ease;
 }
 
 .proof-object--repair .proof-object__media img {
@@ -105,6 +120,51 @@
   background: rgba(8, 9, 11, 0.78);
   font-size: 9.5px;
   letter-spacing: 0.08em;
+}
+
+/* Project-specific desktop material response; no extra choreography. */
+@media (hover: hover) and (pointer: fine) {
+  .proof-object--finance:hover .proof-object__media,
+  .proof-object--finance:focus-within .proof-object__media {
+    box-shadow:
+      0 31px 72px rgba(0, 0, 0, 0.31),
+      inset 0 0 0 1px rgba(16, 17, 20, 0.11);
+  }
+
+  .proof-object--finance:hover .proof-object__media::before,
+  .proof-object--finance:hover .proof-object__media::after,
+  .proof-object--finance:focus-within .proof-object__media::before,
+  .proof-object--finance:focus-within .proof-object__media::after {
+    opacity: 0.72;
+  }
+
+  .proof-object--finance:hover .proof-object__media img,
+  .proof-object--finance:focus-within .proof-object__media img {
+    transform: scale(1.012);
+  }
+
+  .proof-object--alina:hover .proof-object__media,
+  .proof-object--alina:focus-within .proof-object__media {
+    box-shadow:
+      16px 18px 0 rgba(205, 162, 143, 0.09),
+      0 28px 66px rgba(0, 0, 0, 0.23);
+  }
+
+  .proof-object--alina:hover .proof-object__media img,
+  .proof-object--alina:focus-within .proof-object__media img {
+    transform: scale(1.006);
+  }
+
+  .proof-object--repair:hover .proof-object__media,
+  .proof-object--repair:focus-within .proof-object__media {
+    border-left-color: rgba(156, 167, 154, 0.78);
+    box-shadow: 0 25px 64px rgba(0, 0, 0, 0.25);
+  }
+
+  .proof-object--repair:hover .proof-object__media img,
+  .proof-object--repair:focus-within .proof-object__media img {
+    transform: scale(1.008);
+  }
 }
 
 /* Wide desktop authority. */
@@ -218,19 +278,62 @@
   }
 }
 
-/* Mobile portrait: one disciplined text axis; asymmetry belongs to evidence objects. */
+/* Mobile portrait: one text axis with authored editorial pacing between proof objects. */
 @media (max-width: 759px) and (orientation: portrait) {
+  .selected-proof__header {
+    margin-bottom: 42px;
+  }
+
+  .selected-proof__lede {
+    margin-top: 22px;
+    line-height: 1.55;
+  }
+
+  .proof-stage {
+    padding-bottom: 30px;
+  }
+
   .proof-object--finance,
   .proof-object--alina,
   .proof-object--repair {
     width: 100%;
     margin-left: 0;
     margin-right: 0;
+    padding: 34px 0 42px;
+  }
+
+  .proof-object--alina,
+  .proof-object--repair {
+    padding-top: 46px;
+  }
+
+  .proof-object__head,
+  .proof-object--alina .proof-object__head {
+    margin-bottom: 13px;
+  }
+
+  .proof-object__scope {
+    margin-top: 10px;
+  }
+
+  .proof-object__copy,
+  .proof-object--alina .proof-object__copy {
+    margin-top: 13px;
+    line-height: 1.58;
+  }
+
+  .proof-object__links {
+    margin-top: 17px;
+  }
+
+  .proof-object--finance .proof-object__meta,
+  .proof-object--repair .proof-object__meta {
+    margin-bottom: 19px;
   }
 
   .proof-object--finance .proof-object__media {
     width: 94%;
-    margin: 18px 0 0;
+    margin: 0;
     aspect-ratio: 1.64 / 1;
   }
 
@@ -243,13 +346,17 @@
 
   .proof-object--alina .proof-object__media {
     width: 92%;
-    margin: 17px 0 0 auto;
+    margin: 20px 0 0 auto;
     aspect-ratio: auto;
+  }
+
+  .proof-object--alina .proof-object__scope {
+    margin-top: 14px;
   }
 
   .proof-object--repair .proof-object__media {
     width: 100%;
-    margin: 17px 0 0;
+    margin: 0;
     aspect-ratio: 1120 / 538;
   }
 
@@ -259,9 +366,17 @@
     padding: 3px 5px;
     font-size: 8.5px;
   }
+
+  .selected-proof__close {
+    margin-top: 18px;
+  }
+
+  .selected-proof__close > * {
+    margin-top: 0;
+  }
 }
 
-/* Phone landscape: readable scrolling composition, not a dashboard forced into one screen. */
+/* Phone landscape: readable scrolling composition; shorter copy gets more breathing room, not tighter packing. */
 @media (max-width: 960px) and (orientation: landscape) and (max-height: 520px) {
   .prototype-shell {
     width: min(100% - 32px, 920px);
@@ -275,7 +390,7 @@
   .selected-proof__header {
     grid-template-columns: minmax(0, 1fr) minmax(280px, 0.78fr);
     gap: 30px;
-    margin-bottom: 26px;
+    margin-bottom: 30px;
   }
 
   .selected-proof__eyebrow {
@@ -293,8 +408,8 @@
     grid-template-areas:
       "finance alina"
       "repair repair";
-    gap: 34px 28px;
-    padding: 22px 0 30px;
+    gap: 40px 30px;
+    padding: 24px 0 32px;
   }
 
   .proof-object {
@@ -313,7 +428,7 @@
   .proof-object__head,
   .proof-object--alina .proof-object__head {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 9px;
   }
 
   .proof-object__status {
@@ -349,7 +464,7 @@
 
   .proof-object__links {
     gap: 9px 16px;
-    margin-top: 10px;
+    margin-top: 11px;
   }
 
   .proof-object__links a {
@@ -359,13 +474,13 @@
   .proof-object--finance .proof-object__meta,
   .proof-object--repair .proof-object__meta {
     display: block;
-    margin-bottom: 10px;
+    margin-bottom: 14px;
   }
 
   .proof-object--finance .proof-object__media {
     width: 96%;
     height: auto;
-    margin: 14px 0 0;
+    margin: 0;
     aspect-ratio: 1.64 / 1;
   }
 
@@ -376,9 +491,9 @@
   }
 
   .proof-object--alina .proof-object__media {
-    width: 92%;
+    width: 94%;
     height: auto;
-    margin: 14px 0 0 auto;
+    margin: 15px 0 0 auto;
     aspect-ratio: auto;
   }
 
@@ -391,7 +506,7 @@
   .proof-object--repair .proof-object__media {
     width: 100%;
     height: auto;
-    margin: 14px 0 0;
+    margin: 0;
     aspect-ratio: 1120 / 538;
   }
 
@@ -400,7 +515,7 @@
   }
 
   .selected-proof__close {
-    margin-top: 20px;
+    margin-top: 24px;
     font-size: 9.5px;
   }
 }
@@ -409,10 +524,13 @@
   .reveal-ready .proof-object,
   .reveal-ready .proof-object.is-visible,
   .reveal-ready .proof-object .proof-object__media,
-  .reveal-ready .proof-object.is-visible .proof-object__media {
+  .reveal-ready .proof-object.is-visible .proof-object__media,
+  .reveal-ready .proof-object.is-visible .proof-object__media.is-media-ready {
     opacity: 1 !important;
     transform: none !important;
+    clip-path: inset(0) !important;
     transition: none !important;
+    will-change: auto !important;
   }
 
   .proof-object--alina .proof-object__media img,

@@ -1,9 +1,32 @@
 /*
-  Selected Work R1.3 targeted visual-authority correction.
-  Keeps one ProAI proof environment while giving each evidence object a distinct material role.
+  Selected Work R1.4 localization / proof-image / motion authority pass.
+  R1.3 composition stays intact; this file only corrects asset integrity, localized proof framing and restrained viewport arrival.
 */
 
-/* Financial Stream = operational artifact. Keep it compact, structured and slightly instrument-like without a device mockup. */
+/* Mobile-visible entrance: independent viewport settles, never a staged 01/02/03 choreography. */
+.reveal-ready .proof-object {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 560ms cubic-bezier(.22, .72, .24, 1),
+    transform 560ms cubic-bezier(.22, .72, .24, 1);
+}
+
+.reveal-ready .proof-object .proof-object__media {
+  transform: scale(.992);
+  transition: transform 620ms cubic-bezier(.22, .72, .24, 1);
+}
+
+.reveal-ready .proof-object.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-ready .proof-object.is-visible .proof-object__media {
+  transform: scale(1);
+}
+
+/* Financial Stream = operational artifact. */
 .proof-object--finance .proof-object__media {
   border: 1px solid rgba(231, 227, 218, 0.18);
   border-left: 4px solid rgba(231, 227, 218, 0.42);
@@ -25,14 +48,18 @@
 }
 
 .proof-object--finance .proof-object__artifact-label {
-  top: 16px;
-  left: 20px;
-  border: 1px solid rgba(16, 17, 20, 0.12);
-  background: rgba(231, 227, 218, 0.94);
+  top: 12px;
+  left: 14px;
+  padding: 4px 6px;
+  border: 1px solid rgba(16, 17, 20, 0.1);
+  background: rgba(231, 227, 218, 0.86);
+  font-size: 10px;
+  letter-spacing: 0.09em;
 }
 
-/* Alina = human/editorial artifact. A quiet warm sheet, not another system frame. */
+/* Alina = complete human/editorial artifact. Preserve each language screenshot at its native ratio. */
 .proof-object--alina .proof-object__media {
+  aspect-ratio: auto;
   border: 1px solid rgba(205, 162, 143, 0.22);
   background: #d7cdc4;
   box-shadow:
@@ -41,6 +68,9 @@
 }
 
 .proof-object--alina .proof-object__media img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
   object-position: 50% 50%;
   filter: saturate(0.92) contrast(0.98);
 }
@@ -50,9 +80,9 @@
   filter: saturate(0.98) contrast(1);
 }
 
-/* Local Repair Pro = field-system artifact. Preserve the complete semantic frame at every size. */
+/* Local Repair Pro = field/content-system artifact. Scenarios Overview is primary; Photo-to-Scope remains in scope/copy. */
 .proof-object--repair .proof-object__media {
-  aspect-ratio: 960 / 404;
+  aspect-ratio: 1120 / 538;
   border-top: 1px solid rgba(156, 167, 154, 0.34);
   border-right: 1px solid rgba(156, 167, 154, 0.14);
   border-bottom: 1px solid rgba(156, 167, 154, 0.34);
@@ -68,14 +98,19 @@
 }
 
 .proof-object--repair .proof-object__artifact-label {
-  border: 1px solid rgba(156, 167, 154, 0.2);
-  background: rgba(8, 9, 11, 0.9);
+  right: 10px;
+  bottom: 8px;
+  padding: 4px 6px;
+  border: 1px solid rgba(156, 167, 154, 0.18);
+  background: rgba(8, 9, 11, 0.78);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
 }
 
 /* Wide desktop authority. */
 @media (min-width: 1320px) {
   .proof-stage {
-    min-height: 1010px;
+    min-height: 1060px;
   }
 
   .proof-object--finance .proof-object__media {
@@ -86,11 +121,11 @@
 
   .proof-object--alina .proof-object__media {
     width: 94%;
-    aspect-ratio: 1.56 / 1;
+    aspect-ratio: auto;
   }
 
   .proof-object--repair {
-    top: 510px;
+    top: 500px;
     bottom: auto;
     left: 10.5%;
     width: min(57%, 820px);
@@ -99,11 +134,11 @@
   .proof-object--repair .proof-object__media {
     width: 94%;
     margin-left: 1.5%;
-    aspect-ratio: 960 / 404;
+    aspect-ratio: 1120 / 538;
   }
 }
 
-/* Laptop bridge: avoid the abrupt absolute-layout jump around the old 1179/1180 boundary. */
+/* Laptop bridge: preserve R1.3 asymmetric transition without the old 1179/1180 jump. */
 @media (min-width: 1180px) and (max-width: 1319px) {
   .proof-stage {
     display: grid;
@@ -144,13 +179,13 @@
 
   .proof-object--alina .proof-object__media {
     width: 94%;
-    aspect-ratio: 1.52 / 1;
+    aspect-ratio: auto;
   }
 
   .proof-object--repair .proof-object__media {
     width: 96%;
     margin-left: 1%;
-    aspect-ratio: 960 / 404;
+    aspect-ratio: 1120 / 538;
   }
 }
 
@@ -161,11 +196,11 @@
   }
 
   .proof-object--alina .proof-object__media {
-    aspect-ratio: 1.5 / 1;
+    aspect-ratio: auto;
   }
 
   .proof-object--repair .proof-object__media {
-    aspect-ratio: 960 / 404;
+    aspect-ratio: 1120 / 538;
   }
 }
 
@@ -183,7 +218,7 @@
   }
 }
 
-/* Mobile portrait: one disciplined text axis; asymmetry belongs to the proof objects, not the copy. */
+/* Mobile portrait: one disciplined text axis; asymmetry belongs to evidence objects. */
 @media (max-width: 759px) and (orientation: portrait) {
   .proof-object--finance,
   .proof-object--alina,
@@ -200,20 +235,29 @@
   }
 
   .proof-object--finance .proof-object__artifact-label {
-    top: 14px;
-    left: 14px;
+    top: 9px;
+    left: 9px;
+    padding: 3px 5px;
+    font-size: 9px;
   }
 
   .proof-object--alina .proof-object__media {
-    width: 88%;
+    width: 92%;
     margin: 17px 0 0 auto;
-    aspect-ratio: 1.5 / 1;
+    aspect-ratio: auto;
   }
 
   .proof-object--repair .proof-object__media {
     width: 100%;
     margin: 17px 0 0;
-    aspect-ratio: 960 / 404;
+    aspect-ratio: 1120 / 538;
+  }
+
+  .proof-object--repair .proof-object__artifact-label {
+    right: 7px;
+    bottom: 6px;
+    padding: 3px 5px;
+    font-size: 8.5px;
   }
 }
 
@@ -325,11 +369,17 @@
     aspect-ratio: 1.64 / 1;
   }
 
+  .proof-object--finance .proof-object__artifact-label {
+    top: 10px;
+    left: 10px;
+    font-size: 10px;
+  }
+
   .proof-object--alina .proof-object__media {
-    width: 88%;
+    width: 92%;
     height: auto;
     margin: 14px 0 0 auto;
-    aspect-ratio: 1.5 / 1;
+    aspect-ratio: auto;
   }
 
   .proof-object--alina .proof-object__scope,
@@ -342,7 +392,11 @@
     width: 100%;
     height: auto;
     margin: 14px 0 0;
-    aspect-ratio: 960 / 404;
+    aspect-ratio: 1120 / 538;
+  }
+
+  .proof-object--repair .proof-object__artifact-label {
+    font-size: 10px;
   }
 
   .selected-proof__close {
@@ -352,6 +406,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .reveal-ready .proof-object,
+  .reveal-ready .proof-object.is-visible,
+  .reveal-ready .proof-object .proof-object__media,
+  .reveal-ready .proof-object.is-visible .proof-object__media {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+
   .proof-object--alina .proof-object__media img,
   .proof-object--alina:hover .proof-object__media img,
   .proof-object--alina:focus-within .proof-object__media img {

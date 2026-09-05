@@ -21,6 +21,19 @@ Do not begin broad exploration before completing this read order.
 - Gemini and other third-party or weak substitute models are not default workflow tools.
 - The owner-level canonical policy is `proaiexpert/ai-os/00_Operating_System/CHATGPT_FIRST_OPERATING_MODEL.md`; these local rules remain standalone when that private repository is unavailable.
 
+## Remote Visual Review — Cloudflare Pages
+- For meaningful visual website work, Cloudflare Pages is the default Owner review layer after implementation, regardless of whether implementation used ChatGPT Direct or Codex.
+- Canonical workflow: `docs/operations/CLOUDFLARE_REMOTE_VISUAL_REVIEW.md`.
+- Cloudflare project: `proaiexpert-github-io` connected to this GitHub repository with automatic branch deployments.
+- GitHub branch/commit remains the source of truth. Cloudflare is review hosting only.
+- The Owner often reviews from iPhone and may be away from the development machine. `localhost`, `127.0.0.1`, LAN URLs, Windows filesystem paths, and screenshots alone are not acceptable as the primary Owner deliverable when live visual behavior matters.
+- Before requesting Owner visual approval, provide one direct phone-accessible `https://*.proaiexpert-github-io.pages.dev/...` URL.
+- Do not make the Owner navigate the Cloudflare dashboard or construct the URL manually.
+- Current stable AI Systems Hero review branch is `hero-preview`; it is a review/mirror branch only and is not product authority.
+- Preview-only helpers such as 3D focus, R3/candidate switching, or explicit hover simulation are allowed only when isolated under `owner-preview/` and clearly labeled review-only.
+- Do not modify product mobile behavior, camera, layout, materials, or interaction merely to improve the review UI.
+- ChatGPT Sites is optional; do not spend Codex/Work capacity merely to obtain a hosted preview URL when Cloudflare Pages can provide it.
+
 ## Chat Lifecycle
 - One Builder chat normally owns one task and one implementation branch.
 - One Reviewer chat normally owns one independent review pass.
@@ -91,3 +104,4 @@ After changes, report:
 7. What remains unverified.
 8. Risks and intentionally untouched areas.
 9. Commit title and next action.
+10. For meaningful visual website work: direct phone-accessible Cloudflare Pages preview URL and what the Owner should inspect there.

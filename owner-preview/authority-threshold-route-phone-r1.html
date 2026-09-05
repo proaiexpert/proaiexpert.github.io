@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#020304">
+  <link rel="icon" href="data:,">
+  <title>Authority Threshold — Phone Review</title>
+  <style>
+    :root{color-scheme:dark;background:#020304}
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#020304;color:#f2f0eb;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    .stage{position:fixed;inset:0;background:#020304}
+    canvas{display:block;width:100%;height:100%;touch-action:none;outline:none}
+    .top{position:fixed;z-index:10;top:max(10px,env(safe-area-inset-top));left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;pointer-events:none}
+    .badge,.status{padding:8px 10px;border:1px solid rgba(201,205,209,.18);background:rgba(2,3,4,.72);backdrop-filter:blur(12px);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8c949d}
+    .badge{color:#c9cdd1}
+    .status{max-width:56vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+    .dock{position:fixed;z-index:20;left:10px;right:10px;bottom:max(10px,env(safe-area-inset-bottom));display:grid;grid-template-columns:52px repeat(5,1fr);gap:5px;padding:6px;border:1px solid rgba(201,205,209,.18);background:rgba(2,3,4,.84);backdrop-filter:blur(16px)}
+    .dock a{min-width:0;padding:11px 3px;border:1px solid rgba(201,205,209,.16);background:#07090b;color:#8c949d;text-decoration:none;text-align:center;font-size:10px;font-weight:800;letter-spacing:.06em;line-height:1}
+    .dock a[aria-current="page"]{color:#f2f0eb;border-color:#676bff;background:#11151a;box-shadow:inset 0 0 0 1px rgba(103,107,255,.24)}
+    .dock a[data-state-link="gate"][aria-current="page"]{border-color:#f2f0eb;box-shadow:inset 0 0 0 1px rgba(242,240,235,.18)}
+    .hint{position:fixed;z-index:10;left:12px;right:12px;bottom:calc(max(10px,env(safe-area-inset-bottom)) + 70px);text-align:center;pointer-events:none;color:#8c949d;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;text-shadow:0 1px 8px #000}
+    @media (orientation:landscape){.dock{left:18%;right:18%}.hint{bottom:calc(max(8px,env(safe-area-inset-bottom)) + 66px)}}
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <canvas data-hero-route-canvas aria-label="Authority Threshold route 3D field"></canvas>
+  </main>
+  <div class="top">
+    <div class="badge">3D ROUTE · REVIEW ONLY</div>
+    <div class="status" data-hero-route-status>LOADING</div>
+  </div>
+  <div class="hint">Indigo should move 1 → 2 → 3 → 4 · Pearl stays at Gate</div>
+  <nav class="dock" aria-label="Authority Threshold stages">
+    <a href="?lang=en&state=base" data-state-link="base">BASE</a>
+    <a href="?lang=en&state=agent" data-state-link="agent">1</a>
+    <a href="?lang=en&state=automation" data-state-link="automation">2</a>
+    <a href="?lang=en&state=api" data-state-link="api">3</a>
+    <a href="?lang=en&state=custom-code" data-state-link="custom-code">4</a>
+    <a href="?lang=en&state=gate" data-state-link="gate">GATE</a>
+  </nav>
+  <script type="module" src="./assets/authority-threshold-route-r1.js"></script>
+  <script>
+    (() => {
+      const canvas = document.querySelector('[data-hero-route-canvas]');
+      const tryExpand = () => {
+        if (!canvas || document.documentElement.dataset.routeStatus !== 'ready') return false;
+        const r = canvas.getBoundingClientRect();
+        const x = r.left + r.width * 0.58;
+        const y = r.top + r.height * 0.46;
+        const init = {bubbles:true,clientX:x,clientY:y,pointerId:1,pointerType:'mouse',isPrimary:true,buttons:0};
+        canvas.dispatchEvent(new PointerEvent('pointermove', init));
+        canvas.dispatchEvent(new MouseEvent('mousemove', {bubbles:true,clientX:x,clientY:y}));
+        return true;
+      };
+      let tries = 0;
+      const timer = setInterval(() => { tries += 1; if (tryExpand() || tries > 40) clearInterval(timer); }, 150);
+      window.addEventListener('pageshow', () => setTimeout(tryExpand, 500), {once:true});
+    })();
+  </script>
+</body>
+</html>

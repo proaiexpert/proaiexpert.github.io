@@ -4,7 +4,7 @@
 
 ## A. LAST UPDATED
 
-2026-09-04 — Selected Work R1.2B state recovered. Chat / Work / Sites / Codex execution-routing policy added. Current Selected Work should continue in the existing normal Chat + GitHub worker without switching to Work/Sites/Codex unless a genuine capability blocker appears.
+2026-09-05 — Selected Work production release accepted by Owner and workstream closed. Active Homepage improvement block advanced to Technology Ecosystem; Connected System is next in queue.
 
 ## B. CURRENT PRODUCTION MAIN
 
@@ -12,9 +12,13 @@ Repository: `proaiexpert/proaiexpert.github.io`
 
 Last verified production `main`:
 
-`e700a83f9565f1dbbe90be04cdf6aa0613465ec5`
+`6e46c7a1f2723d5ff102b710650afcf875dd9bbd`
 
-Commit: `Merge Homepage Live System R2.1 polish`
+Commit: `Integrate approved Selected Work production block`
+
+Selected Work rollback authority:
+
+`807cafeda45577ac88acbed6a18b02fbd6c79981`
 
 Rule: before any repository action, fetch current `main` again. Never assume this SHA remains current.
 
@@ -52,9 +56,11 @@ Selected Thinking: not in current deep-redesign queue.
 
 Footer: not a current bottleneck.
 
+Selected Work: **PRODUCTION ACCEPTED / CLOSED**. Do not reopen as an active redesign block without a new explicit Owner decision.
+
 ## F. CURRENT INTERNAL QUALITY BENCHMARK
 
-Strongest current section: **INSIDE PROAI / LIVE SYSTEM**.
+Strongest current benchmark section: **INSIDE PROAI / LIVE SYSTEM**.
 
 Causal story:
 
@@ -82,24 +88,25 @@ Benchmark quality, not visual style.
 
 ## G. EXTERNAL AUDIT EVIDENCE REGISTRY
 
+Historical pre-redesign evidence retained for arbitration context:
+
 ### Audit #1 — HIGH CONFIDENCE
 - Overall: 8.6 / D
 - Strongest: Live System / Two Worlds / Hero
 - Weakest: Selected Work / Technology
-- First: Selected Work
+- First at that time: Selected Work
 
 ### Audit #2 — HIGH CONFIDENCE
 - Overall: 7.2 / C with D-level moments
 - Strongest: Live System / Two Worlds / Selected Work
 - Weakest: Technology / Financial Stream
-- First: Technology
+- First at that time: Technology
 
 ### Audit #3 — STRUCTURAL / BUSINESS WEIGHT
 - No browser-grade pixel QA
 - Strongest: Live System / Financial Stream / Hero
 - Weakest: Technology / Selected Thinking
-- First: Technology
-- Reduce visual/material/motion weight.
+- First at that time: Technology
 
 ### Audit #4 — REDUCED / INCOMPLETE
 - Omitted current Live System
@@ -110,17 +117,25 @@ Benchmark quality, not visual style.
 - Overall: 7.4 / C
 - Strongest: Live System / Hero / Financial Stream
 - Weakest: Selected Thinking / Technology
-- First: Selected Thinking
+- First at that time: Selected Thinking
+
+### Selected Work independent A/B panel — FINAL
+
+**5 / 5 reviewers preferred the new Selected Work over the previous production ledger direction.**
+
+This result, combined with Owner live production acceptance, closes the Selected Work redesign workstream.
 
 ## H. AUDIT CONFIDENCE / WEIGHT
 
-Primary external weight: Audits #1, #2, #5.
+Primary historical external weight: Audits #1, #2, #5.
 
 Structural/business weight only: Audit #3.
 
 Secondary only: Audit #4.
 
-Master arbitration controls priority; do not choose by vote count.
+Selected Work final acceptance authority is stronger than the historical baseline audits: Owner production acceptance + 5/5 independent A/B preference.
+
+Master arbitration controls priority; do not choose by vote count alone.
 
 ## I. REJECTED / STALE AUDIT REGISTRY
 
@@ -130,142 +145,162 @@ Audited obsolete Homepage sections including Problem / Approach, Pillars Routing
 
 Classification: stale Homepage authority / wrong section set / zero weight.
 
-## J. MASTER BLIND BASELINE
+## J. HISTORICAL MASTER BLIND BASELINE
 
-Completed before external opinions.
+Completed before the Selected Work redesign.
 
 Overall: **8.5 / 10**
 
 Maturity: **D — Bespoke high-end digital experience**
 
-Strongest:
+Historical strongest:
 1. Live System — 9.4
 2. Two Worlds — 9.1
 3. Financial Stream — 9.0
 
-Upgrade candidates:
+Historical upgrade candidates:
 1. Selected Work — 7.1
 2. Connected System — 7.8
 3. Technology Ecosystem — 6.8
 
-Systemic diagnosis: too many different business ideas use the same precision-system / editorial-instrument grammar.
+Systemic diagnosis: too many different business ideas used the same precision-system / editorial-instrument grammar.
+
+Selected Work has since been redesigned, independently preferred 5/5, integrated to production, and accepted by Owner. It is no longer an active weakness queue item.
 
 ## K. MASTER ARBITRATION RESULT
 
-First deep-redesign candidate: **SELECTED WORK**
+Completed block: **SELECTED WORK**
 
-Confidence: **92%**
+Final status: **PRODUCTION ACCEPTED / CLOSED**
 
-Reason: Technology is the most obviously weak standalone block; Selected Work is the more strategically expensive weak block because it carries late-page proof/breadth responsibility.
+Production release SHA:
+
+`6e46c7a1f2723d5ff102b710650afcf875dd9bbd`
+
+Rollback SHA:
+
+`807cafeda45577ac88acbed6a18b02fbd6c79981`
+
+Final direction:
+
+**CURATED EVIDENCE TABLE / DISTINCT PROOF OBJECTS**
+
+Final production facts:
+
+- Financial Stream operational proof;
+- Alina full-frame human/editorial proof;
+- Local Repair scenarios proof;
+- truthful independent ProAI status;
+- EN/RU language parity;
+- dedicated responsive layouts;
+- restrained image-aware material arrival;
+- no unrelated Homepage changes.
 
 ## L. CURRENT PRIORITY QUEUE
 
-1. Selected Work
-2. Technology Ecosystem
-3. Connected System
+1. **Technology Ecosystem**
+2. **Connected System**
 
-Selected Thinking is not promoted into deep-redesign queue.
+Selected Work is closed and removed from the active redesign queue.
+
+Selected Thinking is not promoted into the deep-redesign queue.
 
 ## M. ACTIVE BLOCK
 
-**SELECTED WORK**
+**TECHNOLOGY ECOSYSTEM**
 
 ## N. ACTIVE PHASE
 
-Research: **DEEP CANDIDATE RESEARCH R1 — COMPLETE**
+Technology Ecosystem: **AUDIT / RESEARCH — NEXT**
 
-Prototype: **CURATED EVIDENCE TABLE R1.2B — COPY/STATUS ACCEPTED; REAL-PIXEL COMPOSITE QA INCOMPLETE**
+No redesign direction is preselected yet.
 
-Execution route for current phase: **NORMAL CHAT + GITHUB WORKER. DO NOT SWITCH TO WORK/SITES/CODEX FOR THIS BLOCK UNLESS A REAL CAPABILITY BLOCKER APPEARS.**
+Execution route: begin with a fresh narrow ChatGPT + GitHub audit/research worker. Escalate only if a real capability blocker appears.
 
-Production integration: **NOT STARTED**
+## O. SELECTED WORK — FINAL PRODUCTION AUTHORITY
 
-## O. CURRENT DECISION
+Status:
 
-The Selected Work redesign direction remains active.
+**PRODUCTION ACCEPTED / CLOSED**
 
-Accepted Master decisions:
+Production release:
 
-- remove count emphasis (`Three projects...` / `Три проекта...`);
-- use neutral headline direction: `Different problems. Different forms of proof.` / `Разные задачи. Разные формы доказательства.`;
-- frame Local Repair Pro positively but truthfully as `PROAI BUILD · LIVE DEMO` / `РАЗРАБОТКА PROAI · LIVE DEMO`;
-- remove repeated defensive `Concept / Demo` and negative disclaimer language from the main composition;
-- do not visually accept the prototype until all three real project assets have been rendered and inspected together.
+`6e46c7a1f2723d5ff102b710650afcf875dd9bbd`
 
-No conceptual restart is authorized.
+Rollback point:
 
-## P. CURRENT CONCEPT / RESEARCH WINNER
+`807cafeda45577ac88acbed6a18b02fbd6c79981`
 
-Winner: **CURATED EVIDENCE TABLE / DISTINCT PROOF OBJECTS**
+Final design direction:
 
-Confidence: **91%**
-
-Public-facing principle: **Selected work. Different problems. Different forms of proof.**
-
-Do not emphasize exact project count.
+**CURATED EVIDENCE TABLE / DISTINCT PROOF OBJECTS**
 
 ### Financial Stream
-Proof role:
-- real live client;
-- bilingual business architecture;
-- operational digital system;
-- compact evidence only;
-- do not repeat its flagship Homepage section.
 
-Current asset:
-`assets/img/cases/financial-stream/delivery-v2/en/fs-en-02-request-v2-1120.webp`
+Role: operational proof.
 
-R1.2B verification: exact repository binary verified; keep unless composite QA proves a crop problem.
+EN asset:
+`assets/img/cases/financial-stream/delivery-v2/en/fs-en-03-reporting-chat-v2-1120.webp`
+
+RU asset:
+`assets/img/cases/financial-stream/delivery-v2/ru/fs-ru-03-reporting-chat-v2-1120.webp`
 
 ### Psychology Practice / Alina Horb
-Proof role:
-- human presence;
-- person-led trust;
-- professional restraint;
-- bilingual editorial architecture;
-- sensitive first-contact design.
 
-Original R1 asset:
-`assets/img/cases/alina-horb/final-assets-v1/delivery/alina-horb-about-approach-ua-desktop.webp`
+Role: full-frame human/editorial proof.
 
-Preferred R1.2B replacement candidate, exact repository asset verified:
-`assets/img/cases/archive-v3/alina-home-ua-640.webp`
+EN asset:
+`assets/img/cases/alina-horb/final-assets-v1/delivery/alina-horb-home-ua-desktop.webp`
 
-Reason: current tall proof window would severely crop the original wide About capture; the replacement is a same-project portrait-led Homepage artifact already suited to Human / Editorial proof. Replacement is not accepted as final until composite browser QA.
+RU asset:
+`assets/img/cases/alina-horb/final-assets-v1/delivery/alina-horb-home-ru-desktop.webp`
+
+Keep full frame; no lateral crop.
 
 ### Local Repair Pro
-Public status:
-`PROAI BUILD · LIVE DEMO` / `РАЗРАБОТКА PROAI · LIVE DEMO`
 
-Truth boundary: independent ProAI demonstration build, not a claimed client launch.
+Role: scenarios / service-journey proof.
 
-Can prove:
-- multi-page local-service architecture;
-- Photo-to-Scope;
-- structured request UX;
-- service areas;
-- responsive implementation;
-- customer-journey depth.
+Asset:
+`assets/img/cases/local-repair-pro/production-v1/lrp-04-scenarios-overview-1120.webp`
 
-Original R1 asset:
-`assets/img/cases/local-repair-pro/production-v1/lrp-02-photo-to-scope-1400.webp`
+Final truthful status:
 
-Preferred R1.2B responsive replacement candidate, exact repository asset verified:
-`assets/img/cases/local-repair-pro/production-v1/lrp-02-photo-to-scope-960.webp`
+- EN: `INDEPENDENT PROAI BUILD`
+- RU: `САМОСТОЯТЕЛЬНАЯ РАЗРАБОТКА PROAI`
 
-Reason: same verified Photo-to-Scope frame at a repository-native size appropriate for the approximately 800px proof window. Replacement is not accepted as final until composite browser QA.
+RU working-version CTA:
 
-Do not use the public-facing word `prototype / прототип` for Local Repair Pro.
+`Открыть рабочую версию`
 
-## Q. NON-NEGOTIABLE CONSTRAINTS
+Truth boundary: independent ProAI work; never present it as a client launch and never invent outcomes or KPIs.
+
+Motion authority: restrained image-aware material arrival with IntersectionObserver, image load/decode coordination, fail-open behavior, article/proof settle, and safe reduced-motion complete state.
+
+Responsive authority: dedicated desktop, laptop/intermediate, phone portrait and phone landscape compositions; do not collapse back to the previous ledger grammar.
+
+## P. SELECTED WORK CLOSURE RESULT
+
+Independent A/B panel result:
+
+**5 / 5 reviewers preferred the new Selected Work over the previous production ledger direction.**
+
+Owner visual production result:
+
+**ACCEPTED**
+
+Selected Work should not remain in research, prototype, integration, or active-redesign queues.
+
+Any future Selected Work change must start from current `main` and require a new explicit scope; historical prototype/review branches are not product authority.
+
+## Q. NON-NEGOTIABLE HOMEPAGE CONSTRAINTS
 
 Preserve:
 
 - truthful project status;
-- Financial Stream / Alina Horb / Local Repair Pro;
 - factual ProAI-built scope;
 - existing case-study routes;
-- existing live-site/demo routes;
+- existing live-site/working-version routes;
 - curated selection rather than full catalogue;
 - fast comprehension;
 - strong typography;
@@ -273,61 +308,62 @@ Preserve:
 - no invented KPIs;
 - no unsupported claims;
 - EN/RU parity;
-- Desktop / Mobile Portrait / Phone Landscape recomposition;
+- responsive recomposition;
 - reduced-motion support;
 - no horizontal overflow.
 
 ## R. DO-NOT-REPEAT VISUAL LANGUAGE
 
-Do not create:
+Do not create by default:
 
-- three equal screenshot cards;
-- generic portfolio grid;
-- Bento / box-box-box composition;
-- carousel / slider;
-- timeline;
-- rail / nodes / markers;
-- `01 → 02 → 03` as primary mechanism;
+- generic portfolio grids;
+- Bento / box-box-box composition without business meaning;
+- carousel / slider as a substitute for hierarchy;
+- timeline / rail / node grammar without causal necessity;
 - another Financial Stream device composition;
 - another Live System / code interface;
 - another Two Worlds fold;
 - another Cube;
 - generic dashboard;
-- filters/search/archive machinery;
-- mockup gallery without business meaning.
+- filters/search/archive machinery without a product reason;
+- mockup galleries without business meaning.
 
-Main risk: **BENTO DRIFT**.
+For Technology Ecosystem, begin from its actual business role and current rendered experience rather than importing the Selected Work solution.
 
-## S. WORKER REPORT INDEX
+## S. WORKSTREAM REPORT INDEX
+
+Selected Work historical path, retained as evidence:
 
 - Master blind Homepage audit — complete.
-- Master arbitration — complete; Selected Work chosen at 92% confidence.
-- Selected Work Deep Candidate Research R1 — complete; Curated Evidence Table chosen at 91% confidence.
-- Isolated Prototype R1 — structural prototype completed; visual acceptance withheld because screenshots used neutral structural fields rather than real project pixels.
-- Correction R1.2 — branch `review/homepage-selected-work-curated-evidence-r1`, reported HEAD `525188765bb92e6e3204e098d281cac263610d26`. Count-emphasis removal and Local Repair status reframing accepted by Master.
-- R1.2B real-pixel attempt — exact repository binaries verified for Financial Stream and proposed same-project replacement assets for Alina and Local Repair. Final composite Chromium render/screenshots were not completed, so worker correctly returned `REVISE` instead of a false visual PASS.
-- ChatGPT Sites pilot — process experiment only. In Chat mode the Site builder was unavailable. Current product-routing decision: Sites/Work is not required for this Selected Work phase; finish through the existing normal Chat + GitHub worker.
+- Master arbitration — Selected Work selected as first strategic redesign candidate.
+- Deep Candidate Research R1 — Curated Evidence Table selected.
+- Isolated prototype iterations — complete.
+- Real project proof assets — resolved.
+- EN/RU copy/status correction — complete.
+- Motion/responsive polish — complete.
+- Independent A/B review panel — **5/5 preferred new direction**.
+- Clean production integration — complete.
+- Production release — `6e46c7a1f2723d5ff102b710650afcf875dd9bbd`.
+- Owner live visual acceptance — complete.
+- Final state — **PRODUCTION ACCEPTED / CLOSED**.
 
 ## T. NEXT ACTION
 
-Continue in the SAME Selected Work worker chat.
+Open a **fresh narrow Technology Ecosystem audit/research worker**.
 
-Do not restart research or concept work.
+Required starting rules:
 
-Do not switch to Work/Sites/Codex for this phase.
+1. fetch current `main` before any conclusion or write;
+2. inspect only the current Technology Ecosystem and its real Homepage context;
+3. recover relevant Technology authority from GitHub rather than asking Owner to resend prior work;
+4. audit business role, visual hierarchy, interaction/motion, responsive behavior and redundancy against surrounding sections;
+5. do not modify production during the initial audit/research pass;
+6. do not reopen Selected Work;
+7. return a narrow evidence-based direction or targeted research plan before implementation.
 
-Required next action:
+Next queue after Technology Ecosystem:
 
-1. continue from branch `review/homepage-selected-work-curated-evidence-r1`;
-2. fetch current `main` and confirm production authority before any write;
-3. finish exact real-pixel local/browser access for all three selected/candidate assets using the already established reconstruction/local-preview path;
-4. perform the final composite browser render at Desktop 1440×900, Desktop Wide, Portrait 390×844, Narrow Portrait, Landscape 844×390 and ~820px intermediate;
-5. decide whether the proposed Alina 640 and Local Repair 960 replacements actually improve the real composition;
-6. make only image/crop/spacing/layout corrections directly justified by real-pixel inspection;
-7. return actual real-pixel screenshots plus concise ACCEPT / REVISE result;
-8. no production integration, merge or deploy.
-
-If ordinary Chat + GitHub genuinely cannot complete this because of an unavailable capability, return one precise blocker to Master before escalating to Work/Sites/Codex.
+**CONNECTED SYSTEM**
 
 ## U. PRODUCTION SAFETY RULES
 
@@ -336,19 +372,12 @@ If ordinary Chat + GitHub genuinely cannot complete this because of an unavailab
 - Before any repository operation, fetch current `main` again.
 - Historical branches/commits/screenshots are evidence only.
 - No unrelated diffs.
-- Worker chats have no authority to modify `main`, merge or deploy.
-- Production integration requires Master approval + Owner visual approval + current-main fetch + exact diff verification.
-- Merge/deploy requires explicit Owner authorization.
+- No worker may modify `main`, merge or deploy without explicit Owner authorization.
+- Production integration requires current-main fetch + exact diff verification + explicit Owner authorization.
 
 ## V. EXECUTION ROUTING POLICY — CHAT / WORK / SITES / CODEX
 
-This rule applies to future Homepage workers unless Master explicitly overrides it.
-
-### Default principle
-
-Use the **least expensive / least scarce execution surface that can correctly complete the task**.
-
-Do not invoke Work, Codex or Sites merely because they are available.
+Use the least expensive / least scarce execution surface that can correctly complete the task.
 
 ### Normal Chat first
 
@@ -357,59 +386,23 @@ Prefer ordinary Chat + connected GitHub tools for:
 - research and reasoning;
 - source/code forensics;
 - branch/file inspection;
-- narrow HTML/CSS/content changes when the available tools can perform them;
+- narrow repository edits;
 - worker reports and Master arbitration;
-- tasks that do not need hosted live visual output or a local computer-style execution environment.
-
-If normal Chat can complete the task reliably, keep the task there.
+- tasks that do not require local browser/terminal execution.
 
 ### Work / Codex
 
-Treat Work/Codex agentic capacity as a scarce shared execution resource under the current product behavior.
+Use only when a materially required capability is unavailable in normal Chat, for example:
 
-Use it only when its capabilities materially improve or enable the task, for example:
-
-- filesystem / terminal / browser execution unavailable in normal Chat;
-- complex multi-file implementation;
-- local build/test loops;
-- heavy code execution or automated QA that ordinary Chat cannot physically perform.
+- filesystem / terminal / browser execution;
+- complex local build/test loops;
+- automated browser QA;
+- heavy multi-file debugging.
 
 Do not escalate only for convenience.
 
-### ChatGPT Sites
+### Cloudflare / hosted review
 
-Sites is a **hosted visual R&D / Owner review surface**, not repository authority.
+For meaningful visual implementation, GitHub branch/commit remains source authority and Cloudflare Pages is the default remote Owner review layer when a phone-accessible live preview is required.
 
-Use Sites/Work when the value of a live hosted preview materially outweighs the agentic cost, especially for:
-
-- highly visual/cinematic Hero work;
-- responsive interaction prototypes;
-- motion/material experiments;
-- candidates where Owner needs a normal iPhone URL and screenshots/local previews are a major bottleneck.
-
-Example likely strong fit: visual Hero / AI Systems / Boxes Hover style R&D where live responsive/motion review is central.
-
-Do not use Sites automatically for every block.
-
-For simpler or already-near-complete work where normal Chat + GitHub can finish the phase, finish without Sites first.
-
-### Sites source-of-truth rule
-
-If Sites is used:
-
-- GitHub branch/commit remains the real candidate authority;
-- Sites is temporary hosted review evidence only;
-- record which branch/commit the Site represents;
-- do not allow independent Site-only edits to become an untracked second source of truth;
-- after Owner approval, reproduce/verify the approved result in the normal GitHub implementation path before production;
-- Sites never replaces `main`, Git history, code QA, Master arbitration, or production deployment.
-
-### Escalation rule
-
-Worker order of preference:
-
-1. Normal Chat + available connected tools.
-2. Work/Codex only if a required capability is missing or the task is materially more efficient there.
-3. Sites/Work when hosted visual review is itself a major requirement and justifies the same scarce agentic resource class.
-
-Current Selected Work instruction: **stay at level 1 and finish there.**
+Preview-only work must never silently become production authority.

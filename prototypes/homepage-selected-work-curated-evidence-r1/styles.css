@@ -1,0 +1,781 @@
+/*
+  ProAI Expert — Selected Work / Curated Evidence Table R1
+  Isolated review prototype only. No production selectors or dependencies.
+*/
+
+:root {
+  color-scheme: dark;
+  --bg: #08090b;
+  --bg-soft: #0d0f12;
+  --text: #f2f0eb;
+  --muted: #a9a8a3;
+  --quiet: #787a7f;
+  --line: rgba(242, 240, 235, 0.18);
+  --line-strong: rgba(242, 240, 235, 0.34);
+  --paper: #e7e3da;
+  --ink: #101114;
+  --warm: #cda28f;
+  --sage: #9ca79a;
+  --focus: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  overflow-x: clip;
+}
+
+body {
+  margin: 0;
+  min-width: 0;
+  background:
+    radial-gradient(circle at 84% 16%, rgba(205, 162, 143, 0.075), transparent 32rem),
+    radial-gradient(circle at 13% 78%, rgba(156, 167, 154, 0.055), transparent 30rem),
+    var(--bg);
+  color: var(--text);
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 5px;
+}
+
+.prototype-shell {
+  width: min(100% - 48px, 1540px);
+  margin: 0 auto;
+  padding: 44px 0 56px;
+}
+
+.prototype-note {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  color: var(--quiet);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.prototype-note span:last-child {
+  text-align: right;
+}
+
+.selected-proof {
+  padding-top: clamp(46px, 5vw, 82px);
+}
+
+.selected-proof__header {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(300px, 0.56fr);
+  gap: clamp(30px, 6vw, 104px);
+  align-items: end;
+  margin-bottom: clamp(36px, 4vw, 64px);
+}
+
+.selected-proof__eyebrow,
+.proof-object__kicker,
+.proof-object__status,
+.proof-object__scope,
+.proof-object__artifact-label,
+.proof-object__disclosure {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 680;
+  letter-spacing: 0.13em;
+  line-height: 1.42;
+  text-transform: uppercase;
+}
+
+.selected-proof__eyebrow {
+  margin-bottom: 16px;
+  color: var(--muted);
+}
+
+.selected-proof__title {
+  max-width: 850px;
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(44px, 5vw, 78px);
+  font-weight: 400;
+  letter-spacing: -0.045em;
+  line-height: 0.96;
+  text-wrap: balance;
+}
+
+.selected-proof__lede {
+  max-width: 560px;
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: clamp(15px, 1.3vw, 19px);
+  line-height: 1.6;
+}
+
+.proof-stage {
+  position: relative;
+  min-height: 688px;
+  isolation: isolate;
+}
+
+.proof-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.proof-object {
+  position: absolute;
+  min-width: 0;
+}
+
+.proof-object__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+
+.proof-object__kicker {
+  color: var(--quiet);
+}
+
+.proof-object__status {
+  color: var(--text);
+  text-align: right;
+}
+
+.proof-object__title {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(29px, 2.65vw, 43px);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+.proof-object__title a {
+  text-decoration: none;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.16em;
+}
+
+.proof-object__title a:hover,
+.proof-object__title a:focus-visible {
+  text-decoration: underline;
+}
+
+.proof-object__scope {
+  margin-top: 9px;
+  color: var(--muted);
+}
+
+.proof-object__copy {
+  max-width: 660px;
+  margin: 13px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.proof-object__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-top: 15px;
+}
+
+.proof-object__links a {
+  border-bottom: 1px solid var(--line-strong);
+  padding-bottom: 3px;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.proof-object__links a:hover,
+.proof-object__links a:focus-visible {
+  border-color: currentColor;
+}
+
+.proof-object__media {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background: #14161a;
+}
+
+.proof-object__media img {
+  transform: scale(1.001);
+  filter: saturate(0.86) contrast(0.98);
+  transition: transform 420ms cubic-bezier(.2,.8,.2,1), filter 300ms ease;
+}
+
+.proof-object:hover .proof-object__media img,
+.proof-object:focus-within .proof-object__media img {
+  transform: scale(1.018);
+  filter: saturate(0.96) contrast(1.01);
+}
+
+.proof-object__artifact-label {
+  position: absolute;
+  z-index: 2;
+}
+
+/* Financial Stream: compact operational receipt, deliberately not a device mockup. */
+.proof-object--finance {
+  top: 24px;
+  left: 0;
+  width: min(55.5%, 760px);
+  z-index: 3;
+}
+
+.proof-object--finance .proof-object__meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 0.72fr);
+  gap: 26px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+
+.proof-object--finance .proof-object__media {
+  width: 79%;
+  margin-left: 6%;
+  aspect-ratio: 2.55 / 1;
+  border-top: 1px solid rgba(16, 17, 20, 0.14);
+  border-bottom: 1px solid rgba(16, 17, 20, 0.12);
+  background: var(--paper);
+  box-shadow: 0 28px 65px rgba(0, 0, 0, 0.26);
+}
+
+.proof-object--finance .proof-object__media::before,
+.proof-object--finance .proof-object__media::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(16, 17, 20, 0.22);
+  pointer-events: none;
+}
+
+.proof-object--finance .proof-object__media::before { top: 9px; }
+.proof-object--finance .proof-object__media::after { bottom: 9px; }
+
+.proof-object--finance .proof-object__artifact-label {
+  top: 17px;
+  left: 18px;
+  padding: 5px 7px;
+  background: rgba(231, 227, 218, 0.92);
+  color: var(--ink);
+}
+
+/* Alina Horb: a person-led editorial sheet, intentionally taller and quieter. */
+.proof-object--alina {
+  top: 12px;
+  right: 0;
+  width: min(31.5%, 430px);
+  z-index: 4;
+}
+
+.proof-object--alina .proof-object__head {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.proof-object--alina .proof-object__status {
+  margin-top: 5px;
+  text-align: left;
+}
+
+.proof-object--alina .proof-object__media {
+  width: 92%;
+  margin-left: auto;
+  aspect-ratio: 0.77 / 1;
+  background: #d7cdc4;
+}
+
+.proof-object--alina .proof-object__media img {
+  object-position: 54% 50%;
+}
+
+.proof-object--alina .proof-object__copy {
+  max-width: 390px;
+  margin-left: 8%;
+  font-size: 13px;
+}
+
+.proof-object--alina .proof-object__links {
+  margin-left: 8%;
+}
+
+.proof-object--alina .proof-object__scope {
+  margin-left: 8%;
+}
+
+/* Local Repair Pro: broad field evidence, with concept status outside the image. */
+.proof-object--repair {
+  left: 10.5%;
+  bottom: 27px;
+  width: min(58.5%, 840px);
+  z-index: 5;
+}
+
+.proof-object--repair .proof-object__concept {
+  display: inline-block;
+  margin: 0 0 9px;
+  padding: 7px 9px 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.proof-object--repair .proof-object__meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.78fr);
+  gap: 26px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.proof-object--repair .proof-object__media {
+  width: 91%;
+  margin-left: 2%;
+  aspect-ratio: 2.62 / 1;
+  border-left: 1px solid var(--line-strong);
+  background: #171a18;
+}
+
+.proof-object--repair .proof-object__media img {
+  object-position: 50% 50%;
+}
+
+.proof-object--repair .proof-object__artifact-label {
+  right: 14px;
+  bottom: 12px;
+  padding: 5px 7px;
+  background: rgba(8, 9, 11, 0.86);
+  color: var(--text);
+}
+
+.proof-object__disclosure {
+  margin-top: 10px;
+  color: var(--quiet);
+  font-size: 10px;
+}
+
+.selected-proof__close {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: center;
+  margin-top: 28px;
+  color: var(--quiet);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.13em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.selected-proof__close a {
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid var(--line-strong);
+  padding-bottom: 3px;
+}
+
+/* Intermediate widths: preserve asymmetry while removing absolute overlap risk. */
+@media (max-width: 1179px) {
+  .prototype-shell {
+    width: min(100% - 40px, 1040px);
+  }
+
+  .selected-proof__header {
+    grid-template-columns: 1fr minmax(280px, 0.62fr);
+    gap: 48px;
+  }
+
+  .proof-stage {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 42px 24px;
+    min-height: 0;
+    padding: 28px 0 34px;
+  }
+
+  .proof-object {
+    position: relative;
+    inset: auto;
+    width: auto;
+  }
+
+  .proof-object--finance {
+    grid-column: 1 / span 8;
+    align-self: start;
+  }
+
+  .proof-object--alina {
+    grid-column: 9 / -1;
+    grid-row: 1 / span 2;
+  }
+
+  .proof-object--repair {
+    grid-column: 2 / span 8;
+  }
+
+  .proof-object--finance .proof-object__meta,
+  .proof-object--repair .proof-object__meta {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .proof-object--finance .proof-object__media,
+  .proof-object--repair .proof-object__media {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 759px) {
+  .prototype-shell {
+    width: min(100% - 32px, 680px);
+    padding-top: 24px;
+  }
+
+  .prototype-note {
+    gap: 12px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+
+  .selected-proof {
+    padding-top: 42px;
+  }
+
+  .selected-proof__header {
+    display: block;
+    margin-bottom: 34px;
+  }
+
+  .selected-proof__title {
+    max-width: 600px;
+    font-size: clamp(40px, 13.5vw, 58px);
+  }
+
+  .selected-proof__lede {
+    max-width: 560px;
+    margin-top: 24px;
+    font-size: 15px;
+  }
+
+  .proof-stage {
+    display: block;
+    padding: 0 0 24px;
+  }
+
+  .proof-stage::before {
+    border-bottom: 0;
+  }
+
+  .proof-object {
+    width: auto;
+    max-width: none;
+    margin-top: 0;
+    padding: 30px 0 32px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .proof-object__head {
+    display: block;
+  }
+
+  .proof-object__status {
+    margin-top: 5px;
+    text-align: left;
+  }
+
+  .proof-object__title {
+    font-size: clamp(31px, 9.4vw, 42px);
+  }
+
+  .proof-object__copy {
+    font-size: 14px;
+  }
+
+  .proof-object--finance {
+    width: 94%;
+    margin-right: auto;
+  }
+
+  .proof-object--finance .proof-object__media {
+    width: 96%;
+    margin: 18px 0 0;
+    aspect-ratio: 1.8 / 1;
+  }
+
+  .proof-object--finance .proof-object__media img {
+    object-position: 50% 48%;
+  }
+
+  .proof-object--alina {
+    width: 89%;
+    margin-left: auto;
+    padding-top: 38px;
+  }
+
+  .proof-object--alina .proof-object__media {
+    width: 94%;
+    margin-top: 17px;
+    margin-left: auto;
+    aspect-ratio: 0.83 / 1;
+  }
+
+  .proof-object--alina .proof-object__scope,
+  .proof-object--alina .proof-object__copy,
+  .proof-object--alina .proof-object__links {
+    margin-left: 0;
+  }
+
+  .proof-object--repair {
+    width: 100%;
+    padding-top: 40px;
+  }
+
+  .proof-object--repair .proof-object__media {
+    width: 100%;
+    margin: 17px 0 0;
+    aspect-ratio: 1.72 / 1;
+  }
+
+  .selected-proof__close {
+    display: block;
+    margin-top: 12px;
+  }
+
+  .selected-proof__close > * {
+    display: block;
+    margin-top: 10px;
+  }
+}
+
+/* Phone landscape is treated as its own composition: low-height evidence windows + two reading columns. */
+@media (max-width: 960px) and (orientation: landscape) and (max-height: 520px) {
+  .prototype-shell {
+    width: min(100% - 36px, 920px);
+    padding: 18px 0 30px;
+  }
+
+  .prototype-note {
+    padding-bottom: 9px;
+    font-size: 8px;
+  }
+
+  .selected-proof {
+    padding-top: 24px;
+  }
+
+  .selected-proof__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.72fr);
+    gap: 28px;
+    margin-bottom: 22px;
+  }
+
+  .selected-proof__eyebrow {
+    margin-bottom: 7px;
+    font-size: 9px;
+  }
+
+  .selected-proof__title {
+    font-size: clamp(33px, 6vw, 47px);
+  }
+
+  .selected-proof__lede {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .proof-stage {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(245px, 0.82fr);
+    grid-template-areas:
+      "finance alina"
+      "repair alina";
+    gap: 22px 24px;
+    padding: 18px 0 22px;
+  }
+
+  .proof-object {
+    position: relative;
+    inset: auto;
+    width: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .proof-object--finance { grid-area: finance; }
+  .proof-object--alina { grid-area: alina; }
+  .proof-object--repair { grid-area: repair; }
+
+  .proof-object__head {
+    display: flex;
+    margin-bottom: 5px;
+  }
+
+  .proof-object__kicker,
+  .proof-object__status,
+  .proof-object__scope,
+  .proof-object__artifact-label,
+  .proof-object__disclosure {
+    font-size: 8px;
+    letter-spacing: 0.09em;
+  }
+
+  .proof-object__title {
+    font-size: 24px;
+  }
+
+  .proof-object__scope {
+    margin-top: 4px;
+  }
+
+  .proof-object__copy {
+    margin-top: 7px;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .proof-object__links {
+    gap: 8px 14px;
+    margin-top: 7px;
+  }
+
+  .proof-object__links a {
+    font-size: 9px;
+  }
+
+  .proof-object--finance .proof-object__meta,
+  .proof-object--repair .proof-object__meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 7px;
+  }
+
+  .proof-object--finance .proof-object__media {
+    width: 72%;
+    height: 92px;
+    margin: 0 0 0 7%;
+    aspect-ratio: auto;
+  }
+
+  .proof-object--alina .proof-object__head {
+    display: block;
+  }
+
+  .proof-object--alina .proof-object__media {
+    width: 84%;
+    height: 222px;
+    margin: 8px 0 0 auto;
+    aspect-ratio: auto;
+  }
+
+  .proof-object--alina .proof-object__scope,
+  .proof-object--alina .proof-object__copy,
+  .proof-object--alina .proof-object__links {
+    margin-left: 0;
+  }
+
+  .proof-object--alina .proof-object__copy {
+    max-width: 100%;
+  }
+
+  .proof-object--repair .proof-object__concept {
+    margin-bottom: 4px;
+    padding: 4px 5px;
+    font-size: 8px;
+  }
+
+  .proof-object--repair .proof-object__media {
+    width: 76%;
+    height: 100px;
+    margin: 0 0 0 3%;
+    aspect-ratio: auto;
+  }
+
+  .selected-proof__close {
+    margin-top: 12px;
+    font-size: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .proof-object__media img,
+  .proof-object:hover .proof-object__media img,
+  .proof-object:focus-within .proof-object__media img {
+    transform: none;
+    filter: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .proof-stage::before,
+  .proof-object,
+  .proof-object__links a,
+  .selected-proof__close a {
+    border-color: CanvasText;
+  }
+
+  .proof-object--repair .proof-object__concept,
+  .proof-object--finance .proof-object__artifact-label {
+    forced-color-adjust: auto;
+  }
+}

@@ -21,6 +21,15 @@ Do not begin broad exploration before completing this read order.
 - Gemini and other third-party or weak substitute models are not default workflow tools.
 - The owner-level canonical policy is `proaiexpert/ai-os/00_Operating_System/CHATGPT_FIRST_OPERATING_MODEL.md`; these local rules remain standalone when that private repository is unavailable.
 
+## Visual Review Routing — ChatGPT Sites
+- For visual, responsive, interactive, motion, Hero, or homepage-section R&D, prefer ChatGPT Sites as a remote Owner-review layer when localhost, LAN-only previews, machine-bound URLs, or screenshots prevent reliable iPhone/browser inspection.
+- Sites is a hosted review artifact, not production authority. GitHub branch + exact commit SHA remains source authority.
+- Keep the existing task scope, branch, acceptance criteria, and production restrictions unchanged when adding a Sites review candidate.
+- Save a Site version before deploying it. Deploy only the selected review version, with the narrowest access that still lets the Owner inspect it remotely.
+- Never treat a ChatGPT Site deployment as authorization to modify `main`, merge, or deploy ProAI production.
+- For Codex/local-source work, verify compatibility first. Do not reduce product fidelity or silently alter a production-facing candidate merely to force Sites compatibility.
+- Follow `docs/CHATGPT_SITES_VISUAL_REVIEW_WORKFLOW_R1.md` for the full protocol and required report fields.
+
 ## Chat Lifecycle
 - One Builder chat normally owns one task and one implementation branch.
 - One Reviewer chat normally owns one independent review pass.

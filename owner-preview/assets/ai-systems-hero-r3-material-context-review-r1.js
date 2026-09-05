@@ -7,7 +7,8 @@ import { Application } from 'https://cdn.spline.design/@splinetool/runtime@2.0.2
   if (!canvas) return;
 
   const params = new URLSearchParams(location.search);
-  const mode = params.get('mode') === 'r3' ? 'r3' : 'golden';
+  const requestedMode = params.get('mode');
+  const mode = ['golden', 'r3', 'candidate-a', 'candidate-b'].includes(requestedMode) ? requestedMode : 'golden';
   const modes = {
     golden: {
       label: 'GOLDEN HERO',
@@ -18,6 +19,16 @@ import { Application } from 'https://cdn.spline.design/@splinetool/runtime@2.0.2
       label: 'R3 HERO · NEUTRAL LIGHT MATERIAL',
       url: './assets/3d/boxes-hover/neutral-light-material-r3-final.bin',
       sha: '1269ea60eb7725e59822ba2b9e789a2d9dd8956f557ffbbedfbb39e97a12c4d0',
+    },
+    'candidate-a': {
+      label: 'R3.1 A · MIDPOINT REST LIFT',
+      url: './assets/3d/boxes-hover/r3-1-candidate-a.bin',
+      sha: '3888981f9f06fe1c89b282d8e19eb3bacd2a9de0c363dae115827a7763afdfed',
+    },
+    'candidate-b': {
+      label: 'R3.1 B · MICRO 3 CEILING',
+      url: './assets/3d/boxes-hover/r3-1-candidate-b.bin',
+      sha: '4a4d321fec7161e9d2782da32ba96bdaa7f09619d371b88b0e06cd7b79f0c1ff',
     },
   };
   const selected = modes[mode];
@@ -93,7 +104,14 @@ import { Application } from 'https://cdn.spline.design/@splinetool/runtime@2.0.2
     html.dataset.heroReviewMaterialIdentities = String(materialIdentities.size);
     html.dataset.heroReviewCameras = String(cameras.length);
     html.dataset.heroReviewUiHidden = String(demoUiWhitelist.length);
-    html.dataset.heroReviewWebgpu = String(Boolean(await navigator.gpu?.requestAdapter?.({ powerPreference: 'high-performance' })));
+    const adapter = await navigator.gpu?.requestAdapter?.({ powerPreference: 'high-performance' });
+    html.dataset.heroReviewSecureContext = String(globalThis.isSecureContext === true);
+    html.dataset.heroReviewNavigatorGpu = String(Boolean(navigator.gpu));
+    html.dataset.heroReviewAdapterAvailable = String(Boolean(adapter));
+    html.dataset.heroReviewWebgpu = String(Boolean(adapter));
+    html.dataset.heroReviewUserAgent = navigator.userAgent;
+    html.dataset.heroReviewDpr = String(globalThis.devicePixelRatio || 1);
+    html.dataset.heroReviewViewport = `${globalThis.innerWidth}x${globalThis.innerHeight}`;
     setStatus('ready');
   };
 

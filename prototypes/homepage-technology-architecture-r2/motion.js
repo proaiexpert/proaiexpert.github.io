@@ -14,6 +14,6 @@ function compose(section){if(section.dataset.ta2Composed==='true')return;section
 sections.forEach(installInteraction);if(reduced&&reduced.matches)return;
 sections.forEach(arm);
 if(!('IntersectionObserver'in window)){sections.forEach(function(s){window.setTimeout(function(){compose(s)},260)});return}
-var observer=new IntersectionObserver(function(entries){entries.forEach(function(entry){if(entry.isIntersecting&&entry.intersectionRatio>=.56){compose(entry.target);observer.unobserve(entry.target)}})},{threshold:[.35,.56,.72],rootMargin:'0px 0px -4% 0px'});
-sections.forEach(function(s){observer.observe(s)});
+var observer=new IntersectionObserver(function(entries){entries.forEach(function(entry){if(entry.isIntersecting&&entry.intersectionRatio>=.58){var section=entry.target.closest('[data-ta2]');if(section)compose(section);observer.unobserve(entry.target)}})},{threshold:[.42,.58,.72],rootMargin:'0px 0px -3% 0px'});
+sections.forEach(function(s){var obj=s.querySelector('[data-ta2-object]');if(obj)observer.observe(obj)});
 })();

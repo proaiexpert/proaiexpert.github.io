@@ -5,6 +5,7 @@
   if (!sections.length) return;
 
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+  var finePointer = window.matchMedia && window.matchMedia('(hover:hover) and (pointer:fine)');
 
   function clearActive(instrument) {
     instrument.removeAttribute('data-active');
@@ -29,9 +30,7 @@
       var family = control.getAttribute('data-family');
 
       control.addEventListener('pointerenter', function () {
-        if (window.matchMedia && window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
-          setActive(instrument, family);
-        }
+        if (finePointer && finePointer.matches) setActive(instrument, family);
       }, { passive: true });
 
       control.addEventListener('pointerleave', function () {
@@ -47,12 +46,7 @@
       });
 
       control.addEventListener('click', function () {
-        var isActive = instrument.getAttribute('data-active') === family;
-        if (isActive && control.getAttribute('aria-pressed') === 'true') {
-          clearActive(instrument);
-        } else {
-          setActive(instrument, family);
-        }
+        if (!finePointer || !finePointer.matches) setActive(instrument, family);
       });
     });
   }

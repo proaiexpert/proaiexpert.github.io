@@ -1,10 +1,10 @@
 # PROAI EXPERT — HOMEPAGE CLEANUP — MASTER STATE
 
-> Internal coordination authority only. This file lives on the non-production branch `coord/homepage-cleanup-master-state`. It is NOT production authority and is not intended to merge to `main`.
+> Internal coordination authority only. Lives on non-production branch `coord/homepage-cleanup-master-state`. Not intended for merge to `main`.
 
 ## A. LAST UPDATED
 
-2026-09-04 — Master Coordinator Architecture R2 / Selected Work prototype handoff prepared.
+2026-09-04 — Selected Work Curated Evidence Table R1.2 worker result reviewed. Copy/status correction accepted. Visual acceptance remains blocked pending real-pixel browser QA with all three repository assets.
 
 ## B. CURRENT PRODUCTION MAIN
 
@@ -23,7 +23,7 @@ Rule: before any repository action, fetch current `main` again. Never assume thi
 - EN: https://proai-expert.com/
 - RU: https://proai-expert.com/ru/
 
-For art-direction judgment, if source and rendering differ, the live visual result wins.
+For art-direction judgment, live rendering wins if source and rendering differ.
 
 ## D. CURRENT HOMEPAGE SECTION SEQUENCE
 
@@ -48,7 +48,7 @@ Preserve-first unless a new explicit reason is established and Owner approves:
 - Financial Stream
 - Inside ProAI / Live System
 
-Selected Thinking: not in the current deep-redesign queue.
+Selected Thinking: not in current deep-redesign queue.
 
 Footer: not a current bottleneck.
 
@@ -65,11 +65,11 @@ Transferable principles:
 - one clear central idea;
 - causal behavior rather than decorative motion;
 - form explains real system behavior;
-- truthful system/human boundary;
-- strong resolved payoff;
+- truthful human/system boundary;
+- strong payoff;
 - responsive recomposition rather than desktop shrinkage.
 
-Do NOT copy its visual language into other sections:
+Do NOT copy its visual language:
 
 - code/terminal windows;
 - orchestration console;
@@ -78,7 +78,7 @@ Do NOT copy its visual language into other sections:
 - READY plate;
 - execution-state styling/choreography.
 
-Benchmark quality, not benchmark visual style.
+Benchmark quality, not visual style.
 
 ## G. EXTERNAL AUDIT EVIDENCE REGISTRY
 
@@ -86,82 +86,69 @@ Benchmark quality, not benchmark visual style.
 - Overall: 8.6 / D
 - Strongest: Live System / Two Worlds / Hero
 - Weakest: Selected Work / Technology
-- First candidate: Selected Work
-- Signal: strongest sections demonstrate; weaker sections revert to register/ledger presentation.
+- First: Selected Work
 
 ### Audit #2 — HIGH CONFIDENCE
 - Overall: 7.2 / C with D-level moments
 - Strongest: Live System / Two Worlds / Selected Work
 - Weakest: Technology / Financial Stream
-- First candidate: Technology
-- Signal: logo band generic; excessive ledger/rule language; insufficient storytelling variety.
+- First: Technology
 
 ### Audit #3 — STRUCTURAL / BUSINESS WEIGHT
-- No browser-grade pixel QA.
+- No browser-grade pixel QA
 - Strongest: Live System / Financial Stream / Hero
 - Weakest: Technology / Selected Thinking
-- First candidate: Technology
-- Use mainly for structure, business role, sequence. Reduce visual/material/motion weight.
+- First: Technology
+- Reduce visual/material/motion weight.
 
 ### Audit #4 — REDUCED / INCOMPLETE
-- Omitted current Live System.
+- Omitted current Live System
 - Weakest: Technology / Selected Thinking
-- Secondary supporting evidence only.
+- Secondary evidence only.
 
 ### Audit #5 — HIGH CONFIDENCE
 - Overall: 7.4 / C
 - Strongest: Live System / Hero / Financial Stream
 - Weakest: Selected Thinking / Technology
-- First candidate: Selected Thinking
-- Signal: post-Live-System rhythm drop; Technology remains generic.
+- First: Selected Thinking
 
 ## H. AUDIT CONFIDENCE / WEIGHT
 
 Primary external weight: Audits #1, #2, #5.
 
-Structural/business weight with reduced visual authority: Audit #3.
+Structural/business weight only: Audit #3.
 
 Secondary only: Audit #4.
 
-Do not choose by majority vote; Master arbitration controls priority.
+Master arbitration controls priority; do not choose by vote count.
 
 ## I. REJECTED / STALE AUDIT REGISTRY
 
 ### Audit #6 — REJECTED / ZERO WEIGHT
 
-Audited obsolete Homepage sections including:
+Audited obsolete Homepage sections including Problem / Approach, Pillars Routing, Delivery Process, Workflow Environment 01–06 and Founder Authority.
 
-- Problem / Approach
-- Pillars Routing
-- Delivery Process
-- Workflow Environment 01–06
-- Founder Authority
-
-Classification: stale Homepage authority / wrong section set / zero weight for current prioritization.
+Classification: stale Homepage authority / wrong section set / zero weight.
 
 ## J. MASTER BLIND BASELINE
 
-Completed before external opinions were revealed.
+Completed before external opinions.
 
 Overall: **8.5 / 10**
 
 Maturity: **D — Bespoke high-end digital experience**
 
 Strongest:
-
 1. Live System — 9.4
 2. Two Worlds — 9.1
 3. Financial Stream — 9.0
 
 Upgrade candidates:
-
 1. Selected Work — 7.1
 2. Connected System — 7.8
 3. Technology Ecosystem — 6.8
 
-Systemic diagnosis: too many different business ideas are translated into the same precision-system / editorial-instrument grammar.
-
-Preserve this blind result as independent evidence.
+Systemic diagnosis: too many different business ideas use the same precision-system / editorial-instrument grammar.
 
 ## K. MASTER ARBITRATION RESULT
 
@@ -177,7 +164,7 @@ Reason: Technology is the most obviously weak standalone block; Selected Work is
 2. Technology Ecosystem
 3. Connected System
 
-Selected Thinking is not promoted into the deep-redesign queue.
+Selected Thinking is not promoted into deep-redesign queue.
 
 ## M. ACTIVE BLOCK
 
@@ -187,137 +174,148 @@ Selected Thinking is not promoted into the deep-redesign queue.
 
 Research: **DEEP CANDIDATE RESEARCH R1 — COMPLETE**
 
-Next phase: **CURATED EVIDENCE TABLE — ISOLATED PROTOTYPE R1**
+Prototype: **CURATED EVIDENCE TABLE R1.2 — COPY/STATUS CORRECTION ACCEPTED; REAL-PIXEL VISUAL QA BLOCKED**
 
 Production integration: **NOT STARTED**
 
 ## O. CURRENT DECISION
 
-The current Selected Work ledger is a strong premium editorial index but an underpowered primary proof medium for its strategic position after Financial Stream, Live System and Selected Thinking.
+The Selected Work redesign direction remains active.
 
-Do not discard its truth discipline or typographic authority. The next prototype must make actual project evidence the art-direction material while preserving instant status/scope comprehension.
+R1.2 Master decision:
+
+- ACCEPT the removal of count emphasis (`Three projects...` / `Три проекта...`).
+- ACCEPT the new neutral headline direction: `Different problems. Different forms of proof.` / `Разные задачи. Разные формы доказательства.`
+- ACCEPT Local Repair Pro reframing from repeated defensive `Concept / Demo` language to truthful positive status: `PROAI BUILD · LIVE DEMO` / `РАЗРАБОТКА PROAI · LIVE DEMO`.
+- ACCEPT removal of repeated negative disclaimer language from the main composition.
+- DO NOT visually accept the prototype yet because all three real project assets have not been rendered and inspected together in browser screenshots.
+
+No conceptual restart is authorized. Next work is only the remaining real-pixel QA gate and any crop/composition corrections directly caused by that QA.
 
 ## P. CURRENT CONCEPT / RESEARCH WINNER
 
-Winner: **TERRITORY 1 — CURATED EVIDENCE TABLE / THREE PROOF OBJECTS**
+Winner: **CURATED EVIDENCE TABLE / DISTINCT PROOF OBJECTS**
 
 Confidence: **91%**
 
-Core idea:
+Public-facing principle: **Selected work. Different problems. Different forms of proof.**
 
-**THREE PROJECTS. THREE DIFFERENT FORMS OF PROOF.**
+Do not emphasize the exact number of projects.
 
-Not three cards. Not three identical records. Not a carousel. Not Bento.
-
-Project-specific proof roles:
+Project proof roles:
 
 ### Financial Stream
-Can uniquely prove:
 - real live client;
 - bilingual business architecture;
-- real operational system;
-- dated search/indexing evidence;
-- testimonial.
+- operational digital system;
+- compact evidence only;
+- do not repeat its flagship Homepage section.
 
-Constraint: do NOT repeat the full Financial Stream flagship Homepage section. Use compact proof only.
+Current selected artifact:
+`assets/img/cases/financial-stream/delivery-v2/en/fs-en-02-request-v2-1120.webp`
 
 ### Psychology Practice / Alina Horb
-Can uniquely prove:
 - human presence;
+- person-led trust;
 - professional restraint;
-- sensitive-content design;
-- personal brand;
-- UA/RU architecture;
-- editorial depth;
-- first-contact trust.
+- bilingual editorial architecture;
+- sensitive first-contact design.
+
+Current selected artifact:
+`assets/img/cases/alina-horb/final-assets-v1/delivery/alina-horb-about-approach-ua-desktop.webp`
 
 ### Local Repair Pro
-Status: **WORKING CONCEPT / DEMO**.
+Public status:
+`PROAI BUILD · LIVE DEMO` / `РАЗРАБОТКА PROAI · LIVE DEMO`
 
-Can uniquely prove:
-- production-like multi-page service architecture;
-- Photo-to-Scope thinking;
-- structured request design;
-- service-journey depth.
+Truth boundary: independent ProAI demonstration build, not a claimed client launch.
 
-Constraint: must never visually imply launched client work. `CONCEPT / DEMO` status must be primary, not fine print.
+Can prove:
+- multi-page local-service architecture;
+- Photo-to-Scope;
+- structured request UX;
+- service areas;
+- responsive implementation;
+- customer-journey depth.
+
+Current selected artifact:
+`assets/img/cases/local-repair-pro/production-v1/lrp-02-photo-to-scope-1400.webp`
+
+Do not use the public-facing word `prototype / прототип` for this item.
 
 ## Q. NON-NEGOTIABLE CONSTRAINTS
 
-Selected Work must preserve:
+Preserve:
 
-- truthful project statuses;
+- truthful project status;
 - Financial Stream / Alina Horb / Local Repair Pro;
 - factual ProAI-built scope;
 - existing case-study routes;
 - existing live-site/demo routes;
-- curated selection, not full portfolio catalog;
+- curated selection rather than full catalogue;
 - fast comprehension;
-- strong typographic authority;
+- strong typography;
 - no fake outcomes;
 - no invented KPIs;
-- no unsupported client claims;
-- responsive composition by breakpoint, not only shrinkage;
+- no unsupported claims;
+- EN/RU parity;
+- Desktop / Mobile Portrait / Phone Landscape recomposition;
 - reduced-motion support;
 - no horizontal overflow.
 
 ## R. DO-NOT-REPEAT VISUAL LANGUAGE
 
-Do not solve Selected Work with:
+Do not create:
 
 - three equal screenshot cards;
-- generic agency portfolio grid;
+- generic portfolio grid;
 - Bento / box-box-box composition;
-- draggable carousel;
+- carousel / slider;
 - timeline;
-- rail / nodes / connected markers;
+- rail / nodes / markers;
 - `01 → 02 → 03` as primary mechanism;
 - another Financial Stream device composition;
-- another Live System/code interface;
+- another Live System / code interface;
 - another Two Worlds fold;
 - another Cube;
 - generic dashboard;
-- filters/search/archive machinery for three projects;
+- filters/search/archive machinery;
 - mockup gallery without business meaning.
 
-Main prototype failure risk: **BENTO DRIFT**.
+Main risk: **BENTO DRIFT**.
 
 ## S. WORKER REPORT INDEX
 
-- Master blind Homepage audit — complete, preserved in Master chat.
-- Master arbitration — complete, Selected Work chosen at 92% confidence.
-- Selected Work Deep Candidate Research R1 — complete, Curated Evidence Table chosen at 91% confidence.
-- Selected Work Curated Evidence Table Isolated Prototype R1 — **PENDING WORKER REPORT**.
-
-Future worker phases should report concise evidence/results back to the Master. After arbitration, record only the accepted/rejected outcome and next state here; do not paste full transcripts.
+- Master blind Homepage audit — complete.
+- Master arbitration — complete; Selected Work chosen at 92% confidence.
+- Selected Work Deep Candidate Research R1 — complete; Curated Evidence Table chosen at 91% confidence.
+- Isolated Prototype R1 — structural prototype completed; visual acceptance withheld because screenshots used neutral structural fields rather than real project pixels.
+- Correction R1.2 — branch `review/homepage-selected-work-curated-evidence-r1`, reported HEAD `525188765bb92e6e3204e098d281cac263610d26`. Count-emphasis removal and Local Repair status reframing accepted by Master. Worker correctly returned `BLOCKED` rather than claiming real-image visual PASS.
 
 ## T. NEXT ACTION
 
-Launch one fresh worker ChatGPT for:
+Continue the SAME worker phase narrowly.
 
-**PROAI EXPERT — SELECTED WORK — CURATED EVIDENCE TABLE — ISOLATED PROTOTYPE R1**
+Do not restart concept work.
 
-Worker must:
+Required next action:
 
-- read this canonical state first;
-- independently verify current `main` and current live;
-- inspect real project assets;
-- build only an isolated review prototype for Desktop / Mobile Portrait / Phone Landscape;
-- preserve status/claim boundaries;
-- not modify production `main`;
-- not merge;
-- not deploy;
-- return exact branch/files/review instructions and risks.
+1. reconstruct/access all three exact repository WebP assets in the worker browser environment;
+2. verify file authenticity where reconstruction is used;
+3. serve the real assets through a browser-accessible local preview;
+4. render actual project pixels at Desktop 1440×900, Desktop Wide, Portrait 390×844, Narrow Portrait, and Landscape 844×390;
+5. inspect crop, legibility, project differentiation, Bento drift and overflow;
+6. correct only crop/layout issues revealed by real-pixel QA;
+7. return actual screenshots and an actionable PASS/REVISE result.
 
-Master chat will arbitrate the worker result and update this state.
+If exact real-pixel browser rendering remains impossible after exhausting the available repository/local-preview path, return a precise technical blocker; do not use placeholders as acceptance evidence.
 
 ## U. PRODUCTION SAFETY RULES
 
 - `main` is sole production repository authority.
-- This coordination branch is internal state only and is not intended to merge to `main`.
+- Coordination branch is internal state only and is not intended to merge to `main`.
 - Before any repository operation, fetch current `main` again.
 - Historical branches/commits/screenshots are evidence only.
-- No stale donor becomes authority automatically.
 - No unrelated diffs.
 - Worker chats have no authority to modify `main`, merge or deploy.
 - Production integration requires Master approval + Owner visual approval + current-main fetch + exact diff verification.

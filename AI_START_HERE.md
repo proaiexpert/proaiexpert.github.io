@@ -8,8 +8,9 @@ This is the deterministic entrypoint for a fresh ChatGPT or Codex session workin
 2. Read root `AGENTS.md`.
 3. Read root `AI_CURRENT_HANDOFF.md`.
 4. Read root `README.md`.
-5. Read only the canonical task-specific documents named in the handoff or user instruction.
-6. Inspect relevant branch/PR metadata when the task references active work.
+5. For meaningful visual website work, read `docs/operations/CLOUDFLARE_REMOTE_VISUAL_REVIEW.md` before planning the Owner review path.
+6. Read only the canonical task-specific documents named in the handoff or user instruction.
+7. Inspect relevant branch/PR metadata when the task references active work.
 
 Do not begin broad repository exploration and do not treat old drafts, closed issues, screenshots, or chat exports as current truth unless the handoff explicitly points to them.
 
@@ -24,6 +25,17 @@ Do not begin broad repository exploration and do not treat old drafts, closed is
 - Tier 1: one ChatGPT chat for small scoped work, normally 1–3 files.
 - Tier 2: separate ChatGPT Builder and Reviewer chats for production-facing, shared CSS/JS, EN/RU parity, homepage, portfolio, SEO architecture, or medium-risk work.
 - Tier 3: Codex only when a local dev server, Playwright/browser automation, screenshots, complex build/test pipelines, broad debugging, large refactor, or prolonged terminal execution is materially required.
+- Do not use Codex merely to obtain a hosted preview. Cloudflare Pages is the default remote visual-review layer.
+
+## Remote Visual Review
+For meaningful visual website work:
+- GitHub branch/commit remains the source authority.
+- Use Cloudflare Pages to provide the Owner with a live HTTPS preview accessible from iPhone on any network.
+- Do not use localhost, LAN URLs, Windows paths, or screenshots alone as the primary Owner review surface when motion/interactivity/responsive behavior matters.
+- Current Cloudflare project: `proaiexpert-github-io`.
+- Current stable AI Systems Hero preview branch: `hero-preview`.
+- Preview-only controls must be clearly isolated and must not silently alter product behavior.
+- Follow `docs/operations/CLOUDFLARE_REMOTE_VISUAL_REVIEW.md`.
 
 ## Project Invariants
 - English lives at root; Russian lives under `/ru/`.
@@ -49,6 +61,8 @@ Before editing, report:
 - next action.
 
 For a clear Builder instruction that already authorizes branch, commit, and push, proceed after this brief preamble without asking for redundant confirmation.
+
+For meaningful visual work, the plan must also state how the Owner will receive a phone-accessible Cloudflare preview URL before visual approval is requested.
 
 ## Handoff Rule
 After meaningful merged work, update `AI_CURRENT_HANDOFF.md` so the next fresh chat can recover the current state without reading prior chats.

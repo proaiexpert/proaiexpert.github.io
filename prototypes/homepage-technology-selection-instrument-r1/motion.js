@@ -38,15 +38,19 @@
       }, { passive: true });
 
       control.addEventListener('focus', function () {
-        setActive(instrument, family);
+        if ((finePointer && finePointer.matches) || control.matches(':focus-visible')) {
+          setActive(instrument, family);
+        }
       });
 
       control.addEventListener('blur', function () {
-        clearActive(instrument);
+        if (finePointer && finePointer.matches) clearActive(instrument);
       });
 
       control.addEventListener('click', function () {
-        if (!finePointer || !finePointer.matches) setActive(instrument, family);
+        if (finePointer && finePointer.matches) return;
+        if (control.getAttribute('aria-pressed') === 'true') clearActive(instrument);
+        else setActive(instrument, family);
       });
     });
   }
@@ -60,7 +64,7 @@
     section.classList.add('is-calibrating');
     window.setTimeout(function () {
       section.classList.remove('is-calibrating');
-    }, 1280);
+    }, 1540);
   }
 
   sections.forEach(installInteraction);
@@ -77,12 +81,12 @@
 
   var observer = new IntersectionObserver(function (entries) {
     entries.forEach(function (entry) {
-      if (entry.isIntersecting && entry.intersectionRatio >= 0.35) {
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.3) {
         calibrate(entry.target);
         observer.unobserve(entry.target);
       }
     });
-  }, { threshold: [0.35, 0.55] });
+  }, { threshold: [0.3, 0.5] });
 
   sections.forEach(function (section) { observer.observe(section); });
 })();

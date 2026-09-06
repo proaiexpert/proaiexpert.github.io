@@ -17,9 +17,10 @@
     const canvas=section.querySelector('[data-tav4-canvas]');
     const controls=Array.from(section.querySelectorAll('[data-family]'));
     const reduced=!!(reducedQuery&&reducedQuery.matches);
+    const REVEAL_MS=3050;
     let gl=null, program=null, webgl=false;
     let vp=null,camera=[6.2,3.55,11.2],focus=[0,0,.65],focusIntensity=0;
-    let animating=false,startTime=0,observer=null;
+    let animating=false,startTime=0,observer=null,rafId=0,completionTimer=0,nearTimer=0;
     let lastW=0,lastH=0;
 
     function setActive(family){
@@ -51,7 +52,9 @@
       webgl=true;
     }catch(err){
       section.dataset.webgl='fallback';
-      section.classList.add('is-capabilities','is-vendors','is-resolved');
+      section.classList.add('is-constraining','is-capabilities','is-vendors','is-resolved');
+      section.dataset.tav4Played='true';
+      section.dataset.tav4Resolved='true';
       return;
     }
 
@@ -133,8 +136,8 @@
       const baseMotion=smooth((p-.10)/.50);
       const offsets=constraints.map((_,i)=>3.45*(1-smooth(clamp(baseMotion*1.08-i*.035,0,1))));
       const finalOpacity=smooth((p-.56)/.22);
-      const ghostOpacity=mix(.25,.035,smooth((p-.48)/.28));
-      const planeOpacity=p<.1?.075:mix(.10,.165,smooth((p-.12)/.38));
+      const ghostOpacity=mix(.30,.035,smooth((p-.48)/.28));
+      const planeOpacity=p<.1?.09:mix(.10,.165,smooth((p-.12)/.38));
       const planeRest= p>.78 ? mix(planeOpacity,.065,smooth((p-.78)/.22)) : planeOpacity;
       const pg=planeGeometry(offsets);
       gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
@@ -145,7 +148,7 @@
       bind(planeEdgePos,planeEdgeNor);material([.69,.74,.78],Math.min(.24,planeRest*2.05),false,false,0);gl.drawArrays(gl.LINES,0,pg.lineCount);
 
       bind(boxPos,boxNor);material([.19,.22,.25],ghostOpacity,true,true,.24);gl.drawArrays(gl.TRIANGLES,0,boxGeometry.positions.length/3);
-      bind(edgePos,edgeNor);material([.60,.66,.70],mix(.20,.04,smooth((p-.52)/.30)),true,false,0);gl.drawArrays(gl.LINES,0,boxEdges.length/3);
+      bind(edgePos,edgeNor);material([.60,.66,.70],mix(.23,.04,smooth((p-.52)/.30)),true,false,0);gl.drawArrays(gl.LINES,0,boxEdges.length/3);
 
       gl.depthMask(true);
       if(finalOpacity>.001){
@@ -153,37 +156,108 @@
       }
     }
 
+    function viewportMetrics(){
+      const rect=visual.getBoundingClientRect();
+      const vh=window.innerHeight||document.documentElement.clientHeight||0;
+      const vw=window.innerWidth||document.documentElement.clientWidth||0;
+      const visibleY=Math.max(0,Math.min(rect.bottom,vh)-Math.max(rect.top,0));
+      const visibleX=Math.max(0,Math.min(rect.right,vw)-Math.max(rect.left,0));
+      return {rect,vh,vw,visibleY,visibleX};
+    }
+    function clearlyVisible(){
+      const m=viewportMetrics();
+      const needY=Math.min(140,Math.max(72,m.rect.height*.18));
+      const needX=Math.min(160,Math.max(100,m.rect.width*.18));
+      return m.visibleY>=needY&&m.visibleX>=needX;
+    }
+    function nearViewport(){
+      const m=viewportMetrics();
+      const margin=Math.max(80,Math.min(170,m.vh*.16));
+      return m.rect.bottom>=-margin&&m.rect.top<=m.vh+margin&&m.rect.right>=0&&m.rect.left<=m.vw;
+    }
+    function disconnectStartWatchers(){
+      if(observer){observer.disconnect();observer=null;}
+      if(nearTimer){clearTimeout(nearTimer);nearTimer=0;}
+      window.removeEventListener('scroll',guardStart);
+    }
     function finish(){
+      if(section.dataset.tav4Resolved==='true')return;
       animating=false;
+      section.dataset.tav4Resolved='true';
+      if(rafId){cancelAnimationFrame(rafId);rafId=0;}
+      if(completionTimer){clearTimeout(completionTimer);completionTimer=0;}
+      disconnectStartWatchers();
       section.classList.add('is-constraining','is-capabilities','is-vendors','is-resolved');
       render(1);
     }
+    function scheduleTick(){
+      if(!rafId&&animating)rafId=requestAnimationFrame(tick);
+    }
     function tick(now){
+      rafId=0;
       if(!animating)return;
-      const p=clamp((now-startTime)/3050,0,1);
+      const p=clamp((now-startTime)/REVEAL_MS,0,1);
       if(p>.10)section.classList.add('is-constraining');
       if(p>.76)section.classList.add('is-capabilities');
       if(p>.87)section.classList.add('is-vendors');
       if(p>.94)section.classList.add('is-resolved');
       render(p);
-      if(p<1)requestAnimationFrame(tick);else finish();
+      if(p<1)scheduleTick();else finish();
     }
     function start(){
       if(animating||section.dataset.tav4Played==='true')return;
       section.dataset.tav4Played='true';
+      disconnectStartWatchers();
       if(reduced){finish();return;}
-      animating=true;startTime=performance.now();requestAnimationFrame(tick);
+      animating=true;
+      startTime=performance.now();
+      completionTimer=setTimeout(finish,REVEAL_MS+900);
+      scheduleTick();
+    }
+    function guardStart(){
+      if(section.dataset.tav4Played==='true')return;
+      if(clearlyVisible()){start();return;}
+      if(nearViewport()&&!nearTimer){
+        nearTimer=setTimeout(()=>{
+          nearTimer=0;
+          if(section.dataset.tav4Played!=='true'&&nearViewport())start();
+        },650);
+      }
+    }
+    function syncRuntime(){
+      if(section.dataset.tav4Resolved==='true')return;
+      if(section.dataset.tav4Played!=='true'){guardStart();return;}
+      if(reduced){finish();return;}
+      const elapsed=performance.now()-startTime;
+      if(elapsed>=REVEAL_MS){finish();return;}
+      animating=true;
+      render(clamp(elapsed/REVEAL_MS,0,1));
+      scheduleTick();
+    }
+    function renderCurrentState(){
+      if(section.dataset.tav4Resolved==='true'){render(1);return;}
+      if(animating){render(clamp((performance.now()-startTime)/REVEAL_MS,0,1));return;}
+      render(0);
     }
 
-    window.addEventListener('resize',()=>{render(animating?clamp((performance.now()-startTime)/3050,0,1):1);},{passive:true});
+    window.addEventListener('resize',()=>{renderCurrentState();guardStart();},{passive:true});
+    window.addEventListener('pageshow',syncRuntime,{passive:true});
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncRuntime();},{passive:true});
+
     if(reduced){finish();}
     else if('IntersectionObserver' in window){
       observer=new IntersectionObserver(entries=>entries.forEach(entry=>{
-        if(entry.isIntersecting&&entry.intersectionRatio>=.52){start();observer.disconnect();}
-      }),{threshold:[.32,.52,.72]});
+        if(entry.isIntersecting&&(entry.intersectionRatio>=.16||clearlyVisible()))start();
+      }),{rootMargin:'8% 0px 8% 0px',threshold:[0,.08,.16,.28,.42]});
       observer.observe(visual);
+      window.addEventListener('scroll',guardStart,{passive:true});
       render(0);
-    }else{render(0);start();}
+      requestAnimationFrame(guardStart);
+      setTimeout(guardStart,800);
+    }else{
+      render(0);
+      requestAnimationFrame(()=>{if(clearlyVisible()||nearViewport())start();else start();});
+    }
   }
 
   sections.forEach(install);

@@ -17,7 +17,7 @@
     const canvas=section.querySelector('[data-tav4-canvas]');
     const controls=Array.from(section.querySelectorAll('[data-family]'));
     const reduced=!!(reducedQuery&&reducedQuery.matches);
-    const REVEAL_MS=3050;
+    const REVEAL_MS=4250;
     let gl=null, program=null, webgl=false;
     let vp=null,camera=[6.2,3.55,11.2],focus=[0,0,.65],focusIntensity=0;
     let animating=false,startTime=0,observer=null,rafId=0,completionTimer=0,nearTimer=0;
@@ -136,9 +136,9 @@
       const baseMotion=smooth((p-.10)/.50);
       const offsets=constraints.map((_,i)=>3.45*(1-smooth(clamp(baseMotion*1.08-i*.035,0,1))));
       const finalOpacity=smooth((p-.56)/.22);
-      const ghostOpacity=mix(.30,.035,smooth((p-.48)/.28));
-      const planeOpacity=p<.1?.09:mix(.10,.165,smooth((p-.12)/.38));
-      const planeRest= p>.78 ? mix(planeOpacity,.065,smooth((p-.78)/.22)) : planeOpacity;
+      const ghostOpacity=mix(.30,.045,smooth((p-.52)/.30));
+      const planeOpacity=p<.1?.09:mix(.10,.17,smooth((p-.12)/.40));
+      const planeRest= p>.84 ? mix(planeOpacity,.095,smooth((p-.84)/.16)) : planeOpacity;
       const pg=planeGeometry(offsets);
       gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
       gl.uniform4fv(loc.clip,targetClipArray(offsets));
@@ -148,7 +148,7 @@
       bind(planeEdgePos,planeEdgeNor);material([.69,.74,.78],Math.min(.24,planeRest*2.05),false,false,0);gl.drawArrays(gl.LINES,0,pg.lineCount);
 
       bind(boxPos,boxNor);material([.19,.22,.25],ghostOpacity,true,true,.24);gl.drawArrays(gl.TRIANGLES,0,boxGeometry.positions.length/3);
-      bind(edgePos,edgeNor);material([.60,.66,.70],mix(.23,.04,smooth((p-.52)/.30)),true,false,0);gl.drawArrays(gl.LINES,0,boxEdges.length/3);
+      bind(edgePos,edgeNor);material([.60,.66,.70],mix(.23,.105,smooth((p-.68)/.24)),true,false,0);gl.drawArrays(gl.LINES,0,boxEdges.length/3);
 
       gl.depthMask(true);
       if(finalOpacity>.001){

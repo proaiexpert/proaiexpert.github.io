@@ -126,8 +126,8 @@
       const w=Math.max(2,Math.round(rect.width*dpr)),h=Math.max(2,Math.round(rect.height*dpr));
       if(w!==lastW||h!==lastH){canvas.width=w;canvas.height=h;lastW=w;lastH=h;gl.viewport(0,0,w,h);}
       const aspect=w/h;let fov=32;
-      if(rect.width<520){camera=[5.45,4.35,10.55];target=[0,-.08,0];fov=35;}
-      else if(rect.height<310&&rect.width>520){camera=[6.45,3.45,10.35];target=[.02,-.08,0];fov=34;}
+      if(rect.height<340&&rect.width>470){camera=[6.45,3.45,10.35];target=[.02,-.08,0];fov=34;}
+      else if(rect.width<520){camera=[5.45,4.35,10.55];target=[0,-.08,0];fov=35;}
       else if(rect.width<920){camera=[6.05,3.95,10.65];target=[0,-.06,0];fov=33;}
       else{camera=[6.90,4.15,10.70];target=[0,-.05,0];fov=32;}
       vp=multiply(perspective(fov*Math.PI/180,aspect,.1,50),lookAt(camera,target,[0,1,0]));

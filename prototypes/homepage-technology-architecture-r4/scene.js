@@ -41,8 +41,26 @@
       });
     });
 
+    function activateFallback(){
+      webgl=false;
+      animating=false;
+      if(rafId){cancelAnimationFrame(rafId);rafId=0;}
+      if(completionTimer){clearTimeout(completionTimer);completionTimer=0;}
+      disconnectStartWatchers();
+      section.classList.remove('is-webgl');
+      section.dataset.webgl='fallback';
+      section.classList.add('is-constraining','is-capabilities','is-vendors','is-resolved');
+      section.dataset.tav4Played='true';
+      section.dataset.tav4Resolved='true';
+    }
+
+    canvas.addEventListener('webglcontextlost',event=>{
+      event.preventDefault();
+      activateFallback();
+    },false);
+
     try{
-      gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:true,powerPreference:'high-performance'});
+      gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:true,powerPreference:'high-performance',preserveDrawingBuffer:true});
       if(!gl) throw new Error('WebGL unavailable');
       program=createProgram(gl);
       gl.useProgram(program);
@@ -51,10 +69,7 @@
       gl.clearColor(0,0,0,0);
       webgl=true;
     }catch(err){
-      section.dataset.webgl='fallback';
-      section.classList.add('is-constraining','is-capabilities','is-vendors','is-resolved');
-      section.dataset.tav4Played='true';
-      section.dataset.tav4Resolved='true';
+      activateFallback();
       return;
     }
 
@@ -225,7 +240,10 @@
       }
     }
     function syncRuntime(){
-      if(section.dataset.tav4Resolved==='true')return;
+      if(section.dataset.tav4Resolved==='true'){
+        if(webgl)render(1);
+        return;
+      }
       if(section.dataset.tav4Played!=='true'){guardStart();return;}
       if(reduced){finish();return;}
       const elapsed=performance.now()-startTime;
@@ -235,6 +253,7 @@
       scheduleTick();
     }
     function renderCurrentState(){
+      if(!webgl)return;
       if(section.dataset.tav4Resolved==='true'){render(1);return;}
       if(animating){render(clamp((performance.now()-startTime)/REVEAL_MS,0,1));return;}
       render(0);

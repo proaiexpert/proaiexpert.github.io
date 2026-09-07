@@ -1,0 +1,31 @@
+name: ProAI Cube R0 Review Artifact
+# Refresh owner-review package after final mid-turn evidence capture.
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-threejs-mechanical-r0
+    paths:
+      - '.github/workflows/proai-cube-r0-review-artifact.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-threejs-mechanical-r0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-r0-owner-review
+          path: |
+            docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/review/proai-cube-r0-natural-3q.png
+            docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/review/proai-cube-r0-slice-turn.png
+            docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/review/proai-cube-r0-review-12s.webm
+            docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/review/qa-report.json
+          if-no-files-found: error
+          retention-days: 7

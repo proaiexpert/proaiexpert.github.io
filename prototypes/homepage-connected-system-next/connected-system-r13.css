@@ -1,0 +1,225 @@
+/* =========================================================
+   R1.3 — PREMIUM AUTHORITY / SEMANTIC LOCK-IN
+   Strong active occlusion, quieter provenance history,
+   state-specific semantic focus, and weighted registration.
+   ========================================================= */
+
+/* Give narrative authority equal compositional weight without turning it into UI. */
+@media (min-width:901px){
+  .connected-next__sticky-stage{grid-template-columns:minmax(0,1.52fr) minmax(390px,1fr);gap:clamp(32px,3.5vw,56px)}
+}
+
+/* Ledger: active plate is a matte material surface. History remains visible but never contaminates active copy. */
+.ledger-plate{
+  background:linear-gradient(108deg,#0c0e0f 0%,#0a0c0d 58%,#08090a 100%);
+  border-top-color:rgba(240,236,227,.115);
+  box-shadow:0 -9px 26px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.018),inset 0 -1px rgba(0,0,0,.34);
+}
+.ledger-plate.is-active{
+  z-index:12;
+  min-height:236px;
+  background:
+    radial-gradient(130% 100% at 5% 0%,rgba(244,240,231,.055),transparent 43%),
+    linear-gradient(110deg,#17191a 0%,#121415 47%,#0d0f10 100%);
+  box-shadow:0 16px 42px rgba(0,0,0,.4),0 -1px 0 rgba(242,238,229,.13),inset 1px 0 rgba(242,238,229,.055),inset 0 -1px rgba(0,0,0,.5);
+  filter:none;
+  opacity:1;
+}
+.ledger-plate.is-active::before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(112deg,transparent 0 34%,rgba(247,242,232,.026) 49%,transparent 63%);pointer-events:none}
+.ledger-plate.is-active .ledger-plate__head strong{color:#f6f2ea;text-shadow:0 1px 0 rgba(255,255,255,.02)}
+.ledger-plate.is-active .ledger-detail b{color:#f4f0e8}
+.ledger-plate.is-active .ledger-detail small{color:#b7bdbe}
+.ledger-plate.is-active .ledger-components{color:#9fa6a8;border-top-color:rgba(239,235,226,.11)}
+.ledger-plate.is-past{
+  background:linear-gradient(108deg,#0a0c0d,#080a0b 76%,#070809);
+  opacity:.56;
+  filter:brightness(.76);
+  transform:translate3d(4px,0,0) scaleX(.987);
+}
+.ledger-plate.is-future{
+  background:linear-gradient(108deg,#090a0b,#070809 78%,#060708);
+  opacity:.34;
+  filter:brightness(.66);
+  transform:translate3d(10px,0,0) scaleX(.976);
+}
+.state-ledger li+li{margin-top:-8px}
+.connected-next[data-active-stage="4"] .ledger-plate[data-stage-button="4"]{
+  background:
+    radial-gradient(120% 100% at 6% 0%,rgba(226,199,156,.09),transparent 44%),
+    linear-gradient(108deg,#1b1916 0%,#151412 44%,#0e0f0f 100%);
+  box-shadow:0 18px 46px rgba(0,0,0,.44),0 -1px 0 rgba(232,205,163,.24),inset 1px 0 rgba(232,205,163,.08),inset 0 -1px rgba(0,0,0,.52);
+}
+
+/* Stage-specific semantic hierarchy: prior context stays traceable but cannot compete with the active meaning. */
+.context-artifact[data-state="2"] .origin-system{opacity:.58;filter:brightness(.86)}
+.context-artifact[data-state="2"] .origin-lane{opacity:.58}
+.context-artifact[data-state="2"] .impression-field{filter:brightness(1.02)}
+
+.context-artifact[data-state="3"] .origin-system{opacity:.38;filter:brightness(.78)}
+.context-artifact[data-state="3"] .origin-lane{opacity:.44}
+.context-artifact[data-state="3"] .impression-field{filter:brightness(.82)}
+.context-artifact[data-state="3"] .customer-layer{opacity:.54;filter:brightness(.84)}
+.context-artifact[data-state="3"] .customer-components{opacity:.56}
+
+.context-artifact[data-state="4"] .origin-system{opacity:.32;filter:brightness(.75)}
+.context-artifact[data-state="4"] .origin-lane{opacity:.38}
+.context-artifact[data-state="4"] .impression-field{filter:brightness(.78)}
+.context-artifact[data-state="4"] .customer-layer{opacity:.43;filter:brightness(.82)}
+.context-artifact[data-state="4"] .customer-components{opacity:.5}
+.context-artifact[data-state="4"] .assistive-layer{opacity:.56;filter:brightness(.86)}
+.context-artifact[data-state="4"] .assistive-components{opacity:.58}
+.context-artifact[data-state="4"] .authority-cue{opacity:.74}
+.context-artifact[data-state="4"] .resolution-layer{filter:brightness(1.18) saturate(1.02)}
+.context-artifact[data-state="4"] .resolution-title{color:#f0d9b5;text-shadow:0 10px 30px rgba(181,141,82,.09)}
+
+/* Keep lineage legible even when prior panels are visually quieter. */
+.context-artifact[data-state="3"] .causal-path--origin{opacity:.46}
+.context-artifact[data-state="3"] .causal-path--inquiry{opacity:.62}
+.context-artifact[data-state="4"] .causal-path--origin{opacity:.38}
+.context-artifact[data-state="4"] .causal-path--inquiry{opacity:.48}
+.context-artifact[data-state="4"] .causal-path--response{opacity:.62}
+.context-artifact[data-state="4"] .causal-path--result{opacity:1;stroke:rgba(242,211,162,.64);stroke-width:1.15}
+
+/* Resolution is assembled by the same registered geometry rather than reading as a fresh card. */
+.resolution-layer{background:
+  radial-gradient(110% 90% at 8% 52%,rgba(214,180,126,.035),transparent 33%),
+  linear-gradient(103deg,rgba(211,179,127,.025) 0%,rgba(211,179,127,.15) 34%,rgba(211,179,127,.11) 67%,rgba(238,219,188,.04));
+}
+.resolution-seams{position:absolute;z-index:2;left:-13%;top:25%;width:42%;height:53%;pointer-events:none}
+.resolution-seams i{position:absolute;left:0;width:100%;height:1px;transform-origin:0 50%;background:linear-gradient(90deg,rgba(217,188,141,0),rgba(230,200,152,.62) 64%,rgba(236,209,168,.18));opacity:.62}
+.resolution-seams i:nth-child(1){top:4%;transform:rotate(12deg)}
+.resolution-seams i:nth-child(2){top:48%;transform:rotate(0deg)}
+.resolution-seams i:nth-child(3){top:92%;transform:rotate(-12deg)}
+.resolution-title{z-index:4}
+.resolution-layer__head,.resolution-components{z-index:4}
+
+/* One brief material catch per semantic lock. No ambient loop. */
+.origin-system::after,.customer-layer::after,.assistive-layer::after,.resolution-layer::after{
+  content:"";position:absolute;z-index:20;inset:0;pointer-events:none;opacity:0;
+  background:linear-gradient(112deg,transparent 0 39%,rgba(249,245,236,.11) 49%,transparent 59%);
+  mix-blend-mode:screen;
+}
+.context-artifact.is-locking[data-state="1"] .origin-system{animation:r13-origin-lock 820ms var(--ease-material) both}
+.context-artifact.is-locking[data-state="1"] .origin-system::after{animation:r13-catch 780ms ease-out both}
+.context-artifact.is-locking[data-state="2"] .customer-layer{animation:r13-customer-lock 860ms var(--ease-material) both}
+.context-artifact.is-locking[data-state="2"] .customer-layer::after{animation:r13-catch 820ms ease-out both}
+.context-artifact.is-locking[data-state="3"] .assistive-layer{animation:r13-assistive-lock 900ms var(--ease-material) both}
+.context-artifact.is-locking[data-state="3"] .assistive-layer::after{animation:r13-catch 840ms ease-out both}
+.context-artifact.is-locking[data-state="4"] .resolution-layer{animation:r13-resolution-lock 940ms var(--ease-material) both}
+.context-artifact.is-locking[data-state="4"] .resolution-layer::after{animation:r13-champagne-catch 900ms ease-out both}
+.context-artifact.is-locking[data-state="2"] .provenance-anchor--customer,
+.context-artifact.is-locking[data-state="3"] .provenance-anchor--assistive,
+.context-artifact.is-locking[data-state="4"] .provenance-anchor--resolution{animation:r13-anchor-lock 760ms ease-out both}
+.context-artifact.is-locking[data-state="4"] .resolution-seams i{animation:r13-seam-lock 820ms var(--ease-material) both}
+
+@keyframes r13-origin-lock{
+  0%{transform:translate3d(-6px,0,0);filter:brightness(.96)}
+  72%{transform:translate3d(1px,0,0);filter:brightness(1.13)}
+  100%{transform:none;filter:brightness(1.08)}
+}
+@keyframes r13-customer-lock{
+  0%{transform:translate3d(-18px,11px,0) scale(.982);filter:brightness(.88)}
+  72%{transform:translate3d(2px,-1px,0) scale(1.004);filter:brightness(1.14)}
+  100%{transform:none;filter:brightness(1.08)}
+}
+@keyframes r13-assistive-lock{
+  0%{transform:translate3d(15px,-7px,0) scale(.985);filter:brightness(.86)}
+  70%{transform:translate3d(-2px,1px,0) scale(1.003);filter:brightness(1.15)}
+  100%{transform:none;filter:brightness(1.08)}
+}
+@keyframes r13-resolution-lock{
+  0%{transform:translate3d(-12px,0,0) scaleX(.68);filter:brightness(.92)}
+  68%{transform:translate3d(2px,0,0) scaleX(1.012);filter:brightness(1.23)}
+  100%{transform:none;filter:brightness(1.18)}
+}
+@keyframes r13-catch{
+  0%,27%{opacity:0;transform:translateX(-19%)}
+  48%{opacity:.75}
+  74%,100%{opacity:0;transform:translateX(21%)}
+}
+@keyframes r13-champagne-catch{
+  0%,24%{opacity:0;transform:translateX(-18%)}
+  48%{opacity:.9;background:linear-gradient(112deg,transparent 0 39%,rgba(248,224,186,.14) 49%,transparent 59%)}
+  78%,100%{opacity:0;transform:translateX(19%)}
+}
+@keyframes r13-anchor-lock{
+  0%{transform:rotate(45deg) scale(.72);filter:brightness(.8);box-shadow:none}
+  62%{transform:rotate(45deg) scale(1.32);filter:brightness(1.35);box-shadow:0 0 18px rgba(226,196,149,.14)}
+  100%{transform:rotate(45deg) scale(1);filter:brightness(1)}
+}
+@keyframes r13-seam-lock{
+  0%{transform:scaleX(.04);opacity:0}
+  45%{opacity:.78}
+  100%{opacity:.62}
+}
+/* Preserve seam angles while scaling in during lock. */
+.context-artifact.is-locking[data-state="4"] .resolution-seams i:nth-child(1){animation-name:r13-seam-lock-top}
+.context-artifact.is-locking[data-state="4"] .resolution-seams i:nth-child(3){animation-name:r13-seam-lock-bottom}
+@keyframes r13-seam-lock-top{0%{transform:rotate(12deg) scaleX(.04);opacity:0}45%{opacity:.78}100%{transform:rotate(12deg) scaleX(1);opacity:.62}}
+@keyframes r13-seam-lock-bottom{0%{transform:rotate(-12deg) scaleX(.04);opacity:0}45%{opacity:.78}100%{transform:rotate(-12deg) scaleX(1);opacity:.62}}
+
+/* Responsive authority: active copy remains readable; history becomes thinner instead of translucent clutter. */
+@media (max-width:900px) and (min-width:701px){
+  .connected-next__sticky-stage{grid-template-columns:minmax(0,1.28fr) minmax(310px,.98fr)}
+  .ledger-plate.is-active{min-height:216px}
+  .ledger-plate.is-past{opacity:.5}
+  .ledger-plate.is-future{opacity:.29}
+}
+@media (max-width:700px){
+  .ledger-plate,.ledger-plate.is-past,.ledger-plate.is-future{background:linear-gradient(108deg,#0b0d0e,#080a0b 80%,#070809)}
+  .ledger-plate.is-active{background:linear-gradient(110deg,#17191a,#111314 55%,#0d0f10);box-shadow:0 12px 30px rgba(0,0,0,.38),0 -1px 0 rgba(242,238,229,.12)}
+  .ledger-plate.is-past{opacity:.52;transform:none}
+  .ledger-plate.is-future{opacity:.3;transform:none}
+  .ledger-plate.is-active .ledger-detail small{color:#b9bfc0}
+  .context-artifact[data-state="4"] .origin-system{opacity:.34}
+  .context-artifact[data-state="4"] .customer-layer{opacity:.45}
+  .context-artifact[data-state="4"] .assistive-layer{opacity:.56}
+}
+@media (max-height:520px) and (min-width:701px){
+  .ledger-plate.is-active{min-height:132px}
+  .ledger-plate.is-past{opacity:.46}
+  .ledger-plate.is-future{opacity:.25}
+}
+
+/* Reduced motion/no-JS must retain the semantic final frame, not the transient lock animation. */
+@media (prefers-reduced-motion:reduce){
+  .context-artifact.is-locking .origin-system,
+  .context-artifact.is-locking .customer-layer,
+  .context-artifact.is-locking .assistive-layer,
+  .context-artifact.is-locking .resolution-layer,
+  .context-artifact.is-locking .provenance-anchor,
+  .context-artifact.is-locking .resolution-seams i{animation:none!important}
+}
+
+/* R1.3 legibility calibration for narrow and low-height views. */
+@media (max-width:700px){
+  .origin-lane span{font-size:8px;letter-spacing:.08em}
+  .customer-components span,.assistive-components span{font-size:7px;letter-spacing:.055em}
+  .resolution-components span{font-size:6px;letter-spacing:.045em}
+  .semantic-index{font-size:8px}
+}
+@media (max-height:520px) and (min-width:701px){
+  .ledger-detail b{font-size:13px}
+  .ledger-detail small{font-size:10px}
+  .ledger-components{font-size:8px}
+}
+
+/* Avoid a post-animation scale jump on the final provenance registration. */
+.context-artifact.is-locking[data-state="4"] .provenance-anchor--resolution{animation:r13-resolution-anchor-lock 760ms ease-out both}
+@keyframes r13-resolution-anchor-lock{
+  0%{transform:rotate(45deg) scale(.72);filter:brightness(.8);box-shadow:none}
+  62%{transform:rotate(45deg) scale(1.4);filter:brightness(1.4);box-shadow:0 0 20px rgba(226,196,149,.16)}
+  100%{transform:rotate(45deg) scale(1.16);filter:brightness(1.08);box-shadow:0 0 18px rgba(211,179,127,.08)}
+}
+
+/* Final R1.3 editorial calibration at full desktop authority. */
+@media (min-width:901px){
+  .ledger-plate.is-active{min-height:246px}
+  .ledger-plate.is-active .ledger-plate__head strong{font-size:clamp(29px,2.15vw,33px)}
+  .ledger-detail b{font-size:clamp(18px,1.3vw,20px)}
+  .ledger-detail small{font-size:clamp(15px,1.04vw,16px)}
+  .ledger-components{font-size:clamp(12.5px,.9vw,14px)}
+}
+@media (min-width:701px){
+  .connected-next[data-language="ru"] .resolution-title{left:12%;max-width:86%;font-size:clamp(27px,2.5vw,38px);line-height:.91;letter-spacing:-.05em}
+}

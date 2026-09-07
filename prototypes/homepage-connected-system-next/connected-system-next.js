@@ -16,6 +16,7 @@
       eyebrow: 'THE CONNECTED SYSTEM',
       title: 'What the system connects.',
       support: 'Each stage carries context forward — from the first customer impression to the next business action.',
+      artifactLabel: 'One accumulated business context showing origin, customer context, assistive enrichment and next action',
       originTrace: 'ORIGIN TRACE',
       customerContext: 'CUSTOMER CONTEXT',
       assistiveStructure: 'ASSISTIVE STRUCTURE',
@@ -23,6 +24,16 @@
       resolution: 'RESOLUTION',
       artifactCaptionA: 'CONTEXT ACCRETION',
       artifactCaptionB: 'PREVIOUS CONTEXT REMAINS TRACEABLE',
+      originWebsite: 'WEBSITE',
+      originBrand: 'BRAND',
+      originOffer: 'OFFER',
+      originProof: 'PROOF',
+      inquiryForm: 'FORM',
+      inquiryCall: 'CALL',
+      inquiryMessage: 'MESSAGE',
+      responseAutomation: 'AUTOMATION',
+      responseRouting: 'ROUTING',
+      responseFollowup: 'FOLLOW-UP',
       trust: 'TRUST',
       inquiry: 'INQUIRY',
       response: 'RESPONSE',
@@ -50,6 +61,7 @@
       eyebrow: 'ЕДИНАЯ СИСТЕМА',
       title: 'Что объединяет система.',
       support: 'Каждый этап передаёт контекст дальше — от первого впечатления клиента до следующего действия бизнеса.',
+      artifactLabel: 'Единый накопленный бизнес-контекст: исходная основа, контекст клиента, вспомогательная структура и следующее действие',
       originTrace: 'ИСХОДНЫЙ КОНТЕКСТ',
       customerContext: 'КОНТЕКСТ КЛИЕНТА',
       assistiveStructure: 'СТРУКТУРА ПОДДЕРЖКИ',
@@ -57,6 +69,16 @@
       resolution: 'СЛЕДУЮЩИЙ ШАГ',
       artifactCaptionA: 'НАКОПЛЕНИЕ КОНТЕКСТА',
       artifactCaptionB: 'ПРЕДЫДУЩИЙ КОНТЕКСТ СОХРАНЯЕТСЯ',
+      originWebsite: 'САЙТ',
+      originBrand: 'БРЕНД',
+      originOffer: 'ПРЕДЛОЖЕНИЕ',
+      originProof: 'ПОДТВЕРЖДЕНИЯ',
+      inquiryForm: 'ФОРМА',
+      inquiryCall: 'ЗВОНОК',
+      inquiryMessage: 'СООБЩЕНИЕ',
+      responseAutomation: 'АВТОМАТИЗАЦИЯ',
+      responseRouting: 'МАРШРУТ',
+      responseFollowup: 'КОНТАКТ',
       trust: 'ДОВЕРИЕ',
       inquiry: 'ОБРАЩЕНИЕ',
       response: 'ОТВЕТ',
@@ -97,6 +119,8 @@
       const key = node.dataset.copy;
       if (copy[language][key]) node.textContent = copy[language][key];
     });
+
+    artifact.setAttribute('aria-label', copy[language].artifactLabel);
 
     languageButtons.forEach((button) => {
       const active = button.dataset.lang === language;

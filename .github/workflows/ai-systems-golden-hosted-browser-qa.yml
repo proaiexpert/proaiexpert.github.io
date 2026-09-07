@@ -1,0 +1,284 @@
+name: AI Systems Golden Hosted Browser QA
+
+on:
+  push:
+    branches:
+      - qa/ai-systems-golden-hosted-browser-r1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hosted-browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      EN_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/
+      RU_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ru/
+    steps:
+      - name: Checkout QA branch
+        uses: actions/checkout@v4
+
+      - name: Prepare Chrome QA runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$CHROME" ]; then
+            echo "No Chrome/Chromium executable found on runner" >&2
+            exit 1
+          fi
+          echo "CHROME=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+          mkdir -p /tmp/ai-golden-qa
+          cd /tmp/ai-golden-qa
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core --no-save --silent
+
+      - name: Run hosted browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/ai-golden-qa
+          cat > qa.mjs <<'NODE'
+          import fs from 'node:fs';
+          import puppeteer from 'puppeteer-core';
+
+          const chrome = process.env.CHROME;
+          const EN_URL = process.env.EN_URL;
+          const RU_URL = process.env.RU_URL;
+          const outDir = process.env.GITHUB_WORKSPACE + '/qa-artifacts';
+          fs.mkdirSync(outDir, { recursive: true });
+
+          const expected = {
+            en: {
+              hero: 'AI systems that do the work. You keep the decisions that matter.',
+              test: '7 / 7 reference tests passing',
+              footerTitle: 'Build the system that knows when to act — and when to stop.',
+              footerSummary: 'Process architecture, automation, agents, APIs and custom engineering for businesses that need more than another isolated AI tool.',
+              proofImpressions: '8.36K',
+              sectionTokens: [
+                '01 · OPERATIONAL REGISTER',
+                '02 · ENGINEERING DEPTH',
+                '03 · VERIFIED PROAI REFERENCE IMPLEMENTATION',
+                '04 · PROCESS BEFORE TECHNOLOGY',
+                '05 · HUMAN CONTROL',
+                '06 · EVIDENCE BY CLASS',
+                '07 · INTEGRATIONS + CUSTOM LOGIC',
+                '08 · START WITH THE BOTTLENECK'
+              ]
+            },
+            ru: {
+              hero: 'AI-системы, которые выполняют работу. Важные решения остаются за вами.',
+              test: '7 / 7 reference-тестов проходят',
+              footerTitle: 'Строим системы, которые знают, когда действовать — и когда остановиться.',
+              footerSummary: 'Архитектура процессов, автоматизация, агенты, API и собственная разработка для бизнеса, которому уже мало ещё одного изолированного AI-инструмента.',
+              proofImpressions: '8,36K',
+              sectionTokens: [
+                '01 · КОНТУР УПРАВЛЕНИЯ',
+                '02 · ГЛУБИНА ИНЖЕНЕРИИ',
+                '03 · VERIFIED PROAI REFERENCE IMPLEMENTATION',
+                '04 · СНАЧАЛА ПРОЦЕСС',
+                '05 · КОНТРОЛЬ ЧЕЛОВЕКОМ',
+                '06 · ДОКАЗАТЕЛЬСТВА ПО КЛАССАМ',
+                '07 · ИНТЕГРАЦИИ + СОБСТВЕННАЯ ЛОГИКА',
+                '08 · НАЧИНАЕМ С УЗКОГО МЕСТА'
+              ]
+            }
+          };
+
+          const cases = [
+            { name: 'en-desktop', lang: 'en', url: EN_URL, width: 1440, height: 1100, full: true },
+            { name: 'ru-desktop', lang: 'ru', url: RU_URL, width: 1440, height: 1100, full: true },
+            { name: 'en-mobile-390', lang: 'en', url: EN_URL, width: 390, height: 844, full: true },
+            { name: 'ru-mobile-390', lang: 'ru', url: RU_URL, width: 390, height: 844, full: true },
+            { name: 'en-landscape-844x390', lang: 'en', url: EN_URL, width: 844, height: 390, full: false },
+            { name: 'ru-landscape-844x390', lang: 'ru', url: RU_URL, width: 844, height: 390, full: false }
+          ];
+
+          const browser = await puppeteer.launch({
+            executablePath: chrome,
+            headless: true,
+            args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu']
+          });
+
+          const report = { generatedAt: new Date().toISOString(), chrome, cases: [] };
+          let globalFailures = 0;
+
+          function normalize(s) {
+            return String(s || '').replace(/\s+/g, ' ').trim();
+          }
+
+          for (const c of cases) {
+            const page = await browser.newPage();
+            await page.setViewport({ width: c.width, height: c.height, deviceScaleFactor: 1 });
+            const consoleErrors = [];
+            const pageErrors = [];
+            const requestFailures = [];
+            const responses = [];
+
+            page.on('console', msg => {
+              if (msg.type() === 'error') consoleErrors.push(msg.text());
+            });
+            page.on('pageerror', err => pageErrors.push(String(err)));
+            page.on('requestfailed', req => requestFailures.push({ url: req.url(), error: req.failure()?.errorText || 'unknown' }));
+            page.on('response', res => {
+              const req = res.request();
+              responses.push({ url: res.url(), status: res.status(), type: req.resourceType() });
+            });
+
+            let navStatus = 0;
+            let navError = null;
+            try {
+              const nav = await page.goto(c.url, { waitUntil: 'networkidle2', timeout: 90000 });
+              navStatus = nav?.status() || 0;
+              await page.waitForFunction(() => document.querySelector('.home-footer-golden-r3') && document.querySelector('.ai-golden-recovery-hero__neutral'), { timeout: 30000 });
+              await new Promise(r => setTimeout(r, 1800));
+            } catch (err) {
+              navError = String(err);
+            }
+
+            const data = await page.evaluate(() => {
+              const bodyText = (document.body?.innerText || '').replace(/\s+/g, ' ').trim();
+              const html = document.documentElement?.outerHTML || '';
+              const q = sel => document.querySelector(sel);
+              const visible = el => {
+                if (!el) return false;
+                const r = el.getBoundingClientRect();
+                const cs = getComputedStyle(el);
+                return r.width > 1 && r.height > 1 && cs.display !== 'none' && cs.visibility !== 'hidden';
+              };
+              const fsCard = [...document.querySelectorAll('.ai-r3-evidence-card')].find(el => /Financial Stream/.test(el.innerText || ''));
+              const heroH1 = q('#ai-r3-hero-title');
+              const neutral = q('.ai-golden-recovery-hero__neutral');
+              const header = q('.site-header');
+              const footer = q('.home-footer-golden-r3');
+              const mainSections = [...document.querySelectorAll('main > section')].map(el => ({
+                className: el.className,
+                text: (el.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 180),
+                visible: visible(el),
+                h: Math.round(el.getBoundingClientRect().height)
+              }));
+              const stylesheets = [...document.querySelectorAll('link[rel="stylesheet"]')].map(x => x.href);
+              const scripts = [...document.querySelectorAll('script[src]')].map(x => x.src);
+              return {
+                lang: document.documentElement.lang,
+                title: document.title,
+                bodyText,
+                htmlHasLiquid: html.includes('{%') || html.includes('{{'),
+                bodyStartsYaml: /^\s*---(?:\r?\n|\s)/.test(document.body?.innerText || ''),
+                headerVisible: visible(header),
+                logoVisible: visible(q('.proai-logo-r341--header')),
+                menuToggleExists: !!q('.site-header__menu-toggle'),
+                heroVisible: visible(q('.ai-r3-hero')),
+                heroText: (heroH1?.innerText || '').replace(/\s+/g, ' ').trim(),
+                heroFontSize: heroH1 ? parseFloat(getComputedStyle(heroH1).fontSize) : 0,
+                neutralVisible: visible(neutral),
+                neutralRect: neutral ? { w: Math.round(neutral.getBoundingClientRect().width), h: Math.round(neutral.getBoundingClientRect().height) } : null,
+                testText: (q('.ai-r3-test-result')?.innerText || '').replace(/\s+/g, ' ').trim(),
+                fsText: (fsCard?.innerText || '').replace(/\s+/g, ' ').trim(),
+                footerVisible: visible(footer),
+                footerText: (footer?.innerText || '').replace(/\s+/g, ' ').trim(),
+                mainSections,
+                stylesheets,
+                scripts,
+                overflow: document.documentElement.scrollWidth - window.innerWidth,
+                bodyBackground: getComputedStyle(document.body).backgroundColor,
+                bodyColor: getComputedStyle(document.body).color,
+                viewport: { w: window.innerWidth, h: window.innerHeight, scrollWidth: document.documentElement.scrollWidth }
+              };
+            });
+
+            await page.screenshot({ path: `${outDir}/${c.name}.png`, fullPage: c.full });
+
+            const failures = [];
+            const exp = expected[c.lang];
+            const check = (condition, label) => { if (!condition) failures.push(label); };
+            check(navStatus === 200, `HTTP ${navStatus || 'NO_RESPONSE'}`);
+            check(!navError, `navigation error: ${navError}`);
+            check(!data.htmlHasLiquid, 'raw Liquid present');
+            check(!data.bodyStartsYaml, 'YAML front matter visible');
+            check(data.headerVisible && data.logoVisible && data.menuToggleExists, 'current Header not fully rendered');
+            check(data.heroVisible && data.heroText === exp.hero, `Hero shell/copy mismatch: ${data.heroText}`);
+            check(data.neutralVisible && data.neutralRect?.w > 40 && data.neutralRect?.h > 40, 'neutral Hero visual zone not rendered');
+            check(data.heroFontSize >= (c.width >= 1000 ? 42 : 28), `Hero typography not styled (${data.heroFontSize}px)`);
+            exp.sectionTokens.forEach(token => check(data.bodyText.includes(token), `missing section token: ${token}`));
+            check(data.mainSections.filter(x => x.visible && x.h > 60).length >= 9, `body sections not visibly styled (${data.mainSections.filter(x => x.visible && x.h > 60).length})`);
+            check(data.testText === exp.test, `test authority mismatch: ${data.testText}`);
+            check(data.fsText.includes('EN + RU'), 'Financial Stream EN + RU missing');
+            check(data.fsText.includes(exp.proofImpressions), `Financial Stream ${exp.proofImpressions} missing`);
+            check(/\b52\b/.test(data.fsText), 'Financial Stream 52 missing');
+            check(!/Organic clicks|63\s*Organic|57\s*(?:clicks|Organic)|7\.24K|50\s*(?:indexed|pages|страниц)/i.test(data.fsText), `stale Financial Stream metric visible: ${data.fsText}`);
+            check(data.footerVisible, 'Golden Footer not visible');
+            check(data.footerText.includes(exp.footerTitle), 'AI Systems footer title missing');
+            check(data.footerText.includes(exp.footerSummary), 'AI Systems footer summary missing');
+            check(data.overflow <= 2, `horizontal overflow ${data.overflow}px`);
+
+            const localResponses = responses.filter(r => r.url.startsWith(new URL(c.url).origin));
+            const cssResponses = localResponses.filter(r => r.type === 'stylesheet' || /\.css(?:\?|$)/.test(r.url));
+            const jsResponses = localResponses.filter(r => r.type === 'script' || /\.m?js(?:\?|$)/.test(r.url));
+            const visibleAssetResponses = localResponses.filter(r => ['stylesheet','script','font','image','document'].includes(r.type));
+            const badCss = cssResponses.filter(r => r.status !== 200);
+            const badJs = jsResponses.filter(r => r.status !== 200);
+            const badAssets = visibleAssetResponses.filter(r => r.status >= 400 || r.status === 0);
+            check(data.stylesheets.length >= 8, `too few stylesheets linked (${data.stylesheets.length})`);
+            check(cssResponses.length >= data.stylesheets.length, `stylesheet responses incomplete (${cssResponses.length}/${data.stylesheets.length})`);
+            check(badCss.length === 0, `missing CSS: ${JSON.stringify(badCss)}`);
+            check(badJs.length === 0, `missing JS: ${JSON.stringify(badJs)}`);
+            check(badAssets.length === 0, `visible asset failures: ${JSON.stringify(badAssets)}`);
+            check(requestFailures.length === 0, `request failures: ${JSON.stringify(requestFailures)}`);
+            check(pageErrors.length === 0, `page errors: ${JSON.stringify(pageErrors)}`);
+            check(consoleErrors.length === 0, `console errors: ${JSON.stringify(consoleErrors)}`);
+
+            const result = {
+              name: c.name,
+              url: c.url,
+              viewport: data.viewport,
+              navStatus,
+              navError,
+              pass: failures.length === 0,
+              failures,
+              consoleErrors,
+              pageErrors,
+              requestFailures,
+              missingCss: badCss,
+              missingJs: badJs,
+              badAssets,
+              linkedStylesheets: data.stylesheets,
+              linkedScripts: data.scripts,
+              css200: cssResponses.filter(r => r.status === 200).length,
+              js200: jsResponses.filter(r => r.status === 200).length,
+              bodyBackground: data.bodyBackground,
+              heroFontSize: data.heroFontSize,
+              neutralRect: data.neutralRect,
+              sectionCountVisible: data.mainSections.filter(x => x.visible && x.h > 60).length,
+              overflow: data.overflow,
+              testText: data.testText,
+              financialStreamText: data.fsText,
+              footerVerified: data.footerText.includes(exp.footerTitle) && data.footerText.includes(exp.footerSummary)
+            };
+            report.cases.push(result);
+            if (!result.pass) globalFailures += failures.length;
+            console.log(`QA_CASE ${c.name} ${result.pass ? 'PASS' : 'FAIL'} HTTP=${navStatus} CSS200=${result.css200} JS200=${result.js200} OVERFLOW=${result.overflow}`);
+            if (failures.length) failures.forEach(f => console.log(`QA_FAILURE ${c.name}: ${f}`));
+            await page.close();
+          }
+
+          await browser.close();
+          report.pass = globalFailures === 0;
+          report.globalFailures = globalFailures;
+          fs.writeFileSync(`${outDir}/qa-report.json`, JSON.stringify(report, null, 2));
+          fs.writeFileSync(`${outDir}/qa-summary.txt`, report.cases.map(c => `${c.name}: ${c.pass ? 'PASS' : 'FAIL'} HTTP=${c.navStatus} missingCSS=${c.missingCss.length} missingJS=${c.missingJs.length} overflow=${c.overflow}`).join('\n') + `\nOVERALL: ${report.pass ? 'PASS' : 'FAIL'}\n`);
+          console.log(JSON.stringify(report, null, 2));
+          if (!report.pass) process.exit(1);
+          NODE
+          node qa.mjs
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-systems-golden-hosted-browser-qa
+          path: qa-artifacts/
+          if-no-files-found: warn

@@ -1,0 +1,119 @@
+name: AI Systems Golden Micro Polish Final R2
+
+on:
+  push:
+    branches:
+      - qa/ai-systems-golden-micro-polish-final-r2
+
+permissions:
+  contents: read
+
+jobs:
+  stable-chrome-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ORIGIN: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev
+      EN_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/
+      RU_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ru/
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare stable Chrome QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          CSS="$ORIGIN/owner-preview/ai-systems-golden-recovery-r1/ai-systems-golden-recovery-r1.css?v=1"
+          test "$(curl -L -sS -o /dev/null -w '%{http_code}' "$EN_URL")" = 200
+          test "$(curl -L -sS -o /dev/null -w '%{http_code}' "$RU_URL")" = 200
+          curl -L -sS "$CSS" | grep -q 'Golden Micro Polish R1'
+          CHROME="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "CHROME=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+          mkdir -p /tmp/finalqa && cd /tmp/finalqa
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core --no-save --silent
+      - name: Stable viewport and interaction verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/finalqa
+          cat > qa.mjs <<'NODE'
+          import fs from 'node:fs';
+          import puppeteer from 'puppeteer-core';
+
+          const out=process.env.GITHUB_WORKSPACE+'/final-qa-evidence';fs.mkdirSync(out,{recursive:true});
+          const browser=await puppeteer.launch({executablePath:process.env.CHROME,headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
+          const n=v=>parseFloat(v)||0;
+          const pearl=new Set(['rgb(242, 240, 235)','rgb(255, 255, 255)']);
+          const expected={
+            en:{hero:'AI systems that do the work. You keep the decisions that matter.',test:'7 / 7 reference tests passing',imp:'8.36K',footer:'Build the system that knows when to act — and when to stop.',summary:'Process architecture, automation, agents, APIs and custom engineering for businesses that need more than another isolated AI tool.',sections:['01 · OPERATIONAL REGISTER','02 · ENGINEERING DEPTH','03 · VERIFIED PROAI REFERENCE IMPLEMENTATION','04 · PROCESS BEFORE TECHNOLOGY','05 · HUMAN CONTROL','06 · EVIDENCE BY CLASS','07 · INTEGRATIONS + CUSTOM LOGIC','08 · START WITH THE BOTTLENECK']},
+            ru:{hero:'AI-системы, которые выполняют работу. Важные решения остаются за вами.',test:'7 / 7 reference-тестов проходят',imp:'8,36K',footer:'Строим системы, которые знают, когда действовать — и когда остановиться.',summary:'Архитектура процессов, автоматизация, агенты, API и собственная разработка для бизнеса, которому уже мало ещё одного изолированного AI-инструмента.',sections:['01 · КОНТУР УПРАВЛЕНИЯ','02 · ГЛУБИНА ИНЖЕНЕРИИ','03 · ПРОВЕРЕННАЯ РЕФЕРЕНСНАЯ РЕАЛИЗАЦИЯ PROAI','04 · СНАЧАЛА ПРОЦЕСС','05 · КОНТРОЛЬ ЧЕЛОВЕКОМ','06 · ДОКАЗАТЕЛЬСТВА ПО КЛАССАМ','07 · ИНТЕГРАЦИИ + СОБСТВЕННАЯ ЛОГИКА','08 · НАЧИНАЕМ С УЗКОГО МЕСТА']}
+          };
+
+          async function settle(page){
+            await page.waitForFunction(()=>document.querySelector('.home-footer-golden-r3')&&document.querySelector('.ai-golden-recovery-hero__neutral')&&document.querySelector('.ai-r3-cta .ai-r3-btn--primary'),{timeout:25000});
+            await page.evaluate(()=>document.fonts?.ready||Promise.resolve());
+            await page.waitForFunction(()=>{
+              const a=document.querySelector('.ai-r3-hero .ai-r3-btn--primary'),b=document.querySelector('.ai-r3-cta .ai-r3-btn--primary'),c=document.querySelector('.ai-r3-hero .ai-r3-btn:not(.ai-r3-btn--primary)');
+              if(!a||!b||!c)return false;
+              const A=getComputedStyle(a),B=getComputedStyle(b),C=getComputedStyle(c);
+              return parseFloat(A.borderRadius)===9&&parseFloat(B.borderRadius)===9&&parseFloat(C.borderRadius)===0&&A.color!=='rgb(0, 0, 238)'&&B.color!=='rgb(0, 0, 238)';
+            },{timeout:8000});
+            await new Promise(r=>setTimeout(r,450));
+          }
+
+          const cases=[['en-desktop','en',process.env.EN_URL,1440,1100,true],['ru-desktop','ru',process.env.RU_URL,1440,1100,true],['en-mobile-390','en',process.env.EN_URL,390,844,true],['ru-mobile-390','ru',process.env.RU_URL,390,844,true],['en-landscape-844x390','en',process.env.EN_URL,844,390,false],['ru-landscape-844x390','ru',process.env.RU_URL,844,390,false]];
+
+          async function checkViewport([name,lang,url,w,h,fullPage]){
+            const page=await browser.newPage();await page.setViewport({width:w,height:h});
+            const bad=[],consoleErrors=[],pageErrors=[],requestFailures=[];
+            page.on('response',r=>{if(r.url().startsWith(process.env.ORIGIN)&&['document','stylesheet','script','font','image'].includes(r.request().resourceType())&&r.status()>=400)bad.push({url:r.url(),status:r.status()})});
+            page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});page.on('pageerror',e=>pageErrors.push(String(e)));page.on('requestfailed',r=>requestFailures.push({url:r.url(),error:r.failure()?.errorText||'unknown'}));
+            const nav=await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});await settle(page);
+            const data=await page.evaluate(async()=>{
+              const q=s=>document.querySelector(s),vis=e=>{if(!e)return false;const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>1&&r.height>1&&s.display!=='none'&&s.visibility!=='hidden'},st=e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return{color:s.color,bg:s.backgroundColor,bgi:s.backgroundImage,border:s.borderTopWidth,radius:s.borderRadius,w:r.width,h:r.height,minHeight:s.minHeight,cursor:s.cursor,clientWidth:e.clientWidth,scrollWidth:e.scrollWidth}};
+              const text=(document.body.innerText||'').replace(/\s+/g,' ').trim(),html=document.documentElement.outerHTML,fs=[...document.querySelectorAll('.ai-r3-evidence-card')].find(e=>(e.innerText||'').includes('Financial Stream')),footer=q('.home-footer-golden-r3');
+              const assets=[...document.querySelectorAll('link[rel="stylesheet"],script[src]')].map(x=>x.href||x.src);const statuses=await Promise.all([...new Set(assets)].map(async u=>{try{const r=await fetch(u,{cache:'no-store'});return{u,s:r.status}}catch(e){return{u,s:0,error:String(e)}}}));
+              return{text,html,liquid:html.includes('{%')||html.includes('{{'),yaml:/^\s*---/.test(document.body.innerText||''),header:vis(q('.site-header')),hero:vis(q('.ai-r3-hero')),heroText:(q('#ai-r3-hero-title')?.innerText||'').replace(/\s+/g,' ').trim(),neutral:vis(q('.ai-golden-recovery-hero__neutral')),test:(q('.ai-r3-test-result')?.innerText||'').replace(/\s+/g,' ').trim(),fs:(fs?.innerText||'').replace(/\s+/g,' ').trim(),footer:vis(footer),footerText:(footer?.innerText||'').replace(/\s+/g,' ').trim(),hp:st(q('.ai-r3-hero .ai-r3-btn--primary')),hs:st(q('.ai-r3-hero .ai-r3-btn:not(.ai-r3-btn--primary)')),s8:st(q('.ai-r3-cta .ai-r3-btn--primary')),pills:[...document.querySelectorAll('.ai-r3-btn')].filter(vis).map(e=>({text:e.textContent.trim(),radius:parseFloat(getComputedStyle(e).borderRadius)||0})).filter(x=>x.radius>=100),overflow:document.documentElement.scrollWidth-innerWidth,statuses};
+            });
+            const e=expected[lang],fail=[],ck=(ok,msg)=>{if(!ok)fail.push(msg)};
+            ck(nav.status()===200,`HTTP=${nav.status()}`);ck(!data.liquid,'RAW_LIQUID');ck(!data.yaml,'YAML');ck(data.header,'HEADER');ck(data.hero&&data.heroText===e.hero,`HERO=${data.heroText}`);ck(data.neutral,'NEUTRAL');e.sections.forEach(s=>ck(data.text.includes(s),`SECTION=${s}`));ck(data.test===e.test,`TEST=${data.test}`);ck(data.fs.includes('EN + RU')&&data.fs.includes(e.imp)&&/\b52\b/.test(data.fs),'FINANCIAL');ck(!/63\s*(?:Organic|clicks)|57\s*(?:Organic|clicks)|7\.24K|50\s*(?:indexed|pages|страниц)/i.test(data.fs),'STALE_FINANCIAL');ck(data.footer&&data.footerText.includes(e.footer)&&data.footerText.includes(e.summary),'FOOTER');
+            ck(n(data.hp.radius)===9&&data.hp.h>=49.5&&data.hp.bgi!=='none'&&pearl.has(data.hp.color),`HERO_PRIMARY=${JSON.stringify(data.hp)}`);ck(n(data.hs.radius)===0&&n(data.hs.border)===0&&data.hs.bgi==='none'&&data.hs.h>=43.5,`HERO_SECONDARY=${JSON.stringify(data.hs)}`);if(w===390)ck(data.hs.w<w*.75,`MOBILE_SECONDARY_WIDTH=${data.hs.w}`);ck(n(data.s8.radius)===9&&data.s8.h>=49.5&&data.s8.bgi!=='none'&&pearl.has(data.s8.color),`SECTION08=${JSON.stringify(data.s8)}`);ck(data.pills.length===0,`PILLS=${JSON.stringify(data.pills)}`);ck(data.overflow===0,`OVERFLOW=${data.overflow}`);ck(data.statuses.every(x=>x.s===200),`LINKED=${JSON.stringify(data.statuses.filter(x=>x.s!==200))}`);ck(bad.length===0,`ASSET_HTTP=${JSON.stringify(bad)}`);ck(consoleErrors.length===0,`CONSOLE=${JSON.stringify(consoleErrors)}`);ck(pageErrors.length===0,`PAGE_ERROR=${JSON.stringify(pageErrors)}`);ck(requestFailures.length===0,`REQUEST_FAIL=${JSON.stringify(requestFailures)}`);
+            await page.screenshot({path:`${out}/${name}.png`,fullPage});await page.close();
+            const result={name,pass:!fail.length,fail,http:nav.status(),missingCss:data.statuses.filter(x=>/\.css(?:\?|$)/.test(x.u)&&x.s!==200),missingJs:data.statuses.filter(x=>/\.m?js(?:\?|$)/.test(x.u)&&x.s!==200),overflow:data.overflow,pills:data.pills,consoleErrors,pageErrors,requestFailures,hp:data.hp,hs:data.hs,s8:data.s8};console.log(`CASE ${name} ${result.pass?'PASS':'FAIL'} HTTP=${result.http} CSS=${result.missingCss.length} JS=${result.missingJs.length} OVERFLOW=${result.overflow} PILLS=${result.pills.length}`);fail.forEach(x=>console.log(`FAIL ${name}: ${x}`));return result;
+          }
+
+          const viewResults=[];for(const c of cases)viewResults.push(await checkViewport(c));
+
+          async function interactionAudit(url,w,h,label){
+            const page=await browser.newPage();await page.setViewport({width:w,height:h});await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});await settle(page);
+            const cdp=await page.createCDPSession();await cdp.send('DOM.enable');await cdp.send('CSS.enable');const {root}=await cdp.send('DOM.getDocument',{depth:-1,pierce:true});
+            const targets=[['header-cta','.site-header__cta'],['header-locale','.site-header__locale'],['hero-primary','.ai-r3-hero .ai-r3-btn--primary'],['hero-secondary','.ai-r3-hero .ai-r3-btn:not(.ai-r3-btn--primary)'],['section08','.ai-r3-cta .ai-r3-btn--primary'],['footer-cta','.home-footer-golden-r3__action'],['footer-email','.home-footer-golden-r3__contact a[href^="mailto:"]'],['footer-telegram','.home-footer-golden-r3__contact a[href^="https://t.me/"]'],['footer-capability','.home-footer-golden-r3__capabilities a'],['footer-social','.home-footer-golden-r3__social-rail a'],['footer-locale','.home-footer-golden-r3__locale a'],['mobile-menu','.site-header__menu-toggle']];
+            const fail=[],controls=[];
+            for(const [name,sel] of targets){
+              const {nodeId}=await cdp.send('DOM.querySelector',{nodeId:root.nodeId,selector:sel});if(!nodeId)continue;const visible=await page.$eval(sel,e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden'});if(!visible)continue;
+              const states={};const stateNames=name==='mobile-menu'?['default','hover','focus-visible','active']:['default','hover','focus-visible','active','visited'];
+              for(const state of stateNames){
+                const pseudos=state==='default'?[]:state==='hover'?['hover']:state==='focus-visible'?['focus','focus-visible']:state==='active'?['active']:['visited'];await cdp.send('CSS.forcePseudoState',{nodeId,forcedPseudoClasses:pseudos});await new Promise(r=>setTimeout(r,300));
+                const v=await page.$eval(sel,e=>{const s=getComputedStyle(e),r=e.getBoundingClientRect();return{color:s.color,bg:s.backgroundColor,bgi:s.backgroundImage,border:s.borderTopWidth,radius:s.borderRadius,opacity:s.opacity,blend:s.mixBlendMode,outlineWidth:s.outlineWidth,outlineStyle:s.outlineStyle,outlineColor:s.outlineColor,decoration:s.textDecorationLine,cursor:s.cursor,w:r.width,h:r.height,clientWidth:e.clientWidth,scrollWidth:e.scrollWidth,clientHeight:e.clientHeight,scrollHeight:e.scrollHeight}});states[state]=v;
+                if(Number(v.opacity)<.5)fail.push(`${name} ${state} opacity=${v.opacity}`);if(v.scrollWidth>Math.ceil(v.clientWidth)+3)fail.push(`${name} ${state} clipping=${v.scrollWidth}/${v.clientWidth}`);if(state==='focus-visible'&&(n(v.outlineWidth)<1||v.outlineStyle==='none'))fail.push(`${name} focus missing`);
+                if(['hero-primary','section08'].includes(name)){if(n(v.radius)!==9)fail.push(`${name} ${state} radius=${v.radius}`);if(v.bgi==='none')fail.push(`${name} ${state} background none`);if(!pearl.has(v.color))fail.push(`${name} ${state} color=${v.color}`)}
+                if(name==='hero-secondary'){if(n(v.radius)!==0||n(v.border)!==0||v.bgi!=='none')fail.push(`hero-secondary ${state} boxed`);if(state==='hover'&&v.decoration!=='underline')fail.push('hero-secondary hover underline missing')}
+              }
+              await cdp.send('CSS.forcePseudoState',{nodeId,forcedPseudoClasses:[]});controls.push({name,states});
+            }
+            await cdp.detach();await page.close();console.log(`INTERACTION ${label} ${fail.length?'FAIL':'PASS'} controls=${controls.length}`);fail.forEach(x=>console.log(`FAIL INTERACTION ${label}: ${x}`));return{label,pass:!fail.length,fail,controls};
+          }
+
+          const interactions=[];interactions.push(await interactionAudit(process.env.EN_URL,1440,1100,'en-desktop'));interactions.push(await interactionAudit(process.env.EN_URL,390,844,'en-mobile'));interactions.push(await interactionAudit(process.env.RU_URL,1440,1100,'ru-desktop'));interactions.push(await interactionAudit(process.env.RU_URL,390,844,'ru-mobile'));
+          await browser.close();const report={generatedAt:new Date().toISOString(),pass:viewResults.every(x=>x.pass)&&interactions.every(x=>x.pass),views:viewResults,interactions};fs.writeFileSync(`${out}/qa-report.json`,JSON.stringify(report,null,2));fs.writeFileSync(`${out}/qa-summary.txt`,viewResults.map(x=>`${x.name}: ${x.pass?'PASS':'FAIL'} HTTP=${x.http} CSS=${x.missingCss.length} JS=${x.missingJs.length} overflow=${x.overflow} pills=${x.pills.length}`).join('\n')+'\n'+interactions.map(x=>`${x.label} interactions: ${x.pass?'PASS':'FAIL'}`).join('\n')+`\nOVERALL: ${report.pass?'PASS':'FAIL'}\n`);console.log('OVERALL='+(report.pass?'PASS':'FAIL'));if(!report.pass)process.exit(1);
+          NODE
+          node qa.mjs
+      - name: Upload final QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-systems-golden-micro-polish-final-r2
+          path: final-qa-evidence/
+          if-no-files-found: warn

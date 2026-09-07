@@ -9,9 +9,11 @@
   const ledger = root.querySelector('.ledger-zone');
   const stageButtons = [...root.querySelectorAll('[data-stage-button]')];
   const languageButtons = [...root.querySelectorAll('[data-lang]')];
+
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const lowLandscape = window.matchMedia('(max-height: 520px) and (min-width: 701px)');
   const portrait = window.matchMedia('(max-width: 700px)');
+  const finePointer = window.matchMedia('(hover:hover) and (pointer:fine)');
 
   const copy = {
     en: {
@@ -19,29 +21,38 @@
       title: 'What the system connects.',
       support: 'Each stage carries context forward — from the first customer impression to the next business action.',
       origin: 'ORIGIN',
-      originTrace: 'SOURCE TRACE',
+      coherentImpression: 'COHERENT IMPRESSION',
+      firstImpression: 'FIRST IMPRESSION',
       customerContext: 'CUSTOMER CONTEXT',
       assistiveStructure: 'ASSISTIVE STRUCTURE',
       humanAuthority: 'HUMAN AUTHORITY',
       resolution: 'RESOLUTION',
+      nextAction: 'NEXT ACTION',
       artifactCaptionA: 'CONTEXT ACCRETION',
-      artifactCaptionB: 'PROVENANCE REMAINS TRACEABLE',
-      ledgerLabel: 'CAUSAL RECORD',
-      ledgerHint: 'ACCUMULATED STATE',
-      ledgerFoot: 'Previous context remains registered inside every later state.',
+      artifactCaptionB: 'EACH STATE RETAINS ITS SOURCE',
+      ledgerLabel: 'ONE CAUSAL RECORD',
+      ledgerHint: 'CONTEXT ACCUMULATES',
+      ledgerFoot: 'Nothing is replaced. Each new state is built from the context that came before it.',
       trust: 'TRUST',
       inquiry: 'INQUIRY',
       response: 'RESPONSE',
       result: 'RESULT',
-      nextAction: 'NEXT ACTION',
       imprint: 'IMPRINT',
       attach: 'ATTACH',
       enrich: 'ENRICH',
       resolve: 'RESOLVE',
-      trustShort: 'A credible first impression creates the conditions for action.',
-      inquiryShort: 'New customer context attaches to the existing origin.',
-      responseShort: 'AI and automation organize and route while human authority remains.',
-      resultShort: 'Accumulated context resolves toward a defined next business action.',
+      trustPrimary: 'A credible first impression gives the customer confidence to act.',
+      trustSecondary: 'Website, brand, offer clarity and proof align into one coherent business signal.',
+      trustComponents: 'Website · Brand · Offer clarity · Proof',
+      inquiryPrimary: 'Interest becomes a structured request.',
+      inquirySecondary: 'New customer context attaches to the business context that already created trust.',
+      inquiryComponents: 'Forms · Calls · Messaging · CRM intake',
+      responsePrimary: 'The request becomes organized and easier to act on.',
+      responseSecondary: 'AI, automation and routing structure the accumulated context while human authority remains.',
+      responseComponents: 'AI · Automation · Routing · Follow-up',
+      resultPrimary: 'Accumulated context points to a clearer next business action.',
+      resultSecondary: 'The origin, customer request and assistive structure remain traceable inside the resolved state.',
+      resultComponents: 'Booking · Proposal · Next action · Measurement',
       originWebsite: 'WEBSITE',
       originBrand: 'BRAND',
       originOffer: 'OFFER',
@@ -56,40 +67,49 @@
       proposal: 'PROPOSAL',
       nextStep: 'NEXT STEP',
       measurement: 'MEASUREMENT',
-      footerLine: 'One continuous causal record. New context accumulates. Previous context remains traceable.'
+      footerLine: 'From first impression to next business action — one connected, traceable system.'
     },
     ru: {
       eyebrow: 'ЕДИНАЯ СИСТЕМА',
       title: 'Что объединяет система.',
       support: 'Каждый этап передаёт контекст дальше — от первого впечатления клиента до следующего действия бизнеса.',
       origin: 'ОСНОВА',
-      originTrace: 'ИСХОДНЫЙ СЛЕД',
+      coherentImpression: 'ЦЕЛЬНОЕ ВПЕЧАТЛЕНИЕ',
+      firstImpression: 'ПЕРВОЕ ВПЕЧАТЛЕНИЕ',
       customerContext: 'КОНТЕКСТ КЛИЕНТА',
       assistiveStructure: 'СТРУКТУРА ПОДДЕРЖКИ',
       humanAuthority: 'КОНТРОЛЬ ЧЕЛОВЕКА',
       resolution: 'РАЗРЕШЕНИЕ',
+      nextAction: 'СЛЕДУЮЩЕЕ ДЕЙСТВИЕ',
       artifactCaptionA: 'НАКОПЛЕНИЕ КОНТЕКСТА',
-      artifactCaptionB: 'ПРОИСХОЖДЕНИЕ ОСТАЁТСЯ ВИДИМЫМ',
-      ledgerLabel: 'ПРИЧИННАЯ ЗАПИСЬ',
-      ledgerHint: 'НАКОПЛЕННОЕ СОСТОЯНИЕ',
-      ledgerFoot: 'Предыдущий контекст остаётся зарегистрирован внутри каждого следующего состояния.',
+      artifactCaptionB: 'КАЖДЫЙ ЭТАП СОХРАНЯЕТ ИСТОЧНИК',
+      ledgerLabel: 'ОДНА ПРИЧИННАЯ ЗАПИСЬ',
+      ledgerHint: 'КОНТЕКСТ НАКАПЛИВАЕТСЯ',
+      ledgerFoot: 'Ничего не заменяется: каждое новое состояние строится на контексте предыдущего.',
       trust: 'ДОВЕРИЕ',
       inquiry: 'ОБРАЩЕНИЕ',
       response: 'ОТВЕТ',
       result: 'РЕЗУЛЬТАТ',
-      nextAction: 'СЛЕДУЮЩЕЕ ДЕЙСТВИЕ',
       imprint: 'ОТПЕЧАТОК',
       attach: 'ДОБАВЛЕНИЕ',
       enrich: 'ОБОГАЩЕНИЕ',
       resolve: 'НАПРАВЛЕНИЕ',
-      trustShort: 'Убедительное первое впечатление создаёт условия для следующего шага.',
-      inquiryShort: 'Новый контекст клиента присоединяется к уже существующей основе.',
-      responseShort: 'AI и автоматизация организуют и направляют, сохраняя контроль за человеком.',
-      resultShort: 'Накопленный контекст направляется к конкретному следующему действию бизнеса.',
+      trustPrimary: 'Убедительное первое впечатление помогает клиенту решиться на следующий шаг.',
+      trustSecondary: 'Сайт, бренд, ясное предложение и подтверждения складываются в один цельный сигнал бизнеса.',
+      trustComponents: 'Сайт · Бренд · Ясность предложения · Подтверждения',
+      inquiryPrimary: 'Интерес превращается в структурированное обращение.',
+      inquirySecondary: 'Новый контекст клиента присоединяется к тому, что уже сформировало доверие.',
+      inquiryComponents: 'Формы · Звонки · Сообщения · CRM',
+      responsePrimary: 'Обращение становится организованным и готовым к следующему действию.',
+      responseSecondary: 'AI, автоматизация и маршрутизация структурируют накопленный контекст, сохраняя контроль за человеком.',
+      responseComponents: 'AI · Автоматизация · Маршрутизация · Повторный контакт',
+      resultPrimary: 'Накопленный контекст ведёт к более ясному следующему действию бизнеса.',
+      resultSecondary: 'Основа, обращение клиента и структура поддержки остаются прослеживаемыми в итоговом состоянии.',
+      resultComponents: 'Запись · Предложение · Следующий шаг · Измерение',
       originWebsite: 'САЙТ',
       originBrand: 'БРЕНД',
       originOffer: 'ПРЕДЛОЖЕНИЕ',
-      originProof: 'ДОВЕРИЕ',
+      originProof: 'ПОДТВЕРЖДЕНИЯ',
       inquiryForm: 'ФОРМА',
       inquiryCall: 'ЗВОНОК',
       inquiryMessage: 'СООБЩЕНИЕ',
@@ -100,7 +120,7 @@
       proposal: 'ПРЕДЛОЖЕНИЕ',
       nextStep: 'СЛЕДУЮЩИЙ ШАГ',
       measurement: 'ИЗМЕРЕНИЕ',
-      footerLine: 'Одна причинная запись. Новый контекст накапливается. Предыдущий контекст остаётся прослеживаемым.'
+      footerLine: 'От первого впечатления до следующего действия бизнеса — одна связанная и прослеживаемая система.'
     }
   };
 
@@ -113,6 +133,7 @@
 
   const setLanguage = (language) => {
     if (!copy[language]) return;
+
     currentLanguage = language;
     document.documentElement.lang = language;
     root.dataset.language = language;
@@ -143,39 +164,44 @@
       button.classList.toggle('is-past', index < next);
       button.classList.toggle('is-active', active);
       button.classList.toggle('is-future', index > next);
+
       if (active) button.setAttribute('aria-current', 'step');
       else button.removeAttribute('aria-current');
     });
 
-    if (source === 'manual') manualUntil = performance.now() + 1400;
+    if (source === 'manual') {
+      manualUntil = performance.now() + 1600;
+    }
   };
 
   const stateFromProgress = (progress) => {
-    if (progress < .24) return 1;
-    if (progress < .49) return 2;
-    if (progress < .74) return 3;
+    if (progress < .23) return 1;
+    if (progress < .48) return 2;
+    if (progress < .73) return 3;
     return 4;
   };
 
   const desktopProgress = () => {
     const rect = experience.getBoundingClientRect();
     const viewport = window.innerHeight;
-    const startLine = viewport * .36;
-    const travel = Math.max(320, rect.height - viewport * .45);
+    const startLine = viewport * .30;
+    const travel = Math.max(360, rect.height - viewport * .42);
     return clamp((startLine - rect.top) / travel, 0, 1);
   };
 
   const portraitProgress = () => {
     const rect = ledger.getBoundingClientRect();
     const viewport = window.innerHeight;
-    const startLine = viewport * .62;
-    const travel = Math.max(240, rect.height + viewport * .18);
+    const startLine = viewport * .7;
+    const travel = Math.max(430, rect.height + viewport * .16);
     return clamp((startLine - rect.top) / travel, 0, 1);
   };
 
   const updateFromScroll = () => {
     frameRequested = false;
+
     if (reducedMotion.matches || lowLandscape.matches || performance.now() < manualUntil) return;
+
     const progress = portrait.matches ? portraitProgress() : desktopProgress();
     setState(stateFromProgress(progress));
   };
@@ -183,7 +209,7 @@
   const onScroll = () => {
     if (frameRequested) return;
     frameRequested = true;
-    requestAnimationFrame(updateFromScroll);
+    window.requestAnimationFrame(updateFromScroll);
   };
 
   const configureMode = () => {
@@ -196,9 +222,11 @@
 
   stageButtons.forEach((button) => {
     const inspect = () => setState(Number(button.dataset.stageButton), 'manual');
+
     button.addEventListener('click', inspect);
     button.addEventListener('focus', inspect);
-    if (window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+
+    if (finePointer.matches) {
       button.addEventListener('pointerenter', inspect);
     }
   });
@@ -214,10 +242,11 @@
   portrait.addEventListener?.('change', configureMode);
 
   setLanguage(currentLanguage);
+
   if (reducedMotion.matches || lowLandscape.matches) {
     setState(4);
   } else {
     setState(1);
-    requestAnimationFrame(updateFromScroll);
+    window.requestAnimationFrame(updateFromScroll);
   }
 })();

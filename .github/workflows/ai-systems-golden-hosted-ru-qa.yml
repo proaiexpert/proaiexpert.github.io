@@ -1,0 +1,74 @@
+name: AI Systems Golden Hosted RU QA
+
+on:
+  push:
+    branches:
+      - qa/ai-systems-golden-hosted-ru-r1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ru-browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      RU_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ru/
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "HTTP=$(curl -L -sS -o /dev/null --max-time 20 -w '%{http_code}' "$RU_URL")"
+          CHROME="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "CHROME=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+          mkdir -p /tmp/ruqa && cd /tmp/ruqa
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core --no-save --silent
+      - name: Verify RU desktop mobile landscape in Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/ruqa
+          cat > qa.mjs <<'NODE'
+          import fs from 'node:fs';
+          import puppeteer from 'puppeteer-core';
+          const out=process.env.GITHUB_WORKSPACE+'/ru-qa-artifacts'; fs.mkdirSync(out,{recursive:true});
+          const cases=[['ru-desktop',1440,1100,true],['ru-mobile-390',390,844,true],['ru-landscape-844x390',844,390,false]];
+          const sectionTokens=['01 · КОНТУР УПРАВЛЕНИЯ','02 · ГЛУБИНА ИНЖЕНЕРИИ','03 · ПРОВЕРЕННАЯ РЕФЕРЕНСНАЯ РЕАЛИЗАЦИЯ PROAI','04 · СНАЧАЛА ПРОЦЕСС','05 · КОНТРОЛЬ ЧЕЛОВЕКОМ','06 · ДОКАЗАТЕЛЬСТВА ПО КЛАССАМ','07 · ИНТЕГРАЦИИ + СОБСТВЕННАЯ ЛОГИКА','08 · НАЧИНАЕМ С УЗКОГО МЕСТА'];
+          const browser=await puppeteer.launch({executablePath:process.env.CHROME,headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
+          const run=async([name,width,height,fullPage])=>{
+            const page=await browser.newPage(); await page.setViewport({width,height,deviceScaleFactor:1});
+            const responses=[], reqFail=[], consoleErrors=[], pageErrors=[];
+            page.on('response',r=>responses.push({url:r.url(),status:r.status(),type:r.request().resourceType()}));
+            page.on('requestfailed',r=>reqFail.push({url:r.url(),error:r.failure()?.errorText||'unknown'}));
+            page.on('console',m=>{if(m.type()==='error') consoleErrors.push(m.text())}); page.on('pageerror',e=>pageErrors.push(String(e)));
+            const nav=await page.goto(process.env.RU_URL,{waitUntil:'domcontentloaded',timeout:45000});
+            await page.waitForFunction(()=>document.querySelector('.home-footer-golden-r3')&&document.querySelector('.ai-golden-recovery-hero__neutral'),{timeout:20000});
+            await new Promise(r=>setTimeout(r,1600));
+            const d=await page.evaluate(async()=>{
+              const q=s=>document.querySelector(s); const vis=e=>{if(!e)return false;const r=e.getBoundingClientRect(),c=getComputedStyle(e);return r.width>1&&r.height>1&&c.display!=='none'&&c.visibility!=='hidden'};
+              const text=(document.body?.innerText||'').replace(/\s+/g,' ').trim(); const html=document.documentElement.outerHTML;
+              const fs=[...document.querySelectorAll('.ai-r3-evidence-card')].find(x=>(x.innerText||'').includes('Financial Stream')); const h1=q('#ai-r3-hero-title'); const neutral=q('.ai-golden-recovery-hero__neutral'); const footer=q('.home-footer-golden-r3');
+              const links=[...document.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.href); const scripts=[...document.querySelectorAll('script[src]')].map(x=>x.src); const statuses=await Promise.all([...new Set([...links,...scripts])].map(async u=>{try{const r=await fetch(u,{cache:'no-store'});return{url:u,status:r.status}}catch(e){return{url:u,status:0,error:String(e)}}}));
+              return {text,liquid:html.includes('{%')||html.includes('{{'),yaml:/^\s*---(?:\r?\n|\s)/.test(document.body?.innerText||''),header:vis(q('.site-header'))&&vis(q('.proai-logo-r341--header'))&&!!q('.site-header__menu-toggle'),hero:vis(q('.ai-r3-hero')),heroText:(h1?.innerText||'').replace(/\s+/g,' ').trim(),heroSize:h1?parseFloat(getComputedStyle(h1).fontSize):0,neutral:vis(neutral),neutralRect:neutral?{w:Math.round(neutral.getBoundingClientRect().width),h:Math.round(neutral.getBoundingClientRect().height)}:null,test:(q('.ai-r3-test-result')?.innerText||'').replace(/\s+/g,' ').trim(),fs:(fs?.innerText||'').replace(/\s+/g,' ').trim(),footer:vis(footer),footerText:(footer?.innerText||'').replace(/\s+/g,' ').trim(),statuses,overflow:document.documentElement.scrollWidth-window.innerWidth,visibleSections:[...document.querySelectorAll('main>section')].filter(vis).length};
+            });
+            await page.screenshot({path:`${out}/${name}.png`,fullPage});
+            const fail=[]; const ck=(v,m)=>{if(!v)fail.push(m)};
+            ck(nav?.status()===200,`HTTP=${nav?.status()}`); ck(!d.liquid,'RAW_LIQUID'); ck(!d.yaml,'YAML_FRONT_MATTER'); ck(d.header,'HEADER'); ck(d.hero&&d.heroText==='AI-системы, которые выполняют работу. Важные решения остаются за вами.',`HERO=${d.heroText}`); ck(d.neutral&&d.neutralRect?.w>40&&d.neutralRect?.h>40,`NEUTRAL=${JSON.stringify(d.neutralRect)}`); ck(d.heroSize>=(width>=1000?42:28),`HERO_STYLE=${d.heroSize}`); sectionTokens.forEach(s=>ck(d.text.includes(s),`SECTION=${s}`)); ck(d.visibleSections>=9,`BODY_VISIBLE=${d.visibleSections}`); ck(d.test==='7 / 7 reference-тестов проходят',`TEST=${d.test}`); ck(d.fs.includes('EN + RU'),'FS_EN_RU'); ck(d.fs.includes('8,36K'),'FS_8_36K'); ck(/\b52\b/.test(d.fs),'FS_52'); ck(!/Organic clicks|63\s*Organic|57\s*(?:clicks|Organic)|7\.24K|50\s*(?:indexed|pages|страниц)/i.test(d.fs),`FS_STALE=${d.fs}`); ck(d.footer&&d.footerText.includes('Строим системы, которые знают, когда действовать — и когда остановиться.')&&d.footerText.includes('Архитектура процессов, автоматизация, агенты, API и собственная разработка для бизнеса, которому уже мало ещё одного изолированного AI-инструмента.'),'FOOTER'); ck(d.overflow<=2,`OVERFLOW=${d.overflow}`); ck(d.statuses.every(x=>x.status===200),`LINKED_ASSET=${JSON.stringify(d.statuses.filter(x=>x.status!==200))}`); const localBad=responses.filter(x=>x.url.startsWith('https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev')&&['document','stylesheet','script','font','image'].includes(x.type)&&x.status>=400); ck(localBad.length===0,`ASSET_HTTP=${JSON.stringify(localBad)}`); ck(reqFail.length===0,`REQUEST_FAIL=${JSON.stringify(reqFail)}`); ck(consoleErrors.length===0,`CONSOLE=${JSON.stringify(consoleErrors)}`); ck(pageErrors.length===0,`PAGE_ERROR=${JSON.stringify(pageErrors)}`);
+            const r={name,http:nav?.status()||0,pass:fail.length===0,fail,missingCss:d.statuses.filter(x=>/\.css(?:\?|$)/.test(x.url)&&x.status!==200),missingJs:d.statuses.filter(x=>/\.m?js(?:\?|$)/.test(x.url)&&x.status!==200),overflow:d.overflow,consoleErrors,pageErrors,requestFailures:reqFail,heroSize:d.heroSize,neutralRect:d.neutralRect,test:d.test,fs:d.fs}; console.log(`CASE ${name} ${r.pass?'PASS':'FAIL'} HTTP=${r.http} CSS_MISSING=${r.missingCss.length} JS_MISSING=${r.missingJs.length} OVERFLOW=${r.overflow}`); fail.forEach(x=>console.log(`FAIL ${name}: ${x}`)); await page.close(); return r;
+          };
+          const results=await Promise.all(cases.map(run)); await browser.close(); const report={pass:results.every(x=>x.pass),results}; fs.writeFileSync(`${out}/qa-report.json`,JSON.stringify(report,null,2)); console.log(JSON.stringify(report,null,2)); if(!report.pass)process.exit(1);
+          NODE
+          node qa.mjs
+      - name: Upload RU QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-systems-golden-hosted-ru-qa
+          path: ru-qa-artifacts/
+          if-no-files-found: warn

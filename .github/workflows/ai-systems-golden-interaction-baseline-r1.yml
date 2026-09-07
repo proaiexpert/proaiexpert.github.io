@@ -1,0 +1,137 @@
+name: AI Systems Golden Interaction Baseline R1
+
+on:
+  push:
+    branches:
+      - qa/ai-systems-golden-interaction-baseline-r1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  interaction-forensic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BASE_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "CHROME=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+          mkdir -p /tmp/ai-interaction-qa
+          cd /tmp/ai-interaction-qa
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core --no-save --silent
+      - name: Inspect computed interaction states
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/ai-interaction-qa
+          cat > audit.mjs <<'NODE'
+          import fs from 'node:fs';
+          import puppeteer from 'puppeteer-core';
+
+          const url = process.env.BASE_URL;
+          const out = process.env.GITHUB_WORKSPACE + '/interaction-baseline-artifacts';
+          fs.mkdirSync(out,{recursive:true});
+          const controls = [
+            ['header-cta','.site-header__cta'],
+            ['header-locale','.site-header__locale'],
+            ['hero-primary','.ai-r3-hero .ai-r3-btn--primary'],
+            ['hero-secondary','.ai-r3-hero .ai-r3-btn:not(.ai-r3-btn--primary)'],
+            ['section08-cta','.ai-r3-cta .ai-r3-btn--primary'],
+            ['footer-cta','.home-footer-golden-r3__action'],
+            ['footer-email','.home-footer-golden-r3__contact a[href^="mailto:"]'],
+            ['footer-capability','.home-footer-golden-r3__capabilities a'],
+            ['footer-social','.home-footer-golden-r3__social-rail a'],
+            ['footer-locale','.home-footer-golden-r3__locale a'],
+            ['mobile-menu','.site-header__menu-toggle']
+          ];
+          const stateDefs = [
+            ['default',[]],
+            ['hover',['hover']],
+            ['focus-visible',['focus','focus-visible']],
+            ['active',['active']],
+            ['visited',['visited']]
+          ];
+          const props = ['color','background-color','background-image','border-top-color','border-top-width','border-top-style','border-radius','opacity','mix-blend-mode','outline-color','outline-width','outline-style','text-decoration-line','text-decoration-color','cursor','display','width','height','min-height','padding-top','padding-right','padding-bottom','padding-left','line-height','white-space'];
+
+          const browser = await puppeteer.launch({executablePath:process.env.CHROME,headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
+          const page = await browser.newPage();
+          await page.setViewport({width:1440,height:1100,deviceScaleFactor:1});
+          const response = await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
+          await page.waitForFunction(()=>document.querySelector('.home-footer-golden-r3')&&document.querySelector('.ai-golden-recovery-hero__neutral'),{timeout:20000});
+          await new Promise(r=>setTimeout(r,1400));
+          console.log('HTTP', response?.status());
+
+          const cdp = await page.createCDPSession();
+          await cdp.send('DOM.enable');
+          await cdp.send('CSS.enable');
+          let {root} = await cdp.send('DOM.getDocument',{depth:-1,pierce:true});
+
+          const inspectOne = async (name,selector) => {
+            const {nodeId} = await cdp.send('DOM.querySelector',{nodeId:root.nodeId,selector});
+            if(!nodeId){ console.log(`MISSING ${name} ${selector}`); return {name,selector,missing:true}; }
+            const isVisible = await page.$eval(selector,e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.display!=='none'&&s.visibility!=='hidden'}).catch(()=>false);
+            const states = {};
+            for(const [state,pseudo] of stateDefs){
+              try { await cdp.send('CSS.forcePseudoState',{nodeId,forcedPseudoClasses:pseudo}); } catch(e) { console.log(`FORCE_ERROR ${name} ${state}: ${String(e)}`); }
+              await new Promise(r=>setTimeout(r,80));
+              const computed = await page.$eval(selector,(el,props)=>{
+                const s=getComputedStyle(el), r=el.getBoundingClientRect(), o={};
+                for(const p of props)o[p]=s.getPropertyValue(p);
+                return {text:(el.textContent||'').replace(/\s+/g,' ').trim(),rect:{x:r.x,y:r.y,w:r.width,h:r.height},style:o};
+              },props);
+              const matched = await cdp.send('CSS.getMatchedStylesForNode',{nodeId}).catch(()=>null);
+              const rules = [];
+              for(const m of matched?.matchedCSSRules||[]){
+                const rule=m.rule; const selectorText=(rule.selectorList?.selectors||[]).map(x=>x.text).join(', ');
+                const interesting=(rule.style?.cssProperties||[]).filter(p=>['color','background','background-color','background-image','border','border-color','border-radius','opacity','mix-blend-mode','outline','outline-color','text-decoration','width','min-height'].includes(p.name));
+                if(interesting.length)rules.push({selector:selectorText,origin:rule.origin,properties:interesting.map(p=>({name:p.name,value:p.value,important:p.important||false}))});
+              }
+              states[state]={computed,matchedRules:rules};
+              console.log(`CONTROL ${name} STATE ${state} visible=${isVisible} text=${JSON.stringify(computed.text)} color=${computed.style['color']} bg=${computed.style['background-color']} bgimg=${computed.style['background-image']} radius=${computed.style['border-radius']} border=${computed.style['border-top-width']} ${computed.style['border-top-style']} ${computed.style['border-top-color']} opacity=${computed.style['opacity']} blend=${computed.style['mix-blend-mode']} outline=${computed.style['outline-width']} ${computed.style['outline-style']} ${computed.style['outline-color']} cursor=${computed.style['cursor']} size=${computed.rect.w.toFixed(1)}x${computed.rect.h.toFixed(1)}`);
+            }
+            await cdp.send('CSS.forcePseudoState',{nodeId,forcedPseudoClasses:[]}).catch(()=>{});
+            return {name,selector,visible:isVisible,states};
+          };
+
+          const desktop=[];
+          for(const [name,selector] of controls) desktop.push(await inspectOne(name,selector));
+          await page.screenshot({path:`${out}/baseline-desktop.png`,fullPage:true});
+
+          await page.setViewport({width:390,height:844,deviceScaleFactor:1});
+          await new Promise(r=>setTimeout(r,300));
+          ({root} = await cdp.send('DOM.getDocument',{depth:-1,pierce:true}));
+          const mobile=[];
+          for(const [name,selector] of controls) mobile.push(await inspectOne(name,selector));
+          await page.screenshot({path:`${out}/baseline-mobile-390.png`,fullPage:true});
+
+          const cssVisited = await page.evaluate(()=>{
+            const hits=[];
+            for(const sheet of [...document.styleSheets]){
+              let rules; try{rules=sheet.cssRules}catch{continue}
+              const walk=(list,href)=>{for(const rule of [...list]){if(rule.cssRules)walk(rule.cssRules,href);else if(rule.selectorText&&rule.selectorText.includes(':visited'))hits.push({href,selector:rule.selectorText,css:rule.style.cssText})}};
+              walk(rules,sheet.href||'inline');
+            }
+            return hits;
+          });
+          console.log('VISITED_RULES',JSON.stringify(cssVisited));
+          fs.writeFileSync(`${out}/interaction-baseline.json`,JSON.stringify({http:response?.status()||0,desktop,mobile,visitedRules:cssVisited},null,2));
+          await browser.close();
+          NODE
+          node audit.mjs
+      - name: Upload baseline evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-systems-golden-interaction-baseline-r1
+          path: interaction-baseline-artifacts/
+          if-no-files-found: warn

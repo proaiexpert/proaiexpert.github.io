@@ -1,0 +1,59 @@
+name: AI Systems Golden Contrast Baseline Fast R1
+
+on:
+  push:
+    branches:
+      - qa/ai-systems-golden-contrast-baseline-fast-r1
+
+permissions:
+  contents: read
+
+jobs:
+  contrast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inspect baseline contrast in Chrome
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          mkdir -p /tmp/fastqa && cd /tmp/fastqa
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core --no-save --silent
+          CHROME="$CHROME" node --input-type=module <<'NODE'
+          import puppeteer from 'puppeteer-core';
+          const browser=await puppeteer.launch({executablePath:process.env.CHROME,headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
+          const page=await browser.newPage(); await page.setViewport({width:1440,height:1100});
+          const r=await page.goto(process.env.URL,{waitUntil:'domcontentloaded',timeout:45000});
+          await page.waitForFunction(()=>document.querySelector('.ai-r3-cta .ai-r3-btn--primary')&&document.querySelector('.ai-r3-hero .ai-r3-btn--primary'),{timeout:20000});
+          console.log('HTTP='+r.status());
+          const selectors=['.ai-r3-hero .ai-r3-btn--primary','.ai-r3-cta .ai-r3-btn--primary'];
+          for(const sel of selectors){
+            for(const state of ['default','hover','focus','active']){
+              if(state==='hover') await page.hover(sel);
+              if(state==='focus') await page.focus(sel);
+              if(state==='active') await page.$eval(sel,e=>e.classList.add('__qa_active'));
+              const d=await page.$eval(sel,(e,state)=>{
+                if(state==='active'){
+                  const s=document.createElement('style'); s.id='__qa'; s.textContent='.__qa_active:active{}'; document.head.appendChild(s);
+                }
+                const c=getComputedStyle(e); const p=getComputedStyle(e.parentElement);
+                return {text:e.textContent.trim(),color:c.color,backgroundColor:c.backgroundColor,backgroundImage:c.backgroundImage,border:c.border,borderRadius:c.borderRadius,opacity:c.opacity,mixBlendMode:c.mixBlendMode,outline:c.outline,parentColor:p.color};
+              },state);
+              console.log(sel+' STATE='+state+' '+JSON.stringify(d));
+              if(state==='focus') await page.$eval(sel,e=>e.blur());
+              if(state==='active') await page.$eval(sel,e=>e.classList.remove('__qa_active'));
+            }
+          }
+          const cascade=await page.evaluate(()=>({
+            r1:[...document.styleSheets].flatMap(s=>{try{return [...s.cssRules]}catch{return []}}).filter(r=>r.selectorText==='.ai-r1-page a').map(r=>r.cssText),
+            r3:[...document.styleSheets].flatMap(s=>{try{return [...s.cssRules]}catch{return []}}).filter(r=>r.selectorText?.includes('.ai-r3-btn--primary')).map(r=>r.cssText)
+          }));
+          console.log('CASCADE='+JSON.stringify(cascade));
+          await browser.close();
+          NODE

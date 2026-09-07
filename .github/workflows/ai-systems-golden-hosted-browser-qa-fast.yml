@@ -1,0 +1,152 @@
+name: AI Systems Golden Hosted Browser QA Fast
+
+on:
+  push:
+    branches:
+      - qa/ai-systems-golden-hosted-browser-fast-r1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      EN_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/
+      RU_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ru/
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preflight hosted URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "EN=$(curl -L -sS -o /dev/null --max-time 20 -w '%{http_code}' "$EN_URL")"
+          echo "RU=$(curl -L -sS -o /dev/null --max-time 20 -w '%{http_code}' "$RU_URL")"
+
+      - name: Prepare browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "CHROME=$CHROME" >> "$GITHUB_ENV"
+          "$CHROME" --version
+          mkdir -p /tmp/aiqa
+          cd /tmp/aiqa
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core --no-save --silent
+
+      - name: Parallel real-browser verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/aiqa
+          cat > qa.mjs <<'NODE'
+          import fs from 'node:fs';
+          import puppeteer from 'puppeteer-core';
+
+          const origin = 'https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev';
+          const cases = [
+            ['en-desktop','en',process.env.EN_URL,1440,1100,true],
+            ['ru-desktop','ru',process.env.RU_URL,1440,1100,true],
+            ['en-mobile-390','en',process.env.EN_URL,390,844,true],
+            ['ru-mobile-390','ru',process.env.RU_URL,390,844,true],
+            ['en-landscape','en',process.env.EN_URL,844,390,false],
+            ['ru-landscape','ru',process.env.RU_URL,844,390,false]
+          ];
+          const E = {
+            en: {
+              hero:'AI systems that do the work. You keep the decisions that matter.',
+              test:'7 / 7 reference tests passing',
+              footer:'Build the system that knows when to act — and when to stop.',
+              summary:'Process architecture, automation, agents, APIs and custom engineering for businesses that need more than another isolated AI tool.',
+              imp:'8.36K',
+              sections:['01 · OPERATIONAL REGISTER','02 · ENGINEERING DEPTH','03 · VERIFIED PROAI REFERENCE IMPLEMENTATION','04 · PROCESS BEFORE TECHNOLOGY','05 · HUMAN CONTROL','06 · EVIDENCE BY CLASS','07 · INTEGRATIONS + CUSTOM LOGIC','08 · START WITH THE BOTTLENECK']
+            },
+            ru: {
+              hero:'AI-системы, которые выполняют работу. Важные решения остаются за вами.',
+              test:'7 / 7 reference-тестов проходят',
+              footer:'Строим системы, которые знают, когда действовать — и когда остановиться.',
+              summary:'Архитектура процессов, автоматизация, агенты, API и собственная разработка для бизнеса, которому уже мало ещё одного изолированного AI-инструмента.',
+              imp:'8,36K',
+              sections:['01 · КОНТУР УПРАВЛЕНИЯ','02 · ГЛУБИНА ИНЖЕНЕРИИ','03 · VERIFIED PROAI REFERENCE IMPLEMENTATION','04 · СНАЧАЛА ПРОЦЕСС','05 · КОНТРОЛЬ ЧЕЛОВЕКОМ','06 · ДОКАЗАТЕЛЬСТВА ПО КЛАССАМ','07 · ИНТЕГРАЦИИ + СОБСТВЕННАЯ ЛОГИКА','08 · НАЧИНАЕМ С УЗКОГО МЕСТА']
+            }
+          };
+          const out = process.env.GITHUB_WORKSPACE + '/qa-artifacts-fast';
+          fs.mkdirSync(out,{recursive:true});
+          const browser = await puppeteer.launch({executablePath:process.env.CHROME,headless:true,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']});
+
+          const run = async ([name,lang,url,width,height,fullPage]) => {
+            const page = await browser.newPage();
+            await page.setViewport({width,height,deviceScaleFactor:1});
+            const responses=[]; const requestFailures=[]; const consoleErrors=[]; const pageErrors=[];
+            page.on('response',r=>responses.push({url:r.url(),status:r.status(),type:r.request().resourceType()}));
+            page.on('requestfailed',r=>requestFailures.push({url:r.url(),error:r.failure()?.errorText||'unknown'}));
+            page.on('console',m=>{ if(m.type()==='error') consoleErrors.push(m.text()); });
+            page.on('pageerror',e=>pageErrors.push(String(e)));
+            let http=0, navError='';
+            try {
+              const res=await page.goto(url,{waitUntil:'domcontentloaded',timeout:45000});
+              http=res?.status()||0;
+              await page.waitForFunction(()=>document.querySelector('.home-footer-golden-r3')&&document.querySelector('.ai-golden-recovery-hero__neutral'),{timeout:20000});
+              await new Promise(r=>setTimeout(r,1600));
+            } catch(e) { navError=String(e); }
+
+            const d=await page.evaluate(async()=>{
+              const text=(document.body?.innerText||'').replace(/\s+/g,' ').trim();
+              const html=document.documentElement.outerHTML;
+              const q=s=>document.querySelector(s);
+              const vis=e=>{if(!e)return false;const r=e.getBoundingClientRect(),c=getComputedStyle(e);return r.width>1&&r.height>1&&c.display!=='none'&&c.visibility!=='hidden'};
+              const fs=[...document.querySelectorAll('.ai-r3-evidence-card')].find(x=>(x.innerText||'').includes('Financial Stream'));
+              const h1=q('#ai-r3-hero-title'); const neutral=q('.ai-golden-recovery-hero__neutral'); const footer=q('.home-footer-golden-r3');
+              const styles=[...document.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.href);
+              const scripts=[...document.querySelectorAll('script[src]')].map(x=>x.src);
+              const fetchStatuses=await Promise.all([...new Set([...styles,...scripts])].map(async u=>{try{const r=await fetch(u,{cache:'no-store'});return {url:u,status:r.status}}catch(e){return {url:u,status:0,error:String(e)}}}));
+              return {
+                text, liquid:html.includes('{%')||html.includes('{{'), yaml:/^\s*---(?:\r?\n|\s)/.test(document.body?.innerText||''),
+                header:vis(q('.site-header'))&&vis(q('.proai-logo-r341--header'))&&!!q('.site-header__menu-toggle'),
+                hero:vis(q('.ai-r3-hero')), heroText:(h1?.innerText||'').replace(/\s+/g,' ').trim(), heroSize:h1?parseFloat(getComputedStyle(h1).fontSize):0,
+                neutral:vis(neutral), neutralRect:neutral?{w:Math.round(neutral.getBoundingClientRect().width),h:Math.round(neutral.getBoundingClientRect().height)}:null,
+                test:(q('.ai-r3-test-result')?.innerText||'').replace(/\s+/g,' ').trim(),
+                fs:(fs?.innerText||'').replace(/\s+/g,' ').trim(), footer:vis(footer), footerText:(footer?.innerText||'').replace(/\s+/g,' ').trim(),
+                styles,scripts,fetchStatuses,
+                sections:[...document.querySelectorAll('main>section')].map(x=>{const r=x.getBoundingClientRect();return {h:Math.round(r.height),visible:vis(x),txt:(x.innerText||'').replace(/\s+/g,' ').trim().slice(0,140)}}),
+                overflow:document.documentElement.scrollWidth-window.innerWidth,
+                background:getComputedStyle(document.body).backgroundColor
+              };
+            });
+            await page.screenshot({path:`${out}/${name}.png`,fullPage});
+            const fail=[]; const exp=E[lang]; const ck=(v,m)=>{if(!v)fail.push(m)};
+            ck(http===200,`HTTP=${http}`); ck(!navError,`NAV=${navError}`); ck(!d.liquid,'RAW_LIQUID'); ck(!d.yaml,'YAML_FRONT_MATTER'); ck(d.header,'HEADER');
+            ck(d.hero&&d.heroText===exp.hero,`HERO=${d.heroText}`); ck(d.neutral&&d.neutralRect?.w>40&&d.neutralRect?.h>40,`NEUTRAL=${JSON.stringify(d.neutralRect)}`); ck(d.heroSize>=(width>=1000?42:28),`HERO_STYLE=${d.heroSize}`);
+            exp.sections.forEach(s=>ck(d.text.includes(s),`SECTION=${s}`)); ck(d.sections.filter(x=>x.visible&&x.h>60).length>=9,`BODY_VISIBLE=${d.sections.filter(x=>x.visible&&x.h>60).length}`);
+            ck(d.test===exp.test,`TEST=${d.test}`); ck(d.fs.includes('EN + RU'),'FS_EN_RU'); ck(d.fs.includes(exp.imp),`FS_IMPRESSIONS=${d.fs}`); ck(/\b52\b/.test(d.fs),'FS_52'); ck(!/Organic clicks|63\s*Organic|57\s*(?:clicks|Organic)|7\.24K|50\s*(?:indexed|pages|страниц)/i.test(d.fs),`FS_STALE=${d.fs}`);
+            ck(d.footer&&d.footerText.includes(exp.footer)&&d.footerText.includes(exp.summary),'FOOTER'); ck(d.overflow<=2,`OVERFLOW=${d.overflow}`);
+            const linkBad=d.fetchStatuses.filter(x=>x.status!==200); ck(linkBad.length===0,`LINKED_ASSET=${JSON.stringify(linkBad)}`);
+            const localBad=responses.filter(x=>x.url.startsWith(origin)&&['document','stylesheet','script','font','image'].includes(x.type)&&x.status>=400); ck(localBad.length===0,`ASSET_HTTP=${JSON.stringify(localBad)}`);
+            ck(requestFailures.length===0,`REQUEST_FAILED=${JSON.stringify(requestFailures)}`); ck(pageErrors.length===0,`PAGE_ERROR=${JSON.stringify(pageErrors)}`); ck(consoleErrors.length===0,`CONSOLE=${JSON.stringify(consoleErrors)}`);
+            const r={name,lang,url,width,height,http,pass:fail.length===0,fail,missingCss:d.fetchStatuses.filter(x=>/\.css(?:\?|$)/.test(x.url)&&x.status!==200),missingJs:d.fetchStatuses.filter(x=>/\.m?js(?:\?|$)/.test(x.url)&&x.status!==200),linkedAssets:d.fetchStatuses,requestFailures,consoleErrors,pageErrors,overflow:d.overflow,heroSize:d.heroSize,neutralRect:d.neutralRect,test:d.test,fs:d.fs,footerPass:d.footer&&d.footerText.includes(exp.footer)&&d.footerText.includes(exp.summary)};
+            console.log(`CASE ${name} ${r.pass?'PASS':'FAIL'} HTTP=${http} CSS_MISSING=${r.missingCss.length} JS_MISSING=${r.missingJs.length} OVERFLOW=${r.overflow}`); fail.forEach(x=>console.log(`FAIL ${name}: ${x}`));
+            await page.close(); return r;
+          };
+
+          const results=await Promise.all(cases.map(run));
+          await browser.close();
+          const report={generatedAt:new Date().toISOString(),pass:results.every(x=>x.pass),results};
+          fs.writeFileSync(`${out}/qa-report.json`,JSON.stringify(report,null,2));
+          fs.writeFileSync(`${out}/qa-summary.txt`,results.map(x=>`${x.name}: ${x.pass?'PASS':'FAIL'} HTTP=${x.http} missingCSS=${x.missingCss.length} missingJS=${x.missingJs.length} overflow=${x.overflow}`).join('\n')+`\nOVERALL: ${report.pass?'PASS':'FAIL'}\n`);
+          console.log(JSON.stringify(report,null,2));
+          if(!report.pass) process.exit(1);
+          NODE
+          node qa.mjs
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-systems-golden-hosted-browser-qa-fast
+          path: qa-artifacts-fast/
+          if-no-files-found: warn

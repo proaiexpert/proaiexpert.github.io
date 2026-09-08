@@ -1,0 +1,61 @@
+name: AI Systems Golden Micro Polish Closeout R3
+
+on:
+  push:
+    branches:
+      - qa/ai-systems-golden-micro-polish-closeout-r3
+
+permissions:
+  contents: read
+
+jobs:
+  closeout-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      EN_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/
+      RU_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ru/
+      LOCAL_CSS: owner-preview/ai-systems-golden-recovery-r1/ai-systems-golden-recovery-r1.css
+      REMOTE_CSS: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ai-systems-golden-recovery-r1.css?v=closeout-r3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify exact hosted candidate CSS
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(curl -L -sS -o /dev/null -w '%{http_code}' "$EN_URL")" = 200
+          test "$(curl -L -sS -o /dev/null -w '%{http_code}' "$RU_URL")" = 200
+          curl -L -sS "$REMOTE_CSS" -o /tmp/remote.css
+          grep -q 'Golden Micro Polish R1' /tmp/remote.css
+          LOCAL_SHA=$(sha256sum "$LOCAL_CSS" | awk '{print $1}')
+          REMOTE_SHA=$(sha256sum /tmp/remote.css | awk '{print $1}')
+          echo "LOCAL_CSS_SHA256=$LOCAL_SHA"
+          echo "REMOTE_CSS_SHA256=$REMOTE_SHA"
+          test "$LOCAL_SHA" = "$REMOTE_SHA"
+
+      - name: Prepare Chrome QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "CHROME=$CHROME" >> "$GITHUB_ENV"
+          mkdir -p /tmp/closeout-r3 && cd /tmp/closeout-r3
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core --no-save --silent
+          node --check "$GITHUB_WORKSPACE/tools/qa/ai-systems-golden-micro-polish-closeout-r3.mjs"
+
+      - name: Exhaustive real Chrome state and viewport QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/closeout-r3
+          node "$GITHUB_WORKSPACE/tools/qa/ai-systems-golden-micro-polish-closeout-r3.mjs"
+
+      - name: Upload closeout QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-systems-golden-micro-polish-closeout-r3
+          path: qa-evidence-closeout-r3/

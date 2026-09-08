@@ -1,0 +1,59 @@
+name: AI Systems Golden Micro Polish Final Gate R1
+
+on:
+  push:
+    branches:
+      - qa/ai-systems-golden-micro-polish-final-gate-r1
+
+permissions:
+  contents: read
+
+jobs:
+  final-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev
+      EN_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/
+      RU_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ru/
+      REPORT_URL: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/docs/site-evolution/ai-systems/golden-micro-polish-r1/AI_SYSTEMS_GOLDEN_MICRO_POLISH_R1.md
+      REMOTE_CSS: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ai-systems-golden-recovery-r1.css?v=final-review-head
+      LOCAL_CSS: owner-preview/ai-systems-golden-recovery-r1/ai-systems-golden-recovery-r1.css
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify final mirror state and invariant CSS
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # The report did not exist at the implementation candidate HEAD.
+          # Seeing it on the short mirror proves Cloudflare has deployed the
+          # docs-only final review successor, not merely the old candidate.
+          ready=0
+          for i in $(seq 1 24); do
+            code=$(curl -L -sS -o /tmp/report.md -w '%{http_code}' "$REPORT_URL" || true)
+            if [ "$code" = "200" ] && grep -q 'MICRO UI POLISH COMPLETE' /tmp/report.md; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          test "$ready" = 1
+
+          EN_HTTP=$(curl -L -sS -o /tmp/en.html -w '%{http_code}' "$EN_URL")
+          RU_HTTP=$(curl -L -sS -o /tmp/ru.html -w '%{http_code}' "$RU_URL")
+          echo "EN_HTTP=$EN_HTTP"
+          echo "RU_HTTP=$RU_HTTP"
+          test "$EN_HTTP" = 200
+          test "$RU_HTTP" = 200
+
+          curl -L -sS "$REMOTE_CSS" -o /tmp/remote.css
+          grep -q 'Golden Micro Polish R1' /tmp/remote.css
+          LOCAL_SHA=$(sha256sum "$LOCAL_CSS" | awk '{print $1}')
+          REMOTE_SHA=$(sha256sum /tmp/remote.css | awk '{print $1}')
+          echo "LOCAL_CSS_SHA256=$LOCAL_SHA"
+          echo "REMOTE_CSS_SHA256=$REMOTE_SHA"
+          test "$LOCAL_SHA" = "$REMOTE_SHA"
+
+          echo "FINAL_MIRROR_REPORT=PASS"

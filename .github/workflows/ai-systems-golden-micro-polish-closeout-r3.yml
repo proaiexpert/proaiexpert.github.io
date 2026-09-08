@@ -41,17 +41,16 @@ jobs:
           CHROME="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
           test -n "$CHROME"
           echo "CHROME=$CHROME" >> "$GITHUB_ENV"
-          mkdir -p /tmp/closeout-r3 && cd /tmp/closeout-r3
-          npm init -y >/dev/null 2>&1
+          cd "$GITHUB_WORKSPACE"
           npm install puppeteer-core --no-save --silent
-          node --check "$GITHUB_WORKSPACE/tools/qa/ai-systems-golden-micro-polish-closeout-r3.mjs"
+          node --check tools/qa/ai-systems-golden-micro-polish-closeout-r3.mjs
 
       - name: Exhaustive real Chrome state and viewport QA
         shell: bash
         run: |
           set -euo pipefail
-          cd /tmp/closeout-r3
-          node "$GITHUB_WORKSPACE/tools/qa/ai-systems-golden-micro-polish-closeout-r3.mjs"
+          cd "$GITHUB_WORKSPACE"
+          node tools/qa/ai-systems-golden-micro-polish-closeout-r3.mjs
 
       - name: Upload closeout QA evidence
         if: always()

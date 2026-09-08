@@ -1,0 +1,97 @@
+name: AI Systems Golden Micro Polish Matrix R1
+
+on:
+  push:
+    branches:
+      - qa/ai-systems-golden-micro-polish-matrix-r1
+
+permissions:
+  contents: read
+
+jobs:
+  viewport:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: ru-desktop
+            label: RU DESKTOP
+            lang: ru
+            url: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ru/
+            width: 1440
+            height: 1100
+          - id: en-390
+            label: EN 390
+            lang: en
+            url: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/
+            width: 390
+            height: 844
+          - id: ru-390
+            label: RU 390
+            lang: ru
+            url: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ru/
+            width: 390
+            height: 844
+          - id: en-landscape
+            label: EN 844x390
+            lang: en
+            url: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/
+            width: 844
+            height: 390
+          - id: ru-landscape
+            label: RU 844x390
+            lang: ru
+            url: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ru/
+            width: 844
+            height: 390
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    name: ${{ matrix.label }}
+    env:
+      QA_LABEL: ${{ matrix.label }}
+      QA_LANG: ${{ matrix.lang }}
+      QA_URL: ${{ matrix.url }}
+      QA_WIDTH: ${{ matrix.width }}
+      QA_HEIGHT: ${{ matrix.height }}
+      LOCAL_CSS: owner-preview/ai-systems-golden-recovery-r1/ai-systems-golden-recovery-r1.css
+      REMOTE_CSS: https://ai-golden-recovery-preview.proaiexpert-github-io.pages.dev/owner-preview/ai-systems-golden-recovery-r1/ai-systems-golden-recovery-r1.css?v=matrix-r1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify exact hosted candidate CSS
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(curl -L -sS -o /dev/null -w '%{http_code}' "$QA_URL")" = 200
+          curl -L -sS "$REMOTE_CSS" -o /tmp/remote.css
+          grep -q 'Golden Micro Polish R1' /tmp/remote.css
+          LOCAL_SHA=$(sha256sum "$LOCAL_CSS" | awk '{print $1}')
+          REMOTE_SHA=$(sha256sum /tmp/remote.css | awk '{print $1}')
+          echo "LOCAL_CSS_SHA256=$LOCAL_SHA"
+          echo "REMOTE_CSS_SHA256=$REMOTE_SHA"
+          test "$LOCAL_SHA" = "$REMOTE_SHA"
+
+      - name: Prepare Chrome QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "CHROME=$CHROME" >> "$GITHUB_ENV"
+          cd "$GITHUB_WORKSPACE"
+          npm install puppeteer-core --no-save --silent
+          node --check tools/qa/ai-systems-golden-micro-polish-matrix-r1.mjs
+
+      - name: Exhaustive real Chrome state QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          node tools/qa/ai-systems-golden-micro-polish-matrix-r1.mjs
+
+      - name: Upload viewport evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-systems-golden-micro-polish-${{ matrix.id }}
+          path: qa-evidence-matrix/

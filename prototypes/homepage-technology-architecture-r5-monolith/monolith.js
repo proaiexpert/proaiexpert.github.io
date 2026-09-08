@@ -135,7 +135,7 @@ function addSignatureLine(size,pos,rot=[0,0,0]){
 }
 addSignatureLine([.92,.016,.018],[-.80,-1.165,1.405]);
 addSignatureLine([.58,.016,.018],[.96,1.165,1.405]);
-addSignatureLine([.018,.016,.70],[1.545,-1.165,.70]);
+addSignatureLine([.018,.016,.70],[1.472,-1.165,.70]);
 
 const datum = new THREE.Mesh(new THREE.BoxGeometry(1.06,.022,.035),insetMaterial);
 datum.position.set(.62,-1.18,1.392);
@@ -246,9 +246,9 @@ function addSurface(data,cfg){
 }
 
 addSurface(LABELS[0],{width:2.58,height:1.82,position:[0,.02,1.418],rotation:[0,0,0]});
-addSurface(LABELS[1],{width:2.34,height:1.80,position:[1.568,.02,0],rotation:[0,Math.PI/2,0]});
-addSurface(LABELS[2],{width:2.50,height:1.94,position:[0,1.398,-.01],rotation:[-Math.PI/2,0,0]});
-addSurface(LABELS[3],{width:2.34,height:1.80,position:[-1.568,.02,0],rotation:[0,-Math.PI/2,0]});
+addSurface(LABELS[1],{width:2.34,height:1.80,position:[1.468,.02,0],rotation:[0,Math.PI/2,0]});
+addSurface(LABELS[2],{width:2.50,height:1.94,position:[0,1.298,-.01],rotation:[-Math.PI/2,0,0]});
+addSurface(LABELS[3],{width:2.34,height:1.80,position:[-1.468,.02,0],rotation:[0,-Math.PI/2,0]});
 
 const ground=new THREE.Mesh(
   new THREE.PlaneGeometry(12,9),
@@ -286,7 +286,7 @@ warm.position.set(3.2,2.8,3.7);
 scene.add(warm);
 
 const POSES={
-  final:{x:-.31,y:-.58,z:.018},
+  final:{x:.29,y:-.58,z:.018},
   models:{x:-.08,y:-.08,z:0},
   automation:{x:-.10,y:-1.48,z:.012},
   communication:{x:.96,y:-.48,z:0},
@@ -413,7 +413,7 @@ function intro(){
   bodyMaterial.opacity=0;
   root.scale.setScalar(.90);
   root.position.set(.08,-.10,0);
-  root.rotation.set(.10,-1.52,-.035);
+  root.rotation.set(-.08,-1.52,-.035);
   surfaces.forEach(s=>{s.mesh.material.opacity=0});
 
   const start=performance.now();
@@ -427,7 +427,7 @@ function intro(){
     root.scale.setScalar(scale);
     root.position.y=THREE.MathUtils.lerp(-.10,0,easeOutCubic(windowFade(t,.04,.46)));
     root.position.x=THREE.MathUtils.lerp(.08,0,easeOutCubic(windowFade(t,.04,.54)));
-    root.rotation.x=THREE.MathUtils.lerp(.10,target.x,orient);
+    root.rotation.x=THREE.MathUtils.lerp(-.08,target.x,orient);
     root.rotation.y=THREE.MathUtils.lerp(-1.52,target.y,orient);
     root.rotation.z=THREE.MathUtils.lerp(-.035,target.z,easeInOutCubic(windowFade(t,.38,.92)));
 

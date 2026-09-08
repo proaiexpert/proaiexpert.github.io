@@ -1,3 +1,4 @@
+
 (() => {
   'use strict';
 
@@ -11,7 +12,7 @@
   let lastState = artifact.dataset.state || '4';
 
   const lock = (state) => {
-    if (reducedMotion.matches || lowLandscape.matches) {
+    if (reducedMotion.matches) {
       artifact.classList.remove('is-locking');
       return;
     }
@@ -25,7 +26,7 @@
     lockTimer = window.setTimeout(() => {
       artifact.classList.remove('is-locking');
       delete root.dataset.lockTarget;
-    }, 980);
+    }, lowLandscape.matches ? 720 : 980);
   };
 
   const observer = new MutationObserver(() => {
@@ -37,6 +38,11 @@
 
   observer.observe(artifact, { attributes: true, attributeFilter: ['data-state'] });
 
+  reducedMotion.addEventListener?.('change', () => {
+    if (reducedMotion.matches) artifact.classList.remove('is-locking');
+  });
+
   // Establish the currently rendered state once without creating a loop.
   window.requestAnimationFrame(() => lock(lastState));
 })();
+

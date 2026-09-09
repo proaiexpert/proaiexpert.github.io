@@ -15,6 +15,7 @@
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   const lowLandscape = window.matchMedia('(max-height: 520px) and (min-width: 701px)');
   const portrait = window.matchMedia('(max-width: 700px)');
+  const tabletScroll = window.matchMedia('(max-width: 900px) and (min-width: 701px) and (pointer: coarse)');
   const finePointer = window.matchMedia('(hover:hover) and (pointer:fine)');
 
   const copy = {
@@ -94,8 +95,18 @@
   let modeFrame = 0;
   let knownLowLandscape = lowLandscape.matches;
   let knownPortrait = portrait.matches;
+  let knownTabletScroll = tabletScroll.matches;
   let modeTransitionUntil = 0;
+  let portraitRunway = null;
+  let tabletRunway = null;
+  let portraitInitialized = false;
+  let tabletInitialized = false;
+  let lastPortraitProgress = 0;
+  let lastScrollY = window.scrollY;
+  let knownViewportWidth = window.innerWidth;
 
+  const PORTRAIT_RUNWAY_MULTIPLIER = 2.10;
+  const TABLET_RUNWAY_MULTIPLIER = 1.75;
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
   const setLanguage = (language) => {
@@ -152,12 +163,75 @@
     return clamp((startLine - rect.top) / travel, 0, 1);
   };
 
+  const getPortraitRunway = () => {
+    if (portraitRunway) return portraitRunway;
+
+    const rect = experience.getBoundingClientRect();
+    const absoluteTop = window.scrollY + rect.top;
+    const cssMinHeight = Number.parseFloat(getComputedStyle(experience).minHeight);
+    const stableViewport = Number.isFinite(cssMinHeight) && cssMinHeight > window.innerHeight * 1.5
+      ? cssMinHeight / PORTRAIT_RUNWAY_MULTIPLIER
+      : window.innerHeight;
+    const runwayHeight = Number.isFinite(cssMinHeight) && cssMinHeight > stableViewport
+      ? cssMinHeight
+      : stableViewport * PORTRAIT_RUNWAY_MULTIPLIER;
+
+    portraitRunway = {
+      startScroll: absoluteTop - stableViewport * .28,
+      travel: Math.max(stableViewport * 1.05, runwayHeight - stableViewport * .84),
+      stableViewport
+    };
+    return portraitRunway;
+  };
+
   const portraitProgress = () => {
-    const rect = ledger.getBoundingClientRect();
-    const viewport = window.innerHeight;
-    const startLine = viewport * .7;
-    const travel = Math.max(430, rect.height + viewport * .16);
-    return clamp((startLine - rect.top) / travel, 0, 1);
+    const runway = getPortraitRunway();
+    return clamp((window.scrollY - runway.startScroll) / runway.travel, 0, 1);
+  };
+
+  const stableStateFromProgress = (progress, direction, initialized) => {
+    if (!initialized) return stateFromProgress(progress);
+
+    if (direction > 0) {
+      if (progress >= .78) return Math.max(currentState, 4);
+      if (progress >= .52) return Math.max(currentState, 3);
+      if (progress >= .26) return Math.max(currentState, 2);
+      return currentState;
+    }
+
+    if (direction < 0) {
+      if (progress <= .20) return Math.min(currentState, 1);
+      if (progress <= .46) return Math.min(currentState, 2);
+      if (progress <= .72) return Math.min(currentState, 3);
+    }
+
+    return currentState;
+  };
+
+  const getTabletRunway = () => {
+    if (tabletRunway) return tabletRunway;
+
+    const rect = experience.getBoundingClientRect();
+    const absoluteTop = window.scrollY + rect.top;
+    const cssMinHeight = Number.parseFloat(getComputedStyle(experience).minHeight);
+    const stableViewport = Number.isFinite(cssMinHeight) && cssMinHeight > window.innerHeight * 1.35
+      ? cssMinHeight / TABLET_RUNWAY_MULTIPLIER
+      : window.innerHeight;
+    const runwayHeight = Number.isFinite(cssMinHeight) && cssMinHeight > stableViewport
+      ? cssMinHeight
+      : stableViewport * TABLET_RUNWAY_MULTIPLIER;
+
+    tabletRunway = {
+      startScroll: absoluteTop - stableViewport * .14,
+      travel: Math.max(stableViewport * .78, runwayHeight - stableViewport * .70),
+      stableViewport
+    };
+    return tabletRunway;
+  };
+
+  const tabletProgress = () => {
+    const runway = getTabletRunway();
+    return clamp((window.scrollY - runway.startScroll) / runway.travel, 0, 1);
   };
 
   const lowLandscapeProgress = () => {
@@ -169,13 +243,33 @@
 
   const updateFromScroll = () => {
     frameRequested = false;
-    if (reducedMotion.matches || performance.now() < manualUntil) return;
+    if (reducedMotion.matches) return;
+
+    if ((portrait.matches && !lowLandscape.matches) || tabletScroll.matches) {
+      const isTablet = tabletScroll.matches && !portrait.matches;
+      const progress = isTablet ? tabletProgress() : portraitProgress();
+      const scrollY = window.scrollY;
+      const delta = scrollY - lastScrollY;
+      const direction = delta > 1 ? 1 : delta < -1 ? -1 : 0;
+
+      lastScrollY = scrollY;
+      if (!isTablet) lastPortraitProgress = progress;
+
+      if (performance.now() < manualUntil) return;
+
+      const initialized = isTablet ? tabletInitialized : portraitInitialized;
+      const next = stableStateFromProgress(progress, direction, initialized);
+      if (isTablet) tabletInitialized = true;
+      else portraitInitialized = true;
+      setState(next);
+      return;
+    }
+
+    if (performance.now() < manualUntil) return;
 
     const progress = lowLandscape.matches
       ? lowLandscapeProgress()
-      : portrait.matches
-        ? portraitProgress()
-        : desktopProgress();
+      : desktopProgress();
 
     setState(stateFromProgress(progress));
   };
@@ -187,9 +281,15 @@
   };
 
   const stateProgress = (state) => ({ 1: .08, 2: .35, 3: .60, 4: .86 })[state] || .08;
+  const portraitStateProgress = (state) => ({ 1: .10, 2: .36, 3: .62, 4: .88 })[state] || .10;
+  const tabletStateProgress = (state) => ({ 1: .10, 2: .36, 3: .62, 4: .88 })[state] || .10;
 
   const alignModeToState = (state) => {
-    const progress = stateProgress(state);
+    const progress = portrait.matches && !lowLandscape.matches
+      ? portraitStateProgress(state)
+      : tabletScroll.matches
+        ? tabletStateProgress(state)
+        : stateProgress(state);
 
     if (lowLandscape.matches) {
       const rect = experience.getBoundingClientRect();
@@ -202,11 +302,22 @@
     }
 
     if (portrait.matches) {
-      const rect = ledger.getBoundingClientRect();
-      const absoluteTop = window.scrollY + rect.top;
-      const startLine = window.innerHeight * .7;
-      const travel = Math.max(430, rect.height + window.innerHeight * .16);
-      window.scrollTo({ top: Math.max(0, absoluteTop - startLine + travel * progress), behavior: 'auto' });
+      const runway = getPortraitRunway();
+      const target = Math.max(0, runway.startScroll + runway.travel * progress);
+      window.scrollTo({ top: target, behavior: 'auto' });
+      lastScrollY = target;
+      lastPortraitProgress = progress;
+      portraitInitialized = true;
+      setState(state);
+      return;
+    }
+
+    if (tabletScroll.matches) {
+      const runway = getTabletRunway();
+      const target = Math.max(0, runway.startScroll + runway.travel * progress);
+      window.scrollTo({ top: target, behavior: 'auto' });
+      lastScrollY = target;
+      tabletInitialized = true;
       setState(state);
       return;
     }
@@ -217,20 +328,25 @@
   const configureMode = () => {
     const nextLowLandscape = lowLandscape.matches;
     const nextPortrait = portrait.matches;
-    const modeChanged = nextLowLandscape !== knownLowLandscape || nextPortrait !== knownPortrait;
+    const nextTabletScroll = tabletScroll.matches;
+    const modeChanged = nextLowLandscape !== knownLowLandscape || nextPortrait !== knownPortrait || nextTabletScroll !== knownTabletScroll;
     const preservedState = currentState;
 
     knownLowLandscape = nextLowLandscape;
     knownPortrait = nextPortrait;
+    knownTabletScroll = nextTabletScroll;
 
     if (!modeChanged && performance.now() < modeTransitionUntil) return;
 
     window.cancelAnimationFrame(modeFrame);
 
     if (modeChanged) {
+      portraitRunway = null;
+      tabletRunway = null;
+      portraitInitialized = false;
+      tabletInitialized = false;
+      lastScrollY = window.scrollY;
       modeTransitionUntil = performance.now() + 280;
-      // Ignore resize/orientation scroll noise long enough for the new geometry to settle.
-      // Preserve a longer manual inspection window if one is already active.
       manualUntil = Math.max(manualUntil, performance.now() + 760);
       modeFrame = window.requestAnimationFrame(() => {
         modeFrame = window.requestAnimationFrame(() => {
@@ -255,22 +371,45 @@
   };
 
   stageButtons.forEach((button) => {
-    const inspect = () => setState(Number(button.dataset.stageButton), 'manual');
+    const inspect = () => {
+      const state = Number(button.dataset.stageButton);
+      setState(state, 'manual');
+      if ((portrait.matches || tabletScroll.matches) && !lowLandscape.matches && !reducedMotion.matches) alignModeToState(state);
+    };
     button.addEventListener('click', inspect);
     button.addEventListener('focus', inspect);
     if (finePointer.matches) button.addEventListener('pointerenter', inspect);
   });
 
   languageButtons.forEach((button) => {
-    button.addEventListener('click', () => setLanguage(button.dataset.lang));
+    button.addEventListener('click', () => {
+      const preservedState = currentState;
+      setLanguage(button.dataset.lang);
+      if ((portrait.matches || tabletScroll.matches) && !lowLandscape.matches && !reducedMotion.matches) {
+        portraitRunway = null;
+        tabletRunway = null;
+        manualUntil = Math.max(manualUntil, performance.now() + 900);
+        window.requestAnimationFrame(() => alignModeToState(preservedState));
+      }
+    });
   });
 
+  const onResize = () => {
+    if (Math.abs(window.innerWidth - knownViewportWidth) > 2) {
+      knownViewportWidth = window.innerWidth;
+      portraitRunway = null;
+      tabletRunway = null;
+    }
+    onScroll();
+  };
+
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onScroll, { passive: true });
+  window.addEventListener('resize', onResize, { passive: true });
   window.addEventListener('orientationchange', configureMode, { passive: true });
   reducedMotion.addEventListener?.('change', configureMode);
   lowLandscape.addEventListener?.('change', configureMode);
   portrait.addEventListener?.('change', configureMode);
+  tabletScroll.addEventListener?.('change', configureMode);
 
   setLanguage(currentLanguage);
   if (reducedMotion.matches) setState(4);
@@ -279,4 +418,3 @@
     window.requestAnimationFrame(updateFromScroll);
   }
 })();
-

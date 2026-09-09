@@ -1,0 +1,118 @@
+/* =========================================================
+   R1.3.2 ROOT FIX — STABLE PORTRAIT RUNWAY
+   State progress uses this fixed runway; active-state height never feeds back into progress.
+   ========================================================= */
+@media (max-width:700px){
+  .connected-next__experience{min-height:210svh}
+  .connected-next__sticky-stage{min-height:210svh}
+
+  /* Artifact stays authoritative; ledger reaches a protected sticky handoff 14px into the lower material edge. */
+  .artifact-zone{z-index:8}
+  .ledger-zone{
+    position:sticky;
+    z-index:12;
+    top:326px;
+    isolation:isolate;
+    margin-top:6px;
+    padding-top:10px;
+  }
+  .ledger-foot{display:none}
+}
+
+/* =========================================================
+   R1.3.2 — MOBILE PORTRAIT FINISH
+   Intentional sticky handoff + semantic clearance.
+   Portrait only; low-landscape and normal desktop remain unchanged.
+   ========================================================= */
+@media (max-width:700px){
+  /* Intentional handoff: the narrative takes authority above the sticky artifact. */
+  .artifact-zone{z-index:8}
+  .ledger-zone{
+    z-index:12;
+    isolation:isolate;
+    margin-top:6px;
+    padding-top:10px;
+  }
+  .ledger-zone::before{
+    content:"";
+    position:absolute;
+    z-index:-1;
+    left:-13px;
+    right:-13px;
+    top:-14px;
+    height:30px;
+    pointer-events:none;
+    background:linear-gradient(180deg,rgba(6,7,8,0),rgba(6,7,8,.92) 58%,#060708 100%);
+  }
+  .ledger-plate.is-active{
+    z-index:30;
+    background:
+      radial-gradient(120% 90% at 4% 0%,rgba(244,240,231,.045),transparent 42%),
+      linear-gradient(110deg,#191b1c 0%,#131516 56%,#0d0f10 100%);
+    box-shadow:0 16px 34px rgba(0,0,0,.46),0 -1px 0 rgba(244,240,232,.18),inset 1px 0 rgba(244,240,232,.06),inset 0 -1px rgba(0,0,0,.5);
+  }
+  .ledger-plate.is-active .ledger-plate__edge{
+    background:rgba(239,234,224,.5);
+    box-shadow:0 0 18px rgba(239,234,224,.06);
+  }
+
+  /* Captions are texture, not business meaning; remove them from the handoff zone. */
+  .artifact-caption{display:none}
+
+  /* History text: lineage remains in geometry, textual authority drops sharply. */
+  .context-artifact[data-state="2"] .origin-title,
+  .context-artifact[data-state="2"] .origin-lane span,
+  .context-artifact[data-state="2"] .impression-field span{opacity:.20}
+
+  .context-artifact[data-state="3"] .origin-title,
+  .context-artifact[data-state="3"] .origin-lane span,
+  .context-artifact[data-state="3"] .impression-field span{opacity:.07}
+  .context-artifact[data-state="3"] .customer-layer__head,
+  .context-artifact[data-state="3"] .customer-components{opacity:.18}
+
+  .context-artifact[data-state="4"] .origin-title,
+  .context-artifact[data-state="4"] .origin-lane span,
+  .context-artifact[data-state="4"] .impression-field span{opacity:.05}
+  .context-artifact[data-state="4"] .customer-layer__head,
+  .context-artifact[data-state="4"] .customer-components{opacity:.08}
+  .context-artifact[data-state="4"] .assistive-layer__head,
+  .context-artifact[data-state="4"] .assistive-components,
+  .context-artifact[data-state="4"] .authority-cue{opacity:.16}
+
+  /* Provenance geometry remains visible even while historical wording recedes. */
+  .context-artifact[data-state="3"] .causal-path--origin{opacity:.30}
+  .context-artifact[data-state="3"] .causal-path--inquiry{opacity:.42}
+  .context-artifact[data-state="4"] .causal-path--origin{opacity:.22}
+  .context-artifact[data-state="4"] .causal-path--inquiry{opacity:.30}
+  .context-artifact[data-state="4"] .causal-path--response{opacity:.38}
+
+  /* Current semantic clearance. Local matte fields interrupt texture only beneath the words. */
+  .context-artifact[data-state="1"] .origin-system{z-index:7}
+  .context-artifact[data-state="1"] .impression-field span,
+  .context-artifact[data-state="2"] .customer-layer__head strong,
+  .context-artifact[data-state="3"] .assistive-layer__head strong{
+    position:relative;
+    z-index:24;
+    background:linear-gradient(90deg,rgba(8,9,10,.96) 0%,rgba(8,9,10,.82) 72%,rgba(8,9,10,0) 100%);
+    box-shadow:0 0 15px 7px rgba(6,7,8,.58);
+  }
+  .context-artifact[data-state="1"] .impression-field span{padding:4px 7px}
+  .context-artifact[data-state="2"] .customer-layer__head strong{padding:4px 8px 4px 2px}
+  .context-artifact[data-state="3"] .assistive-layer__head strong{padding:4px 8px 4px 2px}
+  .context-artifact[data-state="4"] .resolution-title{
+    z-index:24;
+    padding:6px 10px 7px 0;
+    background:linear-gradient(90deg,rgba(30,27,23,1) 0%,rgba(27,24,21,.99) 72%,rgba(22,20,18,.96) 100%);
+    box-shadow:0 0 18px 9px rgba(17,15,13,.58);
+  }
+
+  /* Keep historical authority away from the final payoff. */
+  .context-artifact[data-state="4"] .authority-cue{filter:brightness(.7)}
+  .context-artifact[data-state="4"] .resolution-layer{filter:brightness(1.22) saturate(1.03)}
+  .context-artifact[data-state="4"] .resolution-title{color:#f2dab4;text-shadow:0 8px 24px rgba(181,141,82,.12)}
+}
+
+/* R1.3.2 tablet stability certification: coarse 820-class remains scroll-led, never autoplay-dependent. */
+@media (max-width:900px) and (min-width:701px) and (pointer:coarse){
+  .connected-next__experience{min-height:175svh}
+}

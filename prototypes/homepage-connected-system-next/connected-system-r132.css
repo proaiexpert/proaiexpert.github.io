@@ -116,3 +116,147 @@
 @media (max-width:900px) and (min-width:701px) and (pointer:coarse){
   .connected-next__experience{min-height:175svh}
 }
+/* =========================================================
+   R1.4 — CINEMATIC INTERACTION AUTHORITY / PREMIUM MATERIAL
+   One-shot desktop autoplay uses the existing semantic state system.
+   This layer only refines material authority, discoverability, and clearance.
+   ========================================================= */
+
+/* Right ledger: tactile matte plates, not glass. */
+@media (min-width:901px){
+  .ledger-plate{
+    cursor:pointer;
+    border-top-color:rgba(242,238,229,.14);
+    background:
+      linear-gradient(104deg,rgba(255,255,255,.012),transparent 34%),
+      linear-gradient(110deg,#0e1011 0%,#0b0d0e 58%,#08090a 100%);
+    box-shadow:0 -8px 24px rgba(0,0,0,.32),inset 0 1px rgba(248,244,235,.025),inset 0 -1px rgba(0,0,0,.5);
+    transition:transform 520ms var(--ease-material),opacity 360ms ease,filter 420ms ease,background 420ms ease,box-shadow 420ms ease,border-color 420ms ease;
+  }
+  .ledger-plate.is-active{
+    transform:translate3d(-7px,0,0) scaleX(1);
+    background:
+      radial-gradient(120% 100% at 4% 0%,rgba(246,242,233,.065),transparent 42%),
+      linear-gradient(110deg,#1a1c1d 0%,#141617 48%,#0d0f10 100%);
+    border-top-color:rgba(244,240,231,.23);
+    box-shadow:0 22px 54px rgba(0,0,0,.46),0 -1px 0 rgba(246,241,232,.18),inset 1px 0 rgba(246,241,232,.07),inset 0 -1px rgba(0,0,0,.58);
+  }
+  .ledger-plate.is-past{
+    opacity:.48;
+    filter:brightness(.72);
+    transform:translate3d(5px,0,0) scaleX(.986);
+  }
+  .ledger-plate.is-future{
+    opacity:.27;
+    filter:brightness(.62);
+    transform:translate3d(11px,0,0) scaleX(.972);
+  }
+  .ledger-plate.is-past .ledger-detail,
+  .ledger-plate.is-future .ledger-detail{max-height:0!important;margin-top:0!important;opacity:0!important}
+
+  .ledger-plate:not(.is-active):hover,
+  .ledger-plate:not(.is-active):focus-visible{
+    opacity:.58;
+    filter:brightness(.88);
+    transform:translate3d(2px,0,0) scaleX(.993);
+    border-top-color:rgba(243,239,230,.20);
+    box-shadow:0 -9px 26px rgba(0,0,0,.32),inset 0 1px rgba(248,244,235,.035);
+  }
+  .ledger-plate:not(.is-active):hover .ledger-plate__edge,
+  .ledger-plate:not(.is-active):focus-visible .ledger-plate__edge{
+    background:rgba(237,232,222,.34);
+    box-shadow:0 0 16px rgba(237,232,222,.05);
+  }
+
+  .connected-next[data-active-stage="4"] .ledger-plate[data-stage-button="4"]{
+    background:
+      radial-gradient(120% 100% at 6% 0%,rgba(232,207,168,.11),transparent 44%),
+      linear-gradient(108deg,#201c17 0%,#171512 46%,#0e0f0f 100%);
+    border-top-color:rgba(235,208,165,.28);
+    box-shadow:0 24px 58px rgba(0,0,0,.48),0 -1px 0 rgba(235,208,165,.28),inset 1px 0 rgba(235,208,165,.09),inset 0 -1px rgba(0,0,0,.6);
+  }
+
+  /* Desktop semantic authority: keep lineage geometry, quiet historical wording. */
+  .context-artifact[data-state="2"] .origin-title,
+  .context-artifact[data-state="2"] .origin-lane span,
+  .context-artifact[data-state="2"] .impression-field span{opacity:.27}
+
+  .context-artifact[data-state="3"] .origin-title,
+  .context-artifact[data-state="3"] .origin-lane span,
+  .context-artifact[data-state="3"] .impression-field span{opacity:.09}
+  .context-artifact[data-state="3"] .customer-layer__head,
+  .context-artifact[data-state="3"] .customer-components{opacity:.25}
+
+  .context-artifact[data-state="4"] .origin-title,
+  .context-artifact[data-state="4"] .origin-lane span,
+  .context-artifact[data-state="4"] .impression-field span{opacity:.07}
+  .context-artifact[data-state="4"] .customer-layer__head,
+  .context-artifact[data-state="4"] .customer-components{opacity:.10}
+  .context-artifact[data-state="4"] .assistive-layer__head,
+  .context-artifact[data-state="4"] .assistive-components,
+  .context-artifact[data-state="4"] .authority-cue{opacity:.22}
+
+  /* Local semantic matte: linework survives around the label, never through it. */
+  .context-artifact[data-state="1"] .impression-field span,
+  .context-artifact[data-state="2"] .customer-layer__head strong,
+  .context-artifact[data-state="3"] .assistive-layer__head strong{
+    position:relative;
+    z-index:24;
+    padding:5px 10px 5px 3px;
+    background:linear-gradient(90deg,rgba(8,9,10,.97),rgba(8,9,10,.84) 70%,rgba(8,9,10,0));
+    box-shadow:0 0 17px 8px rgba(5,6,7,.52);
+  }
+  .context-artifact[data-state="1"] .impression-field span{padding-left:9px}
+  .context-artifact[data-state="4"] .resolution-title{
+    z-index:25;
+    padding:8px 14px 9px 1px;
+    background:linear-gradient(90deg,rgba(32,28,23,1) 0%,rgba(29,25,21,.995) 73%,rgba(24,21,18,.95) 100%);
+    box-shadow:0 0 22px 11px rgba(17,14,11,.58);
+    color:#f3dbb5;
+    text-shadow:0 10px 28px rgba(183,141,79,.13);
+  }
+
+  /* Provenance remains visible but cannot overpower the current semantic read. */
+  .context-artifact[data-state="3"] .causal-path--origin{opacity:.26}
+  .context-artifact[data-state="3"] .causal-path--inquiry{opacity:.42}
+  .context-artifact[data-state="4"] .causal-path--origin{opacity:.20}
+  .context-artifact[data-state="4"] .causal-path--inquiry{opacity:.28}
+  .context-artifact[data-state="4"] .causal-path--response{opacity:.39}
+  .context-artifact[data-state="4"] .causal-path--result{opacity:1;stroke:rgba(244,214,167,.72)}
+
+  /* Material hierarchy: no extra geometry, only stronger tonal registration. */
+  .origin-system{filter:drop-shadow(0 13px 34px rgba(0,0,0,.08))}
+  .customer-layer{box-shadow:inset 0 1px rgba(230,235,234,.25),inset 1px 0 rgba(218,225,225,.11),0 -18px 44px rgba(0,0,0,.18)}
+  .assistive-layer{box-shadow:inset 0 1px rgba(220,226,226,.20),inset -1px 0 rgba(220,226,226,.11),-18px 19px 46px rgba(0,0,0,.16)}
+  .resolution-layer{box-shadow:inset 0 1px rgba(239,213,172,.32),inset 0 -1px rgba(211,179,127,.10),0 14px 38px rgba(0,0,0,.08)}
+
+  /* Autoplay presence is conveyed by material continuity, not labels or tutorial UI. */
+  .connected-next.is-autoplay-armed .ledger-plate[data-stage-button="1"],
+  .connected-next.is-autoplaying .ledger-plate.is-active{
+    border-top-color:rgba(246,242,233,.25);
+  }
+}
+
+/* One restrained mobile cue. Scroll remains the only story driver. */
+@media (max-width:700px){
+  .connected-next.is-mobile-cue .ledger-plate[data-stage-button="2"]{
+    animation:r14-mobile-next-cue 760ms var(--ease-material) both;
+  }
+  .connected-next.is-mobile-cue .ledger-plate[data-stage-button="2"] .ledger-plate__edge{
+    animation:r14-mobile-edge-cue 760ms ease-out both;
+  }
+}
+@keyframes r14-mobile-next-cue{
+  0%{transform:translate3d(0,0,0);filter:brightness(.72)}
+  44%{transform:translate3d(0,-4px,0);filter:brightness(.92)}
+  100%{transform:translate3d(0,0,0);filter:brightness(.72)}
+}
+@keyframes r14-mobile-edge-cue{
+  0%,100%{background:rgba(233,229,220,.11);box-shadow:none}
+  48%{background:rgba(233,229,220,.32);box-shadow:0 0 14px rgba(233,229,220,.05)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .connected-next.is-mobile-cue .ledger-plate,
+  .connected-next.is-mobile-cue .ledger-plate__edge{animation:none!important}
+}

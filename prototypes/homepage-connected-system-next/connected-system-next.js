@@ -17,6 +17,7 @@
   const portrait = window.matchMedia('(max-width: 700px)');
   const tabletScroll = window.matchMedia('(max-width: 900px) and (min-width: 701px) and (pointer: coarse)');
   const finePointer = window.matchMedia('(hover:hover) and (pointer:fine)');
+  const desktopViewport = window.matchMedia('(min-width: 901px)');
 
   const copy = {
     en: {
@@ -105,9 +106,107 @@
   let lastScrollY = window.scrollY;
   let knownViewportWidth = window.innerWidth;
 
+  /* R1.4 one-shot interaction authority. */
+  let autoplayState = 'idle';
+  let autoplayVisibility = 0;
+  let autoplayIdleTimer = 0;
+  let autoplayTimers = [];
+  let autoplayStartScrollY = window.scrollY;
+  let autoplayStartedAt = 0;
+  let autoplayArmScrollY = window.scrollY;
+  let lastUserScrollAt = performance.now();
+  let hoverIntentTimer = 0;
+  let mobileCueDone = false;
+  let mobileCueTimer = 0;
+
   const PORTRAIT_RUNWAY_MULTIPLIER = 2.10;
   const TABLET_RUNWAY_MULTIPLIER = 1.75;
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+  const desktopAutoplayEligible = () => (
+    desktopViewport.matches && finePointer.matches &&
+    !tabletScroll.matches && !lowLandscape.matches && !portrait.matches &&
+    !reducedMotion.matches
+  );
+
+  const clearAutoplayTimers = () => {
+    window.clearTimeout(autoplayIdleTimer);
+    autoplayIdleTimer = 0;
+    autoplayTimers.forEach((timer) => window.clearTimeout(timer));
+    autoplayTimers = [];
+  };
+
+  const cancelAutoplay = (reason = 'manual', hold = true) => {
+    if (['complete','cancelled','abandoned'].includes(autoplayState)) return;
+    clearAutoplayTimers();
+    autoplayState = reason === 'abandoned' ? 'abandoned' : 'cancelled';
+    root.dataset.autoplay = autoplayState;
+    root.classList.remove('is-autoplaying','is-autoplay-armed');
+    if (hold) manualUntil = Math.max(manualUntil, performance.now() + 1200);
+  };
+
+  const finishAutoplay = () => {
+    clearAutoplayTimers();
+    autoplayState = 'complete';
+    root.dataset.autoplay = 'complete';
+    root.classList.remove('is-autoplaying','is-autoplay-armed');
+    setState(4,'autoplay');
+  };
+
+  const scheduleAutoplayStep = (delay, state) => {
+    const timer = window.setTimeout(() => {
+      if (autoplayState !== 'running' || document.hidden || autoplayVisibility < .42) return;
+      setState(state,'autoplay');
+    }, delay);
+    autoplayTimers.push(timer);
+  };
+
+  const startAutoplay = () => {
+    if (autoplayState !== 'armed' || !desktopAutoplayEligible() || document.hidden || autoplayVisibility < .58) return;
+    autoplayState = 'running';
+    autoplayStartedAt = performance.now();
+    autoplayStartScrollY = window.scrollY;
+    root.dataset.autoplay = 'running';
+    root.classList.remove('is-autoplay-armed');
+    root.classList.add('is-autoplaying');
+    setState(1,'autoplay');
+    scheduleAutoplayStep(2500,2);
+    scheduleAutoplayStep(5200,3);
+    scheduleAutoplayStep(8100,4);
+    autoplayTimers.push(window.setTimeout(() => {
+      if (autoplayState === 'running') finishAutoplay();
+    }, 9100));
+  };
+
+  const scheduleAutoplayStart = () => {
+    if (autoplayState !== 'armed') return;
+    window.clearTimeout(autoplayIdleTimer);
+    const idleRemaining = Math.max(0,650 - (performance.now() - lastUserScrollAt));
+    autoplayIdleTimer = window.setTimeout(() => {
+      if (autoplayState !== 'armed') return;
+      if (!desktopAutoplayEligible() || document.hidden || autoplayVisibility < .58) return;
+      if (performance.now() - lastUserScrollAt < 640) return scheduleAutoplayStart();
+      startAutoplay();
+    }, Math.max(820,idleRemaining));
+  };
+
+  const armAutoplay = () => {
+    if (autoplayState !== 'idle' || !desktopAutoplayEligible() || document.hidden || autoplayVisibility < .58) return;
+    autoplayState = 'armed';
+    autoplayArmScrollY = window.scrollY;
+    root.dataset.autoplay = 'armed';
+    root.classList.add('is-autoplay-armed');
+    setState(1,'autoplay');
+    scheduleAutoplayStart();
+  };
+
+  const runMobileCue = () => {
+    if (mobileCueDone || reducedMotion.matches || !portrait.matches || lowLandscape.matches || currentState !== 1) return;
+    mobileCueDone = true;
+    root.classList.add('is-mobile-cue');
+    window.clearTimeout(mobileCueTimer);
+    mobileCueTimer = window.setTimeout(() => root.classList.remove('is-mobile-cue'),820);
+  };
 
   const setLanguage = (language) => {
     if (!copy[language]) return;
@@ -245,6 +344,8 @@
     frameRequested = false;
     if (reducedMotion.matches) return;
 
+    if (desktopAutoplayEligible() && ['armed','running','complete','cancelled'].includes(autoplayState)) return;
+
     if ((portrait.matches && !lowLandscape.matches) || tabletScroll.matches) {
       const isTablet = tabletScroll.matches && !portrait.matches;
       const progress = isTablet ? tabletProgress() : portraitProgress();
@@ -275,6 +376,20 @@
   };
 
   const onScroll = () => {
+    if (desktopAutoplayEligible()) {
+      if (autoplayState === 'running' && Math.abs(window.scrollY - autoplayStartScrollY) > 4 && performance.now() - autoplayStartedAt > 120) {
+        cancelAutoplay('manual',true);
+      } else if (autoplayState === 'armed') {
+        if (Math.abs(window.scrollY - autoplayArmScrollY) > window.innerHeight * .48) {
+          cancelAutoplay('abandoned',false);
+        } else {
+          lastUserScrollAt = performance.now();
+          scheduleAutoplayStart();
+        }
+      } else if (autoplayState === 'idle') {
+        lastUserScrollAt = performance.now();
+      }
+    }
     if (frameRequested) return;
     frameRequested = true;
     window.requestAnimationFrame(updateFromScroll);
@@ -341,6 +456,7 @@
     window.cancelAnimationFrame(modeFrame);
 
     if (modeChanged) {
+      if (autoplayState === 'running' || autoplayState === 'armed') cancelAutoplay('manual',true);
       portraitRunway = null;
       tabletRunway = null;
       portraitInitialized = false;
@@ -373,16 +489,28 @@
   stageButtons.forEach((button) => {
     const inspect = () => {
       const state = Number(button.dataset.stageButton);
-      setState(state, 'manual');
+      cancelAutoplay('manual',true);
+      setState(state,'manual');
       if ((portrait.matches || tabletScroll.matches) && !lowLandscape.matches && !reducedMotion.matches) alignModeToState(state);
     };
+    button.addEventListener('pointerdown', () => cancelAutoplay('manual',true));
     button.addEventListener('click', inspect);
     button.addEventListener('focus', inspect);
-    if (finePointer.matches) button.addEventListener('pointerenter', inspect);
+    button.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') inspect();
+    });
+    if (finePointer.matches) {
+      button.addEventListener('pointerenter', () => {
+        window.clearTimeout(hoverIntentTimer);
+        hoverIntentTimer = window.setTimeout(inspect,120);
+      });
+      button.addEventListener('pointerleave', () => window.clearTimeout(hoverIntentTimer));
+    }
   });
 
   languageButtons.forEach((button) => {
     button.addEventListener('click', () => {
+      cancelAutoplay('manual',true);
       const preservedState = currentState;
       setLanguage(button.dataset.lang);
       if ((portrait.matches || tabletScroll.matches) && !lowLandscape.matches && !reducedMotion.matches) {
@@ -403,6 +531,51 @@
     onScroll();
   };
 
+  const visibilityObserver = new IntersectionObserver((entries) => {
+    const entry = entries[0];
+    autoplayVisibility = entry?.intersectionRatio || 0;
+    if (portrait.matches && autoplayVisibility >= .35) runMobileCue();
+    if (!desktopAutoplayEligible()) return;
+    if (autoplayVisibility >= .58 && autoplayState === 'idle') return armAutoplay();
+    if (autoplayVisibility < .35) {
+      if (autoplayState === 'running') cancelAutoplay('manual',true);
+      else if (autoplayState === 'armed') cancelAutoplay('abandoned',false);
+    }
+  }, { threshold:[0,.35,.58,.72] });
+  visibilityObserver.observe(stickyStage || experience);
+
+  window.addEventListener('wheel', () => {
+    if (autoplayState === 'running') cancelAutoplay('manual',true);
+    else if (autoplayState === 'armed') {
+      lastUserScrollAt = performance.now();
+      scheduleAutoplayStart();
+    }
+  }, { passive:true });
+
+  root.addEventListener('touchstart', () => cancelAutoplay('manual',true), { passive:true });
+  window.addEventListener('keydown', (event) => {
+    if (autoplayState === 'running' && ['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(event.key)) cancelAutoplay('manual',true);
+  });
+  document.addEventListener('selectionchange', () => {
+    if (autoplayState !== 'running') return;
+    const selection = document.getSelection();
+    if (!selection || selection.isCollapsed) return;
+    const anchor = selection.anchorNode;
+    const target = anchor?.nodeType === Node.TEXT_NODE ? anchor.parentNode : anchor;
+    if (target && root.contains(target)) cancelAutoplay('manual',true);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (autoplayState === 'running') cancelAutoplay('manual',true);
+      else if (autoplayState === 'armed') window.clearTimeout(autoplayIdleTimer);
+    } else if (autoplayState === 'armed') scheduleAutoplayStart();
+  });
+  window.addEventListener('pagehide', () => {
+    clearAutoplayTimers();
+    window.clearTimeout(mobileCueTimer);
+    window.clearTimeout(hoverIntentTimer);
+  }, { once:true });
+
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onResize, { passive: true });
   window.addEventListener('orientationchange', configureMode, { passive: true });
@@ -410,11 +583,17 @@
   lowLandscape.addEventListener?.('change', configureMode);
   portrait.addEventListener?.('change', configureMode);
   tabletScroll.addEventListener?.('change', configureMode);
+  finePointer.addEventListener?.('change', () => {
+    if (!desktopAutoplayEligible() && (autoplayState === 'armed' || autoplayState === 'running')) cancelAutoplay('manual',true);
+  });
+  desktopViewport.addEventListener?.('change', configureMode);
 
   setLanguage(currentLanguage);
+  root.dataset.autoplay = reducedMotion.matches ? 'disabled' : 'idle';
   if (reducedMotion.matches) setState(4);
   else {
     setState(1);
     window.requestAnimationFrame(updateFromScroll);
   }
 })();
+

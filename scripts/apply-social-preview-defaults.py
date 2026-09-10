@@ -1,0 +1,300 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import base64
+import hashlib
+import re
+import sys
+from pathlib import Path
+
+EN_IMAGE = "https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png"
+RU_IMAGE = "https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png"
+EN_ALT = "ProAI Expert — From first impression to result — one system."
+RU_ALT = "ProAI Expert — От первого впечатления до результата — одна система."
+
+ASSETS = {
+    "en": {
+        "filename": "proai-home-og-en-r1-1.png",
+        "sha256": "f4ae67fca98808dc130ed2f1f9831a34b9e07a414a0028b2a5028523ea4438b1",
+    },
+    "ru": {
+        "filename": "proai-home-og-ru-r1-1.png",
+        "sha256": "d119b3bb919adf539c9cb5b8664b8a4fdeeac739a8ad5747f689410a98d56b5b",
+    },
+}
+
+LEGACY_ASSETS = (
+    "screenshots/proai-home-en-desktop.png",
+    "screenshots/proai-home-ru-desktop.png",
+)
+
+SOURCE_PUBLIC_TOP_LEVEL = {
+    "about",
+    "ai-systems",
+    "case-studies",
+    "contact",
+    "insights",
+    "solutions",
+    "websites-branding",
+    "ru",
+}
+
+GENERATED_SKIP_TOP_LEVEL = {
+    ".ai",
+    ".git",
+    "_includes",
+    "_layouts",
+    "assets",
+    "docs",
+    "node_modules",
+    "scripts",
+    "tests",
+    "vendor",
+}
+
+META_PATTERNS = {
+    "og_image": re.compile(r'<meta\b[^>]*\bproperty\s*=\s*["\']og:image["\'][^>]*>\s*', re.I),
+    "og_alt": re.compile(r'<meta\b[^>]*\bproperty\s*=\s*["\']og:image:alt["\'][^>]*>\s*', re.I),
+    "og_width": re.compile(r'<meta\b[^>]*\bproperty\s*=\s*["\']og:image:width["\'][^>]*>\s*', re.I),
+    "og_height": re.compile(r'<meta\b[^>]*\bproperty\s*=\s*["\']og:image:height["\'][^>]*>\s*', re.I),
+    "twitter_card": re.compile(r'<meta\b[^>]*\bname\s*=\s*["\']twitter:card["\'][^>]*>\s*', re.I),
+    "twitter_image": re.compile(r'<meta\b[^>]*\bname\s*=\s*["\']twitter:image["\'][^>]*>\s*', re.I),
+    "twitter_alt": re.compile(r'<meta\b[^>]*\bname\s*=\s*["\']twitter:image:alt["\'][^>]*>\s*', re.I),
+}
+
+
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def is_ru_page(rel: Path, text: str) -> bool:
+    if rel.parts and rel.parts[0].lower() == "ru":
+        return True
+    name = rel.name.lower()
+    if "-ru" in name or "_ru" in name:
+        return True
+    if re.search(r'<html\b[^>]*\blang\s*=\s*["\']ru(?:-[^"\']*)?["\']', text, re.I):
+        return True
+    canonical = re.search(
+        r'<link\b[^>]*\brel\s*=\s*["\']canonical["\'][^>]*\bhref\s*=\s*["\']([^"\']+)["\'][^>]*>',
+        text,
+        re.I,
+    )
+    if canonical and re.match(r'https://proai-expert\.com/ru(?:/|$)', canonical.group(1), re.I):
+        return True
+    return False
+
+
+def social_block(is_ru: bool) -> str:
+    image = RU_IMAGE if is_ru else EN_IMAGE
+    alt = RU_ALT if is_ru else EN_ALT
+    return (
+        f'<meta property="og:image" content="{image}">\n'
+        f'<meta property="og:image:alt" content="{alt}">\n'
+        '<meta property="og:image:width" content="1200">\n'
+        '<meta property="og:image:height" content="630">\n'
+        '<meta name="twitter:card" content="summary_large_image">\n'
+        f'<meta name="twitter:image" content="{image}">\n'
+        f'<meta name="twitter:image:alt" content="{alt}">\n'
+    )
+
+
+def normalize_head(text: str, is_ru: bool) -> tuple[str, bool]:
+    if not re.search(r'</head\s*>', text, re.I):
+        return text, False
+
+    original = text
+    for pattern in META_PATTERNS.values():
+        text = pattern.sub("", text)
+
+    block = social_block(is_ru)
+    text = re.sub(r'</head\s*>', block + "</head>", text, count=1, flags=re.I)
+    return text, text != original
+
+
+def source_candidate(root: Path, path: Path) -> bool:
+    rel = path.relative_to(root)
+    if rel == Path("index.html"):
+        return True
+    if not rel.parts:
+        return False
+    return rel.parts[0] in SOURCE_PUBLIC_TOP_LEVEL
+
+
+def generated_candidate(root: Path, path: Path) -> bool:
+    rel = path.relative_to(root)
+    if not rel.parts:
+        return False
+    if rel.parts[0] in GENERATED_SKIP_TOP_LEVEL:
+        return False
+    return True
+
+
+def normalize_source(root: Path) -> int:
+    changed_count = 0
+    for path in sorted(root.rglob("*.html")):
+        rel = path.relative_to(root)
+        if any(part in {".git", "_site", "node_modules", "vendor"} for part in rel.parts):
+            continue
+        text = path.read_text(encoding="utf-8-sig")
+        ru = is_ru_page(rel, text)
+        if source_candidate(root, path) and re.search(r'</head\s*>', text, re.I):
+            new_text, changed = normalize_head(text, ru)
+        else:
+            if "proai-home-en-desktop.png" not in text and "proai-home-ru-desktop.png" not in text:
+                continue
+            new_text = text.replace(
+                "https://proai-expert.com/screenshots/proai-home-ru-desktop.png", RU_IMAGE
+            ).replace(
+                "https://proai-expert.com/screenshots/proai-home-en-desktop.png", EN_IMAGE
+            )
+            changed = new_text != text
+        if changed:
+            path.write_text(new_text, encoding="utf-8", newline="\n")
+            changed_count += 1
+    return changed_count
+
+
+def normalize_generated(root: Path) -> int:
+    changed_count = 0
+    for path in sorted(root.rglob("*.html")):
+        if not generated_candidate(root, path):
+            continue
+        text = path.read_text(encoding="utf-8-sig")
+        if not re.search(r'</head\s*>', text, re.I):
+            continue
+        rel = path.relative_to(root)
+        new_text, changed = normalize_head(text, is_ru_page(rel, text))
+        if changed:
+            path.write_text(new_text, encoding="utf-8", newline="\n")
+            changed_count += 1
+    return changed_count
+
+
+def materialize_assets(root: Path, cleanup_bootstrap: bool = True) -> int:
+    part_dir = root / ".ai" / "social-preview-assets"
+    out_dir = root / "assets" / "social"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    materialized = 0
+
+    for lang, spec in ASSETS.items():
+        out = out_dir / spec["filename"]
+        if out.exists() and sha256_bytes(out.read_bytes()) == spec["sha256"]:
+            continue
+
+        parts = sorted(part_dir.glob(spec["filename"] + ".b64.part-*"))
+        if not parts:
+            raise SystemExit(
+                f"Missing approved {lang.upper()} OG asset and bootstrap parts: {out}"
+            )
+        encoded = "".join(p.read_text(encoding="ascii").strip() for p in parts)
+        data = base64.b64decode(encoded, validate=True)
+        actual = sha256_bytes(data)
+        if actual != spec["sha256"]:
+            raise SystemExit(
+                f"SHA-256 mismatch for {lang.upper()} OG asset: expected {spec['sha256']}, got {actual}"
+            )
+        out.write_bytes(data)
+        materialized += 1
+
+    for legacy in LEGACY_ASSETS:
+        legacy_path = root / legacy
+        if legacy_path.exists():
+            legacy_path.unlink()
+
+    if cleanup_bootstrap and part_dir.exists():
+        for part in part_dir.glob("*.b64.part-*"):
+            part.unlink()
+        try:
+            part_dir.rmdir()
+        except OSError:
+            pass
+
+    return materialized
+
+
+def check_png(path: Path, expected_sha: str) -> None:
+    if not path.exists():
+        raise AssertionError(f"Missing social preview asset: {path}")
+    data = path.read_bytes()
+    if sha256_bytes(data) != expected_sha:
+        raise AssertionError(f"Unexpected bytes for social preview asset: {path}")
+    if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise AssertionError(f"Not a valid PNG: {path}")
+    width = int.from_bytes(data[16:20], "big")
+    height = int.from_bytes(data[20:24], "big")
+    if (width, height) != (1200, 630):
+        raise AssertionError(f"Wrong OG dimensions for {path}: {width}x{height}")
+
+
+def check_site(root: Path) -> int:
+    errors: list[str] = []
+    checked = 0
+
+    for spec in ASSETS.values():
+        try:
+            check_png(root / "assets" / "social" / spec["filename"], spec["sha256"])
+        except AssertionError as exc:
+            errors.append(str(exc))
+
+    for path in sorted(root.rglob("*.html")):
+        if not generated_candidate(root, path):
+            continue
+        text = path.read_text(encoding="utf-8-sig")
+        if not re.search(r'</head\s*>', text, re.I):
+            continue
+        rel = path.relative_to(root)
+        ru = is_ru_page(rel, text)
+        image = RU_IMAGE if ru else EN_IMAGE
+        alt = RU_ALT if ru else EN_ALT
+        expectations = [
+            (META_PATTERNS["og_image"], image, "og:image"),
+            (META_PATTERNS["og_alt"], alt, "og:image:alt"),
+            (META_PATTERNS["og_width"], "1200", "og:image:width"),
+            (META_PATTERNS["og_height"], "630", "og:image:height"),
+            (META_PATTERNS["twitter_card"], "summary_large_image", "twitter:card"),
+            (META_PATTERNS["twitter_image"], image, "twitter:image"),
+            (META_PATTERNS["twitter_alt"], alt, "twitter:image:alt"),
+        ]
+        for pattern, expected_value, label in expectations:
+            matches = pattern.findall(text)
+            if len(matches) != 1:
+                errors.append(f"{rel}: expected exactly one {label}, found {len(matches)}")
+                continue
+            tag = pattern.search(text).group(0)
+            if expected_value not in tag:
+                errors.append(f"{rel}: {label} does not contain expected value {expected_value!r}")
+        if "screenshots/proai-home-en-desktop.png" in text or "screenshots/proai-home-ru-desktop.png" in text:
+            errors.append(f"{rel}: legacy homepage screenshot still present in social metadata/output")
+        checked += 1
+
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}", file=sys.stderr)
+        raise SystemExit(1)
+
+    print(f"Social preview verification passed for {checked} generated HTML pages.")
+    return checked
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=("source", "site", "check"), required=True)
+    parser.add_argument("--root", type=Path, required=True)
+    args = parser.parse_args()
+    root = args.root.resolve()
+
+    if args.mode == "source":
+        materialized = materialize_assets(root, cleanup_bootstrap=True)
+        changed = normalize_source(root)
+        print(f"Source social preview normalization complete: {changed} HTML files changed; {materialized} assets materialized.")
+    elif args.mode == "site":
+        changed = normalize_generated(root)
+        print(f"Generated-site social preview normalization complete: {changed} HTML files changed.")
+    else:
+        check_site(root)
+
+
+if __name__ == "__main__":
+    main()

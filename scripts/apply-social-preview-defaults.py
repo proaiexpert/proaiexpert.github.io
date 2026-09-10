@@ -16,11 +16,11 @@ RU_ALT = "ProAI Expert — От первого впечатления до ре�
 ASSETS = {
     "en": {
         "filename": "proai-home-og-en-r1-1.png",
-        "sha256": "105deca13ca242028b0a72fb4d1f62e4b5f5795d2f7f4f769c17fbb8155bef0d",
+        "sha256": "f4ae67fca98808dc130ed2f1f9831a34b9e07a414a0028b2a5028523ea4438b1",
     },
     "ru": {
         "filename": "proai-home-og-ru-r1-1.png",
-        "sha256": "e955be67e16becb37cc737eca646a80ba4fb4ca6a83212c82cb2a6d350ea374a",
+        "sha256": "d119b3bb919adf539c9cb5b8664b8a4fdeeac739a8ad5747f689410a98d56b5b",
     },
 }
 

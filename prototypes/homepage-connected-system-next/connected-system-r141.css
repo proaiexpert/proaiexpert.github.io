@@ -1,0 +1,183 @@
+/* =========================================================
+   R1.4.1 — FINAL PREMIUM POLISH
+   Portrait result handoff + material authority + readability cleanup.
+   No geometry redesign; existing causal/state system remains authoritative.
+   ========================================================= */
+
+/* Global plate/material cleanup: opaque authority without glass behavior. */
+.ledger-plate{overflow:hidden}
+.ledger-plate.is-active{
+  background:
+    radial-gradient(118% 92% at 4% 0%,rgba(246,242,233,.055),transparent 43%),
+    linear-gradient(110deg,#1b1d1e 0%,#151718 52%,#0e1011 100%);
+  border-top-color:rgba(244,240,231,.22);
+  box-shadow:0 18px 46px rgba(0,0,0,.44),0 -1px 0 rgba(245,241,232,.17),inset 1px 0 rgba(245,241,232,.065),inset 0 -1px rgba(0,0,0,.56);
+}
+.ledger-plate.is-active .ledger-detail{position:relative;z-index:3}
+.ledger-plate.is-past .ledger-plate__head strong{color:rgba(210,209,202,.68)}
+.ledger-plate.is-future .ledger-plate__head strong{color:rgba(188,190,187,.50)}
+.ledger-plate.is-past .ledger-plate__head em{color:rgba(153,161,163,.62)}
+.ledger-plate.is-future .ledger-plate__head em{color:rgba(138,146,149,.48)}
+
+.connected-next[data-active-stage="4"] .ledger-plate[data-stage-button="4"]{
+  background:
+    radial-gradient(120% 96% at 6% 0%,rgba(231,205,165,.10),transparent 45%),
+    linear-gradient(108deg,#211d18 0%,#181512 48%,#0f1010 100%);
+  border-top-color:rgba(236,210,168,.30);
+  box-shadow:0 21px 52px rgba(0,0,0,.46),0 -1px 0 rgba(237,211,169,.27),inset 1px 0 rgba(237,211,169,.085),inset 0 -1px rgba(0,0,0,.58);
+}
+
+/* Dominant semantic labels receive a true local matte knockout. */
+.context-artifact[data-state="1"] .impression-field span,
+.context-artifact[data-state="2"] .customer-layer__head strong,
+.context-artifact[data-state="3"] .assistive-layer__head strong,
+.context-artifact[data-state="4"] .resolution-title{
+  isolation:isolate;
+  -webkit-box-decoration-break:clone;
+  box-decoration-break:clone;
+}
+.context-artifact[data-state="4"] .resolution-title{
+  z-index:28;
+  background:linear-gradient(90deg,#211d18 0%,#1d1915 72%,#181512 100%);
+  box-shadow:0 0 20px 10px rgba(14,12,10,.62);
+  color:#f2dab4;
+  text-shadow:0 8px 24px rgba(181,141,82,.10);
+}
+.context-artifact[data-state="4"] .resolution-layer::before{opacity:.58}
+.context-artifact[data-state="4"] .authority-cue{opacity:.10!important}
+
+/* Premium layer separation: existing shapes only, no new geometry. */
+.context-artifact[data-state="2"] .customer-layer{
+  box-shadow:inset 0 1px rgba(231,236,235,.27),inset 1px 0 rgba(219,226,226,.12),0 -17px 42px rgba(0,0,0,.18);
+}
+.context-artifact[data-state="3"] .assistive-layer{
+  box-shadow:inset 0 1px rgba(221,227,227,.22),inset -1px 0 rgba(221,227,227,.12),-17px 18px 44px rgba(0,0,0,.17);
+}
+.context-artifact[data-state="4"] .resolution-layer{
+  box-shadow:inset 0 1px rgba(240,215,175,.34),inset 0 -1px rgba(211,179,127,.11),0 15px 40px rgba(0,0,0,.10);
+}
+
+/* =========================================================
+   PORTRAIT — PROTECTED FINAL FRAME + CONTROLLED RELEASE
+   Stable R1.3.2 runway/state logic is untouched.
+   ========================================================= */
+@media (max-width:700px){
+  .connected-next{
+    --r141-artifact-h:clamp(318px,43svh,365px);
+    --r141-handoff-gap:18px;
+  }
+
+  /* Stable safe-zone: ledger rests below the visible artifact instead of intersecting it. */
+  .ledger-zone{
+    top:calc(var(--r141-artifact-h) + var(--r141-handoff-gap));
+    z-index:12;
+    margin-top:4px;
+    padding-top:10px;
+  }
+
+  /* A matte transition lip protects the handoff without adding a new visual object. */
+  .ledger-zone::before{
+    left:-13px;
+    right:-13px;
+    top:-18px;
+    height:36px;
+    background:linear-gradient(180deg,rgba(6,7,8,0) 0%,rgba(6,7,8,.94) 58%,#060708 100%);
+  }
+
+  /* RESULT: artifact becomes the cover authority. Near the parent boundary the ledger
+     naturally travels beneath it; NEXT ACTION therefore stays readable during release. */
+  .connected-next[data-active-stage="4"] .artifact-zone{
+    z-index:20;
+    background:linear-gradient(180deg,#060708 0%,rgba(6,7,8,.995) 82%,rgba(6,7,8,.975) 93%,rgba(6,7,8,.72) 98%,rgba(6,7,8,0) 100%);
+  }
+  .connected-next[data-active-stage="4"] .artifact-zone::after{
+    content:"";
+    position:absolute;
+    z-index:26;
+    left:0;
+    right:0;
+    bottom:0;
+    height:22px;
+    pointer-events:none;
+    background:linear-gradient(180deg,rgba(6,7,8,0),rgba(6,7,8,.96) 78%,#060708 100%);
+  }
+  .connected-next[data-active-stage="4"] .ledger-zone{z-index:12}
+
+  /* Mobile plate authority: solid active surface, quiet accumulated history. */
+  .ledger-plate.is-active{
+    background:
+      radial-gradient(116% 92% at 4% 0%,rgba(246,242,233,.05),transparent 42%),
+      linear-gradient(110deg,#1b1d1e 0%,#141617 56%,#0e1011 100%);
+    border-top-color:rgba(245,241,232,.22);
+    box-shadow:0 16px 34px rgba(0,0,0,.48),0 -1px 0 rgba(245,241,232,.19),inset 1px 0 rgba(245,241,232,.065),inset 0 -1px rgba(0,0,0,.52);
+  }
+  .ledger-plate.is-past{opacity:.44;filter:brightness(.72)}
+  .ledger-plate.is-future{opacity:.28;filter:brightness(.64)}
+  .ledger-plate.is-active .ledger-plate__edge{
+    background:rgba(240,235,225,.58);
+    box-shadow:0 0 14px rgba(240,235,225,.045);
+  }
+  .connected-next[data-active-stage="4"] .ledger-plate[data-stage-button="4"]{
+    background:
+      radial-gradient(120% 96% at 6% 0%,rgba(232,207,168,.10),transparent 44%),
+      linear-gradient(108deg,#211d18 0%,#181512 48%,#0f1010 100%);
+  }
+
+  /* Keep geometry, quiet historical words more decisively. */
+  .context-artifact[data-state="3"] .origin-title,
+  .context-artifact[data-state="3"] .origin-lane span,
+  .context-artifact[data-state="3"] .impression-field span{opacity:.055!important}
+  .context-artifact[data-state="3"] .customer-layer__head,
+  .context-artifact[data-state="3"] .customer-components{opacity:.16!important}
+
+  .context-artifact[data-state="4"] .origin-title,
+  .context-artifact[data-state="4"] .origin-lane span,
+  .context-artifact[data-state="4"] .impression-field span{opacity:.035!important}
+  .context-artifact[data-state="4"] .customer-layer__head,
+  .context-artifact[data-state="4"] .customer-components{opacity:.06!important}
+  .context-artifact[data-state="4"] .assistive-layer__head,
+  .context-artifact[data-state="4"] .assistive-components{opacity:.12!important}
+  .context-artifact[data-state="4"] .authority-cue{opacity:.07!important}
+
+  .context-artifact[data-state="4"] .causal-path--origin{opacity:.18}
+  .context-artifact[data-state="4"] .causal-path--inquiry{opacity:.26}
+  .context-artifact[data-state="4"] .causal-path--response{opacity:.34}
+  .context-artifact[data-state="4"] .causal-path--result{opacity:1;stroke:rgba(244,214,167,.70)}
+
+  /* Strong local clearance around the active semantic words only. */
+  .context-artifact[data-state="2"] .customer-layer__head strong,
+  .context-artifact[data-state="3"] .assistive-layer__head strong{
+    background:linear-gradient(90deg,rgba(8,9,10,.985) 0%,rgba(8,9,10,.91) 76%,rgba(8,9,10,0) 100%);
+    box-shadow:0 0 16px 8px rgba(6,7,8,.66);
+  }
+  .context-artifact[data-state="4"] .resolution-title{
+    background:linear-gradient(90deg,#211d18 0%,#1e1a16 78%,#191612 100%);
+    box-shadow:0 0 21px 11px rgba(13,11,9,.68);
+  }
+
+  /* Texture captions remain removed on narrow portrait. */
+  .artifact-caption{display:none!important}
+}
+
+/* Keep nearby narrow phones safe without shrinking essential semantics. */
+@media (max-width:390px){
+  .connected-next{--r141-handoff-gap:16px}
+}
+
+/* Reduced motion keeps the final composition clean and static. */
+@media (prefers-reduced-motion:reduce){
+  .ledger-plate,
+  .artifact-zone,
+  .ledger-zone{transition:none!important}
+}
+
+/* Preserve complete semantic reading when JS is unavailable, including desktop where
+   R1.4 visually collapses inactive details during normal interactive rendering. */
+html.no-js .ledger-plate .ledger-detail{
+  visibility:visible!important;
+  max-height:none!important;
+  margin-top:12px!important;
+  opacity:1!important;
+  transform:none!important;
+  overflow:visible!important;
+}

@@ -32,6 +32,10 @@ jobs:
         shell: bash
         run: node scripts/verify-proai-cube-integrity-r2.mjs
 
+      - name: Materialize social preview assets and normalize source
+        shell: bash
+        run: python scripts/apply-social-preview-defaults.py --mode source --root .
+
       - name: Build site with Jekyll
         shell: bash
         run: |
@@ -40,6 +44,14 @@ jobs:
           gem install --user-install jekyll -v 4.3.4 --no-document
           gem install --user-install webrick --no-document
           jekyll build --source . --destination _site
+
+      - name: Normalize generated social preview metadata
+        shell: bash
+        run: python scripts/apply-social-preview-defaults.py --mode site --root _site
+
+      - name: Verify social preview metadata
+        shell: bash
+        run: python scripts/apply-social-preview-defaults.py --mode check --root _site
 
       - name: Verify unified Footer System generated output
         shell: bash
@@ -62,7 +74,7 @@ jobs:
           editorial = [
               'insights/index.html', 'ru/insights/index.html',
               'insights/what-happens-after-a-lead-arrives/index.html',
-              'ru/insights/chto-proiskhodit-posle-zayavki/index.html',
+              'ru/insights/chto-proiskhodit-posle-zayavkki/index.html',
               'insights/ai-agent-or-automation-what-your-business-actually-needs/index.html',
               'insights/ai-ready-website-for-business/index.html',
               'insights/ai-search-optimization-for-service-businesses/index.html',

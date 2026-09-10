@@ -103,8 +103,10 @@ Studio-level ProAI Expert social previews should default to:
 - service/category-relevant imagery that is not client-specific
 
 For the central ProAI Expert site, the current default studio preview assets are:
-- EN pages: `https://proai-expert.com/screenshots/proai-home-en-desktop.png`
-- RU pages: `https://proai-expert.com/screenshots/proai-home-ru-desktop.png`
+- EN pages: `https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png`
+- RU pages: `https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png`
+
+These defaults apply to current and future public pages by locale unless the Owner explicitly approves a page-specific preview override. The Pages build must normalize and validate the generated output so future pages cannot silently fall back to legacy homepage screenshots.
 
 Do not use client, case-study, demo-site, or project-specific images as default ProAI studio OG/social previews unless the task explicitly approves that usage.
 

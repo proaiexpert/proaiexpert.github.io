@@ -6,6 +6,8 @@ on:
       - og-preview-exact-assets-r1
     paths:
       - .github/workflows/render-social-og.yml
+      - tools/social-og/preview.html
+      - scripts/render-social-og.mjs
   workflow_dispatch:
 
 permissions:
@@ -36,7 +38,7 @@ jobs:
           sleep 2
           curl --fail http://127.0.0.1:4173/tools/social-og/preview.html > /dev/null
 
-      - name: Render EN and RU cards
+      - name: Render cube framing candidates
         run: node scripts/render-social-og.mjs
 
       - name: Validate PNG dimensions
@@ -44,23 +46,23 @@ jobs:
           python3 - <<'PY'
           import struct
           from pathlib import Path
-          for name in ('proai-og-en-v2.png', 'proai-og-ru-v2.png'):
-              p = Path('assets/social') / name
+          files = sorted(Path('assets/social').glob('proai-og-frame-*.png'))
+          if len(files) != 5:
+              raise SystemExit(f'expected 5 framing candidates, found {len(files)}')
+          for p in files:
               data = p.read_bytes()
               if data[:8] != b'\x89PNG\r\n\x1a\n':
-                  raise SystemExit(f'{name}: not PNG')
+                  raise SystemExit(f'{p.name}: not PNG')
               width, height = struct.unpack('>II', data[16:24])
               if (width, height) != (1200, 630):
-                  raise SystemExit(f'{name}: wrong dimensions {width}x{height}')
-              print(f'{name}: {width}x{height}, {len(data)} bytes')
+                  raise SystemExit(f'{p.name}: wrong dimensions {width}x{height}')
+              print(f'{p.name}: {width}x{height}, {len(data)} bytes')
           PY
 
       - name: Upload previews
         uses: actions/upload-artifact@v4
         with:
-          name: proai-social-og-exact-r1
-          path: |
-            assets/social/proai-og-en-v2.png
-            assets/social/proai-og-ru-v2.png
+          name: proai-social-og-frame-review
+          path: assets/social/proai-og-frame-*.png
           if-no-files-found: error
           retention-days: 7

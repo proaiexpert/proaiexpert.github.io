@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProAI Expert Social Campaign Preview</title>
+<link rel="stylesheet" href="/assets/css/header-footer-logo-r1.css?v=20260814.1">
+<script type="importmap">{"imports":{"three":"/assets/vendor/three-r180/build/three.module.min.js","three/addons/":"/assets/vendor/three-r180/examples/jsm/"}}</script>
+<style>
+@font-face{font-family:"ProAI Inter Latin";font-style:normal;font-weight:100 900;font-display:block;src:url("/assets/fonts/inter-variable-latin.woff2") format("woff2")}
+@font-face{font-family:"ProAI Inter Cyrillic";font-style:normal;font-weight:100 900;font-display:block;src:url("/assets/fonts/inter-variable-cyrillic.woff2") format("woff2")}
+html,body{width:1200px;height:630px;margin:0;overflow:hidden;background:#050607}
+*{box-sizing:border-box}
+body{font-family:"ProAI Inter Latin","ProAI Inter Cyrillic",Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f1efe9}
+.card{position:relative;width:1200px;height:630px;overflow:hidden;isolation:isolate;background:radial-gradient(ellipse 34% 58% at 22% 48%,rgba(217,220,222,.035) 0%,rgba(134,139,144,.011) 40%,transparent 73%),linear-gradient(180deg,#020304 0%,#050607 20%,#050607 80%,#020304 100%)}
+.card:before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse 21% 32% at 22% 48%,rgba(93,226,255,.012),transparent 74%)}
+.brand{position:absolute;z-index:6;left:558px;top:52px;display:inline-flex;align-items:center}
+.brand .proai-logo-r341{--logo-cube:44px;--logo-word:27px;--logo-gap:11px}
+.brand .proai-logo-r341__cube{width:44px;height:44px;flex-basis:44px}
+.copy{position:absolute;left:558px;top:170px;z-index:6;width:595px}
+.eyebrow{display:flex;align-items:center;gap:12px;margin:0 0 22px;color:#aeb3b6;font-size:12px;font-weight:650;line-height:1.2;letter-spacing:.16em;text-transform:uppercase;white-space:nowrap}
+.eyebrow:before{content:"";width:30px;height:1px;flex:0 0 30px;background:linear-gradient(90deg,rgba(201,205,209,.70),rgba(201,205,209,.08))}
+.title{margin:0;color:#f2f0eb;font-size:55px;font-weight:500;line-height:.995;letter-spacing:-.044em;text-shadow:none}
+.title>span{display:block;white-space:nowrap}
+.lang-ru .title{font-size:51px;letter-spacing:-.036em}
+.services{margin:28px 0 0;color:#b6bbc0;font-size:20px;font-weight:450;line-height:1.25;letter-spacing:.005em;white-space:nowrap}
+.lang-ru .services{font-size:19px}
+.object{position:absolute;z-index:2;left:30px;top:78px;width:490px;height:490px;display:flex;align-items:center;justify-content:center;overflow:visible;isolation:isolate}
+.object:before{content:"";position:absolute;inset:7% 2% 3% 0;background:radial-gradient(ellipse at 48% 47%,rgba(218,221,223,.034) 0%,rgba(112,118,124,.012) 40%,transparent 72%);filter:blur(14px)}
+.object .proai-hero-object-slot{position:relative;z-index:1;width:100%;height:100%;aspect-ratio:1;overflow:visible;isolation:isolate}
+.object .proai-hero-cube-mount{position:absolute;inset:0;width:100%;height:100%;opacity:0;visibility:hidden;pointer-events:none;filter:brightness(1.045)}
+.object .proai-hero-object-slot[data-cube-mounted="true"] .proai-hero-cube-mount{opacity:1;visibility:visible}
+.object canvas{display:block;width:100%;height:100%}
+#runtime-status{display:none}
+.url{position:absolute;left:70px;bottom:54px;z-index:6;display:flex;align-items:center;gap:14px;color:#8f969d;font-size:16px;font-weight:430;letter-spacing:.11em;white-space:nowrap}
+.url:before{content:"";width:28px;height:1px;background:linear-gradient(90deg,rgba(201,205,209,.62),rgba(201,205,209,.10))}
+.meta{position:absolute;right:62px;bottom:56px;z-index:6;color:#858b91;font-size:10px;font-weight:600;letter-spacing:.145em;text-transform:uppercase;white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand" aria-label="ProAI Expert">
+    <span class="proai-logo-r341" style="--logo-cube:44px;--logo-word:27px;--logo-gap:11px">
+      <span class="proai-logo-r341__cube" aria-hidden="true"><img class="proai-logo-r341__static" src="/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png" alt="" width="320" height="320" decoding="sync"></span>
+      <span class="proai-logo-r341__wordmark" aria-hidden="true"><span class="proai-logo-r341__proai">ProAI</span><span class="proai-logo-r341__expert">Expert</span></span>
+    </span>
+  </div>
+  <div class="copy">
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 class="title" id="title"></h1>
+    <p class="services" id="services"></p>
+  </div>
+  <div class="object" aria-hidden="true">
+    <div class="proai-hero-object-slot" data-proai-hero-object data-cube-mounted="false">
+      <div id="proai-hero-cube-mount" class="proai-hero-cube-mount"><canvas id="cube-canvas"></canvas><span id="runtime-status"></span></div>
+    </div>
+  </div>
+  <div class="url">proai-expert.com</div>
+  <div class="meta" id="meta"></div>
+</div>
+<script>
+const params=new URLSearchParams(location.search);
+const lang=params.get('lang')==='ru'?'ru':'en';
+document.documentElement.lang=lang;document.body.classList.add('lang-'+lang);
+const copy=lang==='ru'?{
+  eyebrow:'AI-СИСТЕМЫ ДЛЯ БИЗНЕСА',
+  title:['От первого впечатления','до результата —','одна система.'],
+  services:'AI · Автоматизация · Сайты · Брендинг',
+  meta:'СТРАТЕГИЯ · РЕАЛИЗАЦИЯ · РЕАЛЬНЫЕ РЕЗУЛЬТАТЫ'
+}:{
+  eyebrow:'AI-FIRST BUSINESS SYSTEMS',
+  title:['From first impression','to result — one system.'],
+  services:'AI · Automation · Websites · Branding',
+  meta:'STRATEGY · EXECUTION · REAL RESULTS'
+};
+document.getElementById('eyebrow').textContent=copy.eyebrow;
+document.getElementById('title').innerHTML=copy.title.map(s=>`<span>${s}</span>`).join('');
+document.getElementById('services').textContent=copy.services;
+document.getElementById('meta').textContent=copy.meta;
+</script>
+<script type="module" src="/assets/js/proai-hero-cube-r1/bootstrap-golden-r1-2.js?v=golden-r1-2-exact"></script>
+</body>
+</html>

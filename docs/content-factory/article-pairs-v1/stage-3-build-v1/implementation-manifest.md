@@ -1,3 +1,5 @@
+> HISTORICAL RECORD — social-preview asset paths listed below are retired and are not current production authority. Current authority: `.ai/social-preview-policy.md`.
+
 # Stage 3 Implementation Manifest
 
 - Production main SHA: f2aa1770b2c2ff5ac3918f18e5cdc1e69e2c3c2c

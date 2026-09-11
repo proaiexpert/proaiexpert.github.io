@@ -21,7 +21,6 @@ const routes = [
     srcBlobSha: '57cb79bd2d8fd8ba614e7370defad8546fda116e',
     destDir: 'ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha',
     wpm: 180,
-    ogImage: 'article-01-ru-language-coverage.png',
     pair: 'A1-EN',
     ctaLabel: 'Обсудить языковую модель сайта',
     ctaLink: '/ru/contact/#project-intake',
@@ -45,7 +44,6 @@ const routes = [
     srcBlobSha: '2dac3dcb70385808afd76843dc60c529d85a78e5',
     destDir: 'insights/does-your-service-business-need-a-multilingual-website',
     wpm: 220,
-    ogImage: 'article-01-en-language-coverage.png',
     pair: 'A1-RU',
     ctaLabel: 'Review Your Language Coverage Plan',
     ctaLink: '/contact/#project-intake',
@@ -69,7 +67,6 @@ const routes = [
     srcBlobSha: '17cbfee69421e6e11101a0ef3770ec8dabf8e5e0',
     destDir: 'ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha',
     wpm: 180,
-    ogImage: 'article-02-ru-proposal-review.png',
     pair: 'A2-EN',
     ctaLabel: 'Разобрать предложение на сайт',
     ctaLink: '/ru/contact/#project-intake',
@@ -93,7 +90,6 @@ const routes = [
     srcBlobSha: 'f02b55ff8552e6eb067d09663a35afa29b130b55',
     destDir: 'insights/how-to-evaluate-a-website-proposal',
     wpm: 220,
-    ogImage: 'article-02-en-proposal-review.png',
     pair: 'A2-RU',
     ctaLabel: 'Review My Website Proposal',
     ctaLink: '/contact/#project-intake',
@@ -336,11 +332,9 @@ function processArticle(r) {
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
-<link rel="icon" href="/favicon-32x32.png" sizes="32x32" type="image/png"/>
-<link rel="icon" href="/favicon-16x16.png" sizes="16x16" type="image/png"/>
+<link rel="icon" href="/favicon.ico?v=20260910-r2">
 <link rel="shortcut icon" href="/favicon.ico"/>
-<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180"/>
+<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=20260910-r2">
 <title>${r.seoTitle}</title>
 <meta name="description" content="${r.metaDesc}"/>
 <link rel="canonical" href="https://proai-expert.com${r.route}"/>
@@ -354,13 +348,13 @@ function processArticle(r) {
 <meta property="og:description" content="${r.metaDesc}"/>
 <meta property="og:url" content="https://proai-expert.com${r.route}"/>
 <meta property="og:type" content="article"/>
-<meta property="og:image" content="https://proai-expert.com/assets/insights/og/${r.ogImage}"/>
-<meta property="og:image:alt" content="${r.seoTitle}"/>
+<meta property="og:image" content="${r.lang === 'ru' ? 'https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png' : 'https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png'}"/>
+<meta property="og:image:alt" content="${r.lang === 'ru' ? 'ProAI Expert — От первого впечатления до результата — одна система.' : 'ProAI Expert — From first impression to result — one system.'}"/>
 <meta name="twitter:card" content="summary_large_image"/>
 <meta name="twitter:title" content="${r.h1}"/>
 <meta name="twitter:description" content="${r.metaDesc}"/>
-<meta name="twitter:image" content="https://proai-expert.com/assets/insights/og/${r.ogImage}"/>
-<meta name="twitter:image:alt" content="${r.seoTitle}"/>
+<meta name="twitter:image" content="${r.lang === 'ru' ? 'https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png' : 'https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png'}"/>
+<meta name="twitter:image:alt" content="${r.lang === 'ru' ? 'ProAI Expert — От первого впечатления до результата — одна система.' : 'ProAI Expert — From first impression to result — one system.'}"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/assets/css/global-header-parity-v2.css">
 <link rel="stylesheet" href="/mobile-behavior-v123.css">
@@ -377,7 +371,7 @@ function processArticle(r) {
   "dateModified": "${buildDateStr}",
   "mainEntityOfPage": "https://proai-expert.com${r.route}",
   "inLanguage": "${r.lang}",
-  "image": "https://proai-expert.com/assets/insights/og/${r.ogImage}"
+  "image": "${r.lang === 'ru' ? 'https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png' : 'https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png'}"
 }
 </script>
 </head>

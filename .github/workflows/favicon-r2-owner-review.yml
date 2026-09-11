@@ -1,0 +1,243 @@
+name: Build Favicon R2 Owner Review
+
+on:
+  push:
+    branches: [favicon-r2-owner-review]
+    paths:
+      - '.github/workflows/favicon-r2-owner-review.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Playwright and QA tooling
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y imagemagick python3-pil fonts-dejavu-core
+
+      - name: Start local static server
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/proai-favicon-r2-http.log 2>&1 &
+          echo $! > /tmp/proai-favicon-r2-http.pid
+          sleep 2
+
+      - name: Render masters from production GLB runtime
+        run: |
+          mkdir -p owner-review
+          cat > /tmp/render-r2.mjs <<'EOF'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const URL = 'http://127.0.0.1:4173/assets/brand/proai-logo-r341/live.html?mode=static&quality=4&startup=controlled';
+
+          async function render({cssSize, outPath}) {
+            const browser = await chromium.launch({headless:true});
+            const context = await browser.newContext({
+              viewport: { width: cssSize, height: cssSize },
+              deviceScaleFactor: 4,
+              colorScheme: 'dark',
+            });
+            const page = await context.newPage();
+            await page.goto(URL, {waitUntil:'networkidle'});
+            await page.waitForFunction(() => document.documentElement.dataset.proaiLogoReady === 'true', null, {timeout:45000});
+            await page.addStyleTag({content:'html,body{background:#050607!important}'});
+            await page.evaluate(() => {
+              const api = window.__PROAI_CUBE_R1_2;
+              api?.stopChoreography?.();
+              api?.stopSliceScheduler?.();
+              api?.setLookDevPreset?.('premiumHybrid');
+              api?.setSignatureFov?.(27,false);
+              api?.setSignatureEuler?.(288,4.5,-0.3,false);
+              api?.renderReviewFrame?.();
+            });
+            await page.waitForTimeout(250);
+            const state = await page.evaluate(() => window.__PROAI_LOGO_R341_STATE);
+            console.log(JSON.stringify({outPath, state}, null, 2));
+            await page.screenshot({path:outPath, fullPage:false, omitBackground:false});
+            await browser.close();
+          }
+
+          await render({cssSize:512, outPath:'owner-review/favicon-master-r2-2048.png'});
+          await render({cssSize:256, outPath:'owner-review/favicon-micro-r2-source-1024.png'});
+          EOF
+          node /tmp/render-r2.mjs
+
+      - name: Build micro master and test sizes
+        run: |
+          convert owner-review/favicon-micro-r2-source-1024.png \
+            -filter Lanczos -resize 64x64 \
+            -unsharp 0x0.35+0.45+0.015 \
+            owner-review/favicon-micro-r2-64.png
+          convert owner-review/favicon-micro-r2-64.png -filter Lanczos -resize 32x32 owner-review/favicon-test-r2-32.png
+          convert owner-review/favicon-micro-r2-64.png -filter Lanczos -resize 16x16 owner-review/favicon-test-r2-16.png
+          convert owner-review/favicon-master-r2-2048.png -filter Lanczos -resize 180x180 owner-review/favicon-test-r2-180.png
+          rm owner-review/favicon-micro-r2-source-1024.png
+
+      - name: Create QA preview
+        run: |
+          cat > /tmp/qa_preview.py <<'PY'
+          from PIL import Image, ImageDraw, ImageFont
+          from pathlib import Path
+
+          base = Path('owner-review')
+          W,H = 1600,1180
+          bg = (7,10,16)
+          panel = (13,17,23)
+          border = (62,70,80)
+          text = (236,239,243)
+          muted = (174,182,192)
+          canvas = Image.new('RGB',(W,H),bg)
+          d = ImageDraw.Draw(canvas)
+          try:
+              f32 = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',32)
+              f24 = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',24)
+              f18 = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',18)
+          except:
+              f32=f24=f18=None
+
+          def box(x,y,w,h,title):
+              d.rounded_rectangle((x,y,x+w,y+h),18,fill=panel,outline=border,width=2)
+              d.text((x+22,y+18),title,font=f24,fill=text)
+
+          def fit(img, maxw, maxh):
+              r=min(maxw/img.width,maxh/img.height)
+              return img.resize((max(1,int(img.width*r)),max(1,int(img.height*r))),Image.Resampling.LANCZOS)
+
+          high=Image.open(base/'favicon-master-r2-2048.png').convert('RGB')
+          micro=Image.open(base/'favicon-micro-r2-64.png').convert('RGB')
+          p16=Image.open(base/'favicon-test-r2-16.png').convert('RGB')
+          p32=Image.open(base/'favicon-test-r2-32.png').convert('RGB')
+          p180=Image.open(base/'favicon-test-r2-180.png').convert('RGB')
+
+          box(24,24,750,500,'HIGH-RES MASTER — 2048×2048')
+          box(794,24,782,500,'MICRO MASTER — 64×64')
+          hi=fit(high,650,410); canvas.paste(hi,(24+(750-hi.width)//2,78+(420-hi.height)//2))
+          mi=micro.resize((320,320),Image.Resampling.NEAREST); canvas.paste(mi,(794+(782-320)//2,118))
+
+          box(24,548,250,250,'16×16 PREVIEW')
+          box(294,548,250,250,'32×32 PREVIEW')
+          i16=p16.resize((96,96),Image.Resampling.NEAREST); canvas.paste(i16,(101,650))
+          i32=p32.resize((128,128),Image.Resampling.NEAREST); canvas.paste(i32,(355,632))
+
+          box(564,548,490,250,'BROWSER TAB — DARK')
+          d.rounded_rectangle((594,640,1024,728),18,fill=(30,34,40),outline=(74,82,92),width=2)
+          icon32=p32.resize((32,32),Image.Resampling.NEAREST); canvas.paste(icon32,(626,668))
+          d.text((678,666),'ProAI Expert',font=f24,fill=text)
+
+          box(1074,548,502,250,'BROWSER TAB — LIGHT')
+          d.rounded_rectangle((1104,640,1546,728),18,fill=(244,246,248),outline=(198,203,210),width=2)
+          canvas.paste(icon32,(1136,668))
+          d.text((1188,666),'ProAI Expert',font=f24,fill=(20,23,27))
+
+          box(24,824,1552,330,'HIGH-RES MASTER AT 180×180')
+          icon180=p180.resize((180,180),Image.Resampling.LANCZOS)
+          canvas.paste(icon180,(210,910))
+          d.text((440,926),'R2 OWNER QA',font=f32,fill=text)
+          d.text((440,982),'Source: production GLB + production header camera/lookdev runtime',font=f18,fill=muted)
+          d.text((440,1018),'No raster upscale from the old 320px static source',font=f18,fill=muted)
+          d.text((440,1054),'No deploy · no manifest · no favicon.ico · no HTML changes',font=f18,fill=muted)
+
+          canvas.save(base/'ProAI_Favicon_R2_QA_Preview.png',quality=95)
+          PY
+          python3 /tmp/qa_preview.py
+
+      - name: Write README and validate exact dimensions
+        run: |
+          GLB_SHA=$(sha256sum assets/models/proai-cube/proai-cube-r1.glb | awk '{print toupper($1)}')
+          RUNTIME_SHA=$(sha256sum assets/brand/proai-logo-r341/live-runtime.js | awk '{print toupper($1)}')
+          identify owner-review/favicon-master-r2-2048.png owner-review/favicon-micro-r2-64.png owner-review/favicon-test-r2-16.png owner-review/favicon-test-r2-32.png owner-review/favicon-test-r2-180.png
+          test "$(identify -format '%wx%h' owner-review/favicon-master-r2-2048.png)" = "2048x2048"
+          test "$(identify -format '%wx%h' owner-review/favicon-micro-r2-64.png)" = "64x64"
+          cat > owner-review/README.txt <<EOF
+          PROAI EXPERT — FAVICON R2 OWNER REVIEW
+
+          STATUS
+          Owner-review package only. Nothing in this package has been deployed or merged to production.
+          No favicon.ico, manifest, Android/PWA production formats, SVG replacement, or HTML changes are included.
+
+          SOURCE GLB
+          assets/models/proai-cube/proai-cube-r1.glb
+          SHA256: $GLB_SHA
+
+          CAMERA / LOOKDEV AUTHORITY
+          assets/brand/proai-logo-r341/live.html
+          assets/brand/proai-logo-r341/live-runtime.js
+          Runtime SHA256: $RUNTIME_SHA
+
+          Static signature camera used by the current production header cube runtime:
+          yaw 288°
+          pitch 4.5°
+          roll -0.3°
+          FOV 27°
+
+          Production header micro lookdev authority from live-runtime.js:
+          exposure 0.92
+          PMREM sigma 0.11
+          graphite / gunmetal / black-chrome / smoked-core material family
+          production RectArea light-card setup and production header lighting intensities
+
+          HOW THE MASTERS WERE OBTAINED
+          favicon-master-r2-2048.png:
+          - rendered directly from the production GLB through the current production live.html/live-runtime.js WebGL path;
+          - static HOME pose, production premiumHybrid/header micro lookdev;
+          - 512×512 CSS render at device scale factor 4;
+          - direct captured output = 2048×2048 pixels.
+
+          favicon-micro-r2-64.png:
+          - rendered directly from the same production GLB/runtime at 256×256 CSS with device scale factor 4;
+          - source render = 1024×1024;
+          - downsampled to 64×64 with Lanczos plus restrained micro sharpening for 16/32px legibility.
+
+          IMPORTANT CONFIRMATION
+          NO raster upscale from the old 320px static cube source was used for either R2 master.
+          The old assets/brand/proai-logo-r341/*static-cube-320.png files were not used as pixel sources.
+
+          FILES / EXACT DIMENSIONS
+          favicon-master-r2-2048.png — 2048×2048
+          favicon-micro-r2-64.png — 64×64
+          favicon-test-r2-16.png — 16×16
+          favicon-test-r2-32.png — 32×32
+          favicon-test-r2-180.png — 180×180
+          ProAI_Favicon_R2_QA_Preview.png — 1600×1180
+          README.txt — text
+
+          OWNER GATE
+          Do not create production favicon formats or deploy until Owner approves these R2 masters.
+          EOF
+
+      - name: Build Owner ZIP
+        run: |
+          cd owner-review
+          zip -9 ProAI_Favicon_R2_Owner_Review.zip \
+            favicon-master-r2-2048.png \
+            favicon-micro-r2-64.png \
+            ProAI_Favicon_R2_QA_Preview.png \
+            favicon-test-r2-16.png \
+            favicon-test-r2-32.png \
+            favicon-test-r2-180.png \
+            README.txt
+          cd ..
+
+      - name: Upload owner review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-favicon-r2-owner-review
+          path: |
+            owner-review/ProAI_Favicon_R2_Owner_Review.zip
+            owner-review/ProAI_Favicon_R2_QA_Preview.png
+          if-no-files-found: error
+          retention-days: 7

@@ -15,7 +15,7 @@ These PNG files are committed production assets under `assets/social/`. Deployme
 
 Current public source HTML must already contain the approved locale-specific OG/Twitter image metadata. Known legacy screenshot URLs and retired article-OG paths must not be left in source for deployment to repair.
 
-The deploy workflow runs `--mode check-source` before Jekyll. A bad source tree fails deployment.
+Before Jekyll, the deploy workflow invokes `--mode source`. That mode is retained for workflow compatibility but is deliberately fail-closed and non-mutating: it performs the same strict source verification as `--mode check-source`, including Favicon R2 verification. A bad source tree fails deployment instead of being repaired in CI.
 
 ## Generated-site guardrail
 

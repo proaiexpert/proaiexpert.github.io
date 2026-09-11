@@ -103,3 +103,99 @@
     padding-bottom:36px;
   }
 }
+
+/* =========================================================
+   R1.4.3 — MOBILE STATE / TYPOGRAPHY FINALIZATION
+   Stability is governed in JS. This layer only widens mobile reading runway,
+   protects long EN/RU labels, and tightens material hierarchy.
+   ========================================================= */
+
+/* Slightly denser active graphite with a precise directional material edge. */
+.ledger-plate.is-active{
+  background:
+    linear-gradient(104deg,rgba(255,255,255,.030) 0%,rgba(255,255,255,.009) 27%,transparent 44%),
+    radial-gradient(118% 94% at 5% 0%,rgba(246,242,233,.062),transparent 44%),
+    linear-gradient(111deg,#1d1f20 0%,#161819 53%,#0e1011 100%);
+}
+.ledger-plate.is-active .ledger-plate__edge{
+  width:1px;
+  background:linear-gradient(180deg,rgba(247,243,234,.78),rgba(226,222,214,.38) 58%,rgba(142,147,148,.08));
+}
+.ledger-plate.is-past .ledger-detail,
+.ledger-plate.is-future .ledger-detail{opacity:0!important}
+
+/* Existing component grids keep their geometry, but every cell owns a real safe box. */
+.customer-components,
+.assistive-components,
+.resolution-components{min-width:0}
+.customer-components span,
+.assistive-components span,
+.resolution-components span{
+  min-width:0;
+  max-width:100%;
+  overflow:visible;
+  white-space:normal;
+  overflow-wrap:normal;
+  word-break:normal;
+}
+
+@media (max-width:700px){
+  /* Wider physical runway makes stage 01 and each following semantic state stoppable. */
+  .connected-next__experience{min-height:235svh}
+
+  .ledger-plate.is-active{
+    min-height:240px;
+    padding-bottom:24px;
+  }
+  .ledger-plate.is-active .ledger-detail{max-height:238px}
+  .ledger-plate.is-active .ledger-components{
+    max-width:100%;
+    overflow:visible;
+    line-height:1.4;
+  }
+
+  /* Preserve geometry while preventing historical wording from reading beneath authority. */
+  .context-artifact[data-state="3"] .customer-components{opacity:.14!important}
+  .context-artifact[data-state="4"] .assistive-components{opacity:.10!important}
+
+  .assistive-components,
+  .resolution-components{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .resolution-components{left:13%;right:5%;column-gap:10px}
+  .assistive-components{right:8%;column-gap:10px}
+}
+
+@media (max-width:390px){
+  .resolution-components{left:12%;right:4%;column-gap:8px}
+  .assistive-components{left:14%;right:7%;column-gap:8px}
+  .connected-next[data-language="ru"] .resolution-components span,
+  .connected-next[data-language="ru"] .assistive-components span{letter-spacing:.045em}
+}
+
+/* Low landscape: safe text boxes without shrinking the semantic typography globally. */
+@media (max-height:520px) and (min-width:701px){
+  .ledger-plate.is-active{
+    min-height:164px;
+    padding-bottom:16px;
+  }
+  .ledger-plate.is-active .ledger-detail{max-height:138px}
+  .ledger-plate.is-active .ledger-components{line-height:1.22}
+
+  .assistive-components,
+  .resolution-components{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .assistive-components{left:14%;right:7%;gap:7px 10px}
+  .resolution-components{left:12%;right:4%;gap:6px 10px}
+  .assistive-components span,
+  .resolution-components span{letter-spacing:.045em;line-height:1.14}
+}
+
+/* RESULT stays restrained champagne; improve separation, not brightness. */
+.connected-next[data-active-stage="4"] .ledger-plate[data-stage-button="4"]{
+  background:
+    linear-gradient(104deg,rgba(240,218,183,.040) 0%,rgba(240,218,183,.009) 28%,transparent 45%),
+    radial-gradient(120% 96% at 6% 0%,rgba(233,207,167,.12),transparent 45%),
+    linear-gradient(109deg,#221e19 0%,#191612 49%,#101110 100%);
+}
+
+@media (prefers-reduced-motion:reduce){
+  .ledger-plate,.ledger-plate__edge{transition:none!important}
+}

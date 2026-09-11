@@ -1,3 +1,4 @@
+# One-shot closeout patcher. Remove before final merge.
 from pathlib import Path
 import re
 

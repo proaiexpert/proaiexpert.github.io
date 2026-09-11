@@ -137,25 +137,6 @@ def generated_candidate(root: Path, path: Path) -> bool:
     return bool(rel.parts and rel.parts[0] not in GENERATED_SKIP_TOP_LEVEL)
 
 
-def normalize_source(root: Path) -> int:
-    validate_assets(root)
-    changed_count = 0
-    for path in sorted(root.rglob("*.html")):
-        rel = path.relative_to(root)
-        if any(part in {".git", "_site", "node_modules", "vendor"} for part in rel.parts):
-            continue
-        if not source_candidate(root, path):
-            continue
-        text = path.read_text(encoding="utf-8-sig")
-        if not re.search(r'</head\s*>', text, re.I):
-            continue
-        new_text, changed = normalize_head(text, is_ru_page(rel, text))
-        if changed:
-            path.write_text(new_text, encoding="utf-8", newline="\n")
-            changed_count += 1
-    return changed_count
-
-
 def normalize_generated(root: Path) -> int:
     validate_assets(root)
     changed_count = 0
@@ -273,6 +254,12 @@ def check_site(root: Path) -> int:
     return checked
 
 
+def verify_source(root: Path) -> None:
+    check_source(root)
+    run_favicon_r2("check", root)
+    print("Committed source authority verified; no source normalization performed.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=("source", "check-source", "site", "check"), required=True)
@@ -280,13 +267,10 @@ def main() -> None:
     args = parser.parse_args()
     root = args.root.resolve()
 
-    if args.mode == "source":
-        changed = normalize_source(root)
-        run_favicon_r2("source", root)
-        print(f"Source social preview normalization complete: {changed} HTML files changed.")
-    elif args.mode == "check-source":
-        check_source(root)
-        run_favicon_r2("check", root)
+    if args.mode in {"source", "check-source"}:
+        # `source` is retained for deploy-workflow compatibility, but is deliberately
+        # fail-closed and non-mutating: current source must already be correct.
+        verify_source(root)
     elif args.mode == "site":
         changed = normalize_generated(root)
         run_favicon_r2("site", root)

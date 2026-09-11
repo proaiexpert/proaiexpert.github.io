@@ -6,6 +6,7 @@ import base64
 import hashlib
 import re
 import sys
+import subprocess
 from pathlib import Path
 
 EN_IMAGE = "https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png"
@@ -63,6 +64,14 @@ META_PATTERNS = {
     "twitter_alt": re.compile(r'<meta\b[^>]*\bname\s*=\s*["\']twitter:image:alt["\'][^>]*>\s*', re.I),
 }
 
+
+
+def run_favicon_r2(mode: str, root: Path) -> None:
+    script = Path(__file__).with_name("apply-favicon-r2.py")
+    subprocess.run(
+        [sys.executable, str(script), "--mode", mode, "--root", str(root)],
+        check=True,
+    )
 
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -288,12 +297,15 @@ def main() -> None:
     if args.mode == "source":
         materialized = materialize_assets(root, cleanup_bootstrap=True)
         changed = normalize_source(root)
+        run_favicon_r2("source", root)
         print(f"Source social preview normalization complete: {changed} HTML files changed; {materialized} assets materialized.")
     elif args.mode == "site":
         changed = normalize_generated(root)
+        run_favicon_r2("site", root)
         print(f"Generated-site social preview normalization complete: {changed} HTML files changed.")
     else:
         check_site(root)
+        run_favicon_r2("check", root)
 
 
 if __name__ == "__main__":

@@ -27,7 +27,20 @@ workflow.write_text(text.replace(old, new), encoding='utf-8')
 (ROOT / 'scripts/check-social-preview.ps1').write_text('''$ErrorActionPreference = "Stop"\npython scripts/apply-social-preview-defaults.py --mode check-source --root .\nif ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }\nWrite-Output "Social preview + Favicon R2 source authority check passed."\n''', encoding='utf-8')
 
 # Current policy: committed approved assets, no bootstrap reconstruction, no unapproved page-specific OG.
-(ROOT / '.ai/social-preview-policy.md').write_text(f'''# ProAI Expert Social Preview / OG Authority\n\nStatus: production authority.\n\n## Approved default assets\n\n- EN: `{EN}`\n- RU: `{RU}`\n- Required dimensions: `1200 x 630`\n- `twitter:card`: `summary_large_image`\n\nThese PNG files are committed production assets under `assets/social/`. Deployment must not reconstruct them from `.ai` bootstrap fragments. Their SHA-256 and PNG dimensions are enforced by `scripts/apply-social-preview-defaults.py`.\n\n## Source authority\n\nCurrent public source HTML must already contain the approved locale-specific OG/Twitter image metadata. Known legacy screenshot URLs must not be left in source for deployment to repair.\n\nThe deploy workflow runs `--mode check-source` before Jekyll. A bad source tree fails deployment.\n\n## Generated-site guardrail\n\nAfter Jekyll build, `--mode site` deterministically normalizes generated public HTML to the same approved locale defaults. `--mode check` then verifies exact cardinality and expected values. This is a guardrail for generated/future pages, not a repair mechanism for known legacy source.\n\n## Page-specific OG exceptions\n\nThere are currently no approved page-specific OG image exceptions. A new exception requires explicit Owner approval before it becomes production authority.\n\n## Favicon relationship\n\nSocial-preview tooling delegates favicon verification to `scripts/apply-favicon-r2.py`. Approved Favicon R2 bytes and the versioned favicon/apple-touch metadata are independently enforced.\n''', encoding='utf-8')
+(ROOT / '.ai/social-preview-policy.md').write_text(f'''# ProAI Expert Social Preview / OG Authority\n\nStatus: production authority.\n\n## Approved default assets\n\n- EN: `{EN}`\n- RU: `{RU}`\n- Required dimensions: `1200 x 630`\n- `twitter:card`: `summary_large_image`\n\nThese PNG files are committed production assets under `assets/social/`. Deployment must not reconstruct them from `.ai` bootstrap fragments. Their SHA-256 and PNG dimensions are enforced by `scripts/apply-social-preview-defaults.py`.\n\n## Source authority\n\nCurrent public source HTML must already contain the approved locale-specific OG/Twitter image metadata. Known legacy screenshot URLs and retired article-OG paths must not be left in source for deployment to repair.\n\nThe deploy workflow runs `--mode check-source` before Jekyll. A bad source tree fails deployment.\n\n## Generated-site guardrail\n\nAfter Jekyll build, `--mode site` deterministically normalizes generated public HTML to the same approved locale defaults. `--mode check` then verifies exact cardinality and expected values. This is a guardrail for generated/future pages, not a repair mechanism for known legacy source.\n\n## Page-specific OG exceptions\n\nThere are currently no approved page-specific OG image exceptions. A new exception requires explicit Owner approval before it becomes production authority.\n\n## Favicon relationship\n\nSocial-preview tooling delegates favicon verification to `scripts/apply-favicon-r2.py`. Approved Favicon R2 bytes and the versioned favicon/apple-touch metadata are independently enforced.\n''', encoding='utf-8')
+
+# Purge retired article-OG references from current HTML/includes, including JSON-LD image fields.
+article_og_re = re.compile(r'https://proai-expert\.com/assets/insights/og/[^"\'<>\s]+|/assets/insights/og/[^"\'<>\s]+')
+for p in ROOT.rglob('*.html'):
+    rel = p.relative_to(ROOT)
+    if any(part in {'.git', '_site', 'node_modules', 'vendor'} for part in rel.parts):
+        continue
+    s = p.read_text(encoding='utf-8-sig')
+    if '/assets/insights/og/' not in s:
+        continue
+    is_ru = bool(rel.parts and rel.parts[0] == 'ru') or bool(re.search(r'<html\b[^>]*\blang=["\']ru', s, re.I)) or '-ru' in p.name.lower()
+    s2 = article_og_re.sub(RU if is_ru else EN, s)
+    p.write_text(s2, encoding='utf-8', newline='\n')
 
 factory_dir = ROOT / 'docs/content-factory/article-pairs-v1/stage-3-build-v1/tools'
 for name in ('build-v3.js', 'build-v4.js'):
@@ -66,14 +79,11 @@ s = s.replace('`https://proai-expert.com/assets/insights/og/${route.ogImage}`', 
 test.write_text(s, encoding='utf-8')
 
 # Historical implementation records are retained, but explicitly cannot act as current authority.
-for rel in (
-    'docs/content-factory/article-pairs-v1/stage-3-build-v1/implementation-manifest.md',
-):
-    p = ROOT / rel
-    if p.exists():
-        s = p.read_text(encoding='utf-8')
-        banner = '> HISTORICAL RECORD — social-preview asset paths listed below are retired and are not current production authority. Current authority: `.ai/social-preview-policy.md`.\n\n'
-        if not s.startswith('> HISTORICAL RECORD'):
-            p.write_text(banner + s, encoding='utf-8')
+manifest = ROOT / 'docs/content-factory/article-pairs-v1/stage-3-build-v1/implementation-manifest.md'
+if manifest.exists():
+    s = manifest.read_text(encoding='utf-8')
+    banner = '> HISTORICAL RECORD — social-preview asset paths listed below are retired and are not current production authority. Current authority: `.ai/social-preview-policy.md`.\n\n'
+    if not s.startswith('> HISTORICAL RECORD'):
+        manifest.write_text(banner + s, encoding='utf-8')
 
 print('Targeted OG/favicon closeout patches applied.')

@@ -29,173 +29,133 @@
 }
 
 .connected-next.connected-next--production button { font:inherit; }
-
-/* Hero -> Connected: keep the first state calm and visually separate without
-   inserting another bridge component. */
-#hero + .connected-next.connected-next--production {
-  margin-top:0;
-}
-
-/* Connected -> Two Worlds: the sticky composition must fully release before
-   the next approved block becomes the visual authority. */
-.connected-next.connected-next--production + .tw-r2 {
-  position:relative;
-  z-index:1;
-}
-
-.connected-next--production .connected-next__footer {
-  padding-bottom:0;
-}
-.connected-next--production .connected-next__footer > p {
-  max-width:760px;
-}
-
-/* Production has fixed-language pages; review controls/registers never render. */
+#hero + .connected-next.connected-next--production { margin-top:0; }
+.connected-next.connected-next--production + .tw-r2 { position:relative;z-index:1; }
+.connected-next--production .connected-next__footer { padding-bottom:0; }
+.connected-next--production .connected-next__footer > p { max-width:760px; }
 .connected-next--production .review-language,
 .connected-next--production .connected-next__register { display:none !important; }
-
-/* Progressive fallback local to this component. JS removes this class at init. */
-.connected-next--production.connected-next--nojs .connected-next__experience {
-  min-height:auto !important;
-  padding-top:28px;
-}
-.connected-next--production.connected-next--nojs .connected-next__sticky-stage {
-  position:static !important;
-  min-height:0 !important;
-  align-items:start;
-}
-.connected-next--production.connected-next--nojs .ledger-plate {
-  min-height:auto !important;
-  height:auto !important;
-  opacity:1 !important;
-  transform:none !important;
-  overflow:visible !important;
-}
-.connected-next--production.connected-next--nojs .ledger-detail {
-  display:grid !important;
-  visibility:visible !important;
-  opacity:1 !important;
-  max-height:none !important;
-  height:auto !important;
-}
-.connected-next--production.connected-next--nojs .state-ledger {
-  gap:10px;
-}
+.connected-next--production.connected-next--nojs .connected-next__experience { min-height:auto !important;padding-top:28px; }
+.connected-next--production.connected-next--nojs .connected-next__sticky-stage { position:static !important;min-height:0 !important;align-items:start; }
+.connected-next--production.connected-next--nojs .ledger-plate { min-height:auto !important;height:auto !important;opacity:1 !important;transform:none !important;overflow:visible !important; }
+.connected-next--production.connected-next--nojs .ledger-detail { display:grid !important;visibility:visible !important;opacity:1 !important;max-height:none !important;height:auto !important; }
+.connected-next--production.connected-next--nojs .state-ledger { gap:10px; }
 
 @media (max-width:700px) {
-  .connected-next.connected-next--production {
-    width:min(100% - 28px,640px);
-    padding-top:34px;
-    padding-bottom:58px;
-  }
-  .connected-next--production.connected-next--nojs .connected-next__sticky-stage {
-    display:block !important;
-  }
-  .connected-next--production.connected-next--nojs .ledger-zone {
-    margin-top:22px;
-  }
+  .connected-next.connected-next--production { width:min(100% - 28px,640px);padding-top:34px;padding-bottom:58px; }
+  .connected-next--production.connected-next--nojs .connected-next__sticky-stage { display:block !important; }
+  .connected-next--production.connected-next--nojs .ledger-zone { margin-top:22px; }
 }
-
 @media (max-height:520px) and (min-width:701px) {
-  .connected-next.connected-next--production {
-    width:min(100% - 34px,1440px);
-    padding-top:22px;
-    padding-bottom:36px;
-  }
+  .connected-next.connected-next--production { width:min(100% - 34px,1440px);padding-top:22px;padding-bottom:36px; }
 }
 
-/* =========================================================
-   R1.4.3 — MOBILE STATE / TYPOGRAPHY FINALIZATION
-   Stability is governed in JS. This layer only widens mobile reading runway,
-   protects long EN/RU labels, and tightens material hierarchy.
-   ========================================================= */
-
-/* Slightly denser active graphite with a precise directional material edge. */
+/* R1.4.3 — MOBILE STATE / TYPOGRAPHY FINALIZATION */
 .ledger-plate.is-active{
-  background:
-    linear-gradient(104deg,rgba(255,255,255,.030) 0%,rgba(255,255,255,.009) 27%,transparent 44%),
-    radial-gradient(118% 94% at 5% 0%,rgba(246,242,233,.062),transparent 44%),
-    linear-gradient(111deg,#1d1f20 0%,#161819 53%,#0e1011 100%);
+  background:linear-gradient(104deg,rgba(255,255,255,.030) 0%,rgba(255,255,255,.009) 27%,transparent 44%),radial-gradient(118% 94% at 5% 0%,rgba(246,242,233,.062),transparent 44%),linear-gradient(111deg,#1d1f20 0%,#161819 53%,#0e1011 100%);
 }
-.ledger-plate.is-active .ledger-plate__edge{
-  width:1px;
-  background:linear-gradient(180deg,rgba(247,243,234,.78),rgba(226,222,214,.38) 58%,rgba(142,147,148,.08));
-}
-.ledger-plate.is-past .ledger-detail,
-.ledger-plate.is-future .ledger-detail{opacity:0!important}
-
-/* Existing component grids keep their geometry, but every cell owns a real safe box. */
-.customer-components,
-.assistive-components,
-.resolution-components{min-width:0}
-.customer-components span,
-.assistive-components span,
-.resolution-components span{
-  min-width:0;
-  max-width:100%;
-  overflow:visible;
-  white-space:normal;
-  overflow-wrap:normal;
-  word-break:normal;
-}
-
+.ledger-plate.is-active .ledger-plate__edge{width:1px;background:linear-gradient(180deg,rgba(247,243,234,.78),rgba(226,222,214,.38) 58%,rgba(142,147,148,.08));}
+.ledger-plate.is-past .ledger-detail,.ledger-plate.is-future .ledger-detail{opacity:0!important}
+.customer-components,.assistive-components,.resolution-components{min-width:0}
+.customer-components span,.assistive-components span,.resolution-components span{min-width:0;max-width:100%;overflow:visible;white-space:normal;overflow-wrap:normal;word-break:normal;}
 @media (max-width:700px){
-  /* Wider physical runway makes stage 01 and each following semantic state stoppable. */
   .connected-next__experience{min-height:235svh}
-
-  .ledger-plate.is-active{
-    min-height:240px;
-    padding-bottom:24px;
-  }
+  .ledger-plate.is-active{min-height:240px;padding-bottom:24px;}
   .ledger-plate.is-active .ledger-detail{max-height:238px}
-  .ledger-plate.is-active .ledger-components{
-    max-width:100%;
-    overflow:visible;
-    line-height:1.4;
-  }
-
-  /* Preserve geometry while preventing historical wording from reading beneath authority. */
+  .ledger-plate.is-active .ledger-components{max-width:100%;overflow:visible;line-height:1.4;}
   .context-artifact[data-state="3"] .customer-components{opacity:.14!important}
   .context-artifact[data-state="4"] .assistive-components{opacity:.10!important}
-
-  .assistive-components,
-  .resolution-components{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .assistive-components,.resolution-components{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .resolution-components{left:13%;right:5%;column-gap:10px}
   .assistive-components{right:8%;column-gap:10px}
 }
-
 @media (max-width:390px){
   .resolution-components{left:12%;right:4%;column-gap:8px}
   .assistive-components{left:14%;right:7%;column-gap:8px}
-  .connected-next[data-language="ru"] .resolution-components span,
-  .connected-next[data-language="ru"] .assistive-components span{letter-spacing:.045em}
+  .connected-next[data-language="ru"] .resolution-components span,.connected-next[data-language="ru"] .assistive-components span{letter-spacing:.045em}
 }
-
-/* Low landscape: safe text boxes without shrinking the semantic typography globally. */
 @media (max-height:520px) and (min-width:701px){
-  .ledger-plate.is-active{
-    min-height:164px;
-    padding-bottom:16px;
-  }
+  .ledger-plate.is-active{min-height:164px;padding-bottom:16px;}
   .ledger-plate.is-active .ledger-detail{max-height:138px}
   .ledger-plate.is-active .ledger-components{line-height:1.22}
-
-  .assistive-components,
-  .resolution-components{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .assistive-components,.resolution-components{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .assistive-components{left:14%;right:7%;gap:7px 10px}
   .resolution-components{left:12%;right:4%;gap:6px 10px}
-  .assistive-components span,
-  .resolution-components span{letter-spacing:.045em;line-height:1.14}
+  .assistive-components span,.resolution-components span{letter-spacing:.045em;line-height:1.14}
 }
-
-/* RESULT stays restrained champagne; improve separation, not brightness. */
 .connected-next[data-active-stage="4"] .ledger-plate[data-stage-button="4"]{
-  background:
-    linear-gradient(104deg,rgba(240,218,183,.040) 0%,rgba(240,218,183,.009) 28%,transparent 45%),
-    radial-gradient(120% 96% at 6% 0%,rgba(233,207,167,.12),transparent 45%),
-    linear-gradient(109deg,#221e19 0%,#191612 49%,#101110 100%);
+  background:linear-gradient(104deg,rgba(240,218,183,.040) 0%,rgba(240,218,183,.009) 28%,transparent 45%),radial-gradient(120% 96% at 6% 0%,rgba(233,207,167,.12),transparent 45%),linear-gradient(109deg,#221e19 0%,#191612 49%,#101110 100%);
+}
+@media (prefers-reduced-motion:reduce){.ledger-plate,.ledger-plate__edge{transition:none!important}}
+
+/* =========================================================
+   R1.4.4 — MOBILE READING WINDOWS / CLIP-SAFE TYPOGRAPHY
+   Geometry and physical travel are authoritative; no scroll-jacking.
+   ========================================================= */
+@media (max-width:700px){
+  .connected-next__experience{min-height:275svh}
+  .connected-next__sticky-stage{min-height:258svh}
+
+  /* Earlier, calmer plate arrival: a restrained ~20px lift from R1.4.3. */
+  .ledger-zone{top:calc(var(--r141-artifact-h) - 2px)!important;margin-top:0!important;padding-top:8px!important;z-index:24!important}
+  .ledger-zone::before{top:-14px!important;height:30px!important}
+
+  /* During RESULT the narrative stays above the artifact; no under-artifact swallowing. */
+  .connected-next[data-active-stage="4"] .artifact-zone{z-index:8!important;background:linear-gradient(180deg,#060708 0%,rgba(6,7,8,.99) 88%,rgba(6,7,8,.72) 97%,rgba(6,7,8,0) 100%)!important}
+  .connected-next[data-active-stage="4"] .artifact-zone::after{display:none!important}
+  .connected-next[data-active-stage="4"] .ledger-zone{z-index:24!important}
+  .connected-next.is-result-plateau .ledger-zone{z-index:28!important}
+  .connected-next.is-result-plateau .ledger-plate.is-active{box-shadow:0 18px 42px rgba(0,0,0,.50),0 -1px 0 rgba(239,213,171,.25),inset 0 1px rgba(255,255,255,.06)}
+
+  /* Conservative polygon-safe lane interior: long RU labels never touch the diagonal shoulder. */
+  .origin-lane{padding-left:5%;padding-right:22%!important}
+  .origin-lane span{display:block;max-width:68%;white-space:nowrap;overflow:visible}
+
+  /* Keep RESPONSE and RESULT labels inside true polygon interiors. */
+  .assistive-layer__head{left:13%!important;right:9%!important}
+  .assistive-components{left:15%!important;right:8%!important;gap:9px 8px!important}
+  .assistive-components span{padding-left:1px;padding-right:2px}
+  .authority-cue{left:13%!important;right:9%!important}
+  .resolution-layer__head{left:15%!important;right:8%!important}
+  .resolution-title{left:15%!important;max-width:76%!important}
+  .resolution-components{left:16%!important;right:8%!important;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)!important;gap:7px 8px!important}
+  .resolution-components span{padding-left:1px;padding-right:1px}
+
+  .connected-next[data-language="ru"] .origin-lane span{letter-spacing:-.01em}
+  .connected-next[data-language="ru"] .assistive-components span,
+  .connected-next[data-language="ru"] .resolution-components span{letter-spacing:-.012em!important}
+  .connected-next[data-language="ru"] .resolution-title{font-size:clamp(18px,5.35vw,23px)!important;line-height:.94!important}
 }
 
-@media (prefers-reduced-motion:reduce){
-  .ledger-plate,.ledger-plate__edge{transition:none!important}
+@media (max-width:390px){
+  .connected-next__experience{min-height:282svh}
+  .connected-next__sticky-stage{min-height:264svh}
+  .ledger-zone{top:calc(var(--r141-artifact-h) - 4px)!important}
+  .resolution-components{left:15%!important;right:7%!important;gap:6px!important}
+}
+
+@media (max-height:520px) and (min-width:701px){
+  /* Stable landscape runway with enough physical read distance for four states. */
+  .connected-next__experience{min-height:350svh!important}
+  .connected-next__sticky-stage{position:sticky!important;top:4px!important;min-height:0!important}
+
+  .origin-lane{padding-left:5%!important;padding-right:23%!important}
+  .origin-lane span{display:block;max-width:67%;white-space:nowrap;overflow:visible}
+
+  .assistive-layer__head{left:14%!important;right:9%!important}
+  .assistive-components{left:14%!important;right:5%!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:6px!important}
+  .authority-cue{left:13%!important;right:8%!important}
+  .resolution-layer__head{left:15%!important;right:7%!important}
+  .resolution-title{left:15%!important;top:29%!important;max-width:76%!important}
+  .resolution-components{left:16%!important;right:7%!important;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)!important;gap:5px 6px!important}
+
+  .connected-next[data-language="ru"] .origin-lane span{font-size:8.1px!important;letter-spacing:-.015em!important}
+  .connected-next[data-language="ru"] .assistive-components span{font-size:7.6px!important;letter-spacing:-.018em!important;line-height:1.12!important}
+  .connected-next[data-language="ru"] .resolution-components span{font-size:7.7px!important;letter-spacing:-.018em!important;line-height:1.12!important}
+  .connected-next[data-language="ru"] .resolution-title{font-size:clamp(21px,2.55vw,24.5px)!important;line-height:.94!important;letter-spacing:-.045em!important}
+  .connected-next[data-language="ru"] .assistive-layer__head strong{max-width:160px!important;font-size:11px!important}
+  .connected-next[data-language="ru"] .authority-cue{font-size:6.7px!important;letter-spacing:.02em!important}
+
+  .connected-next[data-active-stage="4"] .ledger-zone{z-index:20!important}
+  .connected-next.is-result-plateau .ledger-zone{z-index:24!important}
 }

@@ -2,11 +2,10 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import hashlib
 import re
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 EN_IMAGE = "https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png"
@@ -25,9 +24,11 @@ ASSETS = {
     },
 }
 
-LEGACY_ASSETS = (
-    "screenshots/proai-home-en-desktop.png",
-    "screenshots/proai-home-ru-desktop.png",
+FORBIDDEN_SOCIAL_REFS = (
+    "proai-home-en-desktop.png",
+    "proai-home-ru-desktop.png",
+    "/screenshots/",
+    "/assets/insights/og/",
 )
 
 SOURCE_PUBLIC_TOP_LEVEL = {
@@ -65,7 +66,6 @@ META_PATTERNS = {
 }
 
 
-
 def run_favicon_r2(mode: str, root: Path) -> None:
     script = Path(__file__).with_name("apply-favicon-r2.py")
     subprocess.run(
@@ -73,8 +73,14 @@ def run_favicon_r2(mode: str, root: Path) -> None:
         check=True,
     )
 
+
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
+
+
+def validate_assets(root: Path) -> None:
+    for spec in ASSETS.values():
+        check_png(root / "assets" / "social" / spec["filename"], spec["sha256"])
 
 
 def is_ru_page(rel: Path, text: str) -> bool:
@@ -112,13 +118,10 @@ def social_block(is_ru: bool) -> str:
 def normalize_head(text: str, is_ru: bool) -> tuple[str, bool]:
     if not re.search(r'</head\s*>', text, re.I):
         return text, False
-
     original = text
     for pattern in META_PATTERNS.values():
         text = pattern.sub("", text)
-
-    block = social_block(is_ru)
-    text = re.sub(r'</head\s*>', block + "</head>", text, count=1, flags=re.I)
+    text = re.sub(r'</head\s*>', social_block(is_ru) + "</head>", text, count=1, flags=re.I)
     return text, text != original
 
 
@@ -126,39 +129,27 @@ def source_candidate(root: Path, path: Path) -> bool:
     rel = path.relative_to(root)
     if rel == Path("index.html"):
         return True
-    if not rel.parts:
-        return False
-    return rel.parts[0] in SOURCE_PUBLIC_TOP_LEVEL
+    return bool(rel.parts and rel.parts[0] in SOURCE_PUBLIC_TOP_LEVEL)
 
 
 def generated_candidate(root: Path, path: Path) -> bool:
     rel = path.relative_to(root)
-    if not rel.parts:
-        return False
-    if rel.parts[0] in GENERATED_SKIP_TOP_LEVEL:
-        return False
-    return True
+    return bool(rel.parts and rel.parts[0] not in GENERATED_SKIP_TOP_LEVEL)
 
 
 def normalize_source(root: Path) -> int:
+    validate_assets(root)
     changed_count = 0
     for path in sorted(root.rglob("*.html")):
         rel = path.relative_to(root)
         if any(part in {".git", "_site", "node_modules", "vendor"} for part in rel.parts):
             continue
+        if not source_candidate(root, path):
+            continue
         text = path.read_text(encoding="utf-8-sig")
-        ru = is_ru_page(rel, text)
-        if source_candidate(root, path) and re.search(r'</head\s*>', text, re.I):
-            new_text, changed = normalize_head(text, ru)
-        else:
-            if "proai-home-en-desktop.png" not in text and "proai-home-ru-desktop.png" not in text:
-                continue
-            new_text = text.replace(
-                "https://proai-expert.com/screenshots/proai-home-ru-desktop.png", RU_IMAGE
-            ).replace(
-                "https://proai-expert.com/screenshots/proai-home-en-desktop.png", EN_IMAGE
-            )
-            changed = new_text != text
+        if not re.search(r'</head\s*>', text, re.I):
+            continue
+        new_text, changed = normalize_head(text, is_ru_page(rel, text))
         if changed:
             path.write_text(new_text, encoding="utf-8", newline="\n")
             changed_count += 1
@@ -166,6 +157,7 @@ def normalize_source(root: Path) -> int:
 
 
 def normalize_generated(root: Path) -> int:
+    validate_assets(root)
     changed_count = 0
     for path in sorted(root.rglob("*.html")):
         if not generated_candidate(root, path):
@@ -181,54 +173,15 @@ def normalize_generated(root: Path) -> int:
     return changed_count
 
 
-def materialize_assets(root: Path, cleanup_bootstrap: bool = True) -> int:
-    part_dir = root / ".ai" / "social-preview-assets"
-    out_dir = root / "assets" / "social"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    materialized = 0
-
-    for lang, spec in ASSETS.items():
-        out = out_dir / spec["filename"]
-        if out.exists() and sha256_bytes(out.read_bytes()) == spec["sha256"]:
-            continue
-
-        parts = sorted(part_dir.glob(spec["filename"] + ".b64.part-*"))
-        if not parts:
-            raise SystemExit(
-                f"Missing approved {lang.upper()} OG asset and bootstrap parts: {out}"
-            )
-        encoded = "".join(p.read_text(encoding="ascii").strip() for p in parts)
-        data = base64.b64decode(encoded, validate=True)
-        actual = sha256_bytes(data)
-        if actual != spec["sha256"]:
-            raise SystemExit(
-                f"SHA-256 mismatch for {lang.upper()} OG asset: expected {spec['sha256']}, got {actual}"
-            )
-        out.write_bytes(data)
-        materialized += 1
-
-    for legacy in LEGACY_ASSETS:
-        legacy_path = root / legacy
-        if legacy_path.exists():
-            legacy_path.unlink()
-
-    if cleanup_bootstrap and part_dir.exists():
-        for part in part_dir.glob("*.b64.part-*"):
-            part.unlink()
-        try:
-            part_dir.rmdir()
-        except OSError:
-            pass
-
-    return materialized
-
-
 def check_png(path: Path, expected_sha: str) -> None:
     if not path.exists():
         raise AssertionError(f"Missing social preview asset: {path}")
     data = path.read_bytes()
-    if sha256_bytes(data) != expected_sha:
-        raise AssertionError(f"Unexpected bytes for social preview asset: {path}")
+    actual = sha256_bytes(data)
+    if actual != expected_sha:
+        raise AssertionError(
+            f"Unexpected bytes for social preview asset: {path}; expected {expected_sha}, got {actual}"
+        )
     if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n":
         raise AssertionError(f"Not a valid PNG: {path}")
     width = int.from_bytes(data[16:20], "big")
@@ -237,15 +190,70 @@ def check_png(path: Path, expected_sha: str) -> None:
         raise AssertionError(f"Wrong OG dimensions for {path}: {width}x{height}")
 
 
+def metadata_errors(rel: Path, text: str) -> list[str]:
+    errors: list[str] = []
+    ru = is_ru_page(rel, text)
+    image = RU_IMAGE if ru else EN_IMAGE
+    alt = RU_ALT if ru else EN_ALT
+    expectations = [
+        (META_PATTERNS["og_image"], image, "og:image"),
+        (META_PATTERNS["og_alt"], alt, "og:image:alt"),
+        (META_PATTERNS["og_width"], "1200", "og:image:width"),
+        (META_PATTERNS["og_height"], "630", "og:image:height"),
+        (META_PATTERNS["twitter_card"], "summary_large_image", "twitter:card"),
+        (META_PATTERNS["twitter_image"], image, "twitter:image"),
+        (META_PATTERNS["twitter_alt"], alt, "twitter:image:alt"),
+    ]
+    for pattern, expected_value, label in expectations:
+        matches = pattern.findall(text)
+        if len(matches) != 1:
+            errors.append(f"{rel}: expected exactly one {label}, found {len(matches)}")
+            continue
+        tag = pattern.search(text).group(0)
+        if expected_value not in tag:
+            errors.append(f"{rel}: {label} does not contain expected value {expected_value!r}")
+    for forbidden in FORBIDDEN_SOCIAL_REFS:
+        if forbidden in text:
+            errors.append(f"{rel}: forbidden legacy social-preview reference {forbidden!r}")
+    return errors
+
+
+def check_source(root: Path) -> int:
+    errors: list[str] = []
+    checked = 0
+    try:
+        validate_assets(root)
+    except AssertionError as exc:
+        errors.append(str(exc))
+
+    for path in sorted(root.rglob("*.html")):
+        rel = path.relative_to(root)
+        if any(part in {".git", "_site", "node_modules", "vendor"} for part in rel.parts):
+            continue
+        text = path.read_text(encoding="utf-8-sig")
+        for forbidden in FORBIDDEN_SOCIAL_REFS:
+            if forbidden in text:
+                errors.append(f"{rel}: forbidden legacy social-preview reference {forbidden!r}")
+        if not source_candidate(root, path) or not re.search(r'</head\s*>', text, re.I):
+            continue
+        errors.extend(metadata_errors(rel, text))
+        checked += 1
+
+    if errors:
+        for error in sorted(set(errors)):
+            print(f"ERROR: {error}", file=sys.stderr)
+        raise SystemExit(1)
+    print(f"Social preview source verification passed for {checked} public source HTML pages.")
+    return checked
+
+
 def check_site(root: Path) -> int:
     errors: list[str] = []
     checked = 0
-
-    for spec in ASSETS.values():
-        try:
-            check_png(root / "assets" / "social" / spec["filename"], spec["sha256"])
-        except AssertionError as exc:
-            errors.append(str(exc))
+    try:
+        validate_assets(root)
+    except AssertionError as exc:
+        errors.append(str(exc))
 
     for path in sorted(root.rglob("*.html")):
         if not generated_candidate(root, path):
@@ -254,51 +262,31 @@ def check_site(root: Path) -> int:
         if not re.search(r'</head\s*>', text, re.I):
             continue
         rel = path.relative_to(root)
-        ru = is_ru_page(rel, text)
-        image = RU_IMAGE if ru else EN_IMAGE
-        alt = RU_ALT if ru else EN_ALT
-        expectations = [
-            (META_PATTERNS["og_image"], image, "og:image"),
-            (META_PATTERNS["og_alt"], alt, "og:image:alt"),
-            (META_PATTERNS["og_width"], "1200", "og:image:width"),
-            (META_PATTERNS["og_height"], "630", "og:image:height"),
-            (META_PATTERNS["twitter_card"], "summary_large_image", "twitter:card"),
-            (META_PATTERNS["twitter_image"], image, "twitter:image"),
-            (META_PATTERNS["twitter_alt"], alt, "twitter:image:alt"),
-        ]
-        for pattern, expected_value, label in expectations:
-            matches = pattern.findall(text)
-            if len(matches) != 1:
-                errors.append(f"{rel}: expected exactly one {label}, found {len(matches)}")
-                continue
-            tag = pattern.search(text).group(0)
-            if expected_value not in tag:
-                errors.append(f"{rel}: {label} does not contain expected value {expected_value!r}")
-        if "screenshots/proai-home-en-desktop.png" in text or "screenshots/proai-home-ru-desktop.png" in text:
-            errors.append(f"{rel}: legacy homepage screenshot still present in social metadata/output")
+        errors.extend(metadata_errors(rel, text))
         checked += 1
 
     if errors:
-        for error in errors:
+        for error in sorted(set(errors)):
             print(f"ERROR: {error}", file=sys.stderr)
         raise SystemExit(1)
-
-    print(f"Social preview verification passed for {checked} generated HTML pages.")
+    print(f"Social preview generated-site verification passed for {checked} public HTML pages.")
     return checked
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("source", "site", "check"), required=True)
+    parser.add_argument("--mode", choices=("source", "check-source", "site", "check"), required=True)
     parser.add_argument("--root", type=Path, required=True)
     args = parser.parse_args()
     root = args.root.resolve()
 
     if args.mode == "source":
-        materialized = materialize_assets(root, cleanup_bootstrap=True)
         changed = normalize_source(root)
         run_favicon_r2("source", root)
-        print(f"Source social preview normalization complete: {changed} HTML files changed; {materialized} assets materialized.")
+        print(f"Source social preview normalization complete: {changed} HTML files changed.")
+    elif args.mode == "check-source":
+        check_source(root)
+        run_favicon_r2("check", root)
     elif args.mode == "site":
         changed = normalize_generated(root)
         run_favicon_r2("site", root)

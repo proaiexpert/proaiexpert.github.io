@@ -1,19 +1,30 @@
-# Social Preview Policy
+# ProAI Expert Social Preview / OG Authority
 
-## English pages
-- Use `https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png` for both `og:image` and `twitter:image`.
-- Use `ProAI Expert — From first impression to result — one system.` for `og:image:alt` and `twitter:image:alt`.
+Status: production authority.
 
-## Russian pages
-- Use `https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png` for both `og:image` and `twitter:image`.
-- Use `ProAI Expert — От первого впечатления до результата — одна система.` for `og:image:alt` and `twitter:image:alt`.
+## Approved default assets
 
-## Enforcement
-- All current and future English public pages use the English default preview unless the Owner explicitly approves a page-specific override.
-- All current and future Russian public pages use the Russian default preview unless the Owner explicitly approves a page-specific override.
-- The GitHub Pages build materializes the approved assets, normalizes generated HTML by locale, and fails validation if the required social preview metadata is missing, duplicated, stale, or uses a legacy homepage screenshot.
-- The enforcement implementation is `scripts/apply-social-preview-defaults.py` and the Pages workflow.
+- EN: `https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png`
+- RU: `https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png`
+- Required dimensions: `1200 x 630`
+- `twitter:card`: `summary_large_image`
 
-## Restriction
-- Do not use client or case images such as `case-financial-desktop.webp` as the default social preview for studio pages.
-- Do not restore `screenshots/proai-home-en-desktop.png` or `screenshots/proai-home-ru-desktop.png` as social preview defaults.
+These PNG files are committed production assets under `assets/social/`. Deployment must not reconstruct them from `.ai` bootstrap fragments. Their SHA-256 and PNG dimensions are enforced by `scripts/apply-social-preview-defaults.py`.
+
+## Source authority
+
+Current public source HTML must already contain the approved locale-specific OG/Twitter image metadata. Known legacy screenshot URLs and retired article-OG paths must not be left in source for deployment to repair.
+
+The deploy workflow runs `--mode check-source` before Jekyll. A bad source tree fails deployment.
+
+## Generated-site guardrail
+
+After Jekyll build, `--mode site` deterministically normalizes generated public HTML to the same approved locale defaults. `--mode check` then verifies exact cardinality and expected values. This is a guardrail for generated/future pages, not a repair mechanism for known legacy source.
+
+## Page-specific OG exceptions
+
+There are currently no approved page-specific OG image exceptions. A new exception requires explicit Owner approval before it becomes production authority.
+
+## Favicon relationship
+
+Social-preview tooling delegates favicon verification to `scripts/apply-favicon-r2.py`. Approved Favicon R2 bytes and the versioned favicon/apple-touch metadata are independently enforced.

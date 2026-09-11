@@ -5,6 +5,7 @@ on:
     branches: [favicon-r2-production]
     paths:
       - '.github/workflows/favicon-r2-production-integration.yml'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -24,7 +25,7 @@ jobs:
       - name: Install image tooling
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-pil unzip
+          sudo apt-get install -y python3-pil unzip fonts-dejavu-core
 
       - name: Download approved R2 Owner Review artifact
         run: |
@@ -39,83 +40,42 @@ jobs:
         run: |
           python3 - <<'PY'
           from PIL import Image
-          from pathlib import Path
 
           micro = Image.open('/tmp/r2-inner/favicon-micro-r2-64.png').convert('RGBA')
           micro.save('favicon.ico', format='ICO', sizes=[(16,16), (32,32), (48,48)])
 
           high = Image.open('/tmp/r2-inner/favicon-master-r2-2048.png').convert('RGBA')
-          alpha = high.getchannel('A')
-          bbox = alpha.getbbox()
+          bbox = high.getchannel('A').getbbox()
           if not bbox:
               raise SystemExit('Approved high-res master has no visible pixels')
           cube = high.crop(bbox)
           max_side = 148
           scale = min(max_side / cube.width, max_side / cube.height)
-          size = (max(1, round(cube.width * scale)), max(1, round(cube.height * scale)))
-          cube = cube.resize(size, Image.Resampling.LANCZOS)
-
-          apple = Image.new('RGB', (180,180), '#050607')
-          rgba_bg = apple.convert('RGBA')
-          x = (180 - cube.width) // 2
-          y = (180 - cube.height) // 2
-          rgba_bg.alpha_composite(cube, (x,y))
-          rgba_bg.convert('RGB').save('apple-touch-icon.png', format='PNG', optimize=True)
+          cube = cube.resize(
+              (max(1, round(cube.width * scale)), max(1, round(cube.height * scale))),
+              Image.Resampling.LANCZOS,
+          )
+          apple = Image.new('RGBA', (180,180), (5,6,7,255))
+          apple.alpha_composite(cube, ((180-cube.width)//2, (180-cube.height)//2))
+          apple.convert('RGB').save('apple-touch-icon.png', format='PNG', optimize=True)
 
           ico = Image.open('favicon.ico')
           sizes = set(ico.ico.sizes())
           expected = {(16,16), (32,32), (48,48)}
           if not expected.issubset(sizes):
               raise SystemExit(f'ICO sizes wrong: {sizes}')
-
           apple_check = Image.open('apple-touch-icon.png')
-          if apple_check.size != (180,180):
-              raise SystemExit(f'Apple size wrong: {apple_check.size}')
-          if apple_check.mode not in ('RGB','P'):
-              raise SystemExit(f'Apple icon is not opaque: mode={apple_check.mode}')
-          if apple_check.convert('RGB').getpixel((0,0)) != (5,6,7):
-              raise SystemExit(f'Apple corner background wrong: {apple_check.getpixel((0,0))}')
+          assert apple_check.size == (180,180)
+          assert apple_check.mode == 'RGB'
+          assert apple_check.getpixel((0,0)) == (5,6,7)
           print('Production icon files validated.')
           PY
 
       - name: Normalize all current source favicon references
         run: python3 scripts/apply-favicon-r2.py --mode source --root .
 
-      - name: Wire favicon normalization into future site generation
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('.github/workflows/deploy-pages.yml')
-          text = p.read_text(encoding='utf-8')
-
-          source_step = """\n      - name: Normalize Favicon R2 source references\n        shell: bash\n        run: python scripts/apply-favicon-r2.py --mode source --root .\n"""
-          site_step = """\n      - name: Normalize generated Favicon R2 references\n        shell: bash\n        run: python scripts/apply-favicon-r2.py --mode site --root _site\n"""
-          check_step = """\n      - name: Verify Favicon R2 generated output\n        shell: bash\n        run: python scripts/apply-favicon-r2.py --mode check --root _site\n"""
-
-          if 'Normalize Favicon R2 source references' not in text:
-              anchor = "      - name: Build site with Jekyll\n"
-              if anchor not in text:
-                  raise SystemExit('Build-site anchor not found')
-              text = text.replace(anchor, source_step + "\n" + anchor, 1)
-
-          if 'Normalize generated Favicon R2 references' not in text:
-              anchor = "      - name: Verify social preview metadata\n"
-              if anchor not in text:
-                  raise SystemExit('Social-preview verify anchor not found')
-              text = text.replace(anchor, site_step + "\n" + anchor, 1)
-
-          if 'Verify Favicon R2 generated output' not in text:
-              anchor = "      - name: Verify unified Footer System generated output\n"
-              if anchor not in text:
-                  raise SystemExit('Footer verify anchor not found')
-              text = text.replace(anchor, check_step + "\n" + anchor, 1)
-
-          p.write_text(text, encoding='utf-8')
-          PY
-
       - name: Remove obsolete legacy favicon assets
-        run: |
-          rm -f favicon.svg favicon-16x16.png favicon-32x32.png
+        run: rm -f favicon.svg favicon-16x16.png favicon-32x32.png
 
       - name: Source QA and legacy-reference audit
         run: |
@@ -128,10 +88,9 @@ jobs:
               if any(part in {'.git','node_modules','vendor','_site'} for part in p.parts):
                   continue
               t = p.read_text(encoding='utf-8')
-              links = re.findall(r'<link\\b[^>]*>', t, flags=re.I)
-              for tag in links:
+              for tag in re.findall(r'<link\b[^>]*>', t, flags=re.I):
                   low = tag.lower()
-                  if 'rel=' in low and ('icon' in low) and ('20260910-r2' not in low):
+                  if 'rel=' in low and 'icon' in low and '20260910-r2' not in low:
                       bad.append(f'{p}: {tag}')
           if bad:
               raise SystemExit('Legacy icon link tags remain:\n' + '\n'.join(bad[:100]))
@@ -144,10 +103,7 @@ jobs:
           export PATH="$GEM_HOME/bin:$PATH"
           gem install --user-install jekyll -v 4.3.4 --no-document
           gem install --user-install webrick --no-document
-          python scripts/apply-social-preview-defaults.py --mode source --root .
-          python scripts/apply-favicon-r2.py --mode source --root .
           jekyll build --source . --destination _site
-          python scripts/apply-social-preview-defaults.py --mode site --root _site
           python scripts/apply-favicon-r2.py --mode site --root _site
           python scripts/apply-favicon-r2.py --mode check --root _site
 
@@ -155,10 +111,7 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          routes = [
-              'index.html', 'ru/index.html',
-              'about/index.html', 'ru/about/index.html',
-          ]
+          routes = ['index.html','ru/index.html','about/index.html','ru/about/index.html']
           icon = '/favicon.ico?v=20260910-r2'
           apple = '/apple-touch-icon.png?v=20260910-r2'
           for route in routes:
@@ -184,30 +137,33 @@ jobs:
           font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',28)
           small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',20)
           d.text((40,30),'Favicon R2 Production QA',font=font,fill=(240,242,245))
-          # dark tab
           d.rounded_rectangle((40,100,560,190),18,fill=(31,34,39),outline=(78,84,92),width=2)
           canvas.paste(icon,(70,129),icon)
           d.text((120,126),'ProAI Expert',font=font,fill=(240,242,245))
-          # light tab
           d.rounded_rectangle((620,100,1140,190),18,fill=(245,246,248),outline=(190,195,202),width=2)
           canvas.paste(icon,(650,129),icon)
           d.text((700,126),'ProAI Expert',font=font,fill=(22,25,29))
-          # apple
           canvas.paste(apple,(60,250))
           d.text((270,275),'Apple Touch Icon — 180×180',font=font,fill=(240,242,245))
           d.text((270,320),'Opaque #050607 background · approved R2 high-res cube',font=small,fill=(180,188,198))
           canvas.save('/tmp/favicon-r2-production-qa.png')
           PY
 
-      - name: Remove temporary integration workflow and commit production-safe changes
+      - name: Commit only favicon production changes
         run: |
-          rm -f .github/workflows/favicon-r2-production-integration.yml
           rm -rf _site
           git config user.name 'ProAI Expert Automation'
           git config user.email 'proai.expert2026@gmail.com'
-          git add -A
+          git add favicon.ico apple-touch-icon.png
+          git add -u -- favicon.svg favicon-16x16.png favicon-32x32.png
+          git add -- ':(glob)**/*.html' '*.html'
           git status --short
-          git commit -m 'Integrate approved Favicon R2 production system'
+          git diff --cached --name-only | grep -v '^\.github/' >/dev/null
+          if git diff --cached --name-only | grep -E '^(\.ai/social-preview-assets/|assets/social/)'; then
+            echo 'Unexpected social preview file change staged' >&2
+            exit 1
+          fi
+          git commit -m 'Integrate approved Favicon R2 production assets and references'
           git push origin HEAD:favicon-r2-production
 
       - name: Upload QA artifact

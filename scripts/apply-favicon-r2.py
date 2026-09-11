@@ -30,8 +30,10 @@ def is_icon_link(tag: str) -> bool:
 
 
 def iter_html(root: Path):
+    root = root.resolve()
     for path in root.rglob("*.html"):
-        if any(part in SKIP_DIRS for part in path.parts):
+        rel = path.relative_to(root)
+        if any(part in SKIP_DIRS for part in rel.parts):
             continue
         yield path
 

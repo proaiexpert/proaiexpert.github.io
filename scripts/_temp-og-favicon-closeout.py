@@ -8,21 +8,6 @@ RU = 'https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png'
 EN_ALT = 'ProAI Expert — From first impression to result — one system.'
 RU_ALT = 'ProAI Expert — От первого впечатления до результата — одна система.'
 
-# Deployment must fail on bad source; it must not repair current source before build.
-workflow = ROOT / '.github/workflows/deploy-pages.yml'
-text = workflow.read_text(encoding='utf-8')
-old = '''      - name: Materialize social preview assets and normalize source
-        shell: bash
-        run: python scripts/apply-social-preview-defaults.py --mode source --root .
-'''
-new = '''      - name: Verify committed social preview and Favicon R2 source authority
-        shell: bash
-        run: python scripts/apply-social-preview-defaults.py --mode check-source --root .
-'''
-if old not in text:
-    raise SystemExit('Expected legacy source-normalization deployment step not found')
-workflow.write_text(text.replace(old, new), encoding='utf-8')
-
 # Keep one source-of-truth checker rather than duplicated PowerShell logic.
 (ROOT / 'scripts/check-social-preview.ps1').write_text('''$ErrorActionPreference = "Stop"\npython scripts/apply-social-preview-defaults.py --mode check-source --root .\nif ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }\nWrite-Output "Social preview + Favicon R2 source authority check passed."\n''', encoding='utf-8')
 

@@ -1,0 +1,218 @@
+name: Integrate approved Favicon R2
+
+on:
+  push:
+    branches: [favicon-r2-production]
+    paths:
+      - '.github/workflows/favicon-r2-production-integration.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: favicon-r2-production
+          fetch-depth: 0
+
+      - name: Install image tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-pil unzip
+
+      - name: Download approved R2 Owner Review artifact
+        run: |
+          gh api /repos/${GITHUB_REPOSITORY}/actions/artifacts/10185221383/zip > /tmp/r2-artifact.zip
+          mkdir -p /tmp/r2-artifact /tmp/r2-inner
+          unzip -q /tmp/r2-artifact.zip -d /tmp/r2-artifact
+          unzip -q /tmp/r2-artifact/ProAI_Favicon_R2_Owner_Review.zip -d /tmp/r2-inner
+          test -f /tmp/r2-inner/favicon-master-r2-2048.png
+          test -f /tmp/r2-inner/favicon-micro-r2-64.png
+
+      - name: Build exactly two approved production icon files
+        run: |
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+
+          micro = Image.open('/tmp/r2-inner/favicon-micro-r2-64.png').convert('RGBA')
+          micro.save('favicon.ico', format='ICO', sizes=[(16,16), (32,32), (48,48)])
+
+          high = Image.open('/tmp/r2-inner/favicon-master-r2-2048.png').convert('RGBA')
+          alpha = high.getchannel('A')
+          bbox = alpha.getbbox()
+          if not bbox:
+              raise SystemExit('Approved high-res master has no visible pixels')
+          cube = high.crop(bbox)
+          max_side = 148
+          scale = min(max_side / cube.width, max_side / cube.height)
+          size = (max(1, round(cube.width * scale)), max(1, round(cube.height * scale)))
+          cube = cube.resize(size, Image.Resampling.LANCZOS)
+
+          apple = Image.new('RGB', (180,180), '#050607')
+          rgba_bg = apple.convert('RGBA')
+          x = (180 - cube.width) // 2
+          y = (180 - cube.height) // 2
+          rgba_bg.alpha_composite(cube, (x,y))
+          rgba_bg.convert('RGB').save('apple-touch-icon.png', format='PNG', optimize=True)
+
+          ico = Image.open('favicon.ico')
+          sizes = set(ico.ico.sizes())
+          expected = {(16,16), (32,32), (48,48)}
+          if not expected.issubset(sizes):
+              raise SystemExit(f'ICO sizes wrong: {sizes}')
+
+          apple_check = Image.open('apple-touch-icon.png')
+          if apple_check.size != (180,180):
+              raise SystemExit(f'Apple size wrong: {apple_check.size}')
+          if apple_check.mode not in ('RGB','P'):
+              raise SystemExit(f'Apple icon is not opaque: mode={apple_check.mode}')
+          if apple_check.convert('RGB').getpixel((0,0)) != (5,6,7):
+              raise SystemExit(f'Apple corner background wrong: {apple_check.getpixel((0,0))}')
+          print('Production icon files validated.')
+          PY
+
+      - name: Normalize all current source favicon references
+        run: python3 scripts/apply-favicon-r2.py --mode source --root .
+
+      - name: Wire favicon normalization into future site generation
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('.github/workflows/deploy-pages.yml')
+          text = p.read_text(encoding='utf-8')
+
+          source_step = """\n      - name: Normalize Favicon R2 source references\n        shell: bash\n        run: python scripts/apply-favicon-r2.py --mode source --root .\n"""
+          site_step = """\n      - name: Normalize generated Favicon R2 references\n        shell: bash\n        run: python scripts/apply-favicon-r2.py --mode site --root _site\n"""
+          check_step = """\n      - name: Verify Favicon R2 generated output\n        shell: bash\n        run: python scripts/apply-favicon-r2.py --mode check --root _site\n"""
+
+          if 'Normalize Favicon R2 source references' not in text:
+              anchor = "      - name: Build site with Jekyll\n"
+              if anchor not in text:
+                  raise SystemExit('Build-site anchor not found')
+              text = text.replace(anchor, source_step + "\n" + anchor, 1)
+
+          if 'Normalize generated Favicon R2 references' not in text:
+              anchor = "      - name: Verify social preview metadata\n"
+              if anchor not in text:
+                  raise SystemExit('Social-preview verify anchor not found')
+              text = text.replace(anchor, site_step + "\n" + anchor, 1)
+
+          if 'Verify Favicon R2 generated output' not in text:
+              anchor = "      - name: Verify unified Footer System generated output\n"
+              if anchor not in text:
+                  raise SystemExit('Footer verify anchor not found')
+              text = text.replace(anchor, check_step + "\n" + anchor, 1)
+
+          p.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Remove obsolete legacy favicon assets
+        run: |
+          rm -f favicon.svg favicon-16x16.png favicon-32x32.png
+
+      - name: Source QA and legacy-reference audit
+        run: |
+          python3 scripts/apply-favicon-r2.py --mode check --root .
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          bad = []
+          for p in Path('.').rglob('*.html'):
+              if any(part in {'.git','node_modules','vendor','_site'} for part in p.parts):
+                  continue
+              t = p.read_text(encoding='utf-8')
+              links = re.findall(r'<link\\b[^>]*>', t, flags=re.I)
+              for tag in links:
+                  low = tag.lower()
+                  if 'rel=' in low and ('icon' in low) and ('20260910-r2' not in low):
+                      bad.append(f'{p}: {tag}')
+          if bad:
+              raise SystemExit('Legacy icon link tags remain:\n' + '\n'.join(bad[:100]))
+          print('No legacy icon link tags remain in HTML sources.')
+          PY
+
+      - name: Build local Jekyll QA output
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          python scripts/apply-favicon-r2.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-favicon-r2.py --mode site --root _site
+          python scripts/apply-favicon-r2.py --mode check --root _site
+
+      - name: Representative EN/RU page QA
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          routes = [
+              'index.html', 'ru/index.html',
+              'about/index.html', 'ru/about/index.html',
+          ]
+          icon = '/favicon.ico?v=20260910-r2'
+          apple = '/apple-touch-icon.png?v=20260910-r2'
+          for route in routes:
+              text = (Path('_site') / route).read_text(encoding='utf-8')
+              assert text.count(icon) == 1, route
+              assert text.count(apple) == 1, route
+              assert 'favicon.svg' not in text, route
+              assert 'favicon-16x16.png' not in text, route
+              assert 'favicon-32x32.png' not in text, route
+          print('Representative EN/RU routes verified:', ', '.join(routes))
+          PY
+
+      - name: Create QA contact sheet for light/dark tab review
+        run: |
+          python3 - <<'PY'
+          from PIL import Image, ImageDraw, ImageFont
+          ico = Image.open('favicon.ico')
+          ico.size = (32,32)
+          icon = ico.convert('RGBA')
+          apple = Image.open('apple-touch-icon.png').convert('RGB')
+          canvas = Image.new('RGB',(1200,500),(9,12,17))
+          d = ImageDraw.Draw(canvas)
+          font = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',28)
+          small = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',20)
+          d.text((40,30),'Favicon R2 Production QA',font=font,fill=(240,242,245))
+          # dark tab
+          d.rounded_rectangle((40,100,560,190),18,fill=(31,34,39),outline=(78,84,92),width=2)
+          canvas.paste(icon,(70,129),icon)
+          d.text((120,126),'ProAI Expert',font=font,fill=(240,242,245))
+          # light tab
+          d.rounded_rectangle((620,100,1140,190),18,fill=(245,246,248),outline=(190,195,202),width=2)
+          canvas.paste(icon,(650,129),icon)
+          d.text((700,126),'ProAI Expert',font=font,fill=(22,25,29))
+          # apple
+          canvas.paste(apple,(60,250))
+          d.text((270,275),'Apple Touch Icon — 180×180',font=font,fill=(240,242,245))
+          d.text((270,320),'Opaque #050607 background · approved R2 high-res cube',font=small,fill=(180,188,198))
+          canvas.save('/tmp/favicon-r2-production-qa.png')
+          PY
+
+      - name: Remove temporary integration workflow and commit production-safe changes
+        run: |
+          rm -f .github/workflows/favicon-r2-production-integration.yml
+          rm -rf _site
+          git config user.name 'ProAI Expert Automation'
+          git config user.email 'proai.expert2026@gmail.com'
+          git add -A
+          git status --short
+          git commit -m 'Integrate approved Favicon R2 production system'
+          git push origin HEAD:favicon-r2-production
+
+      - name: Upload QA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: favicon-r2-production-qa
+          path: /tmp/favicon-r2-production-qa.png
+          retention-days: 7

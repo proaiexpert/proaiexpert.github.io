@@ -29,10 +29,15 @@
   let modeTransitionUntil = 0;
   let portraitRunway = null;
   let tabletRunway = null;
+  let landscapeRunway = null;
   let portraitInitialized = false;
   let tabletInitialized = false;
   let lastScrollY = window.scrollY;
   let knownViewportWidth = window.innerWidth;
+  let mobileBurstId = 0;
+  let mobileConsumedBurstId = -1;
+  let lastNativeScrollAt = 0;
+  let mobileStateChangedAt = 0;
 
   let autoplayState = 'idle';
   let autoplayVisibility = 0;
@@ -51,7 +56,33 @@
 
   const PORTRAIT_RUNWAY_MULTIPLIER = 2.10;
   const TABLET_RUNWAY_MULTIPLIER = 1.75;
+  const LANDSCAPE_RUNWAY_MULTIPLIER = 1.65;
+  const MOBILE_DWELL_MS = 460;
+  const MOBILE_BURST_GAP_MS = 190;
+  const PORTRAIT_FORWARD = [0,.30,.56,.80];
+  const PORTRAIT_REVERSE = [0,.22,.48,.72];
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+  const scrollLedMode = () => (
+    (portrait.matches || tabletScroll.matches || lowLandscape.matches) && !reducedMotion.matches
+  );
+
+  const noteMobileScrollBurst = () => {
+    if (!scrollLedMode()) return;
+    const now = performance.now();
+    if (!lastNativeScrollAt || now - lastNativeScrollAt > MOBILE_BURST_GAP_MS) mobileBurstId += 1;
+    lastNativeScrollAt = now;
+  };
+
+  const governedMobileState = (desired) => {
+    if (!scrollLedMode() || desired === currentState) return desired;
+    const now = performance.now();
+    if (now - mobileStateChangedAt < MOBILE_DWELL_MS) return currentState;
+    if (mobileConsumedBurstId === mobileBurstId) return currentState;
+    mobileConsumedBurstId = mobileBurstId;
+    mobileStateChangedAt = now;
+    return clamp(currentState + (desired > currentState ? 1 : -1),1,4);
+  };
 
   const desktopAutoplayEligible = () => (
     desktopViewport.matches && finePointer.matches &&
@@ -222,18 +253,16 @@
   };
 
   const stableStateFromProgress = (progress, direction, initialized) => {
-    if (!initialized) return stateFromProgress(progress);
+    if (!initialized || direction === 0) return currentState;
     if (direction > 0) {
-      if (progress >= .78) return Math.max(currentState,4);
-      if (progress >= .52) return Math.max(currentState,3);
-      if (progress >= .26) return Math.max(currentState,2);
+      if (progress >= PORTRAIT_FORWARD[3]) return Math.max(currentState,4);
+      if (progress >= PORTRAIT_FORWARD[2]) return Math.max(currentState,3);
+      if (progress >= PORTRAIT_FORWARD[1]) return Math.max(currentState,2);
       return currentState;
     }
-    if (direction < 0) {
-      if (progress <= .20) return Math.min(currentState,1);
-      if (progress <= .46) return Math.min(currentState,2);
-      if (progress <= .72) return Math.min(currentState,3);
-    }
+    if (progress <= PORTRAIT_REVERSE[1]) return Math.min(currentState,1);
+    if (progress <= PORTRAIT_REVERSE[2]) return Math.min(currentState,2);
+    if (progress <= PORTRAIT_REVERSE[3]) return Math.min(currentState,3);
     return currentState;
   };
 
@@ -261,11 +290,28 @@
     return clamp((window.scrollY - runway.startScroll) / runway.travel, 0, 1);
   };
 
-  const lowLandscapeProgress = () => {
+  const getLandscapeRunway = () => {
+    if (landscapeRunway) return landscapeRunway;
     const rect = experience.getBoundingClientRect();
-    const stageHeight = stickyStage?.getBoundingClientRect().height || window.innerHeight * .72;
-    const travel = Math.max(window.innerHeight * .72, rect.height - stageHeight);
-    return clamp((-rect.top) / travel, 0, 1);
+    const absoluteTop = window.scrollY + rect.top;
+    const cssMinHeight = Number.parseFloat(getComputedStyle(experience).minHeight);
+    const stableViewport = Number.isFinite(cssMinHeight) && cssMinHeight > window.innerHeight * 1.25
+      ? cssMinHeight / LANDSCAPE_RUNWAY_MULTIPLIER
+      : window.innerHeight;
+    const runwayHeight = Number.isFinite(cssMinHeight) && cssMinHeight > stableViewport
+      ? cssMinHeight
+      : stableViewport * LANDSCAPE_RUNWAY_MULTIPLIER;
+    landscapeRunway = {
+      startScroll:absoluteTop,
+      travel:Math.max(stableViewport * .74,runwayHeight - stableViewport * .76),
+      stableViewport
+    };
+    return landscapeRunway;
+  };
+
+  const lowLandscapeProgress = () => {
+    const runway = getLandscapeRunway();
+    return clamp((window.scrollY - runway.startScroll) / runway.travel,0,1);
   };
 
   const updateFromScroll = () => {
@@ -273,7 +319,7 @@
     if (reducedMotion.matches) return;
     if (desktopAutoplayEligible() && ['armed','running','complete','cancelled'].includes(autoplayState)) return;
 
-    if ((portrait.matches && !lowLandscape.matches) || tabletScroll.matches) {
+    if ((portrait.matches && !lowLandscape.matches) || (tabletScroll.matches && !lowLandscape.matches)) {
       const isTablet = tabletScroll.matches && !portrait.matches;
       const progress = isTablet ? tabletProgress() : portraitProgress();
       const scrollY = window.scrollY;
@@ -282,19 +328,29 @@
       lastScrollY = scrollY;
       if (performance.now() < manualUntil) return;
       const initialized = isTablet ? tabletInitialized : portraitInitialized;
-      const next = stableStateFromProgress(progress,direction,initialized);
+      const desired = stableStateFromProgress(progress,direction,initialized);
       if (isTablet) tabletInitialized = true;
       else portraitInitialized = true;
-      setState(next);
+      setState(governedMobileState(desired));
       return;
     }
 
     if (performance.now() < manualUntil) return;
-    const progress = lowLandscape.matches ? lowLandscapeProgress() : desktopProgress();
-    setState(stateFromProgress(progress));
+    if (lowLandscape.matches) {
+      const progress = lowLandscapeProgress();
+      const scrollY = window.scrollY;
+      const delta = scrollY - lastScrollY;
+      const direction = delta > 1 ? 1 : delta < -1 ? -1 : 0;
+      lastScrollY = scrollY;
+      const desired = stableStateFromProgress(progress,direction,true);
+      setState(governedMobileState(desired));
+      return;
+    }
+    setState(stateFromProgress(desktopProgress()));
   };
 
   const onScroll = () => {
+    noteMobileScrollBurst();
     if (desktopAutoplayEligible()) {
       if (autoplayState === 'running' && Math.abs(window.scrollY - autoplayStartScrollY) > 4 && performance.now() - autoplayStartedAt > 120) {
         cancelAutoplay('manual',true);
@@ -326,11 +382,10 @@
         : stateProgress(state);
 
     if (lowLandscape.matches) {
-      const rect = experience.getBoundingClientRect();
-      const absoluteTop = window.scrollY + rect.top;
-      const stageHeight = stickyStage?.getBoundingClientRect().height || window.innerHeight * .72;
-      const travel = Math.max(window.innerHeight * .72, rect.height - stageHeight);
-      window.scrollTo({top:Math.max(0,absoluteTop + travel * progress),behavior:'auto'});
+      const runway = getLandscapeRunway();
+      const target = Math.max(0,runway.startScroll + runway.travel * progress);
+      window.scrollTo({top:target,behavior:'auto'});
+      lastScrollY = target;
       setState(state);
       return;
     }
@@ -376,9 +431,14 @@
       if (autoplayState === 'running' || autoplayState === 'armed') cancelAutoplay('manual',true);
       portraitRunway = null;
       tabletRunway = null;
+      landscapeRunway = null;
       portraitInitialized = false;
       tabletInitialized = false;
       lastScrollY = window.scrollY;
+      mobileBurstId = 0;
+      mobileConsumedBurstId = -1;
+      lastNativeScrollAt = 0;
+      mobileStateChangedAt = performance.now();
       modeTransitionUntil = performance.now() + 280;
       manualUntil = Math.max(manualUntil,performance.now() + 760);
       modeFrame = window.requestAnimationFrame(() => {
@@ -437,6 +497,7 @@
       knownViewportWidth = window.innerWidth;
       portraitRunway = null;
       tabletRunway = null;
+      landscapeRunway = null;
     }
     onScroll();
   };

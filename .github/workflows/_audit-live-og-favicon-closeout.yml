@@ -1,0 +1,405 @@
+name: Audit live OG and favicon closeout
+
+on:
+  push:
+    branches:
+      - audit/og-favicon-live-closeout-20260911
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-http-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout immutable production authority
+        uses: actions/checkout@v6
+        with:
+          ref: 8c84a22f7b810f0c2eb5bf5e050990257e7c63e1
+          path: production
+          fetch-depth: 1
+
+      - name: Run independent raw HTTP audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit-evidence/raw audit-evidence/headers audit-evidence/assets
+          python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import json
+          import re
+          import struct
+          import subprocess
+          import zlib
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urlparse
+
+          PROD_SHA = "8c84a22f7b810f0c2eb5bf5e050990257e7c63e1"
+          ROOT = Path("production")
+          OUT = Path("audit-evidence")
+          RAW = OUT / "raw"
+          HEADERS = OUT / "headers"
+          ASSET_OUT = OUT / "assets"
+
+          EN_IMAGE = "https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png"
+          RU_IMAGE = "https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png"
+          EN_ALT = "ProAI Expert — From first impression to result — one system."
+          RU_ALT = "ProAI Expert — От первого впечатления до результата — одна система."
+          ICON_HREF = "/favicon.ico?v=20260910-r2"
+          APPLE_HREF = "/apple-touch-icon.png?v=20260910-r2"
+
+          HTML_ROUTES = [
+              ("en-home", "https://proai-expert.com/", EN_IMAGE, EN_ALT),
+              ("ru-home", "https://proai-expert.com/ru/", RU_IMAGE, RU_ALT),
+              ("en-about", "https://proai-expert.com/about/", EN_IMAGE, EN_ALT),
+              ("ru-about", "https://proai-expert.com/ru/about/", RU_IMAGE, RU_ALT),
+              ("en-ai-systems", "https://proai-expert.com/ai-systems/", EN_IMAGE, EN_ALT),
+              ("ru-ai-systems", "https://proai-expert.com/ru/ai-systems/", RU_IMAGE, RU_ALT),
+          ]
+
+          BINARY_ASSETS = [
+              ("og-en", EN_IMAGE, ROOT / "assets/social/proai-home-og-en-r1-1.png", "png-og"),
+              ("og-ru", RU_IMAGE, ROOT / "assets/social/proai-home-og-ru-r1-1.png", "png-og"),
+              ("favicon", "https://proai-expert.com/favicon.ico", ROOT / "favicon.ico", "ico"),
+              ("apple-touch-icon", "https://proai-expert.com/apple-touch-icon.png", ROOT / "apple-touch-icon.png", "png-apple"),
+          ]
+
+          FORBIDDEN = (
+              "proai-home-en-desktop.png",
+              "proai-home-ru-desktop.png",
+              "/screenshots/",
+              "favicon.svg",
+              "favicon-16x16.png",
+              "favicon-32x32.png",
+          )
+
+          def sha256_path(path: Path) -> str:
+              return hashlib.sha256(path.read_bytes()).hexdigest()
+
+          def curl_fetch(url: str, body: Path, headers: Path) -> dict:
+              cmd = [
+                  "curl", "--fail", "--silent", "--show-error", "--location",
+                  "--retry", "5", "--retry-all-errors", "--retry-delay", "1",
+                  "--connect-timeout", "10", "--max-time", "90",
+                  "-A", "ProAI-Expert-Live-Closeout-Audit/1.0",
+                  "-D", str(headers), "-o", str(body),
+                  "-w", "%{url_effective}\n%{http_code}\n%{content_type}\n%{size_download}\n",
+                  url,
+              ]
+              cp = subprocess.run(cmd, check=True, text=True, capture_output=True)
+              lines = cp.stdout.splitlines()
+              if len(lines) < 4:
+                  raise AssertionError(f"Unexpected curl write-out for {url}: {cp.stdout!r}")
+              final_url, status_s, content_type, size_s = lines[-4:]
+              status = int(status_s)
+              if status != 200:
+                  raise AssertionError(f"{url}: expected HTTP 200, got {status}")
+              raw_headers = headers.read_text(encoding="utf-8", errors="replace")
+              blocks = [b for b in re.split(r"\r?\n\r?\n", raw_headers) if b.strip().startswith("HTTP/")]
+              last = blocks[-1] if blocks else ""
+              header_map: dict[str, str] = {}
+              for line in last.splitlines()[1:]:
+                  if ":" in line:
+                      k, v = line.split(":", 1)
+                      header_map[k.strip().lower()] = v.strip()
+              return {
+                  "requested_url": url,
+                  "final_url": final_url,
+                  "status": status,
+                  "content_type": content_type,
+                  "content_length_header": header_map.get("content-length"),
+                  "etag": header_map.get("etag"),
+                  "last_modified": header_map.get("last-modified"),
+                  "cache_control": header_map.get("cache-control"),
+                  "size_download": int(float(size_s)),
+              }
+
+          class HeadParser(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=True)
+                  self.in_head = False
+                  self.head_seen = False
+                  self.meta: list[dict[str, str]] = []
+                  self.links: list[dict[str, str]] = []
+
+              def handle_starttag(self, tag, attrs):
+                  name = tag.lower()
+                  if name == "head":
+                      self.in_head = True
+                      self.head_seen = True
+                      return
+                  if not self.in_head:
+                      return
+                  d = {str(k).lower(): (v or "") for k, v in attrs}
+                  if name == "meta":
+                      self.meta.append(d)
+                  elif name == "link":
+                      self.links.append(d)
+
+              def handle_startendtag(self, tag, attrs):
+                  self.handle_starttag(tag, attrs)
+
+              def handle_endtag(self, tag):
+                  if tag.lower() == "head":
+                      self.in_head = False
+
+          def meta_values(parser: HeadParser, kind: str, key: str) -> list[str]:
+              out = []
+              for item in parser.meta:
+                  if item.get(kind, "").lower() == key.lower():
+                      out.append(item.get("content", ""))
+              return out
+
+          def check_html(label: str, url: str, expected_image: str, expected_alt: str) -> dict:
+              body = RAW / f"{label}.html"
+              hdr = HEADERS / f"{label}.headers.txt"
+              http = curl_fetch(url, body, hdr)
+              text = body.read_text(encoding="utf-8-sig")
+              parser = HeadParser()
+              parser.feed(text)
+              if not parser.head_seen:
+                  raise AssertionError(f"{label}: raw response has no <head>")
+
+              expected_meta = [
+                  ("property", "og:image", expected_image),
+                  ("property", "og:image:alt", expected_alt),
+                  ("property", "og:image:width", "1200"),
+                  ("property", "og:image:height", "630"),
+                  ("name", "twitter:card", "summary_large_image"),
+                  ("name", "twitter:image", expected_image),
+                  ("name", "twitter:image:alt", expected_alt),
+              ]
+              meta_result = {}
+              for kind, key, expected in expected_meta:
+                  values = meta_values(parser, kind, key)
+                  if values != [expected]:
+                      raise AssertionError(f"{label}: {key} expected exactly [{expected!r}], got {values!r}")
+                  meta_result[key] = values[0]
+
+              icon_links = []
+              for item in parser.links:
+                  rel_tokens = {x.lower() for x in item.get("rel", "").split()}
+                  if "icon" in rel_tokens or "apple-touch-icon" in rel_tokens:
+                      icon_links.append({"rel": item.get("rel", ""), "href": item.get("href", "")})
+              if len(icon_links) != 2:
+                  raise AssertionError(f"{label}: expected exactly 2 favicon links, got {icon_links!r}")
+              icon_hrefs = [x["href"] for x in icon_links]
+              if icon_hrefs.count(ICON_HREF) != 1 or icon_hrefs.count(APPLE_HREF) != 1:
+                  raise AssertionError(f"{label}: wrong Favicon R2 links: {icon_links!r}")
+
+              legacy_hits = {term: text.count(term) for term in FORBIDDEN}
+              if any(legacy_hits.values()):
+                  raise AssertionError(f"{label}: legacy live references found: {legacy_hits}")
+
+              return {
+                  **http,
+                  "raw_html_file": str(body),
+                  "raw_headers_file": str(hdr),
+                  "meta": meta_result,
+                  "favicon_links": icon_links,
+                  "legacy_hits": legacy_hits,
+                  "raw_html_sha256": hashlib.sha256(body.read_bytes()).hexdigest(),
+              }
+
+          def png_dims(data: bytes) -> tuple[int, int]:
+              if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n":
+                  raise AssertionError("invalid PNG signature")
+              return struct.unpack(">II", data[16:24])
+
+          def png_pixels_8bit(path: Path):
+              data = path.read_bytes()
+              if data[:8] != b"\x89PNG\r\n\x1a\n":
+                  raise AssertionError(f"{path}: invalid PNG")
+              pos = 8
+              width = height = bit_depth = color_type = None
+              idat = bytearray()
+              while pos + 12 <= len(data):
+                  length = struct.unpack(">I", data[pos:pos+4])[0]
+                  ctype = data[pos+4:pos+8]
+                  payload = data[pos+8:pos+8+length]
+                  pos += 12 + length
+                  if ctype == b"IHDR":
+                      width, height, bit_depth, color_type, comp, filt, interlace = struct.unpack(">IIBBBBB", payload)
+                      if comp != 0 or filt != 0 or interlace != 0:
+                          raise AssertionError(f"{path}: unsupported PNG encoding")
+                  elif ctype == b"IDAT":
+                      idat.extend(payload)
+                  elif ctype == b"IEND":
+                      break
+              if bit_depth != 8 or color_type not in (2, 6):
+                  raise AssertionError(f"{path}: expected 8-bit RGB/RGBA PNG, got bit_depth={bit_depth} color_type={color_type}")
+              channels = 3 if color_type == 2 else 4
+              bpp = channels
+              rowbytes = width * channels
+              raw = zlib.decompress(bytes(idat))
+              if len(raw) != (rowbytes + 1) * height:
+                  raise AssertionError(f"{path}: unexpected decompressed PNG length")
+              rows = []
+              prev = bytearray(rowbytes)
+              off = 0
+              for _y in range(height):
+                  f = raw[off]
+                  scan = bytearray(raw[off+1:off+1+rowbytes])
+                  off += rowbytes + 1
+                  recon = bytearray(rowbytes)
+                  for i, x in enumerate(scan):
+                      a = recon[i-bpp] if i >= bpp else 0
+                      b = prev[i]
+                      c = prev[i-bpp] if i >= bpp else 0
+                      if f == 0:
+                          val = x
+                      elif f == 1:
+                          val = (x + a) & 255
+                      elif f == 2:
+                          val = (x + b) & 255
+                      elif f == 3:
+                          val = (x + ((a + b) // 2)) & 255
+                      elif f == 4:
+                          p = a + b - c
+                          pa, pb, pc = abs(p-a), abs(p-b), abs(p-c)
+                          pr = a if pa <= pb and pa <= pc else (b if pb <= pc else c)
+                          val = (x + pr) & 255
+                      else:
+                          raise AssertionError(f"{path}: invalid PNG filter {f}")
+                      recon[i] = val
+                  rows.append(recon)
+                  prev = recon
+              def pixel(x: int, y: int):
+                  row = rows[y]
+                  base = x * channels
+                  rgb = tuple(row[base:base+3])
+                  alpha = 255 if channels == 3 else row[base+3]
+                  return rgb, alpha
+              return width, height, color_type, rows, pixel
+
+          def check_ico(path: Path) -> dict:
+              data = path.read_bytes()
+              if len(data) < 6:
+                  raise AssertionError("ICO too short")
+              reserved, icon_type, count = struct.unpack("<HHH", data[:6])
+              if reserved != 0 or icon_type != 1 or count < 1:
+                  raise AssertionError("invalid ICO header")
+              sizes = []
+              for i in range(count):
+                  off = 6 + i * 16
+                  if off + 16 > len(data):
+                      raise AssertionError("truncated ICO directory")
+                  w, h, colors, reserved2, planes, bpp, byte_count, image_offset = struct.unpack("<BBBBHHII", data[off:off+16])
+                  width = 256 if w == 0 else w
+                  height = 256 if h == 0 else h
+                  if image_offset + byte_count > len(data):
+                      raise AssertionError("ICO image entry outside file")
+                  sizes.append([width, height])
+              required = {(16,16), (32,32), (48,48)}
+              actual = {tuple(x) for x in sizes}
+              missing = sorted(required - actual)
+              if missing:
+                  raise AssertionError(f"ICO missing required sizes: {missing}; has {sorted(actual)}")
+              return {"entry_count": count, "sizes": sizes}
+
+          def check_binary(label: str, url: str, repo_path: Path, kind: str) -> dict:
+              live_path = ASSET_OUT / repo_path.name
+              hdr = HEADERS / f"{label}.headers.txt"
+              http = curl_fetch(url, live_path, hdr)
+              if http["final_url"] != url:
+                  raise AssertionError(f"{label}: unexpected redirect: {url} -> {http['final_url']}")
+              repo_sha = sha256_path(repo_path)
+              live_sha = sha256_path(live_path)
+              if repo_sha != live_sha:
+                  raise AssertionError(f"{label}: SHA-256 mismatch repo={repo_sha} live={live_sha}")
+              if live_path.stat().st_size == 0:
+                  raise AssertionError(f"{label}: empty live binary")
+
+              detail = {}
+              if kind == "png-og":
+                  dims = png_dims(live_path.read_bytes())
+                  if dims != (1200, 630):
+                      raise AssertionError(f"{label}: wrong OG dimensions {dims}")
+                  detail = {"format": "PNG", "width": dims[0], "height": dims[1]}
+              elif kind == "ico":
+                  detail = {"format": "ICO", **check_ico(live_path)}
+              elif kind == "png-apple":
+                  dims = png_dims(live_path.read_bytes())
+                  if dims != (180, 180):
+                      raise AssertionError(f"apple-touch-icon: wrong dimensions {dims}")
+                  width, height, color_type, rows, pixel = png_pixels_8bit(live_path)
+                  if color_type == 6:
+                      if any(row[i] != 255 for row in rows for i in range(3, len(row), 4)):
+                          raise AssertionError("apple-touch-icon: not fully opaque")
+                  corners = [pixel(0,0), pixel(width-1,0), pixel(0,height-1), pixel(width-1,height-1)]
+                  expected_bg = (5, 6, 7)
+                  if any(rgb != expected_bg or alpha != 255 for rgb, alpha in corners):
+                      raise AssertionError(f"apple-touch-icon: corner background authority mismatch; corners={corners}")
+                  detail = {
+                      "format": "PNG", "width": width, "height": height,
+                      "opaque": True, "background_authority": "#050607",
+                      "corner_pixels": [{"rgb": list(rgb), "alpha": alpha} for rgb, alpha in corners],
+                  }
+              return {
+                  **http,
+                  "repository_path": str(repo_path),
+                  "repository_sha256": repo_sha,
+                  "live_sha256": live_sha,
+                  "byte_for_byte_match": True,
+                  "live_size": live_path.stat().st_size,
+                  **detail,
+              }
+
+          actual_prod_sha = subprocess.check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+          if actual_prod_sha != PROD_SHA:
+              raise AssertionError(f"Production checkout mismatch: {actual_prod_sha} != {PROD_SHA}")
+
+          report = {
+              "verdict": "PASS",
+              "production_commit_expected": PROD_SHA,
+              "production_commit_checked_out": actual_prod_sha,
+              "html": {},
+              "assets": {},
+              "legacy_live_reference_count": 0,
+          }
+
+          for label, url, image, alt in HTML_ROUTES:
+              result = check_html(label, url, image, alt)
+              report["html"][label] = result
+              report["legacy_live_reference_count"] += sum(result["legacy_hits"].values())
+              print(f"HTML PASS {label}: {result['status']} {result['final_url']}")
+
+          for label, url, repo_path, kind in BINARY_ASSETS:
+              result = check_binary(label, url, repo_path, kind)
+              report["assets"][label] = result
+              print(f"ASSET PASS {label}: sha256={result['live_sha256']} size={result['live_size']}")
+
+          if report["legacy_live_reference_count"] != 0:
+              raise AssertionError(f"legacy reference total is not zero: {report['legacy_live_reference_count']}")
+
+          (OUT / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+          lines = [
+              "PROAI EXPERT — SOCIAL PREVIEW / OG + FAVICON LIVE HTTP CLOSEOUT",
+              f"VERDICT: {report['verdict']}",
+              f"PRODUCTION COMMIT: {actual_prod_sha}",
+              f"LEGACY LIVE REFERENCE COUNT: {report['legacy_live_reference_count']}",
+              "",
+              "HTML ROUTES:",
+          ]
+          for label, r in report["html"].items():
+              lines.append(f"- {label}: requested={r['requested_url']} final={r['final_url']} status={r['status']} type={r['content_type']} size={r['size_download']} etag={r['etag']} last-modified={r['last_modified']}")
+          lines += ["", "BINARY ASSETS:"]
+          for label, r in report["assets"].items():
+              lines.append(f"- {label}: status={r['status']} final={r['final_url']} type={r['content_type']} size={r['live_size']} sha256={r['live_sha256']} repo_match={r['byte_for_byte_match']} etag={r['etag']} last-modified={r['last_modified']}")
+          lines += ["", "ALL STRICT LIVE HTTP GATES PASSED."]
+          (OUT / "report.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          print("ALL STRICT LIVE HTTP GATES PASSED")
+          PY
+
+      - name: Upload live audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-og-favicon-live-http-closeout-${{ github.run_id }}
+          path: audit-evidence/
+          if-no-files-found: error
+          retention-days: 30

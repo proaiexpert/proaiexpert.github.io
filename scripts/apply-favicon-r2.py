@@ -14,8 +14,8 @@ NEW_TAGS = (
 )
 
 APPROVED_ASSET_BLOBS = {
-    "favicon.ico": "ec04a07d1be9a9e2d87c29ef3ad1e3cd40ecb0eb",
-    "apple-touch-icon.png": "a2c41754ba5dff2ec6d5bbf762a7725382e26cbb",
+    "favicon.ico": "1c06bf231c8750e8f7522d9d76d461c08bb2ffb8",
+    "apple-touch-icon.png": "f9513ec109c6424048927ed138ce2cc9ccb28e8d",
 }
 
 LINK_RE = re.compile(r"<link\b[^>]*>", re.IGNORECASE)

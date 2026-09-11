@@ -33,24 +33,28 @@ jobs:
           python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/proai-r2-http.log 2>&1 &
           sleep 2
 
-      - name: Render production GLB masters
+      - name: Render production GLB high-res master
         run: |
           mkdir -p owner-review
           node scripts/render-favicon-r2-owner-review.mjs
+          mv owner-review/favicon-master-r2-2048-transparent.png owner-review/favicon-master-r2-2048.png
 
-      - name: Build micro and QA test sizes
+      - name: Build micro master and QA test sizes
         run: |
-          convert owner-review/favicon-micro-r2-source-1024.png -filter Lanczos -resize 64x64 -unsharp 0x0.35+0.45+0.015 owner-review/favicon-micro-r2-64.png
+          convert owner-review/favicon-master-r2-2048.png -filter Lanczos -resize 64x64 -unsharp 0x0.35+0.45+0.015 owner-review/favicon-micro-r2-64.png
           convert owner-review/favicon-micro-r2-64.png -filter Lanczos -resize 32x32 owner-review/favicon-test-r2-32.png
           convert owner-review/favicon-micro-r2-64.png -filter Lanczos -resize 16x16 owner-review/favicon-test-r2-16.png
           convert owner-review/favicon-master-r2-2048.png -filter Lanczos -resize 180x180 owner-review/favicon-test-r2-180.png
-          rm owner-review/favicon-micro-r2-source-1024.png
           python3 scripts/build-favicon-r2-qa.py
 
-      - name: Write README and validate
+      - name: Write README and validate exact dimensions
         run: |
           test "$(identify -format '%wx%h' owner-review/favicon-master-r2-2048.png)" = "2048x2048"
           test "$(identify -format '%wx%h' owner-review/favicon-micro-r2-64.png)" = "64x64"
+          test "$(identify -format '%wx%h' owner-review/favicon-test-r2-16.png)" = "16x16"
+          test "$(identify -format '%wx%h' owner-review/favicon-test-r2-32.png)" = "32x32"
+          test "$(identify -format '%wx%h' owner-review/favicon-test-r2-180.png)" = "180x180"
+          test "$(identify -format '%wx%h' owner-review/ProAI_Favicon_R2_QA_Preview.png)" = "1600x1180"
           GLB_SHA=$(sha256sum assets/models/proai-cube/proai-cube-r1.glb | awk '{print toupper($1)}')
           RUNTIME_SHA=$(sha256sum assets/brand/proai-logo-r341/live-runtime.js | awk '{print toupper($1)}')
           cat > owner-review/README.txt <<EOF
@@ -85,13 +89,13 @@ jobs:
           favicon-master-r2-2048.png:
           - rendered directly from the production GLB through the current production live.html/live-runtime.js WebGL path;
           - static HOME pose using production premiumHybrid/header micro lookdev;
-          - 512×512 CSS viewport at device scale factor 4;
-          - direct capture output: 2048×2048.
+          - renderer backing canvas is 2048×2048 at device pixel ratio 4;
+          - PNG captured directly from that WebGL canvas; no old raster source used.
 
           favicon-micro-r2-64.png:
-          - rendered directly from the same production GLB/runtime at 256×256 CSS with device scale factor 4;
-          - direct source render: 1024×1024;
-          - downsampled to 64×64 with Lanczos and restrained micro sharpening for 16/32px legibility.
+          - produced from the new 2048×2048 direct production-GLB master;
+          - downsampled to 64×64 with Lanczos and restrained micro sharpening for 16/32px legibility;
+          - this is a downsample, never an upscale from an old small raster.
 
           CONFIRMATION
           NO raster upscale from the old 320px static cube source was used for either R2 master.
@@ -113,12 +117,19 @@ jobs:
       - name: Build requested ZIP
         run: |
           cd owner-review
-          zip -9 ProAI_Favicon_R2_Owner_Review.zip favicon-master-r2-2048.png favicon-micro-r2-64.png ProAI_Favicon_R2_QA_Preview.png favicon-test-r2-16.png favicon-test-r2-32.png favicon-test-r2-180.png README.txt
+          zip -9 ProAI_Favicon_R2_Owner_Review.zip \
+            favicon-master-r2-2048.png \
+            favicon-micro-r2-64.png \
+            ProAI_Favicon_R2_QA_Preview.png \
+            favicon-test-r2-16.png \
+            favicon-test-r2-32.png \
+            favicon-test-r2-180.png \
+            README.txt
 
       - name: Upload owner artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: proai-favicon-r2-owner-review-v2
+          name: proai-favicon-r2-owner-review-final
           path: |
             owner-review/ProAI_Favicon_R2_Owner_Review.zip
             owner-review/ProAI_Favicon_R2_QA_Preview.png

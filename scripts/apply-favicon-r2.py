@@ -60,7 +60,7 @@ def normalize(root: Path) -> tuple[int, int]:
     seen = changed = 0
     for path in iter_html(root):
         text = path.read_text(encoding="utf-8")
-        if "<head" not in text.lower() and not any(is_icon_link(tag) for tag in LINK_RE.findall(text)):
+        if not HEAD_RE.search(text) and not any(is_icon_link(tag) for tag in LINK_RE.findall(text)):
             continue
         seen += 1
         new_text = rewrite_text(text)
@@ -75,7 +75,7 @@ def check(root: Path) -> None:
     checked = 0
     for path in iter_html(root):
         text = path.read_text(encoding="utf-8")
-        if "<head" not in text.lower():
+        if not HEAD_RE.search(text):
             continue
         checked += 1
         icon_count = text.count(ICON_HREF)

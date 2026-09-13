@@ -1,0 +1,29 @@
+name: R1.4.4 Preview HTTPS Verify
+on:
+  push:
+    branches:
+      - connected-system-preview
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify EN and RU preview routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          EN='https://connected-system-preview.proaiexpert-github-io.pages.dev/owner-preview/connected-system-r142/'
+          RU='https://connected-system-preview.proaiexpert-github-io.pages.dev/owner-preview/connected-system-r142/ru/'
+          for url in "$EN" "$RU"; do
+            ok=0
+            for i in $(seq 1 30); do
+              code=$(curl -L -sS -o /tmp/page.html -w '%{http_code}' "$url" || true)
+              if [ "$code" = "200" ]; then
+                grep -q 'Connected System R1.4.4 Full-page Review' /tmp/page.html
+                ok=1
+                echo "PASS $url HTTP $code"
+                break
+              fi
+              sleep 2
+            done
+            test "$ok" = 1
+          done

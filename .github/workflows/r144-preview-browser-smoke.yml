@@ -1,0 +1,79 @@
+name: R1.4.4 Preview Browser Smoke
+on:
+  push:
+    branches:
+      - connected-system-preview
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Hosted Chromium mobile smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/r144-smoke && cd /tmp/r144-smoke
+          npm init -y >/dev/null 2>&1
+          npm install --silent playwright-core@1.55.0
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)
+          test -n "$CHROME"
+          export CHROME
+          cat > smoke.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          const urls = {
+            en:'https://connected-system-preview.proaiexpert-github-io.pages.dev/owner-preview/connected-system-r142/',
+            ru:'https://connected-system-preview.proaiexpert-github-io.pages.dev/owner-preview/connected-system-r142/ru/'
+          };
+          const viewports = [[390,844],[360,800],[844,390]];
+          const browser = await chromium.launch({headless:true, executablePath:process.env.CHROME, args:['--no-sandbox']});
+          let failures=[];
+          async function touchSwipe(page,w,h,dir){
+            const client=await page.context().newCDPSession(page);
+            const x=Math.round(w*.5), y1=dir==='up'?Math.round(h*.82):Math.round(h*.18), y2=dir==='up'?Math.round(h*.18):Math.round(h*.82);
+            await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:y1}]});
+            for(let i=1;i<=8;i++){
+              const y=Math.round(y1+(y2-y1)*(i/8));
+              await client.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y}]});
+              await page.waitForTimeout(22);
+            }
+            await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+            await page.waitForTimeout(700);
+          }
+          for (const [lang,url] of Object.entries(urls)) for (const [w,h] of viewports){
+            const context=await browser.newContext({viewport:{width:w,height:h},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+            const page=await context.newPage();
+            const errors=[]; page.on('console',m=>{if(m.type()==='error') errors.push(m.text())}); page.on('pageerror',e=>errors.push(String(e)));
+            try{
+              const r=await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
+              if(!r || r.status()!==200) throw new Error(`HTTP ${r?.status()}`);
+              await page.waitForSelector('[data-connected-next]');
+              const base=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,hero:!!document.querySelector('#hero'),connected:!!document.querySelector('#connected-system-next'),two:!!document.querySelector('#two-worlds-golden-r1')}));
+              if(base.overflow!==0||!base.hero||!base.connected||!base.two) throw new Error(`structure/overflow ${JSON.stringify(base)}`);
+              for(const s of [1,2,3,4]){
+                await page.locator(`[data-stage-button="${s}"]`).click();
+                await page.waitForTimeout(300);
+                const g=await page.evaluate(()=>{const a=document.querySelector('.ledger-plate.is-active');const r=a?.getBoundingClientRect();return {state:Number(document.querySelector('[data-connected-next]')?.dataset.activeStage),top:r?.top,bottom:r?.bottom,h:innerHeight,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth}});
+                if(g.state!==s||g.overflow!==0||g.top< -1||g.bottom>g.h+1) throw new Error(`stage${s} geometry ${JSON.stringify(g)}`);
+              }
+              await page.locator('[data-stage-button="1"]').click(); await page.waitForTimeout(1800);
+              await touchSwipe(page,w,h,'up');
+              const fwd=Number(await page.locator('[data-connected-next]').getAttribute('data-active-stage'));
+              if(fwd>2) throw new Error(`fast forward skipped to ${fwd}`);
+              await page.locator('[data-stage-button="4"]').click(); await page.waitForTimeout(1800);
+              await touchSwipe(page,w,h,'down');
+              const rev=Number(await page.locator('[data-connected-next]').getAttribute('data-active-stage'));
+              if(rev<3) throw new Error(`fast reverse skipped to ${rev}`);
+              await page.locator('[data-stage-button="4"]').click(); await page.waitForTimeout(1800);
+              await page.evaluate(()=>scrollBy(0,Math.round(innerHeight*.10))); await page.waitForTimeout(250);
+              const plateau=await page.evaluate(()=>{const a=document.querySelector('.ledger-plate.is-active');const r=a?.getBoundingClientRect();return {state:Number(document.querySelector('[data-connected-next]')?.dataset.activeStage),top:r?.top,bottom:r?.bottom,h:innerHeight}});
+              if(plateau.state!==4||plateau.top< -1||plateau.bottom>plateau.h+1) throw new Error(`result plateau ${JSON.stringify(plateau)}`);
+              if(errors.length) throw new Error(`console ${errors.join(' | ')}`);
+              console.log(`PASS ${lang} ${w}x${h} fwd=${fwd} rev=${rev}`);
+            }catch(e){failures.push(`${lang} ${w}x${h}: ${e.message}`)}
+            await context.close();
+          }
+          await browser.close();
+          if(failures.length){console.error(failures.join('\n'));process.exit(1)}
+          console.log('R1.4.4 HOSTED MOBILE SMOKE PASS');
+          NODE
+          node smoke.mjs

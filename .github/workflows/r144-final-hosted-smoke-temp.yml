@@ -1,0 +1,287 @@
+name: R1.4.4 FINAL Hosted Smoke Temporary
+
+on:
+  push:
+    branches:
+      - connected-system-preview
+    paths:
+      - .github/workflows/r144-final-hosted-smoke-temp.yml
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Run exact hosted Chromium smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/r144-final/snapshots
+          cd /tmp/r144-final
+          npm init -y >/dev/null 2>&1
+          npm install --silent playwright-core@1.55.0
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)
+          export CHROME
+          cat > smoke.mjs <<'NODE'
+          import { chromium } from 'playwright-core';
+          import fs from 'fs';
+          import crypto from 'crypto';
+
+          const host='https://connected-system-preview.proaiexpert-github-io.pages.dev';
+          const urls={
+            en:`${host}/owner-preview/connected-system-r142/`,
+            ru:`${host}/owner-preview/connected-system-r142/ru/`
+          };
+          const expected={
+            js:'75329523b30c19dd3ef01d7ab147e6a0436afddf',
+            css:'1ce5b058785ab0e5831860a1f11e25045640270c'
+          };
+          const viewports=[[390,844],[360,800],[844,390]];
+          const report={assets:{},routes:{},cases:[],clipSafe:{},handoff:{},failures:[]};
+          const fail=(msg)=>{report.failures.push(msg); console.error('FAIL',msg)};
+          const assert=(cond,msg)=>{if(!cond) fail(msg); return !!cond};
+
+          function gitBlobSha(buf){
+            return crypto.createHash('sha1').update(Buffer.from(`blob ${buf.length}\0`)).update(buf).digest('hex');
+          }
+          async function fetchBlob(path){
+            const r=await fetch(`${host}${path}?qa=r144-final-${Date.now()}`,{cache:'no-store'});
+            const b=Buffer.from(await r.arrayBuffer());
+            return {status:r.status,sha:gitBlobSha(b),bytes:b.length};
+          }
+
+          report.assets.js=await fetchBlob('/assets/js/homepage-connected-system-r142.js');
+          report.assets.css=await fetchBlob('/assets/css/homepage-connected-system-r142.css');
+          assert(report.assets.js.status===200,'hosted JS HTTP != 200');
+          assert(report.assets.css.status===200,'hosted CSS HTTP != 200');
+          assert(report.assets.js.sha===expected.js,`hosted JS blob mismatch ${report.assets.js.sha}`);
+          assert(report.assets.css.sha===expected.css,`hosted CSS blob mismatch ${report.assets.css.sha}`);
+
+          for(const [lang,url] of Object.entries(urls)){
+            const r=await fetch(`${url}?qa=r144-final-${Date.now()}`,{cache:'no-store'});
+            const text=await r.text();
+            report.routes[lang]={status:r.status,r144:/R1\.4\.4 Full-page Review/i.test(text),hero:text.includes('id="hero"'),connected:text.includes('id="connected-system-next"'),two:text.includes('id="two-worlds-golden-r1"'),adapter:text.includes('full-preview-r144')};
+            assert(r.status===200,`${lang} route HTTP ${r.status}`);
+            assert(report.routes[lang].r144,`${lang} hosted adapter is not R1.4.4`);
+            assert(report.routes[lang].hero&&report.routes[lang].connected&&report.routes[lang].two,`${lang} full-page sequence markup missing`);
+            assert(report.routes[lang].adapter,`${lang} full-preview-r144 asset adapter missing`);
+          }
+
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME,args:['--no-sandbox','--disable-gpu']});
+
+          async function geom(page){
+            return await page.evaluate(()=>{
+              const root=document.querySelector('[data-connected-next]');
+              const artifact=root?.querySelector('[data-context-artifact]');
+              const plate=root?.querySelector('.ledger-plate.is-active');
+              const r=plate?.getBoundingClientRect();
+              const vv=window.visualViewport;
+              const top0=vv?vv.offsetTop:0, vh=vv?vv.height:innerHeight;
+              let band;
+              const low=matchMedia('(max-height: 520px) and (min-width: 701px)').matches;
+              const portrait=matchMedia('(max-width:700px)').matches;
+              if(low) band={top:top0+8,bottom:top0+vh-10};
+              else if(portrait){const ab=artifact.getBoundingClientRect().bottom;const gt=Math.min(top0+vh*.58,ab+8);band={top:Math.max(top0+8,gt),bottom:top0+vh-16};}
+              else band={top:top0,bottom:top0+vh};
+              const details=plate?.querySelector('.ledger-detail')?.getBoundingClientRect();
+              const comps=plate?.querySelector('.ledger-components')?.getBoundingClientRect();
+              const inside=x=>!x||(x.top>=band.top-.5&&x.bottom<=band.bottom+.5);
+              const full=!!r&&r.top>=band.top-.5&&r.bottom<=band.bottom+.5&&inside(details)&&inside(comps);
+              const az=root?.querySelector('.artifact-zone');
+              const lz=root?.querySelector('.ledger-zone');
+              return {
+                state:Number(root?.dataset.activeStage),reading:root?.dataset.readingWindow||'',plateau:root?.classList.contains('is-result-plateau'),gesture:root?.dataset.gestureSession||null,
+                full,band,plate:r?{top:r.top,bottom:r.bottom,left:r.left,right:r.right,height:r.height}:null,
+                overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
+                inner:{w:innerWidth,h:innerHeight},scrollY,
+                z:{artifact:Number(getComputedStyle(az).zIndex)||0,ledger:Number(getComputedStyle(lz).zIndex)||0}
+              };
+            });
+          }
+
+          async function structure(page){
+            return await page.evaluate(()=>{
+              const h=document.querySelector('#hero'),c=document.querySelector('#connected-system-next'),t=document.querySelector('#two-worlds-golden-r1');
+              const y=e=>scrollY+e.getBoundingClientRect().top;
+              const bottom=e=>scrollY+e.getBoundingClientRect().bottom;
+              return {heroTop:y(h),heroBottom:bottom(h),connectedTop:y(c),connectedBottom:bottom(c),twoTop:y(t),gapHC:y(c)-bottom(h),gapCT:y(t)-bottom(c)};
+            });
+          }
+
+          async function prepare(page,state,progress){
+            await page.evaluate(({state,progress})=>{
+              document.querySelector(`[data-stage-button="${state}"]`)?.click();
+              const exp=document.querySelector('[data-experience]');
+              const rect=exp.getBoundingClientRect();
+              const abs=scrollY+rect.top;
+              const cssMin=parseFloat(getComputedStyle(exp).minHeight);
+              const portrait=matchMedia('(max-width:700px)').matches;
+              const low=matchMedia('(max-height:520px) and (min-width:701px)').matches;
+              const mult=portrait&&!low?2.55:low?2.05:1.90;
+              const startFactor=portrait&&!low?.28:low?0:.14;
+              const minFactor=portrait&&!low?1.25:low?.95:.90;
+              const stable=Number.isFinite(cssMin)&&cssMin>innerHeight*1.25?cssMin/mult:innerHeight;
+              const runway=Number.isFinite(cssMin)&&cssMin>stable?cssMin:stable*mult;
+              const travel=Math.max(stable*minFactor,runway-stable*.80);
+              scrollTo(0,abs-stable*startFactor+travel*progress);
+            },{state,progress});
+            await page.waitForTimeout(180);
+            await page.waitForTimeout(820);
+            return await geom(page);
+          }
+
+          async function touchSwipe(page,dir){
+            await page.evaluate(()=>{
+              window.__r144Transitions=[];
+              window.__r144Observer?.disconnect?.();
+              const root=document.querySelector('[data-connected-next]');
+              window.__r144Observer=new MutationObserver(()=>window.__r144Transitions.push({state:Number(root.dataset.activeStage),t:performance.now()}));
+              window.__r144Observer.observe(root,{attributes:true,attributeFilter:['data-active-stage']});
+            });
+            const client=await page.context().newCDPSession(page);
+            const size=await page.evaluate(()=>({w:innerWidth,h:innerHeight}));
+            const x=Math.round(size.w*.50);
+            const y1=dir==='up'?Math.round(size.h*.72):Math.round(size.h*.28);
+            const y2=dir==='up'?Math.round(size.h*.27):Math.round(size.h*.73);
+            await client.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y:y1}]});
+            for(let i=1;i<=12;i++){
+              const y=Math.round(y1+(y2-y1)*(i/12));
+              await client.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y}]});
+              await page.waitForTimeout(16);
+            }
+            await client.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+            const cont=await client.send('Runtime.evaluate',{expression:`(()=>{const r=document.querySelector('[data-connected-next]');const before={state:Number(r.dataset.activeStage),gesture:r.dataset.gestureSession||null,y:scrollY};scrollBy(0,Math.round(innerHeight*${dir==='up'?'0.12':'-0.12'}));return {before,after:{state:Number(r.dataset.activeStage),gesture:r.dataset.gestureSession||null,y:scrollY}}})()`,returnByValue:true});
+            await page.waitForTimeout(140);
+            const mid=await geom(page);
+            await page.waitForTimeout(360);
+            const end=await geom(page);
+            const transitions=await page.evaluate(()=>window.__r144Transitions||[]);
+            return {continuation:cont.result.value,mid,end,transitions};
+          }
+
+          async function polygonChecks(page,lang,state){
+            return await page.evaluate(({lang,state})=>{
+              document.querySelector(`[data-stage-button="${state}"]`)?.click();
+              function pointInPoly(pt,poly){let inside=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];const cross=((yi>pt[1])!==(yj>pt[1]))&&(pt[0]<(xj-xi)*(pt[1]-yi)/((yj-yi)||1e-9)+xi);if(cross)inside=!inside;}return inside;}
+              function parseClip(s,r){const m=s.match(/polygon\((.*)\)/);if(!m)return null;return m[1].split(',').map(pair=>{const [xs,ys]=pair.trim().split(/\s+/);const cv=(v,n)=>v.endsWith('%')?parseFloat(v)*n/100:parseFloat(v);return [cv(xs,r.width),cv(ys,r.height)]});}
+              function safe(el){if(!el)return {ok:false,reason:'missing'};let a=el.parentElement,cp='none';while(a&&a!==document.body){cp=getComputedStyle(a).clipPath;if(cp&&cp!=='none')break;a=a.parentElement;}if(!a||cp==='none')return {ok:false,reason:'no-clipped-ancestor'};const ar=a.getBoundingClientRect(),er=el.getBoundingClientRect(),poly=parseClip(cp,ar);if(!poly)return {ok:false,reason:`unparsed ${cp}`};const pts=[[er.left+1-er.left+er.left-ar.left,er.top+1-ar.top],[er.right-1-ar.left,er.top+1-ar.top],[er.right-1-ar.left,er.bottom-1-ar.top],[er.left+1-ar.left,er.bottom-1-ar.top]];return {ok:pts.every(p=>pointInPoly(p,poly)),text:el.textContent.trim(),clip:cp,ancestor:a.className,element:{left:er.left-ar.left,right:er.right-ar.left,top:er.top-ar.top,bottom:er.bottom-ar.top},ancestorSize:{w:ar.width,h:ar.height}};}
+              const exact=(selector,text)=>[...document.querySelectorAll(selector)].find(e=>e.textContent.trim()===text);
+              const items=lang==='ru'?{
+                offerOrigin:exact('.origin-lane span','ПРЕДЛОЖЕНИЕ'),
+                proof:exact('.origin-lane span','ПОДТВЕРЖДЕНИЯ'),
+                automation:exact('.assistive-components span','АВТОМАТИЗАЦИЯ'),
+                routing:exact('.assistive-components span','МАРШРУТИЗАЦИЯ'),
+                continuation:exact('.assistive-components span','ПРОДОЛЖЕНИЕ'),
+                nextStep:exact('.resolution-components span','СЛЕДУЮЩИЙ ШАГ')
+              }:{
+                offerOrigin:exact('.origin-lane span','OFFER'),
+                proof:exact('.origin-lane span','PROOF'),
+                automation:exact('.assistive-components span','AUTOMATION'),
+                routing:exact('.assistive-components span','ROUTING'),
+                continuation:exact('.assistive-components span','FOLLOW-UP'),
+                nextStep:exact('.resolution-components span','NEXT STEP')
+              };
+              return Object.fromEntries(Object.entries(items).map(([k,e])=>[k,safe(e)]));
+            },{lang,state});
+          }
+
+          for(const [lang,url] of Object.entries(urls)){
+            for(const [w,h] of viewports){
+              const context=await browser.newContext({viewport:{width:w,height:h},isMobile:false,hasTouch:true,deviceScaleFactor:1});
+              const page=await context.newPage();
+              const errors=[];
+              page.on('console',m=>{if(m.type()==='error')errors.push(`console:${m.text()}`)});
+              page.on('pageerror',e=>errors.push(`page:${String(e)}`));
+              const response=await page.goto(`${url}?qa=browser-${Date.now()}`,{waitUntil:'domcontentloaded',timeout:30000});
+              await page.waitForSelector('[data-connected-next]',{timeout:10000});
+              await page.waitForTimeout(700);
+              const title=await page.title();
+              const s=await structure(page);
+              const baseGeom=await geom(page);
+              const c={lang,w,h,http:response?.status(),title,structure:s,baseOverflow:baseGeom.overflow,steps:[],reverse:null,plateau:null,errors};
+              assert(response?.status()===200,`${lang} ${w}x${h} browser HTTP ${response?.status()}`);
+              assert(/R1\.4\.4 Full-page Review/i.test(title),`${lang} ${w}x${h} title not R1.4.4: ${title}`);
+              assert(Math.abs(s.gapHC)<1.1,`${lang} ${w}x${h} Hero→Connected gap ${s.gapHC}`);
+              assert(Math.abs(s.gapCT)<1.1,`${lang} ${w}x${h} Connected→Two Worlds gap ${s.gapCT}`);
+              assert(baseGeom.overflow===0,`${lang} ${w}x${h} horizontal overflow ${baseGeom.overflow}`);
+
+              let g=await prepare(page,1,.08);
+              assert(g.state===1&&g.full,`${lang} ${w}x${h} Stage01 not fully readable ${JSON.stringify(g)}`);
+              for(const expectedState of [2,3,4]){
+                const before=await geom(page);
+                assert(before.full,`${lang} ${w}x${h} Stage${before.state} not fully readable before advance`);
+                const r=await touchSwipe(page,'up');
+                const states=[...new Set(r.transitions.map(x=>x.state))];
+                assert(states.length<=1,`${lang} ${w}x${h} one swipe chatter/skip transitions=${JSON.stringify(states)}`);
+                assert(r.end.state===expectedState,`${lang} ${w}x${h} expected ${expectedState} after swipe got ${r.end.state}`);
+                assert(r.continuation.before.gesture?.startsWith('touch-'),`${lang} ${w}x${h} continuation lost touch gesture session`);
+                assert(r.mid.state===expectedState,`${lang} ${w}x${h} same-session continuation advanced to ${r.mid.state}`);
+                assert(r.end.full,`${lang} ${w}x${h} Stage${expectedState} not fully readable after arrival`);
+                c.steps.push({expectedState,before,states,continuation:r.continuation,mid:r.mid,end:r.end});
+                await page.waitForTimeout(420);
+              }
+
+              let p=await prepare(page,4,.84);
+              assert(p.state===4&&p.full,`${lang} ${w}x${h} Stage04 final read not visible`);
+              await page.evaluate(()=>scrollBy(0,Math.round(innerHeight*.10)));
+              await page.waitForTimeout(100);
+              p=await geom(page);
+              assert(p.state===4&&p.full,`${lang} ${w}x${h} RESULT final dwell lost`);
+              assert(p.plateau,`${lang} ${w}x${h} RESULT plateau class missing`);
+              assert(p.z.ledger>p.z.artifact,`${lang} ${w}x${h} RESULT ledger not above artifact ${JSON.stringify(p.z)}`);
+              c.plateau=p;
+
+              await prepare(page,4,.88);
+              const rev=await touchSwipe(page,'down');
+              const revStates=[...new Set(rev.transitions.map(x=>x.state))];
+              assert(revStates.length<=1,`${lang} ${w}x${h} reverse chatter/skip ${JSON.stringify(revStates)}`);
+              assert(rev.end.state===3,`${lang} ${w}x${h} reverse expected adjacent 3 got ${rev.end.state}`);
+              c.reverse={states:revStates,continuation:rev.continuation,mid:rev.mid,end:rev.end};
+
+              const pc1=await polygonChecks(page,lang,1);
+              const pc3=await polygonChecks(page,lang,3);
+              const pc4=await polygonChecks(page,lang,4);
+              const merged={...pc1,...pc3,...pc4};
+              report.clipSafe[`${lang}-${w}x${h}`]=merged;
+              for(const [k,v] of Object.entries(merged)) assert(v.ok,`${lang} ${w}x${h} polygon clip unsafe ${k}: ${JSON.stringify(v)}`);
+
+              if(lang==='ru'){
+                await prepare(page,1,.12); await page.screenshot({path:`snapshots/ru-${w}x${h}-s1.png`});
+                await prepare(page,3,.64); await page.screenshot({path:`snapshots/ru-${w}x${h}-s3.png`});
+                await prepare(page,4,.86); await page.evaluate(()=>scrollBy(0,20)); await page.waitForTimeout(80); await page.screenshot({path:`snapshots/ru-${w}x${h}-s4.png`});
+              }
+
+              await page.evaluate(()=>{const t=document.querySelector('#two-worlds-golden-r1');scrollTo(0,scrollY+t.getBoundingClientRect().top+2)});
+              await page.waitForTimeout(120);
+              const hand=await page.evaluate(()=>{const c=document.querySelector('#connected-system-next').getBoundingClientRect(),st=document.querySelector('.connected-next__sticky-stage').getBoundingClientRect(),t=document.querySelector('#two-worlds-golden-r1').getBoundingClientRect();return{connectedBottom:c.bottom,stickyTop:st.top,stickyBottom:st.bottom,twoTop:t.top,overlap:Math.max(0,Math.min(st.bottom,t.bottom)-Math.max(st.top,t.top))}});
+              assert(hand.connectedBottom<=1,`${lang} ${w}x${h} Connected did not release before Two Worlds ${JSON.stringify(hand)}`);
+              assert(hand.overlap<1,`${lang} ${w}x${h} sticky overlaps Two Worlds ${JSON.stringify(hand)}`);
+              report.handoff[`${lang}-${w}x${h}`]=hand;
+
+              assert(errors.length===0,`${lang} ${w}x${h} console/page errors ${JSON.stringify(errors)}`);
+              report.cases.push(c);
+              await context.close();
+            }
+          }
+
+          await browser.close();
+          fs.writeFileSync('qa-result.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify(report,null,2));
+          if(report.failures.length){console.error(`R1.4.4 FINAL HOSTED SMOKE FAIL count=${report.failures.length}`);process.exit(1)}
+          console.log('R1.4.4 FINAL HOSTED SMOKE PASS');
+          NODE
+          node smoke.mjs
+
+      - name: Upload hosted smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r144-final-hosted-smoke-evidence
+          path: |
+            /tmp/r144-final/qa-result.json
+            /tmp/r144-final/snapshots/*.png
+          if-no-files-found: warn
+          retention-days: 3

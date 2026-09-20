@@ -9,6 +9,7 @@
   const openLabel = toggle.dataset.openLabel || 'Open menu';
   const closeLabel = toggle.dataset.closeLabel || 'Close menu';
   const mobileQuery = window.matchMedia('(max-width: 1080px)');
+  const guardSelector = '[data-header-autohide-guard]';
 
   const styleId = 'proai-header-autohide-r1';
   if (!document.getElementById(styleId)) {
@@ -18,6 +19,7 @@
 @media (max-width:1080px){
   .site-header{transform:translate3d(0,0,0);will-change:transform;transition:transform 260ms cubic-bezier(.22,1,.36,1),background-color 180ms var(--proai-ease),border-color 180ms var(--proai-ease),box-shadow 180ms var(--proai-ease),backdrop-filter 180ms var(--proai-ease)}
   .site-header.header-hidden{transform:translate3d(0,calc(-100% - 2px),0)}
+  .site-header.header-guarded{transition:none!important}
   body.menu-open .site-header,body.menu-open .site-header.header-hidden{transform:translate3d(0,0,0)!important}
 }`;
     document.head.appendChild(style);
@@ -29,7 +31,19 @@
   let scrollTick = false;
 
   const isMenuOpen = () => toggle.getAttribute('aria-expanded') === 'true' || nav.classList.contains('is-open');
+  const hasExplicitHeaderInteraction = () => isMenuOpen() || header.matches(':focus-within');
   const revealHeader = () => header.classList.remove('header-hidden');
+
+  const activeAutohideGuard = () => {
+    const viewportHeight = window.visualViewport?.height || window.innerHeight;
+    if (!viewportHeight) return null;
+    const tolerance = 8;
+    for (const guard of document.querySelectorAll(guardSelector)) {
+      const rect = guard.getBoundingClientRect();
+      if (rect.top <= tolerance && rect.bottom >= viewportHeight - tolerance) return guard;
+    }
+    return null;
+  };
 
   const resetAutoHide = ({ reveal = true } = {}) => {
     lastScrollY = Math.max(0, window.scrollY || 0);
@@ -65,6 +79,7 @@
     header.classList.toggle('is-scrolled', currentY > 12);
 
     if (!mobileQuery.matches) {
+      header.classList.remove('header-guarded');
       revealHeader();
       lastScrollY = currentY;
       directionStartY = currentY;
@@ -84,8 +99,21 @@
     const shortLandscape = window.innerHeight <= 540 && window.innerWidth > window.innerHeight;
     const hideAfter = shortLandscape ? 90 : 120;
 
-    if (isMenuOpen() || currentY < 24) {
+    const guard = activeAutohideGuard();
+    const explicitHeaderInteraction = hasExplicitHeaderInteraction();
+    const guardOwnsViewport = Boolean(guard) && !explicitHeaderInteraction;
+
+    header.classList.toggle('header-guarded', guardOwnsViewport);
+
+    if (explicitHeaderInteraction || currentY < 24) {
       revealHeader();
+      directionStartY = currentY;
+      lastDirection = 0;
+    } else if (guardOwnsViewport) {
+      // Immersive scroll stories need the same usable viewport in both
+      // directions. While their physical runway owns the viewport, suppress
+      // automatic reverse-scroll reveal of the fixed header.
+      header.classList.add('header-hidden');
       directionStartY = currentY;
       lastDirection = 0;
     } else if (direction < 0 && directionalTravel <= -8) {
@@ -113,6 +141,9 @@
     revealHeader();
     resetAutoHide({ reveal: false });
   });
+  header.addEventListener('focusout', () => {
+    window.requestAnimationFrame(requestScrollSync);
+  });
 
   resetVisibleLifecycle();
   window.addEventListener('scroll', requestScrollSync, { passive: true });
@@ -124,6 +155,7 @@
     if (!mobileQuery.matches) setOpen(false);
     resetVisibleLifecycle();
   }, { passive: true });
+  window.visualViewport?.addEventListener('resize', requestScrollSync, { passive: true });
   mobileQuery.addEventListener?.('change', () => {
     if (!mobileQuery.matches) setOpen(false);
     resetVisibleLifecycle();

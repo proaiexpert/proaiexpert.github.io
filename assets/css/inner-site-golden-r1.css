@@ -15,9 +15,17 @@ body.proai-inner-golden-r1 {
   --inner-panel: #0e1217;
   --inner-elevated: #171c22;
   --inner-pearl: #f1efe9;
+  --inner-pearl-warm: #f2efe8;
+  --inner-pearl-soft: #d8d4cb;
   --inner-silver: #c9cdd1;
   --inner-body: #a6abb1;
   --inner-muted: #858a90;
+  --inner-steel: #8ca0ad;
+  --inner-steel-soft: #899195;
+  --inner-graphite-silver: #737d82;
+  --inner-champagne: #d3b37f;
+  --inner-champagne-soft: #ab8e65;
+  --inner-violet: #9189ad;
   --inner-line: rgba(232, 231, 226, .09);
   --inner-line-strong: rgba(232, 231, 226, .17);
   --inner-micro-accent: #5de2ff;
@@ -148,6 +156,8 @@ body.proai-inner-golden-r1 button[type="submit"] {
     linear-gradient(180deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .018) 32%, rgba(0, 0, 0, .08)),
     var(--inner-elevated);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .11), inset 0 -1px 0 rgba(0, 0, 0, .62);
+  font-weight: 650;
+  letter-spacing: .045em;
   text-shadow: none;
 }
 
@@ -192,6 +202,340 @@ body.proai-inner-golden-r1 select:focus {
   box-shadow: 0 0 0 3px rgba(205, 209, 208, .08);
 }
 
+/* Pre-release type calibration. The original inner generation relied on
+   800–900 display weights; the current homepage uses quieter 500–650 forms. */
+:is(body.proai-inner-golden-r1.page-about,
+    body.proai-inner-golden-r1.page-contact,
+    body.proai-inner-golden-r1.theme-ai,
+    body.proai-inner-golden-r1.theme-web,
+    body.proai-inner-golden-r1.insights-hub) main h1 {
+  font-weight: 560;
+  letter-spacing: -.045em;
+}
+
+:is(body.proai-inner-golden-r1.page-about,
+    body.proai-inner-golden-r1.page-contact,
+    body.proai-inner-golden-r1.theme-ai,
+    body.proai-inner-golden-r1.theme-web,
+    body.proai-inner-golden-r1.insights-hub) main h2 {
+  font-weight: 600;
+  letter-spacing: -.042em;
+}
+
+body.proai-inner-golden-r1.page-article main h1 {
+  font-weight: 600;
+  letter-spacing: -.038em;
+}
+
+body.proai-inner-golden-r1.page-article main h2 {
+  font-weight: 650;
+  letter-spacing: -.025em;
+}
+
+/* About: warm registration is deliberately limited to small signals and the
+   existing thesis illustration. */
+body.proai-inner-golden-r1.page-about {
+  --hero-secondary-accent: var(--inner-champagne);
+}
+
+body.proai-inner-golden-r1.page-about .eyebrow,
+body.proai-inner-golden-r1.page-about .anchor-role,
+body.proai-inner-golden-r1.page-about .note-label {
+  color: var(--inner-champagne-soft);
+}
+
+body.proai-inner-golden-r1.page-about .eyebrow::before,
+body.proai-inner-golden-r1.page-about .section-head::after {
+  background: linear-gradient(90deg, rgba(211, 179, 127, .58), transparent);
+}
+
+body.proai-inner-golden-r1.page-about .hero-copy h1 .hero-accent {
+  color: var(--inner-champagne);
+  -webkit-text-fill-color: var(--inner-champagne);
+  text-shadow: none;
+}
+
+body.proai-inner-golden-r1.page-about .section-head h2,
+body.proai-inner-golden-r1.page-about .cta-shell h2,
+body.proai-inner-golden-r1.page-about .panel h2 {
+  background: linear-gradient(180deg, var(--inner-pearl-warm), var(--inner-pearl-soft) 72%, var(--inner-champagne-soft) 135%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Two editorial callouts carry inline legacy borders; these exact section
+   selectors are the only required inline-style specificity boundary. */
+body.proai-inner-golden-r1.page-about #proof > .shell > div > .reveal,
+body.proai-inner-golden-r1.page-about #why > .shell > div > .reveal {
+  border-left-color: rgba(211, 179, 127, .2) !important;
+}
+
+body.proai-inner-golden-r1.page-about .panel > h2[style] {
+  background: linear-gradient(180deg, var(--inner-pearl-warm), var(--inner-pearl-soft) 72%, var(--inner-champagne-soft) 135%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  font-weight: 600 !important;
+  letter-spacing: -.042em !important;
+}
+
+body.proai-inner-golden-r1.page-about .thesis-visual {
+  background:
+    radial-gradient(circle at 82% 16%, rgba(211, 179, 127, .075), transparent 26%),
+    radial-gradient(circle at 24% 76%, rgba(216, 212, 203, .07), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, .032), rgba(255, 255, 255, .012));
+}
+
+body.proai-inner-golden-r1.page-about .thesis-link {
+  background: linear-gradient(90deg, transparent, rgba(211, 179, 127, .28), rgba(255, 255, 255, .1), transparent);
+}
+
+body.proai-inner-golden-r1.page-about .thesis-glow.one {
+  background: radial-gradient(circle, rgba(211, 179, 127, .22), rgba(211, 179, 127, 0) 72%);
+}
+
+body.proai-inner-golden-r1.page-about .thesis-spark,
+body.proai-inner-golden-r1.page-about .thesis-node-card .thesis-dot {
+  background: var(--inner-champagne);
+  box-shadow: 0 0 16px rgba(211, 179, 127, .3);
+}
+
+/* Contact is the quietest commercial family: only warm registration survives. */
+body.proai-inner-golden-r1.page-contact .eyebrow,
+body.proai-inner-golden-r1.page-contact .note-label,
+body.proai-inner-golden-r1.page-contact .step-label,
+body.proai-inner-golden-r1.page-contact .side-panel strong,
+body.proai-inner-golden-r1.page-contact .path-card i {
+  color: var(--inner-champagne-soft);
+}
+
+body.proai-inner-golden-r1.page-contact .eyebrow::before,
+body.proai-inner-golden-r1.page-contact .section-head::after {
+  background: linear-gradient(90deg, rgba(171, 142, 101, .54), transparent);
+}
+
+body.proai-inner-golden-r1.page-contact .contact-hero h1 .hero-accent {
+  color: var(--inner-pearl-soft);
+  -webkit-text-fill-color: var(--inner-pearl-soft);
+  text-shadow: none;
+}
+
+body.proai-inner-golden-r1.page-contact .section-head h2,
+body.proai-inner-golden-r1.page-contact .cta-shell h2 {
+  background: linear-gradient(180deg, var(--inner-pearl-warm), var(--inner-pearl-soft) 78%, var(--inner-champagne-soft) 145%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.proai-inner-golden-r1.page-contact .contact-note,
+body.proai-inner-golden-r1.page-contact .intake-shell,
+body.proai-inner-golden-r1.page-contact .cta-shell {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, .032), rgba(255, 255, 255, .01)),
+    radial-gradient(circle at 84% 14%, rgba(171, 142, 101, .07), transparent 30%);
+}
+
+body.proai-inner-golden-r1.page-contact .pill.is-active,
+body.proai-inner-golden-r1.page-contact .private-review-context,
+body.proai-inner-golden-r1.page-contact .form-success {
+  border-color: rgba(211, 179, 127, .2);
+  background: linear-gradient(180deg, rgba(171, 142, 101, .075), rgba(171, 142, 101, .022));
+}
+
+body.proai-inner-golden-r1.page-contact .form-feedback.is-success,
+body.proai-inner-golden-r1.page-contact .private-review-context strong,
+body.proai-inner-golden-r1.page-contact .form-success strong {
+  color: var(--inner-champagne);
+}
+
+/* AI Systems: operational warmth without restoring the old electric blue. */
+body.proai-inner-golden-r1.theme-ai {
+  --hero-ai-accent: var(--inner-champagne);
+}
+
+body.proai-inner-golden-r1.theme-ai .eyebrow,
+body.proai-inner-golden-r1.theme-ai .svc-motion-kicker,
+body.proai-inner-golden-r1.theme-ai .note-label,
+body.proai-inner-golden-r1.theme-ai .step-label {
+  color: var(--inner-champagne-soft);
+}
+
+body.proai-inner-golden-r1.theme-ai .eyebrow::before,
+body.proai-inner-golden-r1.theme-ai .section-head::after {
+  background: linear-gradient(90deg, rgba(211, 179, 127, .58), transparent);
+}
+
+body.proai-inner-golden-r1.theme-ai .hero-copy h1 em {
+  color: var(--inner-champagne);
+  -webkit-text-fill-color: var(--inner-champagne);
+  text-shadow: none;
+}
+
+body.proai-inner-golden-r1.theme-ai .section-head h2,
+body.proai-inner-golden-r1.theme-ai .cta-shell h2 {
+  background: linear-gradient(180deg, var(--inner-pearl) 0%, var(--inner-pearl-soft) 68%, var(--inner-champagne-soft) 132%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.proai-inner-golden-r1.theme-ai .entropy-line {
+  background: linear-gradient(90deg, rgba(211, 179, 127, .1), rgba(171, 142, 101, .3), rgba(201, 205, 209, .08));
+}
+
+body.proai-inner-golden-r1.theme-ai .capture-beam,
+body.proai-inner-golden-r1.theme-ai .capture-beam::before,
+body.proai-inner-golden-r1.theme-ai .svc-motion-frame::after {
+  border-color: rgba(211, 179, 127, .16);
+}
+
+body.proai-inner-golden-r1.theme-ai .protocol-summary,
+body.proai-inner-golden-r1.theme-ai .cta-shell {
+  background:
+    radial-gradient(circle at 14% 16%, rgba(211, 179, 127, .055), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, .028), rgba(255, 255, 255, .008));
+}
+
+body.proai-inner-golden-r1.theme-ai .delta-arrow {
+  border-color: rgba(211, 179, 127, .2);
+  color: var(--inner-champagne-soft);
+  background: rgba(171, 142, 101, .06);
+}
+
+body.proai-inner-golden-r1.theme-ai .secondary-btn {
+  border-color: rgba(211, 179, 127, .2) !important;
+}
+
+body.proai-inner-golden-r1.theme-ai .entropy-map,
+body.proai-inner-golden-r1.theme-ai .svc-motion-frame {
+  background:
+    radial-gradient(circle at 74% 18%, rgba(211, 179, 127, .045), transparent 34%),
+    linear-gradient(180deg, rgba(6, 11, 18, .96), rgba(4, 8, 14, .96));
+}
+
+body.proai-inner-golden-r1.theme-ai .capture-beam {
+  background: linear-gradient(rgba(211, 179, 127, .05), rgba(171, 142, 101, .014));
+  box-shadow: inset 0 0 46px rgba(211, 179, 127, .055), 0 0 0 1px rgba(255, 255, 255, .01);
+}
+
+body.proai-inner-golden-r1.theme-ai .protocol-summary,
+body.proai-inner-golden-r1.theme-ai .cta-shell {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .02), inset 0 0 44px rgba(211, 179, 127, .018), 0 28px 72px rgba(0, 0, 0, .18);
+}
+
+body.proai-inner-golden-r1.theme-ai .flow-line i {
+  box-shadow: 0 0 12px rgba(211, 179, 127, .28);
+}
+
+/* Websites & Branding: cold steel and muted violet from the homepage design
+   sections, never the prior saturated web-blue. */
+body.proai-inner-golden-r1.theme-web {
+  --hero-web-accent: var(--inner-violet);
+}
+
+body.proai-inner-golden-r1.theme-web .eyebrow,
+body.proai-inner-golden-r1.theme-web .svc-motion-kicker,
+body.proai-inner-golden-r1.theme-web .note-label,
+body.proai-inner-golden-r1.theme-web .step-label {
+  color: var(--inner-steel);
+}
+
+body.proai-inner-golden-r1.theme-web .eyebrow::before,
+body.proai-inner-golden-r1.theme-web .section-head::after {
+  background: linear-gradient(90deg, rgba(140, 160, 173, .58), transparent);
+}
+
+body.proai-inner-golden-r1.theme-web .hero-copy h1 em {
+  color: var(--inner-violet);
+  -webkit-text-fill-color: var(--inner-violet);
+  text-shadow: none;
+}
+
+body.proai-inner-golden-r1.theme-web .section-head h2,
+body.proai-inner-golden-r1.theme-web .cta-shell h2 {
+  background: linear-gradient(180deg, var(--inner-pearl) 0%, var(--inner-pearl-soft) 66%, var(--inner-violet) 132%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.proai-inner-golden-r1.theme-web .entropy-line {
+  background: linear-gradient(90deg, rgba(140, 160, 173, .1), rgba(145, 137, 173, .28), rgba(201, 205, 209, .08));
+}
+
+body.proai-inner-golden-r1.theme-web .capture-beam,
+body.proai-inner-golden-r1.theme-web .capture-beam::before,
+body.proai-inner-golden-r1.theme-web .svc-motion-frame::after {
+  border-color: rgba(145, 137, 173, .16);
+}
+
+body.proai-inner-golden-r1.theme-web .protocol-summary,
+body.proai-inner-golden-r1.theme-web .cta-shell {
+  background:
+    radial-gradient(circle at 14% 16%, rgba(145, 137, 173, .055), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, .028), rgba(255, 255, 255, .008));
+}
+
+body.proai-inner-golden-r1.theme-web .delta-arrow {
+  border-color: rgba(145, 137, 173, .2);
+  color: var(--inner-steel);
+  background: rgba(145, 137, 173, .055);
+}
+
+body.proai-inner-golden-r1.theme-web .secondary-btn {
+  border-color: rgba(145, 137, 173, .2) !important;
+}
+
+body.proai-inner-golden-r1.theme-web .entropy-list,
+body.proai-inner-golden-r1.theme-web .svc-motion-frame {
+  background:
+    radial-gradient(circle at 78% 16%, rgba(145, 137, 173, .04), transparent 32%),
+    linear-gradient(180deg, rgba(6, 11, 18, .96), rgba(4, 8, 14, .96));
+}
+
+body.proai-inner-golden-r1.theme-web .capture-beam {
+  background: linear-gradient(rgba(145, 137, 173, .048), rgba(140, 160, 173, .014));
+  box-shadow: inset 0 0 40px rgba(145, 137, 173, .05), 0 0 0 1px rgba(255, 255, 255, .01);
+}
+
+body.proai-inner-golden-r1.theme-web .protocol-summary,
+body.proai-inner-golden-r1.theme-web .cta-shell {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .02), inset 0 0 48px rgba(145, 137, 173, .016), 0 28px 74px rgba(0, 0, 0, .18);
+}
+
+body.proai-inner-golden-r1.theme-web .flow-line i,
+body.proai-inner-golden-r1.theme-web .wbcs-bullet i {
+  background: linear-gradient(135deg, var(--inner-steel), rgba(145, 137, 173, .72));
+  box-shadow: 0 0 14px rgba(145, 137, 173, .24);
+}
+
+body.proai-inner-golden-r1.theme-web .wbcs-copy h2 {
+  background: linear-gradient(180deg, var(--inner-pearl), var(--inner-pearl-soft) 68%, var(--inner-violet) 132%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.proai-inner-golden-r1.theme-web .wbcs-stage-bg {
+  background:
+    radial-gradient(circle at 72% 26%, rgba(145, 137, 173, .13), transparent 24%),
+    radial-gradient(circle at 38% 86%, rgba(140, 160, 173, .055), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, .03), rgba(255, 255, 255, .01)),
+    linear-gradient(180deg, rgba(9, 16, 25, .94), rgba(5, 8, 12, .99));
+}
+
+body.proai-inner-golden-r1.theme-web .wbcs-grid {
+  background-image:
+    linear-gradient(rgba(140, 160, 173, .035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140, 160, 173, .035) 1px, transparent 1px);
+}
+
+body.proai-inner-golden-r1.theme-web .wbcs-orb {
+  background: radial-gradient(circle, rgba(145, 137, 173, .18), rgba(140, 160, 173, .045) 34%, transparent 66%);
+}
+
 /* The Websites proof intentionally stages rotated devices beyond its track.
    Clip at the section boundary so the composition cannot widen the document. */
 body.proai-inner-golden-r1.theme-web .showcase-proof-section {
@@ -219,6 +563,35 @@ body.proai-inner-golden-r1.ahv3-case:not(.case-archive-v3) {
   --ah-faint: rgba(166, 171, 177, .58);
   --ah-rule: var(--inner-line-strong);
   --ah-cyan-rule: rgba(205, 209, 208, .26);
+}
+
+body.proai-inner-golden-r1.ahv3-case:not(.case-archive-v3) .ahv3-status {
+  color: var(--ah-sage);
+}
+
+body.proai-inner-golden-r1.ahv3-case:not(.case-archive-v3) .ahv3-threshold-line {
+  background: var(--ah-sage);
+  box-shadow: 0 0 15px rgba(197, 206, 185, .32);
+}
+
+body.proai-inner-golden-r1.ahv3-case:not(.case-archive-v3) .ahv3-frame {
+  background: linear-gradient(90deg, rgba(213, 138, 114, .42), rgba(255, 255, 255, .08), rgba(197, 206, 185, .5));
+}
+
+body.proai-inner-golden-r1.ahv3-case:not(.case-archive-v3) .ahv3-portal {
+  background: linear-gradient(135deg, rgba(197, 206, 185, .62), rgba(255, 255, 255, .12) 46%, rgba(213, 138, 114, .62));
+}
+
+body.proai-inner-golden-r1.ahv3-case:not(.case-archive-v3) .ahv3-mobile-frame {
+  background: linear-gradient(180deg, rgba(197, 206, 185, .48), rgba(213, 138, 114, .35));
+}
+
+body.proai-inner-golden-r1.ahv3-case:not(.case-archive-v3) .ahv3-language-image {
+  background: rgba(197, 206, 185, .2);
+}
+
+body.proai-inner-golden-r1.ahv3-case:not(.case-archive-v3) .ahv3-steps {
+  border-top-color: rgba(197, 206, 185, .3);
 }
 
 /* Financial Stream keeps live-status green and its evidence-led composition;
@@ -270,11 +643,34 @@ body.proai-inner-golden-r1.insights-hub {
   --muted: var(--inner-body);
   --soft: var(--inner-muted);
   --cyan: var(--inner-silver);
-  --violet: #d8d6d0;
+  --violet: var(--inner-violet);
   background:
     radial-gradient(circle at 14% 10%, rgba(205, 209, 208, .045), transparent 23%),
     radial-gradient(circle at 82% 22%, rgba(142, 148, 153, .035), transparent 26%),
     linear-gradient(180deg, var(--inner-page), var(--inner-void));
+}
+
+body.proai-inner-golden-r1.insights-hub .hero h1 span,
+body.proai-inner-golden-r1.insights-hub .featured-title span {
+  color: var(--inner-violet);
+  -webkit-text-fill-color: var(--inner-violet);
+}
+
+body.proai-inner-golden-r1.insights-hub .eyebrow,
+body.proai-inner-golden-r1.insights-hub .portfolio-entry-eyebrow {
+  color: var(--inner-steel);
+}
+
+body.proai-inner-golden-r1.insights-hub .eyebrow::before,
+body.proai-inner-golden-r1.insights-hub .section-head::after {
+  background: linear-gradient(90deg, rgba(140, 160, 173, .58), transparent);
+}
+
+body.proai-inner-golden-r1.insights-hub .section-head h2 {
+  background: linear-gradient(180deg, var(--inner-pearl), var(--inner-pearl-soft) 72%, var(--inner-violet) 138%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 body.proai-inner-golden-r1.insights-hub .featured {
@@ -286,18 +682,81 @@ body.proai-inner-golden-r1.insights-hub .featured {
 
 body.proai-inner-golden-r1.insights-hub .feature-action,
 body.proai-inner-golden-r1.insights-hub .card-action {
-  border-bottom-color: rgba(205, 209, 208, .3);
-  color: var(--inner-silver);
+  border-bottom-color: rgba(145, 137, 173, .36);
+  color: var(--inner-steel);
 }
 
 /* Editorial articles share one reading authority. Their content hierarchy and
    modules remain intact; only the legacy electric atmosphere is neutralized. */
 body.proai-inner-golden-r1.page-article {
-  --cyan: var(--inner-silver);
-  --ai-cyan: var(--inner-silver);
-  --violet: #d8d6d0;
+  --cyan: var(--inner-steel);
+  --ai-cyan: var(--inner-steel);
+  --violet: var(--inner-violet);
   background: var(--inner-page);
   color: var(--inner-pearl);
+}
+
+body.proai-inner-golden-r1.page-article .article-kicker,
+body.proai-inner-golden-r1.page-article .article-side-label,
+body.proai-inner-golden-r1.page-article .premium-author-label,
+body.proai-inner-golden-r1.page-article .lead-author-label,
+body.proai-inner-golden-r1.page-article .premium-related-insights > strong {
+  color: var(--inner-steel);
+}
+
+body.proai-inner-golden-r1.page-article .premium-author-byline,
+body.proai-inner-golden-r1.page-article .lead-author-byline {
+  border-color: rgba(145, 137, 173, .16);
+  background: linear-gradient(145deg, rgba(140, 160, 173, .04), rgba(145, 137, 173, .035));
+}
+
+body.proai-inner-golden-r1.page-article .premium-author-portrait,
+body.proai-inner-golden-r1.page-article .lead-author-portrait {
+  border-color: rgba(140, 160, 173, .28);
+}
+
+body.proai-inner-golden-r1.page-article .premium-author-link,
+body.proai-inner-golden-r1.page-article .lead-author-link,
+body.proai-inner-golden-r1.page-article .lead-context-link a {
+  color: var(--inner-steel);
+  border-bottom-color: rgba(145, 137, 173, .34);
+}
+
+body.proai-inner-golden-r1.page-article .premium-quote {
+  border-left-color: rgba(145, 137, 173, .48);
+  background: linear-gradient(90deg, rgba(145, 137, 173, .065), rgba(140, 160, 173, .02));
+}
+
+body.proai-inner-golden-r1.page-article .article-body blockquote {
+  border-left-color: var(--inner-steel);
+  background: rgba(140, 160, 173, .035);
+}
+
+body.proai-inner-golden-r1.page-article .article-callout,
+body.proai-inner-golden-r1.page-article .article-cta,
+body.proai-inner-golden-r1.page-article .lead-context-link {
+  border-color: rgba(145, 137, 173, .18);
+  background:
+    radial-gradient(circle at 12% 18%, rgba(145, 137, 173, .06), transparent 36%),
+    rgba(255, 255, 255, .025);
+}
+
+body.proai-inner-golden-r1.page-article .premium-module {
+  --premium-module-accent: rgba(140, 160, 173, .48);
+}
+
+body.proai-inner-golden-r1.page-article .premium-module[data-module~="executive-summary"],
+body.proai-inner-golden-r1.page-article .premium-module[data-module~="continuity-flow"],
+body.proai-inner-golden-r1.page-article .premium-module[data-module~="business-control-map"],
+body.proai-inner-golden-r1.page-article .premium-module[data-module~="definition-of-done"] {
+  --premium-module-accent: rgba(145, 137, 173, .58);
+}
+
+body.proai-inner-golden-r1.page-article .premium-module[data-module~="decision-matrix"],
+body.proai-inner-golden-r1.page-article .premium-module[data-module~="proposal-risk-ledger"],
+body.proai-inner-golden-r1.page-article .premium-module[data-module~="abc-comparison"] {
+  --premium-module-accent: rgba(140, 160, 173, .6);
+  background: linear-gradient(145deg, rgba(140, 160, 173, .045), rgba(255, 255, 255, .014));
 }
 
 body.proai-inner-golden-r1.page-article .bg-thread {

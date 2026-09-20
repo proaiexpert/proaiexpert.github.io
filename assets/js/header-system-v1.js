@@ -29,10 +29,11 @@
   let directionStartY = lastScrollY;
   let lastDirection = 0;
   let scrollTick = false;
+  let headerInteractionHold = false;
 
   const isMenuOpen = () => toggle.getAttribute('aria-expanded') === 'true' || nav.classList.contains('is-open');
-  const hasExplicitHeaderInteraction = moving =>
-    isMenuOpen() || (!moving && header.matches(':focus-within'));
+  const hasExplicitHeaderInteraction = () =>
+    isMenuOpen() || headerInteractionHold;
   const revealHeader = () => header.classList.remove('header-hidden');
 
   const activeAutohideGuard = () => {
@@ -68,6 +69,7 @@
     nav.classList.toggle('is-open', open);
     document.body.classList.toggle('menu-open', open);
     if (open) {
+      headerInteractionHold = true;
       releaseHeaderGuard();
       revealHeader();
     }
@@ -114,8 +116,7 @@
     const hideAfter = shortLandscape ? 90 : 120;
 
     const guard = activeAutohideGuard();
-    const moving = direction !== 0;
-    const explicitHeaderInteraction = hasExplicitHeaderInteraction(moving);
+    const explicitHeaderInteraction = hasExplicitHeaderInteraction();
     const guardOwnsViewport = Boolean(guard) && !explicitHeaderInteraction;
 
     if (guardOwnsViewport) {
@@ -145,6 +146,7 @@
   };
 
   const requestScrollSync = () => {
+    if (!isMenuOpen()) headerInteractionHold = false;
     if (scrollTick) return;
     scrollTick = true;
     window.requestAnimationFrame(syncScrollState);
@@ -156,11 +158,13 @@
   };
 
   header.addEventListener('focusin', () => {
+    headerInteractionHold = true;
     releaseHeaderGuard();
     revealHeader();
     resetAutoHide({ reveal: false });
   });
   header.addEventListener('focusout', () => {
+    headerInteractionHold = false;
     window.requestAnimationFrame(requestScrollSync);
   });
 

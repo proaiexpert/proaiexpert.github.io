@@ -1,7 +1,7 @@
 # ProAI Expert — Portfolio Experience Blueprint
 
-**Status:** Approved direction for design prototyping
-**Applies to:** `/case-studies/`, `/ru/case-studies/`, and all individual case pages
+**Status:** Approved direction for design prototyping  
+**Applies to:** `/case-studies/`, `/ru/case-studies/`, and all individual case pages  
 **Build order:** Financial Stream → Alina Horb → Local Repair Pro
 
 ## 1. Objective

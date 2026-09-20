@@ -1,6 +1,6 @@
 # HISTORICAL / SUPERSEDED — Financial Stream Portfolio Case Pack
 
-**Status:** Superseded on August 4, 2026.
+**Status:** Superseded on August 4, 2026.  
 **Use:** Historical audit trail only. Do not use this file as a current source of truth, implementation brief, claims reference, or production instruction.
 
 The former document at this path was prepared from an earlier July 2026 project state. Its assumptions, evidence values, service-scope conflicts, and production-status descriptions may no longer match the current website or approved evidence.

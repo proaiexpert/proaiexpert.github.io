@@ -1,9 +1,9 @@
 # ProAI Expert Portfolio Master Polish Synthesis V1
 
-**Status:** Current strategic source of truth for Portfolio Master Polish V1
-**Prepared:** 2026-07-24
-**Repository:** `proaiexpert/proaiexpert.github.io`
-**Baseline:** `2c2a9747f8ead94076b7793246c48db867c0e05c`
+**Status:** Current strategic source of truth for Portfolio Master Polish V1  
+**Prepared:** 2026-07-24  
+**Repository:** `proaiexpert/proaiexpert.github.io`  
+**Baseline:** `2c2a9747f8ead94076b7793246c48db867c0e05c`  
 **Program:** `PORTFOLIO MASTER POLISH V1`
 
 ---
@@ -765,58 +765,58 @@ Do not implement:
 
 ## Phase 0 — Documentation
 
-**Purpose:** establish canonical decisions and reusable standards.
-**Expected files:** strategy, factory standard, site-evolution roadmap.
-**Stop condition:** no public files changed.
-**Review gate:** owner approves documents.
+**Purpose:** establish canonical decisions and reusable standards.  
+**Expected files:** strategy, factory standard, site-evolution roadmap.  
+**Stop condition:** no public files changed.  
+**Review gate:** owner approves documents.  
 **Do not combine with:** HTML, CSS, JavaScript, images, deployment.
 
 ## Phase 1 — Truth and Navigation Correction
 
-**Purpose:** correct verified truth issues and complete shared orientation.
-**Expected files:** case HTML, metadata, structured data, minimal shared navigation styles/scripts where required.
-**Stop condition:** no flagship visual reconstruction.
-**Review gate:** source diff, rendered EN/RU review, link and metadata QA.
+**Purpose:** correct verified truth issues and complete shared orientation.  
+**Expected files:** case HTML, metadata, structured data, minimal shared navigation styles/scripts where required.  
+**Stop condition:** no flagship visual reconstruction.  
+**Review gate:** source diff, rendered EN/RU review, link and metadata QA.  
 **Do not combine with:** archive redesign or major case art-direction changes.
 
 ## Phase 2 — Archive Flagship Reconstruction
 
-**Purpose:** implement Trust Systems Atlas.
-**Expected files:** EN/RU archive HTML, archive CSS/JS, existing approved assets or strictly necessary derivatives.
-**Stop condition:** archive only, plus minimal required shared dependencies.
-**Review gate:** independent desktop/mobile visual review before merge.
+**Purpose:** implement Trust Systems Atlas.  
+**Expected files:** EN/RU archive HTML, archive CSS/JS, existing approved assets or strictly necessary derivatives.  
+**Stop condition:** archive only, plus minimal required shared dependencies.  
+**Review gate:** independent desktop/mobile visual review before merge.  
 **Do not combine with:** individual case redesign.
 
 ## Phase 3 — Financial Stream Polish
 
-**Purpose:** improve system visualization, orientation, proof hierarchy, and rhythm.
-**Expected files:** Financial Stream EN/RU HTML, case CSS/JS, approved existing proof assets.
-**Stop condition:** preserve truth and twelve-chapter architecture.
-**Review gate:** evidence, responsive, motion, and bilingual QA.
+**Purpose:** improve system visualization, orientation, proof hierarchy, and rhythm.  
+**Expected files:** Financial Stream EN/RU HTML, case CSS/JS, approved existing proof assets.  
+**Stop condition:** preserve truth and twelve-chapter architecture.  
+**Review gate:** evidence, responsive, motion, and bilingual QA.  
 **Do not combine with:** Alina or Local Repair polish.
 
 ## Phase 4A — Alina Horb Editorial Refinement
 
-**Purpose:** strengthen editorial rhythm and closing without technology spectacle.
-**Expected files:** Alina EN/RU case source and Alina-specific OG asset.
-**Stop condition:** preserve the human-first concept.
-**Review gate:** portrait, mobile, UA/RU truth, and reduced-motion review.
+**Purpose:** strengthen editorial rhythm and closing without technology spectacle.  
+**Expected files:** Alina EN/RU case source and Alina-specific OG asset.  
+**Stop condition:** preserve the human-first concept.  
+**Review gate:** portrait, mobile, UA/RU truth, and reduced-motion review.  
 **Do not combine with:** Local Repair styling.
 
 ## Phase 4B — Local Repair Request-Journey Refinement
 
-**Purpose:** correct framing and improve request-journey emphasis.
-**Expected files:** Local Repair EN/RU case source and existing case CSS/JS.
-**Stop condition:** no client implication and no strategy rewrite.
-**Review gate:** truth scan, narrow-mobile matrix review, chapter rhythm QA.
+**Purpose:** correct framing and improve request-journey emphasis.  
+**Expected files:** Local Repair EN/RU case source and existing case CSS/JS.  
+**Stop condition:** no client implication and no strategy rewrite.  
+**Review gate:** truth scan, narrow-mobile matrix review, chapter rhythm QA.  
 **Do not combine with:** archive or Alina redesign.
 
 ## Phase 5 — Cross-Site Integration and Final QA
 
-**Purpose:** connect homepage, services, Insights, archive, and case system.
-**Expected files:** only approved contextual bridge modules and shared shell refinements.
-**Stop condition:** no full-site redesign.
-**Review gate:** final EN/RU, accessibility, performance, links, metadata, and deployment review.
+**Purpose:** connect homepage, services, Insights, archive, and case system.  
+**Expected files:** only approved contextual bridge modules and shared shell refinements.  
+**Stop condition:** no full-site redesign.  
+**Review gate:** final EN/RU, accessibility, performance, links, metadata, and deployment review.  
 **Do not combine with:** future Site Experience V2.
 
 ---

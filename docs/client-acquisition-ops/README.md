@@ -1,8 +1,8 @@
 # ProAI Expert — Client Acquisition Operations Workspace
 
-**Status:** Active operating workspace
-**Created:** 2026-08-04
-**Operating owner:** Ihor Horb
+**Status:** Active operating workspace  
+**Created:** 2026-08-04  
+**Operating owner:** Ihor Horb  
 **Review cadence:** Weekly operating review
 
 ## Purpose

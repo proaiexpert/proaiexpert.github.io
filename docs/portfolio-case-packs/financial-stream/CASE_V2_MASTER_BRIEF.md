@@ -1,6 +1,6 @@
 # HISTORICAL / SUPERSEDED — Financial Stream Case Study V2 Master Brief
 
-**Status:** Superseded on August 4, 2026.
+**Status:** Superseded on August 4, 2026.  
 **Use:** Historical planning record only. Do not use this file as a current production source, evidence authority, implementation brief, or release checklist.
 
 The former V2 brief at this path was created before the current Financial Stream case source was restored and before the August 4, 2026 GSC evidence deployment. It contains outdated metrics, asset references, deployment assumptions, and production-status statements.

@@ -1,7 +1,7 @@
 # Multilingual Release Gate — Competitive Analysis and MVP Decision
 
-**Status:** Product research complete · Implementation not started
-**Reviewed:** 2026-08-03
+**Status:** Product research complete · Implementation not started  
+**Reviewed:** 2026-08-03  
 **Owner:** ProAI Expert
 
 ## Executive decision

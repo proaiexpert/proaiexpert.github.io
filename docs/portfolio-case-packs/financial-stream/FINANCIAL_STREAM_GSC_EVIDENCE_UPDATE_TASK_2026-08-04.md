@@ -1,7 +1,7 @@
 # Financial Stream GSC Evidence Update — Superseded
 
-**Status:** Archived implementation draft
-**Prepared:** August 4, 2026
+**Status:** Archived implementation draft  
+**Prepared:** August 4, 2026  
 **Superseded:** August 4, 2026
 
 This earlier task was replaced after a newer Google Search Console page-indexing screenshot was supplied.

@@ -1,9 +1,9 @@
 # HANDYMAN WEBSITE — PORTFOLIO CASE PACK
 
-**Project:** Local Repair Pro — Premium Handyman Website Concept
-**Company:** ProAI Expert
-**Public status:** Website concept — in development
-**Preview URL:** https://proai-expert.com/handyman-vancouver-portland-demo/
+**Project:** Local Repair Pro — Premium Handyman Website Concept  
+**Company:** ProAI Expert  
+**Public status:** Website concept — in development  
+**Preview URL:** https://proai-expert.com/handyman-vancouver-portland-demo/  
 **Repository:** `proaiexpert/handyman-vancouver-portland-demo`
 
 > Internal source-of-truth document. This project is a production-like demo concept, not a verified client engagement. Preserve the concept labeling and all claims restrictions when producing public portfolio materials.

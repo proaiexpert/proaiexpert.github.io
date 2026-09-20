@@ -103,13 +103,13 @@ const metadataManifest = [];
 
 for (const r of routes) {
   const rawMd = execSync(`git show origin/article-pairs-gemini-stage-v1:${r.srcFile}`, { encoding: 'utf8' });
-
+  
   const h1Match = rawMd.match(/^# (.*?)(?:\\r?\\n|$)/m);
   if (!h1Match) throw new Error("H1 not found in " + r.srcFile);
   const sourceH1 = h1Match[1].trim();
 
   let publicMd = rawMd.substring(rawMd.indexOf(h1Match[0]));
-
+  
   // Remove H1 from body
   publicMd = publicMd.replace(h1Match[0], '');
 
@@ -126,7 +126,7 @@ for (const r of routes) {
 
   // Apply visual module wrappers & contextual source wrappers
   const $ = cheerio.load(bodyHtml, null, false);
-
+  
   // Contextual source wrappers (Google, WCAG, Digital.gov, ICANN, U.S. Copyright Office, W3C)
   $('p, li').each((i, el) => {
     const text = $(el).text();
@@ -155,7 +155,7 @@ for (const r of routes) {
 
   // Other premium structural treatments (we can add some visual spacing around blockquotes and specific lists)
   $('blockquote').addClass('premium-quote');
-
+  
   // Create TOC
   const toc = [];
   $('h2').each((i, el) => {
@@ -180,7 +180,7 @@ for (const r of routes) {
       </ul>
     </nav>
   `;
-
+  
   const mobileTocHtml = `
     <nav class="premium-toc-mobile" aria-label="${r.lang === 'en' ? 'Table of Contents' : 'Оглавление'}">
       <div class="premium-toc-title">${r.lang === 'en' ? 'Contents' : 'Оглавление'}</div>
@@ -199,19 +199,19 @@ for (const r of routes) {
 
   // Integrity Checking
   const source$ = cheerio.load(marked.parse(rawMd.substring(rawMd.indexOf(h1Match[0]))), null, false);
-  const sourceHeadingCount = source$('h1, h2, h3, h4, h5, h6').length - 1;
+  const sourceHeadingCount = source$('h1, h2, h3, h4, h5, h6').length - 1; 
   const sourceParagraphCount = source$('p').length;
   const sourceListItemCount = source$('li').length;
   const sourceTableCellCount = source$('th, td').length;
   const sourceLinkCount = source$('a').length;
 
   const $r = cheerio.load(bodyHtml, null, false);
-  const renderedHeadingCount = $r('h1, h2, h3, h4, h5, h6').length;
+  const renderedHeadingCount = $r('h1, h2, h3, h4, h5, h6').length; 
   const renderedParagraphCount = $r('p').length;
   const renderedListItemCount = $r('li').length;
   const renderedTableCellCount = $r('th, td').length;
-  const renderedLinkCount = $r('a').length - 1;
-
+  const renderedLinkCount = $r('a').length - 1; 
+  
   $r('a').each((i, el) => {
     const href = $r(el).attr('href');
     if (href && href.startsWith('http')) {
@@ -261,7 +261,7 @@ for (const r of routes) {
   });
 
   const pairRoute = routes.find(x => x.id === r.pair);
-
+  
   const pageHtml = `<!DOCTYPE html>
 <html lang="${r.lang}">
 <head>
@@ -329,7 +329,7 @@ for (const r of routes) {
       <a href="${r.lang === 'ru' ? '/ru/insights/' : '/insights/'}">${r.lang === 'en' ? 'Insights' : 'Инсайты'}</a> <span>/</span> <span>${r.category}</span>
     </div>
     <a href="${r.hubLink}" style="color:var(--cyan); text-decoration:none; font-size:13px; font-weight:bold; margin-bottom:40px; display:inline-block;">${r.hubText}</a>
-
+    
     <header class="premium-article-header">
       <h1 class="premium-article-h1">${r.h1}</h1>
       <div class="premium-meta">
@@ -359,7 +359,7 @@ ${r.lang === 'ru' ? ruFooter : enFooter}
 </html>`;
 
   fs.writeFileSync(path.join(__dirname, r.destDir, 'index.html'), pageHtml);
-
+  
   metadataManifest.push({
     id: r.id, language: r.lang, route: r.route,
     htmlLangExpected: r.lang, htmlLangActual: r.lang, htmlLangExactMatch: true,

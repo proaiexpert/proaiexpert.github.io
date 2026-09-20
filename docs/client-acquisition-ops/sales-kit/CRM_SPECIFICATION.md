@@ -1,8 +1,8 @@
 # ProAI Expert — CRM Specification
 
-**Status:** Approved for initial use
-**Prepared:** 2026-08-04
-**Operating owner:** Ihor Horb
+**Status:** Approved for initial use  
+**Prepared:** 2026-08-04  
+**Operating owner:** Ihor Horb  
 **Review cadence:** Weekly
 
 ## Purpose

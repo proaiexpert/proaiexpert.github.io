@@ -8,25 +8,25 @@ The objective is not to make every repository look identical. The objective is t
 
 ## Core principles
 
-1. **English-first public presentation**
+1. **English-first public presentation**  
    Repository descriptions and primary README navigation should be understandable to an international GitHub audience. Russian- or Ukrainian-language destinations must be labeled explicitly.
 
-2. **Truthful project status**
+2. **Truthful project status**  
    Live client work, internal tools, public products, concepts, previews, archived duplicates, and planned work must never be presented as equivalent.
 
-3. **Canonical source clarity**
+3. **Canonical source clarity**  
    Every project must identify its canonical repository, live domain, case study, and current status where applicable.
 
-4. **Evidence discipline**
+4. **Evidence discipline**  
    Metrics, outcomes, rankings, inquiries, revenue, credentials, and client results may be stated only when verified, dated, and properly scoped.
 
-5. **Useful first screen**
+5. **Useful first screen**  
    A visitor should understand what the project is, whether it is live, who it serves, and where to go next without reading the entire README.
 
-6. **Public value over internal history**
+6. **Public value over internal history**  
    Public READMEs should prioritize project purpose, capabilities, evidence, and access. Long implementation history, obsolete ZIP notes, and temporary workflow details belong in `docs/` or internal handoffs.
 
-7. **No artificial credibility signals**
+7. **No artificial credibility signals**  
    Do not add fake badges, unsupported test percentages, fabricated downloads, fake reviews, guaranteed results, or decorative counters that imply unverified adoption.
 
 ---
@@ -256,8 +256,8 @@ Use only the sections that materially improve understanding.
 
 Short positioning statement.
 
-**Status:** Live client project · EN/RU
-**Live website:** https://example.com/
+**Status:** Live client project · EN/RU  
+**Live website:** https://example.com/  
 **Case study:** https://proai-expert.com/case-studies/example/
 
 One concise paragraph explaining the business problem, implemented system, and main user journey.
@@ -287,8 +287,8 @@ One concise paragraph explaining the business problem, implemented system, and m
 
 Short positioning statement.
 
-**Status:** Website concept · Client-facing demonstration
-**Operating-business status:** Not a verified operating business
+**Status:** Website concept · Client-facing demonstration  
+**Operating-business status:** Not a verified operating business  
 **Case study:** https://proai-expert.com/case-studies/example/
 
 One concise paragraph explaining what the concept demonstrates and which assumptions remain unverified.

@@ -1,7 +1,7 @@
 # ProAI Expert — Lead Qualification Checklist
 
-**Status:** Approved for initial use
-**Prepared:** 2026-08-04
+**Status:** Approved for initial use  
+**Prepared:** 2026-08-04  
 **Operating owner:** Ihor Horb
 
 ## Purpose

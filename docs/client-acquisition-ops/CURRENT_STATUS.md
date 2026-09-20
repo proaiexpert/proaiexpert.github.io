@@ -1,7 +1,7 @@
 # Client Acquisition — Current Status
 
-**Last updated:** 2026-08-04
-**Operating owner:** Ihor Horb
+**Last updated:** 2026-08-04  
+**Operating owner:** Ihor Horb  
 **Capacity mode:** Acquisition Mode
 
 ## Canonical direction

@@ -1,14 +1,14 @@
 # LOCAL_REPAIR_PRO_FLAGSHIP_CASE_PRODUCTION_SPEC_V1
 
-**Status:** Final production direction — ready for a single Codex implementation task after owner approval
-**Prepared:** 2026-07-22
-**Repository:** `proaiexpert/proaiexpert.github.io`
-**Working branch:** `portfolio-rebrand-v1`
-**Target routes:** `/case-studies/local-repair-pro/` and `/ru/case-studies/local-repair-pro/`
-**Public positioning:** Premium multi-page website for a local service business
-**Internal UX thesis:** From a vague repair need to a request ready for review
-**Signature system:** Photo-to-Scope Field System
-**Implementation authorization:** none
+**Status:** Final production direction — ready for a single Codex implementation task after owner approval  
+**Prepared:** 2026-07-22  
+**Repository:** `proaiexpert/proaiexpert.github.io`  
+**Working branch:** `portfolio-rebrand-v1`  
+**Target routes:** `/case-studies/local-repair-pro/` and `/ru/case-studies/local-repair-pro/`  
+**Public positioning:** Premium multi-page website for a local service business  
+**Internal UX thesis:** From a vague repair need to a request ready for review  
+**Signature system:** Photo-to-Scope Field System  
+**Implementation authorization:** none  
 **Publication authorization:** none
 
 ---

@@ -1,8 +1,8 @@
 # ProAI Expert — Portfolio Site Audit and Master Rollout Plan
 
-**Status:** Pre-implementation source of truth
-**Prepared:** July 2026
-**Repository:** `proaiexpert/proaiexpert.github.io`
+**Status:** Pre-implementation source of truth  
+**Prepared:** July 2026  
+**Repository:** `proaiexpert/proaiexpert.github.io`  
 **Public code freeze:** No portfolio-related public HTML, CSS, JavaScript, navigation, sitemap, redirects, or assets may be changed until the readiness gates in this document are completed.
 
 ---

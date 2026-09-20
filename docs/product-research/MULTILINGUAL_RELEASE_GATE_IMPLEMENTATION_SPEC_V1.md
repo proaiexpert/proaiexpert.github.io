@@ -1,8 +1,8 @@
 # Multilingual Release Gate — Implementation Specification V1
 
-**Status:** Approved product direction · Pre-implementation specification
-**Owner:** ProAI Expert
-**Working repository:** `proaiexpert/multilingual-release-gate`
+**Status:** Approved product direction · Pre-implementation specification  
+**Owner:** ProAI Expert  
+**Working repository:** `proaiexpert/multilingual-release-gate`  
 **Target first release:** `v0.1.0`
 
 ## 1. Product definition

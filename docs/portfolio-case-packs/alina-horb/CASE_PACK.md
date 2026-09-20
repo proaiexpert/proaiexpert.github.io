@@ -1,8 +1,8 @@
 # ALINA HORB WEBSITE — PORTFOLIO CASE PACK
 
-**Материалы для портфолио ProAI Expert**
-**Дата подготовки:** июль 2026 года
-**Публичный статус проекта:** Live project — ongoing refinement
+**Материалы для портфолио ProAI Expert**  
+**Дата подготовки:** июль 2026 года  
+**Публичный статус проекта:** Live project — ongoing refinement  
 **Production URL:** https://alinahorb.com/
 
 > Internal source-of-truth document. This is not final public portfolio copy. Preserve the verification, privacy, safety, and claims constraints below when creating public materials.

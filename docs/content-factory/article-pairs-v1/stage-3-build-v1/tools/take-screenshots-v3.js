@@ -9,7 +9,7 @@ const server = http.createServer((req, res) => {
   if (fs.existsSync(filePath) && fs.statSync(filePath).isDirectory()) {
     filePath = path.join(filePath, 'index.html');
   }
-  
+
   if (fs.existsSync(filePath)) {
     res.writeHead(200);
     res.end(fs.readFileSync(filePath));
@@ -21,21 +21,21 @@ const server = http.createServer((req, res) => {
 
 server.listen(3000, async () => {
   console.log('Server running on 3000');
-  
+
   const browser = await chromium.launch();
-  
+
   const outDir = path.join(__dirname, 'owner-review/article-stage-3-v3');
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-  
+
   const urls = [
     { url: 'http://localhost:3000/ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/', id: 'a1-ru' },
     { url: 'http://localhost:3000/insights/does-your-service-business-need-a-multilingual-website/', id: 'a1-en' },
     { url: 'http://localhost:3000/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/', id: 'a2-ru' },
     { url: 'http://localhost:3000/insights/how-to-evaluate-a-website-proposal/', id: 'a2-en' }
   ];
-  
+
   const manifest = [];
-  
+
   async function takeScreenshot(pageUrl, viewport, filename, purpose, fullPage, isReducedMotion = false) {
     const pageOptions = { viewport };
     if (isReducedMotion) {
@@ -46,14 +46,14 @@ server.listen(3000, async () => {
       await page.emulateMedia({ reducedMotion: 'reduce' });
     }
     await page.goto(pageUrl, { waitUntil: 'networkidle' });
-    
+
     // Check height
     const actualHeight = fullPage ? await page.evaluate(() => document.documentElement.scrollHeight) : viewport.height;
-    
+
     const p = path.join(outDir, filename);
     await page.screenshot({ path: p, fullPage });
     const buf = fs.readFileSync(p);
-    
+
     if (fullPage && actualHeight <= viewport.height) {
       console.warn(`WARNING: ${filename} height ${actualHeight} is not greater than viewport ${viewport.height}.`);
     }
@@ -61,7 +61,7 @@ server.listen(3000, async () => {
     const hash = crypto.createHash('sha256').update(buf).digest('hex');
     const duplicate = manifest.find(m => m.sha256 === hash);
     const hasDuplicate = !!duplicate;
-    
+
     manifest.push({
       filename,
       route: pageUrl.replace('http://localhost:3000', ''),
@@ -97,7 +97,7 @@ server.listen(3000, async () => {
   await takeScreenshot(urls[3].url, {width: 1440, height: 900}, '12-a2-en-risk-ledger-desktop.png', 'Risk ledger desktop', false);
   await takeScreenshot(urls[2].url, {width: 1440, height: 900}, '13-a2-ru-control-map-and-definition-of-done.png', 'Control map', false);
   await takeScreenshot(urls[3].url, {width: 390, height: 844}, '14-a2-en-abc-comparison-mobile.png', 'ABC Comparison mobile', false);
-  
+
   {
     const page = await browser.newPage({ viewport: {width: 390, height: 844} });
     await page.goto(urls[0].url, { waitUntil: 'networkidle' });

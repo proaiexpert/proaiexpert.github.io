@@ -1,6 +1,6 @@
 # HISTORICAL / SUPERSEDED — Financial Stream Case Pack Appendices
 
-**Status:** Superseded on August 4, 2026.  
+**Status:** Superseded on August 4, 2026.
 **Use:** Historical reference only. Do not use this file as a current evidence register, integration inventory, production instruction, or release checklist.
 
 The former appendices at this path were tied to an earlier source pack and may include stale URLs, integration status, screenshot inventories, or implementation assumptions. Current public behavior and evidence must be verified against current production source and the active evidence documents.

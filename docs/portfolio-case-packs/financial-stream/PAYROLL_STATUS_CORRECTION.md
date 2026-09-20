@@ -1,7 +1,7 @@
 # Financial Stream Payroll Status — Confirmed Correction
 
-**Status:** Active service  
-**Confirmed by:** business owner / project owner  
+**Status:** Active service
+**Confirmed by:** business owner / project owner
 **Date recorded:** July 2026
 
 Payroll is a current Financial Stream LLC service.

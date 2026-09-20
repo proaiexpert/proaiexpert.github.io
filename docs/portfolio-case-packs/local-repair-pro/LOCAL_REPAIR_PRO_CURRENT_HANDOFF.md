@@ -1,12 +1,12 @@
 # Local Repair Pro — Current Portfolio Handoff
 
-**Status:** Active canonical source of truth for Local Repair Pro portfolio planning  
-**Updated:** 2026-07-22  
-**Repository:** `proaiexpert/proaiexpert.github.io`  
-**Working branch:** `portfolio-rebrand-v1`  
-**Canonical file:** `docs/portfolio-case-packs/local-repair-pro/LOCAL_REPAIR_PRO_CURRENT_HANDOFF.md`  
-**Current controlling Production Spec:** `docs/portfolio-case-packs/local-repair-pro/LOCAL_REPAIR_PRO_FLAGSHIP_CASE_PRODUCTION_SPEC_V1.md`  
-**Implementation authorization:** none  
+**Status:** Active canonical source of truth for Local Repair Pro portfolio planning
+**Updated:** 2026-07-22
+**Repository:** `proaiexpert/proaiexpert.github.io`
+**Working branch:** `portfolio-rebrand-v1`
+**Canonical file:** `docs/portfolio-case-packs/local-repair-pro/LOCAL_REPAIR_PRO_CURRENT_HANDOFF.md`
+**Current controlling Production Spec:** `docs/portfolio-case-packs/local-repair-pro/LOCAL_REPAIR_PRO_FLAGSHIP_CASE_PRODUCTION_SPEC_V1.md`
+**Implementation authorization:** none
 **Publication authorization:** none
 
 ---

@@ -1533,88 +1533,6 @@
 }
 
 </style>
-<style id="mobile-header-global-fix">
-@media (max-width: 1100px), ((max-height: 540px) and (orientation: landscape)) {
-  header {
-    transition: transform 0.28s ease, opacity 0.28s ease !important;
-    will-change: transform;
-  }
-  header.header-hidden {
-    transform: translateY(calc(-100% - 2px)) !important;
-  }
-  .header-container {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-    gap: 12px !important;
-  }
-  .logo-block {
-    min-width: 0;
-    flex: 1 1 auto;
-    gap: 10px !important;
-  }
-  .logo-cube-container {
-    width: 24px !important;
-    height: 24px !important;
-    flex: 0 0 24px;
-  }
-  .logo-text {
-    font-size: clamp(15px, 5vw, 20px) !important;
-    line-height: 0.92 !important;
-    letter-spacing: -0.8px !important;
-  }
-  .site-nav {
-    display: none !important;
-  }
-  .site-nav.is-open {
-    display: flex !important;
-    position: fixed !important;
-    inset: 0 !important;
-    top: var(--header-h) !important;
-    z-index: 1100 !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    padding: max(30px, 6svh) 20px calc(34px + env(safe-area-inset-bottom)) !important;
-    background: linear-gradient(180deg, rgba(5,5,6,0.98) 0%, rgba(5,5,6,0.96) 100%) !important;
-    backdrop-filter: blur(22px) !important;
-    -webkit-backdrop-filter: blur(22px) !important;
-    overflow: auto !important;
-    min-height: calc(100svh - var(--header-h)) !important;
-  }
-  .site-nav.is-open a {
-    width: min(100%, 420px) !important;
-    margin-inline: auto !important;
-    font-size: clamp(22px, 6vw, 34px) !important;
-    line-height: 1.05 !important;
-    letter-spacing: -0.03em !important;
-    text-transform: none !important;
-    padding: 12px 0 !important;
-    opacity: 1 !important;
-  }
-  .header-actions {
-    flex: 0 0 auto !important;
-    margin-left: auto !important;
-    gap: 12px !important;
-  }
-  .header-actions .start-btn {
-    display: none !important;
-  }
-  .lang-link {
-    font-size: 14px !important;
-    font-weight: 900 !important;
-    letter-spacing: 0.4px !important;
-  }
-  .mobile-menu-toggle {
-    display: inline-flex !important;
-    position: relative !important;
-    z-index: 1102 !important;
-    width: 44px !important;
-    height: 44px !important;
-    flex: 0 0 44px !important;
-  }
-}
-</style>
 
 <link href="/mobile-behavior-v123.css" rel="stylesheet"/>
 <link href="/mobile-pass-v141.css?v=20260428" rel="stylesheet"/>
@@ -1660,9 +1578,9 @@
 
 
 <link rel="stylesheet" href="/assets/css/header-system-v1.css?v=20260804.1">
-<link rel="stylesheet" href="/assets/css/header-footer-logo-r1.css?v=20260814.1">
+<link rel="stylesheet" href="/assets/css/header-footer-logo-r1.css?v=20260919.1">
 <link rel="stylesheet" href="/assets/css/footer-system-v1.css?v=20260804.1">
-<link rel="stylesheet" href="/assets/css/inner-site-golden-r1.css?v=20260918.1">
+<link rel="stylesheet" href="/assets/css/inner-site-golden-r1.css?v=20260919.3">
 <meta property="og:image" content="https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png">
 <meta property="og:image:alt" content="ProAI Expert — От первого впечатления до результата — одна система.">
 <meta property="og:image:width" content="1200">
@@ -1696,19 +1614,19 @@
     </a>
 
     <nav class="site-header__nav" aria-label="Основная навигация" id="site-header-navigation-ru">
-      
+
       <a class="site-header__nav-link is-active" href="/ru/ai-systems/" aria-current="page">AI-системы</a>
-      
+
       <a class="site-header__nav-link" href="/ru/websites-branding/">Сайты и брендинг</a>
-      
+
       <a class="site-header__nav-link" href="/ru/case-studies/">Кейсы</a>
-      
+
       <a class="site-header__nav-link" href="/ru/about/">О нас</a>
-      
+
       <a class="site-header__nav-link" href="/ru/insights/">Материалы</a>
-      
+
       <a class="site-header__nav-link site-header__nav-link--mobile-only" href="/ru/contact/">Контакты</a>
-      
+
       <a class="site-header__mobile-cta" href="/ru/contact/#project-intake">Обсудить проект</a>
     </nav>
 
@@ -1923,7 +1841,7 @@
 
 <script>
     const body = document.body;
-    
+
     const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
     const siteNav = document.querySelector('.site-nav');
 
@@ -2066,154 +1984,120 @@
         entropyStage.addEventListener('mouseleave', resetEntropy, { passive: true });
     }
 </script>
-<script id="mobile-header-global-fix-script">
-(function(){
-  const header = document.querySelector('header');
-  const siteNav = document.querySelector('.site-nav');
-  const menuToggle = document.querySelector('.mobile-menu-toggle');
-  if (!header) return;
-
-  const mobileQuery = window.matchMedia('(max-width: 1100px), ((max-height: 540px) and (orientation: landscape))');
-  let lastY = window.scrollY || 0;
-  let ticking = false;
-  const threshold = 10;
-
-  function syncHeaderVisibility(force){
-    if (!mobileQuery.matches) {
-      header.classList.remove('header-hidden');
-      lastY = window.scrollY || 0;
-      return;
-    }
-
-    const currentY = window.scrollY || 0;
-    const delta = currentY - lastY;
-    const menuOpen = !!(siteNav && siteNav.classList.contains('is-open'));
-
-    if (force || menuOpen || currentY < 20) {
-      header.classList.remove('header-hidden');
-      lastY = currentY;
-      return;
-    }
-
-    if (delta > threshold) {
-      header.classList.add('header-hidden');
-    } else if (delta < -threshold) {
-      header.classList.remove('header-hidden');
-    }
-
-    lastY = currentY;
-  }
-
-  function onScroll(){
-    if (!ticking) {
-      ticking = true;
-      window.requestAnimationFrame(function(){
-        syncHeaderVisibility(false);
-        ticking = false;
-      });
-    }
-  }
-
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('touchmove', onScroll, { passive: true });
-  window.addEventListener('orientationchange', function(){ setTimeout(function(){ syncHeaderVisibility(true); }, 120); });
-  window.addEventListener('resize', function(){ syncHeaderVisibility(true); });
-
-  syncHeaderVisibility(true);
-})();
-</script>
 </div></div></section></main>
-<link rel="stylesheet" href="/assets/css/footer-system-foundation-v1.css?v=20260804.1">
-<link rel="stylesheet" href="/assets/css/footer-title-pulse-v1.css?v=20260804.1">
+<link rel="stylesheet" href="/assets/css/home-footer-golden-r3.css?v=20260819.1">
+<link rel="stylesheet" href="/assets/css/home-footer-golden-r3-1.css?v=20260820.1">
+<link rel="stylesheet" href="/assets/css/home-footer-golden-r3-2-polish.css?v=20260828.2">
+<link rel="stylesheet" href="/assets/css/home-footer-golden-r3-3-micro-polish.css?v=20260828.3">
+<link rel="stylesheet" href="/assets/css/home-footer-signature-r4.css?v=20260829.2">
 
 
-    
 
 
 
 
-<footer class="site-footer site-footer--commercial site-footer--service" data-footer-family="commercial" data-footer-variant="service">
-  <div class="site-footer__shell">
-    <div class="site-footer__main">
-      <div class="site-footer__cta" role="group" aria-labelledby="site-footer-title-ru-service">
-        <p class="site-footer__eyebrow">СЛЕДУЮЩИЙ ШАГ</p>
-        <h2 id="site-footer-title-ru-service">Превратим приоритет в работающую систему.</h2>
-        <p class="site-footer__summary">Определим первый практический этап, свяжем его с задачами бизнеса и реализуем без лишней сложности.</p>
-        
-        <a class="site-footer__primary-action" href="/ru/contact/#project-intake">Обсудить проект <span aria-hidden="true">→</span></a>
-        
-      </div>
 
-      <div class="site-footer__details">
-        <div class="site-footer__detail-group" role="group" aria-labelledby="site-footer-contact-ru-service">
-          <h3 id="site-footer-contact-ru-service">Начать разговор</h3>
-          
+
+
+
+
+
+
+
+
+
+
+
+
+
+<footer class="home-footer-golden-r3 home-footer-golden-r3--inner" data-home-footer-golden-r3 data-site-footer-canonical="golden-r1" data-footer-family="commercial" data-footer-variant="service" data-lang="ru">
+  <div class="home-footer-golden-r3__shell">
+    <div class="home-footer-golden-r3__main">
+      <section class="home-footer-golden-r3__cta" aria-labelledby="site-footer-title-ru-commercial-service">
+        <p class="home-footer-golden-r3__eyebrow">СЛЕДУЮЩИЙ ШАГ</p>
+        <h2 id="site-footer-title-ru-commercial-service">Превратим приоритет в работающую систему.</h2>
+        <p class="home-footer-golden-r3__summary">Определим первый практический этап, свяжем его с задачами бизнеса и реализуем без лишней сложности.</p>
+
+        <a class="home-footer-golden-r3__action" href="/ru/contact/#project-intake">Обсудить проект <span aria-hidden="true">→</span></a>
+
+      </section>
+
+      <div class="home-footer-golden-r3__utility">
+        <section class="home-footer-golden-r3__group home-footer-golden-r3__contact" aria-labelledby="site-footer-contact-ru-commercial-service">
+          <h3 id="site-footer-contact-ru-commercial-service">Начать разговор</h3>
+
 
 <a href="mailto:hello@proai-expert.com">hello@proai-expert.com</a>
 
 
-  
-  
+
+
   <a href="https://t.me/proAiexpert" target="_blank" rel="noopener noreferrer" aria-label="ProAI Expert в Telegram">Telegram <span aria-hidden="true">↗</span></a>
-  
 
 
-        </div>
 
-        <nav class="site-footer__detail-group site-footer__services" aria-label="Перейти">
+        </section>
+
+        <nav class="home-footer-golden-r3__group home-footer-golden-r3__capabilities" aria-label="Перейти">
           <h3>Перейти</h3>
-          
+
+
           <a href="/ru/ai-systems/">AI-системы и автоматизация</a>
-          
+
           <a href="/ru/websites-branding/">Сайты и брендинг</a>
-          
+
           <a href="/ru/case-studies/">Кейсы</a>
-          
+
         </nav>
       </div>
     </div>
 
-    <div class="site-footer__brand-zone" aria-hidden="true">
-  <span class="site-footer__watermark">PROAI EXPERT</span>
-</div>
+    <a class="home-footer-golden-r3__signature" href="/ru/" aria-label="Главная страница ProAI Expert" data-footer-material-zone>
+      <span class="home-footer-golden-r3__signature-light" aria-hidden="true"></span>
+      <span class="home-footer-golden-r3__signature-text" aria-hidden="true">PROAI EXPERT</span>
+    </a>
 
-    
+    <div class="home-footer-golden-r3__bottom">
+      <a class="home-footer-golden-r3__logo" href="/ru/" aria-label="Главная страница ProAI Expert">
+        <span class="proai-logo-r341 proai-logo-r341--footer">
+          <span class="proai-logo-r341__cube" aria-hidden="true"><img class="proai-logo-r341__static" src="/assets/brand/proai-logo-r341/proai-logo-r341-static-cube-320.png" alt="" width="320" height="320" loading="lazy" decoding="async"></span>
+          <span class="proai-logo-r341__wordmark" aria-hidden="true"><span class="proai-logo-r341__proai">ProAI</span><span class="proai-logo-r341__expert">Expert</span></span>
+        </span>
+      </a>
+
+      <nav class="home-footer-golden-r3__social-rail" aria-label="Профессиональные профили ProAI Expert">
 
 
 
-<div class="site-footer__bottom">
-  <a class="site-footer__logo" href="/ru/" aria-label="Главная страница ProAI Expert">
-    <span>PROAI</span><strong>EXPERT</strong>
-  </a>
+            <a href="https://www.linkedin.com/in/ihorhorb/" target="_blank" rel="noopener noreferrer" aria-label="Ihor Horb в LinkedIn">LinkedIn</a>
 
-  <nav class="site-footer__socials" aria-label="Профессиональные профили ProAI Expert">
-    
-      
-      <a href="https://www.linkedin.com/in/ihorhorb/" target="_blank" rel="noopener noreferrer" aria-label="Ihor Horb в LinkedIn">LinkedIn</a>
-    
-      
-      <a href="https://github.com/proaiexpert" target="_blank" rel="noopener noreferrer" aria-label="ProAI Expert на GitHub">GitHub</a>
-    
-      
-      <a href="https://x.com/proaiexpert" target="_blank" rel="noopener noreferrer" aria-label="ProAI Expert в X">X</a>
-    
-      
-      <a href="https://t.me/proAiexpert" target="_blank" rel="noopener noreferrer" aria-label="ProAI Expert в Telegram">Telegram</a>
-    
-  </nav>
 
-  <nav class="site-footer__locale" aria-label="Язык сайта">
-    <a href="/ai-systems/" lang="en" hreflang="en">EN</a>
-  </nav>
 
-  <p class="site-footer__copyright">© 2026 PROAI EXPERT. ВСЕ ПРАВА ЗАЩИЩЕНЫ.</p>
-</div>
 
+            <a href="https://github.com/proaiexpert" target="_blank" rel="noopener noreferrer" aria-label="ProAI Expert на GitHub">GitHub</a>
+
+
+
+
+            <a href="https://x.com/proaiexpert" target="_blank" rel="noopener noreferrer" aria-label="ProAI Expert в X">X</a>
+
+
+
+
+      </nav>
+
+      <nav class="home-footer-golden-r3__locale" aria-label="Язык сайта">
+        <a href="/ai-systems/" lang="en" hreflang="en">EN</a>
+      </nav>
+
+      <p class="home-footer-golden-r3__copyright">© 2026 PROAI EXPERT. ВСЕ ПРАВА ЗАЩИЩЕНЫ.</p>
+    </div>
   </div>
 </footer>
 
-
-<script src="/mobile-behavior-v123.js?v=124"></script>
+<script src="/assets/js/home-footer-golden-r3.js?v=20260828.4" defer></script>
+<script src="/assets/js/home-footer-signature-r4.js?v=20260829.2" defer></script>
+<script src="/mobile-behavior-v123.js?v=128"></script>
 <script>
 (function(){if(!window.chatbase||window.chatbase("getState")!=="initialized"){window.chatbase=(...arguments)=>{if(!window.chatbase.q){window.chatbase.q=[]}window.chatbase.q.push(arguments)};window.chatbase=new Proxy(window.chatbase,{get(target,prop){if(prop==="q"){return target.q}return(...args)=>target(prop,...args)}})}const onLoad=function(){const script=document.createElement("script");script.src="https://www.chatbase.co/embed.min.js";script.id="crIDC47ojqNdsypO4J7Lx";script.domain="www.chatbase.co";document.body.appendChild(script)};if(document.readyState==="complete"){onLoad()}else{window.addEventListener("load",onLoad)}})();
 </script>

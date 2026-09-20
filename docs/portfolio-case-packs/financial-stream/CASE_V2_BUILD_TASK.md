@@ -1,6 +1,6 @@
 # HISTORICAL / SUPERSEDED — Financial Stream Case Study V2 Build Task
 
-**Status:** Superseded on August 4, 2026.  
+**Status:** Superseded on August 4, 2026.
 **Use:** Historical planning record only. Do not execute this task against current production.
 
 The former build task at this path assumed a source/live mismatch that has since been resolved in repository source, and it prescribed obsolete Search Console figures and earlier asset handling. It must not be treated as a current implementation instruction.

@@ -1,7 +1,7 @@
 # Premium Site Experience Standard
 
-**Status:** Canonical Website Production Factory standard  
-**Prepared:** 2026-07-24  
+**Status:** Canonical Website Production Factory standard
+**Prepared:** 2026-07-24
 **Applies to:** Future ProAI Expert website projects, niche templates, demos, client sites, and production case extraction
 
 ---

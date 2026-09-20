@@ -1,12 +1,14 @@
 (function () {
   const mobileQuery = window.matchMedia('(max-width: 1200px), ((max-height: 540px) and (orientation: landscape))');
-  const header = document.querySelector('.global-header') || document.querySelector('header');
-  const siteNav = header ? header.querySelector('.site-nav') : document.querySelector('.site-nav');
-  const menuToggle = header ? header.querySelector('.mobile-menu-toggle') : document.querySelector('.mobile-menu-toggle');
   const root = document.documentElement;
   const body = document.body;
+  const ownsLegacyHeader = !body.classList.contains('proai-inner-golden-r1');
+  const header = ownsLegacyHeader ? (document.querySelector('.global-header') || document.querySelector('header:not([data-site-header])')) : null;
+  const siteNav = header ? header.querySelector('.site-nav') : null;
+  const menuToggle = header ? header.querySelector('.mobile-menu-toggle') : null;
 
   function installRuntimeFixes() {
+    if (!ownsLegacyHeader) return;
     if (document.getElementById('mobile-behavior-runtime-fixes-v127')) return;
     const style = document.createElement('style');
     style.id = 'mobile-behavior-runtime-fixes-v127';

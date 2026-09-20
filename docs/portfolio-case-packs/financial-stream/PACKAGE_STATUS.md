@@ -1,6 +1,6 @@
 # HISTORICAL / SUPERSEDED — Financial Stream Package Status
 
-**Status:** Superseded on August 4, 2026.  
+**Status:** Superseded on August 4, 2026.
 **Use:** Historical package record only. Do not use this file to determine current production status, deployment state, evidence values, or remaining work.
 
 The former status file predated the restored Financial Stream case source and the August 4, 2026 GSC evidence release. Its source/live mismatch, implementation-stage description, and legacy evidence inventory are no longer current.

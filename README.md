@@ -123,9 +123,9 @@ This repository maintains the [ProAI Expert Public GitHub Repository Standard](d
 
 ## Founder
 
-**Ihor Horb**  
-Founder · Strategy & Systems Architecture, ProAI Expert  
-Washington, USA  
+**Ihor Horb**
+Founder · Strategy & Systems Architecture, ProAI Expert
+Washington, USA
 Working in English, Russian, and Ukrainian.
 
 - Website: https://proai-expert.com/

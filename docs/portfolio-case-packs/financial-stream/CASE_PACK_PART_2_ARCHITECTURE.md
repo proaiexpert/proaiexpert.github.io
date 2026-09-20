@@ -1,6 +1,6 @@
 # HISTORICAL / SUPERSEDED — Financial Stream Architecture Pack
 
-**Status:** Superseded on August 4, 2026.  
+**Status:** Superseded on August 4, 2026.
 **Use:** Historical audit trail only. Do not use this file as a current architecture, service-scope, indexing, automation, or production instruction.
 
 The former document at this path described an earlier project state, including obsolete Search Console totals, outdated Payroll assumptions, and a resolved source/live mismatch. Those statements are not current authority.

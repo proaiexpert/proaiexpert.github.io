@@ -1,6 +1,6 @@
 # HISTORICAL / SUPERSEDED — Financial Stream Evidence and Framing Pack
 
-**Status:** Superseded on August 4, 2026.  
+**Status:** Superseded on August 4, 2026.
 **Use:** Historical audit trail only. Do not use this file for current evidence, public copy, screenshots, claim framing, implementation, or QA.
 
 The former document at this path contained earlier three-month Search Console figures, older indexing totals, obsolete screenshot names, and pre-production recommendations. It is not a current source of truth.

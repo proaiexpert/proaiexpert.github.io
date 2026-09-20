@@ -7,7 +7,7 @@ const { MODULES } = require('./stage3-config');
 
 const repoRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf8' }).trim();
 
-const buildDateStr = '2026-08-01'; 
+const buildDateStr = '2026-08-01';
 
 const routes = [
   {
@@ -107,12 +107,12 @@ const routes = [
 function extractNavAndFooter(filePath, isRu) {
   const fileContent = fs.readFileSync(path.join(repoRoot, filePath), 'utf8');
   const $ = cheerio.load(fileContent, null, false);
-  
+
   // Fix active nav
   $('#site-navigation a').removeClass('is-active').removeAttr('aria-current');
   const insightHref = isRu ? '/ru/insights/' : '/insights/';
   $(`#site-navigation a[href="${insightHref}"]`).addClass('is-active').attr('aria-current', 'page');
-  
+
   // Fix footer CTA
   const ctaHref = isRu ? '/ru/contact/#project-intake' : '/contact/#project-intake';
   $('footer#contact .f-cta-btn').attr('href', ctaHref);
@@ -133,7 +133,7 @@ function normalizeText(text) {
 function processArticle(r) {
   // We use git show to get exact bytes, but specifying utf8
   const rawMd = execSync(`git show origin/article-pairs-gemini-stage-v1:${r.srcFile}`, { encoding: 'utf8', cwd: repoRoot });
-  
+
   const h1Match = rawMd.match(/^# (.*?)(?:\\r?\\n|$)/m);
   if (!h1Match) throw new Error("H1 not found in " + r.srcFile);
   const sourceH1 = h1Match[1].trim();
@@ -158,7 +158,7 @@ function processArticle(r) {
       firstQuote.remove();
     }
   }
-  
+
   // Add premium source blocks
   $('p, li').each((i, el) => {
     const text = $(el).text();
@@ -183,7 +183,7 @@ function processArticle(r) {
   });
 
   $('blockquote').addClass('premium-quote');
-  
+
   // Premium Module semantic wrappers
   const legacyModuleMap = {
     'Гипотетический сценарий: разорванный языковой путь': 'broken-language-journey',
@@ -272,7 +272,7 @@ function processArticle(r) {
       $(el).before(wrapper);
       wrapper.append(el);
       wrapper.append(nextSiblings);
-      
+
       // If it's a risk module, color its table cells
       if (/\b(?:abc-comparison|proposal-risk-ledger|explicit-risk-summary)\b/.test(moduleTokens)) {
         wrapper.find('td, th').each((j, td) => {
@@ -309,7 +309,7 @@ function processArticle(r) {
       </ul>
     </nav>
   `;
-  
+
   const mobileTocHtml = `
     <nav class="premium-toc-mobile" aria-label="${r.lang === 'en' ? 'Table of Contents' : 'Оглавление'}">
       <div class="premium-toc-title">${r.lang === 'en' ? 'Contents' : 'Оглавление'}</div>
@@ -394,7 +394,7 @@ function processArticle(r) {
       <a href="${r.lang === 'ru' ? '/ru/insights/' : '/insights/'}">${r.lang === 'en' ? 'Insights' : 'Инсайты'}</a> <span>/</span> <span>${r.category}</span>
     </div>
     <a href="${r.hubLink}" style="color:var(--cyan); text-decoration:none; font-size:13px; font-weight:bold; margin-bottom:40px; display:inline-block;">${r.hubText}</a>
-    
+
     <header class="premium-article-header">
       <h1 class="premium-article-h1">${r.h1}</h1>
       <div class="premium-meta">

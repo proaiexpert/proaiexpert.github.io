@@ -1,12 +1,12 @@
 # ProAI Expert — Client Acquisition Operating Plan
 
-**Status:** Canonical client-acquisition operating plan  
-**Approved:** 2026-08-04  
-**Operating owner:** Ihor Horb  
-**Social strategy owner:** Social Media Project  
-**Sales strategy owner:** ProAI Expert Business Development Project  
-**Review cadence:** Weekly operating review; monthly strategic review  
-**Repository:** `proaiexpert/proaiexpert.github.io`  
+**Status:** Canonical client-acquisition operating plan
+**Approved:** 2026-08-04
+**Operating owner:** Ihor Horb
+**Social strategy owner:** Social Media Project
+**Sales strategy owner:** ProAI Expert Business Development Project
+**Review cadence:** Weekly operating review; monthly strategic review
+**Repository:** `proaiexpert/proaiexpert.github.io`
 **Canonical path:** `docs/CLIENT_ACQUISITION_SOCIAL_AND_SALES_PLAN.md`
 
 ## 1. Authority and source-of-truth rule

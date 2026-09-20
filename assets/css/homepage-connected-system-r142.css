@@ -28,174 +28,622 @@
   padding-bottom:clamp(64px,7vw,104px);
 }
 
+/* R1.4.6 mobile source fix: the base atmospheric pseudo-element uses
+   horizontal inset:-10%, enlarging the real mobile document width by exactly
+   10% of the Connected System width. Preserve desktop authority; constrain
+   only the mobile/tablet geometry. */
+@media (max-width:900px){
+  .connected-next.connected-next--production::before{
+    left:0;
+    right:0;
+  }
+}
+
 .connected-next.connected-next--production button { font:inherit; }
-
-/* Hero -> Connected: keep the first state calm and visually separate without
-   inserting another bridge component. */
-#hero + .connected-next.connected-next--production {
-  margin-top:0;
-}
-
-/* Connected -> Two Worlds: the sticky composition must fully release before
-   the next approved block becomes the visual authority. */
-.connected-next.connected-next--production + .tw-r2 {
-  position:relative;
-  z-index:1;
-}
-
-.connected-next--production .connected-next__footer {
-  padding-bottom:0;
-}
-.connected-next--production .connected-next__footer > p {
-  max-width:760px;
-}
-
-/* Production has fixed-language pages; review controls/registers never render. */
+#hero + .connected-next.connected-next--production { margin-top:0; }
+.connected-next.connected-next--production + .tw-r2 { position:relative;z-index:1; }
+.connected-next--production .connected-next__footer { padding-bottom:0; }
+.connected-next--production .connected-next__footer > p { max-width:760px; }
 .connected-next--production .review-language,
 .connected-next--production .connected-next__register { display:none !important; }
-
-/* Progressive fallback local to this component. JS removes this class at init. */
-.connected-next--production.connected-next--nojs .connected-next__experience {
-  min-height:auto !important;
-  padding-top:28px;
-}
-.connected-next--production.connected-next--nojs .connected-next__sticky-stage {
-  position:static !important;
-  min-height:0 !important;
-  align-items:start;
-}
-.connected-next--production.connected-next--nojs .ledger-plate {
-  min-height:auto !important;
-  height:auto !important;
-  opacity:1 !important;
-  transform:none !important;
-  overflow:visible !important;
-}
-.connected-next--production.connected-next--nojs .ledger-detail {
-  display:grid !important;
-  visibility:visible !important;
-  opacity:1 !important;
-  max-height:none !important;
-  height:auto !important;
-}
-.connected-next--production.connected-next--nojs .state-ledger {
-  gap:10px;
-}
+.connected-next--production.connected-next--nojs .connected-next__experience { min-height:auto !important;padding-top:28px; }
+.connected-next--production.connected-next--nojs .connected-next__sticky-stage { position:static !important;min-height:0 !important;align-items:start; }
+.connected-next--production.connected-next--nojs .ledger-plate { min-height:auto !important;height:auto !important;opacity:1 !important;transform:none !important;overflow:visible !important; }
+.connected-next--production.connected-next--nojs .ledger-detail { display:grid !important;visibility:visible !important;opacity:1 !important;max-height:none !important;height:auto !important; }
+.connected-next--production.connected-next--nojs .state-ledger { gap:10px; }
 
 @media (max-width:700px) {
-  .connected-next.connected-next--production {
-    width:min(100% - 28px,640px);
-    padding-top:34px;
-    padding-bottom:58px;
-  }
-  .connected-next--production.connected-next--nojs .connected-next__sticky-stage {
-    display:block !important;
-  }
-  .connected-next--production.connected-next--nojs .ledger-zone {
-    margin-top:22px;
-  }
+  .connected-next.connected-next--production { width:min(100% - 28px,640px);padding-top:34px;padding-bottom:58px; }
+  .connected-next--production.connected-next--nojs .connected-next__sticky-stage { display:block !important; }
+  .connected-next--production.connected-next--nojs .ledger-zone { margin-top:22px; }
 }
-
 @media (max-height:520px) and (min-width:701px) {
-  .connected-next.connected-next--production {
-    width:min(100% - 34px,1440px);
-    padding-top:22px;
-    padding-bottom:36px;
-  }
+  .connected-next.connected-next--production { width:min(100% - 34px,1440px);padding-top:22px;padding-bottom:36px; }
 }
 
-/* =========================================================
-   R1.4.3 — MOBILE STATE / TYPOGRAPHY FINALIZATION
-   Stability is governed in JS. This layer only widens mobile reading runway,
-   protects long EN/RU labels, and tightens material hierarchy.
-   ========================================================= */
-
-/* Slightly denser active graphite with a precise directional material edge. */
+/* R1.4.3 — MOBILE STATE / TYPOGRAPHY FINALIZATION */
 .ledger-plate.is-active{
-  background:
-    linear-gradient(104deg,rgba(255,255,255,.030) 0%,rgba(255,255,255,.009) 27%,transparent 44%),
-    radial-gradient(118% 94% at 5% 0%,rgba(246,242,233,.062),transparent 44%),
-    linear-gradient(111deg,#1d1f20 0%,#161819 53%,#0e1011 100%);
+  background:linear-gradient(104deg,rgba(255,255,255,.030) 0%,rgba(255,255,255,.009) 27%,transparent 44%),radial-gradient(118% 94% at 5% 0%,rgba(246,242,233,.062),transparent 44%),linear-gradient(111deg,#1d1f20 0%,#161819 53%,#0e1011 100%);
 }
-.ledger-plate.is-active .ledger-plate__edge{
-  width:1px;
-  background:linear-gradient(180deg,rgba(247,243,234,.78),rgba(226,222,214,.38) 58%,rgba(142,147,148,.08));
-}
-.ledger-plate.is-past .ledger-detail,
-.ledger-plate.is-future .ledger-detail{opacity:0!important}
-
-/* Existing component grids keep their geometry, but every cell owns a real safe box. */
-.customer-components,
-.assistive-components,
-.resolution-components{min-width:0}
-.customer-components span,
-.assistive-components span,
-.resolution-components span{
-  min-width:0;
-  max-width:100%;
-  overflow:visible;
-  white-space:normal;
-  overflow-wrap:normal;
-  word-break:normal;
-}
-
+.ledger-plate.is-active .ledger-plate__edge{width:1px;background:linear-gradient(180deg,rgba(247,243,234,.78),rgba(226,222,214,.38) 58%,rgba(142,147,148,.08));}
+.ledger-plate.is-past .ledger-detail,.ledger-plate.is-future .ledger-detail{opacity:0!important}
+.customer-components,.assistive-components,.resolution-components{min-width:0}
+.customer-components span,.assistive-components span,.resolution-components span{min-width:0;max-width:100%;overflow:visible;white-space:normal;overflow-wrap:normal;word-break:normal;}
 @media (max-width:700px){
-  /* Wider physical runway makes stage 01 and each following semantic state stoppable. */
   .connected-next__experience{min-height:235svh}
-
-  .ledger-plate.is-active{
-    min-height:240px;
-    padding-bottom:24px;
-  }
+  .ledger-plate.is-active{min-height:240px;padding-bottom:24px;}
   .ledger-plate.is-active .ledger-detail{max-height:238px}
-  .ledger-plate.is-active .ledger-components{
-    max-width:100%;
-    overflow:visible;
-    line-height:1.4;
-  }
-
-  /* Preserve geometry while preventing historical wording from reading beneath authority. */
+  .ledger-plate.is-active .ledger-components{max-width:100%;overflow:visible;line-height:1.4;}
   .context-artifact[data-state="3"] .customer-components{opacity:.14!important}
   .context-artifact[data-state="4"] .assistive-components{opacity:.10!important}
-
-  .assistive-components,
-  .resolution-components{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .assistive-components,.resolution-components{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .resolution-components{left:13%;right:5%;column-gap:10px}
   .assistive-components{right:8%;column-gap:10px}
 }
-
 @media (max-width:390px){
   .resolution-components{left:12%;right:4%;column-gap:8px}
   .assistive-components{left:14%;right:7%;column-gap:8px}
-  .connected-next[data-language="ru"] .resolution-components span,
-  .connected-next[data-language="ru"] .assistive-components span{letter-spacing:.045em}
+  .connected-next[data-language="ru"] .resolution-components span,.connected-next[data-language="ru"] .assistive-components span{letter-spacing:.045em}
 }
-
-/* Low landscape: safe text boxes without shrinking the semantic typography globally. */
 @media (max-height:520px) and (min-width:701px){
-  .ledger-plate.is-active{
-    min-height:164px;
-    padding-bottom:16px;
-  }
+  .ledger-plate.is-active{min-height:164px;padding-bottom:16px;}
   .ledger-plate.is-active .ledger-detail{max-height:138px}
   .ledger-plate.is-active .ledger-components{line-height:1.22}
-
-  .assistive-components,
-  .resolution-components{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .assistive-components,.resolution-components{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .assistive-components{left:14%;right:7%;gap:7px 10px}
   .resolution-components{left:12%;right:4%;gap:6px 10px}
-  .assistive-components span,
-  .resolution-components span{letter-spacing:.045em;line-height:1.14}
+  .assistive-components span,.resolution-components span{letter-spacing:.045em;line-height:1.14}
 }
-
-/* RESULT stays restrained champagne; improve separation, not brightness. */
 .connected-next[data-active-stage="4"] .ledger-plate[data-stage-button="4"]{
-  background:
-    linear-gradient(104deg,rgba(240,218,183,.040) 0%,rgba(240,218,183,.009) 28%,transparent 45%),
-    radial-gradient(120% 96% at 6% 0%,rgba(233,207,167,.12),transparent 45%),
-    linear-gradient(109deg,#221e19 0%,#191612 49%,#101110 100%);
+  background:linear-gradient(104deg,rgba(240,218,183,.040) 0%,rgba(240,218,183,.009) 28%,transparent 45%),radial-gradient(120% 96% at 6% 0%,rgba(233,207,167,.12),transparent 45%),linear-gradient(109deg,#221e19 0%,#191612 49%,#101110 100%);
+}
+@media (prefers-reduced-motion:reduce){.ledger-plate,.ledger-plate__edge{transition:none!important}}
+
+/* =========================================================
+   R1.4.6 — DETERMINISTIC MOBILE STABILIZATION
+   Physical scroll zones are the only mobile state authority.
+   Geometry reserves independent artifact and ledger regions.
+   ========================================================= */
+
+@media (max-width:700px){
+  .connected-next{
+    --r146-artifact-h:clamp(292px,39svh,326px);
+    --r146-safe-gap:16px;
+  }
+
+  /* Compact physical runway: four readable zones without an invisible long tail. */
+  .connected-next__experience{
+    min-height:225svh;
+    padding-top:12px;
+    overflow-anchor:none;
+  }
+
+  /* Portrait is explicit flow geometry: artifact, safe gap, ledger. */
+  .connected-next__sticky-stage{
+    position:sticky;
+    top:6px;
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto;
+    gap:var(--r146-safe-gap);
+    align-content:start;
+    align-items:start;
+    min-height:0;
+    width:100%;
+    max-width:100%;
+    overflow-anchor:none;
+  }
+
+  .artifact-zone,
+  .ledger-zone{
+    position:relative;
+    top:auto!important;
+    left:auto;
+    right:auto;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    margin:0!important;
+  }
+
+  .artifact-zone{
+    z-index:auto!important;
+    min-height:var(--r146-artifact-h);
+    background:none!important;
+  }
+
+  .artifact-zone::after,
+  .ledger-zone::before{
+    display:none!important;
+  }
+
+  .context-artifact{
+    width:100%;
+    max-width:100%;
+    height:var(--r146-artifact-h);
+    min-height:0;
+    /* Artifact is the intended local visual boundary. Contain polygon/text
+       internals here instead of masking document overflow globally. */
+    overflow:clip;
+  }
+
+  .ledger-zone{
+    z-index:auto!important;
+    align-self:start;
+    padding:0!important;
+    isolation:isolate;
+  }
+
+  /* The artifact and ledger no longer resolve collisions via stacking order. */
+  .connected-next[data-active-stage="4"] .artifact-zone,
+  .connected-next[data-active-stage="4"] .ledger-zone,
+  .connected-next.is-result-plateau .ledger-zone{
+    z-index:auto!important;
+  }
+
+  .ledger-heading{
+    margin:0 2px 8px;
+  }
+
+  .state-ledger{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    overflow-anchor:none;
+  }
+
+  .state-ledger li+li{
+    margin-top:-4px;
+  }
+
+  .ledger-plate{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    box-sizing:border-box;
+  }
+
+  /* P0 stability: mobile readability must not depend on an interrupted
+     max-height/opacity transition during Safari momentum scrolling. */
+  .ledger-detail{
+    transition:none!important;
+  }
+
+  .ledger-plate.is-active{
+    min-height:210px;
+    padding:14px 18px 18px;
+  }
+
+  .ledger-plate.is-active .ledger-detail{
+    max-height:205px;
+    opacity:1!important;
+    transform:none!important;
+    visibility:visible!important;
+  }
+
+  .ledger-plate.is-past,
+  .ledger-plate.is-future{
+    min-height:46px;
+    padding-top:11px;
+    padding-bottom:10px;
+  }
+
+  /* Preserve R1.4.4 RU polygon-safe typography without its overlap mechanics. */
+  .origin-lane{padding-left:5%;padding-right:22%!important}
+  .origin-lane span{display:block;max-width:68%;white-space:nowrap;overflow:visible}
+  .assistive-layer__head{left:13%!important;right:9%!important}
+  .assistive-components{left:15%!important;right:8%!important;gap:9px 8px!important}
+  .assistive-components span{padding-left:1px;padding-right:2px}
+  .authority-cue{left:13%!important;right:9%!important}
+  .resolution-layer__head{left:15%!important;right:8%!important}
+  .resolution-title{left:15%!important;max-width:76%!important}
+  .resolution-components{left:16%!important;right:8%!important;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)!important;gap:7px 8px!important}
+  .resolution-components span{padding-left:1px;padding-right:1px}
+
+  .connected-next[data-language="ru"] .origin-lane span{letter-spacing:-.01em}
+  .connected-next[data-language="ru"] .assistive-layer{right:5.5%!important}
+  .connected-next[data-language="ru"] .assistive-components span,
+  .connected-next[data-language="ru"] .resolution-components span{letter-spacing:-.012em!important}
+  .connected-next[data-language="ru"] .resolution-title{font-size:clamp(18px,5.35vw,23px)!important;line-height:.94!important}
 }
 
-@media (prefers-reduced-motion:reduce){
-  .ledger-plate,.ledger-plate__edge{transition:none!important}
+@media (max-width:390px){
+  .connected-next{
+    --r146-artifact-h:clamp(286px,38svh,310px);
+    --r146-safe-gap:14px;
+  }
+  .connected-next__experience{min-height:228svh}
+  .ledger-plate.is-active{min-height:204px;padding-left:16px;padding-right:16px}
+  .resolution-components{left:15%!important;right:7%!important;gap:6px!important}
+}
+
+@media (max-height:520px) and (min-width:701px){
+  /* Landscape uses two reserved columns rather than portrait stacking. */
+  .connected-next__experience{
+    min-height:245svh!important;
+    padding-top:6px;
+    overflow-anchor:none;
+  }
+
+  .connected-next__sticky-stage{
+    position:sticky!important;
+    top:4px!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1.58fr) minmax(286px,.92fr)!important;
+    grid-template-rows:1fr!important;
+    gap:16px!important;
+    align-items:center!important;
+    align-content:center!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-height:0!important;
+    height:calc(100svh - 8px)!important;
+  }
+
+  .artifact-zone,
+  .ledger-zone{
+    position:relative!important;
+    top:auto!important;
+    left:auto!important;
+    right:auto!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:0!important;
+    z-index:auto!important;
+  }
+
+  .artifact-zone::after,
+  .ledger-zone::before{
+    display:none!important;
+  }
+
+  .context-artifact{
+    width:100%!important;
+    max-width:100%!important;
+    height:min(94svh,366px)!important;
+    min-height:0!important;
+    overflow:clip!important;
+  }
+
+  .ledger-zone{
+    align-self:center!important;
+  }
+
+  .ledger-heading{margin:0 2px 6px!important}
+  .state-ledger{width:100%;max-width:100%;min-width:0}
+  .state-ledger li+li{margin-top:-4px}
+
+  .ledger-plate{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    box-sizing:border-box;
+  }
+
+  .ledger-detail{
+    transition:none!important;
+  }
+
+  .ledger-plate.is-active{
+    min-height:150px;
+    padding:11px 14px 13px;
+  }
+  .ledger-plate.is-active .ledger-detail{
+    max-height:132px;
+    opacity:1!important;
+    transform:none!important;
+    visibility:visible!important;
+  }
+  .ledger-plate.is-past,
+  .ledger-plate.is-future{
+    min-height:42px;
+    padding:8px 12px 8px;
+  }
+
+  .origin-lane{padding-left:5%!important;padding-right:23%!important}
+  .origin-lane span{display:block;max-width:67%;white-space:nowrap;overflow:visible}
+  .assistive-layer__head{left:14%!important;right:9%!important}
+  .assistive-components{left:14%!important;right:5%!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:6px!important}
+  .authority-cue{left:13%!important;right:8%!important}
+  .resolution-layer__head{left:15%!important;right:7%!important}
+  .resolution-title{left:15%!important;top:29%!important;max-width:76%!important}
+  .resolution-components{left:16%!important;right:7%!important;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)!important;gap:5px 6px!important}
+
+  .connected-next[data-language="ru"] .origin-lane span{font-size:8.1px!important;letter-spacing:-.015em!important}
+  .connected-next[data-language="ru"] .assistive-components span{font-size:7.6px!important;letter-spacing:-.018em!important;line-height:1.12!important}
+  .connected-next[data-language="ru"] .resolution-components span{font-size:7.7px!important;letter-spacing:-.018em!important;line-height:1.12!important}
+  .connected-next[data-language="ru"] .resolution-title{font-size:clamp(21px,2.55vw,24.5px)!important;line-height:.94!important;letter-spacing:-.045em!important}
+  .connected-next[data-language="ru"] .assistive-layer__head strong{max-width:160px!important;font-size:11px!important}
+  .connected-next[data-language="ru"] .authority-cue{font-size:6.7px!important;letter-spacing:.02em!important}
+}
+
+
+/* =========================================================
+   R1.4.6.1 — OWNER IPHONE TYPOGRAPHY / AIR POLISH
+   Real-device follow-up only. Interaction/state authority is untouched.
+   ========================================================= */
+
+/* Portrait RU: preserve the existing artifact shapes, but move their usable
+   text windows inward from the clipped polygon edges and distribute the
+   two-column labels more evenly. */
+@media (max-width:700px){
+  .connected-next[data-language="ru"] .assistive-layer{
+    right:2%!important;
+    width:56%!important;
+  }
+  .connected-next[data-language="ru"] .assistive-layer__head{
+    left:12%!important;
+    right:6%!important;
+  }
+  .connected-next[data-language="ru"] .assistive-components{
+    left:12%!important;
+    right:4%!important;
+    grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr)!important;
+    gap:9px 11px!important;
+  }
+  .connected-next[data-language="ru"] .assistive-components span{
+    min-width:0!important;
+    padding-left:0!important;
+    padding-right:0!important;
+    font-size:clamp(7.55px,2.02vw,8.35px)!important;
+    line-height:1.16!important;
+    letter-spacing:-.018em!important;
+    white-space:nowrap!important;
+  }
+
+  .connected-next[data-language="ru"] .resolution-layer{
+    right:1.5%!important;
+    width:50%!important;
+  }
+  .connected-next[data-language="ru"] .resolution-layer__head{
+    left:13%!important;
+    right:5%!important;
+  }
+  .connected-next[data-language="ru"] .resolution-title{
+    left:13%!important;
+    max-width:80%!important;
+  }
+  .connected-next[data-language="ru"] .resolution-components{
+    left:13%!important;
+    right:4%!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    column-gap:11px!important;
+    row-gap:8px!important;
+  }
+  .connected-next[data-language="ru"] .resolution-components span{
+    min-width:0!important;
+    padding-left:0!important;
+    padding-right:0!important;
+    font-size:clamp(7.45px,1.98vw,8.2px)!important;
+    line-height:1.16!important;
+    letter-spacing:-.018em!important;
+    white-space:normal!important;
+  }
+
+  /* A little more internal breathing room in the active reading plate without
+     changing its physical state zone or total mobile composition. */
+  .connected-next[data-language="ru"] .ledger-plate.is-active{
+    padding-left:19px;
+    padding-right:19px;
+  }
+  .connected-next[data-language="ru"] .ledger-plate__head{
+    gap:12px;
+  }
+  .connected-next[data-language="ru"] .ledger-plate__head em{
+    max-width:44%;
+    text-align:right;
+    line-height:1.15;
+  }
+}
+
+@media (max-width:390px){
+  .connected-next[data-language="ru"] .assistive-components{
+    left:11%!important;
+    right:3.5%!important;
+    gap:8px 9px!important;
+  }
+  .connected-next[data-language="ru"] .resolution-components{
+    left:12%!important;
+    right:3.5%!important;
+    gap:7px 9px!important;
+  }
+  .connected-next[data-language="ru"] .ledger-plate.is-active{
+    padding-left:17px;
+    padding-right:17px;
+  }
+}
+
+/* Low landscape: owner screenshot showed the support copy visually entering
+   the ledger heading. Give the support line more horizontal measure so it
+   resolves in fewer lines, then restore a clear header/experience interval. */
+@media (max-height:520px) and (min-width:701px){
+  .connected-next__header{
+    padding-bottom:12px!important;
+  }
+  .connected-next__intro{
+    grid-template-columns:minmax(0,1fr) minmax(330px,.82fr)!important;
+    gap:22px!important;
+  }
+  .connected-next__support{
+    width:100%!important;
+    max-width:460px!important;
+    justify-self:end!important;
+    font-size:10px!important;
+    line-height:1.24!important;
+  }
+  .connected-next__experience{
+    padding-top:10px!important;
+  }
+
+  .connected-next[data-language="ru"] .assistive-layer{
+    right:1.5%!important;
+    width:55%!important;
+  }
+  .connected-next[data-language="ru"] .assistive-components{
+    left:12%!important;
+    right:3.5%!important;
+    grid-template-columns:minmax(0,1.06fr) minmax(0,.94fr)!important;
+    gap:6px 9px!important;
+  }
+  .connected-next[data-language="ru"] .assistive-components span{
+    font-size:7.45px!important;
+    letter-spacing:-.02em!important;
+    line-height:1.12!important;
+    white-space:nowrap!important;
+  }
+
+  .connected-next[data-language="ru"] .resolution-layer{
+    right:1%!important;
+    width:49.5%!important;
+  }
+  .connected-next[data-language="ru"] .resolution-layer__head{
+    left:13%!important;
+    right:5%!important;
+  }
+  .connected-next[data-language="ru"] .resolution-title{
+    left:13%!important;
+    max-width:81%!important;
+  }
+  .connected-next[data-language="ru"] .resolution-components{
+    left:13%!important;
+    right:3.5%!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    gap:6px 9px!important;
+  }
+  .connected-next[data-language="ru"] .resolution-components span{
+    font-size:7.45px!important;
+    letter-spacing:-.02em!important;
+    line-height:1.12!important;
+  }
+}
+
+
+/* =========================================================
+   R1.4.6.2 — POLYGON-SAFE COMPONENT GEOMETRY
+   Owner real-device correction: component labels must fit the VISIBLE
+   polygon, not merely the layer bounding box. State logic is untouched.
+   ========================================================= */
+
+@media (max-width:700px){
+  /* Keep the RESULT plane's lower endpoint unchanged while expanding usable
+     space upward and inward. This creates real room instead of shrinking copy. */
+  .resolution-layer,
+  .connected-next[data-language="ru"] .resolution-layer{
+    right:.5%!important;
+    top:29%!important;
+    width:53%!important;
+    height:50%!important;
+  }
+
+  .resolution-layer__head,
+  .connected-next[data-language="ru"] .resolution-layer__head{
+    left:13%!important;
+    right:6%!important;
+  }
+
+  .resolution-title,
+  .connected-next[data-language="ru"] .resolution-title{
+    left:13%!important;
+    max-width:80%!important;
+  }
+
+  /* The lower register now lives above the polygon's sloped clipping edge. */
+  .resolution-components,
+  .connected-next[data-language="ru"] .resolution-components{
+    left:12.5%!important;
+    right:6%!important;
+    bottom:12%!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    column-gap:8px!important;
+    row-gap:9px!important;
+  }
+
+  .resolution-components span,
+  .connected-next[data-language="ru"] .resolution-components span{
+    min-width:0!important;
+    padding:6px 0 0!important;
+    font-size:clamp(7.25px,1.94vw,8.05px)!important;
+    line-height:1.14!important;
+    letter-spacing:-.018em!important;
+    white-space:nowrap!important;
+  }
+
+  /* Russian NEXT STEP is the longest left-column label. Allocate a little
+     more of the same internal register to that column without moving the plane. */
+  .connected-next[data-language="ru"] .resolution-components{
+    grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr)!important;
+  }
+}
+
+@media (max-width:390px){
+  .resolution-components,
+  .connected-next[data-language="ru"] .resolution-components{
+    left:11.5%!important;
+    right:5%!important;
+    column-gap:7px!important;
+  }
+  .resolution-components span,
+  .connected-next[data-language="ru"] .resolution-components span{
+    font-size:7.2px!important;
+  }
+}
+
+@media (max-height:520px) and (min-width:701px){
+  /* Same visible bottom as before (27% + 52% = 79%), but a taller/wider
+     interior gives both languages a proper two-row register. */
+  .resolution-layer,
+  .connected-next[data-language="ru"] .resolution-layer{
+    right:1%!important;
+    top:27%!important;
+    width:50%!important;
+    height:52%!important;
+  }
+
+  .resolution-layer__head,
+  .connected-next[data-language="ru"] .resolution-layer__head{
+    left:12.5%!important;
+    right:7%!important;
+  }
+
+  .resolution-title,
+  .connected-next[data-language="ru"] .resolution-title{
+    left:12.5%!important;
+    top:18%!important;
+    max-width:80%!important;
+  }
+
+  .resolution-components,
+  .connected-next[data-language="ru"] .resolution-components{
+    left:12%!important;
+    right:7%!important;
+    bottom:12%!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+    column-gap:9px!important;
+    row-gap:8px!important;
+  }
+
+  .resolution-components span,
+  .connected-next[data-language="ru"] .resolution-components span{
+    min-width:0!important;
+    padding:5px 0 0!important;
+    font-size:7.35px!important;
+    line-height:1.12!important;
+    letter-spacing:-.016em!important;
+    white-space:nowrap!important;
+  }
+}
+
+
+/* R1.4.6.2 narrow-landscape breathing room.
+   812-class real-device geometry needs a visible separation between the
+   explanatory support line and the ledger heading. */
+@media (max-height:520px) and (min-width:701px) and (max-width:820px){
+  .connected-next__header{
+    padding-bottom:18px!important;
+  }
+  .connected-next__experience{
+    padding-top:12px!important;
+  }
 }

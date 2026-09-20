@@ -19,7 +19,8 @@
 @media (max-width:1080px){
   .site-header{transform:translate3d(0,0,0);will-change:transform;transition:transform 260ms cubic-bezier(.22,1,.36,1),background-color 180ms var(--proai-ease),border-color 180ms var(--proai-ease),box-shadow 180ms var(--proai-ease),backdrop-filter 180ms var(--proai-ease)}
   .site-header.header-hidden{transform:translate3d(0,calc(-100% - 2px),0)}
-  body.menu-open .site-header,body.menu-open .site-header.header-hidden{transform:translate3d(0,0,0)!important}
+  .site-header.header-guarded{transform:translate3d(0,calc(-100% - 2px),0)!important;transition:none!important}
+  body.menu-open .site-header,body.menu-open .site-header.header-hidden,body.menu-open .site-header.header-guarded{transform:translate3d(0,0,0)!important}
 }`;
     document.head.appendChild(style);
   }
@@ -44,6 +45,15 @@
     return null;
   };
 
+  const releaseHeaderGuard = () => {
+    if (!header.classList.contains('header-guarded')) return false;
+    header.classList.remove('header-guarded');
+    // Establish the normal hidden transform as the new transition origin
+    // before Header System decides whether to reveal or remain hidden.
+    void header.offsetHeight;
+    return true;
+  };
+
   const resetAutoHide = ({ reveal = true } = {}) => {
     lastScrollY = Math.max(0, window.scrollY || 0);
     directionStartY = lastScrollY;
@@ -57,7 +67,7 @@
     nav.classList.toggle('is-open', open);
     document.body.classList.toggle('menu-open', open);
     if (open) {
-      header.classList.remove('header-guarded');
+      releaseHeaderGuard();
       revealHeader();
     }
     resetAutoHide({ reveal: open });
@@ -106,24 +116,27 @@
     const explicitHeaderInteraction = hasExplicitHeaderInteraction();
     const guardOwnsViewport = Boolean(guard) && !explicitHeaderInteraction;
 
-    header.classList.toggle('header-guarded', guardOwnsViewport);
-
-    if (explicitHeaderInteraction || currentY < 24) {
-      revealHeader();
-      directionStartY = currentY;
-      lastDirection = 0;
-    } else if (guardOwnsViewport) {
+    if (guardOwnsViewport) {
       // Immersive scroll stories need the same usable viewport in both
-      // directions. While their physical runway owns the viewport, suppress
-      // automatic reverse-scroll reveal of the fixed header.
+      // directions. The generic guard owns the transform directly so reverse
+      // scrolling cannot race the ordinary 260ms header transition.
       header.classList.add('header-hidden');
+      header.classList.add('header-guarded');
       directionStartY = currentY;
       lastDirection = 0;
-    } else if (direction < 0 && directionalTravel <= -8) {
-      revealHeader();
-      directionStartY = currentY;
-    } else if (direction > 0 && currentY > hideAfter && directionalTravel >= 14) {
-      header.classList.add('header-hidden');
+    } else {
+      releaseHeaderGuard();
+
+      if (explicitHeaderInteraction || currentY < 24) {
+        revealHeader();
+        directionStartY = currentY;
+        lastDirection = 0;
+      } else if (direction < 0 && directionalTravel <= -8) {
+        revealHeader();
+        directionStartY = currentY;
+      } else if (direction > 0 && currentY > hideAfter && directionalTravel >= 14) {
+        header.classList.add('header-hidden');
+      }
     }
 
     lastScrollY = currentY;
@@ -141,7 +154,7 @@
   };
 
   header.addEventListener('focusin', () => {
-    header.classList.remove('header-guarded');
+    releaseHeaderGuard();
     revealHeader();
     resetAutoHide({ reveal: false });
   });

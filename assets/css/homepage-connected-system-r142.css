@@ -23,10 +23,16 @@
   --ease:cubic-bezier(.22,1,.36,1);
   --ease-material:cubic-bezier(.2,.72,.18,1);
   width:min(100% - 80px,1440px);
-  overflow-x:clip;
   margin:0 auto;
   padding-top:clamp(44px,5vw,72px);
   padding-bottom:clamp(64px,7vw,104px);
+}
+
+/* Keep the decorative atmosphere inside the viewport without clipping the
+   component's translated controls or narrow-screen labels at its own edge. */
+.connected-next.connected-next--production::before {
+  left:max(-10%,calc((100vw - 100%) / -2));
+  right:max(-10%,calc((100vw - 100%) / -2));
 }
 
 .connected-next.connected-next--production button { font:inherit; }
@@ -161,6 +167,9 @@
 
   .assistive-components,
   .resolution-components{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .connected-next[data-language="ru"] .assistive-components{
+    grid-template-columns:minmax(0,.42fr) minmax(0,1.58fr)
+  }
   .resolution-components{left:13%;right:5%;column-gap:10px}
   .assistive-components{right:8%;column-gap:10px}
 }

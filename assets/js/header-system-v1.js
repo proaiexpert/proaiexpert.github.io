@@ -31,7 +31,8 @@
   let scrollTick = false;
 
   const isMenuOpen = () => toggle.getAttribute('aria-expanded') === 'true' || nav.classList.contains('is-open');
-  const hasExplicitHeaderInteraction = () => isMenuOpen() || header.matches(':focus-within');
+  const hasExplicitHeaderInteraction = moving =>
+    isMenuOpen() || (!moving && header.matches(':focus-within'));
   const revealHeader = () => header.classList.remove('header-hidden');
 
   const activeAutohideGuard = () => {
@@ -113,7 +114,8 @@
     const hideAfter = shortLandscape ? 90 : 120;
 
     const guard = activeAutohideGuard();
-    const explicitHeaderInteraction = hasExplicitHeaderInteraction();
+    const moving = direction !== 0;
+    const explicitHeaderInteraction = hasExplicitHeaderInteraction(moving);
     const guardOwnsViewport = Boolean(guard) && !explicitHeaderInteraction;
 
     if (guardOwnsViewport) {

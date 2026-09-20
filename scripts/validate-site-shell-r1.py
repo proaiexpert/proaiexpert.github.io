@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic source/rendered validation for ProAI Expert Site Shell R1."""
+"""Deterministic source/rendered validation for ProAI Expert Site Shell R2."""
 
 from __future__ import annotations
 
@@ -76,10 +76,99 @@ ALLOWED_SHELL_STYLE_FILES = {
     Path("assets/css/home-footer-signature-r4.css"),
 }
 
+SHELL_ELEMENT = re.compile(r"(?<![-\w.#])(header|footer|section|nav)(?![-\w])", re.I)
+MAIN_ELEMENT = re.compile(r"(?<![-\w.#])main(?![-\w])", re.I)
+STYLE_BLOCK = re.compile(r"<style\b[^>]*>([\s\S]*?)</style>", re.I)
+CSS_RULE = re.compile(r"([^{}]+)\{")
+
 
 def route_file(site_root: Path, route: str) -> Path:
     relative = route.strip("/")
     return site_root / relative / "index.html" if relative else site_root / "index.html"
+
+
+def split_selectors(value: str) -> list[str]:
+    parts: list[str] = []
+    start = depth = 0
+    for index, char in enumerate(value):
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            depth = max(0, depth - 1)
+        elif char == "," and depth == 0:
+            parts.append(value[start:index])
+            start = index + 1
+    parts.append(value[start:])
+    return parts
+
+
+def shell_leaking_selectors(css: str, body_classes: set[str] | None = None) -> list[str]:
+    """Return selectors that can reach the canonical shell from page CSS."""
+    leaks: list[str] = []
+    for rule in CSS_RULE.finditer(css):
+        raw = rule.group(1)
+        if raw.lstrip().startswith("@") or ";" in raw:
+            continue
+        for selector in split_selectors(raw):
+            stripped = selector.strip()
+            prefix = re.match(r"^(?:/\*[\s\S]*?\*/\s*)*", stripped)
+            body = stripped[prefix.end() :] if prefix else stripped
+            if not body or body.startswith("@"):
+                continue
+            match = SHELL_ELEMENT.search(body)
+            if not match:
+                continue
+            element = match.group(1).lower()
+            owner_prefix = body[: match.start()]
+            class_tokens = set(re.findall(r"\.([A-Za-z_][\w-]*)", owner_prefix))
+            id_tokens = set(re.findall(r"#([A-Za-z_][\w-]*)", owner_prefix))
+            if body_classes is None:
+                has_descendant_scope = bool(class_tokens or id_tokens) and not body.startswith("body")
+            else:
+                has_descendant_scope = bool(id_tokens or (class_tokens - body_classes))
+            if has_descendant_scope:
+                continue
+            if element in {"section", "nav"}:
+                if MAIN_ELEMENT.search(owner_prefix):
+                    continue
+            elif ":not(.proai-inner-golden-r1)" in owner_prefix:
+                continue
+            leaks.append(body)
+    return leaks
+
+
+def rendered_style_audit(route: str, html: str, site_root: Path) -> list[str]:
+    errors: list[str] = []
+    seen: set[tuple[str, str]] = set()
+    body_match = re.search(r"<body\b[^>]*\bclass=[\"']([^\"']*)[\"']", html, re.I)
+    body_classes = set(body_match.group(1).split()) if body_match else set()
+    for index, block in enumerate(STYLE_BLOCK.findall(html), start=1):
+        for selector in shell_leaking_selectors(block, body_classes):
+            key = (f"inline-style-{index}", selector)
+            if key not in seen:
+                seen.add(key)
+                errors.append(f"{route}: shell-leaking inline CSS — {selector}")
+
+    hrefs = re.findall(
+        r'<link\b[^>]*rel=["\']stylesheet["\'][^>]*href=["\']([^"\']+\.css(?:\?[^"\']*)?)["\']',
+        html,
+        re.IGNORECASE,
+    )
+    for href in hrefs:
+        asset = urlsplit(href).path
+        relative = Path(asset.lstrip("/"))
+        if relative in ALLOWED_SHELL_STYLE_FILES or relative.name.startswith("homepage-"):
+            continue
+        path = site_root / relative
+        if not path.is_file():
+            continue
+        css = path.read_text(encoding="utf-8", errors="replace")
+        for selector in shell_leaking_selectors(css, body_classes):
+            key = (relative.as_posix(), selector)
+            if key not in seen:
+                seen.add(key)
+                errors.append(f"{route}: shell-leaking CSS в {relative.as_posix()} — {selector}")
+    return errors
 
 
 def validate_rendered_page(route: str, path: Path, site_root: Path) -> list[str]:
@@ -109,8 +198,12 @@ def validate_rendered_page(route: str, path: Path, site_root: Path) -> list[str]
 
     if re.search(r'class="[^"]*\bsite-footer\b', html):
         errors.append(f"{route}: активна legacy .site-footer разметка")
+    if "/assets/css/footer-system-v1.css" in html:
+        errors.append(f"{route}: подключён legacy Footer stylesheet")
     if "{%" in html or "{{" in html:
         errors.append(f"{route}: в rendered HTML остался Liquid")
+
+    errors.extend(rendered_style_audit(route, html, site_root))
 
     footer = re.search(
         r'<footer\b[^>]*data-site-footer-canonical="golden-r1"[\s\S]*?</footer>',
@@ -186,8 +279,9 @@ def source_audit(source_root: Path) -> tuple[list[str], list[str]]:
             errors.append(f"source: {relative} активно выбирает canonical Header через generic header selector")
         if re.search(r'<footer\b[^>]*class="[^"]*\bsite-footer\b', text, re.IGNORECASE):
             errors.append(f"source: {relative} содержит активную legacy .site-footer разметку")
-        if re.search(r'(^|[,{\s])header\s*\{', text):
-            warnings.append(f"source debt: {relative} содержит legacy generic header CSS; canonical cascade должен оставаться финальным")
+        for block in STYLE_BLOCK.findall(text):
+            for selector in shell_leaking_selectors(block):
+                errors.append(f"source: {relative} содержит shell-leaking CSS — {selector}")
 
     shell_selector = re.compile(r"\.(?:site-header(?:__|--|\b)|home-footer-golden-r3(?:__|--|\b))")
     for path in source_root.rglob("*.css"):
@@ -237,12 +331,12 @@ def main() -> int:
         print(f"FAIL {error}")
 
     if errors:
-        print(f"SITE SHELL R1: FAIL ({len(errors)} ошибок, {len(set(warnings))} предупреждений)")
+        print(f"SITE SHELL R2: FAIL ({len(errors)} ошибок, {len(set(warnings))} предупреждений)")
         return 1
 
     print(
-        f"SITE SHELL R1: PASS — {rendered_inner}/{len(EXPECTED_INNER_ROUTES)} inner routes; "
-        f"{len(set(warnings))} известных source-debt предупреждений"
+        f"SITE SHELL R2: PASS — {rendered_inner}/{len(EXPECTED_INNER_ROUTES)} inner routes; "
+        "0 активных shell-leaking правил"
     )
     return 0
 

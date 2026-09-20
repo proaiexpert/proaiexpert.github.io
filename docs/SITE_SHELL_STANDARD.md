@@ -1,4 +1,4 @@
-# ProAI Expert — Site Shell Standard R1
+# ProAI Expert — Site Shell Standard R2
 
 Статус: обязательный стандарт для всех текущих и будущих публичных страниц.
 
@@ -69,7 +69,29 @@ Inner-страницы подключают Footer только через `_inc
 
 Для RU используются локализованные `current_page`, `variant` и reciprocal `locale_url`/`locale_href`. EN и RU реализуются одной shell-архитектурой, но не механически копируют тексты друг друга.
 
-## 5. Запрещённое локальное владение
+## 5. Жёсткая граница владения
+
+Каноническая модель:
+
+- Header-компонент владеет только Header;
+- page/body CSS владеет только содержимым внутри `<main>`;
+- Golden Footer-компонент владеет только Footer.
+
+Page/body CSS не имеет права воздействовать на Header или Footer через глобальные element selectors. Правила, предназначенные для контента, всегда получают page-root или `main`-scope:
+
+```css
+/* запрещено */
+section { display: flex; }
+nav { gap: 20px; }
+
+/* обязательно */
+main section { display: flex; }
+main nav { gap: 20px; }
+```
+
+Unscoped `header { ... }` и `footer { ... }` в новой публичной странице запрещены полностью. Legacy-вариант допустим только как явно неактивная ветка `body:not(.proai-inner-golden-r1) ...` до отдельного удаления старого кода.
+
+## 6. Запрещённое локальное владение
 
 Page/body CSS и JS не должны владеть:
 
@@ -79,9 +101,17 @@ Page/body CSS и JS не должны владеть:
 - `header-hidden`, `is-scrolled` или `menu-open` для canonical Header;
 - Golden Footer signature/material runtime.
 
-Legacy generic `header { ... }` и старые `.site-footer` правила могут временно оставаться как неактивный source debt, но не должны выигрывать каскад, исполняться рядом с canonical shell или копироваться в новые страницы.
+Запрещены также:
 
-## 6. Responsive и accessibility contract
+- unscoped `section { ... }`, `nav { ... }`, `header { ... }`, `footer { ... }` в page CSS;
+- route-specific shell styling;
+- копирование Header/Footer markup в страницу;
+- параллельное подключение `footer-system-v1.css`;
+- каскад из emergency-override и `!important` поверх канонического shell.
+
+Старые shell-правила могут временно оставаться только как доказуемо неактивный source debt и не копируются в новые страницы.
+
+## 7. Responsive и accessibility contract
 
 Обязательны:
 
@@ -94,7 +124,7 @@ Legacy generic `header { ... }` и старые `.site-footer` правила м
 - отсутствие horizontal overflow/clipping;
 - Footer является фактическим концом страницы.
 
-## 7. Проверка
+## 8. Проверка
 
 После Jekyll build выполнить:
 
@@ -102,6 +132,6 @@ Legacy generic `header { ... }` и старые `.site-footer` правила м
 python scripts/validate-site-shell-r1.py --site-root <rendered-site-directory>
 ```
 
-Проверка валидирует 42 текущих inner route, один canonical Header, один canonical Golden Footer, отсутствие активной `.site-footer`, обязательные Golden assets, locale mapping и отсутствие неотрендеренного Liquid. Source-аудит блокирует прямое владение canonical shell selectors; legacy generic header CSS выводится как известное предупреждение до отдельной cleanup-фазы.
+Проверка валидирует 42 текущих inner route, один canonical Header, один canonical Golden Footer, отсутствие активной `.site-footer` и legacy Footer stylesheet, обязательные Golden assets, locale mapping и отсутствие неотрендеренного Liquid. Она анализирует собранный HTML и реально подключённые CSS-файлы и блокирует shell-leaking selectors для `header`, `footer`, `section` и `nav`, если page CSS не изолирован под `<main>` или явно неактивен для `proai-inner-golden-r1`.
 
 При добавлении публичного route его необходимо добавить в `EXPECTED_INNER_ROUTES` валидатора одновременно с EN/RU counterpart.

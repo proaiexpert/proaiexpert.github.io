@@ -1,0 +1,86 @@
+name: ProAI Cube R0 Browser Evidence
+# Final deterministic 24 fps evidence capture.
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-threejs-mechanical-r0
+    paths:
+      - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/index.html'
+      - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/styles.css'
+      - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/main.js'
+      - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/package.json'
+      - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/capture.mjs'
+      - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/smooth-review-video.mjs'
+      - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/debug-ready.mjs'
+      - 'docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/rubik_39_s_cube_animation.glb'
+      - '.github/workflows/proai-cube-r0-evidence.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  browser-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-threejs-mechanical-r0
+          fetch-depth: 0
+
+      - name: Verify runtime source has no Spline dependency
+        working-directory: docs/site-evolution/spline/proai-cube-threejs-mechanical-r0
+        run: |
+          if grep -R -n -E '@splinetool|\.splinecode|prod\.spline\.design' index.html styles.css main.js package.json; then
+            echo 'Forbidden Spline runtime dependency found.'
+            exit 1
+          fi
+
+      - name: Install prototype dependencies
+        working-directory: docs/site-evolution/spline/proai-cube-threejs-mechanical-r0
+        run: npm install --no-audit --no-fund
+
+      - name: Build isolated prototype
+        working-directory: docs/site-evolution/spline/proai-cube-threejs-mechanical-r0
+        run: npm run build
+
+      - name: Install Chromium
+        working-directory: docs/site-evolution/spline/proai-cube-threejs-mechanical-r0
+        run: npx playwright install --with-deps chromium
+
+      - name: Start isolated Vite server
+        working-directory: docs/site-evolution/spline/proai-cube-threejs-mechanical-r0
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/proai-cube-r0-vite.log 2>&1 &
+          echo $! > /tmp/proai-cube-r0-vite.pid
+          for i in {1..40}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 0.5
+          done
+          cat /tmp/proai-cube-r0-vite.log
+          exit 1
+
+      - name: Diagnose browser readiness
+        working-directory: docs/site-evolution/spline/proai-cube-threejs-mechanical-r0
+        run: node debug-ready.mjs
+
+      - name: Capture screenshots video and mechanical QA
+        working-directory: docs/site-evolution/spline/proai-cube-threejs-mechanical-r0
+        run: npm run capture
+
+      - name: Commit review evidence
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/review/ \
+            docs/site-evolution/spline/proai-cube-threejs-mechanical-r0/TECHNICAL_REPORT.md
+          if git diff --cached --quiet; then
+            echo 'Review evidence unchanged.'
+            exit 0
+          fi
+          git commit -m 'test: record ProAI cube R0 browser evidence'
+          git push origin HEAD:agent/proai-cube-threejs-mechanical-r0

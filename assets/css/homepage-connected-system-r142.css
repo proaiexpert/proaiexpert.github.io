@@ -28,15 +28,11 @@
   padding-bottom:clamp(64px,7vw,104px);
 }
 
-/* R1.4.6 mobile source fix: the base atmospheric pseudo-element uses
-   horizontal inset:-10%, enlarging the real mobile document width by exactly
-   10% of the Connected System width. Preserve desktop authority; constrain
-   only the mobile/tablet geometry. */
-@media (max-width:900px){
-  .connected-next.connected-next--production::before{
-    left:0;
-    right:0;
-  }
+/* Keep the decorative atmosphere inside the viewport without clipping the
+   component's translated controls or narrow-screen labels at its own edge. */
+.connected-next.connected-next--production::before {
+  left:max(-10%,calc((100vw - 100%) / -2));
+  right:max(-10%,calc((100vw - 100%) / -2));
 }
 
 .connected-next.connected-next--production button { font:inherit; }

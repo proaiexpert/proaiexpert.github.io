@@ -1,0 +1,118 @@
+name: ProAI Cube Geometry R1 Evidence
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-geometry-r1
+    paths:
+      - 'docs/site-evolution/spline/proai-cube-geometry-r1/**'
+      - '.github/workflows/proai-cube-geometry-r1-evidence.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  geometry-r1-evidence:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/proai-cube-geometry-r1
+          fetch-depth: 0
+
+      - name: Verify no Spline runtime dependency
+        working-directory: docs/site-evolution/spline/proai-cube-geometry-r1
+        run: |
+          if grep -R -n -E '@splinetool|prod\.spline\.design|\.splinecode' index.html styles.css main.js package.json; then
+            echo 'Forbidden Spline dependency found.'
+            exit 1
+          fi
+
+      - name: Verify Motion R1 code is frozen
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          src = Path('docs/site-evolution/spline/proai-cube-motion-r1/main.js').read_text()
+          dst = Path('docs/site-evolution/spline/proai-cube-geometry-r1/main.js').read_text()
+          pairs = [
+              ('const MOTION = Object.freeze({', 'const PRIMARY_PHRASE = Object.freeze(['),
+              ('const PRIMARY_PHRASE = Object.freeze([', 'const RESOLUTION_PHRASE = Object.freeze('),
+              ('const RESOLUTION_PHRASE = Object.freeze(', 'const CHOREOGRAPHY = Object.freeze('),
+              ('function quarterTurnMatrix(', 'function orientationQuaternion('),
+              ('function rotateLogical(', 'function axisComponent('),
+              ('function prepareMechanicalModel(', 'function desiredScenePose('),
+              ('function beginTurn(', 'function setActiveTurnProgress('),
+              ('function setActiveTurnProgress(', 'function finalizeActiveTurn('),
+              ('function finalizeActiveTurn(', 'function autonomyBlocked('),
+              ('async function turnSlice(', 'function snapshotLogicalState('),
+              ('async function runAutomatedQA(', 'function driftQuaternion('),
+              ('function driftQuaternion(', 'function updatePresentationDrift('),
+              ('function updatePresentationDrift(', 'async function sleepAutonomous('),
+              ('async function autonomousLoop(', 'function getInteractionState('),
+          ]
+          def block(text, start, end):
+              a = text.index(start)
+              b = text.index(end, a)
+              return text[a:b]
+          for start, end in pairs:
+              if block(src, start, end) != block(dst, start, end):
+                  raise SystemExit(f'Motion R1 freeze mismatch in block: {start}')
+          print('Motion R1 motion/mechanical blocks are byte-identical.')
+          PY
+
+      - name: Install dependencies
+        working-directory: docs/site-evolution/spline/proai-cube-geometry-r1
+        run: npm install --no-audit --no-fund --package-lock=false
+
+      - name: Verify exact Motion R1 GLB and build
+        working-directory: docs/site-evolution/spline/proai-cube-geometry-r1
+        run: |
+          npm run prepare-glb
+          npm run build
+
+      - name: Install Chromium
+        working-directory: docs/site-evolution/spline/proai-cube-geometry-r1
+        run: npx playwright install --with-deps chromium
+
+      - name: Start isolated Vite server
+        working-directory: docs/site-evolution/spline/proai-cube-geometry-r1
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 4173 > /tmp/proai-cube-geometry-r1-vite.log 2>&1 &
+          echo $! > /tmp/proai-cube-geometry-r1-vite.pid
+          for i in {1..50}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 0.5
+          done
+          cat /tmp/proai-cube-geometry-r1-vite.log
+          exit 1
+
+      - name: Run geometry + mechanical QA and capture owner review
+        working-directory: docs/site-evolution/spline/proai-cube-geometry-r1
+        run: npm run capture
+
+      - name: Upload owner review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-geometry-r1-owner-review
+          path: |
+            docs/site-evolution/spline/proai-cube-geometry-r1/review/
+            docs/site-evolution/spline/proai-cube-geometry-r1/QA.json
+            docs/site-evolution/spline/proai-cube-geometry-r1/REPORT.md
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Commit Geometry R1 evidence
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/spline/proai-cube-geometry-r1/
+          if git diff --cached --quiet; then
+            echo 'Evidence unchanged.'
+            exit 0
+          fi
+          git commit -m 'test: record ProAI cube Geometry R1 evidence'
+          git push origin HEAD:agent/proai-cube-geometry-r1

@@ -18,10 +18,21 @@
   function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
   function isLandscape() { return window.innerWidth > window.innerHeight && window.innerHeight <= 540; }
 
+  /* Desktop focus uses a small hysteresis band. This prevents rapid AI /
+     neutral / Web state thrashing when the pointer hovers near the fold. */
+  function desktopFocusFor(section, percent) {
+    var current = section.getAttribute('data-focus') || 'neutral';
+    if (current === 'ai' && percent < 50) return 'ai';
+    if (current === 'web' && percent > 50) return 'web';
+    if (percent < 46) return 'ai';
+    if (percent > 54) return 'web';
+    return 'neutral';
+  }
+
   function stateFor(section) {
     var state = states.get(section);
     if (state) return state;
-    state = { targetX:0, targetY:0, currentX:0, currentY:0, lightRaf:0, fitRaf:0, leaveTimer:0 };
+    state = { targetX:0, targetY:0, currentX:0, currentY:0, lightRaf:0, fitRaf:0, fitTimer:0, leaveTimer:0 };
     states.set(section, state);
     return state;
   }
@@ -152,6 +163,19 @@
     });
   }
 
+  /* Focus transitions change clip-path, face depth and content width over
+     ~680ms. Fit once near transition start and once after settlement instead
+     of remeasuring on every pointermove frame. */
+  function scheduleSettledFit(section) {
+    var s = stateFor(section);
+    window.clearTimeout(s.fitTimer);
+    scheduleFit(section);
+    s.fitTimer = window.setTimeout(function () {
+      s.fitTimer = 0;
+      fitSection(section);
+    }, reducedMotion.matches ? 0 : 740);
+  }
+
   function setMobileGeometry(section, progress) {
     if (reducedMotion.matches) return;
     var p = clamp(progress, 0, 1);
@@ -173,10 +197,17 @@
   function updateMobileSection(section) {
     if (!mobileQuery.matches || reducedMotion.matches || shortLandscapeQuery.matches) return;
     var experience = section.querySelector('[data-tw-experience]');
-    if (!experience) return;
+    var viewport = section.querySelector('[data-tw-viewport]');
+    if (!experience || !viewport) return;
+
+    /* Progress is based on the CSS-controlled sticky viewport, not the visual
+       viewport height. Mobile browser chrome can change innerHeight without
+       actual user travel and previously perturbed the section state. */
+    var viewportHeight = Math.max(1, viewport.getBoundingClientRect().height || viewport.offsetHeight || window.innerHeight);
+    var travel = Math.max(1, experience.offsetHeight - viewportHeight);
     var rect = experience.getBoundingClientRect();
-    var travel = Math.max(1, rect.height - window.innerHeight);
-    setMobileGeometry(section, clamp(-rect.top / travel, 0, 1));
+    var absoluteTop = rect.top + window.scrollY;
+    setMobileGeometry(section, clamp((window.scrollY - absoluteTop) / travel, 0, 1));
   }
 
   function applyMobileContentGeometry(section) {
@@ -209,7 +240,7 @@
       var x = clamp(event.clientX - rect.left, 0, rect.width);
       var y = clamp(event.clientY - rect.top, 0, rect.height);
       var percent = x / rect.width * 100;
-      var next = percent < 47 ? 'ai' : (percent > 53 ? 'web' : 'neutral');
+      var next = desktopFocusFor(section, percent);
       window.clearTimeout(stateFor(section).leaveTimer);
       if (section.getAttribute('data-focus') !== next) section.setAttribute('data-focus', next);
       section.style.setProperty('--tw-pointer-x', (x / rect.width * 100).toFixed(2) + '%');
@@ -221,7 +252,6 @@
         s.targetY = clamp(((y / rect.height) - .5) * 2, -1, 1) * 2.6;
         scheduleLight(section);
       } else neutralLight(section);
-      scheduleFit(section);
     }, { passive:true });
 
     viewport.addEventListener('pointerleave', function () {
@@ -253,7 +283,7 @@
     });
 
     new MutationObserver(function (records) {
-      if (records.some(function (record) { return record.attributeName === 'data-focus'; })) scheduleFit(section);
+      if (records.some(function (record) { return record.attributeName === 'data-focus'; })) scheduleSettledFit(section);
     }).observe(section, { attributes:true, attributeFilter:['data-focus'] });
 
     if ('ResizeObserver' in window) new ResizeObserver(function () { scheduleFit(section); }).observe(viewport);

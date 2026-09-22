@@ -1,70 +1,208 @@
-/* Golden Assembly R1.2 — Two Worlds short-landscape stabilization only.
-   Base Golden Two Worlds remains authoritative. This bridge applies only to
-   coarse-pointer phone landscape and preserves desktop + portrait geometry. */
+/* ProAI Expert — Two Worlds Premium Stability R1.1
+   Short phone landscape only. Portrait and desktop remain owned by Golden R1
+   plus the shared R1.1 restraint pass.
+
+   Root correction: landscape no longer drives two independent 3D plates plus
+   an unrelated 2D fold. Both material faces stay anchored; one state machine
+   moves the shared clipping boundary and the seam together. */
 @media (orientation: landscape) and (max-height: 540px) and (max-width: 980px) and (hover: none) and (pointer: coarse) {
   .tw-r2 {
-    --tw-g-landscape-inset: clamp(48px, 6.4vw, 68px);
+    --tw-g-landscape-inset: clamp(38px, 5.2vw, 50px);
   }
 
-  /* Give AI, THE TURN, and the fully-open Web world meaningful scroll territory. */
+  .tw-r2__intro {
+    width: min(calc(100% - 40px), 780px);
+    padding: 14px 0 9px;
+  }
+
+  .tw-r2__eyebrow { margin-bottom: 5px; font-size: 8.5px; }
+  .tw-r2__intro-title {
+    max-width: 28ch;
+    font-size: clamp(21px, 3.05vw, 27px);
+    line-height: .96;
+  }
+
   .tw-r2__experience {
-    height: 235svh;
+    height: 205svh;
+    min-height: 0;
   }
 
   .tw-r2__viewport {
     height: 100svh;
     min-height: 0;
+    perspective: none;
+  }
+
+  .tw-r2__plate { transform-style: flat; }
+
+  .tw-r2 .tw-r2__face {
+    top: 0;
+    bottom: 0;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100%;
+    transform: none !important;
+    transform-origin: 50% 50%;
+    filter: none !important;
+    backface-visibility: visible;
+    will-change: clip-path;
+    transition: clip-path 420ms cubic-bezier(.22,1,.36,1), opacity 260ms ease !important;
+  }
+
+  .tw-r2[data-focus="ai"] .tw-r2__face--ai,
+  .tw-r2[data-focus="neutral"] .tw-r2__face--ai {
+    z-index: 3;
+    clip-path: polygon(0 0,77% 0,74.5% 100%,0 100%) !important;
+  }
+  .tw-r2[data-focus="ai"] .tw-r2__face--web,
+  .tw-r2[data-focus="neutral"] .tw-r2__face--web {
+    z-index: 2;
+    clip-path: polygon(74% 0,100% 0,100% 100%,71.5% 100%) !important;
+  }
+  .tw-r2[data-focus="web"] .tw-r2__face--ai {
+    z-index: 2;
+    clip-path: polygon(0 0,28.5% 0,26% 100%,0 100%) !important;
+  }
+  .tw-r2[data-focus="web"] .tw-r2__face--web {
+    z-index: 3;
+    clip-path: polygon(25.5% 0,100% 0,100% 100%,23% 100%) !important;
+  }
+
+  .tw-r2 .tw-r2__fold {
+    top: 0;
+    bottom: 0;
+    left: 75.5% !important;
+    width: 18px;
+    transform: translateX(-50%) !important;
+    transform-origin: 50% 50%;
+    filter: drop-shadow(-3px 0 5px rgba(0,0,0,.24)) drop-shadow(3px 0 5px rgba(0,0,0,.16));
+    transition: left 420ms cubic-bezier(.22,1,.36,1), filter 260ms ease !important;
+  }
+  .tw-r2[data-focus="web"] .tw-r2__fold { left: 24.5% !important; }
+
+  .tw-r2__fold-plane {
+    clip-path: polygon(34% 0,66% 0,60% 100%,40% 100%);
+    background:
+      linear-gradient(90deg,rgba(29,34,39,.74),rgba(172,177,182,.16) 46%,rgba(8,10,13,.94) 54%,rgba(27,31,36,.76)),
+      linear-gradient(180deg,#151a20,#090c10 60%,#050607);
+    box-shadow: inset 2px 0 4px rgba(255,255,255,.018), inset -2px 0 4px rgba(0,0,0,.22);
+  }
+  .tw-r2__fold-plane::before { opacity: .42; }
+  .tw-r2__fold-plane::after {
+    opacity: .34;
+    background: linear-gradient(180deg,transparent 8%,rgba(43,35,109,.10) 31%,rgba(226,231,237,.10) 49%,rgba(174,145,95,.04) 62%,transparent 86%);
   }
 
   .tw-r2 .tw-r2__content--ai,
   .tw-r2 .tw-r2__content--web,
   .tw-r2[data-focus="ai"] .tw-r2__content--ai,
   .tw-r2[data-focus="web"] .tw-r2__content--web {
-    left: var(--tw-g-landscape-inset);
-    right: var(--tw-g-landscape-inset);
+    top: 52%;
     width: auto !important;
     max-width: none;
-    grid-template-columns: minmax(0, 54fr) minmax(0, 46fr);
-    column-gap: clamp(18px, 3vw, 30px);
+    transform: translateY(-50%) !important;
+    display: grid;
+    grid-template-columns: minmax(0,57fr) minmax(0,43fr);
+    grid-template-areas:
+      "index registers"
+      "title registers"
+      "thesis registers"
+      "cta registers";
+    column-gap: clamp(16px, 2.6vw, 26px);
+    align-items: start;
     align-content: center;
+    transition: opacity 180ms ease !important;
   }
 
+  .tw-r2 .tw-r2__content--ai,
+  .tw-r2[data-focus="ai"] .tw-r2__content--ai {
+    left: var(--tw-g-landscape-inset) !important;
+    right: 29% !important;
+  }
+  .tw-r2 .tw-r2__content--web,
+  .tw-r2[data-focus="web"] .tw-r2__content--web {
+    left: 29% !important;
+    right: var(--tw-g-landscape-inset) !important;
+  }
+
+  .tw-r2[data-focus="ai"] .tw-r2__content--ai,
+  .tw-r2[data-focus="neutral"] .tw-r2__content--ai,
+  .tw-r2[data-focus="web"] .tw-r2__content--web { opacity: 1 !important; }
+
+  .tw-r2[data-focus="ai"] .tw-r2__content--web,
+  .tw-r2[data-focus="neutral"] .tw-r2__content--web,
+  .tw-r2[data-focus="web"] .tw-r2__content--ai { opacity: 0 !important; pointer-events: none; }
+
+  .tw-r2__world-index { grid-area:index; margin:0 0 5px; font-size:8.5px; }
   .tw-r2__world-title,
   .tw-r2__face--web .tw-r2__world-title,
   body.lang-ru .tw-r2__world-title,
   body.lang-ru .tw-r2__face--web .tw-r2__world-title {
-    font-size: clamp(31px, 4.2vw, 38px) !important;
-    line-height: .92;
+    grid-area:title;
+    font-size:clamp(27px,3.65vw,33px) !important;
+    line-height:.91;
   }
-
   .tw-r2__thesis {
-    max-width: 35ch;
-    margin-top: 8px;
-    font-size: 12.25px;
-    line-height: 1.30;
+    grid-area:thesis;
+    max-width:35ch;
+    margin-top:7px;
+    font-size:11.5px;
+    line-height:1.28;
   }
-
   .tw-r2__registers {
-    gap: 8px;
+    grid-area:registers;
+    align-self:center;
+    width:100%;
+    max-width:none;
+    margin:0;
+    grid-template-columns:1fr;
+    gap:6px;
+    opacity:1;
   }
-
-  .tw-r2__register dt {
-    font-size: 10px;
-  }
-
-  .tw-r2__register dd {
-    margin-top: 2px;
-    font-size: 12.25px;
-    line-height: 1.24;
-  }
-
+  .tw-r2__register { display:block; padding:0; }
+  .tw-r2__register::before { display:none; }
+  .tw-r2__register dt { font-size:9px; line-height:1.22; letter-spacing:.07em; }
+  .tw-r2__register dd { margin-top:2px; font-size:10.75px; line-height:1.18; }
   .tw-r2__cta {
-    margin-top: 8px;
-    padding: 5px 0;
-    font-size: 9.75px;
+    grid-area:cta;
+    margin-top:8px;
+    padding:4px 0;
+    font-size:9px;
   }
 
   .tw-r2__inscription {
-    top: 8.2%;
+    top:7.5%;
+    font-size:clamp(44px,7.2vw,64px) !important;
+    letter-spacing:-.055em;
+    opacity:0 !important;
+    transition:opacity 220ms ease !important;
   }
+  .tw-r2__inscription--ai { left:38% !important; }
+  .tw-r2__inscription--web { left:62% !important; }
+  .tw-r2[data-focus="ai"] .tw-r2__inscription--ai,
+  .tw-r2[data-focus="neutral"] .tw-r2__inscription--ai,
+  .tw-r2[data-focus="web"] .tw-r2__inscription--web {
+    opacity:.34 !important;
+  }
+
+  .tw-r2__face::before { opacity:.08; transform:none !important; }
+  .tw-r2[data-focus="ai"] .tw-r2__face--ai::before,
+  .tw-r2[data-focus="web"] .tw-r2__face--web::before { opacity:.20; }
+
+  body.lang-ru .tw-r2__world-title,
+  body.lang-ru .tw-r2__face--web .tw-r2__world-title {
+    font-size:clamp(25px,3.35vw,30px) !important;
+  }
+  body.lang-ru .tw-r2__thesis { font-size:11px; }
+  body.lang-ru .tw-r2__register dt { font-size:8.5px; }
+  body.lang-ru .tw-r2__register dd { font-size:10.25px; }
+
+  .tw-tech-r2 { min-height:145px; padding:20px 0; }
+  .tw-tech-r2__shell { display:grid; grid-template-columns:190px 1fr; gap:28px; width:calc(100% - 40px); }
+  .tw-tech-r2__marks { margin-top:0; gap:14px 16px; }
+}
+
+@media (prefers-reduced-motion:reduce) and (orientation:landscape) and (max-height:540px) and (max-width:980px) and (hover:none) and (pointer:coarse) {
+  .tw-r2 .tw-r2__face,
+  .tw-r2 .tw-r2__fold { transition:none !important; }
 }

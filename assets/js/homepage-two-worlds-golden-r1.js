@@ -321,5 +321,11 @@
     else if (typeof query.addListener === 'function') query.addListener(syncMode);
   });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncMode);
+  window.addEventListener('pageshow', function () {
+    /* BFCache can restore scroll position and viewport metrics without a normal
+       resize event. Re-sync mode and sticky progress after Back/Forward restore. */
+    syncMode();
+    scheduleScroll();
+  }, { passive:true });
   syncMode();
 }());

@@ -98,6 +98,9 @@
   }
 
   function fitInscription(section, world) {
+    /* Short phone landscape owns inscription scale/placement in CSS. Dynamic
+       measurement there amplified the large word and competed with the seam. */
+    if (shortLandscapeQuery.matches) return;
     var viewport = section.querySelector('[data-tw-viewport]');
     var face = section.querySelector('[data-tw-world="' + world + '"]');
     var inscription = section.querySelector('.tw-r2__inscription--' + world);
@@ -248,8 +251,8 @@
 
       if (next === 'ai' || next === 'web') {
         var s = stateFor(section);
-        s.targetX = clamp(((x / rect.width) - .5) * 2, -1, 1) * 4.5;
-        s.targetY = clamp(((y / rect.height) - .5) * 2, -1, 1) * 2.6;
+        s.targetX = clamp(((x / rect.width) - .5) * 2, -1, 1) * 2.4;
+        s.targetY = clamp(((y / rect.height) - .5) * 2, -1, 1) * 1.35;
         scheduleLight(section);
       } else neutralLight(section);
     }, { passive:true });

@@ -6,6 +6,7 @@
   'use strict';
 
   var query = window.matchMedia('(orientation: landscape) and (max-height: 540px) and (max-width: 980px) and (hover: none) and (pointer: coarse)');
+  var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   var sections = Array.prototype.slice.call(document.querySelectorAll('[data-tw-r2]'));
   if (!sections.length) return;
 
@@ -28,7 +29,7 @@
   }
 
   function apply(section) {
-    if (!query.matches) return;
+    if (!query.matches || reducedMotion.matches) return;
     var experience = section.querySelector('[data-tw-experience]');
     var viewport = section.querySelector('[data-tw-viewport]');
     if (!experience || !viewport) return;
@@ -71,12 +72,12 @@
   }
 
   function schedule() {
-    if (!query.matches || raf) return;
+    if (!query.matches || reducedMotion.matches || raf) return;
     raf = window.requestAnimationFrame(run);
   }
 
   function sync() {
-    if (query.matches) schedule();
+    if (query.matches && !reducedMotion.matches) schedule();
     else sections.forEach(function (section) {
       section.style.removeProperty('--tw-golden-landscape-raw');
       section.removeAttribute('data-tw-landscape-settled');
@@ -89,6 +90,9 @@
   if (window.visualViewport) window.visualViewport.addEventListener('resize', sync, { passive: true });
   if (typeof query.addEventListener === 'function') query.addEventListener('change', sync);
   else if (typeof query.addListener === 'function') query.addListener(sync);
+  if (typeof reducedMotion.addEventListener === 'function') reducedMotion.addEventListener('change', sync);
+  else if (typeof reducedMotion.addListener === 'function') reducedMotion.addListener(sync);
 
+  window.addEventListener('pageshow', sync, { passive: true });
   sync();
 }());

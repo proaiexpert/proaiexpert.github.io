@@ -147,8 +147,8 @@
     }
 
     function titleSize(avail,active) {
-      var ratio=isLand ? .105 : (isPortrait ? .115 : .085);
-      var min=isLand ? 24 : (isPortrait ? 31 : 34);
+      var ratio=isLand ? .105 : (isPortrait ? .15 : .085);
+      var min=isLand ? 24 : (isPortrait ? 18 : 34);
       var max=isLand ? 34 : (isPortrait ? 44 : 58);
       var value=clamp(avail*ratio+(active*4),min,max);
       if (document.body && document.body.classList.contains('lang-ru')) value*=isLand?.90:.94;
@@ -168,6 +168,7 @@
       foldRy:foldRy,
       aiRy:aiRy,webRy:webRy,aiZ:aiZ,webZ:webZ,aiX:aiX,webX:webX,
       aiCenter:aiCenter,webCenter:webCenter,
+      aiSafeRight:100-aiRight,webSafeLeft:webLeft,
       aiWordSize:wordSize('ai',aiAvail),
       webWordSize:wordSize('web',webAvail),
       aiTitleSize:titleSize(aiAvail,aiActive),
@@ -177,8 +178,8 @@
       webOpacity:clamp(.76+.24*webActive-.14*webInactive,.60,1),
       aiInscription:clamp(.050+.026*aiAuthority,.045,.078),
       webInscription:clamp(.050+.026*webAuthority,.045,.078),
-      aiContentWidth:isLand ? null : clamp(aiAvail*.94,isPortrait?250:300,isPortrait?520:690),
-      webContentWidth:isLand ? null : clamp(webAvail*.94,isPortrait?250:300,isPortrait?520:690)
+      aiContentWidth:isLand ? null : clamp(aiAvail*.94,isPortrait?110:300,isPortrait?520:690),
+      webContentWidth:isLand ? null : clamp(webAvail*.94,isPortrait?110:300,isPortrait?520:690)
     };
   }
 
@@ -224,6 +225,8 @@
     section.style.setProperty('--tw-web-inscription-size',px(g.webWordSize));
     section.style.setProperty('--tw-ai-title-size',px(g.aiTitleSize));
     section.style.setProperty('--tw-web-title-size',px(g.webTitleSize));
+    section.style.setProperty('--tw-ai-content-right',pct(g.aiSafeRight));
+    section.style.setProperty('--tw-web-content-left',pct(g.webSafeLeft));
     if (g.aiContentWidth) section.style.setProperty('--tw-ai-content-width',px(g.aiContentWidth));
     else section.style.removeProperty('--tw-ai-content-width');
     if (g.webContentWidth) section.style.setProperty('--tw-web-content-width',px(g.webContentWidth));

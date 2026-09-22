@@ -146,7 +146,9 @@
       var ratio=isLand ? .105 : (isPortrait ? .115 : .085);
       var min=isLand ? 24 : (isPortrait ? 31 : 34);
       var max=isLand ? 34 : (isPortrait ? 44 : 58);
-      return clamp(avail*ratio+(active*4),min,max);
+      var value=clamp(avail*ratio+(active*4),min,max);
+      if (document.body && document.body.classList.contains('lang-ru')) value*=isLand?.90:.94;
+      return clamp(value,min,max);
     }
 
     var aiAuthority=.5+.5*aiActive-.35*aiInactive;

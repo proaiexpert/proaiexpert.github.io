@@ -43,7 +43,8 @@
         mode:'',
         fontMetrics:Object.create(null),
         entered:false,
-        focusTimer:0
+        focusTimer:0,
+        suspendScroll:false
       };
       states.set(section,s);
     }
@@ -300,9 +301,57 @@
       if (!preserve || modeChanged) { s.current=.5; s.target=.5; }
       applyState(section,s.current);
       applyLight(section);
+    } else if (preserve && sectionEngaged(section)) {
+      /* Orientation and browser-chrome changes must not reinterpret the
+         user's semantic turn position. Freeze p, reproject the geometry,
+         realign scroll travel to that same p, then resume scroll authority. */
+      var preservedProgress=clamp(s.current,0,1);
+      s.suspendScroll=true;
+      s.current=preservedProgress;
+      s.target=preservedProgress;
+      applyState(section,preservedProgress);
+      applyLight(section);
+      window.requestAnimationFrame(function () {
+        alignScrollToProgress(section,preservedProgress);
+        window.requestAnimationFrame(function () {
+          s.suspendScroll=false;
+          applyState(section,preservedProgress);
+        });
+      });
     } else {
       updateScrollSection(section,true);
     }
+  }
+
+  function rawForProgress(progress) {
+    var lo=0,hi=1;
+    for (var i=0;i<24;i+=1) {
+      var mid=(lo+hi)/2;
+      var shaped=(.72*mid)+(.28*smoothstep(mid));
+      if (shaped<progress) lo=mid;
+      else hi=mid;
+    }
+    return (lo+hi)/2;
+  }
+
+  function sectionEngaged(section) {
+    var experience=section.querySelector('[data-tw-experience]');
+    var viewport=section.querySelector('[data-tw-viewport]');
+    if (!experience || !viewport) return false;
+    var vh=Math.max(1,viewport.getBoundingClientRect().height||viewport.offsetHeight||window.innerHeight);
+    var rect=experience.getBoundingClientRect();
+    return rect.top<=2 && rect.bottom>=vh-2;
+  }
+
+  function alignScrollToProgress(section,progress) {
+    var experience=section.querySelector('[data-tw-experience]');
+    var viewport=section.querySelector('[data-tw-viewport]');
+    if (!experience || !viewport) return;
+    var vh=Math.max(1,viewport.getBoundingClientRect().height||viewport.offsetHeight||window.innerHeight);
+    var travel=Math.max(1,experience.offsetHeight-vh);
+    var rect=experience.getBoundingClientRect();
+    var absoluteTop=rect.top+window.scrollY;
+    window.scrollTo(0,absoluteTop+(travel*rawForProgress(progress)));
   }
 
   function scrollProgress(section) {
@@ -319,6 +368,7 @@
   function updateScrollSection(section,immediate) {
     var s=stateFor(section);
     if (s.mode!=='portrait' && s.mode!=='landscape') return;
+    if (s.suspendScroll) return;
     var raw=scrollProgress(section);
     /* Keep geometry continuous; easing only shapes perceived material weight. */
     var p=(.72*raw)+(.28*smoothstep(raw));

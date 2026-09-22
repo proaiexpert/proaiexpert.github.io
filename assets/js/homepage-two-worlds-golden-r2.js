@@ -135,11 +135,15 @@
 
     function wordSize(world,avail) {
       var measured=measureWordAt100(section,world);
-      var fit=100*(avail*.91)/measured;
+      /* Optical safe-zone wins over an arbitrary type floor. Active worlds
+         remain architectural; narrow/inactive territories may scale lower so
+         no glyph is accidentally clipped by the viewport or hinge. */
+      var fit=100*(avail*.84)/measured;
       var maxByHeight=isLand ? h*.155 : (isPortrait ? h*.105 : h*.18);
-      var min=isLand ? 42 : (isPortrait ? 54 : 78);
+      var floor=isLand ? 30 : (isPortrait ? 34 : 56);
       var max=isLand ? 68 : (isPortrait ? 94 : 160);
-      return clamp(Math.min(fit,maxByHeight),min,max);
+      var safeFloor=Math.min(floor,fit);
+      return clamp(Math.min(fit,maxByHeight),safeFloor,max);
     }
 
     function titleSize(avail,active) {

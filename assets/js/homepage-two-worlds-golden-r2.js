@@ -1,4 +1,4 @@
-/* ProAI Expert — Two Worlds Golden Premium R2
+/* ProAI Expert — Two Worlds Golden Premium R2.1
    One normalized physical state for desktop, portrait and phone landscape.
    No independent fold runtime. RAF runs only while desktop interaction settles. */
 (function () {
@@ -93,9 +93,16 @@
     var h=Math.max(1,s.viewportHeight);
     var signed=(p-.5)*2; // -1 AI, +1 Web
 
-    /* 67/33 endpoint split keeps the R1 world-expansion idea without 80/20 drama. */
-    var boundary=50-(17*signed);
-    var perspectiveSlope=2.0*signed;
+    var isLand=s.mode==='landscape';
+    var isPortrait=s.mode==='portrait';
+
+    /* R2.1 keeps one normalized p, but endpoint ownership is authored per
+       interaction mode. Desktop preserves R2's 67/33 character; portrait
+       resolves to 94.5/5.5 and phone landscape to 92/8. */
+    var boundaryAmplitude=isPortrait ? 44.5 : (isLand ? 42 : 17);
+    var boundary=50-(boundaryAmplitude*signed);
+    var slopeAmplitude=isPortrait ? 1.15 : (isLand ? .95 : 2.0);
+    var perspectiveSlope=slopeAmplitude*signed;
     var boundaryTop=boundary+perspectiveSlope;
     var boundaryBottom=boundary-perspectiveSlope;
 
@@ -104,21 +111,23 @@
     var aiInactive=Math.max(0,signed);
     var webInactive=Math.max(0,-signed);
 
-    var isLand=s.mode==='landscape';
-    var isPortrait=s.mode==='portrait';
-
     var foldBase=isLand ? clamp(w*.038,28,38) : (isPortrait ? clamp(w*.125,42,58) : clamp(w*.045,58,82));
-    var foldWidth=foldBase*(1-.12*Math.abs(signed));
-    var foldRy=signed*(isLand ? 4.6 : 5.4);
+    var foldShrink=isPortrait ? .22 : (isLand ? .18 : .12);
+    var foldWidth=foldBase*(1-foldShrink*Math.abs(signed));
+    var foldRy=signed*(isLand ? 4.4 : (isPortrait ? 5.0 : 5.4));
 
-    var aiRy=-2.0 + (1.25*aiActive) - (5.1*aiInactive);
-    var webRy= 2.0 - (1.25*webActive) + (5.1*webInactive);
-    var depthActive=isLand ? 12 : 17;
-    var depthInactive=isLand ? -42 : -52;
+    var neutralRy=isLand ? 1.4 : (isPortrait ? 1.6 : 2.0);
+    var activeRy=isLand ? .9 : (isPortrait ? 1.0 : 1.25);
+    var inactiveRy=isLand ? 8.8 : (isPortrait ? 11.0 : 5.1);
+    var aiRy=-neutralRy + (activeRy*aiActive) - (inactiveRy*aiInactive);
+    var webRy= neutralRy - (activeRy*webActive) + (inactiveRy*webInactive);
+    var depthActive=isLand ? 12 : (isPortrait ? 14 : 17);
+    var depthInactive=isLand ? -76 : (isPortrait ? -88 : -52);
     var aiZ=depthActive*aiActive + depthInactive*aiInactive;
     var webZ=depthActive*webActive + depthInactive*webInactive;
-    var aiX=-(isLand?1.7:2.7)*aiInactive;
-    var webX=(isLand?1.7:2.7)*webInactive;
+    var inactiveTravel=isLand ? 8.5 : (isPortrait ? 10.5 : 2.7);
+    var aiX=-inactiveTravel*aiInactive;
+    var webX=inactiveTravel*webInactive;
 
     var outerSafePct=isLand ? 4.0 : (isPortrait ? 7.0 : 3.8);
     var foldSafePx=(foldWidth*.56)+(isLand?10:(isPortrait?12:18));
@@ -158,8 +167,25 @@
 
     var aiAuthority=.5+.5*aiActive-.35*aiInactive;
     var webAuthority=.5+.5*webActive-.35*webInactive;
-    var aiDetail=clamp(.62+.38*aiActive-.27*aiInactive,.34,1);
-    var webDetail=clamp(.62+.38*webActive-.27*webInactive,.34,1);
+    var mobileMode=isPortrait || isLand;
+    var aiDetail=mobileMode
+      ? clamp(.58+.42*aiActive-.46*aiInactive,.10,1)
+      : clamp(.62+.38*aiActive-.27*aiInactive,.34,1);
+    var webDetail=mobileMode
+      ? clamp(.58+.42*webActive-.46*webInactive,.10,1)
+      : clamp(.62+.38*webActive-.27*webInactive,.34,1);
+    var aiOpacity=mobileMode
+      ? clamp(.74+.26*aiActive-.40*aiInactive,.34,1)
+      : clamp(.76+.24*aiActive-.14*aiInactive,.60,1);
+    var webOpacity=mobileMode
+      ? clamp(.74+.26*webActive-.40*webInactive,.34,1)
+      : clamp(.76+.24*webActive-.14*webInactive,.60,1);
+    var aiInscription=mobileMode
+      ? clamp(.045+.035*aiActive-.026*aiInactive,.014,.082)
+      : clamp(.050+.026*aiAuthority,.045,.078);
+    var webInscription=mobileMode
+      ? clamp(.045+.035*webActive-.026*webInactive,.014,.082)
+      : clamp(.050+.026*webAuthority,.045,.078);
 
     return {
       boundary:boundary,
@@ -175,10 +201,10 @@
       aiTitleSize:titleSize(aiAvail,aiActive),
       webTitleSize:titleSize(webAvail,webActive),
       aiDetail:aiDetail,webDetail:webDetail,
-      aiOpacity:clamp(.76+.24*aiActive-.14*aiInactive,.60,1),
-      webOpacity:clamp(.76+.24*webActive-.14*webInactive,.60,1),
-      aiInscription:clamp(.050+.026*aiAuthority,.045,.078),
-      webInscription:clamp(.050+.026*webAuthority,.045,.078),
+      aiOpacity:aiOpacity,
+      webOpacity:webOpacity,
+      aiInscription:aiInscription,
+      webInscription:webInscription,
       aiContentWidth:isLand ? null : clamp(aiAvail*.94,isPortrait?110:300,isPortrait?520:690),
       webContentWidth:isLand ? null : clamp(webAvail*.94,isPortrait?110:300,isPortrait?520:690)
     };
@@ -192,8 +218,8 @@
 
   function mobileOwner(section,p) {
     var s=stateFor(section);
-    if (s.owner==='ai' && p>.57) s.owner='web';
-    else if (s.owner==='web' && p<.43) s.owner='ai';
+    if (s.owner==='ai' && p>.555) s.owner='web';
+    else if (s.owner==='web' && p<.445) s.owner='ai';
     else if (s.owner!=='ai' && s.owner!=='web') s.owner=p>=.5?'web':'ai';
     section.setAttribute('data-owner',s.owner);
   }
@@ -323,11 +349,17 @@
     }
   }
 
+  function shapeMobileProgress(raw) {
+    raw=clamp(raw,0,1);
+    /* Heavier endpoint settle than R2 while keeping the turn symmetric. */
+    return (.35*raw)+(.65*smoothstep(raw));
+  }
+
   function rawForProgress(progress) {
     var lo=0,hi=1;
     for (var i=0;i<24;i+=1) {
       var mid=(lo+hi)/2;
-      var shaped=(.72*mid)+(.28*smoothstep(mid));
+      var shaped=shapeMobileProgress(mid);
       if (shaped<progress) lo=mid;
       else hi=mid;
     }
@@ -370,8 +402,8 @@
     if (s.mode!=='portrait' && s.mode!=='landscape') return;
     if (s.suspendScroll) return;
     var raw=scrollProgress(section);
-    /* Keep geometry continuous; easing only shapes perceived material weight. */
-    var p=(.72*raw)+(.28*smoothstep(raw));
+    /* Keep geometry continuous while giving endpoints a resolved, weighted settle. */
+    var p=shapeMobileProgress(raw);
     s.current=p;
     s.target=p;
     applyState(section,p);

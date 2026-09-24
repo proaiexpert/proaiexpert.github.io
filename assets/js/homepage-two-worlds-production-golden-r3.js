@@ -181,10 +181,10 @@
     var sharedZ=-96*Math.sin(Math.PI*p);
     var foldOpacity=Math.pow(Math.sin(Math.PI*p),.62);
     var foldRy=mix(-3,3,p);
-    var aiContent=fadeOut(p,.18,.62);
-    var webContent=fadeIn(p,.38,.82);
-    var aiWord=fadeOut(p,.12,.60);
-    var webWord=fadeIn(p,.40,.88);
+    var aiContent=fadeOut(p,.24,.70);
+    var webContent=fadeIn(p,.30,.76);
+    var aiWord=fadeOut(p,.30,.75);
+    var webWord=fadeIn(p,.25,.70);
 
     setVar(section,'--tw-r31-ai-x',(-100*p).toFixed(4)+'%');
     setVar(section,'--tw-r31-web-x',(100*(1-p)).toFixed(4)+'%');

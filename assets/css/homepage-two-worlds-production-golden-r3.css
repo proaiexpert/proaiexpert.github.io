@@ -322,10 +322,18 @@
   .tw-r3 .tw-r2__cta { margin-top:18px; }
 }
 
-/* Reduced motion becomes a clear sequential reading experience instead of a
-   scroll-bound physical turn. */
+/* Reduced motion: desktop keeps the production neutral fullscreen composition.
+   Touch/mobile becomes sequential so both destinations stay fully accessible. */
 @media (prefers-reduced-motion:reduce) {
   .tw-r3[data-entry-lit="run"] .tw-r2__face::after { animation:none!important; }
+  .tw-r3 .tw-r2__face,
+  .tw-r3 .tw-r2__fold,
+  .tw-r3 .tw-r2__content,
+  .tw-r3 .tw-r2__inscription { transition:none!important; }
+}
+
+@media (prefers-reduced-motion:reduce) and (max-width:980px),
+       (prefers-reduced-motion:reduce) and (hover:none) and (pointer:coarse) {
   .tw-r3 .tw-r2__experience { height:auto!important; min-height:0; }
   .tw-r3 .tw-r3__viewport {
     position:relative;

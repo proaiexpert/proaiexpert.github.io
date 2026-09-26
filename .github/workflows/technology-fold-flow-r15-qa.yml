@@ -1,0 +1,257 @@
+name: Technology Fold Flow R1.5 Browser QA
+
+on:
+  push:
+    branches:
+      - agent/proai-home-technology-fold-flow-r1-5
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout R1.5 candidate
+        uses: actions/checkout@v6
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start static owner-preview server
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/r15-server.log 2>&1 &
+          echo $! > /tmp/r15-server.pid
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/owner-preview/technology-fold-flow-r1-5/?lang=en >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/r15-server.log
+          exit 1
+
+      - name: Run Chromium visual and motion QA
+        shell: bash
+        run: |
+          mkdir -p qa-r15/screens qa-r15/videos
+          cat > qa-r15/run.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const base='http://127.0.0.1:4173/owner-preview/technology-fold-flow-r1-5/';
+          const viewports=[
+            {name:'1920x1080',w:1920,h:1080,kind:'desktop'},
+            {name:'1440x900',w:1440,h:900,kind:'laptop'},
+            {name:'1366x768',w:1366,h:768,kind:'laptop'},
+            {name:'1280x720',w:1280,h:720,kind:'laptop'},
+            {name:'430x932',w:430,h:932,kind:'portrait'},
+            {name:'390x844',w:390,h:844,kind:'portrait'},
+            {name:'375x812',w:375,h:812,kind:'portrait'},
+            {name:'844x390',w:844,h:390,kind:'landscape'},
+            {name:'896x414',w:896,h:414,kind:'landscape'},
+            {name:'932x430',w:932,h:430,kind:'landscape'}
+          ];
+          const states=[
+            {name:'handoff',p:0},
+            {name:'understand',p:.12},
+            {name:'orchestrate',p:.34},
+            {name:'communicate',p:.54},
+            {name:'deliver',p:.72},
+            {name:'final',p:.91}
+          ];
+          const langs=['en','ru'];
+          const report={candidate:'R1.5',generatedAt:new Date().toISOString(),checks:[],failures:[]};
+          const browser=await chromium.launch({headless:true});
+
+          async function setState(page,p){
+            await page.evaluate((progress)=>{
+              const section=document.querySelector('[data-home-tech-fold-flow]');
+              const story=section.querySelector('[data-ff-story]');
+              const sticky=section.querySelector('.home-tech-ff__sticky');
+              const top=window.scrollY+story.getBoundingClientRect().top;
+              const travel=Math.max(1,story.getBoundingClientRect().height-sticky.getBoundingClientRect().height);
+              window.scrollTo(0,top+travel*progress);
+              window.__PROAI_FOLD_FLOW_R15__.setProgress(section,progress);
+            },p);
+            await page.waitForTimeout(460);
+          }
+
+          async function inspect(page,meta){
+            return await page.evaluate((m)=>{
+              const sec=document.querySelector('[data-home-tech-fold-flow]');
+              const stage=sec.getAttribute('data-ff-stage');
+              const expected=m.state==='final'?'resolved':m.state;
+              const visible=(el)=>{if(!el)return false;const cs=getComputedStyle(el);const r=el.getBoundingClientRect();return cs.display!=='none'&&cs.visibility!=='hidden'&&parseFloat(cs.opacity||'1')>.02&&r.width>0&&r.height>0};
+              const rect=(el)=>{const r=el.getBoundingClientRect();return {l:r.left,r:r.right,t:r.top,b:r.bottom,w:r.width,h:r.height}};
+              const overlap=(a,b,pad=0)=>a&&b&&a.l<b.r-pad&&a.r>b.l+pad&&a.t<b.b-pad&&a.b>b.t+pad;
+              const active=stage==='resolved'?sec.querySelector('[data-ff-panel="resolved"]'):sec.querySelector('[data-ff-panel="'+stage+'"]');
+              const verb=active?.querySelector('h3');
+              const heading=sec.querySelector('.home-tech-ff__heading');
+              const scene=sec.querySelector('.home-tech-ff__scene');
+              const payload=sec.querySelector('.home-tech-ff__payload');
+              const vendors=[...(active?.querySelectorAll('.home-tech-ff__vendor b')||[])].filter(visible);
+              const history=[...sec.querySelectorAll('.home-tech-ff__history-rail span')].filter(visible);
+              const cap=active?.querySelector('.home-tech-ff__capability-line');
+              const vendorField=active?.querySelector('.home-tech-ff__vendor-field');
+              const foot=sec.querySelector('.home-tech-ff__foot p');
+              const prepared=sec.querySelector('[data-ff-panel="understand"]');
+              const preparedFamily=prepared?.querySelector('.home-tech-ff__family');
+              const preparedVerb=prepared?.querySelector('h3');
+              const preparedSupport=prepared?.querySelector('.home-tech-ff__support');
+              const preparedVendors=[...(prepared?.querySelectorAll('.home-tech-ff__vendor')||[])];
+              const path=sec.querySelector('[data-ff-path]');
+              const capRect=visible(cap)?rect(cap):null;
+              let carrierCapCollision=false;
+              if(capRect&&path&&path.getScreenCTM()){
+                const ctm=path.getScreenCTM(),len=path.getTotalLength();
+                for(let i=0;i<=100;i++){
+                  const p=path.getPointAtLength(len*i/100);
+                  const q=new DOMPoint(p.x,p.y).matrixTransform(ctm);
+                  if(q.x>=capRect.l-3&&q.x<=capRect.r+3&&q.y>=capRect.t-3&&q.y<=capRect.b+3){carrierCapCollision=true;break}
+                }
+              }
+              const vendorRects=vendors.map(rect);
+              const vendorOverlaps=[];
+              for(let i=0;i<vendorRects.length;i++)for(let j=i+1;j<vendorRects.length;j++)if(overlap(vendorRects[i],vendorRects[j]))vendorOverlaps.push([i,j]);
+              const historyRects=history.map(rect);
+              const historyOverlaps=[];
+              for(let i=0;i<historyRects.length;i++)for(let j=i+1;j<historyRects.length;j++)if(overlap(historyRects[i],historyRects[j]))historyOverlaps.push([i,j]);
+              const vr=visible(verb)?rect(verb):null;
+              const cr=visible(cap)?rect(cap):null;
+              const vfr=visible(vendorField)?rect(vendorField):null;
+              const vendorFieldChildRects=[...(vendorField?.querySelectorAll('.home-tech-ff__vendor')||[])].filter(visible).map(rect);
+              const capVendorOverlap=cr?vendorFieldChildRects.some(r=>overlap(cr,r)):false;
+              const hr=rect(heading),sr=rect(scene),pr=visible(payload)?rect(payload):null;
+              const preparedWhole=m.state!=='handoff'||(
+                visible(preparedFamily)&&visible(preparedVerb)&&visible(preparedSupport)&&
+                preparedVendors.every(v=>!visible(v))
+              );
+              const capSingleLine=!cr||m.kind!=='landscape'||(cap.scrollHeight<=parseFloat(getComputedStyle(cap).lineHeight)*1.35+1);
+              const footSingleLine=m.kind!=='landscape'||!visible(foot)||(foot.scrollHeight<=parseFloat(getComputedStyle(foot).lineHeight)*1.35+1);
+              const debug=getComputedStyle(document.querySelector('.ff-preview-debug')).display;
+              const out={
+                ...m,actualStage:stage,stageCorrect:stage===expected,
+                scrollWidth:document.documentElement.scrollWidth,viewportWidth:innerWidth,
+                noHorizontalOverflow:document.documentElement.scrollWidth<=innerWidth+1,
+                headingSceneSafe:innerWidth>innerHeight||hr.b<=sr.t+1,
+                payloadHeadingSafe:!pr||!overlap(pr,hr,1),
+                verbInside:!vr||(vr.l>=-1&&vr.r<=innerWidth+1),
+                verbRect:vr,
+                vendorCount:vendorRects.length,vendorOverlaps,
+                vendorsInside:vendorRects.every(r=>r.l>=-1&&r.r<=innerWidth+1),
+                historyOverlaps,
+                historyInside:historyRects.every(r=>r.l>=-1&&r.r<=innerWidth+1),
+                carrierCapabilityCollision:carrierCapCollision,
+                capabilityVendorOverlap:capVendorOverlap,
+                capabilitySingleLine:capSingleLine,
+                footSingleLine:footSingleLine,
+                preparedWhole,
+                debugHidden:debug==='none',
+                entryReady:sec.getAttribute('data-ff-entry-ready'),
+                motion:sec.getAttribute('data-ff-motion')
+              };
+              return out;
+            },meta);
+          }
+
+          for(const vp of viewports){
+            for(const lang of langs){
+              const context=await browser.newContext({viewport:{width:vp.w,height:vp.h},deviceScaleFactor:1});
+              const page=await context.newPage();
+              await page.goto(base+'?lang='+lang,{waitUntil:'networkidle'});
+              for(const st of states){
+                await setState(page,st.p);
+                const meta={viewport:vp.name,kind:vp.kind,lang,state:st.name};
+                const result=await inspect(page,meta);
+                report.checks.push(result);
+                const bad=[];
+                if(!result.stageCorrect)bad.push('stage');
+                if(!result.noHorizontalOverflow)bad.push('overflow');
+                if(!result.headingSceneSafe)bad.push('heading-scene');
+                if(!result.payloadHeadingSafe)bad.push('payload-heading');
+                if(!result.verbInside)bad.push('verb');
+                if(result.vendorOverlaps.length)bad.push('vendor-overlap');
+                if(!result.vendorsInside)bad.push('vendor-bounds');
+                if(result.historyOverlaps.length)bad.push('history-overlap');
+                if(!result.historyInside)bad.push('history-bounds');
+                if(result.carrierCapabilityCollision)bad.push('carrier-capability');
+                if(result.capabilityVendorOverlap)bad.push('capability-vendor');
+                if(!result.capabilitySingleLine)bad.push('capability-wrap');
+                if(!result.footSingleLine)bad.push('foot-wrap');
+                if(!result.preparedWhole)bad.push('prepared-entry-incomplete');
+                if(!result.debugHidden)bad.push('debug-visible');
+                if(st.name==='handoff'&&result.entryReady!=='true')bad.push('blank-entry-cue');
+                if(bad.length)report.failures.push({...meta,bad});
+                await page.screenshot({path:`qa-r15/screens/${vp.name}-${lang}-${st.name}.png`,fullPage:false});
+              }
+              await context.close();
+            }
+          }
+
+          async function verifyMotion(name,w,h,lang){
+            const context=await browser.newContext({viewport:{width:w,height:h}});
+            const page=await context.newPage();
+            await page.goto(base+'?lang='+lang,{waitUntil:'networkidle'});
+            const forwardStages=[],reverseStages=[];
+            for(let i=0;i<=100;i++){
+              const p=i/100;await setState(page,p);
+              forwardStages.push(await page.evaluate(()=>document.querySelector('[data-home-tech-fold-flow]').getAttribute('data-ff-stage')));
+            }
+            for(let i=100;i>=0;i--){
+              const p=i/100;await setState(page,p);
+              reverseStages.push(await page.evaluate(()=>document.querySelector('[data-home-tech-fold-flow]').getAttribute('data-ff-stage')));
+            }
+            const order={handoff:0,understand:1,orchestrate:2,communicate:3,deliver:4,resolved:5};
+            const forwardStable=forwardStages.every((s,i)=>i===0||order[s]>=order[forwardStages[i-1]]);
+            const reverseStable=reverseStages.every((s,i)=>i===0||order[s]<=order[reverseStages[i-1]]);
+            report.motionChecks??=[];
+            report.motionChecks.push({name,lang,forwardStable,reverseStable});
+            if(!forwardStable||!reverseStable)report.failures.push({viewport:name,lang,state:'motion',bad:['state-chatter']});
+            await context.close();
+          }
+
+          await verifyMotion('390x844',390,844,'en');
+          await verifyMotion('896x414',896,414,'en');
+          await verifyMotion('1366x768',1366,768,'en');
+
+          async function record(name,w,h,lang,direction){
+            const context=await browser.newContext({viewport:{width:w,height:h},recordVideo:{dir:'qa-r15/videos',size:{width:w,height:h}}});
+            const page=await context.newPage();
+            await page.goto(base+'?lang='+lang,{waitUntil:'networkidle'});
+            const seq=[];
+            if(direction==='forward'){for(let i=0;i<=50;i++)seq.push(i/50)}
+            else{for(let i=50;i>=0;i--)seq.push(i/50)}
+            for(const p of seq){await setState(page,p);await page.waitForTimeout(45)}
+            const video=page.video();
+            await page.close();
+            const raw=await video.path();
+            await context.close();
+            fs.renameSync(raw,`qa-r15/videos/${name}.webm`);
+          }
+
+          await record('portrait-en-forward',390,844,'en','forward');
+          await record('portrait-en-reverse',390,844,'en','reverse');
+          await record('landscape-en-forward',896,414,'en','forward');
+          await record('landscape-en-reverse',896,414,'en','reverse');
+          await record('desktop-en-forward',1366,768,'en','forward');
+
+          await browser.close();
+          fs.writeFileSync('qa-r15/report.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify({checks:report.checks.length,failures:report.failures.length,details:report.failures.slice(0,30)},null,2));
+          if(report.failures.length)process.exit(2);
+          NODE
+          node qa-r15/run.mjs
+
+      - name: Upload R1.5 visual evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-fold-flow-r15-browser-qa
+          path: qa-r15/
+          if-no-files-found: error
+          retention-days: 14

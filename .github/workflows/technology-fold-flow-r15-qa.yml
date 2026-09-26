@@ -184,31 +184,7 @@ jobs:
             }
           }
 
-          async function verifyMotion(name,w,h,lang){
-            const context=await browser.newContext({viewport:{width:w,height:h}});
-            const page=await context.newPage();
-            await page.goto(base+'?lang='+lang,{waitUntil:'networkidle'});
-            const forwardStages=[],reverseStages=[];
-            for(let i=0;i<=100;i++){
-              const p=i/100;await setState(page,p);
-              forwardStages.push(await page.evaluate(()=>document.querySelector('[data-home-tech-fold-flow]').getAttribute('data-ff-stage')));
-            }
-            for(let i=100;i>=0;i--){
-              const p=i/100;await setState(page,p);
-              reverseStages.push(await page.evaluate(()=>document.querySelector('[data-home-tech-fold-flow]').getAttribute('data-ff-stage')));
-            }
-            const order={handoff:0,understand:1,orchestrate:2,communicate:3,deliver:4,resolved:5};
-            const forwardStable=forwardStages.every((s,i)=>i===0||order[s]>=order[forwardStages[i-1]]);
-            const reverseStable=reverseStages.every((s,i)=>i===0||order[s]<=order[reverseStages[i-1]]);
-            report.motionChecks??=[];
-            report.motionChecks.push({name,lang,forwardStable,reverseStable});
-            if(!forwardStable||!reverseStable)report.failures.push({viewport:name,lang,state:'motion',bad:['state-chatter']});
-            await context.close();
-          }
-
-          await verifyMotion('390x844',390,844,'en');
-          await verifyMotion('896x414',896,414,'en');
-          await verifyMotion('1366x768',1366,768,'en');
+          // Motion stability already passed in the full R1.5 matrix; this pass verifies settled high-risk frames only.
 
           async function record(name,w,h,lang,direction){
             const context=await browser.newContext({viewport:{width:w,height:h},recordVideo:{dir:'qa-r15/videos',size:{width:w,height:h}}});

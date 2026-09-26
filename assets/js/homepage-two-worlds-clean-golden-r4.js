@@ -1,7 +1,7 @@
-/* ProAI Expert — Two Worlds Clean Production Synthesis R4
+/* ProAI Expert — Two Worlds Clean Production Synthesis R4.1 FINAL
    One mobile motion authority. No scrollTo. No continuous locked-state RAF.
-   Production desktop behavior is re-established from main without binding
-   to the legacy [data-tw-r2] / [data-tw-r3] runtimes. */
+   Final correction: viewport ownership is frozen while immersive, Header guard
+   is experience-owned in both phone orientations, reverse keeps one timeline. */
 (function () {
   'use strict';
 
@@ -18,6 +18,9 @@
   var TURN_MS=640;
   var IGNORE_DELTA=2;
   var WIDTH_RECOMPOSE_DELTA=40;
+  var HEIGHT_RECOMPOSE_DELTA=8;
+  var TRANSITION_REVERSE_THRESHOLD_PORTRAIT=20;
+  var TRANSITION_REVERSE_THRESHOLD_LANDSCAPE=16;
 
   function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
   function smoothstep(v){v=clamp(v,0,1);return v*v*(3-(2*v));}
@@ -50,6 +53,7 @@
       viewportHeight:0,
       orientation:'',
       mobile:false,
+      stageOwned:false,
       moonlit:false,
       targetLightX:0,
       targetLightY:0,
@@ -217,14 +221,18 @@
 
   function reverseThreshold(){return landscapeQuery.matches?38:46;}
   function forwardThreshold(){return landscapeQuery.matches?30:38;}
+  function transitionReverseThreshold(){
+    return landscapeQuery.matches?TRANSITION_REVERSE_THRESHOLD_LANDSCAPE:TRANSITION_REVERSE_THRESHOLD_PORTRAIT;
+  }
 
   function sectionEngaged(section){
     var experience=section.querySelector('[data-tw-experience]');
     if(!experience)return false;
-    var s=stateFor(section);
-    var vh=Math.max(1,s.viewportHeight||stageHeightNow());
+    /* Use the live visual viewport only for the ownership test. Stage geometry
+       itself is frozen once ownership begins, so browser chrome cannot resize it. */
+    var vh=Math.max(1,stageHeightNow());
     var rect=experience.getBoundingClientRect();
-    return rect.top<=2&&rect.bottom>=vh-2;
+    return rect.top<=8&&rect.bottom>=vh-8;
   }
 
   function initialMobileState(section){
@@ -253,7 +261,7 @@
       var opposite=(s.direction>0&&delta<0)||(s.direction<0&&delta>0);
       if(opposite){
         s.reverseIntent+=Math.abs(delta);
-        if(s.reverseIntent>=reverseThreshold()){
+        if(s.reverseIntent>=transitionReverseThreshold()){
           s.direction*=-1;
           s.reverseIntent=0;
           section.setAttribute('data-r4-direction',s.direction>0?'forward':'reverse');
@@ -441,11 +449,17 @@
 
   function updateHeaderGuard(section){
     var viewport=section.querySelector('[data-tw-viewport]');
-    if(!viewport)return;
-    if(mobileQuery.matches&&landscapeQuery.matches&&!reducedMotion.matches){
-      viewport.setAttribute('data-header-autohide-guard','two-worlds-r4');
+    var experience=section.querySelector('[data-tw-experience]');
+    /* R4 used the sticky viewport itself and only in landscape. That made the
+       guard vulnerable to visualViewport height changes: the guard could stop
+       covering the live viewport and Header System would legitimately reveal.
+       R4.1 delegates ownership to the full scroll territory instead. */
+    if(viewport)viewport.removeAttribute('data-header-autohide-guard');
+    if(!experience)return;
+    if(mobileQuery.matches&&!reducedMotion.matches){
+      experience.setAttribute('data-header-autohide-guard','two-worlds-r4-1');
     }else{
-      viewport.removeAttribute('data-header-autohide-guard');
+      experience.removeAttribute('data-header-autohide-guard');
     }
   }
 
@@ -456,14 +470,28 @@
     var mobile=mobileQuery.matches;
     var orientation=orientationFor(w,h);
 
-    if(!force&&mobile&&s.viewportWidth&&s.mobile===mobile&&s.orientation===orientation&&Math.abs(w-s.viewportWidth)<WIDTH_RECOMPOSE_DELTA){
-      return;
+    var sameMobileClass=mobile&&s.viewportWidth&&s.mobile===mobile&&s.orientation===orientation;
+    var widthStable=sameMobileClass&&Math.abs(w-s.viewportWidth)<WIDTH_RECOMPOSE_DELTA;
+
+    if(!force&&widthStable){
+      if(sectionEngaged(section)){
+        /* Critical Safari rule: once the immersive territory owns the viewport,
+           height-only browser chrome noise cannot resize the sticky canvas. */
+        s.stageOwned=true;
+        return;
+      }
+      s.stageOwned=false;
+      if(Math.abs(h-s.viewportHeight)<HEIGHT_RECOMPOSE_DELTA)return;
+      /* Outside the immersive territory, follow the current usable viewport.
+         This means the size captured before entry is fresh rather than the
+         smaller page-load viewport with browser chrome still expanded. */
     }
 
     s.viewportWidth=w;
     s.viewportHeight=h;
     s.orientation=orientation;
     s.mobile=mobile;
+    s.stageOwned=mobile&&sectionEngaged(section);
     updateHeaderGuard(section);
 
     if(reducedMotion.matches){
@@ -535,6 +563,7 @@
     s.viewportHeight=h;
     s.orientation=orientationFor(w,h);
     s.mobile=mobileQuery.matches;
+    s.stageOwned=s.mobile&&sectionEngaged(section);
     updateHeaderGuard(section);
 
     if(reducedMotion.matches){

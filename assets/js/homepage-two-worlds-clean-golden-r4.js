@@ -245,13 +245,10 @@
     s.lastScrollY=y;
 
     if(!mobileQuery.matches||reducedMotion.matches)return;
-    if(!sectionEngaged(section)){
-      s.intent=0;
-      s.reverseIntent=0;
-      return;
-    }
     if(Math.abs(delta)<=IGNORE_DELTA)return;
 
+    /* Once a turn has begun, keep the same timeline authoritative even if
+       a genuine reverse gesture momentarily moves the sticky boundary. */
     if(s.logical==='TRANSITIONING'){
       var opposite=(s.direction>0&&delta<0)||(s.direction<0&&delta>0);
       if(opposite){
@@ -264,6 +261,12 @@
       }else{
         s.reverseIntent=Math.max(0,s.reverseIntent-(Math.abs(delta)*.75));
       }
+      return;
+    }
+
+    if(!sectionEngaged(section)){
+      s.intent=0;
+      s.reverseIntent=0;
       return;
     }
 

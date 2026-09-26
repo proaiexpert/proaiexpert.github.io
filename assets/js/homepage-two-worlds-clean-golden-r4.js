@@ -89,6 +89,17 @@
     }
   }
 
+  function setBothAccessible(section){
+    var ai=section.querySelector('[data-tw-world="ai"]');
+    var web=section.querySelector('[data-tw-world="web"]');
+    var aiLink=ai&&ai.querySelector('a');
+    var webLink=web&&web.querySelector('a');
+    if(ai)ai.removeAttribute('aria-hidden');
+    if(web)web.removeAttribute('aria-hidden');
+    if(aiLink)aiLink.removeAttribute('tabindex');
+    if(webLink)webLink.removeAttribute('tabindex');
+  }
+
   function writeLocked(section,state){
     var s=stateFor(section);
     if(s.raf){window.cancelAnimationFrame(s.raf);s.raf=0;}
@@ -105,8 +116,11 @@
       setVar(section,'--tw-r4-web-ry','72deg');
       setVar(section,'--tw-r4-ai-z','0px');
       setVar(section,'--tw-r4-web-z','0px');
-      setVar(section,'--tw-r4-fold-x','105%');
+      setVar(section,'--tw-r4-fold-x','110%');
       setVar(section,'--tw-r4-fold-ry','-8deg');
+      setVar(section,'--tw-r4-ai-light-opacity','.48');
+      setVar(section,'--tw-r4-web-light-opacity','.08');
+      setVar(section,'--tw-r4-fold-response','.88');
       setVar(section,'--tw-r4-ai-content-opacity','1');
       setVar(section,'--tw-r4-web-content-opacity','0');
       setVar(section,'--tw-r4-ai-inscription-opacity','.92');
@@ -120,8 +134,11 @@
       setVar(section,'--tw-r4-web-ry','3deg');
       setVar(section,'--tw-r4-ai-z','0px');
       setVar(section,'--tw-r4-web-z','0px');
-      setVar(section,'--tw-r4-fold-x','-5%');
+      setVar(section,'--tw-r4-fold-x','-10%');
       setVar(section,'--tw-r4-fold-ry','8deg');
+      setVar(section,'--tw-r4-ai-light-opacity','.07');
+      setVar(section,'--tw-r4-web-light-opacity','.46');
+      setVar(section,'--tw-r4-fold-response','.88');
       setVar(section,'--tw-r4-ai-content-opacity','0');
       setVar(section,'--tw-r4-web-content-opacity','1');
       setVar(section,'--tw-r4-ai-inscription-opacity','0');
@@ -143,6 +160,9 @@
     var webContent=smoothstep((t-.58)/.24);
     var aiInscription=.92*(1-smoothstep((t-.24)/.22));
     var webInscription=.92*smoothstep((t-.54)/.22);
+    var aiLight=mix(.48,.07,p);
+    var webLight=mix(.08,.46,p);
+    var foldResponse=.88+(.12*Math.sin(Math.PI*p));
 
     setVar(section,'--tw-r4-ai-x',(-104*p).toFixed(3)+'%');
     setVar(section,'--tw-r4-web-x',(104*(1-p)).toFixed(3)+'%');
@@ -150,12 +170,15 @@
     setVar(section,'--tw-r4-web-ry',mix(72,3,p).toFixed(3)+'deg');
     setVar(section,'--tw-r4-ai-z',sharedZ.toFixed(2)+'px');
     setVar(section,'--tw-r4-web-z',sharedZ.toFixed(2)+'px');
-    setVar(section,'--tw-r4-fold-x',mix(105,-5,p).toFixed(3)+'%');
+    setVar(section,'--tw-r4-fold-x',mix(110,-10,p).toFixed(3)+'%');
     setVar(section,'--tw-r4-fold-ry',mix(-8,8,p).toFixed(3)+'deg');
     setVar(section,'--tw-r4-ai-content-opacity',aiContent.toFixed(3));
     setVar(section,'--tw-r4-web-content-opacity',webContent.toFixed(3));
     setVar(section,'--tw-r4-ai-inscription-opacity',aiInscription.toFixed(3));
     setVar(section,'--tw-r4-web-inscription-opacity',webInscription.toFixed(3));
+    setVar(section,'--tw-r4-ai-light-opacity',aiLight.toFixed(3));
+    setVar(section,'--tw-r4-web-light-opacity',webLight.toFixed(3));
+    setVar(section,'--tw-r4-fold-response',foldResponse.toFixed(3));
   }
 
   function tick(section,now){
@@ -444,7 +467,7 @@
       if(s.raf){window.cancelAnimationFrame(s.raf);s.raf=0;}
       section.setAttribute('data-r4-state','REDUCED');
       section.setAttribute('data-focus','neutral');
-      setAccessibility(section,'TRANSITIONING');
+      setBothAccessible(section);
       return;
     }
 
@@ -466,7 +489,7 @@
       section.setAttribute('data-r4-state','DESKTOP');
       section.setAttribute('data-focus','neutral');
       section.removeAttribute('data-r4-direction');
-      setAccessibility(section,'TRANSITIONING');
+      setBothAccessible(section);
       neutralLight(section);
       scheduleDesktopFit(section);
     }
@@ -521,6 +544,7 @@
       s.logical='DESKTOP';
       section.setAttribute('data-r4-state','DESKTOP');
       section.setAttribute('data-focus','neutral');
+      setBothAccessible(section);
       scheduleDesktopFit(section);
     }
   });

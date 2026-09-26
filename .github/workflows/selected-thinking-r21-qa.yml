@@ -240,11 +240,13 @@ jobs:
 
           async function centerTrace(page,selector){
             await page.evaluate(sel=>{
+              document.documentElement.style.scrollBehavior='auto';
               const t=document.querySelector(sel).querySelector('.st-r2__trace-zone');
               const r=t.getBoundingClientRect();
               const y=window.scrollY+r.top-(window.innerHeight*.52);
-              window.scrollTo(0,Math.max(0,y));
+              window.scrollTo({top:Math.max(0,y),left:0,behavior:'instant'});
             },selector);
+            await page.waitForTimeout(40);
           }
 
           async function stageState(page,selector){
@@ -276,9 +278,10 @@ jobs:
 
             // Header can enter without firing the important sequence.
             await page.evaluate(sel=>{
+              document.documentElement.style.scrollBehavior='auto';
               const s=document.querySelector(sel);
               const r=s.getBoundingClientRect();
-              window.scrollTo(0,Math.max(0,window.scrollY+r.top-window.innerHeight*.78));
+              window.scrollTo({top:Math.max(0,window.scrollY+r.top-window.innerHeight*.78),left:0,behavior:'instant'});
             },selector);
             await page.waitForTimeout(620);
             const headerState=await stageState(page,selector);
@@ -313,11 +316,13 @@ jobs:
             const states=[];
             let elapsed=0;
             for(let i=0;i<sampleTimes.length;i++){
-              const wait=sampleTimes[i]-elapsed;
-              await page.waitForTimeout(wait);
-              elapsed=sampleTimes[i];
+              const target=sampleTimes[i];
+              const now=await page.evaluate(()=>performance.now());
+              const remaining=Math.max(0,target-(now-startAt));
+              if(remaining>0) await page.waitForTimeout(remaining);
               const st=await stageState(page,selector);
               states.push(st);
+              elapsed=target;
               await page.screenshot({path:path.join(motionDir,`0${i+1}-stage.png`),fullPage:false});
               report.motionShots++;
             }
@@ -331,7 +336,11 @@ jobs:
             }
 
             const settleTarget=kind==='landscape'?2050:(kind==='portrait'?2360:2280);
-            if(elapsed<settleTarget) await page.waitForTimeout(settleTarget-elapsed);
+            {
+              const now=await page.evaluate(()=>performance.now());
+              const remaining=Math.max(0,settleTarget-(now-startAt));
+              if(remaining>0) await page.waitForTimeout(remaining);
+            }
             const end=await stageState(page,selector);
             await page.screenshot({path:path.join(motionDir,'05-calm.png'),fullPage:false});
             report.motionShots++;
@@ -347,7 +356,8 @@ jobs:
             await page.waitForTimeout(120);
             const early=await stageState(page,selector);
             check(early.entered!=='true',`${lang} ${w}x${h}: fast landing does not instantly consume signature`,early);
-            await page.waitForTimeout(420);
+            await page.waitForFunction(sel=>document.querySelector(sel).classList.contains('st-r21-eligible'),selector,{timeout:1200});
+            await page.waitForFunction(sel=>document.querySelector(sel).dataset.stR2Entered==='true',selector,{timeout:1600});
             const started=await stageState(page,selector);
             check(started.entered==='true'&&!started.calm,`${lang} ${w}x${h}: fast landing retains visible signature`,started);
             await context.close();

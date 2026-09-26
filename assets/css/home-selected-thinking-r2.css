@@ -154,8 +154,8 @@
   padding: clamp(26px, 2.5vw, 34px) clamp(34px, 3.4vw, 52px) clamp(26px, 2.7vw, 36px) 0;
   border-right: 1px solid var(--st2-line);
   background:
-    radial-gradient(80% 74% at 24% 18%, rgba(242, 241, 237, .045), transparent 68%),
-    linear-gradient(118deg, rgba(242, 241, 237, .018), transparent 54%);
+    radial-gradient(80% 74% at 24% 18%, rgba(242, 241, 237, .052), transparent 68%),
+    linear-gradient(118deg, rgba(242, 241, 237, .022), transparent 54%);
 }
 
 .st-r2__aperture {
@@ -195,7 +195,7 @@
   z-index: 0;
   top: clamp(24px, 2.7vw, 42px);
   right: clamp(26px, 4vw, 66px);
-  color: rgba(242, 241, 237, .050);
+  color: rgba(242, 241, 237, .058);
   font-size: clamp(132px, 13vw, 198px);
   font-weight: 720;
   letter-spacing: -.095em;
@@ -524,100 +524,133 @@
   border-radius: 2px;
 }
 
-/* One authored entry. Everything is final/static without JS. */
+/* R2.1 authored attention sequence.
+   Structural content is visible before motion; only the reasoning artifact begins unresolved.
+   ARRIVE → ORIENT (JS hold) → RESOLVE → ABSOLUTE CALM. */
 @keyframes st-r2-reveal {
-  from { opacity: 0; transform: translateY(9px); }
+  from { opacity: .84; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes st-r2-title {
-  from { opacity: 0; transform: translateY(11px); clip-path: inset(0 0 100% 0); }
-  to { opacity: 1; transform: translateY(0); clip-path: inset(0); }
-}
-
 @keyframes st-r2-aperture {
-  from { opacity: 0; transform: scaleX(.035); }
-  to { opacity: .88; transform: scaleX(1); }
+  from { opacity: .22; transform: scaleX(.16); }
+  to { opacity: .90; transform: scaleX(1); }
 }
 
 @keyframes st-r2-baseline {
-  from { opacity: .18; transform: scaleX(0); }
+  from { opacity: .20; transform: scaleX(.08); }
   to { opacity: 1; transform: scaleX(1); }
 }
 
 @keyframes st-r2-trace-cross {
-  0% { opacity: 0; transform: translateX(0) scaleX(.45); }
-  10% { opacity: 1; }
-  78% { opacity: .94; }
+  0% { opacity: 0; transform: translateX(-4%) scaleX(.32); }
+  9% { opacity: .72; }
+  72% { opacity: .96; }
   100% { opacity: 0; transform: translateX(258%) scaleX(1); }
 }
 
 @keyframes st-r2-node {
-  0% { opacity: 0; transform: scale(.5); }
-  55% { opacity: 1; transform: scale(1.16); }
-  100% { opacity: 1; transform: scale(1); }
+  from { opacity: .46; transform: scale(.76); }
+  62% { opacity: 1; transform: scale(1.08); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 @keyframes st-r2-label {
-  from { opacity: 0; transform: translateY(4px); }
+  from { opacity: .58; transform: translateY(2px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__eyebrow,
-.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__header h2,
-.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__intro,
-.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__lead,
-.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__support-record,
-.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__close { opacity: 0; }
+/* Pre-signature state is already usable and readable. */
+.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__aperture {
+  opacity: .22;
+  transform: scaleX(.16);
+}
 
-.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__aperture { opacity: 0; transform: scaleX(.035); }
-.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__trace--lead::before { opacity: .18; transform: scaleX(0); }
-.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__trace--lead li { opacity: 0; transform: translateY(4px); }
-.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__trace--lead li::before { opacity: 0; transform: scale(.5); }
+.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__trace--lead::before {
+  opacity: .20;
+  transform: scaleX(.08);
+}
 
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__eyebrow { animation: st-r2-reveal 250ms cubic-bezier(.22,1,.36,1) 0ms both; }
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__header h2 { animation: st-r2-title 390ms cubic-bezier(.22,1,.36,1) 35ms both; }
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__intro { animation: st-r2-reveal 320ms cubic-bezier(.22,1,.36,1) 105ms both; }
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__lead { animation: st-r2-reveal 390ms cubic-bezier(.22,1,.36,1) 180ms both; }
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__aperture { animation: st-r2-aperture 380ms cubic-bezier(.22,1,.36,1) 220ms both; }
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead::before { animation: st-r2-baseline 480ms cubic-bezier(.22,1,.36,1) 330ms both; }
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead::after { animation: st-r2-trace-cross 650ms cubic-bezier(.2,.74,.22,1) 390ms both; }
+.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__trace--lead::after {
+  opacity: 0;
+}
+
+.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__trace--lead li {
+  opacity: .58;
+  transform: translateY(2px);
+}
+
+.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__trace--lead li::before {
+  opacity: .46;
+  transform: scale(.76);
+}
+
+.st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__support-record {
+  opacity: .88;
+}
+
+/* Signature start occurs only after JS confirms the trace is inside the attention window. */
+.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__aperture {
+  animation: st-r2-aperture 560ms cubic-bezier(.22,1,.36,1) 0ms both;
+}
+
+.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead::before {
+  animation: st-r2-baseline 1150ms cubic-bezier(.18,.72,.22,1) 150ms both;
+}
+
+.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead::after {
+  animation: st-r2-trace-cross 1380ms cubic-bezier(.18,.68,.20,1) 270ms both;
+}
 
 .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li {
-  animation: st-r2-label 245ms cubic-bezier(.22,1,.36,1) both;
+  animation: st-r2-label 420ms cubic-bezier(.22,1,.36,1) both;
 }
+
 .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li::before {
-  animation: st-r2-node 210ms cubic-bezier(.22,1,.36,1) both;
+  animation: st-r2-node 360ms cubic-bezier(.22,1,.36,1) both;
 }
+
 .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(1),
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(1)::before { animation-delay: 430ms; }
+.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(1)::before { animation-delay: 400ms; }
+
 .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(2),
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(2)::before { animation-delay: 575ms; }
+.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(2)::before { animation-delay: 740ms; }
+
 .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(3),
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(3)::before { animation-delay: 720ms; }
+.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(3)::before { animation-delay: 1080ms; }
+
 .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(4),
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(4)::before { animation-delay: 865ms; }
+.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(4)::before { animation-delay: 1420ms; }
 
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__support-record:first-child { animation: st-r2-reveal 300ms cubic-bezier(.22,1,.36,1) 680ms both; }
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__support-record:last-child { animation: st-r2-reveal 300ms cubic-bezier(.22,1,.36,1) 820ms both; }
-.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__close { animation: st-r2-reveal 260ms cubic-bezier(.22,1,.36,1) 940ms both; }
+.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__support-record:first-child {
+  animation: st-r2-reveal 340ms cubic-bezier(.22,1,.36,1) 1080ms both;
+}
 
-.st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__eyebrow,
-.st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__header h2,
-.st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__intro,
-.st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__lead,
+.st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__support-record:last-child {
+  animation: st-r2-reveal 340ms cubic-bezier(.22,1,.36,1) 1360ms both;
+}
+
+/* Once settled, remove authored animations completely. */
 .st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__aperture,
 .st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__trace--lead::before,
 .st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__trace--lead li,
 .st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__trace--lead li::before,
-.st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__support-record,
-.st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__close {
+.st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__support-record {
   animation: none !important;
   opacity: 1;
   transform: none;
-  clip-path: none;
 }
-.st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__trace--lead::after { animation: none !important; opacity: 0; }
+
+.st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__aperture { opacity: .90; }
+.st-r2-js #selected-thinking-r2.st-r2-calm .st-r2__trace--lead::after {
+  animation: none !important;
+  opacity: 0;
+}
+
+/* The eligibility state is intentionally almost imperceptible: no fake pre-animation. */
+.st-r2-js #selected-thinking-r2.st-r21-eligible .st-r2__trace-label {
+  color: rgba(var(--st2-indigo), .68);
+}
 
 /* Narrow desktop / tablet bridge. */
 @media (max-width: 1120px) and (min-width: 760px) and (min-height: 501px) {
@@ -874,6 +907,68 @@
   .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__aperture { animation-name: st-r2-aperture-portrait; }
   .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead::before { animation-name: st-r2-baseline-portrait; }
   .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead::after { animation-name: st-r2-trace-cross-portrait; }
+}
+
+/* R2.1 authored timing by topology. */
+@media (max-width: 759px) and (orientation: portrait) {
+  .st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__aperture { transform: scaleY(.16); }
+  .st-r2-js #selected-thinking-r2:not(.st-r2-entered) .st-r2__trace--lead::before { transform: scaleY(.08); }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__aperture {
+    animation-duration: 600ms;
+  }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead::before {
+    animation-duration: 1280ms;
+    animation-delay: 170ms;
+  }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead::after {
+    animation-duration: 1500ms;
+    animation-delay: 300ms;
+  }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(1),
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(1)::before { animation-delay: 420ms; }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(2),
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(2)::before { animation-delay: 800ms; }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(3),
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(3)::before { animation-delay: 1180ms; }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(4),
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(4)::before { animation-delay: 1560ms; }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__support-record:first-child { animation-delay: 1280ms; }
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__support-record:last-child { animation-delay: 1580ms; }
+}
+
+@media (min-width: 760px) and (max-width: 950px) and (max-height: 500px) {
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__aperture { animation-duration: 480ms; }
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead::before {
+    animation-duration: 900ms;
+    animation-delay: 120ms;
+  }
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead::after {
+    animation-duration: 1120ms;
+    animation-delay: 220ms;
+  }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(1),
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(1)::before { animation-delay: 320ms; }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(2),
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(2)::before { animation-delay: 610ms; }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(3),
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(3)::before { animation-delay: 900ms; }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(4),
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead li:nth-child(4)::before { animation-delay: 1190ms; }
+
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__support-record:first-child { animation-delay: 880ms; }
+  .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__support-record:last-child { animation-delay: 1120ms; }
 }
 
 /* Reduced motion is the complete flagship resting frame. */

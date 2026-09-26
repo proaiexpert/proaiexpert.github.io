@@ -228,17 +228,13 @@ jobs:
                 ['current',BASE,langs[lang].baseline],
                 ['r2',R2,langs[lang].candidate]
               ]){
-                const {context,page}=await pageFor(base,lang,w,h,kind,'reduce',false);
-                const loc=page.locator(selector);
-                await loc.waitFor({state:'attached',timeout:10000});
-                const box=await loc.boundingBox();
-                const pageHeight=await page.evaluate(()=>Math.max(document.documentElement.scrollHeight,document.body.scrollHeight));
-                const clipY=Math.max(0,box.y-18);
-                const clipH=Math.min(h,Math.max(1,pageHeight-clipY));
+                const {context,page}=await pageFor(base,lang,w,h,kind,'reduce',true);
+                await settleAt(page,selector);
+                if(label==='r2') await page.waitForTimeout(80);
                 const dir=path.join(OUT,'ab',lang);
                 fs.mkdirSync(dir,{recursive:true});
                 const shot=path.join(dir, safeName(name+'-'+label)+'.png');
-                await page.screenshot({path:shot,clip:{x:0,y:clipY,width:w,height:clipH},animations:'disabled',timeout:12000});
+                await page.screenshot({path:shot,fullPage:false,animations:'disabled',timeout:12000});
                 report.screenshotCount++;
                 if(label==='r2'){
                   const m=await metrics(page,selector,kind);

@@ -1,0 +1,275 @@
+/* ProAI Expert — Two Worlds Clean Production Synthesis R4
+   Authority: current production R1 visual CSS + this single correction layer.
+   Mobile runtime authority: assets/js/homepage-two-worlds-clean-golden-r4.js
+   R3/R3.1 donor retained here: one-shot 1.45s moonlight only.
+   Material palette remains production R1 unless a later Owner-approved A/B proves otherwise. */
+
+.tw-r4 {
+  --tw-r4-ai-x:0%;
+  --tw-r4-web-x:104%;
+  --tw-r4-ai-ry:-3deg;
+  --tw-r4-web-ry:72deg;
+  --tw-r4-ai-z:0px;
+  --tw-r4-web-z:0px;
+  --tw-r4-fold-x:105%;
+  --tw-r4-fold-ry:-8deg;
+  --tw-r4-ai-content-opacity:1;
+  --tw-r4-web-content-opacity:0;
+  --tw-r4-ai-inscription-opacity:.92;
+  --tw-r4-web-inscription-opacity:0;
+}
+
+/* Proven R3 donor: restrained grazing light, one shot only. */
+.tw-r4 .tw-r2__face::after {
+  position:absolute;
+  inset:-12%;
+  z-index:3;
+  content:"";
+  pointer-events:none;
+  opacity:0;
+  transform:translate3d(-128%,0,0) skewX(-9deg);
+  background:linear-gradient(105deg,
+    transparent 38%,
+    rgba(188,191,211,.020) 44%,
+    rgba(238,240,244,.118) 49%,
+    rgba(111,93,181,.050) 53%,
+    transparent 59%);
+  mix-blend-mode:screen;
+}
+.tw-r4[data-entry-lit="run"] .tw-r2__face::after {
+  animation:twR4Moonlight 1.45s cubic-bezier(.22,.61,.36,1) 1 both;
+}
+@keyframes twR4Moonlight {
+  0% { opacity:0; transform:translate3d(-128%,0,0) skewX(-9deg); }
+  18% { opacity:.15; }
+  56% { opacity:.34; }
+  100% { opacity:0; transform:translate3d(128%,0,0) skewX(-9deg); }
+}
+
+/* Desktop intentionally inherits production R1 geometry, typography, materials and fold. */
+@media (min-width:981px) and (hover:hover) and (pointer:fine) {
+  .tw-r4[data-r4-state="DESKTOP"] .tw-r2__face,
+  .tw-r4[data-r4-state="DESKTOP"] .tw-r2__fold { will-change:auto; }
+}
+
+@media (max-width:980px), ((hover:none) and (pointer:coarse)) {
+  .tw-r4.tw-r2 {
+    --tw-g-mobile-inset:clamp(48px,13vw,56px);
+    background:#020304;
+  }
+
+  .tw-r4 .tw-r2__experience {
+    height:var(--tw-r4-travel-height,220svh)!important;
+    min-height:0!important;
+    perspective:1000px;
+  }
+  .tw-r4 .tw-r2__viewport {
+    position:sticky!important;
+    top:0;
+    height:var(--tw-r4-stage-height,100svh)!important;
+    min-height:0!important;
+    overflow:hidden;
+    perspective:980px;
+  }
+  .tw-r4 .tw-r2__plate { inset:0; }
+
+  .tw-r4.tw-r2 .tw-r2__face {
+    top:-2%;
+    bottom:-2%;
+    left:-2%!important;
+    right:auto!important;
+    width:104%;
+    clip-path:none!important;
+    transition:none!important;
+    filter:none!important;
+    backface-visibility:hidden;
+  }
+  .tw-r4.tw-r2 .tw-r2__face--ai {
+    transform-origin:100% 50%;
+    transform:translate3d(var(--tw-r4-ai-x),0,var(--tw-r4-ai-z)) rotateY(var(--tw-r4-ai-ry))!important;
+  }
+  .tw-r4.tw-r2 .tw-r2__face--web {
+    transform-origin:0 50%;
+    transform:translate3d(var(--tw-r4-web-x),0,var(--tw-r4-web-z)) rotateY(var(--tw-r4-web-ry))!important;
+  }
+
+  .tw-r4.tw-r2 .tw-r2__fold {
+    left:var(--tw-r4-fold-x)!important;
+    width:clamp(60px,15.5vw,76px);
+    transform:translateX(-50%) perspective(720px) rotateY(var(--tw-r4-fold-ry))!important;
+    transition:none!important;
+  }
+
+  .tw-r4.tw-r2[data-r4-state="AI_LOCKED"] .tw-r2__face,
+  .tw-r4.tw-r2[data-r4-state="WEB_LOCKED"] .tw-r2__face,
+  .tw-r4.tw-r2[data-r4-state="AI_LOCKED"] .tw-r2__fold,
+  .tw-r4.tw-r2[data-r4-state="WEB_LOCKED"] .tw-r2__fold {
+    will-change:auto;
+  }
+  .tw-r4.tw-r2[data-r4-state="TRANSITIONING"] .tw-r2__face,
+  .tw-r4.tw-r2[data-r4-state="TRANSITIONING"] .tw-r2__fold {
+    will-change:transform;
+  }
+
+  /* Content handoff is driven only by the single normalized R4 timeline. */
+  .tw-r4.tw-r2 .tw-r2__content--ai {
+    opacity:var(--tw-r4-ai-content-opacity)!important;
+    transition:none!important;
+  }
+  .tw-r4.tw-r2 .tw-r2__content--web {
+    opacity:var(--tw-r4-web-content-opacity)!important;
+    transition:none!important;
+  }
+
+  /* Mobile watermarks are authored, never measured at runtime. */
+  .tw-r4.tw-r2 .tw-r2__inscription {
+    left:50%!important;
+    transform:translateX(-50%) translateZ(0)!important;
+    transition:none!important;
+    white-space:nowrap;
+  }
+  .tw-r4.tw-r2 .tw-r2__inscription--ai {
+    top:9.2%;
+    font-size:clamp(64px,19vw,86px)!important;
+    opacity:var(--tw-r4-ai-inscription-opacity)!important;
+  }
+  .tw-r4.tw-r2 .tw-r2__inscription--web {
+    top:9.2%;
+    font-size:clamp(46px,14vw,64px)!important;
+    opacity:var(--tw-r4-web-inscription-opacity)!important;
+  }
+  body.lang-ru .tw-r4.tw-r2 .tw-r2__inscription--ai {
+    font-size:clamp(62px,18.5vw,84px)!important;
+  }
+  body.lang-ru .tw-r4.tw-r2 .tw-r2__inscription--web {
+    font-size:clamp(39px,11.2vw,52px)!important;
+    letter-spacing:-.052em;
+  }
+}
+
+/* Phone landscape: restore the wider production composition rather than R3.1's 42–64px inset.
+   Current main contains a historical bridge override at 48–68px; R4 re-centers the composition
+   near the original production R1 geometry while keeping the production title scale. */
+@media (orientation:landscape) and (max-height:540px) and (max-width:980px) {
+  .tw-r4.tw-r2 {
+    --tw-g-landscape-inset:clamp(92px,11.5vw,116px);
+  }
+
+  .tw-r4.tw-r2 .tw-r2__content--ai,
+  .tw-r4.tw-r2 .tw-r2__content--web,
+  .tw-r4.tw-r2[data-focus="ai"] .tw-r2__content--ai,
+  .tw-r4.tw-r2[data-focus="web"] .tw-r2__content--web {
+    top:50%;
+    left:var(--tw-g-landscape-inset);
+    right:var(--tw-g-landscape-inset);
+    width:auto!important;
+    max-width:none;
+    display:grid;
+    grid-template-columns:minmax(0,56fr) minmax(0,44fr);
+    grid-template-areas:"index registers" "title registers" "thesis registers" "cta registers";
+    column-gap:clamp(24px,4vw,42px);
+    align-items:start;
+    align-content:center;
+  }
+  .tw-r4 .tw-r2__world-index { grid-area:index; margin:0 0 7px; }
+  .tw-r4 .tw-r2__world-title,
+  .tw-r4 .tw-r2__face--web .tw-r2__world-title,
+  body.lang-ru .tw-r4 .tw-r2__world-title,
+  body.lang-ru .tw-r4 .tw-r2__face--web .tw-r2__world-title {
+    grid-area:title;
+    font-size:clamp(35px,4.5vw,40px)!important;
+    line-height:.91;
+  }
+  .tw-r4 .tw-r2__thesis {
+    grid-area:thesis;
+    max-width:34ch;
+    margin-top:9px;
+    font-size:12.5px;
+    line-height:1.34;
+  }
+  .tw-r4 .tw-r2__cta {
+    grid-area:cta;
+    margin-top:10px;
+    padding:5px 0;
+    font-size:10px;
+  }
+  .tw-r4 .tw-r2__registers {
+    grid-area:registers;
+    align-self:center;
+    width:100%;
+    max-width:none;
+    margin:0;
+    grid-template-columns:1fr;
+    gap:11px;
+  }
+  .tw-r4 .tw-r2__register { display:block; }
+  .tw-r4 .tw-r2__register dt { font-size:10.5px; }
+  .tw-r4 .tw-r2__register dd { margin-top:3px; font-size:12.75px; }
+
+  .tw-r4.tw-r2 .tw-r2__inscription--ai {
+    top:6.2%;
+    font-size:clamp(112px,14.2vw,132px)!important;
+    letter-spacing:-.060em;
+  }
+  .tw-r4.tw-r2 .tw-r2__inscription--web {
+    top:6.2%;
+    font-size:clamp(82px,10.5vw,104px)!important;
+    letter-spacing:-.060em;
+  }
+  body.lang-ru .tw-r4.tw-r2 .tw-r2__inscription--ai {
+    font-size:clamp(106px,13.4vw,126px)!important;
+  }
+  body.lang-ru .tw-r4.tw-r2 .tw-r2__inscription--web {
+    font-size:clamp(68px,8.6vw,86px)!important;
+    letter-spacing:-.052em;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .tw-r4[data-entry-lit="run"] .tw-r2__face::after { animation:none!important; }
+}
+@media (prefers-reduced-motion:reduce) and (max-width:980px),
+       (prefers-reduced-motion:reduce) and (hover:none) and (pointer:coarse) {
+  .tw-r4 .tw-r2__experience { height:auto!important; min-height:0!important; }
+  .tw-r4 .tw-r2__viewport {
+    position:relative!important;
+    inset:auto;
+    height:auto!important;
+    min-height:0!important;
+    overflow:hidden;
+  }
+  .tw-r4 .tw-r2__plate { position:relative; inset:auto; display:block; }
+  .tw-r4.tw-r2 .tw-r2__face {
+    position:relative;
+    top:auto;
+    bottom:auto;
+    left:auto!important;
+    right:auto!important;
+    width:100%;
+    min-height:520px;
+    transform:none!important;
+    filter:none!important;
+    opacity:1!important;
+  }
+  .tw-r4.tw-r2 .tw-r2__face--ai { clip-path:polygon(0 0,100% 0,97% 100%,0 100%)!important; }
+  .tw-r4.tw-r2 .tw-r2__face--web { clip-path:polygon(3% 0,100% 0,100% 100%,0 100%)!important; }
+  .tw-r4.tw-r2 .tw-r2__fold {
+    position:relative;
+    top:auto;
+    bottom:auto;
+    left:50%!important;
+    width:100%;
+    max-width:none;
+    height:34px;
+    transform:translateX(-50%)!important;
+    filter:none;
+  }
+  .tw-r4.tw-r2 .tw-r2__content--ai,
+  .tw-r4.tw-r2 .tw-r2__content--web {
+    top:50%;
+    opacity:1!important;
+  }
+  .tw-r4.tw-r2 .tw-r2__inscription {
+    opacity:.22!important;
+  }
+}

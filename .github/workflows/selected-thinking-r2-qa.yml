@@ -90,7 +90,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/r2-qa/ab
-          cat > /tmp/r2-qa.mjs <<'JS'
+          cat > "$GITHUB_WORKSPACE/r2-qa.mjs" <<'JS'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
           import path from 'node:path';
@@ -328,7 +328,7 @@ jobs:
           await browser.close();
           process.exit(report.pass?0:1);
           JS
-          node /tmp/r2-qa.mjs
+          node "$GITHUB_WORKSPACE/r2-qa.mjs"
 
       - name: Upload A/B evidence
         if: always()

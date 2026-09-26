@@ -250,7 +250,7 @@
       s.reverseIntent=0;
       return;
     }
-    if(Math.abs(delta)<IGNORE_DELTA)return;
+    if(Math.abs(delta)<=IGNORE_DELTA)return;
 
     if(s.logical==='TRANSITIONING'){
       var opposite=(s.direction>0&&delta<0)||(s.direction<0&&delta>0);
@@ -508,12 +508,12 @@
     if('IntersectionObserver'in window){
       var observer=new IntersectionObserver(function(entries){
         entries.forEach(function(entry){
-          if(entry.isIntersecting&&entry.intersectionRatio>=.52){
+          if(entry.isIntersecting&&entry.intersectionRatio>=.86){
             armMoonlight(section);
             observer.disconnect();
           }
         });
-      },{threshold:[.52]});
+      },{threshold:[.86]});
       observer.observe(viewport);
     }else{
       var rect=viewport.getBoundingClientRect();

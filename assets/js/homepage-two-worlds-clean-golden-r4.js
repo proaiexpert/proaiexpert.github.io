@@ -189,8 +189,8 @@
     s.lastFrame=now;
     s.t=clamp(s.t+(s.direction*(dt/TURN_MS)),0,1);
     renderTransition(section,s.t);
-    if(s.t<=0){writeLocked(section,'AI_LOCKED');return;}
-    if(s.t>=1){writeLocked(section,'WEB_LOCKED');return;}
+    if(s.direction<0&&s.t<=0){writeLocked(section,'AI_LOCKED');return;}
+    if(s.direction>0&&s.t>=1){writeLocked(section,'WEB_LOCKED');return;}
     s.raf=window.requestAnimationFrame(function(ts){tick(section,ts);});
   }
 

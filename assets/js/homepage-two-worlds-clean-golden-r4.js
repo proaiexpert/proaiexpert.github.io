@@ -453,7 +453,7 @@
     var mobile=mobileQuery.matches;
     var orientation=orientationFor(w,h);
 
-    if(!force&&s.viewportWidth&&s.mobile===mobile&&s.orientation===orientation&&Math.abs(w-s.viewportWidth)<WIDTH_RECOMPOSE_DELTA){
+    if(!force&&mobile&&s.viewportWidth&&s.mobile===mobile&&s.orientation===orientation&&Math.abs(w-s.viewportWidth)<WIDTH_RECOMPOSE_DELTA){
       return;
     }
 

@@ -37,7 +37,7 @@ function updateVisual(section,p){
   var entry=getFoldEntry(section),foldWidth=entry-((entry-14)*clamp(p/.13,0,1));
   section.style.setProperty('--ff-fold-width',foldWidth.toFixed(2)+'px');
   section.style.setProperty('--ff-progress',p.toFixed(4));
-  section.setAttribute('data-ff-entry-ready',String(p>=.018&&p<forward[0]));
+  section.setAttribute('data-ff-entry-ready',String(p<forward[0]));
   var path=section.querySelector('[data-ff-path]');
   var trail=section.querySelector('[data-ff-trail]');
   var wake=section.querySelector('[data-ff-wake]');

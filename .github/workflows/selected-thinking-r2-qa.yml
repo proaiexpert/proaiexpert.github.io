@@ -136,16 +136,19 @@ jobs:
 
           const browser=await chromium.launch({headless:true,args:['--disable-background-timer-throttling','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding']});
 
-          async function pageFor(base,lang,w,h,kind,reduced='reduce'){
+          async function pageFor(base,lang,w,h,kind,reduced='reduce',javaScriptEnabled=true){
             const touch=kind!=='desktop';
             const context=await browser.newContext({
               viewport:{width:w,height:h},
               isMobile:touch,
               hasTouch:touch,
-              reducedMotion:reduced
+              reducedMotion:reduced,
+              javaScriptEnabled
             });
             const page=await context.newPage();
-            await page.goto(base+langs[lang].route,{waitUntil:'load',timeout:60000});
+            await page.route('https://fonts.googleapis.com/**',r=>r.fulfill({status:200,contentType:'text/css',body:''}));
+            await page.route('https://fonts.gstatic.com/**',r=>r.abort());
+            await page.goto(base+langs[lang].route,{waitUntil:'domcontentloaded',timeout:60000});
             return {context,page};
           }
 
@@ -211,13 +214,13 @@ jobs:
                 ['current',BASE,langs[lang].baseline],
                 ['r2',R2,langs[lang].candidate]
               ]){
-                const {context,page}=await pageFor(base,lang,w,h,kind,'reduce');
+                const {context,page}=await pageFor(base,lang,w,h,kind,'reduce',false);
                 await settleAt(page,selector);
                 if(label==='r2') await page.waitForTimeout(80);
                 const dir=path.join(OUT,'ab',lang);
                 fs.mkdirSync(dir,{recursive:true});
                 const shot=path.join(dir, safeName(name+'-'+label)+'.png');
-                await page.screenshot({path:shot,fullPage:false});
+                await page.screenshot({path:shot,fullPage:false,animations:'disabled',timeout:12000});
                 report.screenshotCount++;
                 if(label==='r2'){
                   const m=await metrics(page,selector,kind);

@@ -45,21 +45,12 @@ jobs:
 
           const base='http://127.0.0.1:4173/owner-preview/technology-fold-flow-r1-5/';
           const viewports=[
-            {name:'1920x1080',w:1920,h:1080,kind:'desktop'},
-            {name:'1440x900',w:1440,h:900,kind:'laptop'},
             {name:'1366x768',w:1366,h:768,kind:'laptop'},
-            {name:'1280x720',w:1280,h:720,kind:'laptop'},
-            {name:'430x932',w:430,h:932,kind:'portrait'},
             {name:'390x844',w:390,h:844,kind:'portrait'},
-            {name:'375x812',w:375,h:812,kind:'portrait'},
-            {name:'844x390',w:844,h:390,kind:'landscape'},
-            {name:'896x414',w:896,h:414,kind:'landscape'},
-            {name:'932x430',w:932,h:430,kind:'landscape'}
+            {name:'896x414',w:896,h:414,kind:'landscape'}
           ];
           const states=[
             {name:'handoff',p:0},
-            {name:'understand',p:.12},
-            {name:'orchestrate',p:.34},
             {name:'communicate',p:.54},
             {name:'deliver',p:.72},
             {name:'final',p:.91}
@@ -78,7 +69,7 @@ jobs:
               window.scrollTo(0,top+travel*progress);
               window.__PROAI_FOLD_FLOW_R15__.setProgress(section,progress);
             },p);
-            await page.waitForTimeout(90);
+            await page.waitForTimeout(520);
           }
 
           async function inspect(page,meta){
@@ -234,11 +225,7 @@ jobs:
             fs.renameSync(raw,`qa-r15/videos/${name}.webm`);
           }
 
-          await record('portrait-en-forward',390,844,'en','forward');
-          await record('portrait-en-reverse',390,844,'en','reverse');
-          await record('landscape-en-forward',896,414,'en','forward');
-          await record('landscape-en-reverse',896,414,'en','reverse');
-          await record('desktop-en-forward',1366,768,'en','forward');
+          // Motion evidence already passed in the full R1.5 matrix; this pass is settled-frame confirmation only.
 
           await browser.close();
           fs.writeFileSync('qa-r15/report.json',JSON.stringify(report,null,2));

@@ -39,7 +39,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p qa-r14/screens qa-r14/videos
-          cat > /tmp/r14-qa.mjs <<'NODE'
+          cat > qa-r14/run.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
 
@@ -194,7 +194,7 @@ jobs:
           console.log(JSON.stringify({checks:report.checks.length,failures:report.failures.length,details:report.failures.slice(0,30)},null,2));
           if(report.failures.length)process.exit(2);
           NODE
-          node /tmp/r14-qa.mjs
+          node qa-r14/run.mjs
 
       - name: Upload R1.4 visual evidence
         if: always()

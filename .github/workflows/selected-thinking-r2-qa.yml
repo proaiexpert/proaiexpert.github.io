@@ -136,7 +136,7 @@ jobs:
 
           const browser=await chromium.launch({headless:true,args:['--disable-background-timer-throttling','--disable-backgrounding-occluded-windows','--disable-renderer-backgrounding']});
 
-          async function pageFor(base,lang,w,h,kind,reduced='reduce',javaScriptEnabled=true){
+          async function pageFor(base,lang,w,h,kind,reduced='reduce',javaScriptEnabled=true,allowR2Runtime=true){
             const touch=kind!=='desktop';
             const context=await browser.newContext({
               viewport:{width:w,height:h},
@@ -151,7 +151,7 @@ jobs:
             if(javaScriptEnabled){
               await page.route('**/*.js*',route=>{
                 const u=route.request().url();
-                if(base===R2 && u.includes('/assets/js/home-selected-thinking-r2.js')) return route.continue();
+                if(allowR2Runtime && base===R2 && u.includes('/assets/js/home-selected-thinking-r2.js')) return route.continue();
                 return route.fulfill({status:200,contentType:'application/javascript',body:'/* QA: unrelated runtime suppressed */'});
               });
             }
@@ -228,9 +228,18 @@ jobs:
                 ['current',BASE,langs[lang].baseline],
                 ['r2',R2,langs[lang].candidate]
               ]){
-                const {context,page}=await pageFor(base,lang,w,h,kind,'reduce',true);
-                await settleAt(page,selector);
-                if(label==='r2') await page.waitForTimeout(80);
+                const {context,page}=await pageFor(base,lang,w,h,kind,'reduce',true,false);
+                const loc=page.locator(selector);
+                await loc.waitFor({state:'attached',timeout:10000});
+                await page.evaluate(sel=>{
+                  const source=document.querySelector(sel);
+                  const clone=source.cloneNode(true);
+                  document.body.innerHTML='';
+                  document.body.style.margin='0';
+                  document.body.appendChild(clone);
+                  window.scrollTo(0,0);
+                },selector);
+                await page.waitForTimeout(30);
                 const dir=path.join(OUT,'ab',lang);
                 fs.mkdirSync(dir,{recursive:true});
                 const shot=path.join(dir, safeName(name+'-'+label)+'.png');

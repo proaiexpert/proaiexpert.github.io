@@ -16,7 +16,7 @@
   }
 
   function isPhoneLandscape() {
-    return window.matchMedia && window.matchMedia('(min-width: 760px) and (max-width: 950px) and (max-height: 500px)').matches;
+    return window.matchMedia && window.matchMedia('(max-width: 950px) and (max-height: 500px) and (orientation: landscape)').matches;
   }
 
   function orientationDelay() {

@@ -822,7 +822,7 @@
 }
 
 /* Phone landscape has its own 58/42 composition and horizontal trace. */
-@media (min-width: 760px) and (max-width: 950px) and (max-height: 500px) {
+@media (max-width: 950px) and (max-height: 500px) and (orientation: landscape) {
   #selected-thinking-r2 { padding: 22px 0 18px; }
   .st-r2__shell { width: calc(100% - 42px); }
   .st-r2__header { margin-bottom: 12px; }
@@ -877,18 +877,29 @@
      Long Cyrillic stages get unequal zones so Safari autosizing or font metric drift
      cannot collapse adjacent labels into one visual word. */
   .selected-thinking-r2--ru .st-r2__trace--lead {
-    grid-template-columns: 1.30fr 1.03fr .91fr 1.16fr;
+    grid-template-columns: max-content max-content max-content max-content;
+    justify-content: space-between;
+    column-gap: 0;
     font-size: 8.15px;
     letter-spacing: -.01em;
   }
 
   .selected-thinking-r2--ru .st-r2__trace--lead li {
     white-space: nowrap;
-    padding-right: 7px;
-  }
-
-  .selected-thinking-r2--ru .st-r2__trace--lead li:nth-child(4) {
     padding-right: 0;
+  }
+}
+
+/* R2.2.1 real-device Safari landscape guard.
+   iPhone Safari can expose an effective CSS viewport below 760px in landscape
+   when Page Zoom / Display Zoom is active. Keep the authored landscape topology
+   instead of falling through to desktop geometry. */
+@media (max-width: 700px) and (max-height: 500px) and (orientation: landscape) {
+  .st-r2__stage { grid-template-columns: minmax(0, 1fr) minmax(270px, .96fr); }
+  .st-r2__lead { padding-right: 18px; }
+  .selected-thinking-r2--ru .st-r2__trace--lead {
+    font-size: 7.8px;
+    letter-spacing: -.015em;
   }
 }
 
@@ -963,7 +974,7 @@
   .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__support-record:last-child { animation-delay: 1580ms; }
 }
 
-@media (min-width: 760px) and (max-width: 950px) and (max-height: 500px) {
+@media (max-width: 950px) and (max-height: 500px) and (orientation: landscape) {
   .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__aperture { animation-duration: 480ms; }
   .st-r2-js #selected-thinking-r2.st-r2-entered .st-r2__trace--lead::before {
     animation-duration: 900ms;

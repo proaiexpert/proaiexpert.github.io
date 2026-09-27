@@ -25,10 +25,13 @@ jobs:
       - name: Extract exact production header and Technology into focused QA page
         shell: bash
         run: |
+          rm -rf qa-site
+          mkdir -p qa-site
+          cp -a _site/. qa-site/
           python3 - <<'PY'
           import re
           from pathlib import Path
-          src=Path('_site/index.html').read_text(encoding='utf-8')
+          src=Path('qa-site/index.html').read_text(encoding='utf-8')
           header=re.search(r'(<header\b[^>]*data-site-header[^>]*>.*?</header>)',src,re.S)
           tech=re.search(r'(<section\b[^>]*data-home-tech-fold-flow[^>]*>.*?</section>)',src,re.S)
           if not header or not tech:
@@ -47,7 +50,7 @@ jobs:
           <script src="/assets/js/home-technology-fold-flow-r1-5-1.js?v=qa" defer></script>
           <script src="/assets/js/header-system-v1.js?v=qa" defer></script>
           </body></html>'''
-          Path('_site/qa-tech-header.html').write_text(html,encoding='utf-8')
+          Path('qa-site/qa-tech-header.html').write_text(html,encoding='utf-8')
           print('Focused QA page created')
           PY
 
@@ -60,7 +63,7 @@ jobs:
       - name: Start built site
         shell: bash
         run: |
-          python3 -m http.server 4173 --directory _site --bind 127.0.0.1 >/tmp/qa-header.log 2>&1 &
+          python3 -m http.server 4173 --directory qa-site --bind 127.0.0.1 >/tmp/qa-header.log 2>&1 &
           for i in {1..30}; do
             curl -fsS http://127.0.0.1:4173/qa-tech-header.html >/dev/null && exit 0
             sleep 1

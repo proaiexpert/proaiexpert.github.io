@@ -53,6 +53,12 @@ jobs:
           async function load(w,h,path){
             const context=await browser.newContext({viewport:{width:w,height:h},deviceScaleFactor:1});
             const page=await context.newPage();
+            page.setDefaultNavigationTimeout(10000);
+            await page.route('**/*',async route=>{
+              const url=new URL(route.request().url());
+              if(url.hostname==='127.0.0.1')await route.continue();
+              else await route.abort();
+            });
             await page.goto('http://127.0.0.1:4173'+path,{waitUntil:'domcontentloaded'});
             await page.waitForTimeout(700);
             return {context,page};

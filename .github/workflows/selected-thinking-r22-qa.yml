@@ -1,0 +1,209 @@
+name: Selected Thinking R2.2 Landscape Stability QA
+
+on:
+  push:
+    branches:
+      - agent/proai-home-selected-thinking-r2-2-landscape-stability
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify CSS-only correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only bb3941e379253ea00e13d62689e3d72f53ffe2f6...HEAD | sort | tee /tmp/scope.txt
+          grep -qx 'assets/css/home-selected-thinking-r2.css' /tmp/scope.txt
+          grep -qx '.github/workflows/selected-thinking-r22-qa.yml' /tmp/scope.txt
+          test "$(wc -l < /tmp/scope.txt)" -eq 2
+
+      - name: Build candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination /tmp/site-r22
+          python3 -m http.server 4176 --directory /tmp/site-r22 >/tmp/http.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4176/ru/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/http.log
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Chromium and WebKit
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium webkit
+
+      - name: Run collision and regression QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/r22-qa
+          cat > r22-qa.mjs <<'JS'
+          import { chromium, webkit } from 'playwright';
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const BASE='http://127.0.0.1:4176';
+          const OUT='/tmp/r22-qa';
+          const failures=[], checks=[];
+          const check=(ok,label,details={})=>{
+            (ok?checks:failures).push({label,details});
+          };
+
+          async function open(browserType,engine,lang,w,h){
+            const browser=await browserType.launch({headless:true});
+            const context=await browser.newContext({
+              viewport:{width:w,height:h},
+              screen:{width:w,height:h},
+              isMobile:true,
+              hasTouch:true,
+              reducedMotion:'reduce',
+              userAgent:engine==='webkit'
+                ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'
+                : undefined
+            });
+            const page=await context.newPage();
+            await page.route('https://fonts.googleapis.com/**',r=>r.fulfill({status:200,contentType:'text/css',body:''}));
+            await page.route('https://fonts.gstatic.com/**',r=>r.abort());
+            await page.goto(BASE+(lang==='ru'?'/ru/':'/'),{waitUntil:'domcontentloaded',timeout:60000});
+            await page.evaluate(()=>{
+              document.documentElement.style.scrollBehavior='auto';
+              const s=document.querySelector('#selected-thinking-r2');
+              const r=s.getBoundingClientRect();
+              window.scrollTo({top:window.scrollY+r.top,left:0,behavior:'instant'});
+            });
+            await page.waitForTimeout(120);
+            return {browser,context,page};
+          }
+
+          async function measure(page){
+            return page.evaluate(()=>{
+              const s=document.querySelector('#selected-thinking-r2');
+              const trace=s.querySelector('.st-r2__trace--lead');
+              const lis=[...trace.querySelectorAll('li')];
+              const textRects=lis.map(li=>{
+                const range=document.createRange();
+                range.selectNodeContents(li);
+                const r=range.getBoundingClientRect();
+                const b=li.getBoundingClientRect();
+                const cs=getComputedStyle(li);
+                return {
+                  text:(li.textContent||'').trim(),
+                  left:r.left,right:r.right,width:r.width,
+                  cellLeft:b.left,cellRight:b.right,cellWidth:b.width,
+                  scrollWidth:li.scrollWidth,clientWidth:li.clientWidth,
+                  fontSize:parseFloat(cs.fontSize),
+                  whiteSpace:cs.whiteSpace
+                };
+              });
+              const gaps=textRects.slice(0,-1).map((x,i)=>textRects[i+1].left-x.right);
+              const sr=s.getBoundingClientRect();
+              const rootcs=getComputedStyle(s);
+              return {
+                labels:textRects,
+                gaps,
+                overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth,
+                section:{left:sr.left,right:sr.right,width:sr.width},
+                textAdjust:rootcs.webkitTextSizeAdjust || rootcs.textSizeAdjust || ''
+              };
+            });
+          }
+
+          const landscapes=[[844,390],[896,414],[932,430]];
+          const engines=[['chromium',chromium],['webkit',webkit]];
+
+          for(const [engine,browserType] of engines){
+            for(const lang of ['ru','en']){
+              for(const [w,h] of landscapes){
+                const {browser,context,page}=await open(browserType,engine,lang,w,h);
+                const m=await measure(page);
+                const key=`${engine} ${lang} ${w}x${h}`;
+                check(m.overflow<=1,key+': no viewport overflow',m.overflow);
+                check(m.labels.every(x=>x.scrollWidth<=x.clientWidth+1),key+': every lead label fits its authored cell',m.labels);
+                check(m.gaps.every(g=>g>=6),key+': adjacent lead labels keep >=6px visual gap',m.gaps);
+                check(m.labels.every(x=>x.whiteSpace==='nowrap'),key+': lead labels remain single-line',m.labels.map(x=>x.whiteSpace));
+                if(engine==='webkit') check(String(m.textAdjust).includes('100'),key+': WebKit text autosizing fixed at 100%',m.textAdjust);
+                const dir=path.join(OUT,engine,lang);
+                fs.mkdirSync(dir,{recursive:true});
+                await page.screenshot({path:path.join(dir,`${w}x${h}.png`),fullPage:false,animations:'disabled'});
+                await context.close();
+                await browser.close();
+              }
+            }
+          }
+
+          // Regression: desktop/laptop and portrait remain unchanged structurally in Chromium.
+          const regressions=[
+            ['ru',1920,1080],['ru',1440,900],['ru',1366,768],['ru',1280,720],
+            ['en',1440,900],['en',1280,720],
+            ['ru',390,844],['en',390,844]
+          ];
+
+          for(const [lang,w,h] of regressions){
+            const kind=w<h?'portrait':'desktop';
+            const browser=await chromium.launch({headless:true});
+            const context=await browser.newContext({viewport:{width:w,height:h},reducedMotion:'reduce'});
+            const page=await context.newPage();
+            await page.route('https://fonts.googleapis.com/**',r=>r.fulfill({status:200,contentType:'text/css',body:''}));
+            await page.route('https://fonts.gstatic.com/**',r=>r.abort());
+            await page.goto(BASE+(lang==='ru'?'/ru/':'/'),{waitUntil:'domcontentloaded',timeout:60000});
+            const m=await page.evaluate(()=>{
+              const s=document.querySelector('#selected-thinking-r2');
+              const trace=s.querySelector('.st-r2__trace--lead');
+              const items=[...trace.querySelectorAll('li')];
+              const first=items[0].getBoundingClientRect(),last=items.at(-1).getBoundingClientRect();
+              const dx=Math.abs((last.left+last.width/2)-(first.left+first.width/2));
+              const dy=Math.abs((last.top+last.height/2)-(first.top+first.height/2));
+              return {
+                overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth,
+                direction:dy>dx?'vertical':'horizontal',
+                height:s.getBoundingClientRect().height/innerHeight
+              };
+            });
+            const key=`regression ${lang} ${w}x${h}`;
+            check(m.overflow<=1,key+': no overflow',m);
+            check(m.direction===(kind==='portrait'?'vertical':'horizontal'),key+': topology preserved',m);
+            check(kind==='portrait'?m.height<=1.50:m.height<=1.24,key+': chapter height preserved',m.height);
+            const dir=path.join(OUT,'regression',lang);
+            fs.mkdirSync(dir,{recursive:true});
+            await page.locator('#selected-thinking-r2').scrollIntoViewIfNeeded();
+            await page.screenshot({path:path.join(dir,`${w}x${h}.png`),fullPage:false,animations:'disabled'});
+            await context.close();
+            await browser.close();
+          }
+
+          const report={pass:failures.length===0,checks:checks.length,failures,details:checks};
+          fs.writeFileSync(path.join(OUT,'qa-results.json'),JSON.stringify(report,null,2));
+          console.log(JSON.stringify({pass:report.pass,checks:report.checks,failures:report.failures},null,2));
+          process.exit(report.pass?0:1);
+          JS
+          node r22-qa.mjs
+
+      - name: Upload R2.2 QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r22-landscape-qa
+          path: /tmp/r22-qa
+          if-no-files-found: error
+          retention-days: 14

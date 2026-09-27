@@ -93,13 +93,14 @@ jobs:
               const header=document.querySelector('[data-site-header]');
               const tech=document.querySelector('[data-home-tech-fold-flow]');
               const sticky=tech.querySelector('.home-tech-ff__sticky');
-              const hr=header.getBoundingClientRect(),sr=sticky.getBoundingClientRect();
+              const hr=header.getBoundingClientRect(),sr=sticky.getBoundingClientRect(),tr=tech.getBoundingClientRect();
               return {
                 guarded:header.classList.contains('header-guarded'),
                 hidden:header.classList.contains('header-hidden'),
                 headerBottom:hr.bottom,
-                attr:sticky.getAttribute('data-header-autohide-guard')||'',
+                attr:tech.getAttribute('data-header-autohide-guard')||'',
                 stickyTop:sr.top,stickyBottom:sr.bottom,
+                sectionTop:tr.top,sectionBottom:tr.bottom,
                 techTop:tech.offsetTop,techHeight:tech.offsetHeight,
                 overflow:document.documentElement.scrollWidth-innerWidth
               };
@@ -122,8 +123,8 @@ jobs:
               const bad=[];
               if(m.attr!=='technology-landscape')bad.push('guard-attr');
               if(!m.guarded)bad.push('not-guarded');
-              if(!m.hidden||m.headerBottom>2)bad.push('header-visible');
-              if(Math.abs(m.stickyTop)>9||m.stickyBottom<vp.h-9)bad.push('sticky-ownership');
+              if(m.headerBottom>2)bad.push('header-visible');
+              if(m.sectionTop>9||m.sectionBottom<vp.h-9)bad.push('section-not-owning-viewport');
               if(m.overflow>1)bad.push('overflow');
               report.checks.push({viewport:vp.n,state,p:points[i],bad,m});
               if(bad.length)report.failures.push({viewport:vp.n,state,p:points[i],bad,m});

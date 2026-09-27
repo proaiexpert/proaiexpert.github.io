@@ -32,9 +32,20 @@ Key current facts:
 - Two Worlds: approved Golden R1 + landscape correction.
 - Technology: approved Transition R2 chain.
 - Financial Stream: approved R1.4 presentation with `EN + RU`, `8.36K` search impressions and `52` indexed pages; mobile geometry frozen by Owner on 2026-08-29.
-- Selected Thinking: current R1 chain.
+- Selected Thinking: approved Decision Aperture / Trace R2.2 with attention-timed one-shot motion, authored portrait/landscape layouts, EN/RU parity, and Safari/WebKit RU landscape collision protection.
 - Selected Work: current R1 + owner title correction authority.
 - Footer: current Golden R3 structure with Signature R4 material authority.
+
+## Selected Thinking production release — 2026-09-26
+
+Owner-approved production authority:
+- implementation lineage culminated in R2.2 landscape stability;
+- production release source is the clean integration branch built from current main;
+- R2.1 motion trigger waits for the lead Decision Trace attention window instead of firing at section entry;
+- R2.2 preserves that motion and fixes RU phone-landscape label collisions across 844×390, 896×414 and 932×430;
+- final WebKit + Chromium landscape QA: 66 checks, 0 failures;
+- full R2.1 browser QA before the landscape micro-fix: 216 checks, 0 failures;
+- rollback branch before production promotion: `backup/pre-selected-thinking-r22-production-20260926`.
 
 ## Active R&D — AI Systems / Boxes Hover
 

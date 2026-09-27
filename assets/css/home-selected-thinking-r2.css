@@ -5,6 +5,8 @@
 #selected-thinking-r2 * { box-sizing: border-box; }
 
 #selected-thinking-r2 {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   --st2-bg: #07080a;
   --st2-text: #f2f1ed;
   --st2-pearl: #dad8d2;
@@ -870,7 +872,24 @@
 
   .selected-thinking-r2--ru .st-r2__header h2 { font-size: clamp(27px, 3.45vw, 32px); }
   .selected-thinking-r2--ru .st-r2__lead-title { font-size: clamp(22px, 2.7vw, 27px); }
-  .selected-thinking-r2--ru .st-r2__trace--lead { font-size: 7.9px; }
+
+  /* R2.2: authored RU landscape label geometry.
+     Long Cyrillic stages get unequal zones so Safari autosizing or font metric drift
+     cannot collapse adjacent labels into one visual word. */
+  .selected-thinking-r2--ru .st-r2__trace--lead {
+    grid-template-columns: 1.30fr 1.03fr .91fr 1.16fr;
+    font-size: 7.7px;
+    letter-spacing: -.012em;
+  }
+
+  .selected-thinking-r2--ru .st-r2__trace--lead li {
+    white-space: nowrap;
+    padding-right: 7px;
+  }
+
+  .selected-thinking-r2--ru .st-r2__trace--lead li:nth-child(4) {
+    padding-right: 0;
+  }
 }
 
 /* Additional mobile safety. */

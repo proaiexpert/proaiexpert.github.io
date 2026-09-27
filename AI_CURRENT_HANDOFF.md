@@ -47,6 +47,16 @@ Owner-approved production authority:
 - full R2.1 browser QA before the landscape micro-fix: 216 checks, 0 failures;
 - rollback branch before production promotion: `backup/pre-selected-thinking-r22-production-20260926`.
 
+## Selected Thinking production cache hotfix — 2026-09-26
+
+Production incident root cause:
+- R2, R2.1 and R2.2 reused the same browser-facing cache key `decision-aperture-r2` while CSS/JS content changed;
+- fresh Cloudflare preview hosts fetched correct R2.2 assets, while the custom-domain Safari client could reuse a stale asset under the unchanged URL;
+- hotfix changes only EN/RU homepage asset version keys to `decision-aperture-r22-prod-hotfix1`;
+- Selected Thinking CSS and JS contents remain byte-identical to the approved R2.2/R2.1 production assets;
+- hotfix QA: 107 checks, 0 failures across generated asset delivery, Chromium/WebKit landscape, laptop, portrait, motion and reduced-motion;
+- rollback ref: `backup/pre-selected-thinking-cache-hotfix-20260926`.
+
 ## Active R&D — AI Systems / Boxes Hover
 
 This workstream is **not production authority** and must stay isolated from `main` until Owner visual approval.

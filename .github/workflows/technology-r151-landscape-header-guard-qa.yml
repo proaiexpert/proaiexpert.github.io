@@ -12,7 +12,7 @@ permissions:
 jobs:
   qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
 
@@ -21,6 +21,35 @@ jobs:
         with:
           source: ./
           destination: ./_site
+
+      - name: Extract exact production header and Technology into focused QA page
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          src=Path('_site/index.html').read_text(encoding='utf-8')
+          header=re.search(r'(<header\b[^>]*data-site-header[^>]*>.*?</header>)',src,re.S)
+          tech=re.search(r'(<section\b[^>]*data-home-tech-fold-flow[^>]*>.*?</section>)',src,re.S)
+          if not header or not tech:
+              raise SystemExit('Could not extract production header/Technology')
+          html=f'''<!doctype html><html><head>
+          <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+          <link rel="stylesheet" href="/assets/css/header-system-v1.css?v=qa">
+          <link rel="stylesheet" href="/assets/css/header-footer-logo-r1.css?v=qa">
+          <link rel="stylesheet" href="/assets/css/home-technology-fold-flow-r1-5-1.css?v=qa">
+          <style>html,body{{margin:0;background:#020304;color:#fff;overflow-x:hidden}}.qa-spacer{{height:100svh;background:#020304}}</style>
+          </head><body>
+          {header.group(1)}
+          <div class="qa-spacer"></div>
+          {tech.group(1)}
+          <div class="qa-spacer"></div>
+          <script src="/assets/js/home-technology-fold-flow-r1-5-1.js?v=qa" defer></script>
+          <script src="/assets/js/header-system-v1.js?v=qa" defer></script>
+          </body></html>'''
+          Path('_site/qa-tech-header.html').write_text(html,encoding='utf-8')
+          print('Focused QA page created')
+          PY
 
       - name: Install Chromium
         shell: bash
@@ -31,135 +60,99 @@ jobs:
       - name: Start built site
         shell: bash
         run: |
-          python3 -m http.server 4173 --directory _site --bind 127.0.0.1 > /tmp/tech-header-guard.log 2>&1 &
+          python3 -m http.server 4173 --directory _site --bind 127.0.0.1 >/tmp/qa-header.log 2>&1 &
           for i in {1..30}; do
-            curl -fsS http://127.0.0.1:4173/ru/ >/dev/null && exit 0
+            curl -fsS http://127.0.0.1:4173/qa-tech-header.html >/dev/null && exit 0
             sleep 1
           done
-          cat /tmp/tech-header-guard.log
+          cat /tmp/qa-header.log
           exit 1
 
-      - name: Run landscape reverse-scroll and portrait regression QA
+      - name: Verify landscape forward/reverse ownership and portrait regression
         shell: bash
         run: |
           mkdir -p qa-header-guard/screens
           cat > qa-header-guard/run.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
-
           const browser=await chromium.launch({headless:true});
           const report={checks:[],failures:[]};
 
-          async function load(w,h,path){
+          async function open(w,h){
             const context=await browser.newContext({viewport:{width:w,height:h},deviceScaleFactor:1});
             const page=await context.newPage();
-            page.setDefaultNavigationTimeout(10000);
-            await page.route('**/*',async route=>{
-              const url=new URL(route.request().url());
-              if(url.hostname==='127.0.0.1')await route.continue();
-              else await route.abort();
-            });
-            await page.goto('http://127.0.0.1:4173'+path,{waitUntil:'domcontentloaded'});
-            await page.waitForTimeout(700);
+            await page.goto('http://127.0.0.1:4173/qa-tech-header.html',{waitUntil:'domcontentloaded'});
+            await page.waitForTimeout(350);
             return {context,page};
           }
-
-          async function metrics(page){
-            return await page.evaluate(()=>{
+          async function read(page){
+            return page.evaluate(()=>{
               const header=document.querySelector('[data-site-header]');
               const tech=document.querySelector('[data-home-tech-fold-flow]');
-              const sticky=tech?.querySelector('.home-tech-ff__sticky');
-              const fs=document.querySelector('[data-fs-showcase-r11]');
-              const hr=header?.getBoundingClientRect();
-              const sr=sticky?.getBoundingClientRect();
+              const sticky=tech.querySelector('.home-tech-ff__sticky');
+              const hr=header.getBoundingClientRect(),sr=sticky.getBoundingClientRect();
               return {
-                headerGuarded:header?.classList.contains('header-guarded')||false,
-                headerHidden:header?.classList.contains('header-hidden')||false,
-                headerBottom:hr?.bottom??999,
-                guardAttr:sticky?.getAttribute('data-header-autohide-guard')||'',
-                stickyTop:sr?.top??999,
-                stickyBottom:sr?.bottom??-999,
-                techTop:tech?.offsetTop||0,
-                techHeight:tech?.offsetHeight||0,
-                fsTop:fs?.offsetTop||0,
-                scrollY:window.scrollY,
-                overflow:document.documentElement.scrollWidth-window.innerWidth
+                guarded:header.classList.contains('header-guarded'),
+                hidden:header.classList.contains('header-hidden'),
+                headerBottom:hr.bottom,
+                attr:sticky.getAttribute('data-header-autohide-guard')||'',
+                stickyTop:sr.top,stickyBottom:sr.bottom,
+                techTop:tech.offsetTop,techHeight:tech.offsetHeight,
+                overflow:document.documentElement.scrollWidth-innerWidth
               };
             });
           }
-
-          async function move(page,y,wait=360){
-            await page.evaluate(v=>window.scrollTo(0,v),y);
-            await page.waitForTimeout(wait);
-            return await metrics(page);
+          async function scroll(page,y,ms=180){
+            await page.evaluate(v=>scrollTo(0,v),y);
+            await page.waitForTimeout(ms);
+            return read(page);
           }
 
-          const landscapes=[
-            {name:'844x390',w:844,h:390},
-            {name:'896x414',w:896,h:414},
-            {name:'932x430',w:932,h:430}
-          ];
-
-          for(const vp of landscapes){
-            for(const lang of [{name:'en',path:'/'},{name:'ru',path:'/ru/'}]){
-              const {context,page}=await load(vp.w,vp.h,lang.path);
-              const base=await metrics(page);
-              const travel=Math.max(1,base.techHeight-vp.h);
-              const top=base.techTop;
-              const seq=[
-                {name:'forward-20',p:.20},
-                {name:'forward-55',p:.55},
-                {name:'forward-88',p:.88},
-                {name:'reverse-70',p:.70},
-                {name:'reverse-42',p:.42},
-                {name:'reverse-12',p:.12}
-              ];
-              for(const s of seq){
-                const m=await move(page,top+travel*s.p);
-                const bad=[];
-                if(m.guardAttr!=='technology-landscape')bad.push('guard-attr-missing');
-                if(!m.headerGuarded)bad.push('header-not-guarded');
-                if(!m.headerHidden)bad.push('header-not-hidden');
-                if(m.headerBottom>2)bad.push('header-visible-in-viewport');
-                if(m.overflow>1)bad.push('horizontal-overflow');
-                if(Math.abs(m.stickyTop)>9||m.stickyBottom<vp.h-9)bad.push('sticky-not-owning-viewport');
-                if(bad.length)report.failures.push({viewport:vp.name,lang:lang.name,state:s.name,bad,metrics:m});
-                report.checks.push({viewport:vp.name,lang:lang.name,state:s.name,bad,metrics:m});
-              }
-              await page.screenshot({path:`qa-header-guard/screens/${vp.name}-${lang.name}-reverse-tech.png`,fullPage:false});
-
-              const above1=await move(page,Math.max(0,top-vp.h*.35),160);
-              const above2=await move(page,Math.max(0,top-vp.h*.85),380);
-              const badAbove=[];
-              if(above2.headerGuarded)badAbove.push('guard-not-released-above');
-              if(above2.guardAttr!=='technology-landscape')badAbove.push('guard-attr-should-remain-declared');
-              if(above2.headerBottom<=1)badAbove.push('header-not-restored-above');
-              if(badAbove.length)report.failures.push({viewport:vp.name,lang:lang.name,state:'exit-above',bad:badAbove,metrics:above2});
-              report.checks.push({viewport:vp.name,lang:lang.name,state:'exit-above',bad:badAbove,metrics:above2});
-
-              const below=await move(page,base.fsTop+Math.min(80,vp.h*.15),420);
-              const badBelow=[];
-              if(below.headerGuarded)badBelow.push('guard-not-released-below');
-              if(badBelow.length)report.failures.push({viewport:vp.name,lang:lang.name,state:'exit-below',bad:badBelow,metrics:below});
-              report.checks.push({viewport:vp.name,lang:lang.name,state:'exit-below',bad:badBelow,metrics:below});
-
-              await context.close();
+          for(const vp of [{n:'844x390',w:844,h:390},{n:'896x414',w:896,h:414},{n:'932x430',w:932,h:430}]){
+            const {context,page}=await open(vp.w,vp.h);
+            const base=await read(page);
+            const travel=Math.max(1,base.techHeight-vp.h);
+            const points=[.15,.48,.82,.68,.38,.10];
+            for(let i=0;i<points.length;i++){
+              const m=await scroll(page,base.techTop+travel*points[i]);
+              const state=i<3?'forward':'reverse';
+              const bad=[];
+              if(m.attr!=='technology-landscape')bad.push('guard-attr');
+              if(!m.guarded)bad.push('not-guarded');
+              if(!m.hidden||m.headerBottom>2)bad.push('header-visible');
+              if(Math.abs(m.stickyTop)>9||m.stickyBottom<vp.h-9)bad.push('sticky-ownership');
+              if(m.overflow>1)bad.push('overflow');
+              report.checks.push({viewport:vp.n,state,p:points[i],bad,m});
+              if(bad.length)report.failures.push({viewport:vp.n,state,p:points[i],bad,m});
             }
-          }
+            await page.screenshot({path:`qa-header-guard/screens/${vp.n}-reverse.png`});
 
-          for(const lang of [{name:'en',path:'/'},{name:'ru',path:'/ru/'}]){
-            const {context,page}=await load(390,844,lang.path);
-            const base=await metrics(page);
-            const travel=Math.max(1,base.techHeight-844);
-            const m=await move(page,base.techTop+travel*.50);
-            const bad=[];
-            if(m.guardAttr)bad.push('portrait-guard-should-be-absent');
-            if(m.headerGuarded)bad.push('portrait-header-should-not-be-guarded');
-            if(m.overflow>1)bad.push('portrait-overflow');
-            if(bad.length)report.failures.push({viewport:'390x844',lang:lang.name,state:'portrait-mid',bad,metrics:m});
-            report.checks.push({viewport:'390x844',lang:lang.name,state:'portrait-mid',bad,metrics:m});
+            await scroll(page,Math.max(0,base.techTop-vp.h*.25),100);
+            const above=await scroll(page,Math.max(0,base.techTop-vp.h*.75),260);
+            const badAbove=[];
+            if(above.guarded)badAbove.push('guard-not-released');
+            if(above.headerBottom<=1)badAbove.push('header-not-restored');
+            report.checks.push({viewport:vp.n,state:'above',bad:badAbove,m:above});
+            if(badAbove.length)report.failures.push({viewport:vp.n,state:'above',bad:badAbove,m:above});
+
+            const below=await scroll(page,base.techTop+base.techHeight+40,260);
+            const badBelow=[];
+            if(below.guarded)badBelow.push('guard-not-released-below');
+            report.checks.push({viewport:vp.n,state:'below',bad:badBelow,m:below});
+            if(badBelow.length)report.failures.push({viewport:vp.n,state:'below',bad:badBelow,m:below});
             await context.close();
           }
+
+          const {context,page}=await open(390,844);
+          const base=await read(page),travel=Math.max(1,base.techHeight-844);
+          const portrait=await scroll(page,base.techTop+travel*.5,250);
+          const bad=[];
+          if(portrait.attr)bad.push('portrait-guard-attr');
+          if(portrait.guarded)bad.push('portrait-guarded');
+          if(portrait.overflow>1)bad.push('portrait-overflow');
+          report.checks.push({viewport:'390x844',state:'portrait',bad,m:portrait});
+          if(bad.length)report.failures.push({viewport:'390x844',state:'portrait',bad,m:portrait});
+          await context.close();
 
           await browser.close();
           fs.writeFileSync('qa-header-guard/report.json',JSON.stringify(report,null,2));

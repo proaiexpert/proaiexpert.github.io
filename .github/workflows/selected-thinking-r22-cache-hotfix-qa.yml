@@ -1,0 +1,249 @@
+name: Selected Thinking R2.2 Production Cache Hotfix QA
+
+on:
+  push:
+    branches:
+      - hotfix/selected-thinking-r22-production-cache-r1
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Verify hotfix scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --name-only a659d68fa7321bc43e087ed9d52110c2d98c5f59...HEAD | sort | tee /tmp/scope.txt
+          grep -qx 'index.html' /tmp/scope.txt
+          grep -qx 'ru/index.html' /tmp/scope.txt
+          grep -qx '.github/workflows/selected-thinking-r22-cache-hotfix-qa.yml' /tmp/scope.txt
+          test "$(wc -l < /tmp/scope.txt)" -eq 3
+          ! git diff a659d68fa7321bc43e087ed9d52110c2d98c5f59...HEAD -- assets/css/home-selected-thinking-r2.css assets/js/home-selected-thinking-r2.js | grep -q .
+
+      - name: Build with Jekyll and verify generated cache keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination /tmp/site
+          NEW='decision-aperture-r22-prod-hotfix1'
+          OLD='decision-aperture-r2'
+          for f in /tmp/site/index.html /tmp/site/ru/index.html; do
+            grep -q "home-selected-thinking-r2.css?v=$NEW" "$f"
+            grep -q "home-selected-thinking-r2.js?v=$NEW" "$f"
+            ! grep -q "home-selected-thinking-r2.css?v=$OLD" "$f"
+            ! grep -q "home-selected-thinking-r2.js?v=$OLD" "$f"
+          done
+          python3 -m http.server 4177 --directory /tmp/site >/tmp/http.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4177/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/http.log
+          exit 1
+
+      - name: Verify fresh versioned asset responses
+        shell: bash
+        run: |
+          set -euo pipefail
+          V='decision-aperture-r22-prod-hotfix1'
+          curl -fsS "http://127.0.0.1:4177/assets/css/home-selected-thinking-r2.css?v=$V" -o /tmp/st.css
+          curl -fsS "http://127.0.0.1:4177/assets/js/home-selected-thinking-r2.js?v=$V" -o /tmp/st.js
+          grep -Fq -- '-webkit-text-size-adjust: 100%' /tmp/st.css
+          grep -Fq -- 'grid-template-columns: 1.30fr 1.03fr .91fr 1.16fr' /tmp/st.css
+          grep -Fq -- 'white-space: nowrap' /tmp/st.css
+          grep -Fq -- 'font-size: 8.15px' /tmp/st.css
+          grep -Fq -- "var attentionTop = viewportH * 0.18" /tmp/st.js
+          grep -Fq -- "var attentionBottom = viewportH * 0.70" /tmp/st.js
+          grep -Fq -- "orientationDelay" /tmp/st.js
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Chromium and WebKit
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium webkit
+
+      - name: Run browser regression and motion QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/hotfix-qa
+          cat > hotfix-qa.mjs <<'JS'
+          import { chromium, webkit } from 'playwright';
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const BASE='http://127.0.0.1:4177';
+          const OUT='/tmp/hotfix-qa';
+          const failures=[],checks=[];
+          const check=(ok,label,details={})=>(ok?checks:failures).push({label,details});
+
+          async function pageFor(browserType,lang,w,h,{reduce='reduce'}={}){
+            const browser=await browserType.launch({headless:true});
+            const context=await browser.newContext({
+              viewport:{width:w,height:h},
+              screen:{width:w,height:h},
+              isMobile:w<1000,
+              hasTouch:w<1000,
+              reducedMotion:reduce
+            });
+            const page=await context.newPage();
+            await page.route('https://fonts.googleapis.com/**',r=>r.fulfill({status:200,contentType:'text/css',body:''}));
+            await page.route('https://fonts.gstatic.com/**',r=>r.abort());
+            await page.goto(BASE+(lang==='ru'?'/ru/':'/'),{waitUntil:'domcontentloaded',timeout:60000});
+            return {browser,context,page};
+          }
+
+          async function traceMetrics(page){
+            return await page.evaluate(()=>{
+              const s=document.querySelector('#selected-thinking-r2');
+              const trace=s.querySelector('.st-r2__trace--lead');
+              const items=[...trace.querySelectorAll('li')];
+              const rects=items.map(li=>{
+                const range=document.createRange(); range.selectNodeContents(li);
+                const r=range.getBoundingClientRect(), b=li.getBoundingClientRect();
+                return {
+                  text:(li.textContent||'').trim(),
+                  left:r.left,right:r.right,width:r.width,
+                  cellLeft:b.left,cellRight:b.right,cellWidth:b.width,
+                  clientWidth:li.clientWidth,scrollWidth:li.scrollWidth,
+                  fontSize:parseFloat(getComputedStyle(li).fontSize),
+                  whiteSpace:getComputedStyle(li).whiteSpace
+                };
+              });
+              const gaps=rects.slice(0,-1).map((r,i)=>rects[i+1].left-r.right);
+              const first=items[0].getBoundingClientRect(),last=items.at(-1).getBoundingClientRect();
+              const dx=Math.abs((last.left+last.width/2)-(first.left+first.width/2));
+              const dy=Math.abs((last.top+last.height/2)-(first.top+first.height/2));
+              return {
+                rects,gaps,
+                overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth,
+                direction:dy>dx?'vertical':'horizontal',
+                sectionHeight:s.getBoundingClientRect().height/innerHeight
+              };
+            });
+          }
+
+          for(const [engine,browserType] of [['chromium',chromium],['webkit',webkit]]){
+            for(const lang of ['en','ru']){
+              for(const [w,h] of [[844,390],[896,414],[932,430]]){
+                const {browser,context,page}=await pageFor(browserType,lang,w,h);
+                await page.locator('#selected-thinking-r2').scrollIntoViewIfNeeded();
+                await page.waitForTimeout(80);
+                const m=await traceMetrics(page);
+                const key=`${engine} ${lang} ${w}x${h}`;
+                check(m.overflow<=1,key+': no viewport overflow',m.overflow);
+                check(m.direction==='horizontal',key+': landscape topology horizontal',m.direction);
+                check(m.rects.every(x=>x.scrollWidth<=x.clientWidth+1),key+': every lead label fits its cell',m.rects);
+                check(m.gaps.every(g=>g>=6),key+': adjacent label gap >=6px',m.gaps);
+                if(lang==='ru'){
+                  check(m.rects.every(x=>x.whiteSpace==='nowrap'),key+': RU labels stay single-line',m.rects.map(x=>x.whiteSpace));
+                  check(m.rects.every(x=>x.fontSize>=8.0),key+': RU label font remains legible',m.rects.map(x=>x.fontSize));
+                }
+                const dir=path.join(OUT,engine,lang); fs.mkdirSync(dir,{recursive:true});
+                await page.screenshot({path:path.join(dir,`${w}x${h}.png`),fullPage:false,animations:'disabled'});
+                await context.close(); await browser.close();
+              }
+            }
+          }
+
+          for(const lang of ['en','ru']){
+            for(const [w,h,kind] of [
+              [1280,720,'desktop'],[1366,768,'desktop'],[1440,900,'desktop'],[1920,1080,'desktop'],
+              [390,844,'portrait'],[430,932,'portrait']
+            ]){
+              const {browser,context,page}=await pageFor(chromium,lang,w,h);
+              const m=await traceMetrics(page);
+              const key=`regression ${lang} ${w}x${h}`;
+              check(m.overflow<=1,key+': no overflow',m);
+              check(m.direction===(kind==='portrait'?'vertical':'horizontal'),key+': topology preserved',m.direction);
+              check(kind==='portrait'?m.sectionHeight<=1.50:m.sectionHeight<=1.24,key+': section height preserved',m.sectionHeight);
+              await context.close(); await browser.close();
+            }
+          }
+
+          async function motionCase(lang,w,h,kind){
+            const {browser,context,page}=await pageFor(chromium,lang,w,h,{reduce:'no-preference'});
+            const sel='#selected-thinking-r2';
+            await page.evaluate(sel=>{
+              const s=document.querySelector(sel);
+              window.__stEvents=[];
+              ['st:r21-eligible','st:r21-start','st:r21-calm'].forEach(type=>s.addEventListener(type,()=>window.__stEvents.push({type,t:performance.now()})));
+              document.documentElement.style.scrollBehavior='auto';
+            },sel);
+
+            await page.evaluate(sel=>{
+              const s=document.querySelector(sel),r=s.getBoundingClientRect();
+              window.scrollTo({top:Math.max(0,window.scrollY+r.top-window.innerHeight*.78),behavior:'instant'});
+            },sel);
+            await page.waitForTimeout(600);
+            const premature=await page.evaluate(sel=>document.querySelector(sel).dataset.stR2Entered==='true',sel);
+            check(!premature,`motion ${lang} ${w}x${h}: header entry does not fire signature`,premature);
+
+            await page.evaluate(sel=>{
+              const t=document.querySelector(sel).querySelector('.st-r2__trace-zone'),r=t.getBoundingClientRect();
+              window.scrollTo({top:Math.max(0,window.scrollY+r.top-window.innerHeight*.52),behavior:'instant'});
+            },sel);
+            await page.waitForFunction(sel=>document.querySelector(sel).classList.contains('st-r21-eligible'),sel,{timeout:2500});
+            await page.waitForFunction(sel=>document.querySelector(sel).dataset.stR2Entered==='true',sel,{timeout:2500});
+            const events=await page.evaluate(()=>window.__stEvents);
+            const eligible=events.find(e=>e.type==='st:r21-eligible')?.t||0;
+            const start=events.find(e=>e.type==='st:r21-start')?.t||0;
+            const delay=start-eligible;
+            const [min,max]=kind==='landscape'?[220,330]:kind==='portrait'?[320,430]:[280,390];
+            check(delay>=min&&delay<=max,`motion ${lang} ${w}x${h}: attention delay preserved`,delay);
+
+            await page.waitForFunction(sel=>document.querySelector(sel).classList.contains('st-r2-calm'),sel,{timeout:4000});
+            const final=await page.evaluate(sel=>({
+              calm:document.querySelector(sel).classList.contains('st-r2-calm'),
+              running:document.getAnimations().filter(a=>a.playState==='running'&&String(a.animationName||'').startsWith('st-r2-')).length
+            }),sel);
+            check(final.calm&&final.running===0,`motion ${lang} ${w}x${h}: absolute calm`,final);
+            await context.close(); await browser.close();
+          }
+
+          await motionCase('en',1440,900,'desktop');
+          await motionCase('ru',390,844,'portrait');
+          await motionCase('ru',844,390,'landscape');
+
+          for(const lang of ['en','ru']){
+            const {browser,context,page}=await pageFor(chromium,lang,390,844,{reduce:'reduce'});
+            await page.waitForTimeout(120);
+            const st=await page.evaluate(()=>({
+              calm:document.querySelector('#selected-thinking-r2').classList.contains('st-r2-calm'),
+              running:document.getAnimations().filter(a=>a.playState==='running'&&String(a.animationName||'').startsWith('st-r2-')).length
+            }));
+            check(st.calm&&st.running===0,`reduced motion ${lang}: immediate calm`,st);
+            await context.close(); await browser.close();
+          }
+
+          const report={pass:failures.length===0,checks:checks.length,failures,details:checks};
+          fs.writeFileSync(path.join(OUT,'qa-results.json'),JSON.stringify(report,null,2));
+          console.log(JSON.stringify({pass:report.pass,checks:report.checks,failures:report.failures},null,2));
+          process.exit(report.pass?0:1);
+          JS
+          node hotfix-qa.mjs
+
+      - name: Upload hotfix QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r22-cache-hotfix-qa
+          path: /tmp/hotfix-qa
+          if-no-files-found: error
+          retention-days: 14

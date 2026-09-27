@@ -56,7 +56,8 @@ jobs:
             page.on('request',req=>{
               if(req.url().includes('home-selected-thinking-r2')) requests.push(req.url());
             });
-            await page.goto(BASE+(lang==='ru'?'/ru/':'/'),{waitUntil:'networkidle',timeout:90000});
+            await page.goto(BASE+(lang==='ru'?'/ru/':'/'),{waitUntil:'domcontentloaded',timeout:45000});
+            await page.waitForTimeout(1400);
             return {browser,context,page,requests};
           }
 

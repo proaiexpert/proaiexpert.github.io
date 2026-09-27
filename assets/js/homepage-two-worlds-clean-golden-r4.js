@@ -1,7 +1,6 @@
-/* ProAI Expert — Two Worlds Clean Production Synthesis R4.1 FINAL
-   One mobile motion authority. No scrollTo. No continuous locked-state RAF.
-   Final correction: viewport ownership is frozen while immersive, Header guard
-   is experience-owned in both phone orientations, reverse keeps one timeline. */
+/* ProAI Expert — Two Worlds Clean Production Synthesis R4.2.1
+   R4.2 visual design preserved exactly. Mobile motion authority remains singular.
+   Micro-correction: Web re-entry hold from below; no scrollTo; no locked-state RAF. */
 (function () {
   'use strict';
 
@@ -22,6 +21,7 @@
   var TRANSITION_REVERSE_THRESHOLD_PORTRAIT=20;
   var TRANSITION_REVERSE_THRESHOLD_LANDSCAPE=16;
   var ORIENTATION_INTENT_GUARD_MS=220;
+  var REVERSE_REENTRY_HOLD_MS=280;
   var orientationIntentGuardUntil=0;
 
   function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
@@ -56,6 +56,8 @@
       orientation:'',
       mobile:false,
       stageOwned:false,
+      wasBelowExperience:false,
+      webReentryHoldUntil:0,
       moonlit:false,
       targetLightX:0,
       targetLightY:0,
@@ -114,6 +116,8 @@
     s.intent=0;
     s.reverseIntent=0;
     s.lastFrame=0;
+    s.wasBelowExperience=false;
+    s.webReentryHoldUntil=0;
     if(state==='AI_LOCKED'){
       s.t=0;
       setVar(section,'--tw-r4-ai-x','0%');
@@ -227,14 +231,21 @@
     return landscapeQuery.matches?TRANSITION_REVERSE_THRESHOLD_LANDSCAPE:TRANSITION_REVERSE_THRESHOLD_PORTRAIT;
   }
 
-  function sectionEngaged(section){
+  function experienceStatus(section){
     var experience=section.querySelector('[data-tw-experience]');
-    if(!experience)return false;
-    /* Use the live visual viewport only for the ownership test. Stage geometry
-       itself is frozen once ownership begins, so browser chrome cannot resize it. */
+    if(!experience)return {engaged:false,below:false};
+    /* Live viewport is used only to classify entry/exit. The stage geometry
+       itself remains frozen while the immersive territory owns the viewport. */
     var vh=Math.max(1,stageHeightNow());
     var rect=experience.getBoundingClientRect();
-    return rect.top<=8&&rect.bottom>=vh-8;
+    return {
+      engaged:rect.top<=8&&rect.bottom>=vh-8,
+      below:rect.bottom<vh-8
+    };
+  }
+
+  function sectionEngaged(section){
+    return experienceStatus(section).engaged;
   }
 
   function initialMobileState(section){
@@ -258,11 +269,43 @@
     /* Orientation/width-class changes can make the browser adjust scrollY
        without a user reversal. Never convert that synthetic correction into
        world intent; lastScrollY is already synchronized above. */
-    if(performance.now()<orientationIntentGuardUntil){
+    var now=performance.now();
+    if(now<orientationIntentGuardUntil){
       s.intent=0;
       s.reverseIntent=0;
       return;
     }
+
+    var experience=experienceStatus(section);
+    if(experience.below){
+      /* Remember that the user genuinely left the Two Worlds territory below.
+         This is the only condition that can arm the Web re-entry hold later. */
+      s.wasBelowExperience=true;
+      s.webReentryHoldUntil=0;
+      s.intent=0;
+      s.reverseIntent=0;
+      return;
+    }
+
+    if(s.logical==='WEB_LOCKED'&&delta<0&&s.wasBelowExperience&&experience.engaged){
+      /* The same upward gesture that brings Web back on screen must not
+         immediately consume reverse intent. Establish a short, geometry-free
+         plateau, synchronize scroll, and discard all pre/within-hold intent. */
+      s.wasBelowExperience=false;
+      s.webReentryHoldUntil=now+REVERSE_REENTRY_HOLD_MS;
+      s.intent=0;
+      s.reverseIntent=0;
+      s.lastScrollY=y;
+      return;
+    }
+
+    if(now<s.webReentryHoldUntil){
+      s.intent=0;
+      s.reverseIntent=0;
+      s.lastScrollY=y;
+      return;
+    }
+
     if(Math.abs(delta)<=IGNORE_DELTA)return;
 
     /* Once a turn has begun, keep the same timeline authoritative even if
@@ -282,7 +325,7 @@
       return;
     }
 
-    if(!sectionEngaged(section)){
+    if(!experience.engaged){
       s.intent=0;
       s.reverseIntent=0;
       return;

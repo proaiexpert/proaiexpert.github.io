@@ -32,7 +32,7 @@ Key current facts:
 - Two Worlds: approved Golden R1 + landscape correction.
 - Technology: approved Transition R2 chain.
 - Financial Stream: approved R1.4 presentation with `EN + RU`, `8.36K` search impressions and `52` indexed pages; mobile geometry frozen by Owner on 2026-08-29.
-- Selected Thinking: approved Decision Aperture / Trace R2.2 with attention-timed one-shot motion, authored portrait/landscape layouts, EN/RU parity, and Safari/WebKit RU landscape collision protection.
+- Selected Thinking: approved Decision Aperture / Trace R2.4. Desktop/portrait preserve the accepted R2.2/R2.1 system; touch-device landscape uses a full-width Lead 01 followed by 02/03 as a 50/50 supporting row.
 - Selected Work: current R1 + owner title correction authority.
 - Footer: current Golden R3 structure with Signature R4 material authority.
 
@@ -56,6 +56,21 @@ Production incident root cause:
 - Selected Thinking CSS and JS contents remain byte-identical to the approved R2.2/R2.1 production assets;
 - hotfix QA: 107 checks, 0 failures across generated asset delivery, Chromium/WebKit landscape, laptop, portrait, motion and reduced-motion;
 - rollback ref: `backup/pre-selected-thinking-cache-hotfix-20260926`.
+
+## Selected Thinking R2.4 production release — 2026-09-27
+
+Owner-approved landscape architecture:
+- root cause of prior real-device failures was that model-specific viewport gates did not reliably activate the intended landscape topology on the Owner's real iPhone browser;
+- R2.4 activates compact landscape by capability: `(orientation: landscape) and (any-pointer: coarse)`;
+- Lead 01 owns a full-width featured row;
+- Decision Trace receives the full Lead width;
+- 02/03 form a separate equal 50/50 supporting row below;
+- desktop mouse layout remains the accepted two-column production composition;
+- portrait touch layout remains the accepted vertical topology;
+- motion remains one-shot and calm, with the landscape timing query aligned to the same capability-based trigger;
+- browser QA on the final touch trigger: 153 checks, 0 failures across Chromium/WebKit, EN/RU, touch landscape up to 1200×700, desktop-mouse regression and portrait regression;
+- Owner visually approved the final R2.4 touch-landscape preview on a real device;
+- rollback before production promotion: `backup/pre-selected-thinking-r24-production-20260927`.
 
 ## Active R&D — AI Systems / Boxes Hover
 

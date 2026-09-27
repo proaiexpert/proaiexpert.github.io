@@ -834,7 +834,7 @@
   .st-r2__support { font-size: 10.5px; line-height: 1.30; }
   .st-r2__archive-top { display: none; }
 
-  .st-r2__stage { grid-template-columns: minmax(0, 1.38fr) minmax(310px, 1fr); }
+  .st-r2__stage { grid-template-columns: minmax(0, 68%) minmax(0, 32%); }
   .st-r2__lead { min-height: 0; padding: 16px 28px 15px 0; }
   .st-r2__index { top: 15px; right: 12px; font-size: 84px; }
   .st-r2__record-head--lead { padding-left: 12px; }
@@ -876,19 +876,26 @@
   /* R2.2: authored RU landscape label geometry.
      Long Cyrillic stages get unequal zones so Safari autosizing or font metric drift
      cannot collapse adjacent labels into one visual word. */
+  /* R2.3 real-device landscape authority:
+     Lead 01 owns the composition; long Cyrillic stages size from their text,
+     not from fixed fractional cells. */
   .selected-thinking-r2--ru .st-r2__trace--lead {
-    grid-template-columns: 1.30fr 1.03fr .91fr 1.16fr;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    grid-template-columns: none;
     font-size: 8.15px;
     letter-spacing: -.01em;
   }
 
   .selected-thinking-r2--ru .st-r2__trace--lead li {
-    white-space: nowrap;
-    padding-right: 7px;
-  }
-
-  .selected-thinking-r2--ru .st-r2__trace--lead li:nth-child(4) {
+    flex: 0 0 auto;
+    width: max-content;
+    min-width: max-content;
+    max-width: none;
     padding-right: 0;
+    white-space: nowrap;
   }
 }
 

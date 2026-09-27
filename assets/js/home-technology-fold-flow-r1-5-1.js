@@ -5,6 +5,7 @@ var names=['handoff','understand','orchestrate','communicate','deliver','resolve
 var forward=[.04,.27,.46,.65,.83];
 var backward=[.025,.245,.435,.625,.80];
 var reduce=matchMedia('(prefers-reduced-motion: reduce)');
+var headerGuardMedia=matchMedia('(max-width:1080px) and (orientation:landscape) and (max-height:540px)');
 var states=new WeakMap();
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function getState(section){var s=states.get(section);if(s)return s;s={progress:0,index:0,raf:0,resizing:0,orientation:innerWidth>innerHeight?'landscape':'portrait'};states.set(section,s);return s}
@@ -20,6 +21,11 @@ function stageFor(section,p){
   return i;
 }
 function getStickyHeight(section){var sticky=section.querySelector('.home-tech-ff__sticky');var h=sticky?sticky.getBoundingClientRect().height:0;return Math.max(1,h||innerHeight)}
+function syncHeaderGuard(section){
+  var sticky=section.querySelector('.home-tech-ff__sticky');if(!sticky)return;
+  if(headerGuardMedia.matches)sticky.setAttribute('data-header-autohide-guard','technology-landscape');
+  else sticky.removeAttribute('data-header-autohide-guard');
+}
 function getFoldEntry(section){var raw=parseFloat(getComputedStyle(section).getPropertyValue('--ff-fold-entry'));return isFinite(raw)&&raw>14?raw:88}
 function ease(t){t=clamp(t,0,1);return t*t*(3-2*t)}
 function heldTravel(section,p){
@@ -73,6 +79,7 @@ function schedule(section){
   s.raf=requestAnimationFrame(function(){s.raf=0;if(!reduce.matches)updateVisual(section,calcProgress(section))});
 }
 function preserveOnResize(section){
+  syncHeaderGuard(section);
   var s=getState(section);
   clearTimeout(s.resizing);
   var keep=s.progress;
@@ -91,6 +98,8 @@ function preserveOnResize(section){
 }
 function init(section){
   var s=getState(section);
+  syncHeaderGuard(section);
+  headerGuardMedia.addEventListener&&headerGuardMedia.addEventListener('change',function(){syncHeaderGuard(section)});
   if(reduce.matches){setStage(section,5,'reduced');section.style.setProperty('--ff-fold-width','14px');return}
   updateVisual(section,calcProgress(section));
   addEventListener('scroll',function(){schedule(section)},{passive:true});

@@ -65,7 +65,7 @@ Current authority:
 - `_includes/home-selected-thinking-r2-en.html`
 - `_includes/home-selected-thinking-r2-ru.html`
 
-Approved production state: Decision Aperture / Trace R2.2. R2.1 attention-timed motion is preserved; R2.2 adds the final RU phone-landscape Safari/WebKit stability correction. Historical R1 files remain rollback evidence only and are not current Selected Thinking design authority.
+Approved production state: Decision Aperture / Trace R2.4. Desktop and portrait retain the accepted R2.2/R2.1 visual and motion system. Touch-device landscape uses the R2.4 authored topology: Lead 01 occupies a full-width featured row, with 02/03 in a 50/50 supporting row below. Landscape activation is capability-based (`orientation: landscape` + `any-pointer: coarse`) rather than model-specific viewport dimensions. Historical R1 files remain rollback evidence only and are not current Selected Thinking design authority.
 
 ### Selected Work
 Current authority:

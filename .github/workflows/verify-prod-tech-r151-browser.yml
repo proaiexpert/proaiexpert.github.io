@@ -1,0 +1,109 @@
+name: Verify Production Technology R1.5.1 Browser
+
+on:
+  push:
+    branches:
+      - verify/prod-tech-r151-live
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install Chromium
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run live production Chromium smoke
+        shell: bash
+        run: |
+          mkdir -p live-browser/screens
+          cat > live-browser/run.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+          const browser=await chromium.launch({headless:true});
+          const cases=[
+            {name:'1366x768-en',w:1366,h:768,url:'https://proai-expert.com/?verify=5806283'},
+            {name:'1366x768-ru',w:1366,h:768,url:'https://proai-expert.com/ru/?verify=5806283'},
+            {name:'390x844-en',w:390,h:844,url:'https://proai-expert.com/?verify=5806283'},
+            {name:'390x844-ru',w:390,h:844,url:'https://proai-expert.com/ru/?verify=5806283'},
+            {name:'896x414-en',w:896,h:414,url:'https://proai-expert.com/?verify=5806283'},
+            {name:'896x414-ru',w:896,h:414,url:'https://proai-expert.com/ru/?verify=5806283'}
+          ];
+          const report={checks:[],failures:[]};
+          for(const c of cases){
+            const context=await browser.newContext({viewport:{width:c.w,height:c.h},deviceScaleFactor:1});
+            const page=await context.newPage();
+            await page.goto(c.url,{waitUntil:'networkidle'});
+            const init=await page.evaluate(()=>{
+              const tech=document.querySelector('[data-home-tech-fold-flow]');
+              const fs=document.querySelector('[data-fs-showcase-r11]');
+              const tw=document.querySelector('[data-tw-r2]');
+              return {
+                tech:!!tech,fs:!!fs,tw:!!tw,
+                old:!!document.querySelector('.home-tech-r2'),
+                overflow:document.documentElement.scrollWidth-window.innerWidth,
+                techTop:tech?.offsetTop||0,techHeight:tech?.offsetHeight||0,
+                fsTop:fs?.offsetTop||0
+              };
+            });
+            const bad=[];
+            if(!init.tech)bad.push('new-tech-missing');
+            if(init.old)bad.push('old-tech-present');
+            if(!init.fs||!init.tw)bad.push('neighbor-missing');
+            if(init.overflow>1)bad.push('horizontal-overflow');
+            if(Math.abs(init.fsTop-(init.techTop+init.techHeight))>2)bad.push('tech-fs-document-gap');
+
+            if(init.tech){
+              await page.evaluate(y=>window.scrollTo(0,y),Math.max(0,init.techTop-c.h*.35));
+              await page.waitForTimeout(500);
+              await page.screenshot({path:`live-browser/screens/${c.name}-entry.png`,fullPage:false});
+              await page.evaluate((top,h,vh)=>window.scrollTo(0,top+Math.max(1,h-vh)*.90),init.techTop,init.techHeight,c.h);
+              await page.waitForTimeout(550);
+              const final=await page.evaluate(()=>{
+                const tech=document.querySelector('[data-home-tech-fold-flow]');
+                const maker=tech?.querySelector('.home-tech-ff__maker');
+                const r=maker?.getBoundingClientRect();
+                return {
+                  stage:tech?.getAttribute('data-ff-stage'),
+                  makerVisible:!!maker&&getComputedStyle(maker).opacity!=='0'&&r.width>0&&r.height>0,
+                  makerInside:!r||(r.left>=-1&&r.right<=innerWidth+1&&r.top>=-1&&r.bottom<=innerHeight+1),
+                  overflow:document.documentElement.scrollWidth-window.innerWidth
+                };
+              });
+              if(final.stage!=='resolved')bad.push('final-not-resolved');
+              if(!final.makerVisible||!final.makerInside)bad.push('maker-final');
+              if(final.overflow>1)bad.push('final-overflow');
+              await page.screenshot({path:`live-browser/screens/${c.name}-final.png`,fullPage:false});
+
+              await page.evaluate(y=>window.scrollTo(0,y),init.fsTop+Math.min(100,c.h*.12));
+              await page.waitForTimeout(700);
+              const fsLive=await page.evaluate(()=>document.querySelector('[data-fs-showcase-r11]')?.classList.contains('is-live'));
+              if(!fsLive)bad.push('fs-not-live');
+              await page.screenshot({path:`live-browser/screens/${c.name}-fs.png`,fullPage:false});
+            }
+            report.checks.push({...c,init,bad});
+            if(bad.length)report.failures.push({name:c.name,bad});
+            await context.close();
+          }
+          await browser.close();
+          fs.writeFileSync('live-browser/report.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify(report,null,2));
+          if(report.failures.length)process.exit(2);
+          NODE
+          node live-browser/run.mjs
+
+      - name: Upload live browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-tech-r151-live-browser
+          path: live-browser/
+          if-no-files-found: error
+          retention-days: 7

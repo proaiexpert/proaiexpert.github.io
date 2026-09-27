@@ -64,7 +64,7 @@ jobs:
               await page.evaluate(y=>window.scrollTo(0,y),Math.max(0,init.techTop-c.h*.35));
               await page.waitForTimeout(500);
               await page.screenshot({path:`live-browser/screens/${c.name}-entry.png`,fullPage:false});
-              await page.evaluate((top,h,vh)=>window.scrollTo(0,top+Math.max(1,h-vh)*.90),init.techTop,init.techHeight,c.h);
+              await page.evaluate(({top,h,vh})=>window.scrollTo(0,top+Math.max(1,h-vh)*.90),{top:init.techTop,h:init.techHeight,vh:c.h});
               await page.waitForTimeout(550);
               const final=await page.evaluate(()=>{
                 const tech=document.querySelector('[data-home-tech-fold-flow]');

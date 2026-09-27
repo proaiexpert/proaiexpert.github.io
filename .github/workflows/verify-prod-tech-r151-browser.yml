@@ -40,7 +40,8 @@ jobs:
           for(const c of cases){
             const context=await browser.newContext({viewport:{width:c.w,height:c.h},deviceScaleFactor:1});
             const page=await context.newPage();
-            await page.goto(c.url,{waitUntil:'domcontentloaded'});\n            await page.waitForTimeout(900);
+            await page.goto(c.url,{waitUntil:'domcontentloaded'});
+            await page.waitForTimeout(900);
             const init=await page.evaluate(()=>{
               const tech=document.querySelector('[data-home-tech-fold-flow]');
               const fs=document.querySelector('[data-fs-showcase-r11]');

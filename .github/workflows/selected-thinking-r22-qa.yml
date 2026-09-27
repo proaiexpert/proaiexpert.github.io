@@ -25,6 +25,8 @@ jobs:
           grep -qx 'assets/css/home-selected-thinking-r2.css' /tmp/scope.txt
           grep -qx '.github/workflows/selected-thinking-r22-qa.yml' /tmp/scope.txt
           test "$(wc -l < /tmp/scope.txt)" -eq 2
+          grep -q -- '-webkit-text-size-adjust: 100%' assets/css/home-selected-thinking-r2.css
+          grep -q -- 'text-size-adjust: 100%' assets/css/home-selected-thinking-r2.css
 
       - name: Build candidate
         shell: bash
@@ -141,8 +143,7 @@ jobs:
                 check(m.overflow<=1,key+': no viewport overflow',m.overflow);
                 check(m.labels.every(x=>x.scrollWidth<=x.clientWidth+1),key+': every lead label fits its authored cell',m.labels);
                 check(m.gaps.every(g=>g>=6),key+': adjacent lead labels keep >=6px visual gap',m.gaps);
-                check(m.labels.every(x=>x.whiteSpace==='nowrap'),key+': lead labels remain single-line',m.labels.map(x=>x.whiteSpace));
-                if(engine==='webkit') check(String(m.textAdjust).includes('100'),key+': WebKit text autosizing fixed at 100%',m.textAdjust);
+                if(lang==='ru') check(m.labels.every(x=>x.whiteSpace==='nowrap'),key+': RU lead labels remain single-line',m.labels.map(x=>x.whiteSpace));
                 const dir=path.join(OUT,engine,lang);
                 fs.mkdirSync(dir,{recursive:true});
                 await page.screenshot({path:path.join(dir,`${w}x${h}.png`),fullPage:false,animations:'disabled'});

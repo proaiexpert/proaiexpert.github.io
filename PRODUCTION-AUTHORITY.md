@@ -60,7 +60,12 @@ Desktop/laptop proof sizing is owned by the Financial Stream polish chain; old o
 
 ### Selected Thinking
 Current authority:
-- active `home-selected-thinking-r1*` chain
+- `assets/css/home-selected-thinking-r2.css`
+- `assets/js/home-selected-thinking-r2.js`
+- `_includes/home-selected-thinking-r2-en.html`
+- `_includes/home-selected-thinking-r2-ru.html`
+
+Approved production state: Decision Aperture / Trace R2.2. R2.1 attention-timed motion is preserved; R2.2 adds the final RU phone-landscape Safari/WebKit stability correction. Historical R1 files remain rollback evidence only and are not current Selected Thinking design authority.
 
 ### Selected Work
 Current authority:

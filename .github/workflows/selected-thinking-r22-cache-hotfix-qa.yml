@@ -105,6 +105,11 @@ jobs:
             const page=await context.newPage();
             await page.route('https://fonts.googleapis.com/**',r=>r.fulfill({status:200,contentType:'text/css',body:''}));
             await page.route('https://fonts.gstatic.com/**',r=>r.abort());
+            await page.route('**/*.js*',r=>{
+              const u=r.request().url();
+              if(u.includes('/assets/js/home-selected-thinking-r2.js')) return r.continue();
+              return r.fulfill({status:200,contentType:'application/javascript',body:'/* QA: unrelated runtime suppressed */'});
+            });
             await page.goto(BASE+(lang==='ru'?'/ru/':'/'),{waitUntil:'domcontentloaded',timeout:60000});
             return {browser,context,page};
           }
@@ -194,6 +199,10 @@ jobs:
             await page.waitForTimeout(600);
             const premature=await page.evaluate(sel=>document.querySelector(sel).dataset.stR2Entered==='true',sel);
             check(!premature,`motion ${lang} ${w}x${h}: header entry does not fire signature`,premature);
+            if(premature){
+              await context.close(); await browser.close();
+              return;
+            }
 
             await page.evaluate(sel=>{
               const t=document.querySelector(sel).querySelector('.st-r2__trace-zone'),r=t.getBoundingClientRect();

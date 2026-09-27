@@ -21,6 +21,8 @@
   var HEIGHT_RECOMPOSE_DELTA=8;
   var TRANSITION_REVERSE_THRESHOLD_PORTRAIT=20;
   var TRANSITION_REVERSE_THRESHOLD_LANDSCAPE=16;
+  var ORIENTATION_INTENT_GUARD_MS=220;
+  var orientationIntentGuardUntil=0;
 
   function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
   function smoothstep(v){v=clamp(v,0,1);return v*v*(3-(2*v));}
@@ -253,6 +255,14 @@
     s.lastScrollY=y;
 
     if(!mobileQuery.matches||reducedMotion.matches)return;
+    /* Orientation/width-class changes can make the browser adjust scrollY
+       without a user reversal. Never convert that synthetic correction into
+       world intent; lastScrollY is already synchronized above. */
+    if(performance.now()<orientationIntentGuardUntil){
+      s.intent=0;
+      s.reverseIntent=0;
+      return;
+    }
     if(Math.abs(delta)<=IGNORE_DELTA)return;
 
     /* Once a turn has begun, keep the same timeline authoritative even if
@@ -506,6 +516,7 @@
       var multiplier=orientation==='landscape'?2.30:2.20;
       setVar(section,'--tw-r4-stage-height',h+'px');
       setVar(section,'--tw-r4-travel-height',Math.round(h*multiplier)+'px');
+      s.lastScrollY=Math.max(0,window.scrollY||0);
       if(s.logical==='TRANSITIONING'){
         renderTransition(section,s.t);
       }else if(s.logical==='WEB_LOCKED'){
@@ -601,16 +612,38 @@
 
   function maybeRecompose(){scheduleRecompose(false,36);}
 
+  function armOrientationIntentGuard(){
+    orientationIntentGuardUntil=performance.now()+ORIENTATION_INTENT_GUARD_MS;
+    sections.forEach(function(section){
+      var s=stateFor(section);
+      s.lastScrollY=Math.max(0,window.scrollY||0);
+      s.intent=0;
+      s.reverseIntent=0;
+    });
+  }
+
+  function bindQueryChange(query,handler){
+    if(typeof query.addEventListener==='function')query.addEventListener('change',handler);
+    else if(typeof query.addListener==='function')query.addListener(handler);
+  }
+
   window.addEventListener('resize',maybeRecompose,{passive:true});
   window.addEventListener('orientationchange',function(){
+    armOrientationIntentGuard();
     scheduleRecompose(true,100);
   },{passive:true});
   if(window.visualViewport)window.visualViewport.addEventListener('resize',maybeRecompose,{passive:true});
 
-  [mobileQuery,landscapeQuery,reducedMotion].forEach(function(query){
-    var handler=function(){scheduleRecompose(true,90);};
-    if(typeof query.addEventListener==='function')query.addEventListener('change',handler);
-    else if(typeof query.addListener==='function')query.addListener(handler);
+  bindQueryChange(mobileQuery,function(){
+    armOrientationIntentGuard();
+    scheduleRecompose(true,90);
+  });
+  bindQueryChange(landscapeQuery,function(){
+    armOrientationIntentGuard();
+    scheduleRecompose(true,90);
+  });
+  bindQueryChange(reducedMotion,function(){
+    scheduleRecompose(true,90);
   });
 
   if(document.fonts&&document.fonts.ready){

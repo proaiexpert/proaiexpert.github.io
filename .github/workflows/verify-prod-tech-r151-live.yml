@@ -1,0 +1,61 @@
+name: Verify Production Technology R1.5.1
+
+on:
+  push:
+    branches:
+      - verify/prod-tech-r151-live
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify live EN/RU Technology replacement
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p verify-live
+          PASS=0
+          for i in $(seq 1 18); do
+            TS=$(date +%s)
+            EN_URL="https://proai-expert.com/?tech_release=5806283&ts=$TS"
+            RU_URL="https://proai-expert.com/ru/?tech_release=5806283&ts=$TS"
+            curl -fsSL --retry 2 -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "$EN_URL" -o verify-live/en.html || true
+            curl -fsSL --retry 2 -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' "$RU_URL" -o verify-live/ru.html || true
+
+            EN_NEW=0; RU_NEW=0; EN_OLD=0; RU_OLD=0
+            grep -q 'The system determines the tools.' verify-live/en.html && EN_NEW=1 || true
+            grep -q 'Система определяет инструменты.' verify-live/ru.html && RU_NEW=1 || true
+            grep -q 'SELECTED PLATFORMS &amp; INTEGRATIONS\|SELECTED PLATFORMS & INTEGRATIONS' verify-live/en.html && EN_OLD=1 || true
+            grep -q 'ИЗБРАННЫЕ ПЛАТФОРМЫ И ИНТЕГРАЦИИ' verify-live/ru.html && RU_OLD=1 || true
+
+            echo "attempt=$i EN_NEW=$EN_NEW RU_NEW=$RU_NEW EN_OLD=$EN_OLD RU_OLD=$RU_OLD"
+            if [ "$EN_NEW" = 1 ] && [ "$RU_NEW" = 1 ] && [ "$EN_OLD" = 0 ] && [ "$RU_OLD" = 0 ]; then
+              PASS=1
+              break
+            fi
+            sleep 10
+          done
+
+          test "$PASS" = 1
+          grep -q 'home-technology-fold-flow-r1-5-1.css?v=fold-flow-r151-integration-r1' verify-live/en.html
+          grep -q 'home-technology-fold-flow-r1-5-1.js?v=fold-flow-r151-integration-r1' verify-live/en.html
+          grep -q 'home-two-worlds-tech-fs-integration-r1.css?v=integration-r1' verify-live/en.html
+          grep -q 'home-technology-fold-flow-r1-5-1.css?v=fold-flow-r151-integration-r1' verify-live/ru.html
+          grep -q 'home-technology-fold-flow-r1-5-1.js?v=fold-flow-r151-integration-r1' verify-live/ru.html
+          grep -q 'home-two-worlds-tech-fs-integration-r1.css?v=integration-r1' verify-live/ru.html
+
+          echo "LIVE TECHNOLOGY R1.5.1 VERIFIED EN/RU"
+
+      - name: Upload live verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-tech-r151-live-verification
+          path: verify-live/
+          if-no-files-found: warn
+          retention-days: 7

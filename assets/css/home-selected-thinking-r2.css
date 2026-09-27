@@ -876,19 +876,27 @@
   /* R2.2: authored RU landscape label geometry.
      Long Cyrillic stages get unequal zones so Safari autosizing or font metric drift
      cannot collapse adjacent labels into one visual word. */
+  /* R2.3 real-device stability:
+     the label text, not fractional grid cells, owns its minimum width.
+     This prevents long Cyrillic labels from painting into adjacent stages
+     when iOS Chrome/WebKit uses wider real-device font metrics. */
   .selected-thinking-r2--ru .st-r2__trace--lead {
-    grid-template-columns: 1.30fr 1.03fr .91fr 1.16fr;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    grid-template-columns: none;
     font-size: 8.15px;
     letter-spacing: -.01em;
   }
 
   .selected-thinking-r2--ru .st-r2__trace--lead li {
-    white-space: nowrap;
-    padding-right: 7px;
-  }
-
-  .selected-thinking-r2--ru .st-r2__trace--lead li:nth-child(4) {
+    flex: 0 0 auto;
+    width: max-content;
+    min-width: max-content;
+    max-width: none;
     padding-right: 0;
+    white-space: nowrap;
   }
 }
 

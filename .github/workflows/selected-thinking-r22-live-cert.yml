@@ -1,0 +1,183 @@
+name: Selected Thinking R2.2 Live Production Certification
+
+on:
+  push:
+    branches:
+      - verify/selected-thinking-r22-live-cert-r1
+
+permissions:
+  contents: read
+
+jobs:
+  live-cert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Chromium and WebKit
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium webkit
+
+      - name: Certify live custom domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/live-cert
+          cat > live-cert.mjs <<'JS'
+          import { chromium, webkit } from 'playwright';
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          const BASE='https://proai-expert.com';
+          const NEW='decision-aperture-r22-prod-hotfix1';
+          const OLD='decision-aperture-r2';
+          const failures=[],checks=[];
+          const check=(ok,label,details={})=>(ok?checks:failures).push({label,details});
+
+          async function open(browserType,lang,w,h,kind){
+            const browser=await browserType.launch({headless:true});
+            const context=await browser.newContext({
+              viewport:{width:w,height:h},
+              screen:{width:w,height:h},
+              isMobile:kind!=='desktop',
+              hasTouch:kind!=='desktop',
+              reducedMotion:'reduce',
+              ignoreHTTPSErrors:false
+            });
+            const page=await context.newPage();
+            const requests=[];
+            page.on('request',req=>{
+              if(req.url().includes('home-selected-thinking-r2')) requests.push(req.url());
+            });
+            await page.goto(BASE+(lang==='ru'?'/ru/':'/'),{waitUntil:'networkidle',timeout:90000});
+            return {browser,context,page,requests};
+          }
+
+          async function assetRefs(page){
+            return await page.evaluate(()=>{
+              const css=[...document.querySelectorAll('link[rel="stylesheet"]')].map(x=>x.href).filter(x=>x.includes('home-selected-thinking-r2.css'));
+              const js=[...document.querySelectorAll('script[src]')].map(x=>x.src).filter(x=>x.includes('home-selected-thinking-r2.js'));
+              return {css,js};
+            });
+          }
+
+          async function fetchAssets(page,refs){
+            return await page.evaluate(async refs=>{
+              const out={};
+              for(const [k,u] of Object.entries(refs)){
+                const r=await fetch(u,{cache:'reload'});
+                out[k]={ok:r.ok,status:r.status,text:await r.text(),url:r.url};
+              }
+              return out;
+            },refs);
+          }
+
+          async function traceMetrics(page){
+            return await page.evaluate(()=>{
+              const s=document.querySelector('#selected-thinking-r2');
+              if(!s) return {missing:true};
+              const trace=s.querySelector('.st-r2__trace--lead');
+              const items=[...trace.querySelectorAll('li')];
+              const rects=items.map(li=>{
+                const range=document.createRange(); range.selectNodeContents(li);
+                const r=range.getBoundingClientRect(),b=li.getBoundingClientRect();
+                const cs=getComputedStyle(li);
+                return {
+                  text:(li.textContent||'').trim(),
+                  left:r.left,right:r.right,width:r.width,
+                  cellLeft:b.left,cellRight:b.right,cellWidth:b.width,
+                  clientWidth:li.clientWidth,scrollWidth:li.scrollWidth,
+                  fontSize:parseFloat(cs.fontSize),
+                  whiteSpace:cs.whiteSpace
+                };
+              });
+              const gaps=rects.slice(0,-1).map((x,i)=>rects[i+1].left-x.right);
+              return {
+                missing:false,rects,gaps,
+                overflow:Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth
+              };
+            });
+          }
+
+          for(const [engine,browserType] of [['chromium',chromium],['webkit',webkit]]){
+            for(const lang of ['en','ru']){
+              const {browser,context,page,requests}=await open(browserType,lang,844,390,'landscape');
+              const refs=await assetRefs(page);
+              const key=`${engine} ${lang} live`;
+              check(refs.css.length===1,key+': exactly one Selected Thinking CSS ref',refs);
+              check(refs.js.length===1,key+': exactly one Selected Thinking JS ref',refs);
+              check(refs.css[0]?.includes('v='+NEW),key+': CSS uses new cache key',refs.css);
+              check(refs.js[0]?.includes('v='+NEW),key+': JS uses new cache key',refs.js);
+              check(!refs.css[0]?.includes('v='+OLD+'&') && refs.css[0]?.split('v=')[1]!==OLD,key+': old CSS key absent',refs.css);
+              check(!refs.js[0]?.includes('v='+OLD+'&') && refs.js[0]?.split('v=')[1]!==OLD,key+': old JS key absent',refs.js);
+              check(requests.some(u=>u.includes('home-selected-thinking-r2.css?v='+NEW)),key+': browser actually requested new CSS URL',requests);
+              check(requests.some(u=>u.includes('home-selected-thinking-r2.js?v='+NEW)),key+': browser actually requested new JS URL',requests);
+              check(!requests.some(u=>u.endsWith('home-selected-thinking-r2.css?v='+OLD)),key+': browser did not request old CSS URL',requests);
+              check(!requests.some(u=>u.endsWith('home-selected-thinking-r2.js?v='+OLD)),key+': browser did not request old JS URL',requests);
+
+              const assets=await fetchAssets(page,{css:refs.css[0],js:refs.js[0]});
+              check(assets.css.ok,key+': live CSS response 200',{status:assets.css.status,url:assets.css.url});
+              check(assets.js.ok,key+': live JS response 200',{status:assets.js.status,url:assets.js.url});
+              check(assets.css.text.includes('-webkit-text-size-adjust: 100%'),key+': live CSS has Safari text sizing fix',{});
+              check(assets.css.text.includes('grid-template-columns: 1.30fr 1.03fr .91fr 1.16fr'),key+': live CSS has RU authored grid',{});
+              check(assets.css.text.includes('white-space: nowrap'),key+': live CSS has nowrap protection',{});
+              check(assets.css.text.includes('font-size: 8.15px'),key+': live CSS has 8.15px RU landscape size',{});
+              check(assets.js.text.includes('var attentionTop = viewportH * 0.18'),key+': live JS has R2.1 attention window',{});
+              check(assets.js.text.includes('orientationDelay'),key+': live JS has authored orientation delay',{});
+
+              await page.locator('#selected-thinking-r2').scrollIntoViewIfNeeded();
+              await page.waitForTimeout(150);
+              const m=await traceMetrics(page);
+              check(!m.missing,key+': Selected Thinking exists',m);
+              check(m.overflow<=1,key+': no viewport overflow',m.overflow);
+              check(m.rects.every(x=>x.scrollWidth<=x.clientWidth+1),key+': each lead label fits cell',m.rects);
+              check(m.gaps.every(g=>g>=6),key+': adjacent labels keep >=6px gap',m.gaps);
+              if(lang==='ru'){
+                check(m.rects.every(x=>x.whiteSpace==='nowrap'),key+': RU labels are single-line',m.rects.map(x=>x.whiteSpace));
+                check(m.rects.every(x=>x.fontSize>=8),key+': RU labels remain legible',m.rects.map(x=>x.fontSize));
+              }
+
+              const dir=path.join('/tmp/live-cert',engine,lang); fs.mkdirSync(dir,{recursive:true});
+              await page.screenshot({path:path.join(dir,'844x390.png'),fullPage:false,animations:'disabled'});
+              await context.close(); await browser.close();
+            }
+          }
+
+          // Additional WebKit RU landscape sizes requested by the incident.
+          for(const [w,h] of [[896,414],[932,430]]){
+            const {browser,context,page}=await open(webkit,'ru',w,h,'landscape');
+            await page.locator('#selected-thinking-r2').scrollIntoViewIfNeeded();
+            await page.waitForTimeout(120);
+            const m=await traceMetrics(page);
+            const key=`webkit ru live ${w}x${h}`;
+            check(m.overflow<=1,key+': no viewport overflow',m.overflow);
+            check(m.rects.every(x=>x.scrollWidth<=x.clientWidth+1),key+': each label fits cell',m.rects);
+            check(m.gaps.every(g=>g>=6),key+': adjacent labels keep >=6px gap',m.gaps);
+            check(m.rects.every(x=>x.whiteSpace==='nowrap'),key+': labels single-line',m.rects.map(x=>x.whiteSpace));
+            const dir=path.join('/tmp/live-cert','webkit','ru'); fs.mkdirSync(dir,{recursive:true});
+            await page.screenshot({path:path.join(dir,`${w}x${h}.png`),fullPage:false,animations:'disabled'});
+            await context.close(); await browser.close();
+          }
+
+          const report={pass:failures.length===0,checks:checks.length,failures,details:checks};
+          fs.writeFileSync('/tmp/live-cert/live-cert.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify({pass:report.pass,checks:report.checks,failures:report.failures},null,2));
+          process.exit(report.pass?0:1);
+          JS
+          node live-cert.mjs
+
+      - name: Upload live certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selected-thinking-r22-live-cert
+          path: /tmp/live-cert
+          if-no-files-found: error
+          retention-days: 14

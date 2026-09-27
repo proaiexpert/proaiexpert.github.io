@@ -22,9 +22,8 @@ function stageFor(section,p){
 }
 function getStickyHeight(section){var sticky=section.querySelector('.home-tech-ff__sticky');var h=sticky?sticky.getBoundingClientRect().height:0;return Math.max(1,h||innerHeight)}
 function syncHeaderGuard(section){
-  var sticky=section.querySelector('.home-tech-ff__sticky');if(!sticky)return;
-  if(headerGuardMedia.matches)sticky.setAttribute('data-header-autohide-guard','technology-landscape');
-  else sticky.removeAttribute('data-header-autohide-guard');
+  if(headerGuardMedia.matches)section.setAttribute('data-header-autohide-guard','technology-landscape');
+  else section.removeAttribute('data-header-autohide-guard');
 }
 function getFoldEntry(section){var raw=parseFloat(getComputedStyle(section).getPropertyValue('--ff-fold-entry'));return isFinite(raw)&&raw>14?raw:88}
 function ease(t){t=clamp(t,0,1);return t*t*(3-2*t)}

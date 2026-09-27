@@ -1,0 +1,187 @@
+name: Homepage Technology Integration R1 Browser QA
+
+on:
+  push:
+    branches:
+      - agent/proai-home-tech-r151-live-integration-r1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout integration candidate
+        uses: actions/checkout@v6
+
+      - name: Install Playwright Chromium
+        shell: bash
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start static preview server
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --bind 127.0.0.1 > /tmp/integration-server.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:4173/owner-preview/home-tech-integration-r1/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/integration-server.log
+          exit 1
+
+      - name: Run real-browser integration QA
+        shell: bash
+        run: |
+          mkdir -p qa-integration-r1/screens qa-integration-r1/videos
+          cat > qa-integration-r1/run.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const root='http://127.0.0.1:4173/owner-preview/home-tech-integration-r1/';
+          const viewports=[
+            {name:'1920x1080',w:1920,h:1080,kind:'desktop'},
+            {name:'1440x900',w:1440,h:900,kind:'laptop'},
+            {name:'1366x768',w:1366,h:768,kind:'laptop'},
+            {name:'1280x720',w:1280,h:720,kind:'laptop'},
+            {name:'430x932',w:430,h:932,kind:'portrait'},
+            {name:'390x844',w:390,h:844,kind:'portrait'},
+            {name:'375x812',w:375,h:812,kind:'portrait'},
+            {name:'844x390',w:844,h:390,kind:'landscape'},
+            {name:'896x414',w:896,h:414,kind:'landscape'},
+            {name:'932x430',w:932,h:430,kind:'landscape'}
+          ];
+          const langs=[
+            {name:'en',url:''},
+            {name:'ru',url:'ru.html'}
+          ];
+          const report={candidate:'home-tech-integration-r1',generatedAt:new Date().toISOString(),checks:[],failures:[],motion:[]};
+          const browser=await chromium.launch({headless:true});
+
+          async function waitSettle(page,ms=420){await page.waitForTimeout(ms)}
+          async function positions(page){
+            return await page.evaluate(()=>{
+              const tw=document.querySelector('[data-tw-r2]');
+              const tech=document.querySelector('[data-home-tech-fold-flow]');
+              const fs=document.querySelector('[data-fs-showcase-r11]');
+              return {
+                twTop:tw.offsetTop,twHeight:tw.offsetHeight,
+                techTop:tech.offsetTop,techHeight:tech.offsetHeight,
+                fsTop:fs.offsetTop,fsHeight:fs.offsetHeight
+              };
+            });
+          }
+          async function inspect(page,meta){
+            return await page.evaluate((m)=>{
+              const tw=document.querySelector('[data-tw-r2]');
+              const twViewport=tw.querySelector('[data-tw-viewport]');
+              const tech=document.querySelector('[data-home-tech-fold-flow]');
+              const techSticky=tech.querySelector('.home-tech-ff__sticky');
+              const fs=document.querySelector('[data-fs-showcase-r11]');
+              const rect=el=>{const r=el.getBoundingClientRect();return {l:r.left,r:r.right,t:r.top,b:r.bottom,w:r.width,h:r.height}};
+              const tr=rect(tw),tvr=rect(twViewport),hr=rect(tech),hsr=rect(techSticky),fr=rect(fs);
+              const docW=document.documentElement.scrollWidth;
+              const vpW=innerWidth;
+              const overlapY=(a,b)=>Math.max(0,Math.min(a.b,b.b)-Math.max(a.t,b.t));
+              const techActive=hsr.t<=1&&hsr.b>=innerHeight-1;
+              const twViewportVisible=Math.max(0,Math.min(tvr.b,innerHeight)-Math.max(tvr.t,0));
+              return {
+                ...m,
+                stage:tech.getAttribute('data-ff-stage'),
+                twFocus:tw.getAttribute('data-focus'),
+                fsLive:fs.classList.contains('is-live'),
+                noHorizontalOverflow:docW<=vpW+1,
+                twTechDocumentGap:(tech.offsetTop)-(tw.offsetTop+tw.offsetHeight),
+                techFsDocumentGap:(fs.offsetTop)-(tech.offsetTop+tech.offsetHeight),
+                techActive,
+                twViewportVisible,
+                stickyOverlapRisk:techActive&&twViewportVisible>Math.min(80,innerHeight*.12),
+                techRect:hr,fsRect:fr
+              };
+            },meta);
+          }
+
+          for(const vp of viewports){
+            for(const lang of langs){
+              const context=await browser.newContext({viewport:{width:vp.w,height:vp.h},deviceScaleFactor:1});
+              const page=await context.newPage();
+              await page.goto(root+lang.url,{waitUntil:'networkidle'});
+              const pos=await positions(page);
+
+              const points=[
+                {state:'upper-seam',y:Math.max(0,pos.techTop-vp.h*.55)},
+                {state:'tech-mid',y:pos.techTop+Math.max(1,pos.techHeight-vp.h)*.52},
+                {state:'lower-seam',y:Math.max(0,pos.fsTop-vp.h*.58)},
+                {state:'fs-entered',y:pos.fsTop+Math.min(120,vp.h*.14)}
+              ];
+
+              for(const p of points){
+                await page.evaluate(y=>window.scrollTo(0,y),p.y);
+                await waitSettle(page,p.state==='fs-entered'?780:480);
+                const result=await inspect(page,{viewport:vp.name,kind:vp.kind,lang:lang.name,state:p.state});
+                report.checks.push(result);
+                const bad=[];
+                if(!result.noHorizontalOverflow)bad.push('horizontal-overflow');
+                if(Math.abs(result.twTechDocumentGap)>2)bad.push('two-worlds-tech-gap');
+                if(Math.abs(result.techFsDocumentGap)>2)bad.push('tech-fs-gap');
+                if(result.stickyOverlapRisk)bad.push('sticky-ownership-overlap');
+                if(p.state==='fs-entered'&&!result.fsLive)bad.push('financial-stream-not-live');
+                if(bad.length)report.failures.push({...result,bad});
+                await page.screenshot({path:`qa-integration-r1/screens/${vp.name}-${lang.name}-${p.state}.png`,fullPage:false});
+              }
+              await context.close();
+            }
+          }
+
+          async function motion(name,w,h,langUrl){
+            const context=await browser.newContext({viewport:{width:w,height:h},recordVideo:{dir:'qa-integration-r1/videos',size:{width:w,height:h}}});
+            const page=await context.newPage();
+            await page.goto(root+langUrl,{waitUntil:'networkidle'});
+            const p=await positions(page);
+            const start=Math.max(0,p.twTop);
+            const end=p.fsTop+Math.min(180,h*.2);
+            let lastY=-1,jumps=0;
+            for(let i=0;i<=90;i++){
+              const y=start+(end-start)*(i/90);
+              await page.evaluate(v=>window.scrollTo(0,v),y);
+              await page.waitForTimeout(42);
+              const actual=await page.evaluate(()=>window.scrollY);
+              if(lastY>=0&&actual+1<lastY)jumps++;
+              lastY=actual;
+            }
+            for(let i=90;i>=0;i--){
+              const y=start+(end-start)*(i/90);
+              await page.evaluate(v=>window.scrollTo(0,v),y);
+              await page.waitForTimeout(42);
+            }
+            const video=page.video();
+            await page.close();
+            const raw=await video.path();
+            await context.close();
+            fs.renameSync(raw,`qa-integration-r1/videos/${name}.webm`);
+            report.motion.push({name,jumps});
+            if(jumps)report.failures.push({viewport:name,state:'motion',bad:['scroll-jump'],jumps});
+          }
+          await motion('1366x768-en-forward-reverse',1366,768,'');
+          await motion('390x844-ru-forward-reverse',390,844,'ru.html');
+          await motion('896x414-ru-forward-reverse',896,414,'ru.html');
+
+          await browser.close();
+          fs.writeFileSync('qa-integration-r1/report.json',JSON.stringify(report,null,2));
+          console.log(JSON.stringify({checks:report.checks.length,motion:report.motion,failures:report.failures.slice(0,40)},null,2));
+          if(report.failures.length)process.exit(2);
+          NODE
+          node qa-integration-r1/run.mjs
+
+      - name: Upload integration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-tech-integration-r1-browser-qa
+          path: qa-integration-r1/
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,163 @@
+name: ProAI Cube Materials Lighting R1 Contrast Correction
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-materials-lighting-r1
+    paths:
+      - '.github/workflows/proai-cube-materials-lighting-r1-correction.yml'
+
+concurrency:
+  group: proai-cube-materials-lighting-r1-correction
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  contrast-correction:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Correct shadow readability and highlight peak
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('docs/site-evolution/spline/proai-cube-materials-lighting-r1/main.js')
+          s = p.read_text()
+
+          replacements = {
+            "renderer.toneMappingExposure = 0.96;": "renderer.toneMappingExposure = 1.0;",
+            "environmentScene.background = new THREE.Color(0x020304);": "environmentScene.background = new THREE.Color(0x06080b);",
+            "createStudioCard(environmentScene, { position: [4.8, 3.6, 5.8], width: 7.8, height: 4.8, color: 0xf2f4f7, intensity: 2.25 })": "createStudioCard(environmentScene, { position: [4.8, 1.35, 5.8], width: 8.4, height: 5.8, color: 0xd9dee5, intensity: 1.34 })",
+            "createStudioCard(environmentScene, { position: [-5.8, 1.4, 3.9], width: 3.2, height: 6.4, color: 0xaab2bc, intensity: 1.28 })": "createStudioCard(environmentScene, { position: [-5.8, 0.55, 4.6], width: 4.6, height: 7.0, color: 0xaeb6c0, intensity: 1.12 })",
+            "createStudioCard(environmentScene, { position: [-3.8, 4.6, -5.6], width: 2.4, height: 7.4, color: 0xffffff, intensity: 1.75 })": "createStudioCard(environmentScene, { position: [-4.3, 3.7, -5.8], width: 2.3, height: 6.8, color: 0xe9edf2, intensity: 1.20 })",
+            "createStudioCard(environmentScene, { position: [2.6, -4.8, -2.8], width: 5.6, height: 2.0, color: 0x7d858f, intensity: 0.72 })": "createStudioCard(environmentScene, { position: [2.8, -4.5, -2.5], width: 6.2, height: 2.4, color: 0x848c96, intensity: 0.54 })",
+            "pmrem.fromScene(environmentScene, 0.055, 0.1, 30)": "pmrem.fromScene(environmentScene, 0.075, 0.1, 30)",
+            "graphiteFace: Object.freeze({ color: '#171b20', metalness: 0.90, roughness: 0.245, clearcoat: 0.22, clearcoatRoughness: 0.17, envMapIntensity: 1.34 })": "graphiteFace: Object.freeze({ color: '#242a31', metalness: 0.84, roughness: 0.295, clearcoat: 0.16, clearcoatRoughness: 0.20, envMapIntensity: 1.18 })",
+            "gunmetalFace: Object.freeze({ color: '#20262d', metalness: 0.88, roughness: 0.205, clearcoat: 0.28, clearcoatRoughness: 0.14, envMapIntensity: 1.42 })": "gunmetalFace: Object.freeze({ color: '#2b323a', metalness: 0.86, roughness: 0.265, clearcoat: 0.20, clearcoatRoughness: 0.18, envMapIntensity: 1.22 })",
+            "blackChromeFace: Object.freeze({ color: '#0d1014', metalness: 0.96, roughness: 0.165, clearcoat: 0.20, clearcoatRoughness: 0.12, envMapIntensity: 1.52 })": "blackChromeFace: Object.freeze({ color: '#181d23', metalness: 0.92, roughness: 0.225, clearcoat: 0.16, clearcoatRoughness: 0.16, envMapIntensity: 1.26 })",
+            "smokedCore: Object.freeze({ color: '#07090b', metalness: 0.62, roughness: 0.385, clearcoat: 0.08, clearcoatRoughness: 0.25, envMapIntensity: 0.72 })": "smokedCore: Object.freeze({ color: '#0c0f13', metalness: 0.48, roughness: 0.44, clearcoat: 0.06, clearcoatRoughness: 0.28, envMapIntensity: 0.66 })",
+            "environment: Object.freeze({ method: 'procedural PMREM studio reflection cards', cardCount: 4, sigma: 0.055, externalTextures: 0 })": "environment: Object.freeze({ method: 'procedural PMREM studio reflection cards', cardCount: 4, sigma: 0.075, externalTextures: 0 })",
+            "lighting: Object.freeze({ hemisphereIntensity: 0.34, keyIntensity: 8.6, fillIntensity: 2.65, rimIntensity: 6.9, rectAreaLights: 3 })": "lighting: Object.freeze({ hemisphereIntensity: 0.52, keyIntensity: 5.2, fillIntensity: 4.0, rimIntensity: 4.6, rectAreaLights: 3 })",
+            "colorManagement: Object.freeze({ outputColorSpace: 'SRGBColorSpace', toneMapping: 'ACESFilmicToneMapping', exposure: 0.96 })": "colorManagement: Object.freeze({ outputColorSpace: 'SRGBColorSpace', toneMapping: 'ACESFilmicToneMapping', exposure: 1.0 })",
+            "const hemisphereFill = new THREE.HemisphereLight(0x78818c, 0x080a0d, LOOKDEV_R1.lighting.hemisphereIntensity);": "const hemisphereFill = new THREE.HemisphereLight(0x8a949f, 0x0b0e12, LOOKDEV_R1.lighting.hemisphereIntensity);",
+            "const key = new THREE.RectAreaLight(0xf5f7fa, LOOKDEV_R1.lighting.keyIntensity, 1, 1);": "const key = new THREE.RectAreaLight(0xe2e6eb, LOOKDEV_R1.lighting.keyIntensity, 1, 1);",
+            "const fill = new THREE.RectAreaLight(0xaeb7c2, LOOKDEV_R1.lighting.fillIntensity, 1, 1);": "const fill = new THREE.RectAreaLight(0xb7c0ca, LOOKDEV_R1.lighting.fillIntensity, 1, 1);",
+            "const rim = new THREE.RectAreaLight(0xffffff, LOOKDEV_R1.lighting.rimIntensity, 1, 1);": "const rim = new THREE.RectAreaLight(0xe8ecf1, LOOKDEV_R1.lighting.rimIntensity, 1, 1);",
+            "place(key, [1.72, 1.42, 1.82], 2.75, 1.85);": "place(key, [1.62, 0.62, 1.95], 3.20, 2.50);",
+            "place(fill, [-1.62, 0.18, 1.28], 2.45, 2.20);": "place(fill, [-1.45, 0.22, 1.72], 2.85, 2.65);",
+            "place(rim, [-1.18, 1.24, -1.92], 1.05, 2.75);": "place(rim, [-1.28, 1.02, -1.88], 1.15, 2.65);",
+            "skyColor: '#78818c'": "skyColor: '#8a949f'",
+            "groundColor: '#080a0d'": "groundColor: '#0b0e12'",
+            "color: '#f5f7fa'": "color: '#e2e6eb'",
+            "color: '#aeb7c2'": "color: '#b7c0ca'",
+            "color: '#ffffff'": "color: '#e8ecf1'",
+          }
+
+          for old, new in replacements.items():
+            if old not in s:
+              raise SystemExit(f'Missing correction anchor: {old}')
+            s = s.replace(old, new, 1)
+
+          p.write_text(s)
+          PY
+
+      - name: Verify frozen mechanics and production lock
+        run: |
+          set -euo pipefail
+          node --check docs/site-evolution/spline/proai-cube-materials-lighting-r1/main.js
+          cmp docs/site-evolution/spline/proai-cube-materials-lighting-r1/rubik_39_s_cube_animation.glb docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/rubik_39_s_cube_animation.glb
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          base = Path('docs/site-evolution/spline/proai-cube-presentation-motion-r1-2/main.js').read_text()
+          cur = Path('docs/site-evolution/spline/proai-cube-materials-lighting-r1/main.js').read_text()
+          blocks = [
+            r"const MOTION = Object\.freeze\(\{.*?\n\}\);",
+            r"const PRESENTATION_R1_2 = Object\.freeze\(\{.*?\n\}\);",
+            r"const SLICE_R1_2 = Object\.freeze\(\{.*?\n\}\);",
+            r"const GEOMETRY_R1 = Object\.freeze\(\{.*?\n\}\);",
+            r"function beginTurn\(.*?\nfunction presentationAutonomyBlocked\(",
+            r"function presentationVelocityAt\(.*?\nfunction seededUnit\(",
+            r"function seededUnit\(.*?\nfunction getInteractionState\(",
+            r"controls\.addEventListener\('start'.*?\nfunction beginReviewTurn\(",
+          ]
+          for pattern in blocks:
+            a = re.search(pattern, base, re.S)
+            b = re.search(pattern, cur, re.S)
+            if not a or not b or a.group(0) != b.group(0):
+              raise SystemExit('Frozen R1.2 block changed')
+          print('Geometry + Motion R1.2 frozen: PASS')
+          PY
+          if git diff --name-only 89965750e4456a6e2d54d8309809471f8dbfcc75...HEAD | grep -E '^index\.html$|^ru/index\.html$'; then
+            echo 'Production root modified'
+            exit 1
+          fi
+
+      - name: Install dependencies and build
+        working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run build
+
+      - name: Install Chromium and ffmpeg
+        working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
+        run: |
+          npx playwright install chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Start isolated Vite server
+        working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
+        run: |
+          nohup npx vite --host 127.0.0.1 --port 4173 > /tmp/proai-materials-lighting-r1-correction-vite.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/proai-materials-lighting-r1-correction-vite.log
+          exit 1
+
+      - name: Re-run full QA and 720 owner review
+        working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
+        env:
+          PROAI_MATERIALS_LIGHTING_R1_URL: http://127.0.0.1:4173/
+          PROAI_GEOMETRY_CODE_FROZEN: '1'
+          PROAI_MOTION_CODE_FROZEN: '1'
+        run: npm run capture
+
+      - name: Upload corrected review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-materials-lighting-r1-corrected-owner-review
+          path: |
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/QA.json
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/REPORT.md
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/MOTION_FREEZE.json
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/review/*.png
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/review/*.mp4
+            docs/site-evolution/spline/proai-cube-materials-lighting-r1/review-internal/*.png
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Commit corrected final prototype and evidence
+        run: |
+          set -euo pipefail
+          rm -rf docs/site-evolution/spline/proai-cube-materials-lighting-r1/review-internal
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/site-evolution/spline/proai-cube-materials-lighting-r1
+          git commit -m 'fix: balance ProAI cube dark material readability'
+          git fetch origin agent/proai-cube-materials-lighting-r1
+          git rebase origin/agent/proai-cube-materials-lighting-r1
+          git push origin HEAD:agent/proai-cube-materials-lighting-r1

@@ -186,7 +186,7 @@ jobs:
           python -m http.server 4173 --directory . >/tmp/root.log 2>&1 &
           python -m http.server 4174 --directory _site >/tmp/site.log 2>&1 &
           python - <<'PY'
-          from playwright.sync_api import sync_playwright
+          from playwright.sync_api import sync_playwright, Error as PlaywrightError
           from pathlib import Path
           import json,time,urllib.request
 
@@ -230,6 +230,19 @@ jobs:
               else:
                 route.abort()
             page.route('**/*',handler)
+          def goto_retry(ctx,url):
+            last=None
+            for _ in range(3):
+              page=ctx.new_page(); local_only(page)
+              try:
+                page.goto(url,wait_until='domcontentloaded',timeout=30000)
+                return page
+              except PlaywrightError as e:
+                last=e
+                page.close()
+                time.sleep(.25)
+            raise last
+
           def inspect(page,key):
             return page.evaluate("""(key)=>{
               const d=document.documentElement, q=s=>document.querySelector(s);
@@ -252,11 +265,10 @@ jobs:
               browser=btype.launch()
               for vp,w,h,touch in viewports:
                 ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
-                page=ctx.new_page(); local_only(page)
                 for key,path in routes.items():
                   errors=[]
+                  page=goto_retry(ctx,SITE+path)
                   page.on('pageerror',lambda exc,errors=errors:errors.append(str(exc)))
-                  page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
                   page.wait_for_timeout(80)
                   d=inspect(page,key); d.update(engine=engine_name,viewport=vp,errors=errors[:])
                   rows.append(d)
@@ -267,6 +279,7 @@ jobs:
                   if key in expected_tables and d['captions']!=expected_tables[key]: failures.append(f"{engine_name}:{vp}:{key}:captions={d['captions']}")
                   if vp.startswith('touch-landscape') and key in expected_sections and d['railDisplay']!='none': failures.append(f"{engine_name}:{vp}:{key}:rail={d['railDisplay']}")
                   if errors: failures.append(f"{engine_name}:{vp}:{key}:pageerrors={errors[:2]}")
+                  page.close()
                 ctx.close()
               browser.close()
 
@@ -276,7 +289,7 @@ jobs:
               for vp,w,h,touch in [('portrait-430',430,932,True),('portrait-390',390,844,True),('portrait-375',375,812,True),('portrait-360',360,800,True),('portrait-320',320,700,True),('touch-landscape-844',844,390,True),('touch-landscape-932',932,430,True)]:
                 for key,path in {k:v for k,v in routes.items() if k.startswith('multi_') or k.startswith('proposal_')}.items():
                   ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
-                  page=ctx.new_page(); local_only(page); page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
+                  page=goto_retry(ctx,SITE+path)
                   wraps=page.locator('.insight-v2-table-wrap')
                   for i in range(wraps.count()):
                     data=wraps.nth(i).evaluate("""(wrap)=>{
@@ -320,7 +333,7 @@ jobs:
             browser=p.chromium.launch()
             for key,path in previews.items():
               ctx=browser.new_context(viewport={'width':390,'height':844},has_touch=True,is_mobile=True)
-              page=ctx.new_page(); local_only(page); page.goto(ROOT+path,wait_until='domcontentloaded',timeout=60000)
+              page=goto_retry(ctx,ROOT+path)
               d=inspect(page,key)
               if d['overflow']>1 or d['h1']!=1 or d['sections']!=expected_sections[key] or d['tables']!=expected_tables[key]:
                 failures.append(f"preview:{key}:{d}")
@@ -331,7 +344,7 @@ jobs:
             browser=p.chromium.launch()
             for key,path in {k:v for k,v in routes.items() if k.startswith('multi_') or k.startswith('proposal_')}.items():
               ctx=browser.new_context(viewport={'width':640,'height':900},reduced_motion='reduce',forced_colors='active')
-              page=ctx.new_page(); local_only(page); page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
+              page=goto_retry(ctx,SITE+path)
               page.keyboard.press('Tab')
               focus=page.evaluate("document.activeElement && (document.activeElement.tagName+'|'+(document.activeElement.getAttribute('href')||''))")
               reduced=page.evaluate("""()=>getComputedStyle(document.querySelector('.insight-v2-cover__spine')).animationName""")

@@ -1,0 +1,349 @@
+name: Insights Editorial V2 R3 Branch QA
+
+on:
+  push:
+    branches:
+      - agent/insights-editorial-v2-r3-articles-02-03
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v6
+
+      - name: Verify static owner previews and source scope
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          previews = [
+            Path('owner-preview/insight-v2-multilingual/index.html'),
+            Path('owner-preview/insight-v2-multilingual/ru.html'),
+            Path('owner-preview/insight-v2-proposal/index.html'),
+            Path('owner-preview/insight-v2-proposal/ru.html'),
+          ]
+          routes = [
+            Path('insights/does-your-service-business-need-a-multilingual-website/index.html'),
+            Path('ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html'),
+            Path('insights/how-to-evaluate-a-website-proposal/index.html'),
+            Path('ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/index.html'),
+          ]
+          for p in previews:
+            t=p.read_text(encoding='utf-8')
+            assert '{%' not in t and '{{' not in t, p
+            assert 'proai-inner-golden-r1' in t, p
+            assert 'insights-editorial-v2.css?v=20260928-r3' in t, p
+          for p in routes:
+            t=p.read_text(encoding='utf-8')
+            assert 'layout: insight-v2' in t, p
+            assert 'premium-' not in t, p
+          print('Static preview/source contract: PASS')
+          PY
+
+      - name: Build candidate with Jekyll
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+
+      - name: Normalize and verify social metadata
+        shell: bash
+        run: |
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+
+      - name: Verify generated Article V2 and SEO invariants
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          pages = {
+            'lead_en': ('insights/what-happens-after-a-lead-arrives/index.html','01',12,1,'https://proai-expert.com/insights/what-happens-after-a-lead-arrives/','https://proai-expert.com/ru/insights/chto-proiskhodit-posle-zayavki/'),
+            'lead_ru': ('ru/insights/chto-proiskhodit-posle-zayavki/index.html','01',12,1,'https://proai-expert.com/ru/insights/chto-proiskhodit-posle-zayavki/','https://proai-expert.com/insights/what-happens-after-a-lead-arrives/'),
+            'multi_en': ('insights/does-your-service-business-need-a-multilingual-website/index.html','02',11,2,'https://proai-expert.com/insights/does-your-service-business-need-a-multilingual-website/','https://proai-expert.com/ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/'),
+            'multi_ru': ('ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html','02',15,3,'https://proai-expert.com/ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/','https://proai-expert.com/insights/does-your-service-business-need-a-multilingual-website/'),
+            'proposal_en': ('insights/how-to-evaluate-a-website-proposal/index.html','03',17,7,'https://proai-expert.com/insights/how-to-evaluate-a-website-proposal/','https://proai-expert.com/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/'),
+            'proposal_ru': ('ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/index.html','03',17,7,'https://proai-expert.com/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/','https://proai-expert.com/insights/how-to-evaluate-a-website-proposal/'),
+          }
+          for key,(rel,idx,sections,tables,canonical,counterpart) in pages.items():
+            p=Path('_site')/rel
+            assert p.exists(), p
+            t=p.read_text(encoding='utf-8')
+            assert '{%' not in t and '{{' not in t, key
+            assert t.count('<h1') == 1, (key,t.count('<h1'))
+            assert f'<div class="insight-v2-article__index" aria-hidden="true">{idx}</div>' in t, key
+            assert t.count('<h2 id="section-') == sections, (key,t.count('<h2 id="section-'),sections)
+            assert t.count('<table') == tables, (key,t.count('<table'),tables)
+            assert t.count('<caption>') == tables, (key,t.count('<caption>'),tables)
+            assert f'rel="canonical" href="{canonical}"' in t, key
+            assert counterpart in t, key
+            assert 'hreflang="en"' in t and 'hreflang="ru"' in t and 'hreflang="x-default"' in t, key
+            assert '"@type":"Article"' in t and '"@type":"BreadcrumbList"' in t, key
+            assert 'proai-inner-golden-r1' in t, key
+            assert 'assets/css/insights-editorial-v2.css?v=20260928-r3' in t, key
+            assert 'premium-' not in t, key
+          lead_en=(Path('_site')/'insights/what-happens-after-a-lead-arrives/index.html').read_text(encoding='utf-8')
+          lead_ru=(Path('_site')/'ru/insights/chto-proiskhodit-posle-zayavki/index.html').read_text(encoding='utf-8')
+          assert 'OPERATING RULE' in lead_en and 'Stable steps use deterministic rules' in lead_en
+          assert 'РАБОЧЕЕ ПРАВИЛО' in lead_ru and 'Стабильные шаги выполняются по обычным правилам' in lead_ru
+          print('Generated Article V2 / SEO invariants: PASS')
+          PY
+
+      - name: Verify canonical Site Shell
+        shell: bash
+        run: python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+
+      - name: Verify Golden Footer contract
+        shell: bash
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          commercial = [
+            'about/index.html','ru/about/index.html','contact/index.html','ru/contact/index.html',
+            'ai-systems/index.html','ru/ai-systems/index.html','websites-branding/index.html','ru/websites-branding/index.html',
+          ]
+          portfolio = [
+            'case-studies/index.html','ru/case-studies/index.html',
+            'case-studies/financial-stream/index.html','ru/case-studies/financial-stream/index.html',
+            'case-studies/alina-horb/index.html','ru/case-studies/alina-horb/index.html',
+            'case-studies/local-repair-pro/index.html','ru/case-studies/local-repair-pro/index.html',
+          ]
+          editorial = [
+            'insights/index.html','ru/insights/index.html',
+            'insights/what-happens-after-a-lead-arrives/index.html','ru/insights/chto-proiskhodit-posle-zayavki/index.html',
+            'insights/ai-agent-or-automation-what-your-business-actually-needs/index.html',
+            'insights/ai-ready-website-for-business/index.html',
+            'insights/ai-search-optimization-for-service-businesses/index.html',
+            'insights/does-your-service-business-need-a-multilingual-website/index.html',
+            'insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/index.html',
+            'insights/how-to-evaluate-a-website-proposal/index.html',
+            'insights/process-clarity-comes-before-scalable-automation/index.html',
+            'insights/website-builder-or-custom-website-what-a-service-business-should-choose/index.html',
+            'insights/what-a-premium-website-really-means-for-a-service-business/index.html',
+            'insights/where-automation-delivers-its-first-real-roi/index.html',
+            'insights/why-service-business-websites-fail-to-convert-high-intent-visitors/index.html',
+            'ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/index.html',
+            'ru/insights/ai-ready-sayt-dlya-biznesa/index.html',
+            'ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html',
+            'ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/index.html',
+            'ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/index.html',
+            'ru/insights/chto-znachit-premialnyy-sayt-dlya-servisnogo-biznesa/index.html',
+            'ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/index.html',
+            'ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/index.html',
+            'ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/index.html',
+            'ru/insights/konstruktor-sayta-ili-sayt-na-zakaz-chto-vybrat-servisnomu-biznesu/index.html',
+            'ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html',
+          ]
+          required_parts = (
+            'home-footer-golden-r3__main','home-footer-golden-r3__cta','home-footer-golden-r3__summary',
+            'home-footer-golden-r3__capabilities','home-footer-golden-r3__signature',
+            'home-footer-golden-r3__signature-text','home-footer-golden-r3__bottom','home-footer-golden-r3__logo',
+            'home-footer-golden-r3__social-rail','home-footer-golden-r3__locale','home-footer-golden-r3__copyright',
+          )
+          golden_css = (
+            '/assets/css/home-footer-golden-r3.css','/assets/css/home-footer-golden-r3-1.css',
+            '/assets/css/home-footer-golden-r3-2-polish.css','/assets/css/home-footer-golden-r3-3-micro-polish.css',
+            '/assets/css/home-footer-signature-r4.css',
+          )
+          golden_js=('/assets/js/home-footer-golden-r3.js','/assets/js/home-footer-signature-r4.js')
+          def check(route,family):
+            t=(Path('_site')/route).read_text(encoding='utf-8')
+            assert t.count(f'data-footer-family="{family}"')==1,(route,family)
+            assert t.count('data-site-footer-canonical="golden-r1"')==1,route
+            assert t.count('data-home-footer-golden-r3')==1,route
+            for x in required_parts: assert x in t,(route,x)
+            for x in golden_css: assert t.count(x)==1,(route,x)
+            for x in golden_js: assert t.count(x)==1,(route,x)
+            assert not re.search(r'class=["\'][^"\']*\bsite-footer\b',t,re.I),route
+            assert '/assets/css/footer-system-v1.css' not in t,route
+          for family,routes in {'commercial':commercial,'portfolio':portfolio,'editorial':editorial}.items():
+            for route in routes: check(route,family)
+          print(f'Golden Footer contract: PASS ({len(commercial)+len(portfolio)+len(editorial)} inner routes)')
+          PY
+
+      - name: Install Chromium and WebKit
+        shell: bash
+        run: |
+          python -m pip install --upgrade playwright
+          python -m playwright install --with-deps chromium webkit
+
+      - name: Run browser matrix, no-JS, accessibility and table QA
+        shell: bash
+        run: |
+          mkdir -p qa-artifacts/screens
+          python -m http.server 4173 --directory . >/tmp/root.log 2>&1 &
+          python -m http.server 4174 --directory _site >/tmp/site.log 2>&1 &
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          from pathlib import Path
+          import json,time,urllib.request
+
+          ROOT='http://127.0.0.1:4173'; SITE='http://127.0.0.1:4174'
+          routes={
+            'hub_en':'/insights/','hub_ru':'/ru/insights/',
+            'lead_en':'/insights/what-happens-after-a-lead-arrives/',
+            'lead_ru':'/ru/insights/chto-proiskhodit-posle-zayavki/',
+            'multi_en':'/insights/does-your-service-business-need-a-multilingual-website/',
+            'multi_ru':'/ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/',
+            'proposal_en':'/insights/how-to-evaluate-a-website-proposal/',
+            'proposal_ru':'/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/',
+          }
+          previews={
+            'multi_en':'/owner-preview/insight-v2-multilingual/index.html',
+            'multi_ru':'/owner-preview/insight-v2-multilingual/ru.html',
+            'proposal_en':'/owner-preview/insight-v2-proposal/index.html',
+            'proposal_ru':'/owner-preview/insight-v2-proposal/ru.html',
+          }
+          expected_sections={'lead_en':12,'lead_ru':12,'multi_en':11,'multi_ru':15,'proposal_en':17,'proposal_ru':17}
+          expected_tables={'lead_en':1,'lead_ru':1,'multi_en':2,'multi_ru':3,'proposal_en':7,'proposal_ru':7}
+          viewports=[
+            ('desktop-1280',1280,900,False),('desktop-1366',1366,900,False),('desktop-1440',1440,1000,False),
+            ('desktop-1600',1600,1000,False),('desktop-1920',1920,1080,False),
+            ('portrait-430',430,932,True),('portrait-390',390,844,True),('portrait-375',375,812,True),
+            ('portrait-360',360,800,True),('portrait-320',320,700,True),
+            ('tablet-portrait',768,1024,True),('tablet-landscape',1024,768,True),
+            ('touch-landscape-844',844,390,True),('touch-landscape-932',932,430,True),
+          ]
+          for u in (ROOT,SITE):
+            for _ in range(30):
+              try: urllib.request.urlopen(u,timeout=1); break
+              except Exception: time.sleep(.2)
+
+          failures=[]; rows=[]; table_rows=[]; nojs={}; a11y={}
+          def inspect(page,key):
+            return page.evaluate("""(key)=>{
+              const d=document.documentElement, q=s=>document.querySelector(s);
+              const rail=q('.insight-v2-rail');
+              return {
+                key, overflow:d.scrollWidth-innerWidth,
+                h1:document.querySelectorAll('h1').length,
+                sections:document.querySelectorAll('.insight-v2__prose h2[id]').length,
+                tables:document.querySelectorAll('.insight-v2-decision-table').length,
+                captions:document.querySelectorAll('.insight-v2-decision-table caption').length,
+                railDisplay:rail?getComputedStyle(rail).display:null,
+                index:q('.insight-v2-article__index')?.textContent.trim()||null,
+                signal:document.querySelectorAll('.insight-v2-signal>div:not(.insight-v2-signal__axis)').length,
+                contents:document.querySelectorAll('.insight-v2-contents a[href^="#"]').length
+              }
+            }""",key)
+
+          with sync_playwright() as p:
+            for engine_name,btype in [('chromium',p.chromium),('webkit',p.webkit)]:
+              browser=btype.launch()
+              for vp,w,h,touch in viewports:
+                ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
+                page=ctx.new_page()
+                for key,path in routes.items():
+                  errors=[]
+                  page.on('pageerror',lambda exc,errors=errors:errors.append(str(exc)))
+                  page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
+                  page.wait_for_timeout(80)
+                  d=inspect(page,key); d.update(engine=engine_name,viewport=vp,errors=errors[:])
+                  rows.append(d)
+                  if d['overflow']>1: failures.append(f"{engine_name}:{vp}:{key}:page-overflow={d['overflow']}")
+                  if d['h1']!=1: failures.append(f"{engine_name}:{vp}:{key}:h1={d['h1']}")
+                  if key in expected_sections and d['sections']!=expected_sections[key]: failures.append(f"{engine_name}:{vp}:{key}:sections={d['sections']}")
+                  if key in expected_tables and d['tables']!=expected_tables[key]: failures.append(f"{engine_name}:{vp}:{key}:tables={d['tables']}")
+                  if key in expected_tables and d['captions']!=expected_tables[key]: failures.append(f"{engine_name}:{vp}:{key}:captions={d['captions']}")
+                  if vp.startswith('touch-landscape') and key in expected_sections and d['railDisplay']!='none': failures.append(f"{engine_name}:{vp}:{key}:rail={d['railDisplay']}")
+                  if errors: failures.append(f"{engine_name}:{vp}:{key}:pageerrors={errors[:2]}")
+                ctx.close()
+              browser.close()
+
+            # Table right-edge and wrapping checks across every migrated table.
+            for engine_name,btype in [('chromium',p.chromium),('webkit',p.webkit)]:
+              browser=btype.launch()
+              for vp,w,h,touch in [('portrait-430',430,932,True),('portrait-390',390,844,True),('portrait-375',375,812,True),('portrait-360',360,800,True),('portrait-320',320,700,True),('touch-landscape-844',844,390,True),('touch-landscape-932',932,430,True)]:
+                for key,path in {k:v for k,v in routes.items() if k.startswith('multi_') or k.startswith('proposal_')}.items():
+                  ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
+                  page=ctx.new_page(); page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
+                  wraps=page.locator('.insight-v2-table-wrap')
+                  for i in range(wraps.count()):
+                    data=wraps.nth(i).evaluate("""(wrap)=>{
+                      const table=wrap.querySelector('table'), cells=[...table.querySelectorAll('th,td')];
+                      wrap.scrollLeft=wrap.scrollWidth;
+                      const wr=wrap.getBoundingClientRect(), tr=table.getBoundingClientRect();
+                      return {
+                        pageOverflow:document.documentElement.scrollWidth-innerWidth,
+                        client:wrap.clientWidth,scroll:wrap.scrollWidth,left:wrap.scrollLeft,
+                        rightGap:+(wr.right-tr.right).toFixed(1),
+                        min:getComputedStyle(table).minWidth,
+                        badCells:cells.filter(c=>{
+                          const s=getComputedStyle(c);
+                          return !['normal','initial'].includes(s.overflowWrap)||!['normal','keep-all'].includes(s.wordBreak)||!['none','manual'].includes(s.hyphens);
+                        }).map(c=>c.textContent.trim().slice(0,60))
+                      }
+                    }""")
+                    table_rows.append({'engine':engine_name,'viewport':vp,'page':key,'table':i,**data})
+                    if data['pageOverflow']>1: failures.append(f"{engine_name}:{vp}:{key}:table{i}:page-overflow={data['pageOverflow']}")
+                    if data['scroll']<=data['client']+1: failures.append(f"{engine_name}:{vp}:{key}:table{i}:not-scrollable")
+                    if data['rightGap'] < -2: failures.append(f"{engine_name}:{vp}:{key}:table{i}:right-edge-unreachable={data['rightGap']}")
+                    if data['badCells']: failures.append(f"{engine_name}:{vp}:{key}:table{i}:bad-wrap={data['badCells'][:2]}")
+                  if engine_name=='chromium' and key.endswith('_ru') and vp in ('portrait-390','touch-landscape-844'):
+                    page.screenshot(path=f"qa-artifacts/screens/{key}-{vp}.png",full_page=False)
+                  ctx.close()
+              browser.close()
+
+            # No-JS: all semantic content survives.
+            browser=p.chromium.launch()
+            ctx=browser.new_context(viewport={'width':1440,'height':1000},java_script_enabled=False)
+            page=ctx.new_page()
+            for key,path in routes.items():
+              page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
+              d={'h1':page.locator('h1').count(),'text':len(page.locator('main').inner_text()),'links':page.locator('main a[href]').count(),'sections':page.locator('.insight-v2__prose h2[id]').count(),'tables':page.locator('table').count()}
+              nojs[key]=d
+              if d['h1']!=1 or d['text']<500: failures.append(f"nojs:{key}:{d}")
+              if key in expected_sections and d['sections']!=expected_sections[key]: failures.append(f"nojs:{key}:sections={d['sections']}")
+            ctx.close(); browser.close()
+
+            # Static owner-preview parity for article semantics.
+            browser=p.chromium.launch()
+            for key,path in previews.items():
+              ctx=browser.new_context(viewport={'width':390,'height':844},has_touch=True,is_mobile=True)
+              page=ctx.new_page(); page.goto(ROOT+path,wait_until='domcontentloaded',timeout=60000)
+              d=inspect(page,key)
+              if d['overflow']>1 or d['h1']!=1 or d['sections']!=expected_sections[key] or d['tables']!=expected_tables[key]:
+                failures.append(f"preview:{key}:{d}")
+              ctx.close()
+            browser.close()
+
+            # Accessibility mechanics: keyboard focus, reduced motion, forced colors, 200% CSS zoom stress.
+            browser=p.chromium.launch()
+            for key,path in {k:v for k,v in routes.items() if k.startswith('multi_') or k.startswith('proposal_')}.items():
+              ctx=browser.new_context(viewport={'width':1280,'height':900},reduced_motion='reduce',forced_colors='active')
+              page=ctx.new_page(); page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
+              page.keyboard.press('Tab')
+              focus=page.evaluate("document.activeElement && (document.activeElement.tagName+'|'+(document.activeElement.getAttribute('href')||''))")
+              reduced=page.evaluate("""()=>getComputedStyle(document.querySelector('.insight-v2-cover__spine')).animationName""")
+              page.evaluate("document.documentElement.style.zoom='2'")
+              page.wait_for_timeout(80)
+              overflow=page.evaluate("document.documentElement.scrollWidth-innerWidth")
+              a11y[key]={'focus':focus,'reducedAnimation':reduced,'zoom200Overflow':overflow}
+              if not focus or focus.startswith('BODY'): failures.append(f"a11y:{key}:focus={focus}")
+              if overflow>1: failures.append(f"a11y:{key}:zoom200-overflow={overflow}")
+              ctx.close()
+            browser.close()
+
+          result={'failures':failures,'matrix_rows':len(rows),'table_rows':len(table_rows),'nojs':nojs,'accessibility':a11y}
+          Path('qa-artifacts/results.json').write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          if failures: raise SystemExit(1)
+          PY
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-r3-branch-qa
+          path: qa-artifacts/
+          if-no-files-found: warn
+          retention-days: 14

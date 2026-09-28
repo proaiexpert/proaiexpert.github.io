@@ -53,10 +53,15 @@ jobs:
         shell: bash
         run: python scripts/apply-social-preview-defaults.py --mode check --root _site
 
-      - name: Verify unified Footer System generated output
+      - name: Verify canonical Site Shell generated output
+        shell: bash
+        run: python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+
+      - name: Verify Golden Footer contract generated output
         shell: bash
         run: |
           python - <<'PY'
+          import re
           from pathlib import Path
 
           commercial = [
@@ -105,74 +110,93 @@ jobs:
               'portfolio': portfolio,
               'editorial': editorial,
           }
-          pulse_href = '/assets/css/footer-title-pulse-v1.css?v=20260804.1'
-          unified_count = 0
-
-          for family, routes in families.items():
-              for route in routes:
-                  text = (Path('_site') / route).read_text(encoding='utf-8')
-                  assert text.count(f'data-footer-family="{family}"') == 1, route
-                  assert text.count('site-footer__brand-zone') == 1, route
-                  assert text.count('site-footer__watermark') == 1, route
-                  assert text.count(pulse_href) == 1, route
-                  assert '{% include footer-system/' not in text, route
-                  assert '{{ footer_' not in text, route
-                  assert 'mailto:hello@proai-expert.com' in text, route
-                  assert 'https://t.me/proAiexpert' in text, route
-                  assert 'https://github.com/proaiexpert' in text, route
-                  assert text.index('site-footer-contact-') < text.index('site-footer__services'), route
-                  unified_count += 1
-
-          pulse = Path('_site/assets/css/footer-title-pulse-v1.css').read_text(encoding='utf-8')
-          assert pulse.count('@keyframes siteFooterTitlePulseV5') == 1
-          assert '.site-footer[data-footer-family] .site-footer__cta h2' in pulse
-          assert '4.6s ease-in-out infinite' in pulse
-          assert 'prefers-reduced-motion: reduce' in pulse
-          assert 'forced-colors: active' in pulse
-          assert 'site-footer__watermark' not in pulse
-          assert 'site-footer__logo' not in pulse
-
-          polish = Path('_site/assets/css/footer-commercial-v1-polish.css').read_text(encoding='utf-8')
-          assert 'siteFooterTitlePulseV4' not in polish
-
-          golden_css = [
+          required_parts = (
+              'home-footer-golden-r3__main',
+              'home-footer-golden-r3__cta',
+              'home-footer-golden-r3__summary',
+              'home-footer-golden-r3__capabilities',
+              'home-footer-golden-r3__signature',
+              'home-footer-golden-r3__signature-text',
+              'home-footer-golden-r3__bottom',
+              'home-footer-golden-r3__logo',
+              'home-footer-golden-r3__social-rail',
+              'home-footer-golden-r3__locale',
+              'home-footer-golden-r3__copyright',
+          )
+          golden_css = (
               '/assets/css/home-footer-golden-r3.css',
               '/assets/css/home-footer-golden-r3-1.css',
               '/assets/css/home-footer-golden-r3-2-polish.css',
               '/assets/css/home-footer-golden-r3-3-micro-polish.css',
-          ]
-          golden_runtime = '/assets/js/home-footer-golden-r3.js'
-          golden_count = 0
+              '/assets/css/home-footer-signature-r4.css',
+          )
+          golden_js = (
+              '/assets/js/home-footer-golden-r3.js',
+              '/assets/js/home-footer-signature-r4.js',
+          )
+          canonical_destinations = (
+              'mailto:hello@proai-expert.com',
+              'https://t.me/proAiexpert',
+              'https://github.com/proaiexpert',
+          )
+          unresolved_liquid = (
+              '{% include footer-system/',
+              '{% include home-footer-golden-r3',
+              '{{ footer_',
+          )
 
-          for route in golden_homepage:
-              text = (Path('_site') / route).read_text(encoding='utf-8')
+          def assert_golden_footer(route, text, expected_family=None, require_canonical=False):
+              if expected_family is not None:
+                  assert text.count(f'data-footer-family="{expected_family}"') == 1, (route, expected_family)
+              if require_canonical:
+                  assert text.count('data-site-footer-canonical="golden-r1"') == 1, route
               assert text.count('data-home-footer-golden-r3') == 1, route
-              assert text.count('class="home-footer-golden-r3__main"') == 1, route
-              assert text.count('class="home-footer-golden-r3__signature"') == 1, route
-              assert text.count('class="home-footer-golden-r3__signature-text"') == 1, route
-              assert text.count('class="home-footer-golden-r3__bottom"') == 1, route
+              for part in required_parts:
+                  assert text.count(part) >= 1, (route, part)
               for href in golden_css:
                   assert text.count(href) == 1, (route, href)
-              assert text.count(golden_runtime) == 1, route
-              assert 'mailto:hello@proai-expert.com' in text, route
-              assert 'https://t.me/proAiexpert' in text, route
-              assert 'https://github.com/proaiexpert' in text, route
-              assert '{% include footer-system/' not in text, route
-              assert '{% include home-footer-golden-r3' not in text, route
-              assert '{{ footer_' not in text, route
-              golden_count += 1
+              for src in golden_js:
+                  assert text.count(src) == 1, (route, src)
+              for destination in canonical_destinations:
+                  assert destination in text, (route, destination)
+              for token in unresolved_liquid:
+                  assert token not in text, (route, token)
+              assert not re.search(r'class=["\'][^"\']*\bsite-footer\b', text, re.IGNORECASE), route
+              assert '/assets/css/footer-system-v1.css' not in text, route
 
-          unified_expected = sum(len(routes) for routes in families.values())
-          golden_expected = len(golden_homepage)
-          total_count = unified_count + golden_count
-          total_expected = unified_expected + golden_expected
+          inner_count = 0
+          en_count = 0
+          ru_count = 0
+          for family, routes in families.items():
+              for route in routes:
+                  text = (Path('_site') / route).read_text(encoding='utf-8')
+                  assert_golden_footer(route, text, expected_family=family, require_canonical=True)
+                  inner_count += 1
+                  if route.startswith('ru/'):
+                      ru_count += 1
+                  else:
+                      en_count += 1
 
-          assert unified_count == unified_expected, (unified_count, unified_expected)
-          assert golden_count == golden_expected, (golden_count, golden_expected)
+          homepage_count = 0
+          for route in golden_homepage:
+              text = (Path('_site') / route).read_text(encoding='utf-8')
+              assert_golden_footer(route, text)
+              homepage_count += 1
+              if route.startswith('ru/'):
+                  ru_count += 1
+              else:
+                  en_count += 1
+
+          inner_expected = sum(len(routes) for routes in families.values())
+          total_count = inner_count + homepage_count
+          total_expected = inner_expected + len(golden_homepage)
+          assert inner_count == inner_expected, (inner_count, inner_expected)
+          assert homepage_count == len(golden_homepage), (homepage_count, len(golden_homepage))
           assert total_count == total_expected, (total_count, total_expected)
 
-          print(f'Unified Footer System verified for {unified_count} routes.')
-          print(f'Golden Homepage Footer verified for {golden_count} routes.')
+          print(f'Golden Footer contract verified for {inner_count} inner routes.')
+          print(f'Golden Homepage Footer verified for {homepage_count} routes.')
+          print(f'Language coverage: EN={en_count}, RU={ru_count}.')
           print(f'Footer verification passed for {total_count} routes total.')
           PY
 

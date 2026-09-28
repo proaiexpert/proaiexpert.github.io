@@ -1,8 +1,6 @@
-/* ProAI Expert — Two Worlds Clean Production Synthesis R4.1 FINAL
-   Authority: accepted R4 visual system + this final fullscreen/stability correction.
-   Mobile runtime authority: assets/js/homepage-two-worlds-clean-golden-r4.js
-   R3/R3.1 donor retained here: one-shot 1.45s moonlight only.
-   Material palette remains production R1 / accepted R4. */
+/* ProAI Expert — Two Worlds R4.2.3 Fold / Compositor Stability
+   Accepted R4.2.2 visual system preserved. Mobile fold X is transform-only;
+   faces keep the approved 104% / rotateY / shared-Z geometry unchanged. */
 
 .tw-r4 {
   --tw-r4-ai-x:0%;
@@ -11,7 +9,7 @@
   --tw-r4-web-ry:72deg;
   --tw-r4-ai-z:0px;
   --tw-r4-web-z:0px;
-  --tw-r4-fold-x:110%;
+  --tw-r4-fold-x-px:110vw;
   --tw-r4-fold-ry:-8deg;
   --tw-r4-ai-light-opacity:.48;
   --tw-r4-web-light-opacity:.08;
@@ -148,21 +146,23 @@
   .tw-r4.tw-r2 .tw-r2__fold-plane::after { opacity:var(--tw-r4-fold-response)!important; }
 
   .tw-r4.tw-r2 .tw-r2__fold {
-    left:var(--tw-r4-fold-x)!important;
+    left:0!important;
     width:clamp(60px,15.5vw,76px);
-    transform:translateX(-50%) perspective(720px) rotateY(var(--tw-r4-fold-ry))!important;
+    transform:translate3d(var(--tw-r4-fold-x-px),0,0) translateX(-50%) perspective(720px) rotateY(var(--tw-r4-fold-ry))!important;
     transition:none!important;
+    will-change:transform;
   }
 
-  .tw-r4.tw-r2[data-r4-state="AI_LOCKED"] .tw-r2__face,
-  .tw-r4.tw-r2[data-r4-state="WEB_LOCKED"] .tw-r2__face,
-  .tw-r4.tw-r2[data-r4-state="AI_LOCKED"] .tw-r2__fold,
-  .tw-r4.tw-r2[data-r4-state="WEB_LOCKED"] .tw-r2__fold {
-    will-change:auto;
-  }
-  .tw-r4.tw-r2[data-r4-state="TRANSITIONING"] .tw-r2__face,
-  .tw-r4.tw-r2[data-r4-state="TRANSITIONING"] .tw-r2__fold {
+  /* Keep the full mobile chapter compositor-ready instead of promoting and
+     demoting the large faces at every lock/transition boundary. */
+  .tw-r4.tw-r2 .tw-r2__face {
     will-change:transform;
+  }
+
+  /* The inherited double drop-shadow forces a filtered offscreen fold raster.
+     Disable it only while the hinge is moving; locked states keep R4.2.2. */
+  .tw-r4.tw-r2[data-r4-state="TRANSITIONING"] .tw-r2__fold {
+    filter:none!important;
   }
 
   /* Content handoff is driven only by the single normalized R4 timeline. */

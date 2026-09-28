@@ -1,9 +1,9 @@
-name: Insights Editorial V2 R1 QA
+name: Insights Editorial V2 R2 QA
 
 on:
   push:
     branches:
-      - agent/insights-editorial-v2-builder-r1
+      - agent/insights-editorial-v2-builder-r2-signature
   workflow_dispatch:
 
 permissions:
@@ -245,7 +245,7 @@ jobs:
               # baseline run 36368732315. This pass validates the corrected candidate only;
               # it does not repeat slow external production screenshots.
               results['ab']['baseline_run']=36368732315
-              results['ab']['baseline_artifact']='insights-v2-r1-qa'
+              results['ab']['baseline_artifact']='insights-v2-r2-qa'
               results['ab']['note']='Same-size current-vs-candidate screenshots already captured before the geometry-only correction.'
 
           # Hard acceptance checks from automated matrix.
@@ -277,7 +277,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: insights-v2-r1-qa
+          name: insights-v2-r2-qa
           path: qa-artifacts/
           if-no-files-found: error
           retention-days: 14

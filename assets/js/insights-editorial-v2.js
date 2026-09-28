@@ -1,4 +1,4 @@
-/* ProAI Expert — Insights Editorial V2 R1
+/* ProAI Expert — Insights Editorial V2 R2
    Small semantic runtime: one-shot entry, chapter state, progress. */
 (function(){
   'use strict';
@@ -9,6 +9,18 @@
     if(reduce){el.classList.add('is-resolved');return;}
     requestAnimationFrame(function(){el.classList.add('is-resolved');});
   });
+  var lead=document.querySelector('[data-insights-v2-lead]');
+  if(lead){
+    if(reduce){lead.classList.add('is-signature-resolved');}
+    else if('IntersectionObserver' in window){
+      var leadIO=new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if(entry.isIntersecting){lead.classList.add('is-signature-resolved');leadIO.disconnect();}
+        });
+      },{rootMargin:'0px 0px -15% 0px',threshold:.18});
+      leadIO.observe(lead);
+    }else{lead.classList.add('is-signature-resolved');}
+  }
   var article=document.querySelector('[data-insight-v2-article]');
   if(!article)return;
   var railLinks=[].slice.call(document.querySelectorAll('.insight-v2-rail a[href^="#"]'));

@@ -100,6 +100,7 @@
       reentryLatched:false,
       reentrySettled:false,
       reentryReleaseReason:'none',
+      lastReentryReleaseReason:'none',
       reentryReleaseActive:false,
       reentryReleaseRaw:WEB_HOLD_START,
       lastFoldX:0,
@@ -337,6 +338,7 @@
     s.reentryReleaseActive=true;
     s.reentryReleaseRaw=clamp(raw,AI_AUTHORITY_END+.001,WEB_HOLD_START);
     s.reentryReleaseReason=reason;
+    s.lastReentryReleaseReason=reason;
   }
 
   function reentryOwnedQ(s,raw,baseQ,direction,changed){
@@ -878,6 +880,7 @@
         reentryLatched:s.reentryLatched,
         reentrySettled:s.reentrySettled,
         reentryReleaseReason:s.reentryReleaseReason,
+        lastReentryReleaseReason:s.lastReentryReleaseReason,
         visualViewportWidth:window.visualViewport?Number(window.visualViewport.width.toFixed(2)):null,
         documentClientWidth:document.documentElement.clientWidth,
         viewportRectWidth:viewportRect?Number(viewportRect.width.toFixed(2)):s.viewportRectWidth,
@@ -887,6 +890,8 @@
         foldRectRight:foldRect?Number(foldRect.right.toFixed(2)):null,
         viewportRectLeft:viewportRect?Number(viewportRect.left.toFixed(2)):s.viewportRectLeft,
         viewportRectRight:viewportRect?Number(viewportRect.right.toFixed(2)):s.viewportRectRight,
+        aiFoldOffscreen:(debugEnabled&&foldRect&&viewportRect&&s.p<=EPS)?foldRect.left>=viewportRect.right-.5:null,
+        webFoldOffscreen:(debugEnabled&&foldRect&&viewportRect&&s.p>=1-EPS)?foldRect.right<=viewportRect.left+.5:null,
         perspective:{
           viewport:'1100px',
           aiFace:'perspective(980px)',

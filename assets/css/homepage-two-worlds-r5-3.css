@@ -1,0 +1,34 @@
+/* ProAI Expert — Two Worlds R5.3 mobile text-raster isolation.
+   Loaded only by the isolated R5.3 owner preview.
+   Desktop and reduced-motion presentation remain on the approved R5 CSS. */
+
+@media (prefers-reduced-motion:no-preference) and (max-width:980px),
+       (prefers-reduced-motion:no-preference) and (hover:none) and (pointer:coarse) {
+  /* Historical Golden R1 puts mobile content at translateZ(20px). R5.3 keeps
+     the exact 2D centering but removes the independent typography depth plane. */
+  .tw-r5.tw-r2 .tw-r2__content--ai,
+  .tw-r5.tw-r2 .tw-r2__content--web,
+  .tw-r5.tw-r2[data-focus="ai"] .tw-r2__content--ai,
+  .tw-r5.tw-r2[data-focus="web"] .tw-r2__content--web {
+    transform:translateY(-50%)!important;
+  }
+
+  /* R5 already used translateZ(0) for inscriptions. Remove the 3D transform
+     function entirely while preserving identical horizontal placement. */
+  .tw-r5.tw-r2 .tw-r2__inscription {
+    transform:translateX(-50%)!important;
+  }
+
+  /* No mobile child now needs independent Z depth while readable. Flatten the
+     moving faces to avoid nested preserve-3d raster contexts for glyphs. */
+  .tw-r5.tw-r2 .tw-r2__face {
+    transform-style:flat!important;
+  }
+
+  /* Start resolved frames with the fold guaranteed invisible. The R5.3 JS
+     supplies transition-only opacity from physicalP. */
+  .tw-r5.tw-r2 .tw-r2__fold {
+    opacity:0!important;
+    transition:none!important;
+  }
+}

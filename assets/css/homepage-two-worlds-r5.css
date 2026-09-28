@@ -1,6 +1,6 @@
 /* ProAI Expert — Two Worlds R5 Clean Motion Rebuild
-   Accepted R5 visual system preserved. Mobile fold X is transform-only;
-   faces keep the approved 104% / rotateY / shared-Z geometry unchanged. */
+   Accepted R4 visual system preserved. R5 replaces only the mobile motion/state projection;
+   all moving geometry is resolved from one territory-driven progress value. */
 
 .tw-r5 {
   --tw-r5-ai-x:0%;
@@ -63,9 +63,9 @@
   mix-blend-mode:screen;
 }
 .tw-r5[data-entry-lit="run"] .tw-r2__face::after {
-  animation:twR4Moonlight 1.45s cubic-bezier(.22,.61,.36,1) 1 both;
+  animation:twR5Moonlight 1.45s cubic-bezier(.22,.61,.36,1) 1 both;
 }
-@keyframes twR4Moonlight {
+@keyframes twR5Moonlight {
   0% { opacity:0; transform:translate3d(-128%,0,0) skewX(-9deg); }
   18% { opacity:.15; }
   56% { opacity:.34; }
@@ -165,7 +165,7 @@
     filter:none!important;
   }
 
-  /* Content handoff is driven only by the single normalized R4 timeline. */
+  /* Content handoff is driven only by the single normalized R5 progress. */
   .tw-r5.tw-r2 .tw-r2__content--ai {
     opacity:var(--tw-r5-ai-content-opacity)!important;
     transition:none!important;
@@ -202,7 +202,7 @@
 }
 
 /* Phone landscape: restore the wider production composition rather than R3.1's 42–64px inset.
-   Current main contains a historical bridge override at 48–68px; R4 re-centers the composition
+   Current main contains a historical bridge override at 48–68px; R5 preserves the accepted composition
    near the original production R1 geometry while keeping the production title scale. */
 @media (orientation:landscape) and (max-height:540px) and (max-width:980px) {
   .tw-r5.tw-r2 {
@@ -349,9 +349,17 @@
   }
 
   .tw-r5.tw-r2 .tw-r2__face {
+    z-index:2!important;
     will-change:transform,clip-path;
     transition:none!important;
     filter:none!important;
+  }
+
+  /* State labels may change accessibility/focus semantics, but never the
+     physical hinge shape or face stacking. This removes a hidden endpoint
+     discontinuity inherited from R1 focus selectors. */
+  .tw-r5.tw-r2 .tw-r2__fold-plane {
+    clip-path:polygon(22% 0,70% 0,76% 100%,28% 100%)!important;
   }
 
   .tw-r5.tw-r2 .tw-r2__fold {

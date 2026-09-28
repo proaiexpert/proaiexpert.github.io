@@ -235,24 +235,12 @@ jobs:
                   c1.close(); c2.close()
               browser.close()
 
-              # Same-size A/B evidence (Chromium): current production vs V2 candidate.
-              browser=p.chromium.launch()
-              shots=[
-                ('desktop',1440,1000,False),
-                ('portrait',390,844,True),
-                ('touch-landscape',844,390,True),
-              ]
-              for state,w,h,touch in shots:
-                  for key,path in routes.items():
-                      for label,base in [('current',PROD),('candidate',SITE)]:
-                          ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
-                          page=ctx.new_page()
-                          page.goto(base+path,wait_until='domcontentloaded',timeout=60000)
-                          page.wait_for_timeout(1000 if label=='current' else 180)
-                          f=out/'screens'/f'{state}-{key}-{label}.png'
-                          page.screenshot(path=str(f),full_page=False)
-                          ctx.close()
-              browser.close()
+              # Final correction regression run intentionally reuses the A/B artifact from
+              # baseline run 36368732315. This pass validates the corrected candidate only;
+              # it does not repeat slow external production screenshots.
+              results['ab']['baseline_run']=36368732315
+              results['ab']['baseline_artifact']='insights-v2-r1-qa'
+              results['ab']['note']='Same-size current-vs-candidate screenshots already captured before the geometry-only correction.'
 
           # Hard acceptance checks from automated matrix.
           failures=[]

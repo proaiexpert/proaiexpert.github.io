@@ -1,9 +1,9 @@
-name: Insights Editorial V2 R2 QA
+name: Insights Editorial V2 R2.1 Table QA
 
 on:
   push:
     branches:
-      - agent/insights-editorial-v2-builder-r2-signature
+      - agent/insights-editorial-v2-r2-1-table-polish
   workflow_dispatch:
 
 permissions:
@@ -247,7 +247,7 @@ jobs:
               # baseline run 36368732315. This pass validates the corrected candidate only;
               # it does not repeat slow external production screenshots.
               results['ab']['baseline_run']=36368732315
-              results['ab']['baseline_artifact']='insights-v2-r2-qa'
+              results['ab']['baseline_artifact']='insights-v2-r2-1-qa'
               results['ab']['note']='Same-size current-vs-candidate screenshots already captured before the geometry-only correction.'
 
           # Hard acceptance checks from automated matrix.
@@ -275,61 +275,146 @@ jobs:
           if failures: raise SystemExit(1)
           PY
 
-      - name: Capture R1 vs R2 signature A/B
+      - name: Targeted decision table right-edge QA
         shell: bash
         run: |
-          git worktree add --detach /tmp/proai-insights-r1 de43669a4a75e2456f2782ba132347f092ef0777
-          python -m http.server 4175 --directory /tmp/proai-insights-r1 >/tmp/proai-r1.log 2>&1 &
           python - <<'PY'
           from playwright.sync_api import sync_playwright
           from pathlib import Path
-          import time, urllib.request, json
+          import json
 
-          R1='http://127.0.0.1:4175'
-          R2='http://127.0.0.1:4173'
-          out=Path('qa-artifacts/ab-r1-r2'); out.mkdir(parents=True,exist_ok=True)
-          for _ in range(30):
-              try:
-                  urllib.request.urlopen(R1,timeout=1); break
-              except Exception: time.sleep(.2)
-
-          cases=[
-            ('hub-mobile','/owner-preview/insights-v2/ru.html',390,844,True),
-            ('hub-landscape','/owner-preview/insights-v2/ru.html',844,390,True),
-            ('hub-desktop','/owner-preview/insights-v2/ru.html',1440,1000,False),
-            ('article-mobile','/owner-preview/insight-v2-lead-response/ru.html',390,844,True),
-            ('article-landscape','/owner-preview/insight-v2-lead-response/ru.html',844,390,True),
-            ('article-desktop','/owner-preview/insight-v2-lead-response/ru.html',1440,1000,False),
+          ROOT='http://127.0.0.1:4173'
+          routes={
+            'en':'/owner-preview/insight-v2-lead-response/index.html',
+            'ru':'/owner-preview/insight-v2-lead-response/ru.html'
+          }
+          viewports=[
+            ('portrait-430',430,844,True),
+            ('portrait-390',390,844,True),
+            ('portrait-375',375,812,True),
+            ('portrait-360',360,800,True),
+            ('portrait-320',320,720,True),
+            ('touch-landscape-844',844,390,True),
+            ('touch-landscape-932',932,430,True),
           ]
-          manifest={}
+          out=Path('qa-artifacts/table-right-edge')
+          out.mkdir(parents=True,exist_ok=True)
+          results=[]
+          failures=[]
+
+          def inspect(page):
+              return page.evaluate("""() => {
+                const wrap=document.querySelector('.insight-v2-table-wrap');
+                const table=document.querySelector('.insight-v2-decision-table');
+                const risk=[...document.querySelectorAll('.insight-v2-risk--low,.insight-v2-risk--medium,.insight-v2-risk--high')];
+                const allCells=[...document.querySelectorAll('.insight-v2-decision-table th,.insight-v2-decision-table td')];
+                const riskHeader=document.querySelector('.insight-v2-decision-table th:last-child');
+                wrap.scrollLeft=wrap.scrollWidth;
+                const style=(el)=>getComputedStyle(el);
+                const risks=risk.map(el=>{
+                  const r=el.getBoundingClientRect();
+                  const range=document.createRange(); range.selectNodeContents(el);
+                  const rects=[...range.getClientRects()];
+                  return {
+                    text:el.textContent.trim(),
+                    whiteSpace:style(el).whiteSpace,
+                    wordBreak:style(el).wordBreak,
+                    overflowWrap:style(el).overflowWrap,
+                    hyphens:style(el).hyphens,
+                    width:+r.width.toFixed(1),
+                    clientWidth:el.clientWidth,
+                    scrollWidth:el.scrollWidth,
+                    lineRects:rects.length
+                  };
+                });
+                const cells=allCells.map(el=>({
+                  tag:el.tagName.toLowerCase(),
+                  text:el.textContent.trim().slice(0,80),
+                  overflowWrap:style(el).overflowWrap,
+                  wordBreak:style(el).wordBreak,
+                  hyphens:style(el).hyphens
+                }));
+                const hr=riskHeader.getBoundingClientRect();
+                return {
+                  viewportWidth:innerWidth,
+                  pageScrollWidth:document.documentElement.scrollWidth,
+                  pageOverflow:document.documentElement.scrollWidth-innerWidth,
+                  wrapClientWidth:wrap.clientWidth,
+                  wrapScrollWidth:wrap.scrollWidth,
+                  wrapScrollable:wrap.scrollWidth>wrap.clientWidth+1,
+                  wrapScrollLeft:wrap.scrollLeft,
+                  tableWidth:+table.getBoundingClientRect().width.toFixed(1),
+                  tableMinWidth:style(table).minWidth,
+                  riskHeaderText:riskHeader.textContent.trim(),
+                  riskHeaderWidth:+hr.width.toFixed(1),
+                  riskHeaderWhiteSpace:style(riskHeader).whiteSpace,
+                  risks,
+                  cells
+                };
+              }""")
+
           with sync_playwright() as p:
-              browser=p.chromium.launch()
-              for name,path,w,h,touch in cases:
-                  manifest[name]={}
-                  for label,base in [('r1',R1),('r2',R2)]:
-                      ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
-                      page=ctx.new_page()
-                      page.goto(base+path,wait_until='domcontentloaded',timeout=60000)
-                      page.wait_for_timeout(900)
-                      file=out/f'{label}-{name}.png'
-                      page.screenshot(path=str(file),full_page=False)
-                      manifest[name][label]={
-                        'file':str(file),
-                        'h1':page.locator('h1').inner_text(),
-                        'scrollWidth':page.evaluate('document.documentElement.scrollWidth'),
-                        'viewportWidth':page.evaluate('innerWidth')
-                      }
-                      ctx.close()
-              browser.close()
-          (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
-          print(json.dumps(manifest,ensure_ascii=False,indent=2))
+              for engine_name,btype in [('chromium',p.chromium),('webkit',p.webkit)]:
+                  browser=btype.launch()
+                  for vp,w,h,touch in viewports:
+                      for lang,path in routes.items():
+                          ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
+                          page=ctx.new_page()
+                          page.goto(ROOT+path,wait_until='domcontentloaded',timeout=60000)
+                          page.wait_for_selector('.insight-v2-decision-table',timeout=10000)
+                          page.locator('.insight-v2-table-wrap').evaluate('(el)=>{el.scrollLeft=el.scrollWidth}')
+                          page.wait_for_timeout(120)
+                          data=inspect(page)
+                          row={'engine':engine_name,'viewport':vp,'lang':lang,**data}
+                          results.append(row)
+
+                          if data['pageOverflow']>1:
+                              failures.append(f"{engine_name}:{vp}:{lang}:page-overflow={data['pageOverflow']}")
+                          if not data['wrapScrollable']:
+                              failures.append(f"{engine_name}:{vp}:{lang}:table-not-scrollable")
+                          if data['riskHeaderWidth']<105:
+                              failures.append(f"{engine_name}:{vp}:{lang}:risk-header-width={data['riskHeaderWidth']}")
+                          for risk in data['risks']:
+                              if risk['whiteSpace']!='nowrap':
+                                  failures.append(f"{engine_name}:{vp}:{lang}:{risk['text']}:whiteSpace={risk['whiteSpace']}")
+                              if risk['overflowWrap'] not in ('normal','initial'):
+                                  failures.append(f"{engine_name}:{vp}:{lang}:{risk['text']}:overflowWrap={risk['overflowWrap']}")
+                              if risk['wordBreak'] not in ('keep-all','normal'):
+                                  failures.append(f"{engine_name}:{vp}:{lang}:{risk['text']}:wordBreak={risk['wordBreak']}")
+                              if risk['scrollWidth']>risk['clientWidth']+1:
+                                  failures.append(f"{engine_name}:{vp}:{lang}:{risk['text']}:self-overflow={risk['scrollWidth']-risk['clientWidth']}")
+                              if risk['lineRects']!=1:
+                                  failures.append(f"{engine_name}:{vp}:{lang}:{risk['text']}:lineRects={risk['lineRects']}")
+                          for cell in data['cells']:
+                              if cell['overflowWrap'] not in ('normal','initial'):
+                                  failures.append(f"{engine_name}:{vp}:{lang}:cell-overflowWrap={cell['overflowWrap']}:{cell['text']}")
+                              if cell['wordBreak'] not in ('normal','keep-all'):
+                                  failures.append(f"{engine_name}:{vp}:{lang}:cell-wordBreak={cell['wordBreak']}:{cell['text']}")
+
+                          if engine_name=='chromium' and lang in ('ru','en') and vp in ('portrait-430','portrait-390','touch-landscape-844'):
+                              shot=out/f"{lang}-{vp}-right-edge.png"
+                              page.locator('.insight-v2-table-wrap').screenshot(path=str(shot))
+                          ctx.close()
+                  browser.close()
+
+          (out/'table-qa.json').write_text(json.dumps({'results':results,'failures':failures},ensure_ascii=False,indent=2),encoding='utf-8')
+          summary={
+            'failure_count':len(failures),
+            'failures':failures[:40],
+            'rows':len(results),
+            'risk_widths':sorted(set(round(r['riskHeaderWidth'],1) for r in results)),
+            'table_widths':sorted(set(round(r['tableWidth'],1) for r in results)),
+            'page_overflows':sorted(set(r['pageOverflow'] for r in results))
+          }
+          print(json.dumps(summary,ensure_ascii=False,indent=2))
+          if failures: raise SystemExit(1)
           PY
 
       - name: Upload QA evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: insights-v2-r2-qa
+          name: insights-v2-r2-1-qa
           path: qa-artifacts/
           if-no-files-found: error
           retention-days: 14

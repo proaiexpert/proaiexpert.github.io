@@ -60,6 +60,7 @@
       lastAppliedY:NaN,
       anchored:false,
       anchorScrollY:0,
+      anchorRaw:0,
       anchorQ:0,
       moonlit:false,
       targetLightX:0,
@@ -259,23 +260,27 @@
     var raw=actualQ(s,y);
     if(!s.anchored)return raw;
 
-    var q=clamp(s.anchorQ+((y-s.anchorScrollY)/Math.max(1,s.travel)),0,1);
-
-    /* Hard safety wins over orientation preservation near the upper exit. */
-    if(raw<=AI_AUTHORITY_END){
+    /* Orientation preservation is a temporary bias, not a second timeline.
+       The bias is exactly zero at both authority boundaries, so continuity is
+       recovered before either locked endpoint and TOP EXIT never needs a snap. */
+    if(raw<=AI_AUTHORITY_END||raw>=WEB_HOLD_START){
       s.anchored=false;
-      return 0;
+      return raw;
     }
 
-    if(y<=s.experienceTop){
+    var bias=s.anchorQ-s.anchorRaw;
+    if(Math.abs(bias)<.0001){
       s.anchored=false;
-      return 0;
+      return raw;
     }
-    if(y>=s.experienceTop+s.travel){
-      s.anchored=false;
-      return 1;
+
+    var fade;
+    if(raw<=s.anchorRaw){
+      fade=(raw-AI_AUTHORITY_END)/Math.max(.001,s.anchorRaw-AI_AUTHORITY_END);
+    }else{
+      fade=(WEB_HOLD_START-raw)/Math.max(.001,WEB_HOLD_START-s.anchorRaw);
     }
-    return q;
+    return clamp(raw+(bias*clamp(fade,0,1)),0,1);
   }
 
   function engaged(s,y){
@@ -545,10 +550,13 @@
     s.travel=Math.max(1,(h*multiplier)-h);
     s.composed=true;
 
-    if(preserve&&previousMobile&&previousEngaged){
-      s.anchorScrollY=Math.max(0,window.scrollY||0);
+    var currentY=Math.max(0,window.scrollY||0);
+    var newRaw=actualQ(s,currentY);
+    if(preserve&&previousMobile&&previousEngaged&&newRaw>AI_AUTHORITY_END&&newRaw<WEB_HOLD_START){
+      s.anchorScrollY=currentY;
+      s.anchorRaw=newRaw;
       s.anchorQ=previousQ;
-      s.anchored=true;
+      s.anchored=Math.abs(previousQ-newRaw)>.0001;
     }else{
       s.anchored=false;
     }

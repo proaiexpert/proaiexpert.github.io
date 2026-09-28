@@ -1,6 +1,6 @@
-/* ProAI Expert — Two Worlds Clean Production Synthesis R4.2.1
-   R4.2 visual design preserved exactly. Mobile motion authority remains singular.
-   Micro-correction: Web re-entry hold from below; no scrollTo; no locked-state RAF. */
+/* ProAI Expert — Two Worlds R4.2.3 Fold / Compositor Stability
+   R4.2.2 visual and interaction authority preserved exactly.
+   Mobile fold X is transform-only from cached stage width; no per-frame layout read. */
 (function () {
   'use strict';
 
@@ -29,6 +29,11 @@
   function smoothstep(v){v=clamp(v,0,1);return v*v*(3-(2*v));}
   function smootherstep(v){v=clamp(v,0,1);return v*v*v*(v*(v*6-15)+10);}
   function mix(a,b,t){return a+((b-a)*t);}
+
+  function foldXpx(s,p){
+    var w=Math.max(1,s.viewportWidth||1);
+    return w*mix(1.10,-.10,p);
+  }
 
   function stageWidthNow(){
     if(window.visualViewport&&window.visualViewport.width>0)return Math.max(1,Math.round(window.visualViewport.width));
@@ -133,7 +138,7 @@
       setVar(section,'--tw-r4-web-ry','72deg');
       setVar(section,'--tw-r4-ai-z','0px');
       setVar(section,'--tw-r4-web-z','0px');
-      setVar(section,'--tw-r4-fold-x','110%');
+      setVar(section,'--tw-r4-fold-x-px',foldXpx(s,0).toFixed(2)+'px');
       setVar(section,'--tw-r4-fold-ry','-8deg');
       setVar(section,'--tw-r4-ai-light-opacity','.48');
       setVar(section,'--tw-r4-web-light-opacity','.08');
@@ -151,7 +156,7 @@
       setVar(section,'--tw-r4-web-ry','3deg');
       setVar(section,'--tw-r4-ai-z','0px');
       setVar(section,'--tw-r4-web-z','0px');
-      setVar(section,'--tw-r4-fold-x','-10%');
+      setVar(section,'--tw-r4-fold-x-px',foldXpx(s,1).toFixed(2)+'px');
       setVar(section,'--tw-r4-fold-ry','8deg');
       setVar(section,'--tw-r4-ai-light-opacity','.07');
       setVar(section,'--tw-r4-web-light-opacity','.46');
@@ -187,7 +192,7 @@
     setVar(section,'--tw-r4-web-ry',mix(72,3,p).toFixed(3)+'deg');
     setVar(section,'--tw-r4-ai-z',sharedZ.toFixed(2)+'px');
     setVar(section,'--tw-r4-web-z',sharedZ.toFixed(2)+'px');
-    setVar(section,'--tw-r4-fold-x',mix(110,-10,p).toFixed(3)+'%');
+    setVar(section,'--tw-r4-fold-x-px',foldXpx(s,p).toFixed(2)+'px');
     setVar(section,'--tw-r4-fold-ry',mix(-8,8,p).toFixed(3)+'deg');
     setVar(section,'--tw-r4-ai-content-opacity',aiContent.toFixed(3));
     setVar(section,'--tw-r4-web-content-opacity',webContent.toFixed(3));

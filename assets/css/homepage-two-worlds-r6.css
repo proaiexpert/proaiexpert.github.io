@@ -1,0 +1,594 @@
+/* ProAI Expert — Two Worlds R6 Compositor-Native Scroll Motion\n   R5.5 visual donor preserved; mobile visual progress is CSS view-timeline driven.
+   Accepted R4 visual system preserved. R5 replaces only the mobile motion/state projection;
+   all moving geometry is resolved from one territory-driven progress value. */
+
+.tw-r5 {
+  --tw-r5-ai-x:0%;
+  --tw-r5-web-x:104%;
+  --tw-r5-ai-ry:-3deg;
+  --tw-r5-web-ry:72deg;
+  --tw-r5-ai-z:0px;
+  --tw-r5-web-z:0px;
+  --tw-r5-fold-x-px:110vw;
+  --tw-r5-fold-ry:-8deg;
+  --tw-r5-ai-light-opacity:.48;
+  --tw-r5-web-light-opacity:.08;
+  --tw-r5-fold-response:.88;
+  --tw-r5-ai-content-opacity:1;
+  --tw-r5-web-content-opacity:0;
+  --tw-r5-ai-inscription-opacity:.92;
+  --tw-r5-web-inscription-opacity:0;
+}
+
+/* R4.1: intro is independent from the moving stage and optically centered.
+   This removes the inherited 30/70 production grid bias without changing copy. */
+.tw-r5 > .tw-r2__intro {
+  display:block;
+  width:min(calc(100% - 80px),1600px);
+  margin-inline:auto;
+  text-align:center;
+}
+.tw-r5 > .tw-r2__intro .tw-r2__eyebrow {
+  width:max-content;
+  max-width:100%;
+  margin:0 auto 13px;
+}
+.tw-r5 > .tw-r2__intro .tw-r2__intro-title {
+  width:min(100%,1100px);
+  margin-inline:auto;
+  text-wrap:balance;
+}
+.tw-r5 .tw-r2__experience,
+.tw-r5 .tw-r2__viewport,
+.tw-r5 .tw-r2__plate {
+  width:100%;
+  max-width:none;
+}
+
+/* Proven R3 donor: restrained grazing light, one shot only. */
+.tw-r5 .tw-r2__face::after {
+  position:absolute;
+  inset:-12%;
+  z-index:3;
+  content:"";
+  pointer-events:none;
+  opacity:0;
+  transform:translate3d(-128%,0,0) skewX(-9deg);
+  background:linear-gradient(105deg,
+    transparent 38%,
+    rgba(188,191,211,.020) 44%,
+    rgba(238,240,244,.118) 49%,
+    rgba(111,93,181,.050) 53%,
+    transparent 59%);
+  mix-blend-mode:screen;
+}
+.tw-r5[data-entry-lit="run"] .tw-r2__face::after {
+  animation:twR5Moonlight 1.45s cubic-bezier(.22,.61,.36,1) 1 both;
+}
+@keyframes twR5Moonlight {
+  0% { opacity:0; transform:translate3d(-128%,0,0) skewX(-9deg); }
+  18% { opacity:.15; }
+  56% { opacity:.34; }
+  100% { opacity:0; transform:translate3d(128%,0,0) skewX(-9deg); }
+}
+
+/* Desktop intentionally inherits production R1 geometry, typography, materials and fold. */
+@media (min-width:981px) and (hover:hover) and (pointer:fine) {
+  /* Laptop/desktop becomes a restrained sticky viewport chapter.
+     Pointer-driven production world semantics remain unchanged; only viewport
+     ownership changes so the block actually stops and fills the screen. */
+  .tw-r5 .tw-r2__experience {
+    height:155svh;
+    min-height:155svh;
+  }
+  .tw-r5 .tw-r2__viewport {
+    position:sticky;
+    inset:auto;
+    top:0;
+    height:100svh;
+    min-height:100svh;
+  }
+
+  .tw-r5[data-r5-state="DESKTOP"] .tw-r2__face,
+  .tw-r5[data-r5-state="DESKTOP"] .tw-r2__fold { will-change:auto; }
+}
+
+@media (max-width:980px), ((hover:none) and (pointer:coarse)) {
+  .tw-r5.tw-r2 {
+    --tw-g-mobile-inset:clamp(48px,13vw,56px);
+    background:#020304;
+  }
+  .tw-r5 > .tw-r2__intro {
+    width:min(calc(100% - 32px),720px);
+    text-align:center;
+  }
+
+  .tw-r5 .tw-r2__experience {
+    height:var(--tw-r5-travel-height,220svh)!important;
+    min-height:0!important;
+    perspective:1000px;
+  }
+  .tw-r5 .tw-r2__viewport {
+    position:sticky!important;
+    top:0;
+    width:100%;
+    max-width:none;
+    height:var(--tw-r5-stage-height,100svh)!important;
+    min-height:0!important;
+    overflow:hidden;
+    perspective:980px;
+    isolation:isolate;
+  }
+  .tw-r5 .tw-r2__plate { inset:0; }
+
+  .tw-r5.tw-r2 .tw-r2__face {
+    top:-2%;
+    bottom:-2%;
+    left:-2%!important;
+    right:auto!important;
+    width:104%;
+    clip-path:none!important;
+    transition:none!important;
+    filter:none!important;
+    backface-visibility:hidden;
+  }
+  .tw-r5.tw-r2 .tw-r2__face--ai {
+    transform-origin:100% 50%;
+    transform:translate3d(var(--tw-r5-ai-x),0,var(--tw-r5-ai-z)) rotateY(var(--tw-r5-ai-ry))!important;
+  }
+  .tw-r5.tw-r2 .tw-r2__face--web {
+    transform-origin:0 50%;
+    transform:translate3d(var(--tw-r5-web-x),0,var(--tw-r5-web-z)) rotateY(var(--tw-r5-web-ry))!important;
+  }
+
+  .tw-r5.tw-r2 .tw-r2__face--ai::before { opacity:var(--tw-r5-ai-light-opacity); transform:none!important; }
+  .tw-r5.tw-r2 .tw-r2__face--web::before { opacity:var(--tw-r5-web-light-opacity); transform:none!important; }
+  .tw-r5.tw-r2 .tw-r2__fold-plane::after { opacity:var(--tw-r5-fold-response)!important; }
+
+  .tw-r5.tw-r2 .tw-r2__fold {
+    left:0!important;
+    width:clamp(60px,15.5vw,76px);
+    transform:translate3d(var(--tw-r5-fold-x-px),0,0) translateX(-50%) perspective(720px) rotateY(var(--tw-r5-fold-ry))!important;
+    transition:none!important;
+    will-change:transform;
+  }
+
+  /* Keep the full mobile chapter compositor-ready instead of promoting and
+     demoting the large faces at every lock/transition boundary. */
+  .tw-r5.tw-r2 .tw-r2__face {
+    will-change:transform;
+  }
+
+  /* The inherited double drop-shadow forces a filtered offscreen fold raster.
+     Disable it only while the hinge is moving; locked states keep R5. */
+  .tw-r5.tw-r2[data-r5-state="TRANSITIONING"] .tw-r2__fold {
+    filter:none!important;
+  }
+
+  /* Content handoff is driven only by the single normalized R5 progress. */
+  .tw-r5.tw-r2 .tw-r2__content--ai {
+    opacity:var(--tw-r5-ai-content-opacity);
+    transition:none!important;
+  }
+  .tw-r5.tw-r2 .tw-r2__content--web {
+    opacity:var(--tw-r5-web-content-opacity);
+    transition:none!important;
+  }
+
+  /* Mobile watermarks are authored, never measured at runtime. */
+  .tw-r5.tw-r2 .tw-r2__inscription {
+    left:50%!important;
+    transform:translateX(-50%) translateZ(0)!important;
+    transition:none!important;
+    white-space:nowrap;
+  }
+  .tw-r5.tw-r2 .tw-r2__inscription--ai {
+    top:9.2%;
+    font-size:clamp(64px,19vw,86px)!important;
+    opacity:var(--tw-r5-ai-inscription-opacity);
+  }
+  .tw-r5.tw-r2 .tw-r2__inscription--web {
+    top:9.2%;
+    font-size:clamp(46px,14vw,64px)!important;
+    opacity:var(--tw-r5-web-inscription-opacity);
+  }
+  body.lang-ru .tw-r5.tw-r2 .tw-r2__inscription--ai {
+    font-size:clamp(62px,18.5vw,84px)!important;
+  }
+  body.lang-ru .tw-r5.tw-r2 .tw-r2__inscription--web {
+    font-size:clamp(39px,11.2vw,52px)!important;
+    letter-spacing:-.052em;
+  }
+}
+
+/* Phone landscape: restore the wider production composition rather than R3.1's 42–64px inset.
+   Current main contains a historical bridge override at 48–68px; R5 preserves the accepted composition
+   near the original production R1 geometry while keeping the production title scale. */
+@media (orientation:landscape) and (max-height:540px) and (max-width:980px) {
+  .tw-r5.tw-r2 {
+    --tw-g-landscape-inset:clamp(92px,11.5vw,116px);
+  }
+
+  .tw-r5.tw-r2 .tw-r2__content--ai,
+  .tw-r5.tw-r2 .tw-r2__content--web,
+  .tw-r5.tw-r2[data-focus="ai"] .tw-r2__content--ai,
+  .tw-r5.tw-r2[data-focus="web"] .tw-r2__content--web {
+    top:50%;
+    left:var(--tw-g-landscape-inset);
+    right:var(--tw-g-landscape-inset);
+    width:auto!important;
+    max-width:none;
+    display:grid;
+    grid-template-columns:minmax(0,56fr) minmax(0,44fr);
+    grid-template-areas:"index registers" "title registers" "thesis registers" "cta registers";
+    column-gap:clamp(24px,4vw,42px);
+    align-items:start;
+    align-content:center;
+  }
+  .tw-r5 .tw-r2__world-index { grid-area:index; margin:0 0 7px; }
+  .tw-r5 .tw-r2__world-title,
+  .tw-r5 .tw-r2__face--web .tw-r2__world-title,
+  body.lang-ru .tw-r5 .tw-r2__world-title,
+  body.lang-ru .tw-r5 .tw-r2__face--web .tw-r2__world-title {
+    grid-area:title;
+    font-size:clamp(35px,4.5vw,40px)!important;
+    line-height:.91;
+  }
+  .tw-r5 .tw-r2__thesis {
+    grid-area:thesis;
+    max-width:34ch;
+    margin-top:9px;
+    font-size:12.5px;
+    line-height:1.34;
+  }
+  .tw-r5 .tw-r2__cta {
+    grid-area:cta;
+    margin-top:10px;
+    padding:5px 0;
+    font-size:10px;
+  }
+  .tw-r5 .tw-r2__registers {
+    grid-area:registers;
+    align-self:center;
+    width:100%;
+    max-width:none;
+    margin:0;
+    grid-template-columns:1fr;
+    gap:11px;
+  }
+  .tw-r5 .tw-r2__register { display:block; }
+  .tw-r5 .tw-r2__register dt { font-size:10.5px; }
+  .tw-r5 .tw-r2__register dd { margin-top:3px; font-size:12.75px; }
+
+  .tw-r5.tw-r2 .tw-r2__inscription--ai {
+    top:6.2%;
+    font-size:clamp(112px,14.2vw,132px)!important;
+    letter-spacing:-.060em;
+  }
+  .tw-r5.tw-r2 .tw-r2__inscription--web {
+    top:6.2%;
+    font-size:clamp(82px,10.5vw,104px)!important;
+    letter-spacing:-.060em;
+  }
+  body.lang-ru .tw-r5.tw-r2 .tw-r2__inscription--ai {
+    font-size:clamp(106px,13.4vw,126px)!important;
+  }
+  body.lang-ru .tw-r5.tw-r2 .tw-r2__inscription--web {
+    font-size:clamp(68px,8.6vw,86px)!important;
+    letter-spacing:-.052em;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .tw-r5[data-entry-lit="run"] .tw-r2__face::after { animation:none!important; }
+}
+@media (prefers-reduced-motion:reduce) and (max-width:980px),
+       (prefers-reduced-motion:reduce) and (hover:none) and (pointer:coarse) {
+  .tw-r5 .tw-r2__experience { height:auto!important; min-height:0!important; }
+  .tw-r5 .tw-r2__viewport {
+    position:relative!important;
+    inset:auto;
+    height:auto!important;
+    min-height:0!important;
+    overflow:hidden;
+  }
+  .tw-r5 .tw-r2__plate { position:relative; inset:auto; display:block; }
+  .tw-r5.tw-r2 .tw-r2__face {
+    position:relative;
+    top:auto;
+    bottom:auto;
+    left:auto!important;
+    right:auto!important;
+    width:100%;
+    min-height:520px;
+    transform:none!important;
+    filter:none!important;
+    opacity:1!important;
+  }
+  .tw-r5.tw-r2 .tw-r2__face--ai { clip-path:polygon(0 0,100% 0,97% 100%,0 100%)!important; }
+  .tw-r5.tw-r2 .tw-r2__face--web { clip-path:polygon(3% 0,100% 0,100% 100%,0 100%)!important; }
+  .tw-r5.tw-r2 .tw-r2__fold {
+    position:relative;
+    top:auto;
+    bottom:auto;
+    left:50%!important;
+    width:100%;
+    max-width:none;
+    height:34px;
+    transform:translateX(-50%)!important;
+    filter:none;
+  }
+  .tw-r5.tw-r2 .tw-r2__content--ai,
+  .tw-r5.tw-r2 .tw-r2__content--web {
+    top:50%;
+    opacity:1!important;
+  }
+  .tw-r5.tw-r2 .tw-r2__inscription {
+    opacity:.22!important;
+  }
+}
+
+
+/* =========================================================
+   R5 CLEAN MOBILE MOTION OVERRIDES
+   One normalized territory progress. No timer-driven mobile turn.
+   The accepted R4 visual material/typography remains the authority.
+   ========================================================= */
+
+@media (max-width:980px), ((hover:none) and (pointer:coarse)) {
+  .tw-r5 .tw-r2__experience {
+    perspective:none!important;
+  }
+
+  .tw-r5 .tw-r2__viewport {
+    perspective:1100px!important;
+  }
+
+  .tw-r5.tw-r2 .tw-r2__plate {
+    transform-style:preserve-3d;
+  }
+
+  .tw-r5.tw-r2 .tw-r2__face {
+    z-index:2!important;
+    will-change:transform,clip-path;
+    transition:none!important;
+    filter:none!important;
+  }
+
+  /* State labels may change accessibility/focus semantics, but never the
+     physical hinge shape or face stacking. This removes a hidden endpoint
+     discontinuity inherited from R1 focus selectors. */
+  .tw-r5.tw-r2 .tw-r2__fold-plane {
+    clip-path:polygon(22% 0,70% 0,76% 100%,28% 100%)!important;
+  }
+
+  .tw-r5.tw-r2 .tw-r2__fold {
+    left:0!important;
+    filter:none!important;
+    will-change:transform;
+    transition:none!important;
+  }
+
+  .tw-r5.tw-r2 .tw-r2__content,
+  .tw-r5.tw-r2 .tw-r2__inscription {
+    transition:none!important;
+  }
+
+  .tw-r5.tw-r2[data-r5-state="TURNING_TO_WEB"] .tw-r2__fold,
+  .tw-r5.tw-r2[data-r5-state="TURNING_TO_AI"] .tw-r2__fold {
+    filter:none!important;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .tw-r5 [data-tw-world="ai"],
+  .tw-r5 [data-tw-world="web"] {
+    clip-path:none!important;
+    transform:none!important;
+  }
+}
+
+
+/* R6 inherits the owner-approved R5.5 clip-path-free moving faces.
+   Diagnostic-only mobile override. R5.4 remains the rollback/current-best authority. */
+
+@media (prefers-reduced-motion:no-preference) and (max-width:980px),
+       (prefers-reduced-motion:no-preference) and (hover:none) and (pointer:coarse) {
+  /* Diagnostic variable: fullscreen moving faces are never dynamically clipped.
+     Keep compositor preparation limited to transform only. */
+  .tw-r5.tw-r2 .tw-r2__face {
+    clip-path:none!important;
+    will-change:transform!important;
+  }
+}
+
+
+/* =========================================================
+   R6 COMPOSITOR-NATIVE MOBILE SCROLL TIMELINE
+   The experience itself is the view-timeline subject.
+   Because it is taller than the scrollport, "contain" maps exactly across
+   the sticky travel: section top at scrollport top -> section bottom at
+   scrollport bottom.
+   ========================================================= */
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion:no-preference) and (max-width:980px),
+         (prefers-reduced-motion:no-preference) and (hover:none) and (pointer:coarse) {
+
+    .tw-r5[data-r6-native="true"] {
+      /* Neutralize the old JS-fed transform variables. The base mobile
+         transform remains a static identity/perspective carrier while R6
+         animates compositor transform components + opacity. */
+      --tw-mobile-ai-x:0%;
+      --tw-mobile-ai-z:0px;
+      --tw-mobile-ai-ry:0deg;
+      --tw-mobile-web-x:0%;
+      --tw-mobile-web-z:0px;
+      --tw-mobile-web-ry:0deg;
+      --tw-r5-ai-x:0%;
+      --tw-r5-ai-z:0px;
+      --tw-r5-ai-ry:0deg;
+      --tw-r5-web-x:0%;
+      --tw-r5-web-z:0px;
+      --tw-r5-web-ry:0deg;
+      --tw-r5-fold-x-px:0px;
+      --tw-r5-fold-ry:0deg;
+    }
+
+    .tw-r5[data-r6-native="true"] .tw-r2__experience {
+      view-timeline-name:--tw-r6-timeline;
+      view-timeline-axis:block;
+    }
+
+    /* No inherited focus state is allowed to become a second visual authority. */
+    .tw-r5[data-r6-native="true"] .tw-r2__face,
+    .tw-r5[data-r6-native="true"] .tw-r2__content,
+    .tw-r5[data-r6-native="true"] .tw-r2__inscription,
+    .tw-r5[data-r6-native="true"] .tw-r2__fold {
+      transition:none!important;
+    }
+
+    .tw-r5[data-r6-native="true"] .tw-r2__face {
+      clip-path:none!important;
+      filter:none!important;
+      will-change:transform,opacity!important;
+      animation-duration:1ms;
+      animation-timing-function:linear;
+      animation-fill-mode:both;
+      animation-timeline:--tw-r6-timeline;
+      animation-range:contain 0% contain 100%;
+    }
+
+    .tw-r5[data-r6-native="true"] .tw-r2__face--ai {
+      animation-name:twR6AiFacePortrait,twR6AiFaceOpacity;
+    }
+    .tw-r5[data-r6-native="true"] .tw-r2__face--web {
+      animation-name:twR6WebFacePortrait,twR6WebFaceOpacity;
+    }
+
+    .tw-r5[data-r6-native="true"] .tw-r2__fold {
+      left:0!important;
+      filter:none!important;
+      will-change:transform!important;
+      animation-name:twR6Fold;
+      animation-duration:1ms;
+      animation-timing-function:linear;
+      animation-fill-mode:both;
+      animation-timeline:--tw-r6-timeline;
+      animation-range:contain 0% contain 100%;
+    }
+
+    .tw-r5[data-r6-native="true"] .tw-r2__content,
+    .tw-r5[data-r6-native="true"] .tw-r2__inscription,
+    .tw-r5[data-r6-native="true"] .tw-r2__face::before {
+      animation-duration:1ms;
+      animation-timing-function:linear;
+      animation-fill-mode:both;
+      animation-timeline:--tw-r6-timeline;
+      animation-range:contain 0% contain 100%;
+      will-change:opacity;
+    }
+
+    .tw-r5[data-r6-native="true"] .tw-r2__content--ai { animation-name:twR6AiContent; }
+    .tw-r5[data-r6-native="true"] .tw-r2__content--web { animation-name:twR6WebContent; }
+    .tw-r5[data-r6-native="true"] .tw-r2__inscription--ai { animation-name:twR6AiInscription; }
+    .tw-r5[data-r6-native="true"] .tw-r2__inscription--web { animation-name:twR6WebInscription; }
+    .tw-r5[data-r6-native="true"] .tw-r2__face--ai::before { animation-name:twR6AiLight; }
+    .tw-r5[data-r6-native="true"] .tw-r2__face--web::before { animation-name:twR6WebLight; }
+
+    /* R5.5 shapeTurn samples:
+       u=.00 p=.000000 -> timeline 20%
+       u=.25 p=.195625 -> timeline 28.75%
+       u=.50 p=.500000 -> timeline 37.5%
+       u=.75 p=.804375 -> timeline 46.25%
+       u=1.00 p=1.000000 -> timeline 55%
+       This preserves the restrained R5.5 physical cadence without JS. */
+
+    @keyframes twR6AiFacePortrait {
+      0%,20% { translate:0% 0 0px; rotate:y -3deg; }
+      28.75% { translate:-2.054% 0 -10.564px; rotate:y -5.152deg; }
+      37.5% { translate:-5.25% 0 -27px; rotate:y -8.5deg; }
+      46.25% { translate:-8.446% 0 -43.436px; rotate:y -11.848deg; }
+      55%,80%,100% { translate:-10.5% 0 -54px; rotate:y -14deg; }
+    }
+
+    @keyframes twR6WebFacePortrait {
+      0%,20% { translate:10.5% 0 -54px; rotate:y 14deg; }
+      28.75% { translate:8.446% 0 -43.436px; rotate:y 11.848deg; }
+      37.5% { translate:5.25% 0 -27px; rotate:y 8.5deg; }
+      46.25% { translate:2.054% 0 -10.564px; rotate:y 5.152deg; }
+      55%,80%,100% { translate:0% 0 0px; rotate:y 3deg; }
+    }
+
+    /* Compact R5.5-style whole-face ownership crossover. */
+    @keyframes twR6AiFaceOpacity {
+      0%,36% { opacity:1; }
+      39%,100% { opacity:0; }
+    }
+    @keyframes twR6WebFaceOpacity {
+      0%,36% { opacity:0; }
+      39%,100% { opacity:1; }
+    }
+
+    /* Content remains R5.5-like: clean, compact handoff; no blank phase. */
+    @keyframes twR6AiContent {
+      0%,28% { opacity:1; }
+      38%,100% { opacity:0; }
+    }
+    @keyframes twR6WebContent {
+      0%,36% { opacity:0; }
+      46%,100% { opacity:1; }
+    }
+    @keyframes twR6AiInscription {
+      0%,26% { opacity:.92; }
+      38%,100% { opacity:0; }
+    }
+    @keyframes twR6WebInscription {
+      0%,38% { opacity:0; }
+      50%,100% { opacity:.92; }
+    }
+
+    @keyframes twR6AiLight {
+      0%,20% { opacity:.48; }
+      55%,100% { opacity:.07; }
+    }
+    @keyframes twR6WebLight {
+      0%,20% { opacity:.08; }
+      55%,100% { opacity:.46; }
+    }
+
+    @keyframes twR6Fold {
+      0%,20% { translate:108vw 0 0; rotate:y -5deg; }
+      28.75% { translate:85.3075vw 0 0; rotate:y -3.044deg; }
+      37.5% { translate:50vw 0 0; rotate:y 0deg; }
+      46.25% { translate:14.6925vw 0 0; rotate:y 3.044deg; }
+      55%,80%,100% { translate:-8vw 0 0; rotate:y 5deg; }
+    }
+  }
+
+  @media (prefers-reduced-motion:no-preference) and
+         (orientation:landscape) and (max-height:540px) and (max-width:980px) {
+    .tw-r5[data-r6-native="true"] .tw-r2__face--ai {
+      animation-name:twR6AiFaceLandscape,twR6AiFaceOpacity;
+    }
+    .tw-r5[data-r6-native="true"] .tw-r2__face--web {
+      animation-name:twR6WebFaceLandscape,twR6WebFaceOpacity;
+    }
+
+    @keyframes twR6AiFaceLandscape {
+      0%,20% { translate:0% 0 0px; rotate:y -3deg; }
+      28.75% { translate:-1.663% 0 -9.39px; rotate:y -4.858deg; }
+      37.5% { translate:-4.25% 0 -24px; rotate:y -7.75deg; }
+      46.25% { translate:-6.837% 0 -38.61px; rotate:y -10.642deg; }
+      55%,80%,100% { translate:-8.5% 0 -48px; rotate:y -12.5deg; }
+    }
+
+    @keyframes twR6WebFaceLandscape {
+      0%,20% { translate:8.5% 0 -48px; rotate:y 12.5deg; }
+      28.75% { translate:6.837% 0 -38.61px; rotate:y 10.642deg; }
+      37.5% { translate:4.25% 0 -24px; rotate:y 7.75deg; }
+      46.25% { translate:1.663% 0 -9.39px; rotate:y 4.858deg; }
+      55%,80%,100% { translate:0% 0 0px; rotate:y 3deg; }
+    }
+  }
+}

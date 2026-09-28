@@ -72,6 +72,20 @@ Owner-approved landscape architecture:
 - Owner visually approved the final R2.4 touch-landscape preview on a real device;
 - rollback before production promotion: `backup/pre-selected-thinking-r24-production-20260927`.
 
+## Insights Editorial V2 R2.1 production release — 2026-09-28
+
+Owner-approved pilot authority:
+- EN/RU Insights hubs move from the legacy card/archive presentation to Editorial V2 with Lead 01, supporting 02/03, Decision Domains and the complete Insight Ledger;
+- EN/RU Lead Response article becomes the first Article V2 / Decision Document pilot;
+- Decision Spine is the approved signature art direction: steel owns structure, graphite owns selective depth, pearl owns primary ideas, muted indigo is rare transition/depth, and cyan is not used;
+- accepted desktop article reading geometry remains 820px prose with the Chapter Rail outside the prose allocation;
+- touch portrait and touch landscape retain authored responsive states;
+- the Owner-found decision-table defect was corrected in R2.1: portrait internal table minimum 920px, risk column 112px, arbitrary mid-word wrapping disabled, risk labels remain single-line, and normal underlines were removed while forced-colors accessibility remains;
+- targeted Chromium/WebKit table QA passed at 430/390/375/360/320 portrait and 844×390 / 932×430 touch landscape, EN/RU, with internal table scrolling and zero page overflow;
+- final R2.1 QA run: 36391389105 — PASS;
+- rollback before production promotion: `backup/pre-insights-v2-r2-1-production-20260928`;
+- remaining article pairs are NOT yet migrated and require separate Builder + Owner approval.
+
 ## Active R&D — AI Systems / Boxes Hover
 
 This workstream is **not production authority** and must stay isolated from `main` until Owner visual approval.

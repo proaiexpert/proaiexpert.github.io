@@ -67,6 +67,16 @@ Current authority:
 
 Approved production state: Decision Aperture / Trace R2.4. Desktop and portrait retain the accepted R2.2/R2.1 visual and motion system. Touch-device landscape uses the R2.4 authored topology: Lead 01 occupies a full-width featured row, with 02/03 in a 50/50 supporting row below. Landscape activation is capability-based (`orientation: landscape` + `any-pointer: coarse`) rather than model-specific viewport dimensions. Historical R1 files remain rollback evidence only and are not current Selected Thinking design authority.
 
+### Insights / Editorial System
+Current authority:
+- `_data/insights.yml`
+- `_layouts/insights-hub-v2.html`
+- `_layouts/insight-v2.html`
+- `assets/css/insights-editorial-v2.css`
+- `assets/js/insights-editorial-v2.js`
+
+Approved production state: Editorial V2 R2.1. The EN/RU Insights hubs and EN/RU Lead Response pilot article use the Decision Spine signature system with selective graphite depth, steel structural authority, preserved 820px article prose geometry, authored touch portrait/landscape behavior, and a horizontally scrollable decision matrix with protected single-line risk labels. Remaining Insights articles stay on their existing production layouts until separately migrated and approved. R1/R2/R2.1 branches and owner-preview pages are evidence only, not product authority.
+
 ### Selected Work
 Current authority:
 - `assets/css/home-selected-work-r1.css`

@@ -22,6 +22,7 @@
   var TRANSITION_REVERSE_THRESHOLD_LANDSCAPE=16;
   var ORIENTATION_INTENT_GUARD_MS=220;
   var REVERSE_REENTRY_HOLD_MS=280;
+  var REVERSE_REENTRY_SETTLE_MS=120;
   var orientationIntentGuardUntil=0;
 
   function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
@@ -58,6 +59,9 @@
       stageOwned:false,
       wasBelowExperience:false,
       webReentryHoldUntil:0,
+      webReentryWaitingFresh:false,
+      webReentryLastScrollAt:0,
+      webReentrySettleTimer:0,
       moonlit:false,
       targetLightX:0,
       targetLightY:0,
@@ -118,6 +122,9 @@
     s.lastFrame=0;
     s.wasBelowExperience=false;
     s.webReentryHoldUntil=0;
+    s.webReentryWaitingFresh=false;
+    s.webReentryLastScrollAt=0;
+    if(s.webReentrySettleTimer){window.clearTimeout(s.webReentrySettleTimer);s.webReentrySettleTimer=0;}
     if(state==='AI_LOCKED'){
       s.t=0;
       setVar(section,'--tw-r4-ai-x','0%');
@@ -248,6 +255,41 @@
     return experienceStatus(section).engaged;
   }
 
+  function scheduleWebReentryFreshGate(section){
+    var s=stateFor(section);
+    if(s.webReentrySettleTimer)window.clearTimeout(s.webReentrySettleTimer);
+    var wait=Math.max(0,s.webReentryHoldUntil-performance.now())+REVERSE_REENTRY_SETTLE_MS;
+    s.webReentrySettleTimer=window.setTimeout(function(){
+      s.webReentrySettleTimer=0;
+      if(s.logical!=='WEB_LOCKED'||!s.webReentryWaitingFresh)return;
+      var now=performance.now();
+      var quietFor=now-s.webReentryLastScrollAt;
+      if(now<s.webReentryHoldUntil||quietFor<REVERSE_REENTRY_SETTLE_MS){
+        scheduleWebReentryFreshGate(section);
+        return;
+      }
+      /* The original upward swipe/momentum is over. The next scroll event is
+         now a genuinely fresh gesture and may contribute reverse intent. */
+      s.webReentryWaitingFresh=false;
+      s.webReentryHoldUntil=0;
+      s.intent=0;
+      s.reverseIntent=0;
+      s.lastScrollY=Math.max(0,window.scrollY||0);
+    },wait);
+  }
+
+  function armWebReentryGate(section,now){
+    var s=stateFor(section);
+    s.wasBelowExperience=false;
+    s.webReentryHoldUntil=now+REVERSE_REENTRY_HOLD_MS;
+    s.webReentryWaitingFresh=true;
+    s.webReentryLastScrollAt=now;
+    s.intent=0;
+    s.reverseIntent=0;
+    s.lastScrollY=Math.max(0,window.scrollY||0);
+    scheduleWebReentryFreshGate(section);
+  }
+
   function initialMobileState(section){
     var experience=section.querySelector('[data-tw-experience]');
     if(!experience)return 'AI_LOCKED';
@@ -282,27 +324,30 @@
          This is the only condition that can arm the Web re-entry hold later. */
       s.wasBelowExperience=true;
       s.webReentryHoldUntil=0;
+      s.webReentryWaitingFresh=false;
+      s.webReentryLastScrollAt=0;
+      if(s.webReentrySettleTimer){window.clearTimeout(s.webReentrySettleTimer);s.webReentrySettleTimer=0;}
       s.intent=0;
       s.reverseIntent=0;
       return;
     }
 
     if(s.logical==='WEB_LOCKED'&&delta<0&&s.wasBelowExperience&&experience.engaged){
-      /* The same upward gesture that brings Web back on screen must not
-         immediately consume reverse intent. Establish a short, geometry-free
-         plateau, synchronize scroll, and discard all pre/within-hold intent. */
-      s.wasBelowExperience=false;
-      s.webReentryHoldUntil=now+REVERSE_REENTRY_HOLD_MS;
-      s.intent=0;
-      s.reverseIntent=0;
-      s.lastScrollY=y;
+      /* R4.2.1 used a time gate only. Momentum from the SAME swipe could still
+         resume reverse intent the instant 280ms elapsed, which is why the Web
+         screen remained hard to catch in Chrome on iPhone. R4.2.2 requires
+         both minimum hold time AND scroll settle before accepting a fresh
+         upward gesture. */
+      armWebReentryGate(section,now);
       return;
     }
 
-    if(now<s.webReentryHoldUntil){
+    if(s.webReentryWaitingFresh){
+      s.webReentryLastScrollAt=now;
       s.intent=0;
       s.reverseIntent=0;
       s.lastScrollY=y;
+      scheduleWebReentryFreshGate(section);
       return;
     }
 

@@ -393,7 +393,11 @@ jobs:
 
                           if engine_name=='chromium' and lang in ('ru','en') and vp in ('portrait-430','portrait-390','touch-landscape-844'):
                               shot=out/f"{lang}-{vp}-right-edge.png"
-                              page.locator('.insight-v2-table-wrap').screenshot(path=str(shot))
+                              wrap_loc=page.locator('.insight-v2-table-wrap')
+                              wrap_loc.scroll_into_view_if_needed()
+                              wrap_loc.evaluate('(el)=>{el.scrollLeft=el.scrollWidth}')
+                              page.wait_for_timeout(120)
+                              page.screenshot(path=str(shot),full_page=False)
                           ctx.close()
                   browser.close()
 

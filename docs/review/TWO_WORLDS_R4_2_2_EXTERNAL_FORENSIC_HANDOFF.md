@@ -81,7 +81,15 @@ Do not claim a cause without isolating it.
 - `assets/css/homepage-two-worlds-golden-r1.css`
 - `assets/css/homepage-two-worlds-golden-r1-landscape-fix.css`
 
-The owner also remembers an even earlier smooth visual version. If needed, audit git history around older Two Worlds implementations rather than assuming R1 is that exact version.
+The owner also remembers an even earlier smooth visual version. Do not assume current R1 is that exact version.
+
+Historical preview refs that should be compared first:
+- `two-worlds-preview`
+- `two-worlds-r1-1-preview`
+- `two-worlds-golden-r2-preview`
+- `two-worlds-golden-r2-1-preview`
+
+The R2/R2.1 branches use a materially different geometry model (shared normalized physical state, much smaller X travel, boundary-driven face ownership, and different Z/rotation curves). They are high-value references for identifying what changed between the remembered smooth behavior and current R4.2.2.
 
 ---
 

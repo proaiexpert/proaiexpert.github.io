@@ -1,0 +1,284 @@
+name: Insights Editorial V2 R1 QA
+
+on:
+  push:
+    branches:
+      - agent/insights-editorial-v2-builder-r1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Verify owner preview has no unresolved Liquid
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          pages = [
+              Path('owner-preview/insights-v2/index.html'),
+              Path('owner-preview/insights-v2/ru.html'),
+              Path('owner-preview/insight-v2-lead-response/index.html'),
+              Path('owner-preview/insight-v2-lead-response/ru.html'),
+          ]
+          for page in pages:
+              text = page.read_text(encoding='utf-8')
+              a = text.count('{%')
+              b = text.count('{{')
+              print(f'{page}: unresolved {{%={a}, {{{{={b}')
+              assert a == 0 and b == 0
+          PY
+
+      - name: Build candidate with Jekyll
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+
+      - name: Verify generated pilot routes and SEO invariants
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          pages = {
+            'en_hub': Path('_site/insights/index.html'),
+            'ru_hub': Path('_site/ru/insights/index.html'),
+            'en_article': Path('_site/insights/what-happens-after-a-lead-arrives/index.html'),
+            'ru_article': Path('_site/ru/insights/chto-proiskhodit-posle-zayavki/index.html'),
+          }
+          expected = {
+            'en_hub': ('https://proai-expert.com/insights/','https://proai-expert.com/ru/insights/'),
+            'ru_hub': ('https://proai-expert.com/ru/insights/','https://proai-expert.com/insights/'),
+            'en_article': ('https://proai-expert.com/insights/what-happens-after-a-lead-arrives/','https://proai-expert.com/ru/insights/chto-proiskhodit-posle-zayavki/'),
+            'ru_article': ('https://proai-expert.com/ru/insights/chto-proiskhodit-posle-zayavki/','https://proai-expert.com/insights/what-happens-after-a-lead-arrives/'),
+          }
+          for key,path in pages.items():
+              assert path.exists(), path
+              text=path.read_text(encoding='utf-8')
+              assert '{%' not in text and '{{' not in text, key
+              assert text.count('<h1') == 1, (key, text.count('<h1'))
+              canonical,counterpart=expected[key]
+              assert f'rel="canonical" href="{canonical}"' in text, key
+              assert counterpart in text, key
+              assert 'hreflang="x-default"' in text, key
+              assert 'assets/css/insights-editorial-v2.css' in text, key
+              assert 'premium-article-hotfix-v1.css' not in text, key
+              assert 'lead-response-article-v1.css' not in text, key
+          for key in ('en_article','ru_article'):
+              text=pages[key].read_text(encoding='utf-8')
+              assert '"@type":"Article"' in text
+              assert '"@type":"BreadcrumbList"' in text
+              assert text.count('<h2 id="section-') == 12
+              assert '<caption>' in text
+              assert text.count('<th') >= 5
+          print('Generated pilot SEO/semantic verification: PASS')
+          PY
+
+      - name: Install browser QA dependencies
+        shell: bash
+        run: |
+          python -m pip install --upgrade playwright
+          python -m playwright install --with-deps chromium webkit
+
+      - name: Run Chromium and WebKit visual / geometry QA
+        shell: bash
+        run: |
+          mkdir -p qa-artifacts/screens
+          python -m http.server 4173 --directory . >/tmp/proai-root.log 2>&1 &
+          python -m http.server 4174 --directory _site >/tmp/proai-site.log 2>&1 &
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          from pathlib import Path
+          import json, time, urllib.request
+
+          ROOT='http://127.0.0.1:4173'
+          SITE='http://127.0.0.1:4174'
+          PROD='https://proai-expert.com'
+          out=Path('qa-artifacts'); (out/'screens').mkdir(parents=True,exist_ok=True)
+
+          for url in (ROOT, SITE):
+              for _ in range(30):
+                  try:
+                      urllib.request.urlopen(url, timeout=1)
+                      break
+                  except Exception:
+                      time.sleep(.2)
+
+          routes={
+            'en_hub':'/insights/',
+            'ru_hub':'/ru/insights/',
+            'en_article':'/insights/what-happens-after-a-lead-arrives/',
+            'ru_article':'/ru/insights/chto-proiskhodit-posle-zayavki/',
+          }
+          preview_routes={
+            'en_hub':'/owner-preview/insights-v2/',
+            'ru_hub':'/owner-preview/insights-v2/ru.html',
+            'en_article':'/owner-preview/insight-v2-lead-response/',
+            'ru_article':'/owner-preview/insight-v2-lead-response/ru.html',
+          }
+          viewports=[
+            ('desktop-1280',1280,900,False),
+            ('desktop-1366',1366,900,False),
+            ('desktop-1440',1440,1000,False),
+            ('desktop-1600',1600,1000,False),
+            ('desktop-1920',1920,1080,False),
+            ('portrait-430',430,932,True),
+            ('portrait-390',390,844,True),
+            ('portrait-375',375,812,True),
+            ('portrait-360',360,800,True),
+            ('portrait-320',320,700,True),
+            ('tablet-portrait',768,1024,True),
+            ('tablet-landscape',1024,768,True),
+            ('touch-landscape-844',844,390,True),
+            ('touch-landscape-932',932,430,True),
+          ]
+
+          results={'engines':{},'no_js':{},'ab':{},'preview_parity':{}}
+
+          def evaluate(page, key):
+              return page.evaluate("""(key)=>{
+                const d=document.documentElement;
+                const body=document.body;
+                const q=s=>document.querySelector(s);
+                const rect=s=>{const e=q(s); if(!e)return null; const r=e.getBoundingClientRect(); return {x:+r.x.toFixed(2),y:+r.y.toFixed(2),width:+r.width.toFixed(2),height:+r.height.toFixed(2)}};
+                const prose=q('.insight-v2__prose');
+                let ch=null, proseMeasure=null;
+                if(prose){
+                  const p=document.createElement('span'); p.style.cssText='position:absolute;visibility:hidden;width:1ch;height:1px;'; prose.appendChild(p); ch=p.getBoundingClientRect().width; p.remove();
+                  proseMeasure=ch? +(prose.getBoundingClientRect().width/ch).toFixed(1):null;
+                }
+                const rail=q('.insight-v2-rail');
+                const rg=q('.insight-v2-article__reading-grid');
+                return {
+                  key,
+                  viewportWidth:innerWidth, viewportHeight:innerHeight,
+                  scrollWidth:d.scrollWidth, overflowDelta:d.scrollWidth-innerWidth,
+                  h1Count:document.querySelectorAll('h1').length,
+                  h2Count:document.querySelectorAll('h2').length,
+                  ledgerCount:document.querySelectorAll('.insights-v2__ledger-row').length,
+                  chapterCount:document.querySelectorAll('.insight-v2-rail a').length,
+                  sectionCount:document.querySelectorAll('.insight-v2__prose h2[id]').length,
+                  tableCaptionCount:document.querySelectorAll('.insight-v2-decision-table caption').length,
+                  canvas:rect('.insight-v2-article__canvas'),
+                  masthead:rect('.insight-v2-article__heading'),
+                  prose:rect('.insight-v2__prose'),
+                  proseCh:proseMeasure,
+                  rail:rect('.insight-v2-rail'),
+                  railDisplay:rail?getComputedStyle(rail).display:null,
+                  readingGap:rg?getComputedStyle(rg).columnGap:null,
+                  executive:rect('.insight-v2-signal'),
+                  framework:rect('.insight-v2-module--process'),
+                  wideTable:rect('.insight-v2-table-wrap'),
+                  inlineContentsDisplay:q('.insight-v2-contents')?getComputedStyle(q('.insight-v2-contents')).display:null
+                };
+              }""", key)
+
+          with sync_playwright() as p:
+              for engine_name,btype in [('chromium',p.chromium),('webkit',p.webkit)]:
+                  browser=btype.launch()
+                  engine=[]
+                  for vp,w,h,touch in viewports:
+                      # WebKit and Chromium both get explicit touch capability for touch states.
+                      ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
+                      page=ctx.new_page()
+                      for key,path in routes.items():
+                          errors=[]
+                          page.on('pageerror',lambda exc,errors=errors: errors.append(str(exc)))
+                          page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
+                          page.wait_for_timeout(120)
+                          data=evaluate(page,key)
+                          data.update({'viewport':vp,'page':key,'pageErrors':errors[:]})
+                          engine.append(data)
+                      ctx.close()
+                  results['engines'][engine_name]=engine
+                  browser.close()
+
+              # No-JS: generated product pages must remain readable/crawlable.
+              browser=p.chromium.launch()
+              ctx=browser.new_context(viewport={'width':1440,'height':1000},java_script_enabled=False)
+              page=ctx.new_page()
+              for key,path in routes.items():
+                  page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
+                  results['no_js'][key]={
+                    'h1':page.locator('h1').count(),
+                    'textLength':len(page.locator('main').inner_text()),
+                    'links':page.locator('main a[href]').count(),
+                    'sections':page.locator('.insight-v2__prose h2[id]').count(),
+                    'ledger':page.locator('.insights-v2__ledger-row').count(),
+                  }
+              ctx.close(); browser.close()
+
+              # Owner preview parity: same V2 geometry as generated product at desktop.
+              browser=p.chromium.launch()
+              for key,path in routes.items():
+                  c1=browser.new_context(viewport={'width':1440,'height':1000})
+                  p1=c1.new_page(); p1.goto(SITE+path,wait_until='domcontentloaded',timeout=60000); p1.wait_for_timeout(150)
+                  built=evaluate(p1,key)
+                  c2=browser.new_context(viewport={'width':1440,'height':1000})
+                  p2=c2.new_page(); p2.goto(ROOT+preview_routes[key],wait_until='domcontentloaded',timeout=60000)
+                  if 'article' in key:
+                      p2.wait_for_selector('.insight-v2__prose #section-0',timeout=10000)
+                  p2.wait_for_timeout(150)
+                  prev=evaluate(p2,key)
+                  results['preview_parity'][key]={'built':built,'preview':prev}
+                  c1.close(); c2.close()
+              browser.close()
+
+              # Same-size A/B evidence (Chromium): current production vs V2 candidate.
+              browser=p.chromium.launch()
+              shots=[
+                ('desktop',1440,1000,False),
+                ('portrait',390,844,True),
+                ('touch-landscape',844,390,True),
+              ]
+              for state,w,h,touch in shots:
+                  for key,path in routes.items():
+                      for label,base in [('current',PROD),('candidate',SITE)]:
+                          ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
+                          page=ctx.new_page()
+                          page.goto(base+path,wait_until='domcontentloaded',timeout=60000)
+                          page.wait_for_timeout(1000 if label=='current' else 180)
+                          f=out/'screens'/f'{state}-{key}-{label}.png'
+                          page.screenshot(path=str(f),full_page=False)
+                          ctx.close()
+              browser.close()
+
+          # Hard acceptance checks from automated matrix.
+          failures=[]
+          for engine,rows in results['engines'].items():
+              for r in rows:
+                  if r['overflowDelta']>1: failures.append(f"{engine}:{r['viewport']}:{r['page']}:overflow={r['overflowDelta']}")
+                  if r['h1Count']!=1: failures.append(f"{engine}:{r['viewport']}:{r['page']}:h1={r['h1Count']}")
+                  if 'hub' in r['page'] and r['ledgerCount']!=12: failures.append(f"{engine}:{r['viewport']}:{r['page']}:ledger={r['ledgerCount']}")
+                  if 'article' in r['page'] and r['sectionCount']!=12: failures.append(f"{engine}:{r['viewport']}:{r['page']}:sections={r['sectionCount']}")
+                  if 'article' in r['page'] and r['tableCaptionCount']!=1: failures.append(f"{engine}:{r['viewport']}:{r['page']}:caption={r['tableCaptionCount']}")
+                  if r['viewport'].startswith('touch-landscape') and 'article' in r['page'] and r['railDisplay']!='none': failures.append(f"{engine}:{r['viewport']}:{r['page']}:rail={r['railDisplay']}")
+          for key,r in results['no_js'].items():
+              if r['h1']!=1 or r['textLength']<500: failures.append(f"nojs:{key}:{r}")
+              if 'hub' in key and r['ledger']!=12: failures.append(f"nojs:{key}:ledger={r['ledger']}")
+              if 'article' in key and r['sections']!=12: failures.append(f"nojs:{key}:sections={r['sections']}")
+          results['failures']=failures
+          (out/'qa-results.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps({'failure_count':len(failures),'failures':failures[:30]},indent=2))
+          if failures: raise SystemExit(1)
+          PY
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-v2-r1-qa
+          path: qa-artifacts/
+          if-no-files-found: error
+          retention-days: 14

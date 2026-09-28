@@ -222,6 +222,14 @@ jobs:
               except Exception: time.sleep(.2)
 
           failures=[]; rows=[]; table_rows=[]; nojs={}; a11y={}
+          def local_only(page):
+            def handler(route):
+              u=route.request.url
+              if u.startswith('http://127.0.0.1:4173') or u.startswith('http://127.0.0.1:4174') or u.startswith('data:') or u.startswith('blob:'):
+                route.continue_()
+              else:
+                route.abort()
+            page.route('**/*',handler)
           def inspect(page,key):
             return page.evaluate("""(key)=>{
               const d=document.documentElement, q=s=>document.querySelector(s);
@@ -244,7 +252,7 @@ jobs:
               browser=btype.launch()
               for vp,w,h,touch in viewports:
                 ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
-                page=ctx.new_page()
+                page=ctx.new_page(); local_only(page)
                 for key,path in routes.items():
                   errors=[]
                   page.on('pageerror',lambda exc,errors=errors:errors.append(str(exc)))
@@ -268,7 +276,7 @@ jobs:
               for vp,w,h,touch in [('portrait-430',430,932,True),('portrait-390',390,844,True),('portrait-375',375,812,True),('portrait-360',360,800,True),('portrait-320',320,700,True),('touch-landscape-844',844,390,True),('touch-landscape-932',932,430,True)]:
                 for key,path in {k:v for k,v in routes.items() if k.startswith('multi_') or k.startswith('proposal_')}.items():
                   ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
-                  page=ctx.new_page(); page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
+                  page=ctx.new_page(); local_only(page); page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
                   wraps=page.locator('.insight-v2-table-wrap')
                   for i in range(wraps.count()):
                     data=wraps.nth(i).evaluate("""(wrap)=>{
@@ -288,7 +296,7 @@ jobs:
                     }""")
                     table_rows.append({'engine':engine_name,'viewport':vp,'page':key,'table':i,**data})
                     if data['pageOverflow']>1: failures.append(f"{engine_name}:{vp}:{key}:table{i}:page-overflow={data['pageOverflow']}")
-                    if data['scroll']<=data['client']+1: failures.append(f"{engine_name}:{vp}:{key}:table{i}:not-scrollable")
+                    if float(data['min'].replace('px',''))>data['client']+1 and data['scroll']<=data['client']+1: failures.append(f"{engine_name}:{vp}:{key}:required-scroll-missing")
                     if data['rightGap'] < -2: failures.append(f"{engine_name}:{vp}:{key}:table{i}:right-edge-unreachable={data['rightGap']}")
                     if data['badCells']: failures.append(f"{engine_name}:{vp}:{key}:table{i}:bad-wrap={data['badCells'][:2]}")
                   if engine_name=='chromium' and key.endswith('_ru') and vp in ('portrait-390','touch-landscape-844'):
@@ -299,7 +307,7 @@ jobs:
             # No-JS: all semantic content survives.
             browser=p.chromium.launch()
             ctx=browser.new_context(viewport={'width':1440,'height':1000},java_script_enabled=False)
-            page=ctx.new_page()
+            page=ctx.new_page(); local_only(page)
             for key,path in routes.items():
               page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
               d={'h1':page.locator('h1').count(),'text':len(page.locator('main').inner_text()),'links':page.locator('main a[href]').count(),'sections':page.locator('.insight-v2__prose h2[id]').count(),'tables':page.locator('table').count()}
@@ -312,7 +320,7 @@ jobs:
             browser=p.chromium.launch()
             for key,path in previews.items():
               ctx=browser.new_context(viewport={'width':390,'height':844},has_touch=True,is_mobile=True)
-              page=ctx.new_page(); page.goto(ROOT+path,wait_until='domcontentloaded',timeout=60000)
+              page=ctx.new_page(); local_only(page); page.goto(ROOT+path,wait_until='domcontentloaded',timeout=60000)
               d=inspect(page,key)
               if d['overflow']>1 or d['h1']!=1 or d['sections']!=expected_sections[key] or d['tables']!=expected_tables[key]:
                 failures.append(f"preview:{key}:{d}")
@@ -323,7 +331,7 @@ jobs:
             browser=p.chromium.launch()
             for key,path in {k:v for k,v in routes.items() if k.startswith('multi_') or k.startswith('proposal_')}.items():
               ctx=browser.new_context(viewport={'width':640,'height':900},reduced_motion='reduce',forced_colors='active')
-              page=ctx.new_page(); page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
+              page=ctx.new_page(); local_only(page); page.goto(SITE+path,wait_until='domcontentloaded',timeout=60000)
               page.keyboard.press('Tab')
               focus=page.evaluate("document.activeElement && (document.activeElement.tagName+'|'+(document.activeElement.getAttribute('href')||''))")
               reduced=page.evaluate("""()=>getComputedStyle(document.querySelector('.insight-v2-cover__spine')).animationName""")

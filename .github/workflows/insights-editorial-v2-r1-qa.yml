@@ -180,7 +180,13 @@ jobs:
                   executive:rect('.insight-v2-signal'),
                   framework:rect('.insight-v2-module--process'),
                   wideTable:rect('.insight-v2-table-wrap'),
-                  inlineContentsDisplay:q('.insight-v2-contents')?getComputedStyle(q('.insight-v2-contents')).display:null
+                  inlineContentsDisplay:q('.insight-v2-contents')?getComputedStyle(q('.insight-v2-contents')).display:null,
+                  offenders:[...document.querySelectorAll('body *')].map((e)=>{
+                    const r=e.getBoundingClientRect();
+                    const left=Math.max(0,-r.left);
+                    const right=Math.max(0,r.right-innerWidth);
+                    return {tag:e.tagName.toLowerCase(),id:e.id||'',cls:typeof e.className==='string'?e.className:'',left:+r.left.toFixed(1),right:+r.right.toFixed(1),width:+r.width.toFixed(1),overflow:+Math.max(left,right).toFixed(1)};
+                  }).filter(x=>x.overflow>1).sort((a,b)=>b.overflow-a.overflow).slice(0,8)
                 };
               }""", key)
 
@@ -258,7 +264,12 @@ jobs:
               if 'article' in key and r['sections']!=12: failures.append(f"nojs:{key}:sections={r['sections']}")
           results['failures']=failures
           (out/'qa-results.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf-8')
-          print(json.dumps({'failure_count':len(failures),'failures':failures[:30]},indent=2))
+          offender_summary=[]
+          for engine,rows in results['engines'].items():
+              for r in rows:
+                  if r['overflowDelta']>1:
+                      offender_summary.append({'engine':engine,'viewport':r['viewport'],'page':r['page'],'overflowDelta':r['overflowDelta'],'offenders':r.get('offenders',[])})
+          print(json.dumps({'failure_count':len(failures),'failures':failures[:30],'overflow_offenders':offender_summary[:20]},ensure_ascii=False,indent=2))
           if failures: raise SystemExit(1)
           PY
 

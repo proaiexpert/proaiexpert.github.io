@@ -273,6 +273,56 @@ jobs:
           if failures: raise SystemExit(1)
           PY
 
+      - name: Capture R1 vs R2 signature A/B
+        shell: bash
+        run: |
+          git worktree add --detach /tmp/proai-insights-r1 de43669a4a75e2456f2782ba132347f092ef0777
+          python -m http.server 4175 --directory /tmp/proai-insights-r1 >/tmp/proai-r1.log 2>&1 &
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          from pathlib import Path
+          import time, urllib.request, json
+
+          R1='http://127.0.0.1:4175'
+          R2='http://127.0.0.1:4173'
+          out=Path('qa-artifacts/ab-r1-r2'); out.mkdir(parents=True,exist_ok=True)
+          for _ in range(30):
+              try:
+                  urllib.request.urlopen(R1,timeout=1); break
+              except Exception: time.sleep(.2)
+
+          cases=[
+            ('hub-mobile','/owner-preview/insights-v2/ru.html',390,844,True),
+            ('hub-landscape','/owner-preview/insights-v2/ru.html',844,390,True),
+            ('hub-desktop','/owner-preview/insights-v2/ru.html',1440,1000,False),
+            ('article-mobile','/owner-preview/insight-v2-lead-response/ru.html',390,844,True),
+            ('article-landscape','/owner-preview/insight-v2-lead-response/ru.html',844,390,True),
+            ('article-desktop','/owner-preview/insight-v2-lead-response/ru.html',1440,1000,False),
+          ]
+          manifest={}
+          with sync_playwright() as p:
+              browser=p.chromium.launch()
+              for name,path,w,h,touch in cases:
+                  manifest[name]={}
+                  for label,base in [('r1',R1),('r2',R2)]:
+                      ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch)
+                      page=ctx.new_page()
+                      page.goto(base+path,wait_until='domcontentloaded',timeout=60000)
+                      page.wait_for_timeout(900)
+                      file=out/f'{label}-{name}.png'
+                      page.screenshot(path=str(file),full_page=False)
+                      manifest[name][label]={
+                        'file':str(file),
+                        'h1':page.locator('h1').inner_text(),
+                        'scrollWidth':page.evaluate('document.documentElement.scrollWidth'),
+                        'viewportWidth':page.evaluate('innerWidth')
+                      }
+                      ctx.close()
+              browser.close()
+          (out/'manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps(manifest,ensure_ascii=False,indent=2))
+          PY
+
       - name: Upload QA evidence
         if: always()
         uses: actions/upload-artifact@v4

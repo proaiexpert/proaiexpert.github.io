@@ -45,7 +45,9 @@ jobs:
           for p in previews:
             t=p.read_text(encoding='utf-8')
             assert '{%' not in t and '{{' not in t,p
+            assert 'fetch(' not in t,p
             assert 'insights-editorial-v2.css?v=20260930-r3-2' in t,p
+            assert 'insights-editorial-v2.js?v=20260930-r3-2' in t,p
           print('Source/preview contract: PASS')
           PY
 
@@ -93,19 +95,22 @@ jobs:
     container:
       image: mcr.microsoft.com/playwright/python:v1.55.0-noble
     steps:
+      - uses: actions/checkout@v6
+
       - name: Install matching Playwright Python package
         run: pip install --disable-pip-version-check playwright==1.55.0
 
-      - name: Chromium and WebKit owner-preview matrix
+      - name: Chromium and WebKit static owner-preview matrix
         shell: bash
         run: |
           mkdir -p qa-batch0405
+          python -m http.server 4174 --directory . >/tmp/owner-preview.log 2>&1 &
           python - <<'PY'
           from playwright.sync_api import sync_playwright
           from pathlib import Path
-          import json,time
+          import json,time,urllib.request
 
-          BASE='https://cde9dfba.proaiexpert-github-io.pages.dev'
+          BASE='http://127.0.0.1:4174'
           routes={
             'ai_ready_en':'/owner-preview/insight-v2-ai-ready/',
             'ai_ready_ru':'/owner-preview/insight-v2-ai-ready/ru.html',
@@ -120,25 +125,14 @@ jobs:
             ('portrait-360',360,800,True),('portrait-320',320,700,True),
             ('touch-landscape-844',844,390,True),('touch-landscape-932',932,430,True),
           ]
+          for _ in range(30):
+              try:
+                  urllib.request.urlopen(BASE,timeout=1)
+                  break
+              except Exception:
+                  time.sleep(.2)
+
           failures=[];rows=[]
-
-          def goto_retry(ctx,url,index):
-              last=None
-              for attempt in range(6):
-                  page=ctx.new_page()
-                  try:
-                      page.goto(url,wait_until='domcontentloaded',timeout=45000)
-                      page.wait_for_timeout(300)
-                      got=page.locator('.insight-v2-article__index').inner_text().strip()
-                      if got==index:
-                          return page
-                      last=RuntimeError(f'stale preview index={got}, expected={index}')
-                  except Exception as e:
-                      last=e
-                  page.close()
-                  time.sleep(3)
-              raise last
-
           with sync_playwright() as p:
               for engine,btype in [('chromium',p.chromium),('webkit',p.webkit)]:
                   browser=btype.launch()
@@ -146,10 +140,13 @@ jobs:
                       for key,path in routes.items():
                           idx,sections=expected[key]
                           ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch,reduced_motion='reduce')
-                          page=goto_retry(ctx,BASE+path,idx)
+                          page=ctx.new_page()
+                          page.goto(BASE+path,wait_until='domcontentloaded',timeout=30000)
+                          page.wait_for_timeout(120)
                           d=page.evaluate("""()=>({
                             overflow:document.documentElement.scrollWidth-innerWidth,
                             h1:document.querySelectorAll('h1').length,
+                            index:document.querySelector('.insight-v2-article__index')?.textContent.trim()||'',
                             sections:document.querySelectorAll('.insight-v2__prose h2[id]').length,
                             prose:+document.querySelector('.insight-v2__prose').getBoundingClientRect().width.toFixed(1),
                             rail:getComputedStyle(document.querySelector('.insight-v2-rail')).display,
@@ -159,6 +156,7 @@ jobs:
                           rows.append({'engine':engine,'viewport':label,'page':key,**d})
                           if d['overflow']>1: failures.append(f"{engine}:{label}:{key}:overflow={d['overflow']}")
                           if d['h1']!=1: failures.append(f"{engine}:{label}:{key}:h1={d['h1']}")
+                          if d['index']!=idx: failures.append(f"{engine}:{label}:{key}:index={d['index']}")
                           if d['sections']!=sections: failures.append(f"{engine}:{label}:{key}:sections={d['sections']}")
                           if d['signal']!=3: failures.append(f"{engine}:{label}:{key}:signal={d['signal']}")
                           if d['cta']<2: failures.append(f"{engine}:{label}:{key}:cta={d['cta']}")
@@ -169,12 +167,12 @@ jobs:
                           ctx.close()
                   browser.close()
 
-              # No-JS against the same owner previews.
               browser=p.chromium.launch()
               for key,path in routes.items():
                   idx,sections=expected[key]
                   ctx=browser.new_context(viewport={'width':1440,'height':1000},java_script_enabled=False)
-                  page=goto_retry(ctx,BASE+path,idx)
+                  page=ctx.new_page()
+                  page.goto(BASE+path,wait_until='domcontentloaded',timeout=30000)
                   textlen=len(page.locator('main').inner_text())
                   if page.locator('h1').count()!=1 or page.locator('.insight-v2__prose h2[id]').count()!=sections or textlen<2500:
                       failures.append(f"nojs:{key}:text={textlen}")

@@ -9,9 +9,9 @@ permissions:
   contents: read
 
 jobs:
-  qa:
+  source-build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v6
 
@@ -49,7 +49,7 @@ jobs:
           print('Source/preview contract: PASS')
           PY
 
-      - name: Build and Site Shell
+      - name: Build, social metadata and Site Shell
         shell: bash
         run: |
           export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
@@ -61,18 +61,18 @@ jobs:
           python scripts/apply-social-preview-defaults.py --mode check --root _site
           python scripts/validate-site-shell-r1.py --source-root . --site-root _site
 
-      - name: Generated SEO and article invariants
+      - name: Generated SEO and Article V2 invariants
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           pages={
-            'ai_ready_en':('insights/ai-ready-website-for-business/index.html','04',9,'https://proai-expert.com/insights/ai-ready-website-for-business/','https://proai-expert.com/ru/insights/ai-ready-sayt-dlya-biznesa/'),
-            'ai_ready_ru':('ru/insights/ai-ready-sayt-dlya-biznesa/index.html','04',9,'https://proai-expert.com/ru/insights/ai-ready-sayt-dlya-biznesa/','https://proai-expert.com/insights/ai-ready-website-for-business/'),
-            'ai_search_en':('insights/ai-search-optimization-for-service-businesses/index.html','05',7,'https://proai-expert.com/insights/ai-search-optimization-for-service-businesses/','https://proai-expert.com/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/'),
-            'ai_search_ru':('ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html','05',7,'https://proai-expert.com/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/','https://proai-expert.com/insights/ai-search-optimization-for-service-businesses/'),
+            'ai_ready_en':('insights/ai-ready-website-for-business/index.html','04','https://proai-expert.com/insights/ai-ready-website-for-business/','https://proai-expert.com/ru/insights/ai-ready-sayt-dlya-biznesa/'),
+            'ai_ready_ru':('ru/insights/ai-ready-sayt-dlya-biznesa/index.html','04','https://proai-expert.com/ru/insights/ai-ready-sayt-dlya-biznesa/','https://proai-expert.com/insights/ai-ready-website-for-business/'),
+            'ai_search_en':('insights/ai-search-optimization-for-service-businesses/index.html','05','https://proai-expert.com/insights/ai-search-optimization-for-service-businesses/','https://proai-expert.com/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/'),
+            'ai_search_ru':('ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html','05','https://proai-expert.com/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/','https://proai-expert.com/insights/ai-search-optimization-for-service-businesses/'),
           }
-          for key,(rel,idx,sections,canonical,counterpart) in pages.items():
+          for key,(rel,idx,canonical,counterpart) in pages.items():
             t=(Path('_site')/rel).read_text(encoding='utf-8')
             assert t.count('<h1')==1,(key,t.count('<h1'))
             assert f'<div class="insight-v2-article__index" aria-hidden="true">{idx}</div>' in t,key
@@ -86,29 +86,33 @@ jobs:
           print('Generated Article/SEO invariants: PASS')
           PY
 
-      - name: Install browsers
-        run: |
-          python -m pip install --upgrade playwright
-          python -m playwright install chromium webkit
+  browser:
+    needs: source-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.55.0-noble
+    steps:
+      - name: Install matching Playwright Python package
+        run: pip install --disable-pip-version-check playwright==1.55.0
 
-      - name: Browser matrix
+      - name: Chromium and WebKit owner-preview matrix
         shell: bash
         run: |
           mkdir -p qa-batch0405
-          python -m http.server 4174 --directory _site >/tmp/site.log 2>&1 &
           python - <<'PY'
           from playwright.sync_api import sync_playwright
           from pathlib import Path
-          import json,time,urllib.request
+          import json,time
 
-          SITE='http://127.0.0.1:4174'
+          BASE='https://agent-insights-editorial-v2-2s69.proaiexpert-github-io.pages.dev'
           routes={
-            'ai_ready_en':'/insights/ai-ready-website-for-business/',
-            'ai_ready_ru':'/ru/insights/ai-ready-sayt-dlya-biznesa/',
-            'ai_search_en':'/insights/ai-search-optimization-for-service-businesses/',
-            'ai_search_ru':'/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/',
+            'ai_ready_en':'/owner-preview/insight-v2-ai-ready/',
+            'ai_ready_ru':'/owner-preview/insight-v2-ai-ready/ru.html',
+            'ai_search_en':'/owner-preview/insight-v2-ai-search/',
+            'ai_search_ru':'/owner-preview/insight-v2-ai-search/ru.html',
           }
-          expected={'ai_ready_en':9,'ai_ready_ru':9,'ai_search_en':7,'ai_search_ru':7}
+          expected={'ai_ready_en':('04',9),'ai_ready_ru':('04',9),'ai_search_en':('05',7),'ai_search_ru':('05',7)}
           vps=[
             ('desktop-1280',1280,900,False),('desktop-1440',1440,1000,False),
             ('desktop-1600',1600,1000,False),('desktop-1920',1920,1080,False),
@@ -116,20 +120,23 @@ jobs:
             ('portrait-360',360,800,True),('portrait-320',320,700,True),
             ('touch-landscape-844',844,390,True),('touch-landscape-932',932,430,True),
           ]
-          for _ in range(30):
-              try: urllib.request.urlopen(SITE,timeout=1); break
-              except Exception: time.sleep(.2)
+          failures=[];rows=[]
 
-          failures=[]; rows=[]
-          def goto_retry(ctx,url):
+          def goto_retry(ctx,url,index):
               last=None
-              for _ in range(3):
+              for attempt in range(6):
                   page=ctx.new_page()
                   try:
-                      page.goto(url,wait_until='domcontentloaded',timeout=30000)
-                      return page
+                      page.goto(url,wait_until='domcontentloaded',timeout=45000)
+                      page.wait_for_timeout(300)
+                      got=page.locator('.insight-v2-article__index').inner_text().strip()
+                      if got==index:
+                          return page
+                      last=RuntimeError(f'stale preview index={got}, expected={index}')
                   except Exception as e:
-                      last=e; page.close()
+                      last=e
+                  page.close()
+                  time.sleep(3)
               raise last
 
           with sync_playwright() as p:
@@ -137,9 +144,9 @@ jobs:
                   browser=btype.launch()
                   for label,w,h,touch in vps:
                       for key,path in routes.items():
+                          idx,sections=expected[key]
                           ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch,reduced_motion='reduce')
-                          page=goto_retry(ctx,SITE+path)
-                          page.wait_for_timeout(120)
+                          page=goto_retry(ctx,BASE+path,idx)
                           d=page.evaluate("""()=>({
                             overflow:document.documentElement.scrollWidth-innerWidth,
                             h1:document.querySelectorAll('h1').length,
@@ -152,7 +159,7 @@ jobs:
                           rows.append({'engine':engine,'viewport':label,'page':key,**d})
                           if d['overflow']>1: failures.append(f"{engine}:{label}:{key}:overflow={d['overflow']}")
                           if d['h1']!=1: failures.append(f"{engine}:{label}:{key}:h1={d['h1']}")
-                          if d['sections']!=expected[key]: failures.append(f"{engine}:{label}:{key}:sections={d['sections']}")
+                          if d['sections']!=sections: failures.append(f"{engine}:{label}:{key}:sections={d['sections']}")
                           if d['signal']!=3: failures.append(f"{engine}:{label}:{key}:signal={d['signal']}")
                           if d['cta']<2: failures.append(f"{engine}:{label}:{key}:cta={d['cta']}")
                           if label.startswith('desktop') and d['prose']!=900: failures.append(f"{engine}:{label}:{key}:prose={d['prose']}")
@@ -162,16 +169,17 @@ jobs:
                           ctx.close()
                   browser.close()
 
-              # No-JS readability
+              # No-JS against the same owner previews.
               browser=p.chromium.launch()
-              ctx=browser.new_context(viewport={'width':1440,'height':1000},java_script_enabled=False)
-              page=ctx.new_page()
               for key,path in routes.items():
-                  page.goto(SITE+path,wait_until='domcontentloaded',timeout=30000)
+                  idx,sections=expected[key]
+                  ctx=browser.new_context(viewport={'width':1440,'height':1000},java_script_enabled=False)
+                  page=goto_retry(ctx,BASE+path,idx)
                   textlen=len(page.locator('main').inner_text())
-                  if page.locator('h1').count()!=1 or page.locator('.insight-v2__prose h2[id]').count()!=expected[key] or textlen<2500:
+                  if page.locator('h1').count()!=1 or page.locator('.insight-v2__prose h2[id]').count()!=sections or textlen<2500:
                       failures.append(f"nojs:{key}:text={textlen}")
-              ctx.close();browser.close()
+                  ctx.close()
+              browser.close()
 
           Path('qa-batch0405/results.json').write_text(json.dumps({'failures':failures,'rows':rows},ensure_ascii=False,indent=2),encoding='utf-8')
           print(json.dumps({'failures':failures,'matrix_rows':len(rows)},ensure_ascii=False,indent=2))

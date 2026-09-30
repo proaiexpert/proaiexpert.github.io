@@ -1,0 +1,189 @@
+name: Insights R3 Batch 04-05 QA
+
+on:
+  push:
+    branches:
+      - agent/insights-editorial-v2-r3-articles-04-05
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Source and preview contract
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          routes={
+            'ai_ready_en':Path('insights/ai-ready-website-for-business/index.html'),
+            'ai_ready_ru':Path('ru/insights/ai-ready-sayt-dlya-biznesa/index.html'),
+            'ai_search_en':Path('insights/ai-search-optimization-for-service-businesses/index.html'),
+            'ai_search_ru':Path('ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html'),
+          }
+          previews=[
+            Path('owner-preview/insight-v2-ai-ready/index.html'),
+            Path('owner-preview/insight-v2-ai-ready/ru.html'),
+            Path('owner-preview/insight-v2-ai-search/index.html'),
+            Path('owner-preview/insight-v2-ai-search/ru.html'),
+          ]
+          expected={'ai_ready_en':('04',9),'ai_ready_ru':('04',9),'ai_search_en':('05',7),'ai_search_ru':('05',7)}
+          for key,p in routes.items():
+            t=p.read_text(encoding='utf-8')
+            idx,sections=expected[key]
+            assert 'layout: insight-v2' in t,p
+            assert f'article_index: "{idx}"' in t,p
+            assert t.count('<h2 id=')==sections,(p,t.count('<h2 id='),sections)
+            assert 'class="article-body"' not in t,p
+            assert 'class="article-callout"' not in t,p
+            assert '<table' not in t,p
+          for p in previews:
+            t=p.read_text(encoding='utf-8')
+            assert '{%' not in t and '{{' not in t,p
+            assert 'insights-editorial-v2.css?v=20260930-r3-2' in t,p
+          print('Source/preview contract: PASS')
+          PY
+
+      - name: Build and Site Shell
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+
+      - name: Generated SEO and article invariants
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          pages={
+            'ai_ready_en':('insights/ai-ready-website-for-business/index.html','04',9,'https://proai-expert.com/insights/ai-ready-website-for-business/','https://proai-expert.com/ru/insights/ai-ready-sayt-dlya-biznesa/'),
+            'ai_ready_ru':('ru/insights/ai-ready-sayt-dlya-biznesa/index.html','04',9,'https://proai-expert.com/ru/insights/ai-ready-sayt-dlya-biznesa/','https://proai-expert.com/insights/ai-ready-website-for-business/'),
+            'ai_search_en':('insights/ai-search-optimization-for-service-businesses/index.html','05',7,'https://proai-expert.com/insights/ai-search-optimization-for-service-businesses/','https://proai-expert.com/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/'),
+            'ai_search_ru':('ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html','05',7,'https://proai-expert.com/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/','https://proai-expert.com/insights/ai-search-optimization-for-service-businesses/'),
+          }
+          for key,(rel,idx,sections,canonical,counterpart) in pages.items():
+            t=(Path('_site')/rel).read_text(encoding='utf-8')
+            assert t.count('<h1')==1,(key,t.count('<h1'))
+            assert f'<div class="insight-v2-article__index" aria-hidden="true">{idx}</div>' in t,key
+            assert t.count('<h2 id=')==sections,(key,t.count('<h2 id='),sections)
+            assert f'rel="canonical" href="{canonical}"' in t,key
+            assert counterpart in t,key
+            assert 'hreflang="en"' in t and 'hreflang="ru"' in t and 'hreflang="x-default"' in t,key
+            assert '"@type":"Article"' in t and '"@type":"BreadcrumbList"' in t,key
+            assert 'proai-inner-golden-r1' in t,key
+            assert 'insights-editorial-v2.css?v=20260930-r3-2' in t,key
+            assert '<table' not in t,key
+          print('Generated Article/SEO invariants: PASS')
+          PY
+
+      - name: Install browsers
+        run: |
+          python -m pip install --upgrade playwright
+          python -m playwright install --with-deps chromium webkit
+
+      - name: Browser matrix
+        shell: bash
+        run: |
+          mkdir -p qa-batch0405
+          python -m http.server 4174 --directory _site >/tmp/site.log 2>&1 &
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          from pathlib import Path
+          import json,time,urllib.request
+
+          SITE='http://127.0.0.1:4174'
+          routes={
+            'ai_ready_en':'/insights/ai-ready-website-for-business/',
+            'ai_ready_ru':'/ru/insights/ai-ready-sayt-dlya-biznesa/',
+            'ai_search_en':'/insights/ai-search-optimization-for-service-businesses/',
+            'ai_search_ru':'/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/',
+          }
+          expected={'ai_ready_en':9,'ai_ready_ru':9,'ai_search_en':7,'ai_search_ru':7}
+          vps=[
+            ('desktop-1280',1280,900,False),('desktop-1440',1440,1000,False),
+            ('desktop-1600',1600,1000,False),('desktop-1920',1920,1080,False),
+            ('portrait-430',430,932,True),('portrait-390',390,844,True),
+            ('portrait-360',360,800,True),('portrait-320',320,700,True),
+            ('touch-landscape-844',844,390,True),('touch-landscape-932',932,430,True),
+          ]
+          for _ in range(30):
+              try: urllib.request.urlopen(SITE,timeout=1); break
+              except Exception: time.sleep(.2)
+
+          failures=[]; rows=[]
+          def goto_retry(ctx,url):
+              last=None
+              for _ in range(3):
+                  page=ctx.new_page()
+                  try:
+                      page.goto(url,wait_until='domcontentloaded',timeout=30000)
+                      return page
+                  except Exception as e:
+                      last=e; page.close()
+              raise last
+
+          with sync_playwright() as p:
+              for engine,btype in [('chromium',p.chromium),('webkit',p.webkit)]:
+                  browser=btype.launch()
+                  for label,w,h,touch in vps:
+                      for key,path in routes.items():
+                          ctx=browser.new_context(viewport={'width':w,'height':h},has_touch=touch,is_mobile=touch,reduced_motion='reduce')
+                          page=goto_retry(ctx,SITE+path)
+                          page.wait_for_timeout(120)
+                          d=page.evaluate("""()=>({
+                            overflow:document.documentElement.scrollWidth-innerWidth,
+                            h1:document.querySelectorAll('h1').length,
+                            sections:document.querySelectorAll('.insight-v2__prose h2[id]').length,
+                            prose:+document.querySelector('.insight-v2__prose').getBoundingClientRect().width.toFixed(1),
+                            rail:getComputedStyle(document.querySelector('.insight-v2-rail')).display,
+                            signal:document.querySelectorAll('.insight-v2-signal>div:not(.insight-v2-signal__axis)').length,
+                            cta:document.querySelectorAll('.insight-v2-article-cta__action').length
+                          })""")
+                          rows.append({'engine':engine,'viewport':label,'page':key,**d})
+                          if d['overflow']>1: failures.append(f"{engine}:{label}:{key}:overflow={d['overflow']}")
+                          if d['h1']!=1: failures.append(f"{engine}:{label}:{key}:h1={d['h1']}")
+                          if d['sections']!=expected[key]: failures.append(f"{engine}:{label}:{key}:sections={d['sections']}")
+                          if d['signal']!=3: failures.append(f"{engine}:{label}:{key}:signal={d['signal']}")
+                          if d['cta']<2: failures.append(f"{engine}:{label}:{key}:cta={d['cta']}")
+                          if label.startswith('desktop') and d['prose']!=900: failures.append(f"{engine}:{label}:{key}:prose={d['prose']}")
+                          if label.startswith('touch-landscape') and d['rail']!='none': failures.append(f"{engine}:{label}:{key}:rail={d['rail']}")
+                          if engine=='chromium' and key.endswith('_ru') and label in ('desktop-1600','portrait-390','touch-landscape-844'):
+                              page.screenshot(path=f"qa-batch0405/{key}-{label}.png",full_page=False)
+                          ctx.close()
+                  browser.close()
+
+              # No-JS readability
+              browser=p.chromium.launch()
+              ctx=browser.new_context(viewport={'width':1440,'height':1000},java_script_enabled=False)
+              page=ctx.new_page()
+              for key,path in routes.items():
+                  page.goto(SITE+path,wait_until='domcontentloaded',timeout=30000)
+                  textlen=len(page.locator('main').inner_text())
+                  if page.locator('h1').count()!=1 or page.locator('.insight-v2__prose h2[id]').count()!=expected[key] or textlen<2500:
+                      failures.append(f"nojs:{key}:text={textlen}")
+              ctx.close();browser.close()
+
+          Path('qa-batch0405/results.json').write_text(json.dumps({'failures':failures,'rows':rows},ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps({'failures':failures,'matrix_rows':len(rows)},ensure_ascii=False,indent=2))
+          if failures: raise SystemExit(1)
+          PY
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-r3-batch-04-05-qa
+          path: qa-batch0405/
+          if-no-files-found: warn
+          retention-days: 14

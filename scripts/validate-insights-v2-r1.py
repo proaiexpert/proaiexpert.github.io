@@ -24,13 +24,32 @@ def field(block: str, name: str) -> str | None:
     return match.group(1).strip() if match else None
 
 
-def registry_authors(text: str) -> dict[str, str]:
-    result: dict[str, str] = {}
+def registry_records(text: str) -> dict[str, dict[str, object]]:
+    result: dict[str, dict[str, object]] = {}
     for match in re.finditer(r"(?ms)^- id:\s*([^\n]+)\n(.*?)(?=^- id:|\Z)", text):
         insight_id = match.group(1).strip()
-        author = field(match.group(2), "author_ref")
-        if author:
-            result[insight_id] = author
+        block = match.group(2)
+        author = field(block, "author_ref")
+        publication_index = field(block, "publication_index")
+        related_match = re.search(r"(?m)^\s{2}related_ids:\s*\[([^\]]*)\]", block)
+        related_ids = []
+        if related_match:
+            related_ids = [item.strip() for item in related_match.group(1).split(",") if item.strip()]
+
+        routes: dict[str, str] = {}
+        for lang in ("en", "ru"):
+            lang_match = re.search(rf"(?ms)^  {lang}:\n(.*?)(?=^  [a-z][a-z_]*:|\Z)", block)
+            if lang_match:
+                route = field(lang_match.group(1), "route")
+                if route:
+                    routes[lang] = route
+
+        result[insight_id] = {
+            "author_ref": author or "",
+            "publication_index": publication_index or "",
+            "related_ids": related_ids,
+            "routes": routes,
+        }
     return result
 
 
@@ -85,7 +104,8 @@ def main() -> int:
             print(f"FAIL {error}")
         return 1
 
-    insight_authors = registry_authors(read(insights_path))
+    registry = registry_records(read(insights_path))
+    insight_authors = {key: str(value["author_ref"]) for key, value in registry.items()}
     authors = author_registry(read(authors_path))
     layout = read(layout_path)
     css = read(css_path)
@@ -102,8 +122,34 @@ def main() -> int:
         errors.append("reading-measure authority is not 74ch")
     if "--iv2-prose:900px" not in css:
         errors.append("large-desktop Article field is not 900px")
-    if ".insight-v2-related-slot{display:none}" not in css:
-        errors.append("Stage B related-decisions insertion slot is not inert")
+    if ".insight-v2-related-decisions{" not in css:
+        errors.append("Related Decisions publication-register styling is missing")
+
+    seen_indexes: set[str] = set()
+    for insight_id, record in registry.items():
+        publication_index = str(record["publication_index"])
+        if not publication_index.isdigit():
+            errors.append(f"{insight_id}: missing numeric publication_index")
+        elif publication_index in seen_indexes:
+            errors.append(f"{insight_id}: duplicate publication_index {publication_index}")
+        else:
+            seen_indexes.add(publication_index)
+
+        related_ids = list(record["related_ids"])
+        if not 2 <= len(related_ids) <= 3:
+            errors.append(f"{insight_id}: related_ids must contain 2-3 items")
+        if len(related_ids) != len(set(related_ids)):
+            errors.append(f"{insight_id}: duplicate related_ids")
+        if insight_id in related_ids:
+            errors.append(f"{insight_id}: related_ids cannot reference itself")
+        for related_id in related_ids:
+            target = registry.get(related_id)
+            if not target:
+                errors.append(f"{insight_id}: unknown related_id {related_id}")
+                continue
+            routes = dict(target["routes"])
+            if not routes.get("en") or not routes.get("ru"):
+                errors.append(f"{insight_id}: related_id {related_id} lacks EN/RU routes")
 
     article_sources: list[Path] = []
     for root in (source_root / "insights", source_root / "ru/insights"):
@@ -147,10 +193,10 @@ def main() -> int:
             errors.append(f"{rel}: unknown author_ref {author_ref}")
             continue
 
-        slot = text.find('data-related-decisions-slot')
+        related_include = text.find('{% include insights/related-decisions.html')
         cta = text.find('<div class="insight-v2-article-cta">')
-        if slot < 0 or cta < 0 or slot > cta:
-            errors.append(f"{rel}: future Related Decisions slot must precede article CTA")
+        if related_include < 0 or cta < 0 or related_include > cta:
+            errors.append(f"{rel}: Related Decisions include must precede article CTA")
 
         if site_root.is_dir() and permalink:
             rendered_path = output_path(site_root, permalink)
@@ -164,6 +210,17 @@ def main() -> int:
                 errors.append(f"{rel}: rendered signal count does not match source")
             if f'data-author-type="{expected_type}"' not in html:
                 errors.append(f"{rel}: rendered author type does not match author_ref")
+
+            related_ids = list(registry.get(insight_id, {}).get("related_ids", []))
+            if f'data-related-count="{len(related_ids)}"' not in html:
+                errors.append(f"{rel}: rendered Related Decisions count mismatch")
+            for related_id in related_ids:
+                if f'data-related-id="{related_id}"' not in html:
+                    errors.append(f"{rel}: rendered Related Decisions missing {related_id}")
+                target = registry.get(related_id, {})
+                target_route = dict(target.get("routes", {})).get(lang, "")
+                if target_route and f'href="{target_route}"' not in html:
+                    errors.append(f"{rel}: rendered Related Decisions route mismatch for {related_id}")
             scripts = re.findall(
                 r'<script\b[^>]*type=["\']application/ld\+json["\'][^>]*>([\s\S]*?)</script>',
                 html,
@@ -196,7 +253,8 @@ def main() -> int:
 
     print(
         f"INSIGHTS EDITORIAL V2: PASS — {len(article_sources)} Article V2 sources; "
-        "explicit signals; canonical authors; 900px field / 74ch reading measure."
+        "explicit signals; canonical authors; validated Related Decisions graph; "
+        "900px field / 74ch reading measure."
     )
     return 0
 

@@ -1,0 +1,24 @@
+{% assign related_source = site.data.insights | where: "id", include.insight_id | first %}
+{% if related_source and related_source.related_ids and related_source.related_ids.size > 0 %}
+<nav class="insight-v2-related-decisions" data-related-decisions data-related-count="{{ related_source.related_ids | size }}" aria-labelledby="related-decisions-heading">
+  <div class="insight-v2-related-decisions__head">
+    <p class="insight-v2-related-decisions__kicker">{% if include.lang == 'ru' %}СЛЕДУЮЩИЙ ШАГ В БИБЛИОТЕКЕ{% else %}NEXT IN THE DECISION LIBRARY{% endif %}</p>
+    <h2 id="related-decisions-heading">{% if include.lang == 'ru' %}Связанные решения{% else %}Related Decisions{% endif %}</h2>
+  </div>
+  <div class="insight-v2-related-decisions__list">
+    {% for related_id in related_source.related_ids %}
+      {% assign related = site.data.insights | where: "id", related_id | first %}
+      {% if include.lang == 'ru' %}{% assign related_local = related.ru %}{% else %}{% assign related_local = related.en %}{% endif %}
+      <a class="insight-v2-related-decisions__item" href="{{ related_local.route }}" data-related-id="{{ related_id }}">
+        <span class="insight-v2-related-decisions__meta">
+          <span class="insight-v2-related-decisions__index">{{ related.publication_index | prepend: '0' | slice: -2, 2 }}</span>
+          <span class="insight-v2-related-decisions__domain">{{ related_local.domain }}</span>
+          <span class="insight-v2-related-decisions__time">{{ related_local.read_time }}</span>
+        </span>
+        <span class="insight-v2-related-decisions__title">{{ related_local.title }}</span>
+        <span class="insight-v2-related-decisions__arrow" aria-hidden="true">→</span>
+      </a>
+    {% endfor %}
+  </div>
+</nav>
+{% endif %}

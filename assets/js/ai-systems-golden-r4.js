@@ -122,6 +122,7 @@ import { REQUIRED_SOURCE_ANCHORS, visualForEvent } from './ai-systems-r4-runtime
       item.classList.toggle('is-past', itemIndex < next);
       item.classList.toggle('is-active', itemIndex === next);
       item.classList.toggle('is-future', itemIndex > next);
+      item.classList.toggle('is-near', itemIndex >= Math.max(0, next - 4) && itemIndex <= next);
       if (itemIndex === next) item.setAttribute('aria-current', 'step');
       else item.removeAttribute('aria-current');
     });

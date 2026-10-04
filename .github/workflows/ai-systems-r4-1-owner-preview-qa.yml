@@ -192,12 +192,6 @@ jobs:
             if(pageErrors.length)hard.push('page-errors:'+pageErrors.join('|'));
             if(localFailures.length)hard.push('local-failures:'+localFailures.join('|'));
 
-            if(critical.has(id)||id==='en-1440'){
-              for(const [sel,name] of [['[data-r4-runtime]','runtime'],['[data-r4-pearl]','pearl'],['[data-r4-authority]','authority'],['[data-r4-spine]','spine']]){
-                await page.locator(sel).scrollIntoViewIfNeeded();await page.waitForTimeout(70);
-                await page.screenshot({path:`r41-preview-evidence/${id}-${name}.png`,fullPage:false,animations:'disabled'});
-              }
-            }
             const result={id,g,runtime,pageErrors,localFailures,hard};
             console.log('R41_PREVIEW',JSON.stringify(result));results.push(result);
             await ctx.close();

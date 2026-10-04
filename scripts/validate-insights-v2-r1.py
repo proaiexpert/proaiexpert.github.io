@@ -151,6 +151,15 @@ def main() -> int:
             if not routes.get("en") or not routes.get("ru"):
                 errors.append(f"{insight_id}: related_id {related_id} lacks EN/RU routes")
 
+    inbound_counts = {insight_id: 0 for insight_id in registry}
+    for record in registry.values():
+        for related_id in list(record["related_ids"]):
+            if related_id in inbound_counts:
+                inbound_counts[related_id] += 1
+    for insight_id, count in inbound_counts.items():
+        if count == 0:
+            errors.append(f"{insight_id}: publication graph has no inbound Related Decisions path")
+
     article_sources: list[Path] = []
     for root in (source_root / "insights", source_root / "ru/insights"):
         if not root.is_dir():

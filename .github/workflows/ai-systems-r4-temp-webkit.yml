@@ -35,14 +35,15 @@ jobs:
           import { webkit } from 'playwright';
           const base='http://127.0.0.1:4173';
           const cases=[
-            ['en-portrait','/ai-systems/',430,932],
-            ['ru-portrait','/ru/ai-systems/',430,932],
-            ['en-landscape','/ai-systems/',844,390],
-            ['ru-landscape','/ru/ai-systems/',844,390],
+            ['en-portrait','/ai-systems/',430,932,false],
+            ['ru-portrait','/ru/ai-systems/',430,932,false],
+            ['en-landscape','/ai-systems/',844,390,false],
+            ['ru-landscape','/ru/ai-systems/',844,390,false],
+            ['ru-reduced','/ru/ai-systems/',430,932,true],
           ];
           const browser=await webkit.launch({headless:true});
-          for (const [id,path,width,height] of cases){
-            const ctx=await browser.newContext({viewport:{width,height},isMobile:true,hasTouch:true});
+          for (const [id,path,width,height,reduced] of cases){
+            const ctx=await browser.newContext({viewport:{width,height},isMobile:true,hasTouch:true,reducedMotion:reduced?'reduce':'no-preference'});
             const page=await ctx.newPage();
             await page.route('https://fonts.googleapis.com/**',r=>r.abort());
             await page.route('https://fonts.gstatic.com/**',r=>r.abort());
@@ -72,14 +73,18 @@ jobs:
             const final=await page.evaluate(()=>({
               overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
               valid:document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid,
-              ledger:document.querySelectorAll('[data-runtime-event-index]').length
+              ledger:document.querySelectorAll('[data-runtime-event-index]').length,
+              runtimePosition:getComputedStyle(document.querySelector('.ai-r4-runtime__sticky')).position,
+              visibleSource:[...document.querySelectorAll('[data-source-anchor]')].filter(el=>getComputedStyle(el).display!=='none'&&getComputedStyle(el).visibility!=='hidden').length
             }));
             const hard=[];
             if(initial.overflow>1||final.overflow>1) hard.push('overflow');
             if(initial.valid!=='true'||final.valid!=='true') hard.push('runtime');
             if(initial.ledger!==17||final.ledger!==17) hard.push('trace');
-            if(missing.length) hard.push('missing:'+missing.join(','));
-            if(stop<3) hard.push('machine-stop-plateau');
+            if(!reduced && missing.length) hard.push('missing:'+missing.join(','));
+            if(!reduced && stop<3) hard.push('machine-stop-plateau');
+            if(reduced && final.runtimePosition==='sticky') hard.push('reduced-sticky');
+            if(reduced && final.visibleSource!==17) hard.push('reduced-source-incomplete:'+final.visibleSource);
             if(pageErrors.length) hard.push('page-errors');
             if(localFailures.length) hard.push('local-request-failures');
             console.log('WEBKIT_QA',JSON.stringify({id,initial,final,stop,unique,missing,pageErrors,localFailures,hard}));

@@ -119,8 +119,9 @@ import { REQUIRED_SOURCE_ANCHORS, visualForEvent } from './ai-systems-r4-runtime
           { opacity: 1, transform: 'translateY(0)' },
           { opacity: 0, transform: 'translateY(-5px)' },
         ],
-        { duration: 260, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'forwards' },
+        { duration: 220, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'forwards' },
       );
+      window.setTimeout(() => ghost.remove(), 260);
       exit.finished.catch(() => {}).finally(() => ghost.remove());
     }
 

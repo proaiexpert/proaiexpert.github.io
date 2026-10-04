@@ -167,6 +167,7 @@
       webRy:mix(inactiveRotation,3,p),
       aiZ:inactiveDepth*p,
       webZ:inactiveDepth*(1-p),
+      hinge:hinge,
       foldX:s.stageWidth*hinge,
       foldRy:mix(-5,5,p),
       aiClipTop:clamp(topFace+overlap,0,100),
@@ -208,19 +209,15 @@
     important(web,'transform','translate3d('+g.webX.toFixed(3)+'%,0,'+g.webZ.toFixed(2)+'px) perspective(980px) rotateY('+g.webRy.toFixed(3)+'deg)');
     important(web,'clip-path','polygon('+g.webClipTop.toFixed(3)+'% 0,100% 0,100% 100%,'+g.webClipBottom.toFixed(3)+'% 100%)');
 
-    /* R5 defect cleanup: at the two exact resolved endpoints the inactive
-       projected face must not remain raster-visible. Keep both faces live
-       everywhere inside the turn so the original R5 motion is untouched. */
-    if(p<=EPS){
-      important(ai,'visibility','visible');
-      important(web,'visibility','hidden');
-    }else if(p>=1-EPS){
-      important(ai,'visibility','hidden');
-      important(web,'visibility','visible');
-    }else{
-      important(ai,'visibility','visible');
-      important(web,'visibility','visible');
-    }
+    /* R5 defect cleanup R2: visibility follows the shared hinge's actual
+       viewport lifecycle instead of only the exact p endpoints. Before the
+       hinge enters from the right, the inactive WEB face and fold stay out of
+       the raster. After the hinge exits left, the inactive AI face and fold
+       stay out. The original R5 motion remains unchanged for 0 < hinge < 1. */
+    var hingeInside=g.hinge>0&&g.hinge<1;
+    important(ai,'visibility',g.hinge>0?'visible':'hidden');
+    important(web,'visibility',g.hinge<1?'visible':'hidden');
+    important(fold,'visibility',hingeInside?'visible':'hidden');
 
     important(fold,'transform','translate3d('+g.foldX.toFixed(2)+'px,0,0) translateX(-50%) perspective(720px) rotateY('+g.foldRy.toFixed(3)+'deg)');
     important(aiContent,'opacity',g.aiContent.toFixed(3));
@@ -262,7 +259,10 @@
       if(inscription)inscription.style.removeProperty('opacity');
     });
     var fold=section.querySelector('[data-tw-fold]');
-    if(fold)fold.style.removeProperty('transform');
+    if(fold){
+      fold.style.removeProperty('transform');
+      fold.style.removeProperty('visibility');
+    }
     section.style.removeProperty('--tw-r5-ai-light-opacity');
     section.style.removeProperty('--tw-r5-web-light-opacity');
     section.style.removeProperty('--tw-r5-fold-response');

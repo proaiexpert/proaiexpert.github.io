@@ -522,6 +522,7 @@
 
     s.mobile=mobile;
     s.orientation=orientation;
+    section.setAttribute('data-r5-orientation',orientation);
     updateHeaderGuard(section);
 
     if(reducedMotion.matches){

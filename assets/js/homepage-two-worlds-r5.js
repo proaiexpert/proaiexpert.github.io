@@ -21,7 +21,6 @@
   var HEIGHT_RECOMPOSE_DELTA=12;
   var EPS=.00001;
   var resizeTimer=0;
-  var orientationSettleTimer=0;
   var scrollRaf=0;
 
   function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
@@ -40,18 +39,6 @@
     return Math.max(1,Math.round(document.documentElement.clientHeight||window.innerHeight||1));
   }
   function orientationFor(w,h){return w>h?'landscape':'portrait';}
-
-  function syncOrientationState(section){
-    var w=stageWidthNow();
-    var h=stageHeightNow();
-    var orientation=orientationFor(w,h);
-    var s=stateFor(section);
-    s.orientation=orientation;
-    if(section.getAttribute('data-r5-orientation')!==orientation){
-      section.setAttribute('data-r5-orientation',orientation);
-    }
-    return {width:w,height:h,orientation:orientation};
-  }
 
   function stateFor(section){
     var s=states.get(section);
@@ -525,16 +512,16 @@
     var viewport=section.querySelector('[data-tw-viewport]');
     if(!experience||!viewport)return;
 
-    var viewportState=syncOrientationState(section);
-    var w=viewportState.width;
-    var h=viewportState.height;
+    var w=stageWidthNow();
+    var h=stageHeightNow();
     var mobile=mobileQuery.matches;
-    var orientation=viewportState.orientation;
+    var orientation=orientationFor(w,h);
     var previousQ=s.q;
     var previousMobile=s.mobile;
     var previousEngaged=engaged(s,Math.max(0,window.scrollY||0));
 
     s.mobile=mobile;
+    s.orientation=orientation;
     updateHeaderGuard(section);
 
     if(reducedMotion.matches){
@@ -597,14 +584,12 @@
 
   function maybeRecompose(section,force){
     var s=stateFor(section);
-    var previousOrientation=s.orientation;
-    var viewportState=syncOrientationState(section);
-    var w=viewportState.width;
-    var h=viewportState.height;
-    var orientation=viewportState.orientation;
+    var w=stageWidthNow();
+    var h=stageHeightNow();
+    var orientation=orientationFor(w,h);
     var y=Math.max(0,window.scrollY||0);
 
-    if(force||!s.composed||s.mobile!==mobileQuery.matches||orientation!==previousOrientation||Math.abs(w-s.stageWidth)>=WIDTH_RECOMPOSE_DELTA){
+    if(force||!s.composed||s.mobile!==mobileQuery.matches||orientation!==s.orientation||Math.abs(w-s.stageWidth)>=WIDTH_RECOMPOSE_DELTA){
       compose(section,true);
       return;
     }
@@ -647,37 +632,26 @@
 
   window.addEventListener('scroll',scheduleScroll,{passive:true});
 
-  function syncAllOrientationStates(){
-    sections.forEach(function(section){syncOrientationState(section);});
-  }
-
-  function scheduleResizeRecompose(){
+  window.addEventListener('resize',function(){
     window.clearTimeout(resizeTimer);
     resizeTimer=window.setTimeout(function(){
       sections.forEach(function(section){maybeRecompose(section,false);});
     },90);
-  }
-
-  window.addEventListener('resize',function(){
-    syncAllOrientationStates();
-    scheduleResizeRecompose();
   },{passive:true});
 
   window.addEventListener('orientationchange',function(){
-    syncAllOrientationStates();
-    window.clearTimeout(orientationSettleTimer);
-    orientationSettleTimer=window.setTimeout(function(){
-      sections.forEach(function(section){
-        syncOrientationState(section);
-        compose(section,true);
-      });
+    window.clearTimeout(resizeTimer);
+    resizeTimer=window.setTimeout(function(){
+      sections.forEach(function(section){compose(section,true);});
     },160);
   },{passive:true});
 
   if(window.visualViewport){
     window.visualViewport.addEventListener('resize',function(){
-      syncAllOrientationStates();
-      scheduleResizeRecompose();
+      window.clearTimeout(resizeTimer);
+      resizeTimer=window.setTimeout(function(){
+        sections.forEach(function(section){maybeRecompose(section,false);});
+      },90);
     },{passive:true});
   }
 
@@ -702,10 +676,6 @@
   window.__twR5Snapshot=function(){
     return sections.map(function(section){
       var s=stateFor(section);
-      var viewportWidth=stageWidthNow();
-      var viewportHeight=stageHeightNow();
-      var liveOrientation=orientationFor(viewportWidth,viewportHeight);
-      var attributeOrientation=section.getAttribute('data-r5-orientation');
       return {
         id:section.id,
         state:s.logical,
@@ -718,11 +688,7 @@
         frameSpikes:s.frameSpikes,
         width:s.stageWidth,
         height:s.stageHeight,
-        viewportWidth:viewportWidth,
-        viewportHeight:viewportHeight,
         orientation:s.orientation,
-        attributeOrientation:attributeOrientation,
-        orientationMatch:liveOrientation===s.orientation&&liveOrientation===attributeOrientation,
         anchored:s.anchored
       };
     });

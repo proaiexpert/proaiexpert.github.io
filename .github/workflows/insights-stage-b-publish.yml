@@ -1,0 +1,140 @@
+name: Insights Stage B Publish Preview
+
+on:
+  push:
+    branches:
+      - insights-stage-b-preview
+    paths:
+      - '.github/workflows/insights-stage-b-publish.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build and validate Stage B
+        shell: bash
+        run: |
+          rm -rf owner-preview/insights-stage-b
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+
+      - name: Browser smoke — Related Decisions
+        shell: bash
+        run: |
+          npm install --no-save --no-package-lock playwright-core
+          CHROME_BIN="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME_BIN"
+          python -m http.server 4173 --directory _site >/tmp/iv2-stage-b-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:4173/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/ >/dev/null && break
+            sleep 0.2
+          done
+          export CHROME_BIN
+          node <<'NODE'
+          const { chromium } = require('playwright-core');
+          const base='http://127.0.0.1:4173';
+          const routes=[
+            '/insights/what-happens-after-a-lead-arrives/',
+            '/ru/insights/chto-proiskhodit-posle-zayavki/',
+            '/insights/does-your-service-business-need-a-multilingual-website/',
+            '/ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/',
+            '/insights/how-to-evaluate-a-website-proposal/',
+            '/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/',
+            '/insights/ai-ready-website-for-business/',
+            '/ru/insights/ai-ready-sayt-dlya-biznesa/',
+            '/insights/ai-search-optimization-for-service-businesses/',
+            '/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/'
+          ];
+          const sizes=[[390,844],[932,430],[1440,900]];
+          (async()=>{
+            const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_BIN,args:['--no-sandbox','--disable-dev-shm-usage']});
+            const failures=[];
+            for(const [width,height] of sizes){
+              for(const path of routes){
+                const c=await browser.newContext({viewport:{width,height},hasTouch:width<1000,isMobile:width<500});
+                const p=await c.newPage();
+                await p.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+                const m=await p.evaluate(()=>{
+                  const root=document.documentElement;
+                  const rel=document.querySelector('[data-related-decisions]');
+                  const cta=document.querySelector('.insight-v2-article-cta');
+                  const items=rel?[...rel.querySelectorAll('[data-related-id]')]:[];
+                  const rr=rel?rel.getBoundingClientRect():null;
+                  const cr=cta?cta.getBoundingClientRect():null;
+                  return {
+                    overflow:root.scrollWidth-root.clientWidth,
+                    count:items.length,
+                    relTop:rr?.top ?? null,
+                    ctaTop:cr?.top ?? null,
+                    footer:document.querySelectorAll('.home-footer-golden-r3[data-site-footer-canonical="golden-r1"]').length,
+                    ids:items.map(x=>x.getAttribute('data-related-id'))
+                  };
+                });
+                const key=path+' @ '+width+'x'+height;
+                if(m.overflow>1) failures.push(key+': overflow '+m.overflow+'px');
+                if(m.count<2||m.count>3) failures.push(key+': related count '+m.count);
+                if(m.relTop===null||m.ctaTop===null||m.relTop>=m.ctaTop) failures.push(key+': Related Decisions order invalid');
+                if(m.footer!==1) failures.push(key+': footer count '+m.footer);
+                console.log(key,JSON.stringify(m));
+                await c.close();
+              }
+            }
+            await browser.close();
+            if(failures.length){
+              failures.forEach(x=>console.error('FAIL',x));
+              process.exit(1);
+            }
+            console.log('STAGE B BROWSER PASS — 10 routes x 3 viewports');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Materialize owner routes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          routes = {
+              "proposal-ru": "ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/index.html",
+              "proposal-en": "insights/how-to-evaluate-a-website-proposal/index.html",
+              "multilingual-ru": "ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html",
+              "multilingual-en": "insights/does-your-service-business-need-a-multilingual-website/index.html",
+              "ai-search-ru": "ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html",
+              "ai-search-en": "insights/ai-search-optimization-for-service-businesses/index.html",
+          }
+          root=Path("owner-preview/insights-stage-b")
+          root.mkdir(parents=True,exist_ok=True)
+          for name,src in routes.items():
+              dst=root/name/"index.html"
+              dst.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copy2(Path("_site")/src,dst)
+          (root/"BUILD_SHA.txt").write_text("implementation_head=7fcb3360193bf3cd2bd83147983b6a2481747b3e\n",encoding="utf-8")
+          PY
+
+      - name: Commit final rendered preview
+        shell: bash
+        run: |
+          git config user.name "ProAI Preview Bot"
+          git config user.email "proai-preview@users.noreply.github.com"
+          git add owner-preview/insights-stage-b
+          if git diff --cached --quiet; then
+            echo "Final preview already current."
+          else
+            git commit -m "Preview: publish final Insights Stage B"
+            git push origin HEAD:insights-stage-b-preview
+          fi

@@ -33,6 +33,8 @@
 .ai-r4-page main{display:block;overflow:clip;background:var(--r4-obsidian)}
 .ai-r4-page a{color:inherit}
 .ai-r4-page a:focus-visible,.ai-r4-page button:focus-visible{outline:2px solid #a8b0ff;outline-offset:5px}
+.ai-r4-page .skip-link{position:fixed;left:14px;top:-70px;z-index:2000;padding:10px 14px;background:#f2f0eb;color:#080a0c;text-decoration:none;font-size:12px}
+.ai-r4-page .skip-link:focus{top:12px}
 .ai-r4-shell{width:var(--r4-shell);margin-inline:auto}
 .ai-r4-kicker{
   margin:0 0 17px;
@@ -468,7 +470,22 @@
   border-top:1px solid var(--r4-line);
 }
 
-/* 03 — controlled runtime */
+
+/* quiet pattern ledger retained from Golden authority */
+.ai-r4-pattern-ledger{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  margin-top:34px;
+  border-top:1px solid var(--r4-line);
+  border-bottom:1px solid var(--r4-line);
+}
+.ai-r4-pattern-ledger article{padding:20px 22px 22px 0;border-right:1px solid var(--r4-line)}
+.ai-r4-pattern-ledger article+article{padding-left:22px}
+.ai-r4-pattern-ledger article:last-child{border-right:0}
+.ai-r4-pattern-ledger span{display:block;color:#626b74;font:650 8px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.09em}
+.ai-r4-pattern-ledger strong{display:block;margin-top:12px;color:#cdd1d3;font-size:14px;font-weight:570}
+.ai-r4-pattern-ledger p{margin:8px 0 0;color:#7d8690;font:560 9.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+\n/* 03 — controlled runtime */
 .ai-r4-runtime-section{
   padding-top:clamp(116px,12vw,176px);
   background:
@@ -950,6 +967,19 @@
   transition:width 760ms cubic-bezier(.16,1,.3,1) 260ms;
 }
 .ai-r4-spine.is-r4-route-resolved .ai-r4-spine__bridge{width:min(205px,15%)}
+.ai-r4-spine__bridge span{
+  position:absolute;
+  left:50%;
+  bottom:10px;
+  transform:translateX(-50%);
+  color:#b8a985;
+  font:700 7px/1 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.1em;
+  white-space:nowrap;
+  opacity:0;
+  transition:opacity .28s ease 620ms;
+}
+.ai-r4-spine.is-r4-route-resolved .ai-r4-spine__bridge span{opacity:1}
 .ai-r4-spine-port{
   position:absolute;
   width:min(250px,24%);
@@ -1095,6 +1125,9 @@
   .ai-r4-register[data-register-step="2"] .ai-r4-state-record{--record-y:49%}
   .ai-r4-register[data-register-step="3"] .ai-r4-state-record{--record-y:68%}
   .ai-r4-state-fact{grid-template-columns:1fr;gap:4px}
+  .ai-r4-pattern-ledger{grid-template-columns:1fr}
+  .ai-r4-pattern-ledger article,.ai-r4-pattern-ledger article+article{padding:16px 0;border-right:0;border-bottom:1px solid var(--r4-line)}
+  .ai-r4-pattern-ledger article:last-child{border-bottom:0}
   .ai-r4-depth-story{height:auto;min-height:0}
   .ai-r4-depth__sticky{position:relative;top:auto;height:auto;min-height:0}
   .ai-r4-depth{min-height:0;padding:56px 0 18px}
@@ -1278,6 +1311,7 @@
   .ai-r4-code-block{opacity:1}
   .ai-r4-runtime__ledger-wrap{overflow:visible}
   .ai-r4-runtime__ledger{grid-template-columns:1fr 1fr}
+  .ai-r4-runtime-event{display:grid!important}
   .ai-r4-runtime-event{opacity:.72}
   .ai-r4-runtime-event.is-active,.ai-r4-runtime-event.is-past{opacity:1}
   .ai-r4-pearl::before{clip-path:inset(0)!important}

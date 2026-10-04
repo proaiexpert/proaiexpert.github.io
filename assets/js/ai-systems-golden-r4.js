@@ -91,6 +91,62 @@ import { REQUIRED_SOURCE_ANCHORS, visualForEvent } from './ai-systems-r4-runtime
     return parts.join(' · ');
   }
 
+  function transitionRuntimeCopy(active, meta, title, detail, nextCopy, force) {
+    const shouldAnimate = !force && !reduce.matches && typeof active?.animate === 'function';
+    active?.querySelectorAll('.ai-r4-runtime__active-ghost').forEach((node) => node.remove());
+
+    for (const node of [meta, title, detail]) {
+      node?.getAnimations?.().forEach((animation) => animation.cancel());
+    }
+
+    if (shouldAnimate && meta && title && detail) {
+      const ghost = document.createElement('div');
+      ghost.className = 'ai-r4-runtime__active-ghost';
+      ghost.setAttribute('aria-hidden', 'true');
+
+      const ghostMeta = meta.parentElement?.cloneNode(true) || meta.cloneNode(true);
+      if (ghostMeta.matches?.('[data-runtime-active-meta]')) ghostMeta.removeAttribute('data-runtime-active-meta');
+      ghostMeta.querySelectorAll?.('[data-runtime-active-meta]').forEach((node) => node.removeAttribute('data-runtime-active-meta'));
+      const ghostTitle = title.cloneNode(true);
+      ghostTitle.removeAttribute('data-runtime-active-title');
+      const ghostDetail = detail.cloneNode(true);
+      ghostDetail.removeAttribute('data-runtime-active-detail');
+      ghost.append(ghostMeta, ghostTitle, ghostDetail);
+      active.append(ghost);
+
+      const exit = ghost.animate(
+        [
+          { opacity: 1, transform: 'translateY(0)' },
+          { opacity: 0, transform: 'translateY(-5px)' },
+        ],
+        { duration: 220, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'forwards' },
+      );
+      window.setTimeout(() => ghost.remove(), 260);
+      exit.finished.catch(() => {}).finally(() => ghost.remove());
+    }
+
+    if (title) title.textContent = nextCopy.title;
+    if (detail) detail.textContent = nextCopy.detail;
+    if (meta) meta.textContent = nextCopy.meta;
+
+    if (shouldAnimate) {
+      for (const [node, delay] of [[meta, 12], [title, 22], [detail, 34]]) {
+        node?.animate(
+          [
+            { opacity: 0.28, transform: 'translateY(6px)' },
+            { opacity: 1, transform: 'translateY(0)' },
+          ],
+          {
+            duration: 300,
+            delay,
+            easing: 'cubic-bezier(.16,1,.3,1)',
+            fill: 'both',
+          },
+        );
+      }
+    }
+  }
+
   function renderRuntime(index, force = false) {
     if (!runtime || !immutableTrace?.length) return;
     const next = clamp(Math.round(index), 0, immutableTrace.length - 1);
@@ -127,13 +183,23 @@ import { REQUIRED_SOURCE_ANCHORS, visualForEvent } from './ai-systems-r4-runtime
       else item.removeAttribute('aria-current');
     });
 
+    const active = runtime.querySelector('.ai-r4-runtime__active');
     const title = runtime.querySelector('[data-runtime-active-title]');
     const detail = runtime.querySelector('[data-runtime-active-detail]');
     const meta = runtime.querySelector('[data-runtime-active-meta]');
     const count = runtime.querySelector('[data-runtime-count]');
-    if (title) title.textContent = visual.title;
-    if (detail) detail.textContent = visual.detail;
-    if (meta) meta.textContent = eventMeta(event) || `EVENT ${String(event.seq).padStart(2, '0')}`;
+    transitionRuntimeCopy(
+      active,
+      meta,
+      title,
+      detail,
+      {
+        title: visual.title,
+        detail: visual.detail,
+        meta: eventMeta(event) || `EVENT ${String(event.seq).padStart(2, '0')}`,
+      },
+      force,
+    );
     if (count) count.textContent = `${String(event.seq).padStart(2, '0')} / ${String(immutableTrace.length).padStart(2, '0')}`;
   }
 

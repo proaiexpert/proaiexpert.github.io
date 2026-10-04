@@ -214,9 +214,9 @@
        hinge enters from the right, the inactive WEB face and fold stay out of
        the raster. After the hinge exits left, the inactive AI face and fold
        stay out. The original R5 motion remains unchanged for 0 < hinge < 1. */
-    var hingeInside=g.hinge>0&&g.hinge<1;
-    important(ai,'visibility',g.hinge>0?'visible':'hidden');
-    important(web,'visibility',g.hinge<1?'visible':'hidden');
+    var hingeInside=g.hinge>EPS&&g.hinge<1-EPS;
+    important(ai,'visibility',g.hinge>EPS?'visible':'hidden');
+    important(web,'visibility',g.hinge<1-EPS?'visible':'hidden');
     important(fold,'visibility',hingeInside?'visible':'hidden');
 
     important(fold,'transform','translate3d('+g.foldX.toFixed(2)+'px,0,0) translateX(-50%) perspective(720px) rotateY('+g.foldRy.toFixed(3)+'deg)');

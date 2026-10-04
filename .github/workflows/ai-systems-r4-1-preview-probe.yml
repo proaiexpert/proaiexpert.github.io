@@ -1,0 +1,40 @@
+name: AI Systems R4.1 Preview Probe
+
+on:
+  push:
+    branches:
+      - ai-systems-r4-preview
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify R4.1 EN RU and polish CSS
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://ai-systems-r4-preview.proaiexpert-github-io.pages.dev"
+          EN="$BASE/owner-preview/ai-systems-r4-trace-threshold-r1/"
+          RU="$BASE/owner-preview/ai-systems-r4-trace-threshold-r1/ru/"
+          CSS="$BASE/assets/css/ai-systems-golden-r4-1.css?v=trace-threshold-r1-1"
+          for i in $(seq 1 24); do
+            ec=$(curl -L -sS -o /tmp/en -w "%{http_code}" --max-time 12 "$EN" || true)
+            rc=$(curl -L -sS -o /tmp/ru -w "%{http_code}" --max-time 12 "$RU" || true)
+            cc=$(curl -L -sS -o /tmp/css -w "%{http_code}" --max-time 12 "$CSS" || true)
+            if [ "$ec" = 200 ] && [ "$rc" = 200 ] && [ "$cc" = 200 ] \
+              && grep -Fq "ai-systems-golden-r4-1.css" /tmp/en \
+              && grep -Fq "ai-systems-golden-r4-1.css" /tmp/ru \
+              && grep -Fq "MOBILE PORTRAIT — PRIMARY R4.1 AUTHORITY" /tmp/css; then
+              echo "R41_PREVIEW_PASS"
+              echo "EN=$EN"
+              echo "RU=$RU"
+              exit 0
+            fi
+            echo "attempt=$i en=$ec ru=$rc css=$cc"
+            sleep 8
+          done
+          exit 1

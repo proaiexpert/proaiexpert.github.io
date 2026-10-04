@@ -1,0 +1,350 @@
+name: AI Systems R4.1 Focused QA
+
+on:
+  push:
+    branches:
+      - agent/ai-systems-golden-r4-trace-threshold-r1-1-premium-polish
+
+permissions:
+  contents: read
+
+jobs:
+  focused-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Reference runtime tests
+        run: node --test tests/controlled-agent-reference.test.mjs
+
+      - name: Build candidate
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          jekyll build --source . --destination _site
+
+      - name: Install browser QA
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+
+      - name: Focused visual geometry and runtime QA
+        shell: bash
+        run: |
+          python3 -m http.server 4173 --directory _site >/tmp/r41-http.log 2>&1 &
+          sleep 2
+          mkdir -p r41-evidence
+          cat > r41-focused.mjs <<'EOF'
+          import { chromium, webkit } from 'playwright';
+          import fs from 'node:fs';
+          const base='http://127.0.0.1:4173';
+
+          const matrix=[
+            ['en-1440','/ai-systems/',1440,1000,false],
+            ['ru-1440','/ru/ai-systems/',1440,1000,false],
+            ['en-1280','/ai-systems/',1280,900,false],
+            ['ru-1280','/ru/ai-systems/',1280,900,false],
+            ['en-430','/ai-systems/',430,932,true],
+            ['ru-430','/ru/ai-systems/',430,932,true],
+            ['en-393','/ai-systems/',393,852,true],
+            ['ru-393','/ru/ai-systems/',393,852,true],
+            ['en-390','/ai-systems/',390,844,true],
+            ['ru-390','/ru/ai-systems/',390,844,true],
+            ['en-375','/ai-systems/',375,812,true],
+            ['ru-375','/ru/ai-systems/',375,812,true],
+            ['en-landscape','/ai-systems/',844,390,true],
+            ['ru-landscape','/ru/ai-systems/',844,390,true],
+          ];
+
+          const critical=new Set(['en-430','ru-390','en-landscape','ru-landscape']);
+
+          const rect=(el)=>el?.getBoundingClientRect?.()||null;
+          function overlaps(a,b,t=1){
+            if(!a||!b)return false;
+            return !(a.right<=b.left+t||a.left>=b.right-t||a.bottom<=b.top+t||a.top>=b.bottom-t);
+          }
+
+          async function load(page,path){
+            await page.route('https://fonts.googleapis.com/**',r=>r.abort());
+            await page.route('https://fonts.gstatic.com/**',r=>r.abort());
+            const res=await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:12000});
+            if(!res||res.status()!==200) throw new Error('HTTP '+(res?.status()||'none'));
+            await page.waitForFunction(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid==='true',null,{timeout:7000});
+          }
+
+          async function geometry(page,id,width,height,mobile){
+            return page.evaluate(({id,width,height,mobile})=>{
+              const q=s=>document.querySelector(s), qa=s=>[...document.querySelectorAll(s)];
+              const r=s=>q(s)?.getBoundingClientRect()||null;
+              const st=s=>q(s)?getComputedStyle(q(s)):null;
+              const portrait=mobile&&height>width, landscape=mobile&&width>height;
+              const decisions=qa('.ai-r4-decision').map(d=>({
+                label:d.querySelector('span')?.getBoundingClientRect()||null,
+                title:d.querySelector('strong')?.getBoundingClientRect()||null
+              }));
+              return {
+                id,width,height,portrait,landscape,
+                overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
+                runtimeValid:q('[data-r4-runtime]')?.dataset.runtimeValid,
+                ledger:qa('[data-runtime-event-index]').length,
+                source:r('.ai-r4-runtime__source'),
+                trace:r('.ai-r4-runtime__trace'),
+                code:r('.ai-r4-code'),
+                activeSource:r('.ai-r4-code-block.is-active'),
+                active:r('.ai-r4-runtime__active'),
+                title:r('[data-runtime-active-title]'),
+                detail:r('[data-runtime-active-detail]'),
+                gate:r('.ai-r4-runtime-gate'),
+                decisions,
+                authorityOpacity:parseFloat(st('.ai-r4-authority-zone--action')?.opacity||'0'),
+                authorityActionColor:st('.ai-r4-authority-zone--action strong')?.color||'',
+                spineRail:r('.ai-r4-spine__rail'),
+                spineGrid:st('.ai-r4-spine__core')?.gridTemplateColumns||'',
+                spineNodes:qa('.ai-r4-spine-node').map(el=>{
+                  const s=getComputedStyle(el);
+                  return {
+                    background:s.backgroundColor,
+                    borders:[s.borderTopWidth,s.borderRightWidth,s.borderBottomWidth,s.borderLeftWidth]
+                  };
+                }),
+                gateFont:parseFloat(st('.ai-r4-runtime-gate__label')?.fontSize||'0'),
+                statusFont:parseFloat(st('.ai-r4-runtime__status')?.fontSize||'0'),
+                eventFont:parseFloat(st('.ai-r4-runtime-event strong')?.fontSize||'0'),
+                headingOverflow:qa('h1,h2,h3').filter(el=>{
+                  const b=el.getBoundingClientRect();
+                  return b.left<-1||b.right>innerWidth+1||el.scrollWidth>el.clientWidth+3;
+                }).map(el=>(el.textContent||'').trim().slice(0,70)),
+              };
+            },{id,width,height,mobile});
+          }
+
+          function validate(g){
+            const e=[];
+            if(g.overflow>1)e.push('horizontal-overflow:'+g.overflow);
+            if(g.runtimeValid!=='true')e.push('runtime-invalid');
+            if(g.ledger!==17)e.push('trace-count:'+g.ledger);
+            if(g.headingOverflow.length)e.push('heading-overflow:'+g.headingOverflow.join('|'));
+            if(g.portrait&&g.source&&g.trace&&g.source.bottom>g.trace.top+1)e.push('runtime-source-trace-overlap');
+            if(g.landscape&&g.source&&g.trace&&g.source.right>g.trace.left+1)e.push('runtime-source-trace-overlap');
+            if(g.active&&g.title&&(g.title.top<g.active.top-1||g.title.bottom>g.active.bottom+1))e.push('title-outside-active-zone');
+            if(g.active&&g.detail&&(g.detail.top<g.active.top-1||g.detail.bottom>g.active.bottom+1))e.push('detail-outside-active-zone');
+            if(g.active&&g.gate&&g.active.bottom>g.gate.top+1)e.push('active-gate-overlap');
+            if(g.code&&g.activeSource&&(g.activeSource.top<g.code.top-1||g.activeSource.bottom>g.code.bottom+1||g.activeSource.left<g.code.left-1||g.activeSource.right>g.code.right+1))e.push('source-excerpt-outside-zone');
+            if(g.decisions.some(x=>x.label&&x.title&&!(x.label.right<=x.title.left||x.label.left>=x.title.right||x.label.bottom<=x.title.top||x.label.top>=x.title.bottom)))e.push('pearl-label-collision');
+            if(g.authorityOpacity<.70)e.push('authority-latent-too-dim:'+g.authorityOpacity);
+            if(g.portrait){
+              const boxed=g.spineNodes.filter(n=>n.background!=='rgba(0, 0, 0, 0)'||n.borders.some(v=>parseFloat(v)>0));
+              if(boxed.length)e.push('spine-boxed-stations:'+boxed.length);
+              if(!(g.spineRail&&g.spineRail.height>g.spineRail.width*20))e.push('spine-not-vertical');
+              if(g.spineGrid.trim().split(/\s+/).length>1)e.push('spine-not-single-column:'+g.spineGrid);
+            }
+            if(g.landscape&&(g.gateFont<6.4||g.statusFont<6.2||g.eventFont<6.8))e.push('landscape-microtype:'+g.gateFont+'/'+g.statusFont+'/'+g.eventFont);
+            return e;
+          }
+
+          async function setRuntimeProgress(page,p){
+            const story=page.locator('[data-r4-runtime-story]');
+            const h=await story.elementHandle();
+            const b=await story.boundingBox();
+            if(!h||!b)throw new Error('runtime story missing');
+            const top=await page.evaluate(el=>scrollY+el.getBoundingClientRect().top,h);
+            const travel=Math.max(1,b.height-(await page.evaluate(()=>innerHeight)));
+            await page.evaluate(y=>window.scrollTo(0,y),Math.round(top+travel*p));
+            return {top,travel};
+          }
+
+          async function criticalSweep(page){
+            const states=[], collision=[], ghostObserved=[];
+            let geom;
+            for(let i=0;i<=48;i++){
+              await setRuntimeProgress(page,i/48);
+              await page.waitForTimeout(24);
+              const state=await page.evaluate(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeState||'');
+              states.push(state);
+              if(i%3===0){
+                geom=await page.evaluate(()=>({
+                  code:document.querySelector('.ai-r4-code')?.getBoundingClientRect()||null,
+                  source:document.querySelector('.ai-r4-code-block.is-active')?.getBoundingClientRect()||null,
+                  active:document.querySelector('.ai-r4-runtime__active')?.getBoundingClientRect()||null,
+                  title:document.querySelector('[data-runtime-active-title]')?.getBoundingClientRect()||null,
+                  gate:document.querySelector('.ai-r4-runtime-gate')?.getBoundingClientRect()||null,
+                }));
+                if(geom.code&&geom.source&&(geom.source.top<geom.code.top-1||geom.source.bottom>geom.code.bottom+1))collision.push('source');
+                if(geom.active&&geom.title&&(geom.title.top<geom.active.top-1||geom.title.bottom>geom.active.bottom+1))collision.push('title');
+                if(geom.active&&geom.gate&&geom.active.bottom>geom.gate.top+1)collision.push('gate');
+              }
+              ghostObserved.push(await page.evaluate(()=>document.querySelectorAll('.ai-r4-runtime__active-ghost').length));
+            }
+            const required=['tool-failure','retry','fallback','machine-stopped','authority-approved','action'];
+            const unique=[...new Set(states)];
+            const missing=required.filter(s=>!unique.includes(s));
+            const stop=states.filter(s=>s==='machine-stopped').length;
+
+            // backward
+            await setRuntimeProgress(page,.92); await page.waitForTimeout(70);
+            await setRuntimeProgress(page,.18); await page.waitForTimeout(110);
+            const backward=await page.evaluate(()=>({valid:document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid,state:document.querySelector('[data-r4-runtime]')?.dataset.runtimeState,ledger:document.querySelectorAll('[data-runtime-event-index]').length}));
+            // fast forward
+            await setRuntimeProgress(page,.08);
+            await setRuntimeProgress(page,.78);
+            await page.waitForTimeout(120);
+            const fast=await page.evaluate(()=>({valid:document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid,state:document.querySelector('[data-r4-runtime]')?.dataset.runtimeState,ledger:document.querySelectorAll('[data-runtime-event-index]').length}));
+            // motion evidence: force one semantic boundary and inspect animations immediately.
+            await setRuntimeProgress(page,.06); await page.waitForTimeout(320);
+            await setRuntimeProgress(page,.14); await page.waitForTimeout(30);
+            const motion=await page.evaluate(()=>({
+              ghost:document.querySelectorAll('.ai-r4-runtime__active-ghost').length,
+              titleAnimations:document.querySelector('[data-runtime-active-title]')?.getAnimations?.().length||0,
+              sourceAnimations:[...document.querySelectorAll('.ai-r4-code-block')].reduce((n,el)=>n+(el.getAnimations?.().length||0),0)
+            }));
+            await page.waitForTimeout(360);
+            const staleGhost=await page.locator('.ai-r4-runtime__active-ghost').count();
+            return {unique,missing,stop,collision:[...new Set(collision)],maxGhost:Math.max(...ghostObserved),backward,fast,motion,staleGhost};
+          }
+
+          async function chromiumMatrix(){
+            const browser=await chromium.launch({headless:true});
+            const results=[];
+            for(const c of matrix){
+              const [id,path,width,height,mobile]=c;
+              const ctx=await browser.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile});
+              const page=await ctx.newPage();
+              const pageErrors=[],localFailures=[];
+              page.on('pageerror',e=>pageErrors.push(String(e)));
+              page.on('requestfailed',r=>{if(r.url().startsWith(base))localFailures.push(r.url())});
+              await load(page,path);
+              // Move to first active runtime frame so active source geometry is meaningful.
+              await setRuntimeProgress(page,.03); await page.waitForTimeout(70);
+              const g=await geometry(page,id,width,height,mobile);
+              const hard=validate(g);
+              let sweep=null;
+              if(critical.has(id)){
+                sweep=await criticalSweep(page);
+                if(sweep.missing.length)hard.push('missing-states:'+sweep.missing.join(','));
+                if(sweep.stop<3)hard.push('machine-stop-short:'+sweep.stop);
+                if(sweep.collision.length)hard.push('runtime-collision:'+sweep.collision.join(','));
+                if(sweep.backward.valid!=='true'||sweep.backward.ledger!==17)hard.push('backward-invalid');
+                if(sweep.fast.valid!=='true'||sweep.fast.ledger!==17)hard.push('fast-invalid');
+                if(!(sweep.motion.ghost||sweep.motion.titleAnimations||sweep.motion.sourceAnimations))hard.push('presentation-transition-not-observed');
+                if(sweep.staleGhost)hard.push('stale-transition-ghost');
+              }
+              if(pageErrors.length)hard.push('page-errors:'+pageErrors.join('|'));
+              if(localFailures.length)hard.push('same-origin-failures:'+localFailures.join('|'));
+              if(critical.has(id)||id==='en-1440'){
+                await page.screenshot({path:`r41-evidence/${id}-runtime.png`,fullPage:false});
+                for(const [sel,name] of [['[data-r4-pearl]','pearl'],['[data-r4-authority]','authority'],['[data-r4-spine]','spine']]){
+                  await page.locator(sel).scrollIntoViewIfNeeded();await page.waitForTimeout(80);
+                  await page.screenshot({path:`r41-evidence/${id}-${name}.png`,fullPage:false});
+                }
+              }
+              const result={id,g,sweep,pageErrors,localFailures,hard};
+              console.log('R41_MATRIX',JSON.stringify(result));
+              results.push(result);
+              await ctx.close();
+            }
+
+            // orientation inside Runtime
+            const ctx=await browser.newContext({viewport:{width:430,height:932},isMobile:true,hasTouch:true});
+            const p=await ctx.newPage(); await load(p,'/ai-systems/');
+            await setRuntimeProgress(p,.62);await p.waitForTimeout(100);
+            const before=await p.evaluate(()=>({state:document.querySelector('[data-r4-runtime]')?.dataset.runtimeState,ledger:document.querySelectorAll('[data-runtime-event-index]').length}));
+            await p.setViewportSize({width:844,height:390});await p.waitForTimeout(180);
+            const after=await p.evaluate(()=>({state:document.querySelector('[data-r4-runtime]')?.dataset.runtimeState,valid:document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid,ledger:document.querySelectorAll('[data-runtime-event-index]').length,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth}));
+            const orientationHard=[];
+            if(after.valid!=='true'||after.ledger!==17||after.overflow>1||!after.state)orientationHard.push('orientation-runtime-invalid');
+            console.log('R41_ORIENTATION',JSON.stringify({before,after,orientationHard}));
+            await ctx.close();
+
+            // reload near Runtime + keyboard
+            const ctx2=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+            const p2=await ctx2.newPage();await load(p2,'/ru/ai-systems/');
+            const pos=await setRuntimeProgress(p2,.56);await p2.waitForTimeout(100);
+            const y0=await p2.evaluate(()=>scrollY);
+            await p2.reload({waitUntil:'domcontentloaded',timeout:12000});
+            await p2.waitForFunction(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid==='true',null,{timeout:7000});
+            await p2.waitForTimeout(80);
+            const reload=await p2.evaluate(()=>({y:scrollY,state:document.querySelector('[data-r4-runtime]')?.dataset.runtimeState,valid:document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid,ledger:document.querySelectorAll('[data-runtime-event-index]').length}));
+            const reloadHard=[];
+            if(reload.valid!=='true'||reload.ledger!==17)reloadHard.push('reload-runtime-invalid');
+            if(y0>500&&reload.y<100)reloadHard.push('reload-lost-position');
+            await p2.evaluate(()=>scrollTo(0,0));
+            const focus=[];
+            for(let i=0;i<9;i++){await p2.keyboard.press('Tab');focus.push(await p2.evaluate(()=>{const e=document.activeElement,s=e?getComputedStyle(e):null;return {tag:e?.tagName||'',outline:s?.outlineStyle||'',w:e?.getBoundingClientRect?.().width||0}}))}
+            if(!focus.some(x=>x.w>0&&x.outline!=='none'))reloadHard.push('keyboard-focus-not-visible');
+            console.log('R41_RELOAD_KEYBOARD',JSON.stringify({reload,focus,reloadHard}));
+            await ctx2.close();
+
+            // reduced motion
+            const reducedHard=[];
+            for(const [id,path,width,height,mobile] of [['red-en','/ai-systems/',1440,1000,false],['red-ru','/ru/ai-systems/',390,844,true]]){
+              const cr=await browser.newContext({viewport:{width,height},isMobile:mobile,hasTouch:mobile,reducedMotion:'reduce'});
+              const pr=await cr.newPage();await load(pr,path);
+              const m=await pr.evaluate(()=>({
+                overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
+                pos:getComputedStyle(document.querySelector('.ai-r4-runtime__sticky')).position,
+                sources:[...document.querySelectorAll('[data-source-anchor]')].filter(el=>getComputedStyle(el).display!=='none'&&parseFloat(getComputedStyle(el).opacity)>0).length,
+                ledger:document.querySelectorAll('[data-runtime-event-index]').length,
+                ghosts:document.querySelectorAll('.ai-r4-runtime__active-ghost').length
+              }));
+              const h=[];
+              if(m.overflow>1)h.push('overflow');if(m.pos==='sticky')h.push('sticky');if(m.sources!==17)h.push('sources:'+m.sources);if(m.ledger!==17)h.push('ledger');if(m.ghosts)h.push('ghosts');
+              console.log('R41_REDUCED',JSON.stringify({id,m,h}));
+              reducedHard.push(...h.map(x=>id+':'+x));await cr.close();
+            }
+            await browser.close();
+            return {results,orientationHard,reloadHard,reducedHard};
+          }
+
+          async function webkitCritical(){
+            const browser=await webkit.launch({headless:true});
+            const cases=[
+              ['wk-en-430','/ai-systems/',430,932],
+              ['wk-ru-390','/ru/ai-systems/',390,844],
+              ['wk-en-land','/ai-systems/',844,390],
+              ['wk-ru-land','/ru/ai-systems/',844,390],
+            ];
+            const out=[];
+            for(const [id,path,width,height] of cases){
+              const ctx=await browser.newContext({viewport:{width,height},isMobile:true,hasTouch:true});
+              const page=await ctx.newPage();await load(page,path);
+              await setRuntimeProgress(page,.03);await page.waitForTimeout(80);
+              const g=await geometry(page,id,width,height,true);
+              const hard=validate(g);
+              const states=[];
+              for(let i=0;i<=30;i++){await setRuntimeProgress(page,i/30);await page.waitForTimeout(24);states.push(await page.evaluate(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeState||''));}
+              const unique=[...new Set(states)],need=['tool-failure','retry','fallback','machine-stopped','authority-approved','action'];
+              const missing=need.filter(x=>!unique.includes(x));
+              if(missing.length)hard.push('missing-states:'+missing.join(','));
+              if(states.filter(x=>x==='machine-stopped').length<2)hard.push('machine-stop-short');
+              console.log('R41_WEBKIT',JSON.stringify({id,g,unique,missing,hard}));
+              out.push({id,hard});await ctx.close();
+            }
+            await browser.close();return out;
+          }
+
+          const chrome=await chromiumMatrix();
+          const wk=await webkitCritical();
+          const failures=[
+            ...chrome.results.flatMap(r=>r.hard.map(x=>'chrome:'+r.id+':'+x)),
+            ...chrome.orientationHard.map(x=>'orientation:'+x),
+            ...chrome.reloadHard.map(x=>'reload:'+x),
+            ...chrome.reducedHard.map(x=>'reduced:'+x),
+            ...wk.flatMap(r=>r.hard.map(x=>'webkit:'+r.id+':'+x)),
+          ];
+          fs.writeFileSync('r41-evidence/results.json',JSON.stringify({chrome,wk,failures},null,2));
+          if(failures.length){console.error('R41_FAILURES',JSON.stringify(failures));process.exit(1)}
+          console.log('R41_PASS');
+          EOF
+          node r41-focused.mjs
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-systems-r4-1-focused-evidence
+          path: r41-evidence/
+          if-no-files-found: warn

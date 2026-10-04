@@ -262,41 +262,24 @@
 
 }
 
-/* R5 R3 orientation stability: mobile inscription sizing follows the same
-   visualViewport-derived orientation used by the R5 stage runtime. This
-   removes the iOS rotation race between runtime orientation and CSS media
-   orientation without touching motion, geometry, content layout or timing. */
-@media (max-width:980px), ((hover:none) and (pointer:coarse)) {
-  .tw-r5.tw-r2[data-r5-orientation="portrait"] .tw-r2__inscription--ai {
-    top:9.2%;
-    font-size:clamp(64px,19vw,86px)!important;
-  }
-  .tw-r5.tw-r2[data-r5-orientation="portrait"] .tw-r2__inscription--web {
-    top:9.2%;
-    font-size:clamp(46px,14vw,64px)!important;
-  }
-  body.lang-ru .tw-r5.tw-r2[data-r5-orientation="portrait"] .tw-r2__inscription--ai {
-    font-size:clamp(62px,18.5vw,84px)!important;
-  }
-  body.lang-ru .tw-r5.tw-r2[data-r5-orientation="portrait"] .tw-r2__inscription--web {
-    font-size:clamp(39px,11.2vw,52px)!important;
-    letter-spacing:-.052em;
-  }
-
-  .tw-r5.tw-r2[data-r5-orientation="landscape"] .tw-r2__inscription--ai {
+/* R5 R3.2 watermark orientation authority.
+   Keep landscape inscription sizing owned by CSS orientation only.
+   This intentionally does not depend on max-height, visualViewport, or JS state. */
+@media (orientation:landscape) and (max-width:980px) {
+  .tw-r5.tw-r2 .tw-r2__inscription--ai {
     top:6.2%;
     font-size:clamp(112px,14.2vw,132px)!important;
     letter-spacing:-.060em;
   }
-  .tw-r5.tw-r2[data-r5-orientation="landscape"] .tw-r2__inscription--web {
+  .tw-r5.tw-r2 .tw-r2__inscription--web {
     top:6.2%;
     font-size:clamp(82px,10.5vw,104px)!important;
     letter-spacing:-.060em;
   }
-  body.lang-ru .tw-r5.tw-r2[data-r5-orientation="landscape"] .tw-r2__inscription--ai {
+  body.lang-ru .tw-r5.tw-r2 .tw-r2__inscription--ai {
     font-size:clamp(106px,13.4vw,126px)!important;
   }
-  body.lang-ru .tw-r5.tw-r2[data-r5-orientation="landscape"] .tw-r2__inscription--web {
+  body.lang-ru .tw-r5.tw-r2 .tw-r2__inscription--web {
     font-size:clamp(68px,8.6vw,86px)!important;
     letter-spacing:-.052em;
   }

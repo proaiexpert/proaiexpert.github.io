@@ -1,0 +1,1877 @@
+{
+  "base": "26b3244f408ff09d052a4540bd7d07da82183df2",
+  "branch": "agent/two-worlds-r32-jitter-b-compositor-isolation",
+  "experimentAOwnerResult": "NO CLEAR IMPROVEMENT",
+  "sourceFacts": {
+    "productFilesChanged": 0,
+    "IGNORE_SCROLL_PX": 2,
+    "B0RuntimeSha256": "bb417038b8e8b5e4d88b7e088e176eff2ab677efdbec46033e1b23500cd8d023",
+    "B1RuntimeSha256": "7c0b0afe322b971715e85cdd05e920f515457398587ab9f723a4f6843924eaa4",
+    "B1OnlyDeletedLines": [
+      "    important(ai,'clip-path','polygon(0 0,'+g.aiClipTop.toFixed(3)+'% 0,'+g.aiClipBottom.toFixed(3)+'% 100%,0 100%)');",
+      "    important(web,'clip-path','polygon('+g.webClipTop.toFixed(3)+'% 0,100% 0,100% 100%,'+g.webClipBottom.toFixed(3)+'% 100%)');"
+    ],
+    "nonClipTrajectoriesMatch": true,
+    "clipCalculationInGeometry": "UNCHANGED",
+    "geometryAndSampling": "UNCHANGED",
+    "B1ClippingResult": "Computed mobile face clip-path none through existing production CSS; fold clipping remains unchanged",
+    "writesPerActiveRender": {
+      "b0": 15,
+      "b1": 13
+    }
+  },
+  "measurementProtocol": {
+    "environment": "Windows desktop, headless Google Chrome 154 and Playwright WebKit 26.0. DPR 3, mobile/touch emulation.",
+    "inputs": "95 observed RAF callbacks; identical 46-position forward and 46-position reverse scroll sequence from territory .30 to .60. 90 delivered scroll events and 88 actual render updates per run.",
+    "viewportPreparation": "At y=0, width changes by -50px and returns to target. Exercises the existing production recompose path after page and fonts settle; prevents stale territory measurements from dominating Paint comparison.",
+    "instrumentation": "Transient CSSStyleDeclaration.setProperty counter, scroll listener, existing snapshot samples, Chromium CDP tracing/layer tree. Probes removed after each measurement. No diagnostics loaded by owner previews.",
+    "chromiumTrials": 2,
+    "webkitTrials": 1,
+    "chromiumOrder": "B0/B1 first trial, B1/B0 second trial",
+    "limitations": [
+      "Synthetic input is not finger scrolling; this does not measure async iOS scroll delivery.",
+      "RAF callback intervals are not presentation times or real iPhone GPU timings.",
+      "Trace Paint/Raster durations include the whole homepage; Raster sums span parallel worker tasks.",
+      "Trace recording and probes have measurement overhead.",
+      "Windows WebKit has extremely slow rendering in this environment; absolute results are not transferable.",
+      "WebKit longtask observation and GPU Paint/Composite trace are unavailable.",
+      "One initial Chromium landscape B0 run had unusually long frames; it did not reproduce in the reversed-order repeat.",
+      "B1 changes occlusion and visible pixel area. A perceived benefit alone could reflect removal of a high-contrast clip edge.",
+      "Fresh-load cached territory may differ from settled DOM position; this is pre-existing and identical in B0/B1, not altered by this experiment."
+    ]
+  },
+  "measurements": [
+    {
+      "engine": "chromium",
+      "viewport": {
+        "width": 393,
+        "height": 750
+      },
+      "variant": "b0",
+      "trial": 0,
+      "raf": {
+        "n": 94,
+        "median": 17.900000000000546,
+        "p95": 18.100000000000364,
+        "max": 18.200000000000728,
+        "over22": 0,
+        "over50": 0
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 17.900000000000546,
+        "p95": 18.199999999999818,
+        "max": 54,
+        "over22": 2,
+        "over50": 2
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 17.899999976158142,
+        "p95": 21.399999976158142,
+        "max": 31.299999952316284
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 1.399999976158142,
+        "p95": 3.3000000715255737,
+        "max": 4.799999952316284
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "clip-path": 176,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 8.989999999999995,
+        "p95": 9.79000000000002,
+        "max": 13.71999999999997,
+        "over22": 0,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": 0.015625,
+      "traceWork": {
+        "Paint": {
+          "count": 420,
+          "totalMs": 73.52700000000013,
+          "maxMs": 6.542
+        },
+        "PrePaint": {
+          "count": 119,
+          "totalMs": 25.12099999999999,
+          "maxMs": 1.011
+        },
+        "UpdateLayoutTree": {
+          "count": 273,
+          "totalMs": 181.00900000000001,
+          "maxMs": 4.071
+        },
+        "Layout": {
+          "count": 18,
+          "totalMs": 4.641,
+          "maxMs": 0.323
+        },
+        "UpdateLayerTree": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "CompositeLayers": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "RasterTask": {
+          "count": 1402,
+          "totalMs": 28.939999999999955,
+          "maxMs": 1.167
+        },
+        "Layerize": {
+          "count": 94,
+          "totalMs": 61.756000000000014,
+          "maxMs": 1.464
+        },
+        "Commit": {
+          "count": 94,
+          "totalMs": 46.247000000000014,
+          "maxMs": 1.03
+        },
+        "DrawFrame": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        }
+      },
+      "invalidations": {
+        "StyleRecalcInvalidationTracking": 3098,
+        "LayoutInvalidationTracking": 40,
+        "ScheduleStyleInvalidationTracking": 822,
+        "StyleInvalidatorInvalidationTracking": 838
+      },
+      "facePaints": [
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--ai",
+            "data-tw-world",
+            "ai",
+            "aria-labelledby",
+            "tw-r5-ai-title-en"
+          ],
+          "paintCount": 44,
+          "backendNodeId": 112,
+          "width": 391,
+          "height": 780,
+          "tracePaintEvents": 92
+        },
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--web",
+            "id",
+            "web",
+            "data-tw-world",
+            "web"
+          ],
+          "paintCount": 89,
+          "backendNodeId": 113,
+          "width": 25,
+          "height": 780,
+          "tracePaintEvents": 91
+        }
+      ],
+      "frameSpikeIncrease": 2,
+      "maxFrameDelta": 3153.6,
+      "errors": []
+    },
+    {
+      "engine": "chromium",
+      "viewport": {
+        "width": 393,
+        "height": 750
+      },
+      "variant": "b1",
+      "trial": 0,
+      "raf": {
+        "n": 94,
+        "median": 18,
+        "p95": 18.199999999999818,
+        "max": 36.099999999999454,
+        "over22": 2,
+        "over50": 0
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 18,
+        "p95": 18.199999999999818,
+        "max": 90.09999999999945,
+        "over22": 2,
+        "over50": 2
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 18,
+        "p95": 19.300000071525574,
+        "max": 35.89999997615814
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 1.5,
+        "p95": 2.5,
+        "max": 3.1999999284744263
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 8.989999999999995,
+        "p95": 9.79000000000002,
+        "max": 13.71999999999997,
+        "over22": 0,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": 0.015625,
+      "traceWork": {
+        "Paint": {
+          "count": 270,
+          "totalMs": 94.93499999999996,
+          "maxMs": 11.158
+        },
+        "PrePaint": {
+          "count": 105,
+          "totalMs": 39.882000000000005,
+          "maxMs": 1.746
+        },
+        "UpdateLayoutTree": {
+          "count": 273,
+          "totalMs": 243.32399999999998,
+          "maxMs": 3.712
+        },
+        "Layout": {
+          "count": 35,
+          "totalMs": 12.285999999999998,
+          "maxMs": 0.585
+        },
+        "UpdateLayerTree": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "CompositeLayers": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "RasterTask": {
+          "count": 2124,
+          "totalMs": 28.83200000000033,
+          "maxMs": 2.649
+        },
+        "Layerize": {
+          "count": 94,
+          "totalMs": 75.78699999999999,
+          "maxMs": 1.498
+        },
+        "Commit": {
+          "count": 94,
+          "totalMs": 57.241,
+          "maxMs": 1.462
+        },
+        "DrawFrame": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        }
+      },
+      "invalidations": {
+        "StyleRecalcInvalidationTracking": 3522,
+        "LayoutInvalidationTracking": 74,
+        "ScheduleStyleInvalidationTracking": 646,
+        "StyleInvalidatorInvalidationTracking": 662
+      },
+      "facePaints": [
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--ai",
+            "data-tw-world",
+            "ai",
+            "aria-labelledby",
+            "tw-r5-ai-title-en"
+          ],
+          "paintCount": 1,
+          "backendNodeId": 47,
+          "width": 409,
+          "height": 780,
+          "tracePaintEvents": 6
+        },
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--web",
+            "id",
+            "web",
+            "data-tw-world",
+            "web"
+          ],
+          "paintCount": 1,
+          "backendNodeId": 37,
+          "width": 409,
+          "height": 780,
+          "tracePaintEvents": 3
+        }
+      ],
+      "frameSpikeIncrease": 3,
+      "maxFrameDelta": 2593.4,
+      "errors": []
+    },
+    {
+      "engine": "chromium",
+      "viewport": {
+        "width": 393,
+        "height": 750
+      },
+      "variant": "b1",
+      "trial": 1,
+      "raf": {
+        "n": 94,
+        "median": 17.800000000000182,
+        "p95": 18.199999999999818,
+        "max": 18.300000000000182,
+        "over22": 0,
+        "over50": 0
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 17.800000000000182,
+        "p95": 18.199999999999818,
+        "max": 54.100000000000364,
+        "over22": 2,
+        "over50": 2
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 17.40000009536743,
+        "p95": 22.799999952316284,
+        "max": 31.600000023841858
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 1.4000000953674316,
+        "p95": 3.399999976158142,
+        "max": 5.099999904632568
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 8.989999999999995,
+        "p95": 9.79000000000002,
+        "max": 13.71999999999997,
+        "over22": 0,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": 0.015625,
+      "traceWork": {
+        "Paint": {
+          "count": 292,
+          "totalMs": 79.05900000000003,
+          "maxMs": 8.027
+        },
+        "PrePaint": {
+          "count": 119,
+          "totalMs": 33.900999999999996,
+          "maxMs": 1.179
+        },
+        "UpdateLayoutTree": {
+          "count": 273,
+          "totalMs": 269.89400000000023,
+          "maxMs": 6.361
+        },
+        "Layout": {
+          "count": 37,
+          "totalMs": 13.995,
+          "maxMs": 0.697
+        },
+        "UpdateLayerTree": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "CompositeLayers": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "RasterTask": {
+          "count": 2229,
+          "totalMs": 23.170000000000286,
+          "maxMs": 0.997
+        },
+        "Layerize": {
+          "count": 94,
+          "totalMs": 62.43100000000002,
+          "maxMs": 1.448
+        },
+        "Commit": {
+          "count": 96,
+          "totalMs": 48.87100000000001,
+          "maxMs": 1.186
+        },
+        "DrawFrame": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        }
+      },
+      "invalidations": {
+        "StyleRecalcInvalidationTracking": 3631,
+        "LayoutInvalidationTracking": 78,
+        "ScheduleStyleInvalidationTracking": 646,
+        "StyleInvalidatorInvalidationTracking": 662
+      },
+      "facePaints": [
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--ai",
+            "data-tw-world",
+            "ai",
+            "aria-labelledby",
+            "tw-r5-ai-title-en"
+          ],
+          "paintCount": 1,
+          "backendNodeId": 118,
+          "width": 409,
+          "height": 780,
+          "tracePaintEvents": 6
+        },
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--web",
+            "id",
+            "web",
+            "data-tw-world",
+            "web"
+          ],
+          "paintCount": 1,
+          "backendNodeId": 119,
+          "width": 409,
+          "height": 780,
+          "tracePaintEvents": 3
+        }
+      ],
+      "frameSpikeIncrease": 2,
+      "maxFrameDelta": 2535.9,
+      "errors": []
+    },
+    {
+      "engine": "chromium",
+      "viewport": {
+        "width": 393,
+        "height": 750
+      },
+      "variant": "b0",
+      "trial": 1,
+      "raf": {
+        "n": 94,
+        "median": 17.899999999999636,
+        "p95": 18.199999999999818,
+        "max": 18.300000000000182,
+        "over22": 0,
+        "over50": 0
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 17.899999999999636,
+        "p95": 18.200000000000728,
+        "max": 54.099999999999454,
+        "over22": 2,
+        "over50": 2
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 17.799999952316284,
+        "p95": 18.700000047683716,
+        "max": 34.40000009536743
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 1.399999976158142,
+        "p95": 1.899999976158142,
+        "max": 4
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "clip-path": 176,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 8.989999999999995,
+        "p95": 9.79000000000002,
+        "max": 13.71999999999997,
+        "over22": 0,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": 0.015625,
+      "traceWork": {
+        "Paint": {
+          "count": 500,
+          "totalMs": 91.39600000000011,
+          "maxMs": 6.42
+        },
+        "PrePaint": {
+          "count": 119,
+          "totalMs": 32.25300000000001,
+          "maxMs": 0.957
+        },
+        "UpdateLayoutTree": {
+          "count": 273,
+          "totalMs": 209.15999999999997,
+          "maxMs": 4.486
+        },
+        "Layout": {
+          "count": 37,
+          "totalMs": 10.202000000000002,
+          "maxMs": 0.44
+        },
+        "UpdateLayerTree": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "CompositeLayers": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "RasterTask": {
+          "count": 1420,
+          "totalMs": 27.536999999999946,
+          "maxMs": 0.94
+        },
+        "Layerize": {
+          "count": 94,
+          "totalMs": 64.05600000000001,
+          "maxMs": 1.449
+        },
+        "Commit": {
+          "count": 94,
+          "totalMs": 49.03000000000002,
+          "maxMs": 0.915
+        },
+        "DrawFrame": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        }
+      },
+      "invalidations": {
+        "StyleRecalcInvalidationTracking": 3981,
+        "LayoutInvalidationTracking": 78,
+        "ScheduleStyleInvalidationTracking": 822,
+        "StyleInvalidatorInvalidationTracking": 838
+      },
+      "facePaints": [
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--ai",
+            "data-tw-world",
+            "ai",
+            "aria-labelledby",
+            "tw-r5-ai-title-en"
+          ],
+          "paintCount": 44,
+          "backendNodeId": 120,
+          "width": 391,
+          "height": 780,
+          "tracePaintEvents": 92
+        },
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--web",
+            "id",
+            "web",
+            "data-tw-world",
+            "web"
+          ],
+          "paintCount": 89,
+          "backendNodeId": 121,
+          "width": 25,
+          "height": 780,
+          "tracePaintEvents": 91
+        }
+      ],
+      "frameSpikeIncrease": 2,
+      "maxFrameDelta": 2596.9,
+      "errors": []
+    },
+    {
+      "engine": "chromium",
+      "viewport": {
+        "width": 852,
+        "height": 390
+      },
+      "variant": "b0",
+      "trial": 0,
+      "raf": {
+        "n": 94,
+        "median": 35.80000000000018,
+        "p95": 72,
+        "max": 487,
+        "over22": 47,
+        "over50": 16
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 35.899999999999636,
+        "p95": 108,
+        "max": 487,
+        "over22": 47,
+        "over50": 16
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 27.600000023841858,
+        "p95": 75.59999990463257,
+        "max": 493.10000002384186
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 4.400000095367432,
+        "p95": 12.100000023841858,
+        "max": 33.10000002384186
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "clip-path": 176,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 18.579999999999984,
+        "p95": 25.029999999999973,
+        "max": 30.720000000000027,
+        "over22": 22,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": 0.020524999999906868,
+      "traceWork": {
+        "Paint": {
+          "count": 466,
+          "totalMs": 246.91799999999964,
+          "maxMs": 39.184
+        },
+        "PrePaint": {
+          "count": 119,
+          "totalMs": 65.24000000000004,
+          "maxMs": 4.932
+        },
+        "UpdateLayoutTree": {
+          "count": 273,
+          "totalMs": 445.8959999999996,
+          "maxMs": 7.562
+        },
+        "Layout": {
+          "count": 35,
+          "totalMs": 19.773000000000003,
+          "maxMs": 1.357
+        },
+        "UpdateLayerTree": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "CompositeLayers": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "RasterTask": {
+          "count": 775,
+          "totalMs": 45.72800000000011,
+          "maxMs": 4.742
+        },
+        "Layerize": {
+          "count": 94,
+          "totalMs": 149.50500000000008,
+          "maxMs": 3.29
+        },
+        "Commit": {
+          "count": 94,
+          "totalMs": 124.844,
+          "maxMs": 3.134
+        },
+        "DrawFrame": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        }
+      },
+      "invalidations": {
+        "StyleRecalcInvalidationTracking": 2050,
+        "LayoutInvalidationTracking": 74,
+        "ScheduleStyleInvalidationTracking": 2,
+        "StyleInvalidatorInvalidationTracking": 18
+      },
+      "facePaints": [
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--ai",
+            "data-tw-world",
+            "ai",
+            "aria-labelledby",
+            "tw-r5-ai-title-en"
+          ],
+          "paintCount": 44,
+          "backendNodeId": 95,
+          "width": 847,
+          "height": 406,
+          "tracePaintEvents": 92
+        },
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--web",
+            "id",
+            "web",
+            "data-tw-world",
+            "web"
+          ],
+          "paintCount": 88,
+          "backendNodeId": 96,
+          "width": 50,
+          "height": 406,
+          "tracePaintEvents": 91
+        }
+      ],
+      "frameSpikeIncrease": 47,
+      "maxFrameDelta": 2783.9,
+      "errors": []
+    },
+    {
+      "engine": "chromium",
+      "viewport": {
+        "width": 852,
+        "height": 390
+      },
+      "variant": "b1",
+      "trial": 0,
+      "raf": {
+        "n": 94,
+        "median": 17.300000000000182,
+        "p95": 18.200000000000728,
+        "max": 18.300000000000182,
+        "over22": 0,
+        "over50": 0
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 17.300000000000182,
+        "p95": 18.299999999999272,
+        "max": 53.29999999999973,
+        "over22": 2,
+        "over50": 2
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 17.399999976158142,
+        "p95": 18.5,
+        "max": 34.90000009536743
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 1.3000000715255737,
+        "p95": 1.7999999523162842,
+        "max": 4.100000023841858
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 18.579999999999984,
+        "p95": 25.029999999999973,
+        "max": 30.720000000000027,
+        "over22": 22,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": 0.020524999999906868,
+      "traceWork": {
+        "Paint": {
+          "count": 368,
+          "totalMs": 67.297,
+          "maxMs": 8.982
+        },
+        "PrePaint": {
+          "count": 119,
+          "totalMs": 28.980999999999984,
+          "maxMs": 1.441
+        },
+        "UpdateLayoutTree": {
+          "count": 273,
+          "totalMs": 202.624,
+          "maxMs": 3.866
+        },
+        "Layout": {
+          "count": 37,
+          "totalMs": 11.137,
+          "maxMs": 0.528
+        },
+        "UpdateLayerTree": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "CompositeLayers": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "RasterTask": {
+          "count": 1140,
+          "totalMs": 16.01599999999987,
+          "maxMs": 2.04
+        },
+        "Layerize": {
+          "count": 94,
+          "totalMs": 54.316,
+          "maxMs": 1.069
+        },
+        "Commit": {
+          "count": 95,
+          "totalMs": 47.96300000000001,
+          "maxMs": 0.912
+        },
+        "DrawFrame": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        }
+      },
+      "invalidations": {
+        "StyleRecalcInvalidationTracking": 2693,
+        "LayoutInvalidationTracking": 78,
+        "ScheduleStyleInvalidationTracking": 2,
+        "StyleInvalidatorInvalidationTracking": 18
+      },
+      "facePaints": [
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--ai",
+            "data-tw-world",
+            "ai",
+            "aria-labelledby",
+            "tw-r5-ai-title-en"
+          ],
+          "paintCount": 1,
+          "backendNodeId": 95,
+          "width": 886,
+          "height": 406,
+          "tracePaintEvents": 6
+        },
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--web",
+            "id",
+            "web",
+            "data-tw-world",
+            "web"
+          ],
+          "paintCount": 1,
+          "backendNodeId": 96,
+          "width": 886,
+          "height": 406,
+          "tracePaintEvents": 3
+        }
+      ],
+      "frameSpikeIncrease": 2,
+      "maxFrameDelta": 2548.5,
+      "errors": []
+    },
+    {
+      "engine": "chromium",
+      "viewport": {
+        "width": 852,
+        "height": 390
+      },
+      "variant": "b1",
+      "trial": 1,
+      "raf": {
+        "n": 94,
+        "median": 17.700000000000728,
+        "p95": 18.199999999999818,
+        "max": 18.300000000000182,
+        "over22": 0,
+        "over50": 0
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 17.799999999999272,
+        "p95": 18.199999999999818,
+        "max": 54.09999999999991,
+        "over22": 2,
+        "over50": 2
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 17.600000023841858,
+        "p95": 19.299999952316284,
+        "max": 34.5
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 1.5,
+        "p95": 2.100000023841858,
+        "max": 3.5
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 18.579999999999984,
+        "p95": 25.029999999999973,
+        "max": 30.720000000000027,
+        "over22": 22,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": 0.020524999999906868,
+      "traceWork": {
+        "Paint": {
+          "count": 367,
+          "totalMs": 65.122,
+          "maxMs": 6.698
+        },
+        "PrePaint": {
+          "count": 119,
+          "totalMs": 29.35399999999998,
+          "maxMs": 1.012
+        },
+        "UpdateLayoutTree": {
+          "count": 273,
+          "totalMs": 214.3119999999998,
+          "maxMs": 3.825
+        },
+        "Layout": {
+          "count": 37,
+          "totalMs": 12.764,
+          "maxMs": 0.915
+        },
+        "UpdateLayerTree": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "CompositeLayers": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "RasterTask": {
+          "count": 1140,
+          "totalMs": 17.250999999999927,
+          "maxMs": 1.965
+        },
+        "Layerize": {
+          "count": 94,
+          "totalMs": 56.38900000000002,
+          "maxMs": 0.959
+        },
+        "Commit": {
+          "count": 96,
+          "totalMs": 50.285,
+          "maxMs": 0.956
+        },
+        "DrawFrame": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        }
+      },
+      "invalidations": {
+        "StyleRecalcInvalidationTracking": 2684,
+        "LayoutInvalidationTracking": 78,
+        "ScheduleStyleInvalidationTracking": 2,
+        "StyleInvalidatorInvalidationTracking": 18
+      },
+      "facePaints": [
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--ai",
+            "data-tw-world",
+            "ai",
+            "aria-labelledby",
+            "tw-r5-ai-title-en"
+          ],
+          "paintCount": 1,
+          "backendNodeId": 96,
+          "width": 886,
+          "height": 406,
+          "tracePaintEvents": 6
+        },
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--web",
+            "id",
+            "web",
+            "data-tw-world",
+            "web"
+          ],
+          "paintCount": 1,
+          "backendNodeId": 97,
+          "width": 886,
+          "height": 406,
+          "tracePaintEvents": 3
+        }
+      ],
+      "frameSpikeIncrease": 2,
+      "maxFrameDelta": 2669.4,
+      "errors": []
+    },
+    {
+      "engine": "chromium",
+      "viewport": {
+        "width": 852,
+        "height": 390
+      },
+      "variant": "b0",
+      "trial": 1,
+      "raf": {
+        "n": 94,
+        "median": 18,
+        "p95": 18.099999999999454,
+        "max": 18.099999999999454,
+        "over22": 0,
+        "over50": 0
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 18,
+        "p95": 18.099999999999454,
+        "max": 54,
+        "over22": 2,
+        "over50": 2
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 18,
+        "p95": 18.5,
+        "max": 35.300000071525574
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 1.600000023841858,
+        "p95": 2.200000047683716,
+        "max": 4.300000071525574
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "clip-path": 176,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 18.579999999999984,
+        "p95": 25.029999999999973,
+        "max": 30.720000000000027,
+        "over22": 22,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": 0.020524999999906868,
+      "traceWork": {
+        "Paint": {
+          "count": 580,
+          "totalMs": 109.23100000000005,
+          "maxMs": 11.019
+        },
+        "PrePaint": {
+          "count": 119,
+          "totalMs": 33.52100000000001,
+          "maxMs": 1.195
+        },
+        "UpdateLayoutTree": {
+          "count": 273,
+          "totalMs": 211.77799999999982,
+          "maxMs": 2.966
+        },
+        "Layout": {
+          "count": 37,
+          "totalMs": 11.979,
+          "maxMs": 0.604
+        },
+        "UpdateLayerTree": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "CompositeLayers": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        },
+        "RasterTask": {
+          "count": 782,
+          "totalMs": 19.278999999999993,
+          "maxMs": 1.977
+        },
+        "Layerize": {
+          "count": 94,
+          "totalMs": 65.946,
+          "maxMs": 1.314
+        },
+        "Commit": {
+          "count": 94,
+          "totalMs": 58.46499999999998,
+          "maxMs": 1.042
+        },
+        "DrawFrame": {
+          "count": 0,
+          "totalMs": 0,
+          "maxMs": 0
+        }
+      },
+      "invalidations": {
+        "StyleRecalcInvalidationTracking": 2841,
+        "LayoutInvalidationTracking": 78,
+        "ScheduleStyleInvalidationTracking": 2,
+        "StyleInvalidatorInvalidationTracking": 18
+      },
+      "facePaints": [
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--ai",
+            "data-tw-world",
+            "ai",
+            "aria-labelledby",
+            "tw-r5-ai-title-en"
+          ],
+          "paintCount": 44,
+          "backendNodeId": 95,
+          "width": 847,
+          "height": 406,
+          "tracePaintEvents": 92
+        },
+        {
+          "node": [
+            "class",
+            "tw-r2__face tw-r2__face--web",
+            "id",
+            "web",
+            "data-tw-world",
+            "web"
+          ],
+          "paintCount": 88,
+          "backendNodeId": 96,
+          "width": 50,
+          "height": 406,
+          "tracePaintEvents": 91
+        }
+      ],
+      "frameSpikeIncrease": 2,
+      "maxFrameDelta": 2921.8,
+      "errors": []
+    },
+    {
+      "engine": "webkit",
+      "viewport": {
+        "width": 393,
+        "height": 750
+      },
+      "variant": "b0",
+      "trial": 0,
+      "raf": {
+        "n": 94,
+        "median": 281,
+        "p95": 417,
+        "max": 435,
+        "over22": 94,
+        "over50": 94
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 283,
+        "p95": 423,
+        "max": 951,
+        "over22": 88,
+        "over50": 88
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 283,
+        "p95": 417.0000000000018,
+        "max": 435
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 3,
+        "p95": 11.999999999998181,
+        "max": 27.99999999999818
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "clip-path": 176,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 9.010000000000005,
+        "p95": 9.799999999999983,
+        "max": 13.629999999999995,
+        "over22": 0,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": 0.04062500000009095,
+      "frameSpikeIncrease": 88,
+      "maxFrameDelta": 4324,
+      "errors": []
+    },
+    {
+      "engine": "webkit",
+      "viewport": {
+        "width": 393,
+        "height": 750
+      },
+      "variant": "b1",
+      "trial": 0,
+      "raf": {
+        "n": 94,
+        "median": 465,
+        "p95": 572,
+        "max": 689,
+        "over22": 94,
+        "over50": 94
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 469,
+        "p95": 609,
+        "max": 1344,
+        "over22": 88,
+        "over50": 88
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 465.99999999999636,
+        "p95": 572,
+        "max": 688
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 3,
+        "p95": 11,
+        "max": 13
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 9.010000000000005,
+        "p95": 9.799999999999983,
+        "max": 13.629999999999995,
+        "over22": 0,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": 0.04062500000009095,
+      "frameSpikeIncrease": 88,
+      "maxFrameDelta": 3749,
+      "errors": []
+    },
+    {
+      "engine": "webkit",
+      "viewport": {
+        "width": 852,
+        "height": 390
+      },
+      "variant": "b0",
+      "trial": 0,
+      "raf": {
+        "n": 94,
+        "median": 386,
+        "p95": 579,
+        "max": 668,
+        "over22": 94,
+        "over50": 94
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 386,
+        "p95": 584,
+        "max": 1210,
+        "over22": 88,
+        "over50": 88
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 384,
+        "p95": 579,
+        "max": 709.0000000000036
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 3,
+        "p95": 9.999999999998181,
+        "max": 13.999999999992724
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "clip-path": 176,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 18.590000000000032,
+        "p95": 25.00999999999999,
+        "max": 30.519999999999982,
+        "over22": 22,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": -0.023174999999810098,
+      "frameSpikeIncrease": 88,
+      "maxFrameDelta": 4417,
+      "errors": []
+    },
+    {
+      "engine": "webkit",
+      "viewport": {
+        "width": 852,
+        "height": 390
+      },
+      "variant": "b1",
+      "trial": 0,
+      "raf": {
+        "n": 94,
+        "median": 600,
+        "p95": 827,
+        "max": 954,
+        "over22": 94,
+        "over50": 94
+      },
+      "renderCadence": {
+        "n": 88,
+        "median": 616,
+        "p95": 846,
+        "max": 1803,
+        "over22": 88,
+        "over50": 88
+      },
+      "scrollEventIntervals": {
+        "n": 89,
+        "median": 615,
+        "p95": 833,
+        "max": 953
+      },
+      "scrollEventToObservedRenderMs": {
+        "n": 88,
+        "median": 3,
+        "p95": 13,
+        "max": 256
+      },
+      "renderedFrames": 89,
+      "scrollEvents": 90,
+      "visualPropertyWrites": {
+        "transform": 264,
+        "visibility": 264,
+        "opacity": 352,
+        "--tw-r5-ai-light-opacity": 88,
+        "--tw-r5-web-light-opacity": 88,
+        "--tw-r5-fold-response": 88
+      },
+      "foldJumps": {
+        "n": 88,
+        "median": 18.590000000000032,
+        "p95": 25.00999999999999,
+        "max": 30.519999999999982,
+        "over22": 22,
+        "over50": 0
+      },
+      "cachedTerritoryOffsetAfterRecompose": -0.023174999999810098,
+      "frameSpikeIncrease": 88,
+      "maxFrameDelta": 5265,
+      "errors": []
+    }
+  ],
+  "decision": {
+    "rootCauseSignal": "WEAK",
+    "classification": "UNKNOWN",
+    "B2": "NOT JUSTIFIED",
+    "B1b": "NOT REQUIRED: scroll/RAF/render cadence recorded in the same transient observation",
+    "reason": "Dynamic clipping creates measurable extra Chromium face Paint work, but no consistent frame-cadence improvement; Windows WebKit gets slower. Evidence does not establish that a movement/clipping wrapper will fix real-iPhone jitter.",
+    "realDeviceUnknown": "Await owner B0/B1 comparison on iPhone Chrome/WebKit. Do not promote A or B1."
+  },
+  "primarySources": [
+    "https://www.w3.org/TR/css-transforms-2/#grouping-property-values",
+    "https://webkit.org/web-inspector/layers-tab/",
+    "https://github.com/WebKit/WebKit/blob/main/Source/WebCore/rendering/RenderLayerBacking.cpp"
+  ],
+  "browserCapabilities": [
+    {
+      "engine": "chromium",
+      "version": "154.0.8037.57",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+      "performanceObserverTypes": [
+        "element",
+        "event",
+        "first-input",
+        "interaction-contentful-paint",
+        "largest-contentful-paint",
+        "layout-shift",
+        "long-animation-frame",
+        "longtask",
+        "mark",
+        "measure",
+        "navigation",
+        "paint",
+        "resource",
+        "soft-navigation",
+        "visibility-state"
+      ]
+    },
+    {
+      "engine": "webkit",
+      "version": "26.0",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",
+      "performanceObserverTypes": [
+        "mark",
+        "measure",
+        "navigation",
+        "paint",
+        "resource"
+      ]
+    }
+  ],
+  "qa": [
+    {
+      "engine": "chromium",
+      "variant": "b0",
+      "checks": 236,
+      "failures": 0,
+      "contexts": [
+        {
+          "lang": "en",
+          "viewport": {
+            "width": 393,
+            "height": 750
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r14",
+            "runtime": "/assets/js/homepage-two-worlds-r5.js?v=r32-jitter-b0-control",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b0/ru.html",
+            "cachedTerritoryOffset": -268.9943750000002
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "ru",
+          "viewport": {
+            "width": 393,
+            "height": 750
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r11--ru home-fs-showcase-r14",
+            "runtime": "/assets/js/homepage-two-worlds-r5.js?v=r32-jitter-b0-control",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b0/",
+            "cachedTerritoryOffset": -269.0250000000001
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "en",
+          "viewport": {
+            "width": 852,
+            "height": 390
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r14",
+            "runtime": "/assets/js/homepage-two-worlds-r5.js?v=r32-jitter-b0-control",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b0/ru.html",
+            "cachedTerritoryOffset": -338.006175
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "ru",
+          "viewport": {
+            "width": 852,
+            "height": 390
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r11--ru home-fs-showcase-r14",
+            "runtime": "/assets/js/homepage-two-worlds-r5.js?v=r32-jitter-b0-control",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b0/",
+            "cachedTerritoryOffset": -337.9915249999999
+          },
+          "errors": [],
+          "failedResources": []
+        }
+      ]
+    },
+    {
+      "engine": "chromium",
+      "variant": "b1",
+      "checks": 288,
+      "failures": 0,
+      "contexts": [
+        {
+          "lang": "en",
+          "viewport": {
+            "width": 393,
+            "height": 750
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r14",
+            "runtime": "/owner-preview/two-worlds-r32-jitter-b/runtime-b1-no-dynamic-face-clip.js?v=r32-jitter-b1-no-dynamic-face-clip",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b1/ru.html",
+            "cachedTerritoryOffset": -268.9943750000002
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "ru",
+          "viewport": {
+            "width": 393,
+            "height": 750
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r11--ru home-fs-showcase-r14",
+            "runtime": "/owner-preview/two-worlds-r32-jitter-b/runtime-b1-no-dynamic-face-clip.js?v=r32-jitter-b1-no-dynamic-face-clip",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b1/",
+            "cachedTerritoryOffset": -269.0250000000001
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "en",
+          "viewport": {
+            "width": 852,
+            "height": 390
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r14",
+            "runtime": "/owner-preview/two-worlds-r32-jitter-b/runtime-b1-no-dynamic-face-clip.js?v=r32-jitter-b1-no-dynamic-face-clip",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b1/ru.html",
+            "cachedTerritoryOffset": -338.006175
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "ru",
+          "viewport": {
+            "width": 852,
+            "height": 390
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r11--ru home-fs-showcase-r14",
+            "runtime": "/owner-preview/two-worlds-r32-jitter-b/runtime-b1-no-dynamic-face-clip.js?v=r32-jitter-b1-no-dynamic-face-clip",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b1/",
+            "cachedTerritoryOffset": -337.9915249999999
+          },
+          "errors": [],
+          "failedResources": []
+        }
+      ]
+    },
+    {
+      "engine": "webkit",
+      "variant": "b0",
+      "checks": 236,
+      "failures": 0,
+      "contexts": [
+        {
+          "lang": "en",
+          "viewport": {
+            "width": 393,
+            "height": 750
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r14",
+            "runtime": "/assets/js/homepage-two-worlds-r5.js?v=r32-jitter-b0-control",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b0/ru.html",
+            "cachedTerritoryOffset": -268.9693750000001
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "ru",
+          "viewport": {
+            "width": 393,
+            "height": 750
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r11--ru home-fs-showcase-r14",
+            "runtime": "/assets/js/homepage-two-worlds-r5.js?v=r32-jitter-b0-control",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b0/",
+            "cachedTerritoryOffset": -268.9693750000001
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "en",
+          "viewport": {
+            "width": 852,
+            "height": 390
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r14",
+            "runtime": "/assets/js/homepage-two-worlds-r5.js?v=r32-jitter-b0-control",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b0/ru.html",
+            "cachedTerritoryOffset": -337.9991749999999
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "ru",
+          "viewport": {
+            "width": 852,
+            "height": 390
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r11--ru home-fs-showcase-r14",
+            "runtime": "/assets/js/homepage-two-worlds-r5.js?v=r32-jitter-b0-control",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b0/",
+            "cachedTerritoryOffset": -337.9991749999999
+          },
+          "errors": [],
+          "failedResources": []
+        }
+      ]
+    },
+    {
+      "engine": "webkit",
+      "variant": "b1",
+      "checks": 288,
+      "failures": 0,
+      "contexts": [
+        {
+          "lang": "en",
+          "viewport": {
+            "width": 393,
+            "height": 750
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r14",
+            "runtime": "/owner-preview/two-worlds-r32-jitter-b/runtime-b1-no-dynamic-face-clip.js?v=r32-jitter-b1-no-dynamic-face-clip",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b1/ru.html",
+            "cachedTerritoryOffset": -268.9693750000001
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "ru",
+          "viewport": {
+            "width": 393,
+            "height": 750
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r11--ru home-fs-showcase-r14",
+            "runtime": "/owner-preview/two-worlds-r32-jitter-b/runtime-b1-no-dynamic-face-clip.js?v=r32-jitter-b1-no-dynamic-face-clip",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b1/",
+            "cachedTerritoryOffset": -268.9693750000001
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "en",
+          "viewport": {
+            "width": 852,
+            "height": 390
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r14",
+            "runtime": "/owner-preview/two-worlds-r32-jitter-b/runtime-b1-no-dynamic-face-clip.js?v=r32-jitter-b1-no-dynamic-face-clip",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b1/ru.html",
+            "cachedTerritoryOffset": -337.9991749999999
+          },
+          "errors": [],
+          "failedResources": []
+        },
+        {
+          "lang": "ru",
+          "viewport": {
+            "width": 852,
+            "height": 390
+          },
+          "context": {
+            "header": true,
+            "hero": true,
+            "previous": "connected-next connected-next--production",
+            "next": "home-tech-ff",
+            "following": "home-fs-showcase-r11 home-fs-showcase-r11--ru home-fs-showcase-r14",
+            "runtime": "/owner-preview/two-worlds-r32-jitter-b/runtime-b1-no-dynamic-face-clip.js?v=r32-jitter-b1-no-dynamic-face-clip",
+            "locale": "/owner-preview/two-worlds-r32-jitter-b/b1/",
+            "cachedTerritoryOffset": -337.9991749999999
+          },
+          "errors": [],
+          "failedResources": []
+        }
+      ]
+    }
+  ],
+  "qaCheckTotal": 1048,
+  "qaScope": "EN/RU, portrait/landscape, AI/WEB locks, forward, reverse, return from below, visibility/edge lifecycle, stable watermark sizing, full homepage context, no raw Liquid. B1 clipping during turn is diagnostic and is not visual authority. Real iPhone not tested.",
+  "exactPreviewFiles": [
+    "owner-preview/two-worlds-r32-jitter-b/README.md",
+    "owner-preview/two-worlds-r32-jitter-b/b0/index.html",
+    "owner-preview/two-worlds-r32-jitter-b/b0/ru.html",
+    "owner-preview/two-worlds-r32-jitter-b/b1/index.html",
+    "owner-preview/two-worlds-r32-jitter-b/b1/ru.html",
+    "owner-preview/two-worlds-r32-jitter-b/measurement-summary.json",
+    "owner-preview/two-worlds-r32-jitter-b/runtime-b1-no-dynamic-face-clip.js"
+  ]
+}

@@ -38,7 +38,7 @@ jobs:
           python3 -m http.server 4173 --directory _site >/tmp/r4-http.log 2>&1 &
           echo $! >/tmp/r4-http.pid
           sleep 2
-          cat > /tmp/r4-qa.mjs <<'EOF'
+          cat > ./r4-qa.mjs <<'EOF'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
 
@@ -194,7 +194,7 @@ jobs:
           }
           console.log('R4_QA_PASS', results.map(r => r.id).join(', '));
           EOF
-          node /tmp/r4-qa.mjs
+          node ./r4-qa.mjs
 
       - name: Upload rendered QA evidence
         if: always()

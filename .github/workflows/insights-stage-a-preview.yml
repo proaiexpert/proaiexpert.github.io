@@ -17,6 +17,10 @@ jobs:
       - name: Checkout preview mirror
         uses: actions/checkout@v6
 
+      - name: Remove generated Stage A preview before source build
+        shell: bash
+        run: rm -rf owner-preview/insights-stage-a
+
       - name: Verify ProAI Cube integrity
         run: node scripts/verify-proai-cube-integrity-r2.mjs
 

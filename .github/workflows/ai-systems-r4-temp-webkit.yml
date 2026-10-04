@@ -61,14 +61,14 @@ jobs:
             const top=await page.evaluate(el=>window.scrollY+el.getBoundingClientRect().top,await story.elementHandle());
             const travel=Math.max(1,box.height-height);
             const states=[];
-            for(let i=0;i<=40;i++){
-              await page.evaluate(y=>window.scrollTo(0,y),Math.round(top+travel*(i/40)));
-              await page.waitForTimeout(25);
+            for(let i=0;i<=120;i++){
+              await page.evaluate(y=>window.scrollTo(0,y),Math.round(top+travel*(i/120)));
+              await page.waitForTimeout(34);
               states.push(await page.evaluate(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeState||''));
             }
             const needed=['tool-failure','retry','fallback','machine-stopped','authority-approved','action'];
             const missing=needed.filter(x=>!states.includes(x));
-            const stop=states.filter(x=>x==='machine-stopped').length;
+            const stop=states.filter(x=>x==='machine-stopped').length; const unique=[...new Set(states)];
             const final=await page.evaluate(()=>({
               overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
               valid:document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid,
@@ -82,7 +82,7 @@ jobs:
             if(stop<3) hard.push('machine-stop-plateau');
             if(pageErrors.length) hard.push('page-errors');
             if(localFailures.length) hard.push('local-request-failures');
-            console.log('WEBKIT_QA',JSON.stringify({id,initial,final,stop,missing,pageErrors,localFailures,hard}));
+            console.log('WEBKIT_QA',JSON.stringify({id,initial,final,stop,unique,missing,pageErrors,localFailures,hard}));
             if(hard.length){await browser.close();process.exit(1)}
             await ctx.close();
           }

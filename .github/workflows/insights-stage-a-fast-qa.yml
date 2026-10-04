@@ -40,7 +40,11 @@ jobs:
           npm install --no-save --no-package-lock playwright-core
           CHROME_BIN="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser)"
           test -n "$CHROME_BIN"
-          python -m http.server 4173 --directory _site >/tmp/iv2-fast-http.log 2>&1 &
+          python - <<'PY' >/tmp/iv2-fast-http.log 2>&1 &
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from functools import partial
+ThreadingHTTPServer(("127.0.0.1", 4173), partial(SimpleHTTPRequestHandler, directory="_site")).serve_forever()
+PY
           SERVER_PID=$!
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
           for i in $(seq 1 30); do
@@ -94,6 +98,11 @@ jobs:
                 isMobile:!!vp.mobile
               });
               const page=await context.newPage();
+              await page.route('**/*', async route => {
+                const url=route.request().url();
+                if(url.startsWith(base+'/')) await route.continue();
+                else await route.abort();
+              });
               for(const [name,path] of routes){
                 const errors=[];
                 page.removeAllListeners('pageerror');
@@ -145,7 +154,9 @@ jobs:
               await context.close();
             }
 
-            await Promise.all(viewports.map(runViewport));
+            for(let i=0;i<viewports.length;i+=4){
+              await Promise.all(viewports.slice(i,i+4).map(runViewport));
+            }
 
             for(const width of [1280,1440,1600,1920]){
               const context=await browser.newContext({viewport:{width,height:900}});

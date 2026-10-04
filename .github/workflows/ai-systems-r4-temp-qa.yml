@@ -66,6 +66,8 @@ jobs:
               reducedMotion:reduced ? 'reduce' : 'no-preference',
             });
             const page = await context.newPage();
+            await page.route('https://fonts.googleapis.com/**', route => route.abort());
+            await page.route('https://fonts.gstatic.com/**', route => route.abort());
             const consoleErrors = [];
             const pageErrors = [];
             const localFailures = [];
@@ -75,7 +77,7 @@ jobs:
               if (req.url().startsWith(base)) localFailures.push(req.url() + ' :: ' + (req.failure()?.errorText || 'failed'));
             });
 
-            const response = await page.goto(base + c.path, { waitUntil:'networkidle', timeout:45000 });
+            const response = await page.goto(base + c.path, { waitUntil:'domcontentloaded', timeout:20000 });
             if (!response || response.status() !== 200) throw new Error(c.id + ' HTTP ' + (response?.status() ?? 'none'));
 
             await page.waitForFunction(() => document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid === 'true', null, { timeout:10000 });

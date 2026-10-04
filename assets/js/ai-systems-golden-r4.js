@@ -104,8 +104,9 @@ import { REQUIRED_SOURCE_ANCHORS, visualForEvent } from './ai-systems-r4-runtime
       ghost.className = 'ai-r4-runtime__active-ghost';
       ghost.setAttribute('aria-hidden', 'true');
 
-      const ghostMeta = meta.cloneNode(true);
-      ghostMeta.querySelectorAll('[data-runtime-active-meta]').forEach((node) => node.removeAttribute('data-runtime-active-meta'));
+      const ghostMeta = meta.parentElement?.cloneNode(true) || meta.cloneNode(true);
+      if (ghostMeta.matches?.('[data-runtime-active-meta]')) ghostMeta.removeAttribute('data-runtime-active-meta');
+      ghostMeta.querySelectorAll?.('[data-runtime-active-meta]').forEach((node) => node.removeAttribute('data-runtime-active-meta'));
       const ghostTitle = title.cloneNode(true);
       ghostTitle.removeAttribute('data-runtime-active-title');
       const ghostDetail = detail.cloneNode(true);

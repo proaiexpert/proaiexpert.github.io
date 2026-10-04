@@ -1,0 +1,92 @@
+name: AI Systems R4.1 Final Delta QA
+
+on:
+  push:
+    branches:
+      - agent/ai-systems-golden-r4-trace-threshold-r1-1-premium-polish
+
+permissions:
+  contents: read
+
+jobs:
+  delta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Reference runtime tests
+        run: node --test tests/controlled-agent-reference.test.mjs
+      - name: Install browser driver
+        run: npm install --no-save playwright-core@1.56.1
+      - name: Verify final mobile transition cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          python3 -m http.server 4173 --directory . >/tmp/r41-delta-http.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          sleep 1
+          cat > r41-delta.mjs <<'EOF'
+          import { chromium } from 'playwright-core';
+          const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
+          const base='http://127.0.0.1:4173';
+          const cases=[
+            ['en-430','/owner-preview/ai-systems-r4-trace-threshold-r1/',430,932],
+            ['ru-390','/owner-preview/ai-systems-r4-trace-threshold-r1/ru/',390,844],
+          ];
+          const failures=[];
+          for(const [id,path,width,height] of cases){
+            const ctx=await browser.newContext({viewport:{width,height},isMobile:true,hasTouch:true});
+            const page=await ctx.newPage();
+            await page.route('https://fonts.googleapis.com/**',r=>r.abort());
+            await page.route('https://fonts.gstatic.com/**',r=>r.abort());
+            const errors=[];
+            page.on('pageerror',e=>errors.push(String(e)));
+            await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:10000});
+            await page.waitForFunction(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid==='true',null,{timeout:6000});
+
+            const setP=async p=>page.evaluate(p0=>{
+              const story=document.querySelector('[data-r4-runtime-story]');
+              const r=story.getBoundingClientRect();
+              const top=scrollY+r.top;
+              const travel=Math.max(1,r.height-innerHeight);
+              scrollTo(0,Math.round(top+travel*p0));
+            },p);
+
+            await setP(.06); await page.waitForTimeout(320);
+            await setP(.14); await page.waitForTimeout(30);
+            const during=await page.evaluate(()=>({
+              ghost:document.querySelectorAll('.ai-r4-runtime__active-ghost').length,
+              anim:document.querySelector('[data-runtime-active-title]')?.getAnimations?.().length||0,
+            }));
+            await page.waitForTimeout(360);
+            const after=await page.evaluate(()=>({
+              ghost:document.querySelectorAll('.ai-r4-runtime__active-ghost').length,
+              overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
+              valid:document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid,
+              ledger:document.querySelectorAll('[data-runtime-event-index]').length,
+              source:document.querySelector('.ai-r4-runtime__source')?.getBoundingClientRect(),
+              trace:document.querySelector('.ai-r4-runtime__trace')?.getBoundingClientRect(),
+              active:document.querySelector('.ai-r4-runtime__active')?.getBoundingClientRect(),
+              title:document.querySelector('[data-runtime-active-title]')?.getBoundingClientRect(),
+              gate:document.querySelector('.ai-r4-runtime-gate')?.getBoundingClientRect(),
+            }));
+            const hard=[];
+            if(!(during.ghost||during.anim))hard.push('transition-not-observed');
+            if(after.ghost)hard.push('stale-ghost:'+after.ghost);
+            if(after.overflow>1)hard.push('overflow');
+            if(after.valid!=='true'||after.ledger!==17)hard.push('runtime-invalid');
+            if(after.source&&after.trace&&after.source.bottom>after.trace.top+1)hard.push('source-trace-overlap');
+            if(after.active&&after.title&&(after.title.top<after.active.top-1||after.title.bottom>after.active.bottom+1))hard.push('title-zone');
+            if(after.active&&after.gate&&after.active.bottom>after.gate.top+1)hard.push('active-gate-overlap');
+            if(errors.length)hard.push('page-errors');
+            console.log('R41_DELTA',JSON.stringify({id,during,after,errors,hard}));
+            failures.push(...hard.map(x=>id+':'+x));
+            await ctx.close();
+          }
+          await browser.close();
+          if(failures.length){console.error('R41_DELTA_FAILURES',JSON.stringify(failures));process.exit(1)}
+          console.log('R41_DELTA_PASS');
+          EOF
+          CHROME_PATH="$CHROME" node r41-delta.mjs

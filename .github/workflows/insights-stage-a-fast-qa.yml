@@ -1,0 +1,219 @@
+name: Insights Stage A Fast Matrix
+
+on:
+  push:
+    branches:
+      - insights-stage-a-preview
+    paths:
+      - '.github/workflows/insights-stage-a-fast-qa.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  fast-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout preview mirror
+        uses: actions/checkout@v6
+
+      - name: Remove generated review copies
+        run: rm -rf owner-preview/insights-stage-a
+
+      - name: Build and validate canonical output
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+
+      - name: Run full responsive matrix
+        shell: bash
+        run: |
+          npm install --no-save --no-package-lock playwright-core
+          CHROME_BIN="$(command -v google-chrome-stable || command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          test -n "$CHROME_BIN"
+          python -m http.server 4173 --directory _site >/tmp/iv2-fast-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:4173/insights/ >/dev/null && break
+            sleep 0.2
+          done
+          export CHROME_BIN
+          node <<'NODE'
+          const { chromium } = require('playwright-core');
+
+          const routes = [
+            ['en-hub', '/insights/'],
+            ['ru-hub', '/ru/insights/'],
+            ['lead-en', '/insights/what-happens-after-a-lead-arrives/'],
+            ['lead-ru', '/ru/insights/chto-proiskhodit-posle-zayavki/'],
+            ['multilingual-en', '/insights/does-your-service-business-need-a-multilingual-website/'],
+            ['multilingual-ru', '/ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/'],
+            ['proposal-en', '/insights/how-to-evaluate-a-website-proposal/'],
+            ['proposal-ru', '/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/']
+          ];
+          const viewports = [
+            {name:'desktop-1280',width:1280,height:900},
+            {name:'desktop-1366',width:1366,height:900},
+            {name:'desktop-1440',width:1440,height:900},
+            {name:'desktop-1600',width:1600,height:1000},
+            {name:'desktop-1920',width:1920,height:1080},
+            {name:'portrait-430',width:430,height:932,touch:true,mobile:true},
+            {name:'portrait-390',width:390,height:844,touch:true,mobile:true},
+            {name:'portrait-375',width:375,height:812,touch:true,mobile:true},
+            {name:'portrait-360',width:360,height:800,touch:true,mobile:true},
+            {name:'portrait-320',width:320,height:700,touch:true,mobile:true},
+            {name:'landscape-844',width:844,height:390,touch:true,mobile:true},
+            {name:'landscape-932',width:932,height:430,touch:true,mobile:true},
+            {name:'tablet-portrait',width:768,height:1024,touch:true},
+            {name:'tablet-landscape',width:1024,height:768,touch:true}
+          ];
+
+          (async () => {
+            const browser = await chromium.launch({
+              headless:true,
+              executablePath:process.env.CHROME_BIN,
+              args:['--no-sandbox','--disable-dev-shm-usage']
+            });
+            const failures=[];
+            const base='http://127.0.0.1:4173';
+
+            async function runViewport(vp){
+              const context=await browser.newContext({
+                viewport:{width:vp.width,height:vp.height},
+                hasTouch:!!vp.touch,
+                isMobile:!!vp.mobile
+              });
+              const page=await context.newPage();
+              for(const [name,path] of routes){
+                const errors=[];
+                page.removeAllListeners('pageerror');
+                page.on('pageerror',e=>errors.push(String(e)));
+                await page.goto(base+path,{waitUntil:'domcontentloaded',timeout:20000});
+                await page.evaluate(()=>document.fonts?document.fonts.ready:Promise.resolve());
+                await page.waitForTimeout(120);
+                const a=await page.evaluate(()=>{
+                  const h=document.querySelector('main h1');
+                  if(!h)return null;
+                  const r=h.getBoundingClientRect();
+                  return {left:r.left,right:r.right,top:r.top,width:r.width,height:r.height};
+                });
+                await page.waitForTimeout(120);
+                const m=await page.evaluate(()=>{
+                  const root=document.documentElement;
+                  const h=document.querySelector('main h1');
+                  const r=h?h.getBoundingClientRect():null;
+                  const support=document.querySelector('.insights-v2__supporting');
+                  const trace=document.querySelector('.insights-v2__trace');
+                  const signal=document.querySelector('.insight-v2-signal');
+                  return {
+                    clientWidth:root.clientWidth,
+                    overflow:root.scrollWidth-root.clientWidth,
+                    h1:r?{left:r.left,right:r.right,top:r.top,width:r.width,height:r.height}:null,
+                    supportDisplay:support?getComputedStyle(support).display:null,
+                    traceBg:trace?getComputedStyle(trace).backgroundImage:null,
+                    signalBg:signal?getComputedStyle(signal).backgroundImage:null,
+                    footerCount:document.querySelectorAll('.home-footer-golden-r3[data-site-footer-canonical="golden-r1"]').length,
+                    signalCount:signal?signal.querySelectorAll(':scope > div:not(.insight-v2-signal__axis)').length:null
+                  };
+                });
+                const b=m.h1;
+                const jitter=a&&b?Math.max(
+                  Math.abs(a.left-b.left),Math.abs(a.right-b.right),
+                  Math.abs(a.top-b.top),Math.abs(a.width-b.width),Math.abs(a.height-b.height)
+                ):0;
+                const key=name+'/'+vp.name;
+                if(m.overflow>1)failures.push(key+': overflow '+m.overflow+'px');
+                if(!b||b.left<-1||b.right>m.clientWidth+1)failures.push(key+': H1 clipped');
+                if(jitter>.75)failures.push(key+': jitter '+jitter+'px');
+                if(errors.length)failures.push(key+': page errors '+errors.join(' | '));
+                if(m.footerCount!==1)failures.push(key+': footer count '+m.footerCount);
+                if(name.includes('hub')&&vp.name.startsWith('landscape')&&m.supportDisplay!=='block')failures.push(key+': support not stacked');
+                if(name.includes('hub')&&(vp.name.startsWith('portrait')||vp.name.startsWith('landscape'))&&m.traceBg!=='none')failures.push(key+': trace surface not flat');
+                if(!name.includes('hub')&&vp.name.startsWith('landscape')&&m.signalBg!=='none')failures.push(key+': signal surface not flat');
+                if(!name.includes('hub')&&m.signalCount!==3)failures.push(key+': signal count '+m.signalCount);
+              }
+              await context.close();
+            }
+
+            await Promise.all(viewports.map(runViewport));
+
+            for(const width of [1280,1440,1600,1920]){
+              const context=await browser.newContext({viewport:{width,height:900}});
+              const page=await context.newPage();
+              await page.goto(base+'/insights/what-happens-after-a-lead-arrives/',{waitUntil:'domcontentloaded'});
+              await page.evaluate(()=>document.fonts?document.fonts.ready:Promise.resolve());
+              const m=await page.evaluate(()=>{
+                const field=document.querySelector('.insight-v2__prose');
+                const p=document.querySelector('.insight-v2__prose > section p');
+                return {
+                  field:field.getBoundingClientRect().width,
+                  paragraph:p.getBoundingClientRect().width,
+                  max:getComputedStyle(p).maxWidth,
+                  reading:getComputedStyle(field).getPropertyValue('--iv2-reading').trim()
+                };
+              });
+              console.log('READING',width,JSON.stringify(m));
+              if(Math.abs(m.field-900)>1)failures.push('reading '+width+': field '+m.field);
+              if(m.reading!=='74ch')failures.push('reading '+width+': '+m.reading);
+              await context.close();
+            }
+
+            {
+              const c=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,reducedMotion:'reduce'});
+              const p=await c.newPage();
+              await p.goto(base+'/insights/what-happens-after-a-lead-arrives/',{waitUntil:'domcontentloaded'});
+              const m=await p.evaluate(()=>({
+                media:matchMedia('(prefers-reduced-motion: reduce)').matches,
+                nodes:[...document.querySelectorAll('.insight-v2-cover__spine,.insight-v2-signal,main h1')].map(el=>({
+                  animation:getComputedStyle(el).animationName,
+                  transition:getComputedStyle(el).transitionDuration
+                }))
+              }));
+              if(!m.media||m.nodes.some(x=>x.animation!=='none'||x.transition!=='0s'))failures.push('reduced motion failed');
+              await c.close();
+            }
+            {
+              const c=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,forcedColors:'active'});
+              const p=await c.newPage();
+              await p.goto(base+'/insights/what-happens-after-a-lead-arrives/',{waitUntil:'domcontentloaded'});
+              const m=await p.evaluate(()=>({
+                media:matchMedia('(forced-colors: active)').matches,
+                overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
+                h1:getComputedStyle(document.querySelector('main h1')).display!=='none'
+              }));
+              if(!m.media||m.overflow>1||!m.h1)failures.push('forced colors failed');
+              await c.close();
+            }
+            {
+              const c=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true,javaScriptEnabled:false});
+              const p=await c.newPage();
+              await p.goto(base+'/insights/what-happens-after-a-lead-arrives/',{waitUntil:'domcontentloaded'});
+              const m=await p.evaluate(()=>({
+                h1:!!document.querySelector('main h1'),
+                h2:document.querySelectorAll('main h2').length,
+                text:(document.querySelector('main')?.innerText||'').length,
+                footer:document.querySelectorAll('.home-footer-golden-r3[data-site-footer-canonical="golden-r1"]').length
+              }));
+              if(!m.h1||m.h2<5||m.text<5000||m.footer!==1)failures.push('no-JS failed');
+              await c.close();
+            }
+
+            await browser.close();
+            if(failures.length){
+              console.error('FAST MATRIX FAIL');
+              failures.forEach(x=>console.error('FAIL',x));
+              process.exit(1);
+            }
+            console.log('FAST MATRIX PASS — 8 routes x 14 viewports + reading/accessibility checks');
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE

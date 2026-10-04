@@ -22,7 +22,6 @@
   var EPS=.00001;
   var resizeTimer=0;
   var scrollRaf=0;
-  var sampledScrollY=NaN;
 
   function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
   function mix(a,b,t){return a+((b-a)*t);}
@@ -337,42 +336,11 @@
 
   function runScroll(now){
     scrollRaf=0;
-    if(document.hidden){sampledScrollY=NaN;return;}
-    var y=Math.max(0,window.scrollY||0);
-    if(y!==sampledScrollY){
-      sections.forEach(function(section){
-        if(section.isConnected)updateMobile(section,false,now||performance.now());
-      });
-      sampledScrollY=y;
-    }
-    syncScrollSampler(y);
+    sections.forEach(function(section){updateMobile(section,false,now||performance.now());});
   }
 
   function scheduleScroll(){
-    if(!document.hidden&&!scrollRaf)scrollRaf=window.requestAnimationFrame(runScroll);
-  }
-
-  /* Experiment C: sample current scrollY while the mobile chapter is engaged.
-     No synthetic progress or interpolation. updateMobile keeps its 2px guard;
-     identical samples do not enter the geometry pipeline. */
-  function scrollSamplerNeeded(y){
-    if(document.hidden||reducedMotion.matches)return false;
-    return sections.some(function(section){
-      var s=stateFor(section);
-      return section.isConnected&&s.composed&&engaged(s,y);
-    });
-  }
-
-  function stopScrollSampler(){
-    if(scrollRaf)window.cancelAnimationFrame(scrollRaf);
-    scrollRaf=0;
-    sampledScrollY=NaN;
-  }
-
-  function syncScrollSampler(y){
-    if(!Number.isFinite(y))y=Math.max(0,window.scrollY||0);
-    if(scrollSamplerNeeded(y))scheduleScroll();
-    else stopScrollSampler();
+    if(!scrollRaf)scrollRaf=window.requestAnimationFrame(runScroll);
   }
 
   function meterWidth(inscription){
@@ -566,7 +534,6 @@
       section.setAttribute('data-r5-zone','REDUCED');
       section.setAttribute('data-focus','neutral');
       setBothAccessible(section);
-      syncScrollSampler();
       return;
     }
 
@@ -583,7 +550,6 @@
       setBothAccessible(section);
       neutralLight(section);
       scheduleDesktopFit(section);
-      syncScrollSampler();
       return;
     }
 
@@ -614,7 +580,6 @@
     s.lastScrollY=Math.max(0,window.scrollY||0);
     s.lastAppliedY=NaN;
     updateMobile(section,true,performance.now());
-    syncScrollSampler();
   }
 
   function maybeRecompose(section,force){
@@ -666,12 +631,6 @@
   });
 
   window.addEventListener('scroll',scheduleScroll,{passive:true});
-
-  document.addEventListener('visibilitychange',function(){
-    if(document.hidden)stopScrollSampler();
-    else scheduleScroll();
-  });
-  window.addEventListener('pagehide',stopScrollSampler,{passive:true});
 
   window.addEventListener('resize',function(){
     window.clearTimeout(resizeTimer);

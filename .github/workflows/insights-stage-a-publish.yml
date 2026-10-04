@@ -1,0 +1,70 @@
+name: Insights Stage A Publish Preview
+
+on:
+  push:
+    branches:
+      - insights-stage-a-preview
+    paths:
+      - '.github/workflows/insights-stage-a-publish.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build validated final preview
+        shell: bash
+        run: |
+          rm -rf owner-preview/insights-stage-a
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+
+      - name: Materialize owner routes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import shutil
+          routes = {
+              "en-hub": "insights/index.html",
+              "ru-hub": "ru/insights/index.html",
+              "lead-en": "insights/what-happens-after-a-lead-arrives/index.html",
+              "lead-ru": "ru/insights/chto-proiskhodit-posle-zayavki/index.html",
+              "multilingual-en": "insights/does-your-service-business-need-a-multilingual-website/index.html",
+              "multilingual-ru": "ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html",
+              "proposal-en": "insights/how-to-evaluate-a-website-proposal/index.html",
+              "proposal-ru": "ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/index.html",
+          }
+          root=Path("owner-preview/insights-stage-a")
+          root.mkdir(parents=True,exist_ok=True)
+          for name,src in routes.items():
+              dst=root/name/"index.html"
+              dst.parent.mkdir(parents=True,exist_ok=True)
+              shutil.copy2(Path("_site")/src,dst)
+          (root/"BUILD_SHA.txt").write_text("implementation_head=04a19f1dccadf05b5b8d57106fa1efcad3d07b78\n",encoding="utf-8")
+          PY
+
+      - name: Commit final rendered preview
+        shell: bash
+        run: |
+          git config user.name "ProAI Preview Bot"
+          git config user.email "proai-preview@users.noreply.github.com"
+          git add owner-preview/insights-stage-a
+          if git diff --cached --quiet; then
+            echo "Final preview already current."
+          else
+            git commit -m "Preview: publish final Insights Stage A"
+            git push origin HEAD:insights-stage-a-preview
+          fi

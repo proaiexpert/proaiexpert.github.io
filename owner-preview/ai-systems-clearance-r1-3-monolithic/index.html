@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#050607">
+  <title>PROAI CLEARANCE R1.3 — Monolithic Recovery</title>
+  <script>if(new URLSearchParams(location.search).has('clean'))document.documentElement.classList.add('clean-view');</script>
+  <script type="importmap">
+  {"imports":{"three":"/assets/vendor/three-r180/build/three.module.min.js","three/addons/":"/assets/vendor/three-r180/examples/jsm/"}}
+  </script>
+  <style>
+    :root{color-scheme:dark;--bg:#050607;--panel:#090b0d;--line:#23272b;--text:#efefec;--muted:#8c9298;--warm:#a89a82}
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{min-height:100vh;overflow-x:hidden}
+    .shell{min-height:100svh;display:grid;grid-template-rows:auto 1fr auto}
+    header{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding:16px clamp(16px,2.8vw,38px);border-bottom:1px solid rgba(255,255,255,.055);background:rgba(5,6,7,.92);backdrop-filter:blur(14px);z-index:3}
+    .eyebrow{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8d949b}
+    .title{margin-top:5px;font-size:clamp(17px,1.8vw,24px);font-weight:580;letter-spacing:-.025em}
+    .law{font-size:10px;line-height:1.45;letter-spacing:.14em;text-transform:uppercase;color:var(--warm);text-align:right}
+    main{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 310px}
+    .stage{position:relative;min-height:680px;overflow:hidden;background:
+      radial-gradient(ellipse at 53% 43%,rgba(45,49,54,.14),transparent 39%),
+      radial-gradient(ellipse at 52% 80%,rgba(17,19,21,.46),transparent 25%),
+      linear-gradient(180deg,#070809 0%,#040506 100%)}
+    canvas{display:block;width:100%;height:100%;min-height:680px;touch-action:none;outline:none}
+    .state-chip,.mode-chip{position:absolute;z-index:2;padding:8px 10px;border:1px solid rgba(255,255,255,.085);background:rgba(5,6,7,.60);backdrop-filter:blur(10px);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#aeb3b8}
+    .state-chip{left:clamp(14px,2.5vw,30px);top:clamp(14px,2.5vw,26px)}
+    .mode-chip{right:clamp(14px,2.5vw,30px);top:clamp(14px,2.5vw,26px)}
+    .state-chip strong,.mode-chip strong{color:#f3f3f0;font-weight:600}
+    aside{border-left:1px solid rgba(255,255,255,.055);background:linear-gradient(180deg,#0a0c0e,#060708);padding:23px 20px;display:flex;flex-direction:column;gap:20px}
+    h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 9px;color:#c3c7cb;font-weight:570}
+    p{margin:0;color:var(--muted);font-size:12px;line-height:1.55}
+    .controls{display:grid;gap:7px}.controls.states{grid-template-columns:repeat(3,1fr)}.controls.debug{grid-template-columns:1fr}
+    button,a.button{appearance:none;border:1px solid #292e33;background:#0d1013;color:#e6e8e9;min-height:40px;padding:9px 10px;font:inherit;font-size:10px;letter-spacing:.085em;text-transform:uppercase;text-align:center;cursor:pointer;text-decoration:none;transition:border-color .18s,background .18s}
+    button:hover,button:focus-visible,a.button:hover,a.button:focus-visible{border-color:#5a6066;background:#12161a;outline:none}
+    button[data-active="true"]{border-color:#817661;background:#15130f;color:#f3eadb}
+    dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:7px 12px;font-size:11px}
+    dt{color:#7b8187}dd{margin:0;color:#d7d9db;font-variant-numeric:tabular-nums}
+    .rule{border-top:1px solid rgba(255,255,255,.055);padding-top:16px}.links{display:grid;gap:7px}
+    footer{padding:10px clamp(16px,2.8vw,38px);border-top:1px solid rgba(255,255,255,.05);font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:#6c7278}
+    .clean-view body{overflow:hidden}
+    .clean-view .shell{display:block}
+    .clean-view header,.clean-view aside,.clean-view footer,.clean-view .state-chip,.clean-view .mode-chip{display:none!important}
+    .clean-view main{display:block;height:100svh}
+    .clean-view .stage,.clean-view canvas{height:100svh;min-height:100svh}
+    @media(max-width:920px){
+      main{grid-template-columns:1fr}
+      .stage,canvas{min-height:62svh}
+      aside{border-left:0;border-top:1px solid rgba(255,255,255,.055);padding:18px 16px}
+    }
+    @media(max-width:560px){
+      header{padding:13px 14px}.title{font-size:15px}.eyebrow{font-size:8px}.law{font-size:8px;max-width:140px}
+      .stage,canvas{min-height:58svh}aside{gap:17px}
+    }
+    @media(orientation:landscape) and (max-height:500px){
+      .shell{display:block}
+      header{padding:7px 12px}.eyebrow{display:none}.title{margin:0;font-size:13px}.law{font-size:7px}
+      main{display:grid;grid-template-columns:minmax(0,1fr) 228px}
+      .stage,canvas{min-height:calc(100svh - 38px)}
+      aside{border-top:0;border-left:1px solid rgba(255,255,255,.055);padding:11px;gap:11px;max-height:calc(100svh - 38px);overflow:auto}
+      aside p,.rule{display:none}footer{display:none}
+    }
+    @media(prefers-reduced-motion:reduce){button{transition:none}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div>
+        <div class="eyebrow">AI Systems Hero · Monolithic Object Recovery Lab</div>
+        <div class="title">PROAI CLEARANCE R1.3</div>
+      </div>
+      <div class="law">One chassis.<br>Many capabilities.<br>One focal joint. One immutable limit.</div>
+    </header>
+    <main>
+      <section class="stage" aria-label="Interactive PROAI CLEARANCE R1.3 monolithic prototype">
+        <canvas id="clearance-canvas"></canvas>
+        <div class="state-chip">STATE · <strong id="state-label">REST</strong></div>
+        <div class="mode-chip">LAYOUT · <strong id="layout-label">20 · SELECTED</strong></div>
+      </section>
+      <aside>
+        <section>
+          <h2>Review states</h2>
+          <div class="controls states" role="group" aria-label="Prototype state controls">
+            <button type="button" data-mode="rest" data-active="true">Rest</button>
+            <button type="button" data-mode="pressure">Pressure</button>
+            <button type="button" data-mode="threshold">Threshold</button>
+          </div>
+        </section>
+        <section>
+          <h2>Debug modes</h2>
+          <div class="controls debug">
+            <button type="button" id="silhouette-toggle">Silhouette</button>
+            <button type="button" id="chassis-toggle">Chassis Debug</button>
+            <button type="button" id="seam-toggle">Seam Debug</button>
+          </div>
+        </section>
+        <section>
+          <h2>Runtime</h2>
+          <dl>
+            <dt>Primary modules</dt><dd id="metric-modules">20</dd>
+            <dt>Renderer</dt><dd id="metric-renderer">—</dd>
+            <dt>DPR</dt><dd id="metric-dpr">—</dd>
+            <dt>FPS sample</dt><dd id="metric-fps">—</dd>
+            <dt>First render</dt><dd id="metric-first">—</dd>
+            <dt>Input → frame</dt><dd id="metric-latency">—</dd>
+            <dt>RAF state</dt><dd id="metric-raf">ACTIVE</dd>
+            <dt>REST collisions</dt><dd id="metric-rest-collisions">—</dd>
+            <dt>PRESSURE collisions</dt><dd id="metric-pressure-collisions">—</dd>
+            <dt>THRESH collisions</dt><dd id="metric-threshold-collisions">—</dd>
+          </dl>
+        </section>
+        <section class="rule">
+          <h2>R1.3 structural model</h2>
+          <p>Twenty larger standardized housings are physically seated into one faceted near-black chassis. The chassis closes the hollow center without reading as a second object. One narrow diagonal clearance joint passes through the visible machine skin; the chassis and authority datum remain static while local modules register toward it.</p>
+        </section>
+        <section class="links">
+          <a class="button" href="/owner-preview/ai-systems-clearance-r1-2-shell/" target="_blank" rel="noopener">Open R1.2 baseline</a>
+          <a class="button" href="?clean=1">Open clean view</a>
+          <a class="button" href="?layout=24">Open 24-module study</a>
+          <a class="button" href="?camera=B">Open Camera B study</a>
+        </section>
+      </aside>
+    </main>
+    <footer>R1.3 isolated structural prototype · R1/R1.1/R1.2 preserved · production/main untouched</footer>
+  </div>
+  <script type="module" src="./clearance-r1-3.js?v=r1-3"></script>
+</body>
+</html>

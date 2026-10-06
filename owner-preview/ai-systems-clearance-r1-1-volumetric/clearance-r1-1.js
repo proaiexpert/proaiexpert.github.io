@@ -10,6 +10,7 @@ const SELECTED_SEAM = (new URLSearchParams(location.search).get('seam') || 'B').
 
 const canvas = document.getElementById('clearance-canvas');
 const stateLabel = document.getElementById('state-label');
+const seamLabel = document.getElementById('seam-label');
 const metricRenderer = document.getElementById('metric-renderer');
 const metricDpr = document.getElementById('metric-dpr');
 const metricFps = document.getElementById('metric-fps');
@@ -72,6 +73,7 @@ const SEAM_OPTIONS = {
   }
 };
 const seam = SEAM_OPTIONS[SELECTED_SEAM];
+if (seamLabel) seamLabel.textContent = `${SELECTED_SEAM} · ${seam.label}`;
 
 function smooth01(value) {
   const x = THREE.MathUtils.clamp(value, 0, 1);

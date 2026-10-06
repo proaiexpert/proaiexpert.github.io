@@ -324,7 +324,6 @@ function updateMobileOneShot(now) {
   }
   if (elapsed < 2450) {
     autoPhase = 'press';
-    manualMode = null;
     pointerActive = true;
     pointerLocal.set(0.06, -0.02, 0);
     pointerMovedAt = autoStartedAt + 950;

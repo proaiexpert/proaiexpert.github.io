@@ -338,8 +338,12 @@ for (const module of modules) {
   }
 }
 
+// The single cold-silver seam shoulder is intentionally smaller so its
+// projected visible area stays near the 2–3% hierarchy target.
+silverModule.sizeFamily = 'secondary';
+silverModule.scale.set(0.74, 0.74, 0.94);
 silverModule.family = 'silver';
-const gunmetalCount = MODULE_COUNT === 20 ? 2 : 3;
+const gunmetalCount = 3;
 structuralOrder.slice(1, 1 + gunmetalCount).forEach(m => { m.family = 'gunmetal'; });
 
 const familyLists = {

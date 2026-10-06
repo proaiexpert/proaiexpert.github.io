@@ -212,10 +212,18 @@ for (let i = 0; i < MODULE_COUNT; i++) {
   );
   const tightQ = baseQ.clone().multiply(alignmentDelta);
 
-  const scale = 0.82
+  const scale = 0.90
     + 0.025 * smooth01((shell.z + shellRadii.z) / (shellRadii.z * 2))
     + 0.008 * Math.cos(i * 1.17);
-  const scaleVector = new THREE.Vector3(scale, scale * 0.97, 0.99 + scale * 0.03);
+
+  // Two tight structural adjacency pairs need a tiny tangent-plane relief.
+  // This preserves the compact shell instead of globally re-opening spacing.
+  const collisionRelief = (i === 5 || i === 6 || i === 10 || i === 11) ? 0.94 : 1;
+  const scaleVector = new THREE.Vector3(
+    scale * collisionRelief,
+    scale * 0.97 * collisionRelief,
+    0.99 + scale * 0.03
+  );
 
   modules.push({
     index: i,

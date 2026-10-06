@@ -197,20 +197,20 @@ for (let i = 0; i < MODULE_COUNT; i++) {
   const side = seamValue >= 0 ? 1 : -1;
   const seamDistance = Math.abs(seamValue);
   const focalDistance = shell.distanceTo(seam.focal);
-  const frontness = smooth01((shell.z + 0.25) / 1.75);
-  const seamNearness = smooth01(1 - seamDistance / 0.78);
-  const focalNearness = smooth01(1 - focalDistance / 2.35);
-  const focalWeight = seamNearness * focalNearness * (0.28 + 0.72 * frontness);
+  const frontness = smooth01((shell.z + 0.45) / 1.90);
+  const seamNearness = smooth01(1 - seamDistance / 1.15);
+  const focalNearness = smooth01(1 - focalDistance / 3.00);
+  const focalWeight = seamNearness * focalNearness * (0.42 + 0.58 * frontness);
 
   const rest = shell.clone()
-    .addScaledVector(seam.normal, side * 0.145 * focalWeight)
+    .addScaledVector(seam.normal, side * 0.220 * focalWeight)
     .addScaledVector(normal, 0.025 * Math.sin(i * 1.1));
 
   // The two masses approach the seam but retain a small authored tolerance.
   // R1's fixed 0.18 grid value is intentionally not preserved.
   const tight = shell.clone()
-    .addScaledVector(seam.normal, side * 0.055 * focalWeight)
-    .addScaledVector(normal, -0.035 * focalWeight);
+    .addScaledVector(seam.normal, side * 0.070 * focalWeight)
+    .addScaledVector(normal, -0.045 * focalWeight);
 
   const baseQ = orientationFor(normal, 0.045 * Math.sin(i * 0.73));
   const alignmentDelta = new THREE.Quaternion().setFromAxisAngle(
@@ -474,7 +474,7 @@ function computeTargets() {
 
   if (manualMode === 'threshold') {
     for (const module of modules) {
-      direct[module.index] = module.focalWeight;
+      direct[module.index] = smooth01(module.focalWeight / 0.58);
     }
   } else if (pointerActive) {
     const radius = manualMode === 'pressure' ? 1.75 : 1.45;
@@ -482,7 +482,7 @@ function computeTargets() {
     for (const module of modules) {
       const distance = module.rest.distanceTo(pointerLocal);
       const local = smooth01(1 - distance / radius);
-      const structural = 0.18 + 0.82 * module.focalWeight;
+      const structural = 0.34 + 0.66 * module.focalWeight;
       direct[module.index] = local * structural * pressureScale;
     }
   }
@@ -491,10 +491,10 @@ function computeTargets() {
     const neighbors = adjacency[module.index];
     let neighborSum = 0;
     for (const index of neighbors) neighborSum += direct[index];
-    const propagated = neighbors.length ? (neighborSum / neighbors.length) * 0.36 : 0;
-    const structuralCap = 0.14 + 0.86 * module.focalWeight;
+    const propagated = neighbors.length ? (neighborSum / neighbors.length) * 0.34 : 0;
+    const structuralCap = 0.54 + 0.46 * module.focalWeight;
     module.targetInfluence = THREE.MathUtils.clamp(
-      Math.max(direct[module.index], direct[module.index] + propagated) * structuralCap,
+      (direct[module.index] + propagated) * structuralCap,
       0,
       1
     );

@@ -18,6 +18,9 @@ jobs:
           export PATH="$GEM_HOME/bin:$PATH"
           gem install --user-install jekyll -v 4.3.4 --no-document
           gem install --user-install webrick --no-document
+          # Preview-only HTML is intentionally absent from product Jekyll validation.
+          # Regenerate it from validated _site after the canonical 42-route shell check.
+          rm -rf owner-preview/insights-stage-a1
           python scripts/apply-social-preview-defaults.py --mode source --root .
           jekyll build --source . --destination _site
           python scripts/apply-social-preview-defaults.py --mode site --root _site

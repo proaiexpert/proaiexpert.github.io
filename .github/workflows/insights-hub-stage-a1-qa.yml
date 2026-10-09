@@ -29,6 +29,9 @@ jobs:
         run: |
           export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
           export PATH="$GEM_HOME/bin:$PATH"
+          # Preview-only HTML is intentionally absent from product Jekyll validation.
+          # Regenerate it from validated _site after the canonical 42-route shell check.
+          rm -rf owner-preview/insights-stage-a1
           python scripts/apply-social-preview-defaults.py --mode source --root .
           jekyll build --source . --destination _site
           python scripts/apply-social-preview-defaults.py --mode site --root _site

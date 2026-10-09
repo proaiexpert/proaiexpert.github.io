@@ -122,6 +122,12 @@ async function run(){
     renderStatus('Loading original exported scene.splinecode — no reconstruction …');
     await app.load(SCENE);
     proof.load='PASS';
+    // Deterministic test-only gate to capture ORIGINAL runtime before RAM-only adaptation.
+    // Never invoked in owner preview unless explicit ?qaPause=1 is present.
+    if(new URLSearchParams(location.search).get('qaPause')==='1'){
+      proof.notes.push('QA capture gate after real scene load, before material writes.');
+      await new Promise(resolve=>{window.__proaiOrbResume=resolve});
+    }
   }catch(e){proof.load='FAIL';fail('REMOTE SCENE LOAD (check CORS, WebGPU, scene publish URL)',e);return;}
   let objects;
   try{

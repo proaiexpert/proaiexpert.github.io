@@ -129,39 +129,51 @@ async function run(){
     objects=app.getAllObjects();
     proof.objectCountBefore=objects.length;
     proof.eventCount=typeof app.getSplineEvents==='function'?app.getSplineEvents().length:null;
-    const instance=app.findObjectByName('Instance');
-    const candidates=[...new Set([instance,...objects.filter(o=>o?.name==='Instance')].filter(Boolean))];
-    const targets=candidates.filter(o=>Array.isArray(o?.material?.layers));
-    proof.objectAccess=targets.length?'PASS':'PARTIAL';
-    proof.notes.push('Exact-name Instance candidates='+candidates.length+'; editable material hosts='+targets.length+'.');
-    proof.notes.push('Object enumeration is not geometric fidelity or pointer/reformation proof.');
-    if(!targets.length){
-      proof.materials='FAIL';
-      renderStatus('HOLD — scene loaded, but named original Instance has no exposed material.layers');
+    const byUuid=new Map(objects.filter(o=>o?.uuid).map(o=>[o.uuid,o]));
+    function originalCloneName(obj){
+      let cur=obj;
+      for(let depth=0;cur&&depth<8;depth++){
+        if(/^Clone (?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9])$/.test(cur.name))return cur.name;
+        cur=byUuid.get(cur.parentUuid);
+      }
+      return null;
+    }
+    // Selection is based on independently observed ORIGINAL hierarchy:
+    // Clones / Clone 0..249 / Group / Sphere (250 donor spheres).
+    const targets=objects.filter(o=>o?.name==='Sphere'&&Array.isArray(o.material?.layers)&&originalCloneName(o));
+    const cloneNames=new Set(targets.map(originalCloneName));
+    proof.orbSphereHosts=targets.length;
+    proof.orbCloneGroups=cloneNames.size;
+    proof.notes.push('Verified named Clone sphere hosts='+targets.length+', unique clone groups='+cloneNames.size+'.');
+    if(targets.length!==250||cloneNames.size!==250){
+      proof.objectAccess='PARTIAL'; proof.materials='FAIL';
+      renderStatus('HOLD — expected exactly 250 original Clone/Group/Sphere material hosts, found '+targets.length);
       return;
     }
-    // Edit only original Instance material layers, in RAM and AFTER real donor load.
-    // Do not change geometry, transforms, event bindings, depth, lights, camera or motion.
+    proof.objectAccess='PASS';
+    // In-memory runtime-only Fresnel recolor. No source/editor save.
+    // No edits to Depth, Lighting, geometry, transforms, events, camera, or other scene objects.
     for(const obj of targets){
-      for(const layer of obj.material.layers){
-        let desired=null;
-        if(layer?.type==='fresnel'&&typeof layer.color==='string')desired='#C4CBD2'; // cold silver
-        else if(layer?.type==='color'&&typeof layer.color==='string')desired='#303640'; // graphite
-        if(desired===null)continue;
-        const before=layer.color;
-        try{
-          layer.color=desired;
-          const after=layer.color;
-          proof.changed.push({object:obj.name,uuid:obj.uuid||null,layer:layer.type,before,requested:desired,after,readbackMatch:String(after).toLowerCase()===desired.toLowerCase()});
-        }catch(e){proof.errors.push('Layer write '+layer.type+': '+String(e));}
+      const fresnel=obj.material.layers.find(l=>l?.type==='fresnel');
+      if(!fresnel||typeof fresnel.color!=='object'||!fresnel.color){
+        proof.errors.push('Missing RGBA Fresnel on '+obj.uuid);
+        continue;
       }
+      const before={...fresnel.color};
+      const desired='#C4CBD2';
+      try{
+        fresnel.color=desired;
+        const after=fresnel.color;
+        proof.changed.push({object:obj.name,uuid:obj.uuid,clone:originalCloneName(obj),layer:'fresnel',before,requested:desired,after,readbackMatch:typeof after==='string'&&after.toLowerCase()===desired.toLowerCase()});
+      }catch(e){proof.errors.push('Fresnel write '+obj.uuid+': '+String(e));}
     }
     proof.objectCountAfter=app.getAllObjects().length;
     if(proof.objectCountAfter!==proof.objectCountBefore)proof.errors.push('Scene object count changed during material probe');
     const confirmed=proof.changed.filter(x=>x.readbackMatch);
-    proof.materials=confirmed.length&&proof.objectCountAfter===proof.objectCountBefore?'PARTIAL':'FAIL';
-    proof.notes.push('Material readback validates exposed setters only; visible recolor, clone propagation and return remain UNVERIFIED.');
-    renderStatus(proof.materials==='PARTIAL'?'RUNTIME LOADED · material layer write accepted · VISUAL QA REQUIRED':'HOLD — no confirmed writable original material layer',proof.materials==='PARTIAL');
+    proof.materials=confirmed.length===250&&proof.errors.length===0&&proof.objectCountAfter===proof.objectCountBefore?'PARTIAL':'FAIL';
+    proof.notes.push('250 readback-confirmed Fresnel setters would establish runtime MATERIAL API proof, not visually accepted scene recolor.');
+    proof.notes.push('Original donor silhouette, 3D rendering, pointer response and return require separate visual/device QA.');
+    renderStatus(proof.materials==='PARTIAL'?'250 original Clone spheres · silver Fresnel setter PASS · VISUAL ACCEPTANCE PENDING':'HOLD — incomplete Fresnel mutation or object-count regression',proof.materials==='PARTIAL');
   }catch(e){proof.objectAccess='FAIL';proof.materials='FAIL';fail('OBJECT / MATERIAL INSPECTION',e);}
 }
 window.addEventListener('pagehide',()=>{try{window.__proaiOrbRuntime?.dispose?.()}catch{}},{once:true});

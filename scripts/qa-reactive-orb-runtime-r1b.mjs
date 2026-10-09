@@ -40,6 +40,25 @@ try{
     const colorHosts=arr.filter(o=>typeof o?.color==='string').slice(0,25).map(o=>({name:o.name,color:o.color,material:typeof o.material}));
     return {count:arr.length,groups:Object.entries(groups).sort((a,b)=>b[1]-a[1]).slice(0,30),samples,materialHosts,colorHosts};
   });
+  report.sphereProbe=await page.evaluate(()=>{
+    const app=window.__proaiOrbRuntime;
+    if(!app)return {failure:'no application'};
+    const objs=app.getAllObjects(),byId=new Map(objs.map(o=>[o.uuid,o]));
+    const chain=o=>{const names=[];let cur=o;for(let i=0;i<8&&cur;i++){names.push(cur.name);cur=byId.get(cur.parentUuid)}return names};
+    const spheres=objs.filter(o=>o.name==='Sphere'&&Array.isArray(o.material?.layers));
+    const cloneSpheres=spheres.filter(o=>chain(o).some(s=>/^Clone (?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9])$/.test(s)));
+    const materialSource=cloneSpheres[0]||spheres[0];
+    const layers=materialSource?.material?.layers||[];
+    const layerInventory=layers.map(l=>({type:l.type,keys:Object.keys(l),color:l.color,colorType:typeof l.color,paramsType:typeof l.params,paramsKeys:l.params?Object.keys(l.params):null,protoKeys:Object.getOwnPropertyNames(Object.getPrototypeOf(l)||{})}));
+    // Single in-memory write probe, only on confirmed Sphere within original named Clone hierarchy.
+    const sample=cloneSpheres[0]; const fresnel=sample?.material?.layers?.find(l=>l.type==='fresnel');
+    let write=null;
+    if(fresnel){const before=fresnel.color;try{fresnel.color='#C4CBD2';write={uuid:sample.uuid,before,after:fresnel.color,readbackMatch:fresnel.color==='#C4CBD2',layerKeys:Object.keys(fresnel)}}catch(e){write={error:String(e)}}}
+    return {totalSphereHosts:spheres.length,cloneSphereHosts:cloneSpheres.length,exampleHierarchy:materialSource?chain(materialSource):null,
+      exampleMesh:materialSource?{uuid:materialSource.uuid,materialType:typeof materialSource.material,materialKeys:Object.keys(materialSource.material||{})}:null,
+      layerInventory,write};
+  });
+  await page.screenshot({path:output+'/adapted-after-probe.png',animations:'disabled'});
   await page.screenshot({path:output+'/adapted-after-load.png',animations:'disabled'});
   report.screenshotPaths.push(output+'/adapted-after-load.png');
   await checkMode('compare');
@@ -53,7 +72,7 @@ try{
 finally{
   report.finished=new Date().toISOString();
   await writeFile(output+'/report.json',JSON.stringify(report,null,2));
-  console.log(JSON.stringify({status:report.status,checks:report.checks,proof:report.proof,inspection:report.inspection,errors:report.errors,networkErrors:report.networkErrors.slice(0,12)},null,2));
+  console.log(JSON.stringify({status:report.status,checks:report.checks,proof:report.proof,inspection:{count:report.inspection?.count,groupTop:report.inspection?.groups?.slice(0,5)},sphereProbe:report.sphereProbe,errors:report.errors,networkErrors:report.networkErrors.slice(0,12)},null,2));
   await browser?.close().catch(()=>{});
   server.kill('SIGTERM');
 }

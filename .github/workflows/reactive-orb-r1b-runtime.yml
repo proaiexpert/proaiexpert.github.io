@@ -1,0 +1,29 @@
+name: R1B isolated Spline runtime QA
+on:
+  push:
+    branches:
+      - agent/ai-systems-hero-reactive-orb-runtime-lookdev-r1b
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  official-runtime:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Real donor runtime / materials browser proof (fail closed)
+        run: node scripts/qa-reactive-orb-runtime-r1b.mjs
+      - name: Preserve evidence on PASS or HOLD
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reactive-orb-r1b-evidence
+          path: artifacts/orb-r1b/
+          if-no-files-found: warn

@@ -18,7 +18,7 @@ const bbox=await page.locator('#orb-canvas').boundingBox();
 if(!bbox||bbox.width<400)throw Error('No renderable original runtime canvas');
 const clip={x:Math.round(bbox.x),y:Math.round(bbox.y),width:Math.floor(bbox.width)-1,height:Math.floor(bbox.height)-1};
 const measure=async(name)=>{
-  const buf=await page.screenshot({clip,timeout:12000,animations:'disabled',path:out+'/'+name+'.png'});
+  const buf=await page.screenshot({clip,timeout:18000,animations:'disabled',path:out+'/'+name+'.png'});
   return page.evaluate(async b64=>{
     const binary=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
     const img=await createImageBitmap(new Blob([binary],{type:'image/png'}));
@@ -61,14 +61,14 @@ for(const v of variants){
         if(effect==='fresnel'){layer.color='#E1E6EC';summary.attempted++;if(layer.color==='#E1E6EC')summary.readback++;}
         if(effect==='depth'){
           const prior=layer.colors;if(!Array.isArray(prior)||prior.length===0)continue;
-          const grays=['#10141C','#3B4554','#A2ACB9'];
-          layer.colors=prior.map((_,i)=>grays[Math.min(2,Math.floor(i*3/prior.length))]);
-          summary.attempted++;if(layer.colors?.length===prior.length)summary.readback++;
+          const grays=[[0.065,0.078,0.105,1],[0.18,0.22,0.27,1],[0.37,0.42,0.48,1],[0.83,0.87,0.92,1]];
+          layer.colors=prior.map((_,i)=>grays[Math.min(3,Math.floor(i*4/prior.length))]);
+          summary.attempted++;if(layer.colors?.length===prior.length&&Array.isArray(layer.colors[0]))summary.readback++;
         }
         if(effect==='light'){
           if(layer.category!=='phong'||!layer.specular)continue;
-          layer.specular={r:204,g:211,b:221};summary.attempted++;
-          if(layer.specular?.r===204)summary.readback++;
+          layer.specular={r:0.79,g:0.82,b:0.87};summary.attempted++;
+          if(Math.abs(layer.specular?.r-0.79)<0.01)summary.readback++;
         }
         if(summary.examples.length<2)summary.examples.push({name:o.name,layerType:layer.type,after:effect==='depth'?layer.colors:effect==='fresnel'?layer.color:layer.specular});
       }catch(e){summary.errors.push(String(e).slice(0,100));}
@@ -87,6 +87,6 @@ for(const v of variants){
     await page.waitForTimeout(1200);
   }
 }
-}catch(e){report.errors.push('harness:'+errsafe(e))}
+}catch(e){report.errors.push('harness:'+String(e?.stack||e))}
 finally{await writeFile(out+'/report.json',JSON.stringify(report,null,2));console.log('R1C_REPORT_BEGIN\n'+JSON.stringify(report,null,2)+'\nR1C_REPORT_END');await browser?.close().catch(()=>{});srv.kill('SIGTERM');}
 if(report.errors.length||report.results.length!==3)process.exitCode=1;

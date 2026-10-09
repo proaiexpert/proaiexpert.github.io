@@ -136,6 +136,7 @@ jobs:
                           page=ctx.new_page()
                           for port in (4181,4182):
                               page.goto('http://127.0.0.1:'+str(port)+route,wait_until='domcontentloaded')
+                              page.wait_for_function("() => getComputedStyle(document.querySelector('.insight-v2__prose')).lineHeight !== 'normal'",timeout=15000)
                               styles.append(page.evaluate("""() => {
                                 const s=q=>{const e=document.querySelector(q);if(!e)return null;const c=getComputedStyle(e),r=e.getBoundingClientRect();return [c.width,c.fontSize,c.lineHeight,c.display,Math.round(r.width)]};
                                 return {prose:s('.insight-v2__prose'),rail:s('.insight-v2-rail'),signal:s('.insight-v2-signal'),table:s('.insight-v2-table-wrap')};

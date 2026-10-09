@@ -29,6 +29,17 @@ try{
     await page.waitForFunction(()=>['PASS','FAIL'].includes(window.__proaiOrbR1B?.load),null,{timeout:70000});
   }catch(e){report.errors.push('Donor load did not resolve in 70s: '+String(e).slice(0,300));}
   report.proof=await page.evaluate(()=>window.__proaiOrbR1B||null);
+  report.inspection=await page.evaluate(()=>{
+    const app=window.__proaiOrbRuntime;
+    if(!app||typeof app.getAllObjects!=='function')return {status:'no-app'};
+    const arr=app.getAllObjects();
+    const groups={};
+    for(const o of arr){const key=String(o?.name||'(unnamed)').replace(/\\d+/g,'#');groups[key]=(groups[key]||0)+1;}
+    const samples=arr.slice(0,30).map(o=>({name:o.name,uuid:o.uuid,keys:Object.keys(o||{}).slice(0,20),material:typeof o.material,hasLayers:Array.isArray(o.material?.layers),color:typeof o.color}));
+    const materialHosts=arr.filter(o=>o?.material).map(o=>({name:o.name,uuid:o.uuid,layers:Array.isArray(o.material.layers)?o.material.layers.map(l=>({type:l.type,color:typeof l.color==='string'?l.color:null})):null})).slice(0,45);
+    const colorHosts=arr.filter(o=>typeof o?.color==='string').slice(0,25).map(o=>({name:o.name,color:o.color,material:typeof o.material}));
+    return {count:arr.length,groups:Object.entries(groups).sort((a,b)=>b[1]-a[1]).slice(0,30),samples,materialHosts,colorHosts};
+  });
   await page.screenshot({path:output+'/adapted-after-load.png',animations:'disabled'});
   report.screenshotPaths.push(output+'/adapted-after-load.png');
   await checkMode('compare');
@@ -42,7 +53,7 @@ try{
 finally{
   report.finished=new Date().toISOString();
   await writeFile(output+'/report.json',JSON.stringify(report,null,2));
-  console.log(JSON.stringify({status:report.status,checks:report.checks,proof:report.proof,errors:report.errors,networkErrors:report.networkErrors.slice(0,12)},null,2));
+  console.log(JSON.stringify({status:report.status,checks:report.checks,proof:report.proof,inspection:report.inspection,errors:report.errors,networkErrors:report.networkErrors.slice(0,12)},null,2));
   await browser?.close().catch(()=>{});
   server.kill('SIGTERM');
 }

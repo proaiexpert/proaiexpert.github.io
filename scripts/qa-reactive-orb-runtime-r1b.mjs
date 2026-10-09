@@ -18,7 +18,7 @@ try{
   page.on('pageerror',e=>report.pageErrors.push(String(e).slice(0,500)));
   page.on('requestfailed',req=>report.networkErrors.push({url:req.url(),failure:req.failure()?.errorText}));
   const checkMode=async mode=>{
-    await page.goto(root+'?view='+mode,{waitUntil:'domcontentloaded',timeout:30000});
+    await page.goto(root+'?view='+mode+(mode==='adapted'?'&qaPause=1':''),{waitUntil:'domcontentloaded',timeout:30000});
     await page.screenshot({path:output+'/'+mode+'.png',animations:'disabled'});
     report.screenshotPaths.push(output+'/'+mode+'.png');
     report.checks[mode]={url:page.url(),h1:await page.locator('h1').count(),originalIframe:await page.locator('#original-panel').isVisible(),adaptedCanvas:await page.locator('#adapted-panel').isVisible()};
@@ -28,6 +28,40 @@ try{
   try{
     await page.waitForFunction(()=>['PASS','FAIL'].includes(window.__proaiOrbR1B?.load),null,{timeout:70000});
   }catch(e){report.errors.push('Donor load did not resolve in 70s: '+String(e).slice(0,300));}
+  // Capture two visual states in the SAME loaded original scene, before and after material mutation.
+  // Screenshots are from the official Spline canvas, not substitute shapes or CSS filters.
+  const canvas=page.locator('#orb-canvas');
+  const imageStats=async buffer=>page.evaluate(async base64=>{
+    const bytes=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));
+    const bmp=await createImageBitmap(new Blob([bytes],{type:'image/png'}));
+    const out=document.createElement('canvas');out.width=bmp.width;out.height=bmp.height;
+    const ctx=out.getContext('2d',{willReadFrequently:true});ctx.drawImage(bmp,0,0);bmp.close();
+    const data=ctx.getImageData(0,0,out.width,out.height).data;
+    let lit=0,teal=0,grey=0,bright=0;
+    for(let i=0;i<data.length;i+=4){
+      const r=data[i],g=data[i+1],b=data[i+2];
+      if(r+g+b>90)lit++;
+      if(g>r*1.35&&b>r*1.20&&g>45)teal++;
+      if(Math.max(r,g,b)-Math.min(r,g,b)<28&&r+g+b>210)grey++;
+      if(r+g+b>300)bright++;
+    }
+    return {width:out.width,height:out.height,litPixels:lit,tealPixels:teal,neutralPixels:grey,brightPixels:bright};
+  },buffer.toString('base64'));
+  if(await page.evaluate(()=>window.__proaiOrbR1B?.load==='PASS')){
+    await page.waitForTimeout(1200);
+    const originalPng=await canvas.screenshot({path:output+'/runtime-original-canvas.png'});
+    report.screenshotPaths.push(output+'/runtime-original-canvas.png');
+    report.originalPixels=await imageStats(originalPng);
+    await page.evaluate(()=>window.__proaiOrbResume?.());
+    await page.waitForFunction(()=>window.__proaiOrbR1B?.objectCountAfter!==null,null,{timeout:30000});
+    await page.waitForTimeout(1200);
+    const adaptedPng=await canvas.screenshot({path:output+'/runtime-silver-canvas.png'});
+    report.screenshotPaths.push(output+'/runtime-silver-canvas.png');
+    report.adaptedPixels=await imageStats(adaptedPng);
+    report.visualObservation={originalHasLitPixels:report.originalPixels.litPixels>100,adaptedHasLitPixels:report.adaptedPixels.litPixels>100,
+      tealBefore:report.originalPixels.tealPixels,tealAfter:report.adaptedPixels.tealPixels,
+      note:'Frame-level evidence only; animations and shader update require visual assessment of attached screenshots. Pixel statistics cannot alone prove identical motion.'};
+  }
   report.proof=await page.evaluate(()=>window.__proaiOrbR1B||null);
   report.inspection=await page.evaluate(()=>{
     const app=window.__proaiOrbRuntime;
@@ -72,7 +106,7 @@ try{
 finally{
   report.finished=new Date().toISOString();
   await writeFile(output+'/report.json',JSON.stringify(report,null,2));
-  console.log(JSON.stringify({status:report.status,checks:report.checks,proof:report.proof,inspection:{count:report.inspection?.count,groupTop:report.inspection?.groups?.slice(0,5)},sphereProbe:report.sphereProbe,errors:report.errors,networkErrors:report.networkErrors.slice(0,12)},null,2));
+  console.log(JSON.stringify({status:report.status,checks:report.checks,proof:report.proof,inspection:{count:report.inspection?.count,groupTop:report.inspection?.groups?.slice(0,5)},sphereProbe:report.sphereProbe,originalPixels:report.originalPixels,adaptedPixels:report.adaptedPixels,visualObservation:report.visualObservation,errors:report.errors,networkErrors:report.networkErrors.slice(0,12)},null,2));
   await browser?.close().catch(()=>{});
   server.kill('SIGTERM');
 }

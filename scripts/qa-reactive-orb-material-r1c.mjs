@@ -10,6 +10,7 @@ let browser;
 try{
 browser=await chromium.launch({headless:true,args:['--enable-unsafe-webgpu','--enable-features=WebGPU','--use-angle=swiftshader']});
 const page=await browser.newPage({viewport:{width:1100,height:850},deviceScaleFactor:1});
+const cdp=await page.context().newCDPSession(page);
 page.on('pageerror',e=>report.errors.push('pageerror:'+String(e).slice(0,300)));
 const src='http://127.0.0.1:8768/owner-preview/ai-systems-reactive-orb-runtime-r1b/index.html?view=adapted&qaPause=1';
 await page.goto(src,{waitUntil:'domcontentloaded'});
@@ -18,7 +19,8 @@ const bbox=await page.locator('#orb-canvas').boundingBox();
 if(!bbox||bbox.width<400)throw Error('No renderable original runtime canvas');
 const clip={x:Math.round(bbox.x),y:Math.round(bbox.y),width:Math.floor(bbox.width)-1,height:Math.floor(bbox.height)-1};
 const measure=async(name)=>{
-  const buf=await page.screenshot({clip,timeout:18000,animations:'disabled',path:out+'/'+name+'.png'});
+  const shot=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false,clip:{...clip,scale:1}});
+  const buf=Buffer.from(shot.data,'base64');await writeFile(out+'/'+name+'.png',buf);
   return page.evaluate(async b64=>{
     const binary=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
     const img=await createImageBitmap(new Blob([binary],{type:'image/png'}));

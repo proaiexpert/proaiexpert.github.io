@@ -26,7 +26,7 @@ try{
   await checkMode('original');
   await checkMode('adapted');
   try{
-    await page.waitForFunction(()=>['PASS','FAIL'].includes(window.__proaiOrbR1B?.load),{timeout:70000});
+    await page.waitForFunction(()=>['PASS','FAIL'].includes(window.__proaiOrbR1B?.load),null,{timeout:70000});
   }catch(e){report.errors.push('Donor load did not resolve in 70s: '+String(e).slice(0,300));}
   report.proof=await page.evaluate(()=>window.__proaiOrbR1B||null);
   await page.screenshot({path:output+'/adapted-after-load.png',animations:'disabled'});

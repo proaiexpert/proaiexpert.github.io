@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>PROAI Reactive Orb R1C — Donor Runtime Probe</title>
+<style>
+:root{color-scheme:dark;--bg:#07090d;--panel:#12161c;--stroke:#303741;--text:#edf0f3;--mute:#9aa3ae;--silver:#d1d8df}
+*{box-sizing:border-box}html,body{margin:0;width:100%;min-height:100%;background:var(--bg);color:var(--text);font:13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{min-height:100svh}.app{min-height:100svh;display:grid;grid-template-rows:auto minmax(0,1fr) auto}
+.header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 20px;background:#101319;border-bottom:1px solid var(--stroke)}
+.kicker{font-size:10px;letter-spacing:.17em;text-transform:uppercase;color:var(--mute)}
+h1{font-size:15px;margin:3px 0 0;font-weight:600;letter-spacing:.01em}
+nav{display:flex;flex-wrap:wrap;gap:6px}a{color:var(--silver)}
+nav a,.action{padding:7px 10px;border:1px solid var(--stroke);border-radius:7px;background:#1a2028;color:var(--text);text-decoration:none;font:inherit}
+nav a[aria-current="page"]{border-color:var(--silver);background:#323944}
+.stage{display:grid;grid-template-columns:1fr;min-height:60svh;background:radial-gradient(circle at 50% 40%,#191e26,#090b0f 67%);overflow:hidden}
+.stage.compare{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.panel{position:relative;min-height:70svh;overflow:hidden}
+.panel+.panel{border-left:1px solid var(--stroke)}
+.panel-label{position:absolute;top:14px;left:14px;z-index:2;pointer-events:none;padding:6px 9px;background:#0a0d11bd;border:1px solid #ffffff22;border-radius:6px;color:var(--silver);font-size:11px;letter-spacing:.07em}
+iframe,canvas{display:block;width:100%;height:100%;border:0;background:transparent}
+iframe{background:#000}canvas{touch-action:pan-y}
+.adapted-status{position:absolute;bottom:15px;left:15px;right:15px;z-index:2;max-width:520px;padding:10px 12px;background:#090d13e3;border:1px solid var(--stroke);border-radius:8px;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;color:#c2cbd5;pointer-events:none}
+.footer{padding:12px 20px;display:flex;gap:16px;justify-content:space-between;align-items:flex-start;background:#101319;border-top:1px solid var(--stroke)}
+.qa{max-width:900px}.qa strong{font-size:11px;letter-spacing:.08em}.qa p{margin:4px 0;color:var(--mute)}
+.diag{color:#c0cad4;font:11px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere}
+.attribution{font-size:11px;color:var(--mute);white-space:normal}
+[hidden]{display:none!important}
+body.clean .header,body.clean .panel-label,body.clean .footer .qa,body.clean .footer .action{display:none!important}
+body.clean .footer{background:#07090dbb;border:0;padding:6px 12px}
+body.clean .panel{min-height:94svh}
+body.clean .adapted-status[data-ready="yes"]{display:none}
+@media(max-width:790px){.header,.footer{padding:11px 13px;flex-direction:column;align-items:stretch}.stage.compare{grid-template-columns:1fr;grid-template-rows:minmax(45svh,1fr) minmax(45svh,1fr)}.stage.compare .panel{min-height:45svh}.panel+.panel{border-left:0;border-top:1px solid var(--stroke)}.panel{min-height:66svh}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="header">
+  <div><div class="kicker">ProAI Expert / Task R1C / experimental owner preview</div><h1>Original Spline donor / premium ProAI material recovery</h1></div>
+  <nav aria-label="Preview modes">
+    <a href="?view=original" data-mode="original">Original</a>
+    <a href="?view=adapted" data-mode="adapted">Adapted probe</a>
+    <a href="?view=compare" data-mode="compare">Side by side</a>
+    <a href="?view=clean" data-mode="clean">Clean</a>
+  </nav>
+</header>
+<main class="stage" id="stage">
+  <section class="panel" id="original-panel" aria-label="Original published Spline donor" hidden>
+    <div class="panel-label">ORIGINAL — published owner remix, untouched</div>
+    <iframe id="original-frame" title="Reactive Orb — original by Vlad Kolokolnikov" loading="eager" referrerpolicy="strict-origin-when-cross-origin" allow="fullscreen; xr-spatial-tracking"></iframe>
+  </section>
+  <section class="panel" id="adapted-panel" aria-label="Official Spline Runtime material experiment" hidden>
+    <div class="panel-label">ADAPTED — native Depth / Fresnel / Lighting test; owner approval pending</div>
+    <canvas id="orb-canvas" aria-label="Original Spline geometry in the official runtime"></canvas>
+    <div class="adapted-status" id="status" role="status" aria-live="polite" data-ready="no">UNVERIFIED — starting runtime probe</div>
+  </section>
+</main>
+<footer class="footer">
+  <div class="qa">
+    <strong>R1C LOOKDEV — ORIGINAL OBJECT, NOT NEW GEOMETRY</strong>
+    <p id="explanation">Loads the exact published original, targets its 250 existing Clone/Group/Sphere objects and adjusts native Depth, Fresnel, and Lighting properties in RAM. A successful setter is not automatic visual approval.</p>
+    <div class="diag" id="diagnostics">Diagnostics will appear after the loader attempts a scene fetch.</div>
+  </div>
+  <button class="action" type="button" id="copy-diagnostics">Copy diagnostics</button>
+  <div class="attribution">Original “Reactive Orb” by <a href="https://app.spline.design/community/file/306ca2a5-d1ab-46ac-a27c-198575c82db0" target="_blank" rel="noopener noreferrer">Vlad Kolokolnikov</a> · Community license observed: CC BY 4.0 · <a href="https://app.spline.design/file/88f4ebca-9bc8-4d85-a918-13a19c3b13ab" target="_blank" rel="noopener noreferrer">Owner remix in Spline</a> · <a href="https://spline.design" target="_blank" rel="noopener noreferrer">Made with Spline</a></div>
+</footer>
+</div>
+<script type="module">
+const donorPage='https://my.spline.design/proaireactiveorbdonororiginal20261005-tNW94akGzluKeBFXuZZwlsyM/';
+const sceneUrl='https://prod.spline.design/sH5GiugwHqy0gA4X/scene.splinecode';
+const runtimeUrl='https://esm.sh/@splinetool/runtime@1.12.98?bundle';
+const qs=new URLSearchParams(location.search);
+const mode=['original','adapted','compare','clean'].includes(qs.get('view'))?qs.get('view'):'compare';
+const original=document.getElementById('original-panel');
+const adapted=document.getElementById('adapted-panel');
+const stage=document.getElementById('stage');
+const status=document.getElementById('status');
+const diagnostics=document.getElementById('diagnostics');
+const canvas=document.getElementById('orb-canvas');
+document.body.classList.toggle('clean',mode==='clean');
+document.querySelectorAll('[data-mode]').forEach(a=>{if(a.dataset.mode===mode)a.setAttribute('aria-current','page')});
+if(mode==='original'||mode==='compare'){original.hidden=false;document.getElementById('original-frame').src=donorPage;}
+if(mode!=='original')adapted.hidden=false;
+stage.classList.toggle('compare',mode==='compare');
+const palette={
+  obsidian:'#10141B',graphite:'#353E49',gunmetal:'#566270',silver:'#D5DDE6',
+  depthStops:['#10141B','#303944','#566270','#D5DDE6'],fresnel:'#D5DDE6',
+  specular:{r:200,g:208,b:220}
+};
+const proof={task:'R1C',status:'UNVERIFIED',scene:sceneUrl,objectCountBefore:null,objectCountAfter:null,
+  cloneCount:null,material:{fresnel:{attempted:0,readback:0},depth:{attempted:0,readback:0},lighting:{attempted:0,readback:0}},
+  palette,geometryGenerated:false,donorEdited:false,visualResult:'UNVERIFIED',motion:'UNVERIFIED',return:'UNVERIFIED',errors:[],notes:[]};
+window.__proaiOrbR1C=proof;
+function display(s,ready=false){status.textContent=s;status.dataset.ready=ready?'yes':'no';diagnostics.textContent=
+  'scene='+proof.status+' · objects='+String(proof.objectCountBefore??'?')+' · clones='+String(proof.cloneCount??'?')+
+  ' · fresnel='+proof.material.fresnel.readback+' · depth='+proof.material.depth.readback+' · lighting='+proof.material.lighting.readback;}
+function fail(label,e){proof.errors.push(label+': '+String(e?.message||e));proof.status='HOLD';display('TECHNICAL HOLD — '+label);console.error('R1C',label,e);}
+document.getElementById('copy-diagnostics').addEventListener('click',()=>navigator.clipboard.writeText(JSON.stringify(proof,null,2)).then(()=>document.getElementById('copy-diagnostics').textContent='Copied').catch(()=>console.log(proof)));
+function hierarchy(o,map){let a=[],p=o;for(let j=0;j<8&&p;j++){a.push(p.name);p=map.get(p.parentUuid)}return a;}
+function targetSpheres(objs){
+ const map=new Map(objs.map(o=>[o.uuid,o]));
+ return objs.filter(o=>o?.name==='Sphere'&&Array.isArray(o?.material?.layers)&&hierarchy(o,map).some(n=>/^Clone (?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9])$/.test(n)));
+}
+function stops(n){
+ if(n===1)return [palette.graphite];
+ if(n===2)return [palette.obsidian,palette.silver];
+ return Array.from({length:n},(_,i)=>palette.depthStops[Math.min(3,Math.floor(i*4/n))]);
+}
+async function boot(){
+ let app;
+ try{
+   const {Application}=await import(runtimeUrl);
+   app=new Application(canvas);
+   window.__proaiOrbRuntime=app;
+   display('Loading original published Spline scene');
+   await app.load(sceneUrl);
+   proof.status='PASS';
+ }catch(e){fail('runtime donor load',e);return;}
+ try{
+   const all=app.getAllObjects(),targets=targetSpheres(all);
+   proof.objectCountBefore=all.length;proof.cloneCount=targets.length;
+   if(targets.length!==250||all.length!==769)throw new Error('Donor object topology mismatch: '+all.length+'/'+targets.length);
+   // Test-only gate for exact same-canvas original frame capture.
+   if(qs.get('qaPause')==='1')await new Promise(resolve=>window.__r1cResume=resolve);
+   // Native layers of the ORIGINAL spheres only. No new layer, shell, geometry, light, event, or camera.
+   for(const o of targets){
+     const layers=o.material.layers;
+     const f=layers.find(x=>x.type==='fresnel');
+     const d=layers.find(x=>x.type==='depth');
+     const l=layers.find(x=>x.type==='light');
+     if(f&&f.color!=null){
+       proof.material.fresnel.attempted++;
+       try{f.color=palette.fresnel;if(f.color===palette.fresnel)proof.material.fresnel.readback++;}catch(e){proof.errors.push('fresnel:'+String(e));}
+     }
+     if(d&&Array.isArray(d.colors)&&d.colors.length){
+       proof.material.depth.attempted++;
+       try{const desired=stops(d.colors.length);d.colors=desired;if(Array.isArray(d.colors)&&d.colors.length===desired.length)proof.material.depth.readback++;}catch(e){proof.errors.push('depth:'+String(e));}
+     }
+     if(l?.category==='phong'&&l.specular){
+       proof.material.lighting.attempted++;
+       try{l.specular={...palette.specular};if(l.specular?.r===palette.specular.r)proof.material.lighting.readback++;}catch(e){proof.errors.push('light:'+String(e));}
+     }
+   }
+   app.requestRender?.();
+   proof.objectCountAfter=app.getAllObjects().length;
+   if(proof.objectCountAfter!==proof.objectCountBefore)throw new Error('Object count changed during material adaptation');
+   if(proof.material.depth.readback!==250||proof.material.fresnel.readback!==250)proof.notes.push('Some original material properties inaccessible; not accepted.');
+   proof.status=proof.errors.length?'PARTIAL':'PASS';
+   proof.visualResult='UNVERIFIED — awaiting before/after browser comparison';
+   display('NATIVE MATERIAL LOOKDEV · API '+proof.status+' · VISUAL QA NOT YET ACCEPTED',proof.status==='PASS');
+ }catch(e){fail('native material adaptation',e);}
+}
+if(mode==='original'){proof.status='ORIGINAL';display('Original published Spline scene — untouched');}
+else boot();
+window.addEventListener('pagehide',()=>{try{window.__proaiOrbRuntime?.dispose?.();}catch{}},{once:true});
+</script>
+</body>
+</html>

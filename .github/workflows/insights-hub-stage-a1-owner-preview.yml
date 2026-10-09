@@ -1,0 +1,49 @@
+name: Insights Hub Stage A.1 — generated owner preview
+on:
+  push:
+    branches:
+      - agent/insights-hub-stage-a1-quiet-editorial
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build exact Jekyll pages
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+      - name: Export browser-ready Hub EN/RU
+        run: |
+          mkdir -p owner-preview/insights-stage-a1
+          cp _site/insights/index.html owner-preview/insights-stage-a1/index.html
+          cp _site/ru/insights/index.html owner-preview/insights-stage-a1/ru.html
+          python - <<'PY'
+          from pathlib import Path
+          for name in ('index.html','ru.html'):
+              content=(Path('owner-preview/insights-stage-a1')/name).read_text()
+              assert '{%' not in content and '{{' not in content
+              assert content.count('class="insights-v2__ledger-row"')==12
+              assert 'class="insights-v2__trace"' not in content
+              assert content.count('data-site-footer-canonical="golden-r1"')==1
+          print('Static owner previews match generated Jekyll render: PASS')
+          PY
+      - name: Commit preview to review branch only
+        run: |
+          git add owner-preview/insights-stage-a1/index.html owner-preview/insights-stage-a1/ru.html
+          if ! git diff --cached --quiet; then
+            git config user.name "proai-stage-a1-preview[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Export Stage A.1 exact generated owner previews"
+            git push origin HEAD:agent/insights-hub-stage-a1-quiet-editorial
+          fi

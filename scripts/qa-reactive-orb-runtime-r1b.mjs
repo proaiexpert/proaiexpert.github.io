@@ -31,6 +31,8 @@ try{
   // Capture two visual states in the SAME loaded original scene, before and after material mutation.
   // Screenshots are from the official Spline canvas, not substitute shapes or CSS filters.
   const canvas=page.locator('#orb-canvas');
+  const canvasClip=await canvas.boundingBox();
+  if(!canvasClip||canvasClip.width<80||canvasClip.height<80)throw Error('Canvas not laid out for screenshot');
   const imageStats=async buffer=>page.evaluate(async base64=>{
     const bytes=Uint8Array.from(atob(base64),c=>c.charCodeAt(0));
     const bmp=await createImageBitmap(new Blob([bytes],{type:'image/png'}));
@@ -49,13 +51,13 @@ try{
   },buffer.toString('base64'));
   if(await page.evaluate(()=>window.__proaiOrbR1B?.load==='PASS')){
     await page.waitForTimeout(1200);
-    const originalPng=await canvas.screenshot({path:output+'/runtime-original-canvas.png'});
+    const originalPng=await page.screenshot({path:output+'/runtime-original-canvas.png',clip:canvasClip,animations:'disabled'});
     report.screenshotPaths.push(output+'/runtime-original-canvas.png');
     report.originalPixels=await imageStats(originalPng);
     await page.evaluate(()=>window.__proaiOrbResume?.());
     await page.waitForFunction(()=>window.__proaiOrbR1B?.objectCountAfter!==null,null,{timeout:30000});
     await page.waitForTimeout(1200);
-    const adaptedPng=await canvas.screenshot({path:output+'/runtime-silver-canvas.png'});
+    const adaptedPng=await page.screenshot({path:output+'/runtime-silver-canvas.png',clip:canvasClip,animations:'disabled'});
     report.screenshotPaths.push(output+'/runtime-silver-canvas.png');
     report.adaptedPixels=await imageStats(adaptedPng);
     report.visualObservation={originalHasLitPixels:report.originalPixels.litPixels>100,adaptedHasLitPixels:report.adaptedPixels.litPixels>100,

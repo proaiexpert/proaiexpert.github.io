@@ -65,7 +65,7 @@ try{
   await checkMode('clean');
   await context.close();
   const p=report.proof;
-  report.status=p?.load==='PASS'&&p?.objectAccess==='PASS'&&p?.materials==='PARTIAL'?'TECHNICAL_PARTIAL':'HOLD';
+  report.status=p?.load==='PASS'&&p?.objectAccess==='PASS'&&p?.materials==='PARTIAL'&&p?.orbSphereHosts===250&&p?.orbCloneGroups===250&&p?.changed?.length===250&&p?.changed?.every(x=>x.readbackMatch)&&p?.objectCountBefore===p?.objectCountAfter?'TECHNICAL_PARTIAL':'HOLD';
   // A successful material setter readback is NOT a visual fidelity or motion acceptance.
   if(report.status!=='TECHNICAL_PARTIAL')report.errors.push('Real donor runtime loading and material access were not both proven.');
 }catch(e){report.status='HOLD';report.errors.push('Harness: '+String(e));}

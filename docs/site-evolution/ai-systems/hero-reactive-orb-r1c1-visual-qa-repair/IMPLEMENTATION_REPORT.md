@@ -41,6 +41,33 @@ Open the latest separate R1C.1 preview, preferably in desktop Chrome with hardwa
 
 If no visible repaint occurs, report `MATERIAL_GPU_UPDATE_UNVERIFIED` (or `NO_VISIBLE_UPDATE` when independently demonstrated with valid controls) and determine whether Spline editor material changes in a **copy** are required. Do not alter original donor, replace geometry, or make production integration.
 
+
+## Final R1C.1 browser evidence and owner screenshot review
+
+**Observed screenshots supplied by owner:** Original Spline page (mobile browser) repeatedly shows bright white/lime/teal animated spheres and dark teal outlines. Old R1C Vercel preview `...7zenizjlg.vercel.app` shows some darkened surfaces with retained teal rims / highlights, and many spheres become nearly black. This does **not** meet premium ProAI material acceptance; partial darkening cannot be treated as removal of green/teal. All screenshots contain the donor's own typography and off-screen Orb framing, so the two independently advancing animations are not frame-correspondent comparisons. These user screenshots are **not** screenshots of the newer R1C.1 same-canvas switcher.
+
+**Confirmed R1C.1 browser QA results:**
+
+- `https://github.com/proaiexpert/proaiexpert.github.io/actions/runs/38021215602`: original 769/250 source scene loaded; diagnostic found `structuredClone` cannot copy Spline runtime proxy objects. Fixed with plain JSON-like recursive copy.
+- `https://github.com/proaiexpert/proaiexpert.github.io/actions/runs/38021297008`: correct R1C.1 implementation page loaded and CDP screenshot had original lit=54,253 / teal=30,987; five native setter modes succeeded for 250 source objects. But `app.stop()` froze the composited frame, and all material variants captured the same stopped image — **no visual pass**.
+- `https://github.com/proaiexpert/proaiexpert.github.io/actions/runs/38023503216`: corrected test keeps source scene playing, isolates the Orb ROI from donor text and brackets material changes with an Original/Modified/Original sample. Browser screenshots failed: **CDP `Page.captureScreenshot` timed out**, then **Playwright `page.screenshot` timed out**. No valid evidence of GPU material updates. **This is a capture-path HOLD**, not proof that a live browser shader cannot be updated.
+- A subsequent run used the same running-scene capture algorithm and was not relied upon to change the decision. The automated visual gate intentionally fails closed. Following bounded QA policy, no further repetitive headless WebGPU screenshot variants are requested.
+- GitHub Actions workflow now limits automatic runs to relevant implementation/test changes and preserves manual dispatch; report-only updates do not trigger another visual test.
+
+**Current definitive statuses:**
+- Correct test path to R1C.1: **YES**.
+- Real `.splinecode` through official runtime: **PASS**.
+- Original objects: **769; exactly 250 distinct named Clone groups**, untouched by authored material edits.
+- Native Fresnel/Depth/Lighting setter + readback: **PASS 250/250 per layer** where exposed, but visible shader update remains **UNVERIFIED**.
+- Real original browser frame: **CAPTURED** in prior CDP run; stopped material frames captured but **NOT comparable**.
+- Running-scene material comparison: **UNVERIFIED** due headless CDP/Playwright capture timeouts.
+- Teal removal: **NOT PROVEN**; old owner screenshots still show teal.
+- Rest, pointer response, return/reformation: **UNVERIFIED in R1C.1**.
+- Desktop: partial load/capture only. Mobile: old preview observed; new R1C.1 mobile QA pending.
+- Overall: **TECHNICAL PARTIAL / VISUAL HOLD; NO MERGE AUTHORIZATION**.
+
+**Recommended narrow next step:** Open latest R1C.1 Adapted view in normal desktop Chrome or landscape iPhone and use its five-button in-canvas material switcher. Observe whether visible color actually changes **immediately** between Original and Combined (and individually Depth/Fresnel/Lighting), while geometry and motion remain the same. If there is no visible shader repaint in that interactive browser, mark **NO VISIBLE MATERIAL CHANGE** and move to an authorized *copy* in the Spline Editor for native source material editing and republishing. Do not alter the community donor or create a substitute Orb.
+
 ## Isolation
 
 Main modified: **NO**.

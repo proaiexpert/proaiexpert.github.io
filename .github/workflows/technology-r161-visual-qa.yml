@@ -1,0 +1,27 @@
+name: Technology R1.6.1 Causal Browser QA
+on:
+  push:
+    branches:
+      - agent/proai-home-technology-fold-flow-r1-6-1-causality-composition
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: python3 -m http.server 8787 --bind 127.0.0.1 > /tmp/r161-server.log 2>&1 &
+      - run: node scripts/qa/technology-r161-browser.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-r161-causal-and-responsive-evidence
+          path: r161-qa-artifacts/
+          if-no-files-found: warn

@@ -46,7 +46,17 @@ try{
   const cdps=await page.context().newCDPSession(page);
   page.on('pageerror',e=>report.errors.push('page:'+String(e).slice(0,250)));
   await page.goto(PAGE,{waitUntil:'domcontentloaded',timeout:30000});
-  await page.waitForFunction(()=>window.__orbR1C1?.cloneCount===250&&window.__orbR1C1Controls,null,{timeout:90000});
+  try{
+    await page.waitForFunction(()=>window.__orbR1C1?.cloneCount===250&&window.__orbR1C1Controls||window.__orbR1C1?.status==='HOLD',null,{timeout:42000});
+  }catch(e){
+    report.errors.push('Initialization timeout: '+String(e));
+  }
+  report.initialization=await page.evaluate(()=>({ready:!!window.__orbR1C1Controls,
+    state:window.__orbR1C1?.status, errors:window.__orbR1C1?.errors,
+    cloneCount:window.__orbR1C1?.cloneCount,objectCount:window.__orbR1C1?.objectCount,
+    bodyMessage:document.querySelector('#status')?.textContent}));
+  if(!report.initialization.ready||report.initialization.cloneCount!==250)
+    throw Error('Native R1C.1 init unavailable: '+JSON.stringify(report.initialization));
   report.topology=await page.evaluate(()=>({count:window.__orbR1C1.objectCount,clones:window.__orbR1C1.cloneCount,
     actualURL:window.location.pathname,scene:window.__orbR1C1.scene}));
   if(!report.topology.actualURL.includes('r1c1-visual-qa'))throw Error('QA regression: wrong page target');
@@ -149,7 +159,7 @@ finally{
   await writeFile(OUT+'/report.json',JSON.stringify(report,null,2));
   console.log('R1C1_EVIDENCE_START\n'+JSON.stringify({
     status:report.status,target:report.target,capture:report.capture,topology:report.topology,
-    baseline:report.baseline?.pixel,originalRetry:report.originalRetry?.pixel,
+    initialization:report.initialization,baseline:report.baseline?.pixel,originalRetry:report.originalRetry?.pixel,
     variants:report.variants.map(v=>({name:v.name,edit:v.edit,basePixels:v.controls[0].pixel,
       changedPixels:v.changed.pixel,afterPixels:v.controls[1].pixel,
       jitter:v.controlJitter,effect:v.effect,judgment:v.judgment})),

@@ -8,8 +8,8 @@ var reduce=matchMedia('(prefers-reduced-motion: reduce)');
 var headerGuardMedia=matchMedia('(max-width:1080px) and (orientation:landscape) and (max-height:540px)');
 var states=new WeakMap();
 var mobileCarrierMedia=matchMedia('(max-width:700px) and (orientation:portrait)');
-var laptopCarrierMedia=matchMedia('(min-width:701px) and (max-width:1600px)');
-var R161_LAPTOP_CLEARANCE_PATH='M600 0 C600 90 620 148 625 188 C675 244 695 286 575 320 C515 352 510 392 530 426 C620 496 810 466 900 510 C900 552 794 608 600 640';
+var laptopCarrierMedia=matchMedia('(min-width:961px) and (max-width:1600px) and (min-height:541px)');
+var R161_LAPTOP_CLEARANCE_PATH='M600 0 C600 90 625 148 640 188 C650 244 645 286 630 320 C615 352 610 392 625 426 C650 468 660 500 660 534 C660 574 630 615 600 640';
 var R161_MOBILE_PATH='M600 0 C805 0 1145 0 1145 52 C1145 155 1148 310 1145 450 C1145 550 985 593 600 640';
 function setCarrierGeometry(section){
   section.querySelectorAll('.home-tech-ff__carrier path[d]').forEach(function(path){

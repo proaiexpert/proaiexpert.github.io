@@ -14,7 +14,7 @@ jobs:
         run: |
           set -euo pipefail
           REPO="proaiexpert/proaiexpert.github.io"
-          REF="preview/selected-thinking-r32-jekyll-rendered-r1"
+          REF="preview/selected-thinking-r32-jekyll-rendered-r2"
           HOST=""
           for i in $(seq 1 85); do
             SHA=$(curl -fsSL --connect-timeout 6 --max-time 14 "https://api.github.com/repos/$REPO/git/ref/heads/$REF" 2>/dev/null | jq -r '.object.sha // empty' || true)
@@ -27,7 +27,7 @@ jobs:
           done
           [ -n "$HOST" ] || { echo "Cloudflare immutable deployment not proven"; exit 1; }
           echo "IMMUTABLE_DEPLOYMENT=$HOST"
-          BASE="$HOST/owner-preview/selected-thinking-r32"
+          BASE="$HOST/owner-preview/selected-thinking-r32-final"
           for PATH in home-ru.html home-en.html hub-ru.html article-v2-ru.html; do
             PAGE="$BASE/$PATH"
             curl -fLsS --connect-timeout 8 --max-time 22 "$PAGE" -o "/tmp/$PATH"

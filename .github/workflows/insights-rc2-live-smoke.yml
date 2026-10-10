@@ -1,0 +1,40 @@
+name: Insights RC2 Cloudflare HTTP proof
+on:
+  push:
+    branches:
+      - qa/insights-rc2-live-smoke
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Live rendered homepage Hub and Article 04 smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST='https://2a0d3dab.proaiexpert-github-io.pages.dev'
+          for ROUTE in / /ru/ /insights/ /ru/insights/ /insights/ai-ready-website-for-business/ /ru/insights/ai-ready-sayt-dlya-biznesa/; do
+            curl -fLsS --retry 3 --max-time 30 "$HOST$ROUTE" -o /tmp/rc2-page.html
+            curl -fsSI --retry 3 --max-time 20 "$HOST$ROUTE" -o /tmp/rc2-headers.txt
+            grep -Fq '<html' /tmp/rc2-page.html
+            if grep -Fq '{%' /tmp/rc2-page.html || grep -Fq '{{' /tmp/rc2-page.html;then echo 'UNRENDERED_LIQUID' "$ROUTE";exit 1;fi
+            grep -Eiq '^x-robots-tag: *noindex' /tmp/rc2-headers.txt
+            if [[ "$ROUTE" == '/' || "$ROUTE" == '/ru/' ]]; then
+              grep -Fq 'id="selected-thinking-r2"' /tmp/rc2-page.html
+              grep -Fq 'st-r2__folio' /tmp/rc2-page.html
+            elif [[ "$ROUTE" == '/insights/' || "$ROUTE" == '/ru/insights/' ]]; then
+              grep -Fq 'insights-v2__ledger-row' /tmp/rc2-page.html
+            else
+              grep -Fq 'data-stage-c="maturity-model"' /tmp/rc2-page.html
+              grep -Fq 'data-author-type="organization"' /tmp/rc2-page.html
+              grep -Fq 'data-related-decisions' /tmp/rc2-page.html
+            fi
+            echo 'LIVE_RENDERED_ROUTE_PASS' "$ROUTE"
+          done
+          curl -fLsS --max-time 30 "$HOST/assets/css/insights-editorial-v2.css" -o /tmp/rc2.css
+          grep -Fq 'insight-v2-author__logo' /tmp/rc2.css
+          curl -fLsS --max-time 30 "$HOST/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png" -o /tmp/rc2-logo.png
+          file /tmp/rc2-logo.png | grep -Fq 'PNG image data'
+          echo 'RC2 LIVE HTTP, NOINDEX, BRAND ASSETS: PASS'

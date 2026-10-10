@@ -24,7 +24,19 @@ return page.evaluate(()=>{
  const history=section.querySelector('.home-tech-ff__history-rail');if(history)protectedNodes.push(history);
  const clipping=[],collisions=[],engraving=[];
  const wr=rect(sticky),sr=rect(scene);
- const nodes=protectedNodes.filter(visible).map(e=>({name:(e.textContent||e.getAttribute('src')||e.className||e.tagName).trim().slice(0,65),rect:rect(e),el:e}));
+ /* Precise painted glyph rectangles, not empty column width from block-level boxes. */
+ const nodes=protectedNodes.filter(visible).flatMap(e=>{
+  const out=[],label=(e.textContent||e.getAttribute('src')||e.tagName).trim().slice(0,65);
+  if(e.tagName==='IMG'){out.push({name:label,rect:rect(e),el:e});return out}
+  const walk=document.createTreeWalker(e,NodeFilter.SHOW_TEXT);let n;
+  while(n=walk.nextNode()){if(!n.textContent.trim())continue;
+   const range=document.createRange();range.selectNodeContents(n);
+   for(const rr of range.getClientRects()){
+    if(rr.width>.3&&rr.height>.3)out.push({name:label,rect:{l:rr.left,t:rr.top,r:rr.right,b:rr.bottom,w:rr.width,h:rr.height},el:e});
+   }
+  }
+  return out;
+ });
  for(const n of nodes){
   const r=n.rect;
   const ancestors=[];let p=n.el.parentElement;while(p&&p!==document.body){const c=css(p);if(['clip','hidden','auto','scroll'].includes(c.overflow)||['clip','hidden','auto','scroll'].includes(c.overflowX)||['clip','hidden','auto','scroll'].includes(c.overflowY)){const pr=rect(p);if(r.l<pr.l-2||r.r>pr.r+2||r.t<pr.t-2||r.b>pr.b+2)ancestors.push(p.className||p.tagName);}p=p.parentElement;}
@@ -39,21 +51,25 @@ return page.evaluate(()=>{
  // Expand stroke by anisotropic scale and extra shadow/filter margin, do not
  // accept carrier behind text as non-overlap.
  const matrix=carrier.getScreenCTM(),total=carrier.getTotalLength(),stroke=parseFloat(css(carrier).strokeWidth)||19;
- const scale=Math.max(Math.hypot(matrix.a,matrix.b),Math.hypot(matrix.c,matrix.d));
- const radius=Math.max(6,stroke*scale/2+Math.min(10,9*scale)+4);
+ /* preserveAspectRatio="none": one SVG unit has different pixel width and height.
+  * Model graphite shadow stroke (27 units), blur (9 units) and bevel/drop-shadow;
+  * pad separately in screen-space X and Y. */
+ const sx=Math.hypot(matrix.a,matrix.b),sy=Math.hypot(matrix.c,matrix.d);
+ const rx=Math.max(5,(Math.max(27,stroke)*.5+9)*sx+Math.max(2,3*sx));
+ const ry=Math.max(6,(Math.max(27,stroke)*.5+9)*sy+Math.max(2,3*sy));
  const points=[];
- for(let i=0;i<=440;i++){const p=carrier.getPointAtLength(total*i/440),q=svg.createSVGPoint();q.x=p.x;q.y=p.y;const z=q.matrixTransform(matrix);if(z.x>=-radius&&z.x<=W+radius&&z.y>=-radius&&z.y<=H+radius&&z.y>=wr.t-radius&&z.y<=wr.b+radius)points.push({x:z.x,y:z.y,index:i})}
+ for(let i=0;i<=440;i++){const p=carrier.getPointAtLength(total*i/440),q=svg.createSVGPoint();q.x=p.x;q.y=p.y;const z=q.matrixTransform(matrix);if(z.x>=-rx&&z.x<=W+rx&&z.y>=-ry&&z.y<=H+ry&&z.y>=wr.t-ry&&z.y<=wr.b+ry)points.push({x:z.x,y:z.y,index:i})}
  for(const n of nodes){
   const r=n.rect;let first=null;
-  for(const p of points){if(p.x>r.l-radius&&p.x<r.r+radius&&p.y>r.t-radius&&p.y<r.b+radius){first={x:Math.round(p.x),y:Math.round(p.y),index:p.index};break}}
-  if(first)collisions.push({type:'carrier-protected',name:n.name,at:first,rect:r,radius:Math.round(radius)});
+  for(const p of points){if(p.x>r.l-rx&&p.x<r.r+rx&&p.y>r.t-ry&&p.y<r.b+ry){first={x:Math.round(p.x),y:Math.round(p.y),index:p.index};break}}
+  if(first)collisions.push({type:'carrier-protected',name:n.name,at:first,rect:r,rx:Math.round(rx),ry:Math.round(ry)});
  }
  // Verify brand/engraving geometric relationship even if CSS reserves no gap.
  const marks=[...(active?.querySelectorAll('.home-tech-ff__vendor img,.home-tech-ff__vendor b')||[])].filter(visible).map(rect);
  const integrity=section.querySelector('.home-tech-ff__foot p');
  const controls=[...document.querySelectorAll('details,button,[role="button"]')].filter(e=>{const c=css(e);return (c.position==='fixed'||c.position==='sticky')&&visible(e)});
  for(const ctl of controls){if(integrity&&visible(integrity)){const a=rect(ctl),b=rect(integrity);if(a.l<b.r&&a.r>b.l&&a.t<b.b&&a.b>b.t)collisions.push({type:'fixed-control-integrity',tag:ctl.tagName})}}
- return {stage,carrier:{radius,pointCount:points.length,scale},collisions:collisions.slice(0,28),clipping:clipping.slice(0,28),engraving,marks:marks.length,reviewControls:details.length,storyHeight:section.querySelector('[data-ff-story]').getBoundingClientRect().height,scrollWidth:document.documentElement.scrollWidth};
+ return {stage,carrier:{rx,ry,pointCount:points.length,sx,sy},collisions:collisions.slice(0,28),clipping:clipping.slice(0,28),engraving,marks:marks.length,reviewControls:details.length,storyHeight:section.querySelector('[data-ff-story]').getBoundingClientRect().height,scrollWidth:document.documentElement.scrollWidth};
 });
 }
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
@@ -71,7 +87,7 @@ try{
      const geom=await inspect(page),file='p0-'+lang+'-'+name+'-'+names[i]+'-'+phase+'.png';
      await page.screenshot({path:path.join(OUT,file)});
      if(geom.stage!==names[i]||geom.collisions.length||geom.clipping.length||geom.engraving.length||geom.reviewControls||geom.scrollWidth>w+2||runtime.length){errors.push({lang,name,phase,operation:names[i],geom,runtime});}
-     results.push({lang,name,phase,operation:names[i],collisions:geom.collisions.length,clipping:geom.clipping.length,pathRadius:Math.round(geom.carrier.radius)});
+     results.push({lang,name,phase,operation:names[i],collisions:geom.collisions.length,clipping:geom.clipping.length,pathRadius:[Math.round(geom.carrier.rx),Math.round(geom.carrier.ry)]});
     }
    }
    await setScroll(page,.955);

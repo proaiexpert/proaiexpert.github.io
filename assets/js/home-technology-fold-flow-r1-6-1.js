@@ -8,7 +8,7 @@ var reduce=matchMedia('(prefers-reduced-motion: reduce)');
 var headerGuardMedia=matchMedia('(max-width:1080px) and (orientation:landscape) and (max-height:540px)');
 var states=new WeakMap();
 var mobileCarrierMedia=matchMedia('(max-width:700px) and (orientation:portrait)');
-var R161_MOBILE_PATH='M600 0 C760 -55 1145 -38 1145 52 C1145 155 1148 310 1145 450 C1145 550 985 593 600 640';
+var R161_MOBILE_PATH='M600 0 C805 0 1145 0 1145 52 C1145 155 1148 310 1145 450 C1145 550 985 593 600 640';
 function setCarrierGeometry(section){
   section.querySelectorAll('.home-tech-ff__carrier path[d]').forEach(function(path){
     if(!path.dataset.r161OriginalD)path.dataset.r161OriginalD=path.getAttribute('d');

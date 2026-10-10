@@ -1,0 +1,98 @@
+name: R3.2 Exact Jekyll Owner Preview with Real Screenshots
+on:
+  push:
+    branches: [qa/selected-thinking-r32-rendered-owner-evidence-r1]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - name: Jekyll build and repository regression contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')";export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('_site')
+          for f in ['index.html','ru/index.html','ru/insights/index.html','ru/insights/chto-proiskhodit-posle-zayavki/index.html']:
+            c=(root/f).read_text()
+            assert '{{' not in c and '{%' not in c,f
+            assert 'data-home-footer-golden-r3' in c,f
+            assert 'hreflang="en"' in c and 'hreflang="ru"' in c,f
+          for f in ['index.html','ru/index.html']:
+            assert 'home-selected-thinking-r2.css?v=editorial-density-r32' in (root/f).read_text()
+          for f in ['ru/insights/index.html','ru/insights/chto-proiskhodit-posle-zayavki/index.html']:
+            assert 'insights-editorial-v2.css?v=folio-standard-r1' in (root/f).read_text()
+          print('JEKYLL SITE SHELL AND SEO: PASS')
+          PY
+      - name: Retrieve verified real-browser A/B PNG evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="owner-preview/selected-thinking-r32-final"
+          mkdir -p "$BASE/screenshots" "$BASE/frames" /tmp/r32-evidence
+          curl -fLsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" --max-time 55 "https://api.github.com/repos/proaiexpert/proaiexpert.github.io/actions/artifacts/11684714540/zip" -o /tmp/r32-artifact.zip
+          unzip -t /tmp/r32-artifact.zip | tail -2
+          unzip -oq /tmp/r32-artifact.zip -d /tmp/r32-evidence
+          cp /tmp/r32-evidence/screenshots/*.png "$BASE/screenshots/"
+          cp /tmp/r32-evidence/frames/*.png "$BASE/frames/"
+          for PNG in r31-home_ru-desktop-1440.png r32-home_ru-desktop-1440.png r31-home_en-desktop-1440.png r32-home_en-desktop-1440.png r31-home_ru-desktop-1600.png r32-home_ru-desktop-1600.png r32-home_ru-portrait-390.png r32-home_ru-landscape-844.png r32-hub_ru-desktop-1440.png r32-article_ru-desktop-1440.png; do
+            file "$BASE/screenshots/$PNG" | grep -Fq 'PNG image data'
+          done
+          for F in 0000 0200 0600 1300;do file "$BASE/frames/r32-motion-$F.png" | grep -Fq 'PNG image data';done
+          cat > "$BASE/benchmark.json" <<'JSON'
+          {"verified_action_run":"https://github.com/proaiexpert/proaiexpert.github.io/actions/runs/38092379739",
+           "method":"Chromium Jekyll getBoundingClientRect baseline R3.1 versus final R3.2 at matched viewport",
+           "heights":[
+             {"width":1280,"lang":"ru","baseline":1214.3,"candidate":876.3,"reductionPct":27.8},
+             {"width":1280,"lang":"en","baseline":1158.4,"candidate":823.8,"reductionPct":28.9},
+             {"width":1440,"lang":"ru","baseline":1316.0,"candidate":940.6,"reductionPct":28.5},
+             {"width":1440,"lang":"en","baseline":1253.1,"candidate":881.6,"reductionPct":29.6},
+             {"width":1600,"lang":"ru","baseline":1381.8,"candidate":982.8,"reductionPct":28.9},
+             {"width":1600,"lang":"en","baseline":1313.6,"candidate":920.0,"reductionPct":30.0},
+             {"width":1920,"lang":"ru","baseline":1386.6,"candidate":988.6,"reductionPct":28.7},
+             {"width":1920,"lang":"en","baseline":1318.4,"candidate":925.8,"reductionPct":29.8}]}
+          JSON
+      - name: Publish isolated Jekyll-rendered Owner Preview, noindex and screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="owner-preview/selected-thinking-r32-final"
+          cp _site/index.html "$BASE/home-en.html"
+          cp _site/ru/index.html "$BASE/home-ru.html"
+          cp _site/ru/insights/index.html "$BASE/hub-ru.html"
+          cp _site/ru/insights/chto-proiskhodit-posle-zayavki/index.html "$BASE/article-v2-ru.html"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > _headers
+          python - <<'PY'
+          from pathlib import Path
+          base=Path('owner-preview/selected-thinking-r32-final')
+          for page in ['home-ru.html','home-en.html','hub-ru.html','article-v2-ru.html']:
+            c=(base/page).read_text()
+            assert '{{' not in c and '{%' not in c,page
+            assert 'data-home-footer-golden-r3' in c,page
+          assert len(list((base/'screenshots').glob('*.png')))>=10
+          assert len(list((base/'frames').glob('*.png')))==4
+          print('RENDERED PREVIEW, REAL SCREENSHOTS AND NOINDEX: PASS')
+          PY
+          git config user.name "proai-qa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B preview/selected-thinking-r32-jekyll-rendered-fast1
+          git add _headers "$BASE"
+          git commit -m "QA only: Rendered Selected Thinking R3.2 Owner Preview with real A/B/motion screenshots"
+          git push origin HEAD:refs/heads/preview/selected-thinking-r32-jekyll-rendered-fast1

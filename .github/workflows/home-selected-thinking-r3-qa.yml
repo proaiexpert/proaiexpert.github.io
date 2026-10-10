@@ -109,7 +109,9 @@ jobs:
                   if d['headings']!=3 or not d['allLinksValid'] or not d['articlesVisible'] or not d['noTrace'] or not d['noMotionScript'] or not d['noJsContent']:
                     failures.append(str(row)+':contract')
                   if name=='chromium' and v in ['desktop-1440','portrait-390','landscape-844']:
-                    page.screenshot(path=f'home-r3-qa/{loc}-{v}-full.png',full_page=True,animations='disabled',timeout=60000)
+                    page.locator('#selected-thinking-r2').evaluate("(el)=>el.scrollIntoView({block:'start',behavior:'instant'})")
+                    page.wait_for_timeout(120)
+                    page.screenshot(path=f'home-r3-qa/{loc}-{v}-top.png',full_page=False,animations='disabled',timeout=30000)
                   ctx.close()
               browser.close()
             browser=p.chromium.launch()

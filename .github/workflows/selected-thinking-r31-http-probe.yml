@@ -1,0 +1,43 @@
+name: Selected Thinking R3.1 — immutable Cloudflare HTTP probe
+on:
+  push:
+    branches: [qa/home-selected-thinking-r31-http-probe]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check exact EN and RU deployment with HTTP
+        run: |
+          python - <<'PY'
+          import urllib.request, time, sys
+          host="https://72658543.proaiexpert-github-io.pages.dev"
+          routes=[
+            ("/owner-preview/selected-thinking-r31/index.html","Explore All Insights"),
+            ("/owner-preview/selected-thinking-r31/ru.html","Смотреть все инсайты")
+          ]
+          for path,needle in routes:
+              errors=[]
+              for attempt in range(4):
+                  try:
+                      req=urllib.request.Request(host+path,headers={"User-Agent":"ProAI-Review-QA/1.0"})
+                      with urllib.request.urlopen(req,timeout=18) as r:
+                          body=r.read().decode("utf-8")
+                          status=r.status
+                      assert status==200,status
+                      assert needle in body,needle
+                      assert 'class="st-r2__folio"' in body
+                      assert '{%' not in body and '{{' not in body
+                      assert 'home-selected-thinking-r2.js?v=signature-editorial-r31' in body
+                      print("HTTP VERIFIED",status,len(body),host+path)
+                      break
+                  except Exception as e:
+                      errors.append(str(e))
+                      time.sleep(3)
+              else:
+                  print("HTTP FAIL",path,errors,file=sys.stderr)
+                  raise SystemExit(1)
+          PY

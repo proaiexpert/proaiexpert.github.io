@@ -28,19 +28,42 @@
     }
   };
   window.addEventListener('message', onMessage);
-  for (const logo of logos) {
-    const frame = logo.querySelector('.proai-logo-r341__live[data-logo-live-src]');
-    if (!frame) continue;
-    logo.dataset.logoState = 'loading';
-    pending.set(frame, logo);
-    const fail = () => {
-      if (!pending.has(frame)) return;
-      pending.delete(frame);
-      logo.classList.remove('is-live');
-      logo.dataset.logoState = 'fallback';
-    };
-    frame.addEventListener('error', fail, { once: true });
-    frame.src = frame.dataset.logoLiveSrc;
-    setTimeout(fail, 45000);
+  function startLiveLogos() {
+    for (const logo of logos) {
+      const frame = logo.querySelector('.proai-logo-r341__live[data-logo-live-src]');
+      if (!frame || !frame.isConnected) continue;
+      logo.dataset.logoState = 'loading';
+      pending.set(frame, logo);
+      const fail = () => {
+        if (!pending.has(frame)) return;
+        pending.delete(frame);
+        logo.classList.remove('is-live');
+        logo.dataset.logoState = 'fallback';
+      };
+      frame.addEventListener('error', fail, { once: true });
+      frame.src = frame.dataset.logoLiveSrc;
+      setTimeout(fail, 45000);
+    }
   }
+
+  // R6.5 preview experiment: keep the existing static cube visible during first paint.
+  // Begin the unmodified 3D runtime after page load and a bounded idle opportunity.
+  // Do not change the scene, logo styling, ready handshake, or motion control.
+  let startupQueued = false;
+  function scheduleLiveLogos() {
+    if (startupQueued) return;
+    startupQueued = true;
+    window.setTimeout(() => {
+      if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(startLiveLogos, { timeout: 1500 });
+      } else {
+        startLiveLogos();
+      }
+    }, 3000);
+  }
+
+  if (document.readyState === 'complete') scheduleLiveLogos();
+  else window.addEventListener('load', scheduleLiveLogos, { once: true });
+  // Backup if third-party network activity delays the load event indefinitely.
+  window.setTimeout(scheduleLiveLogos, 5000);
 })();

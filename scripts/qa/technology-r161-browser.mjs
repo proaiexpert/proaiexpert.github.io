@@ -95,7 +95,7 @@ try{
     await old.goto(url(lang,true),{waitUntil:'domcontentloaded'});
     const oldSection=old.locator('[data-home-tech-fold-flow]');
     for(const [stage,p] of [['understand',.23],['communicate',.61],['resolved',.96]]){
-     await old.evaluate(p=>window.__PROAI_FOLD_FLOW_R16__.setProgress(document.querySelector('[data-home-tech-fold-flow]'),p),p);
+     await old.evaluate(p=>{const story=document.querySelector('[data-ff-story]');document.documentElement.style.scrollBehavior='auto';const top=scrollY+story.getBoundingClientRect().top;scrollTo({top:top+(story.getBoundingClientRect().height-innerHeight)*p,behavior:'instant'});},p);
      await old.waitForTimeout(410);
      await old.screenshot({path:snap('r16',lang,size,stage)});
     }

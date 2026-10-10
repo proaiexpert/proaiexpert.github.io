@@ -122,6 +122,14 @@ def main() -> int:
         errors.append("reading-measure authority is not 74ch")
     if "--iv2-prose:900px" not in css:
         errors.append("large-desktop Article field is not 900px")
+
+    for selector in (
+        ".insight-v2-readiness-stack{",
+        ".insight-v2-table-wrap--maturity{",
+        ".insight-v2-readiness-boundary{",
+    ):
+        if selector not in css:
+            errors.append(f"Stage C AI-Ready styling missing: {selector}")
     if ".insight-v2-related-decisions{" not in css:
         errors.append("Related Decisions publication-register styling is missing")
 
@@ -206,6 +214,34 @@ def main() -> int:
         cta = text.find('<div class="insight-v2-article-cta">')
         if related_include < 0 or cta < 0 or related_include > cta:
             errors.append(f"{rel}: Related Decisions include must precede article CTA")
+
+        if insight_id == "ai-ready-website":
+            required_stage_c = {
+                "readiness-stack": 'data-stage-c="readiness-stack"',
+                "maturity-model": 'data-stage-c="maturity-model"',
+                "readiness-boundary": 'data-stage-c="readiness-boundary"',
+            }
+            for section_id, marker in required_stage_c.items():
+                if f'id="{section_id}"' not in text:
+                    errors.append(f"{rel}: Stage C section missing {section_id}")
+                if marker not in text:
+                    errors.append(f"{rel}: Stage C structure missing {section_id}")
+            maturity = re.search(
+                r'(?ms)<table[^>]*insight-v2-table--maturity[^>]*>(.*?)</table>',
+                text,
+            )
+            if not maturity:
+                errors.append(f"{rel}: Stage C maturity table missing")
+            else:
+                headers = re.findall(r"<th\b[^>]*>(.*?)</th>", maturity.group(1))
+                rows = re.findall(r"<tr\b[^>]*>(.*?)</tr>", maturity.group(1))
+                body_rows = rows[1:] if rows else []
+                if len(headers) != 5:
+                    errors.append(f"{rel}: Stage C maturity table must have 5 columns")
+                if len(body_rows) != 5:
+                    errors.append(f"{rel}: Stage C maturity table must have 5 maturity states")
+                if re.search(r"<(?:th|td)\b[^>]*>\s*</(?:th|td)>", maturity.group(1)):
+                    errors.append(f"{rel}: Stage C maturity table contains an empty cell")
 
         if site_root.is_dir() and permalink:
             rendered_path = output_path(site_root, permalink)

@@ -1,0 +1,198 @@
+name: Insights Stage A.2 — final micro-cleanup QA
+on:
+  push:
+    branches:
+      - qa/insights-stage-a2-final-cleanup
+    paths-ignore:
+      - 'owner-preview/insights-stage-a2-final-final/**'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install exact Jekyll and browsers
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python -m pip install --quiet playwright
+          python -m playwright install --with-deps chromium webkit
+      - name: Build canonical candidate and verify Site Shell
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          rm -rf owner-preview/insights-stage-a2-final
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          for route in ('insights/index.html','ru/insights/index.html'):
+              s=(Path('_site')/route).read_text(encoding='utf-8')
+              assert s.count('class="insights-v2__ledger-row"')==12,route
+              assert s.count('class="insights-v2__library-group"')==3,route
+              assert s.count('class="insights-v2__domain"')==3,route
+              assert s.count('<h1')==1,route
+              assert '{%' not in s and '{{' not in s
+              assert s.count('data-site-footer-canonical="golden-r1"')==1,route
+              assert 'class="insights-v2__next"' not in s,route
+              assert 'href="/contact/#project-intake"' not in s and 'href="/ru/contact/#project-intake"' not in s,route
+              for t in ('hreflang="en"','hreflang="ru"','hreflang="x-default"','rel="canonical"'):
+                  assert t in s,(route,t)
+          for route in ('insights/what-happens-after-a-lead-arrives/index.html','ru/insights/chto-proiskhodit-posle-zayavki/index.html'):
+              s=(Path('_site')/route).read_text(encoding='utf-8')
+              for t in ('insight-v2__prose','insight-v2-rail','insight-v2-signal','insight-v2-table-wrap'):
+                  assert t in s,(route,t)
+          print('CONTENT 12/12; 3 topic anchors; canonical metadata; Article V2 markers PASS')
+          PY
+      - name: Build exact approved Stage A.2 reference
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          git worktree add --detach /tmp/insights-a1-reference bdea2f37c2253755a915bc94432e8644e8f63212
+          rm -rf /tmp/insights-a1-reference/owner-preview/insights-stage-a1
+          python /tmp/insights-a1-reference/scripts/apply-social-preview-defaults.py --mode source --root /tmp/insights-a1-reference
+          jekyll build --source /tmp/insights-a1-reference --destination /tmp/insights-a1-reference/_site
+          python scripts/apply-social-preview-defaults.py --mode site --root /tmp/insights-a1-reference/_site
+          python -m http.server 4182 --directory _site >/tmp/stage-a2-after.log 2>&1 &
+          python -m http.server 4181 --directory /tmp/insights-a1-reference/_site >/tmp/stage-a1-before.log 2>&1 &
+          sleep 3
+      - name: Two-engine visual geometry and A/B screenshots
+        run: |
+          mkdir -p qa-artifacts
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          from pathlib import Path
+          import json
+          cases=[
+            ('desktop-1280',1280,850,False),
+            ('desktop-1440',1440,900,False),
+            ('desktop-1600',1600,950,False),
+            ('desktop-1920',1920,1080,False),
+            ('portrait-430',430,932,True),
+            ('portrait-390',390,844,True),
+            ('portrait-375',375,812,True),
+            ('portrait-360',360,780,True),
+            ('portrait-320',320,690,True),
+            ('landscape-844',844,390,True),
+            ('landscape-932',932,430,True),
+          ]
+          routes={'ru':'/ru/insights/','en':'/insights/'}
+          captures={('ru','desktop-1440'),('en','desktop-1440'),('ru','portrait-390'),('en','portrait-390'),('ru','landscape-844')}
+          out=Path('qa-artifacts')
+          rows=[];failures=[]
+          with sync_playwright() as pw:
+              for engine,api in [('chromium',pw.chromium),('webkit',pw.webkit)]:
+                  browser=api.launch()
+                  for case,width,height,touch in cases:
+                      for lang,route in routes.items():
+                          ctx=browser.new_context(viewport={'width':width,'height':height},is_mobile=touch,has_touch=touch,reduced_motion='reduce')
+                          page=ctx.new_page()
+                          for label,port in [('before',4181),('after',4182)]:
+                              page.goto(f'http://127.0.0.1:{port}{route}',wait_until='domcontentloaded',timeout=30000)
+                              page.wait_for_timeout(80)
+                              dims=page.evaluate("""() => {
+                                const box=s=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return {top:Math.round(r.top+scrollY),width:Math.round(r.width),height:Math.round(r.height),font:parseFloat(getComputedStyle(e).fontSize)}};
+                                return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,
+                                 height:document.documentElement.scrollHeight, h1:document.querySelectorAll('h1').length,
+                                 records:document.querySelectorAll('.insights-v2__ledger-row').length,
+                                 domains:document.querySelectorAll('.insights-v2__domain').length,
+                                 groups:document.querySelectorAll('.insights-v2__library-group').length,
+                                 masthead:box('.insights-v2__masthead'), mastheadH1:box('.insights-v2__masthead h1'),
+                                 lead:box('.insights-v2__lead-record'), leadH3:box('.insights-v2__lead-record h3'),
+                                 supporting:box('.insights-v2__supporting'), supportH3:box('.insights-v2__support-record h3'),
+                                 library:box('.insights-v2__ledger'), next:box('.insights-v2__next')};
+                              }""")
+                              footer=page.evaluate("""() => {
+                                const e=document.querySelector('[data-site-footer-canonical="golden-r1"]');
+                                return {html:e ? e.outerHTML:null, height:e?Math.round(e.getBoundingClientRect().height):null};
+                              }""")
+                              if label=='before':before_footer=footer
+                              else:
+                                  if not footer['html'] or before_footer['html']!=footer['html']:
+                                      failures.append(f'FOOTER MARKUP DRIFT {engine} {lang} {case}')
+                                  if abs(before_footer['height']-footer['height'])>1:
+                                      failures.append(f'FOOTER HEIGHT DRIFT {engine} {lang} {case}')
+                              rows.append({'engine':engine,'lang':lang,'viewport':case,'state':label,'footerHeight':footer['height'],**dims})
+                              if label=='after':
+                                  if dims['next'] is not None:failures.append(f'REDUNDANT CTA {engine} {lang} {case}')
+                                  if dims['scrollWidth']>dims['width']+1:failures.append(f'OVERFLOW {engine} {lang} {case} {dims["scrollWidth"]-dims["width"]}px')
+                                  if dims['records']!=12 or dims['groups']!=3 or dims['domains']!=3 or dims['h1']!=1:failures.append(f'SEMANTIC {engine} {lang} {case}')
+                              if engine=='chromium' and (lang,case) in captures:
+                                  page.screenshot(path=str(out/f'{lang}-{case}-{label}-top.png'),full_page=False,animations='disabled')
+                                  page.screenshot(path=str(out/f'{lang}-{case}-{label}-full.png'),full_page=True,animations='disabled')
+                          ctx.close()
+                  browser.close()
+              # progressive enhancement and immutable article-reading geometry
+              for engine,api in [('chromium',pw.chromium),('webkit',pw.webkit)]:
+                  browser=api.launch()
+                  for lang,route in routes.items():
+                      ctx=browser.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,java_script_enabled=False)
+                      page=ctx.new_page()
+                      page.goto('http://127.0.0.1:4182'+route,wait_until='domcontentloaded')
+                      if page.locator('.insights-v2__ledger-title[href]').count()!=12:failures.append(f'NO-JS {engine} {lang}')
+                      ctx.close()
+                  for width,height,touch in [(1440,900,False),(390,844,True)]:
+                      for lang,route in [('ru','/ru/insights/chto-proiskhodit-posle-zayavki/'),('en','/insights/what-happens-after-a-lead-arrives/')]:
+                          styles=[]
+                          ctx=browser.new_context(viewport={'width':width,'height':height},is_mobile=touch,has_touch=touch,reduced_motion='reduce')
+                          page=ctx.new_page()
+                          for port in (4181,4182):
+                              page.goto('http://127.0.0.1:'+str(port)+route,wait_until='domcontentloaded')
+                              page.wait_for_function("() => getComputedStyle(document.querySelector('.insight-v2__prose')).lineHeight !== 'normal'",timeout=15000)
+                              styles.append(page.evaluate("""() => {
+                                const s=q=>{const e=document.querySelector(q);if(!e)return null;const c=getComputedStyle(e),r=e.getBoundingClientRect();return [c.width,c.fontSize,c.lineHeight,c.display,Math.round(r.width)]};
+                                return {prose:s('.insight-v2__prose'),rail:s('.insight-v2-rail'),signal:s('.insight-v2-signal'),table:s('.insight-v2-table-wrap')};
+                              }"""))
+                          if styles[0]!=styles[1]:failures.append(f'ARTICLE STYLE DRIFT {engine} {lang} {width}: {styles}')
+                          ctx.close()
+                  browser.close()
+          (out/'report.json').write_text(json.dumps({'cases':rows,'failures':failures},ensure_ascii=False,indent=2),encoding='utf-8')
+          print('FINAL CLEANUP QA',len(rows),'A/B observations and article preservation. Failures:',failures)
+          if failures:raise SystemExit(1)
+          PY
+      - name: Export exact canonical Hub previews
+        run: |
+          mkdir -p owner-preview/insights-stage-a2-final
+          cp _site/insights/index.html owner-preview/insights-stage-a2-final-final/index.html
+          cp _site/ru/insights/index.html owner-preview/insights-stage-a2-final-final/ru.html
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          for filename in ('index.html','ru.html'):
+              p=Path('owner-preview/insights-stage-a2-final')/filename
+              s=p.read_text(encoding='utf-8')
+              # Review-only link adapter: article URLs lead to existing production documents.
+              s=re.sub(r'href="/((?:ru/)?(?:insights|case-studies|contact)/[^"]*)"',r'href="https://proai-expert.com/\1"',s)
+              assert '{%' not in s and '{{' not in s
+              assert s.count('class="insights-v2__ledger-row"')==12
+              assert s.count('data-site-footer-canonical="golden-r1"')==1
+              p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit generated previews only to QA branch
+        run: |
+          git add owner-preview/insights-stage-a2-final-final/index.html owner-preview/insights-stage-a2-final-final/ru.html
+          if ! git diff --cached --quiet; then
+            git config user.name "proai-visual-qa[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Stage A.2 final owner previews from validated Jekyll output"
+            git push origin HEAD:qa/insights-stage-a2-final-cleanup
+          fi
+      - name: Upload visual A/B and QA JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-stage-a2-final-qa-evidence
+          path: qa-artifacts/
+          if-no-files-found: warn
+          retention-days: 21

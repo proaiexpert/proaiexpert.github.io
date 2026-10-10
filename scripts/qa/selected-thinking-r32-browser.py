@@ -20,7 +20,12 @@ sizes=[("desktop-1280",1280,800,False),("desktop-1440",1440,900,False),("desktop
  ("landscape-844",844,390,True),("landscape-932",932,430,True)]
 fail=[];results=[];comparisons=[]
 def settle(page):
-    page.evaluate("document.fonts.ready")
+    # Wait for web-font readiness without risking an unbounded network-font promise.
+    # Browser layout and all screenshot contracts remain mandatory.
+    try:
+        page.wait_for_function("document.fonts.status === 'loaded'", timeout=3500)
+    except Exception:
+        page.wait_for_timeout(300)
     page.wait_for_timeout(120)
 def check_page(page,route,language,engine,size):
     ret=page.evaluate("""() => {

@@ -1,0 +1,49 @@
+name: Selected Thinking R3.1 — exact owner preview
+on:
+  push:
+    branches: [qa/home-selected-thinking-r31-static]
+    paths-ignore: ['owner-preview/selected-thinking-r31/**']
+  workflow_dispatch:
+permissions: {contents: write}
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and verify rendered source
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          rm -rf owner-preview/selected-thinking-r31
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+      - name: Export exact Jekyll preview only
+        run: |
+          mkdir -p owner-preview/selected-thinking-r31
+          cp _site/index.html owner-preview/selected-thinking-r31/index.html
+          cp _site/ru/index.html owner-preview/selected-thinking-r31/ru.html
+          python - <<'PY'
+          from pathlib import Path
+          for p in Path('owner-preview/selected-thinking-r31').glob('*.html'):
+              s=p.read_text(encoding='utf-8')
+              assert '{%' not in s and '{{' not in s
+              assert s.count('id="selected-thinking-r2"')==1
+              assert 'class="st-r2__folio"' in s
+              assert 'home-selected-thinking-r2.js?v=signature-editorial-r31' in s
+              assert 'home-selected-thinking-r2.css?v=signature-editorial-r31' in s
+              assert 'home-footer-golden-r3__main' in s
+          print("OWNER PREVIEW JEKYLL / FOOTER / ASSETS PASS")
+          PY
+          git add owner-preview/selected-thinking-r31/index.html owner-preview/selected-thinking-r31/ru.html
+          if ! git diff --cached --quiet; then
+            git config user.name "proai-owner-preview[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Export exact Selected Thinking R3.1 rendered owner preview"
+            git push origin HEAD:qa/home-selected-thinking-r31-static
+          fi

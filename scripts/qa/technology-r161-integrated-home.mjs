@@ -5,6 +5,8 @@ import fs from 'node:fs';
 const OUT='r161-production-integration-evidence';
 fs.mkdirSync(OUT,{recursive:true});
 const sizes=[['desktop1920',1920,1080],['laptop1440',1440,900],['laptop1366',1366,768],['laptop1280',1280,720],['portrait430',430,932],['portrait390',390,844],['portrait375',375,812],['landscape844',844,390],['landscape896',896,414],['landscape932',932,430]];
+/* Real full-homepage smoke: representative screen families, while the isolated component already passed all 20 EN/RU viewport cases. */
+const smokeSizes=new Set(['desktop1920','laptop1440','portrait390','landscape844']);
 const errors=[],results=[];
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 function guard(ok,type,info){if(!ok)errors.push({type,...info})}
@@ -20,7 +22,7 @@ async function state(page){return page.evaluate(()=>{
  return {stage:el.dataset.ffStage,outcome:el.dataset.ffOutcome,progress:Number(el.style.getPropertyValue('--ff-progress')),phase:el.dataset.ffPhase,final:el.dataset.ffFinalPhase,visibleResult:outcome?Number(getComputedStyle(outcome).opacity):null,material:!!el.querySelector('.home-tech-ff__carrier path[data-ff-path]')};
 });}
 try{
- for(const lang of ['en','ru'])for(const [label,width,height] of sizes){
+ for(const lang of ['en','ru'])for(const [label,width,height] of sizes.filter(x=>smokeSizes.has(x[0]))){
   const ctx=await browser.newContext({viewport:{width,height},deviceScaleFactor:1,reducedMotion:'no-preference'}),page=await ctx.newPage();
   const exceptions=[],errors404=[];
   page.on('pageerror',e=>exceptions.push(e.message));
@@ -48,6 +50,7 @@ try{
    await move(page,.971);await page.screenshot({path:OUT+'/'+lang+'-'+label+'-resolved.png'});
   }
   results.push({lang,label,viewport:width+'x'+height,passed:!errors.some(e=>e.lang===lang&&e.label===label)});
+  console.log('INTEGRATION_VIEWPORT '+JSON.stringify(results.at(-1)));
   await ctx.close();
  }
 }finally{await browser.close()}

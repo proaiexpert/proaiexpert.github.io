@@ -1,0 +1,58 @@
+name: Stage C — Cloudflare rendered owner-preview HTTP proof
+
+on:
+  push:
+    branches:
+      - qa/insights-stage-c-cloudflare-proof-r1
+
+permissions:
+  contents: read
+
+jobs:
+  http-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Confirm live branch preview, no Liquid, two articles and five screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST='https://preview-insights-stage-c-jekyll-rendered-r1.proaiexpert-github-io.pages.dev'
+          BASE="$HOST/owner-preview/stage-c-ai-ready-04"
+          for attempt in $(seq 1 36); do
+            if curl -fLsS --connect-timeout 8 --max-time 18 "$BASE/en.html" -o /tmp/stagec-en.html && grep -Fq 'data-stage-c="readiness-stack"' /tmp/stagec-en.html; then
+              echo "Cloudflare preview deployed, attempt=$attempt"
+              break
+            fi
+            if [ "$attempt" -eq 36 ]; then echo "ERROR: Cloudflare preview unavailable"; exit 1; fi
+            sleep 10
+          done
+          for LANG in en ru; do
+            URL="$BASE/$LANG.html"
+            curl -fLsS --connect-timeout 8 --max-time 20 "$URL" -o "/tmp/stagec-$LANG.html"
+            curl -fsSI --connect-timeout 8 --max-time 15 "$URL" > "/tmp/stagec-$LANG.headers"
+            grep -Fq 'data-stage-c="readiness-stack"' "/tmp/stagec-$LANG.html"
+            grep -Fq 'data-stage-c="maturity-model"' "/tmp/stagec-$LANG.html"
+            grep -Fq 'data-stage-c="readiness-boundary"' "/tmp/stagec-$LANG.html"
+            grep -Fq 'data-site-footer-canonical="golden-r1"' "/tmp/stagec-$LANG.html"
+            grep -Fq 'data-related-decisions' "/tmp/stagec-$LANG.html"
+            grep -Fq '/assets/css/insights-editorial-v2.css' "/tmp/stagec-$LANG.html"
+            grep -Fq 'application/ld+json' "/tmp/stagec-$LANG.html"
+            if grep -Fq '{%' "/tmp/stagec-$LANG.html" || grep -Fq '{{' "/tmp/stagec-$LANG.html"; then
+              echo "ERROR: Unresolved Liquid on $LANG";exit 1
+            fi
+            grep -Eiq '^x-robots-tag: *noindex' "/tmp/stagec-$LANG.headers"
+            echo "LIVE HTML PASS: $URL"
+          done
+          CSS="$HOST/assets/css/insights-editorial-v2.css"
+          curl -fLsS --connect-timeout 8 --max-time 18 "$CSS" -o /tmp/stagec.css
+          grep -Fq '.insight-v2-readiness-stack' /tmp/stagec.css
+          grep -Fq '.insight-v2-table-wrap--maturity' /tmp/stagec.css
+          echo "LIVE CSS PASS: $CSS"
+          for SHOT in en-desktop-1440.png en-portrait-390.png ru-desktop-1440.png ru-portrait-390.png ru-landscape-844.png; do
+            URL="$BASE/screenshots/$SHOT"
+            curl -fLsS --connect-timeout 8 --max-time 20 "$URL" -o "/tmp/$SHOT"
+            file "/tmp/$SHOT" | grep -Fq 'PNG image data'
+            echo "LIVE SCREENSHOT PASS: $URL"
+          done
+          echo 'CLOUDFLARE RENDERED OWNER PREVIEW: PASS'

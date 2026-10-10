@@ -7,6 +7,15 @@ var backward=[.025,.245,.435,.625,.80];
 var reduce=matchMedia('(prefers-reduced-motion: reduce)');
 var headerGuardMedia=matchMedia('(max-width:1080px) and (orientation:landscape) and (max-height:540px)');
 var states=new WeakMap();
+var mobileCarrierMedia=matchMedia('(max-width:700px) and (orientation:portrait)');
+var R16_MOBILE_PATH='M600 0 C660 36 930 52 1090 83 C1180 103 1165 170 1110 222 C1090 266 1115 304 1110 365 C1090 420 880 459 800 495 C720 540 790 594 600 640';
+function setCarrierGeometry(section){
+  section.querySelectorAll('.home-tech-ff__carrier path[d]').forEach(function(path){
+    if(!path.dataset.r16OriginalD)path.dataset.r16OriginalD=path.getAttribute('d');
+    var desired=mobileCarrierMedia.matches?R16_MOBILE_PATH:path.dataset.r16OriginalD;
+    if(path.getAttribute('d')!==desired)path.setAttribute('d',desired);
+  });
+}
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 function getState(section){var s=states.get(section);if(s)return s;s={progress:0,index:0,raf:0,resizing:0,orientation:innerWidth>innerHeight?'landscape':'portrait'};states.set(section,s);return s}
 function setStage(section,index,reason){
@@ -84,6 +93,7 @@ function schedule(section){
 }
 function preserveOnResize(section){
   syncHeaderGuard(section);
+  setCarrierGeometry(section);
   var s=getState(section);
   clearTimeout(s.resizing);
   var keep=s.progress;
@@ -103,6 +113,7 @@ function preserveOnResize(section){
 function init(section){
   var s=getState(section);
   syncHeaderGuard(section);
+  setCarrierGeometry(section);
   headerGuardMedia.addEventListener&&headerGuardMedia.addEventListener('change',function(){syncHeaderGuard(section)});
   if(reduce.matches){setStage(section,5,'reduced');section.style.setProperty('--ff-fold-width','14px');return}
   updateVisual(section,calcProgress(section));

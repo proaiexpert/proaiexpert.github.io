@@ -170,6 +170,26 @@
   const stateFromProgress = p => p < .23 ? 1 : p < .48 ? 2 : p < .73 ? 3 : 4;
   const desktopProgress = () => {
     const rect = experience.getBoundingClientRect();
+
+    // Desktop R1.4.8: one complete cycle of stages belongs to the actual
+    // pinned runway, not to the surrounding whitespace. This keeps stages
+    // 01 and 04 readable while the artwork is optically centered below
+    // the fixed header (including reverse scrolling and viewport changes).
+    if (desktopViewport.matches && innerHeight >= 600 && stickyStage) {
+      const stickyStyle = getComputedStyle(stickyStage);
+      if (stickyStyle.position === 'sticky') {
+        const stickyTop = parseFloat(stickyStyle.top);
+        const stageHeight = stickyStage.getBoundingClientRect().height;
+        const paddingTop = parseFloat(getComputedStyle(experience).paddingTop) || 0;
+        const entryTop = stickyTop - paddingTop;
+        const exitTop = stickyTop + stageHeight - rect.height;
+        const runway = entryTop - exitTop;
+        if (Number.isFinite(stickyTop) && runway > 180) {
+          return clamp((entryTop - rect.top) / runway,0,1);
+        }
+      }
+    }
+
     const viewport = innerHeight;
     const startLine = viewport*.30;
     const travel = Math.max(360,rect.height-viewport*.42);

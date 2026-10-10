@@ -1,0 +1,48 @@
+name: Insights RC2 production live HTTP smoke
+on:
+  push:
+    branches: [qa/insights-rc2-production-live-smoke]
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Verify official domain EN RU rendered routes after release
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT='https://proai-expert.com'
+          declare -A ROUTES=(
+            [home_en]='/'
+            [home_ru]='/ru/'
+            [hub_en]='/insights/'
+            [hub_ru]='/ru/insights/'
+            [article04_en]='/insights/ai-ready-website-for-business/'
+            [article04_ru]='/ru/insights/ai-ready-sayt-dlya-biznesa/'
+          )
+          for NAME in home_en home_ru hub_en hub_ru article04_en article04_ru; do
+            URL="$ROOT${ROUTES[$NAME]}"
+            curl -fLsS --retry 10 --retry-delay 3 --retry-all-errors --max-time 30 "$URL" -o "/tmp/$NAME.html"
+            grep -Fq '<html' "/tmp/$NAME.html"
+            if grep -Fq '{%' "/tmp/$NAME.html" || grep -Fq '{{' "/tmp/$NAME.html"; then echo "UNRENDERED_LIQUID $NAME";exit 1;fi
+            if [[ "$NAME" == home_* ]]; then
+              grep -Fq 'id="selected-thinking-r2"' "/tmp/$NAME.html"
+              grep -Fq 'st-r2__folio' "/tmp/$NAME.html"
+            elif [[ "$NAME" == hub_* ]]; then
+              grep -Fq 'insights-v2__ledger-row' "/tmp/$NAME.html"
+            else
+              grep -Fq 'data-stage-c="maturity-model"' "/tmp/$NAME.html"
+              grep -Fq 'data-author-type="organization"' "/tmp/$NAME.html"
+              grep -Fq 'data-related-decisions' "/tmp/$NAME.html"
+              grep -Fq 'proai-header-r111-static-cube-320.png' "/tmp/$NAME.html"
+            fi
+            grep -Fq 'rel="canonical"' "/tmp/$NAME.html"
+            echo "LIVE_OFFICIAL_PASS $NAME $URL"
+          done
+          curl -fLsS --retry 4 --max-time 30 "$ROOT/assets/css/insights-editorial-v2.css" -o /tmp/insights.css
+          grep -Fq 'insight-v2-author__logo' /tmp/insights.css
+          curl -fLsS --retry 4 --max-time 30 "$ROOT/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png" -o /tmp/logo.png
+          file /tmp/logo.png | grep -Fq 'PNG image data'
+          echo "OFFICIAL_RC2_SMOKE_PASS 6 routes and CSS/logo"

@@ -1,0 +1,53 @@
+name: Selected Thinking R3.2 — final independent QA acceptance receipt
+on:
+  push:
+    branches: [qa/selected-thinking-r32-final-qualification-r1]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  attest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Verify exact source scope, 56-browser-state artifact, Jekyll and Cloudflare proofs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          API="https://api.github.com/repos/proaiexpert/proaiexpert.github.io"
+          AUTH="Authorization: Bearer $GH_TOKEN"
+          get(){ curl -fLsS --connect-timeout 8 --max-time 25 -H "$AUTH" -H "Accept: application/vnd.github+json" "$1"; }
+          PRODUCT=$(get "$API/git/ref/heads/agent/home-selected-thinking-r32-editorial-density-folio-standard" | jq -r '.object.sha')
+          [ "$PRODUCT" = "c8ec17717c9f0886be3dabfc044ab504a5c3b956" ]
+          MAIN=$(get "$API/git/ref/heads/main" | jq -r '.object.sha')
+          get "$API/compare/71146647bc68c045e8d789f475d2f16f6324f20d...$PRODUCT" > /tmp/r32-product-diff.json
+          jq -e '.files | length==6' /tmp/r32-product-diff.json >/dev/null
+          jq -e '[.files[].filename]|sort==[
+           "_layouts/insight-v2.html","_layouts/insights-hub-v2.html",
+           "assets/css/home-selected-thinking-r2.css","assets/css/insights-editorial-v2.css",
+           "index.html","ru/index.html"]|sort' /tmp/r32-product-diff.json >/dev/null
+          echo "PRODUCT SCOPE PASS: 6 files / main=$MAIN / product=$PRODUCT"
+          get "$API/actions/runs/38096169770/jobs" >/tmp/r32-fulljobs.json
+          jq -e '[.jobs[0].steps[] | select(.name=="Build both Jekyll versions and validate canonical site shell")][0].conclusion=="success"' /tmp/r32-fulljobs.json >/dev/null
+          jq -e '[.jobs[0].steps[] | select(.name=="Real responsive 2-engine QA, A/B screenshots, temporal frames and no-JS")][0].conclusion=="success"' /tmp/r32-fulljobs.json >/dev/null
+          echo 'FULL BROWSER AND JEKYLL STEPS PASS'
+          mkdir /tmp/r32q
+          curl -fLsS --max-time 50 -H "$AUTH" -H "Accept: application/vnd.github+json" "$API/actions/artifacts/11686860125/zip" -o /tmp/r32qa.zip
+          unzip -oq /tmp/r32qa.zip -d /tmp/r32q
+          jq -e '.states==56 and (.failures|length)==0 and (.screenshots|length)>=13 and (.heights|length)>=3' /tmp/r32q/qa.json >/dev/null
+          jq -e '[.heights[]|select(.width==1440 and .lang=="ru" and .candidate<=950 and .reductionPct>=25)]|length==1' /tmp/r32q/qa.json >/dev/null
+          echo 'BROWSER: 56 states, 0 failures, 13 screenshots, RU desktop target met'
+          get "$API/actions/runs/38096624086" | jq -e '.conclusion=="success"' >/dev/null
+          get "$API/actions/runs/38092379739" | jq -e '.conclusion=="success"' >/dev/null
+          echo 'INDEPENDENT CLOUDFARE LIVE HTTP + 8 MEASURED A/B HEIGHTS PASS'
+          BASE="https://92cd569f.proaiexpert-github-io.pages.dev/owner-preview/selected-thinking-r32-final"
+          for NAME in home-ru.html home-en.html hub-ru.html article-v2-ru.html;do
+           curl -fLsS --max-time 20 "$BASE/$NAME" -o "/tmp/$NAME"
+           grep -Fq 'data-home-footer-golden-r3' "/tmp/$NAME"
+           ! grep -Fq '{%' "/tmp/$NAME"
+           ! grep -Fq '{{' "/tmp/$NAME"
+          done
+          curl -fLsS --max-time 20 "$BASE/benchmark.json" | jq -e '(.heights|length)==8' >/dev/null
+          echo 'R3.2 FINAL QUALIFICATION PASS — READY FOR INDEPENDENT CONTROLLER REVIEW'

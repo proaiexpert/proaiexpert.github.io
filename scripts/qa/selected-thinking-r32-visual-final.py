@@ -12,7 +12,16 @@ SIZES=[("desktop-1280",1280,800,False),("desktop-1440",1440,900,False),("desktop
 ("landscape-844",844,390,True),("landscape-932",932,430,True)]
 errors=[];rows=[];shots=[];heights=[]
 def visit(page,host,route):
- page.goto(host+route,wait_until="domcontentloaded",timeout=25000);page.wait_for_timeout(190)
+ page.goto(host+route,wait_until="domcontentloaded",timeout=25000)
+ # Require canonical CSS to have actually applied before testing WebKit.
+ # DOMContentLoaded alone can precede dynamic stylesheet readiness.
+ if "/insights/" in route:
+  page.wait_for_function("""() => {
+   const e=document.querySelector('.insights-v2--hub .insights-v2__record-index')||
+           document.querySelector('.insight-v2-article__index');
+   return e && parseFloat(getComputedStyle(e).webkitTextStrokeWidth)>0.5;
+  }""",timeout=12000)
+ page.wait_for_timeout(220)
 def capture_cdp(page,path):
  # CDP screenshot is an actual Chromium compositor frame, with no Playwright
  # external web-font waiting or animation settlement side effects.
@@ -100,7 +109,9 @@ with sync_playwright() as p:
    try:
     visit(page,f"http://127.0.0.1:{port}",route)
     sec=page.locator("#selected-thinking-r2")
-    pairs[label]=round(sec.bounding_box()["height"],1)
+    height=page.evaluate("()=>document.querySelector('#selected-thinking-r2')?.getBoundingClientRect().height")
+    if not height:raise ValueError("Selected Thinking section missing")
+    pairs[label]=round(height,1)
     page.evaluate("()=>document.querySelector('#selected-thinking-r2').scrollIntoView({block:'start',behavior:'instant'})")
     image(page,f"{label}-home_{lang}-{name}.png")
    except Exception as e:errors.append(f"AB:{label}:{name}:{lang}:{str(e)[:120]}")
@@ -124,11 +135,14 @@ with sync_playwright() as p:
   b=typ.launch()
   for zoom in (1.25,1.5):
    for lang,route in (("ru","/ru/"),("en","/")):
-    c=b.new_context(viewport={"width":1440,"height":900},reduced_motion="reduce")
+    # Browser zoom reflows the CSS viewport; emulate the corresponding 1152/960
+    # layout width rather than applying CSS zoom to the root (which creates
+    # artificial page-level overflow unrelated to browser zoom).
+    css_w=round(1440/zoom)
+    c=b.new_context(viewport={"width":css_w,"height":round(900/zoom)},device_scale_factor=zoom,reduced_motion="reduce")
     page=c.new_page()
     try:
      visit(page,"http://127.0.0.1:4177",route)
-     page.evaluate("(z)=>{document.documentElement.style.zoom=z}",zoom)
      d=page.evaluate("()=>({overflow:document.documentElement.scrollWidth-innerWidth,count:document.querySelectorAll('#selected-thinking-r2 article').length})")
      if d["overflow"]>1 or d["count"]!=3:errors.append(f"zoom:{engine}:{lang}:{zoom}:{d}")
     except Exception as e:errors.append(f"zoom:{engine}:{lang}:{zoom}:{e}")

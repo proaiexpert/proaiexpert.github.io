@@ -1,0 +1,27 @@
+name: Technology R1.6.1 — Live Production Read-only QA
+on:
+  push:
+    branches:
+      - audit/technology-r161-live-prod-final-20261010
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-production-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Check live public EN/RU production URL in Chromium
+        run: node scripts/qa/technology-r161-live-production-qa.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-r161-live-final-evidence
+          path: r161-live-production-evidence/
+          if-no-files-found: warn

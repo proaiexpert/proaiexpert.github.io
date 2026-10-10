@@ -99,6 +99,21 @@ try{
    await ctx.close();
   }
  }
+ /* Immutable baseline R1.6.1 at 6c16deb — same environment, assets and viewports.
+   These frames are evidence only; never assert baseline should pass P0 geometry. */
+ for(const [lang,size,w,h] of [['ru','portrait390',390,844],['en','portrait390',390,844],['ru','landscape844',844,390],['en','landscape844',844,390],['ru','laptop1440',1440,900],['en','laptop1440',1440,900]]){
+  const ctx=await browser.newContext({viewport:{width:w,height:h},deviceScaleFactor:1});
+  const page=await ctx.newPage();
+  await page.goto('http://127.0.0.1:8787/qa-r161-baseline/'+(lang==='en'?'index':'ru')+'.html',{waitUntil:'domcontentloaded'});
+  await page.locator('[data-home-tech-fold-flow]').waitFor();
+  for(let i=0;i<4;i++){
+   await setScroll(page,starts[i]+(ends[i]-starts[i])*.87);
+   await page.screenshot({path:path.join(OUT,'before-6c16deb-'+lang+'-'+size+'-'+names[i]+'-result.png')});
+  }
+  await setScroll(page,.955);
+  await page.screenshot({path:path.join(OUT,'before-6c16deb-'+lang+'-'+size+'-resolved.png')});
+  await ctx.close();
+ }
 }finally{await browser.close()}
 fs.writeFileSync(path.join(OUT,'p0-results.json'),JSON.stringify({errors,results},null,2));
 console.log('R161_P0_QA_RESULT '+JSON.stringify({pass:!errors.length,errors:errors.length,viewportLocales:20,frames:results.length,details:errors.slice(0,20)}));

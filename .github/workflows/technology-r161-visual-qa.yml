@@ -12,11 +12,22 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 15
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: npm install --no-save --no-package-lock playwright@1.56.1
       - run: npx playwright install --with-deps chromium
+      - name: Materialize immutable R1.6.1 before-correction comparison
+        run: |
+          mkdir -p qa-r161-baseline
+          git show 6c16deb9f2edd5859c3a70b1d08035ec578ac19f:assets/css/home-technology-fold-flow-r1-6-1.css > qa-r161-baseline/baseline.css
+          git show 6c16deb9f2edd5859c3a70b1d08035ec578ac19f:assets/js/home-technology-fold-flow-r1-6-1.js > qa-r161-baseline/baseline.js
+          for page in index ru; do
+            git show "6c16deb9f2edd5859c3a70b1d08035ec578ac19f:owner-preview/technology-fold-flow-r1-6-1/${page}.html" |
+              sed -e 's#/assets/css/home-technology-fold-flow-r1-6-1.css#/qa-r161-baseline/baseline.css#g' -e 's#/assets/js/home-technology-fold-flow-r1-6-1.js#/qa-r161-baseline/baseline.js#g' > "qa-r161-baseline/${page}.html"
+          done
       - run: python3 -m http.server 8787 --bind 127.0.0.1 > /tmp/r161-server.log 2>&1 &
       - run: node scripts/qa/technology-r161-material-safe-qa.mjs
       - run: node scripts/qa/technology-r161-browser.mjs

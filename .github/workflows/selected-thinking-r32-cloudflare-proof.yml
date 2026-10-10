@@ -28,17 +28,17 @@ jobs:
           [ -n "$HOST" ] || { echo "Cloudflare immutable deployment not proven"; exit 1; }
           echo "IMMUTABLE_DEPLOYMENT=$HOST"
           BASE="$HOST/owner-preview/selected-thinking-r32-final"
-          for PATH in home-ru.html home-en.html hub-ru.html article-v2-ru.html; do
-            PAGE="$BASE/$PATH"
-            curl -fLsS --connect-timeout 8 --max-time 22 "$PAGE" -o "/tmp/$PATH"
-            curl -fsSI --max-time 12 "$PAGE" > "/tmp/$PATH.headers"
-            ! grep -Fq '{%' "/tmp/$PATH"
-            ! grep -Fq '{{' "/tmp/$PATH"
-            grep -Fq 'data-home-footer-golden-r3' "/tmp/$PATH"
-            grep -Eiq '^x-robots-tag: *noindex' "/tmp/$PATH.headers"
-            if [[ "$PATH" == home* ]];then
-              grep -Fq 'home-selected-thinking-r2.css?v=editorial-density-r32' "/tmp/$PATH"
-              grep -Fq 'id="selected-thinking-r2"' "/tmp/$PATH"
+          for PAGE_NAME in home-ru.html home-en.html hub-ru.html article-v2-ru.html; do
+            PAGE="$BASE/$PAGE_NAME"
+            curl -fLsS --connect-timeout 8 --max-time 22 "$PAGE" -o "/tmp/$PAGE_NAME"
+            curl -fsSI --max-time 12 "$PAGE" > "/tmp/$PAGE_NAME.headers"
+            ! grep -Fq '{%' "/tmp/$PAGE_NAME"
+            ! grep -Fq '{{' "/tmp/$PAGE_NAME"
+            grep -Fq 'data-home-footer-golden-r3' "/tmp/$PAGE_NAME"
+            grep -Eiq '^x-robots-tag: *noindex' "/tmp/$PAGE_NAME.headers"
+            if [[ "$PAGE_NAME" == home* ]];then
+              grep -Fq 'home-selected-thinking-r2.css?v=editorial-density-r32' "/tmp/$PAGE_NAME"
+              grep -Fq 'id="selected-thinking-r2"' "/tmp/$PAGE_NAME"
             fi
             echo "LIVE_PAGE_PASS $PAGE"
           done

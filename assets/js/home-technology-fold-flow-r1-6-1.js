@@ -8,11 +8,13 @@ var reduce=matchMedia('(prefers-reduced-motion: reduce)');
 var headerGuardMedia=matchMedia('(max-width:1080px) and (orientation:landscape) and (max-height:540px)');
 var states=new WeakMap();
 var mobileCarrierMedia=matchMedia('(max-width:700px) and (orientation:portrait)');
+var laptopCarrierMedia=matchMedia('(min-width:701px) and (max-width:1600px)');
+var R161_LAPTOP_CLEARANCE_PATH='M600 0 C600 90 620 148 625 188 C620 244 575 286 510 320 C465 352 462 392 500 426 C600 496 800 466 900 510 C900 552 794 608 600 640';
 var R161_MOBILE_PATH='M600 0 C805 0 1145 0 1145 52 C1145 155 1148 310 1145 450 C1145 550 985 593 600 640';
 function setCarrierGeometry(section){
   section.querySelectorAll('.home-tech-ff__carrier path[d]').forEach(function(path){
     if(!path.dataset.r161OriginalD)path.dataset.r161OriginalD=path.getAttribute('d');
-    var desired=mobileCarrierMedia.matches?R161_MOBILE_PATH:path.dataset.r161OriginalD;
+    var desired=mobileCarrierMedia.matches?R161_MOBILE_PATH:(laptopCarrierMedia.matches?R161_LAPTOP_CLEARANCE_PATH:path.dataset.r161OriginalD);
     if(path.getAttribute('d')!==desired)path.setAttribute('d',desired);
   });
 }

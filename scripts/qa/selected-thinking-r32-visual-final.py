@@ -1,6 +1,6 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
-import json, time, urllib.request
+import json, time, urllib.request, base64
 OUT=Path("qa-r32-fast");(OUT/"screenshots").mkdir(parents=True,exist_ok=True);(OUT/"frames").mkdir(exist_ok=True)
 for port in (4177,4178):
  for i in range(60):
@@ -13,11 +13,15 @@ SIZES=[("desktop-1280",1280,800,False),("desktop-1440",1440,900,False),("desktop
 errors=[];rows=[];shots=[];heights=[]
 def visit(page,host,route):
  page.goto(host+route,wait_until="domcontentloaded",timeout=25000);page.wait_for_timeout(190)
+def capture_cdp(page,path):
+ # CDP screenshot is an actual Chromium compositor frame, with no Playwright
+ # external web-font waiting or animation settlement side effects.
+ result=page.context.new_cdp_session(page).send("Page.captureScreenshot",{"format":"png","fromSurface":True,"captureBeyondViewport":False})
+ path.write_bytes(base64.b64decode(result["data"]))
+ if path.stat().st_size < 1000: raise ValueError("empty PNG capture")
 def image(page,name):
  path=OUT/"screenshots"/name
- # Capture the visible browser viewport positioned at section start;
- # unlike element.screenshot, this cannot block on a multi-screen WebGL canvas.
- page.screenshot(path=str(path),full_page=False,timeout=12000,animations="disabled")
+ capture_cdp(page,path)
  shots.append(name)
 def state(page,who,engine,size,w):
  d=page.evaluate("""()=>{
@@ -112,7 +116,7 @@ with sync_playwright() as p:
  for time_ms in (0,200,600,1300):
   if time_ms==0:page.evaluate("()=>{document.querySelector('#selected-thinking-r2').classList.add('st-r31-entered')}")
   else:page.wait_for_timeout(time_ms-(0 if time_ms==200 else 200 if time_ms==600 else 600))
-  page.screenshot(path=str(OUT/"frames"/f"r32-motion-{time_ms:04d}.png"),full_page=False,timeout=12000)
+  capture_cdp(page,OUT/"frames"/f"r32-motion-{time_ms:04d}.png")
  if page.evaluate("()=>parseFloat(getComputedStyle(document.querySelector('#selected-thinking-r2 .st-r2__lead-title')).opacity)")<.99:errors.append("motion-did-not-settle")
  ctx.close();browser.close()
  # Zoom as CSS browser layout approximation (125% / 150%), both engines.

@@ -9,7 +9,7 @@ var headerGuardMedia=matchMedia('(max-width:1080px) and (orientation:landscape) 
 var states=new WeakMap();
 var mobileCarrierMedia=matchMedia('(max-width:700px) and (orientation:portrait)');
 var laptopCarrierMedia=matchMedia('(min-width:701px) and (max-width:1600px)');
-var R161_LAPTOP_CLEARANCE_PATH='M600 0 C630 90 670 148 700 188 C705 244 660 286 575 320 C515 352 510 392 530 426 C620 496 810 466 900 510 C900 552 794 608 600 640';
+var R161_LAPTOP_CLEARANCE_PATH='M600 0 C600 90 620 148 625 188 C675 244 695 286 575 320 C515 352 510 392 530 426 C620 496 810 466 900 510 C900 552 794 608 600 640';
 var R161_MOBILE_PATH='M600 0 C805 0 1145 0 1145 52 C1145 155 1148 310 1145 450 C1145 550 985 593 600 640';
 function setCarrierGeometry(section){
   section.querySelectorAll('.home-tech-ff__carrier path[d]').forEach(function(path){

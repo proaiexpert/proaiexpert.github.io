@@ -1,0 +1,45 @@
+name: Selected Thinking R3.2 — isolated Jekyll rendered preview fallback
+on:
+  push:
+    branches: [qa/selected-thinking-r32-rendered-preview-r1]
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build and validate four rendered owner review routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')";export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          jekyll build --source . --destination _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          mkdir -p owner-preview/selected-thinking-r32-final
+          cp _site/index.html owner-preview/selected-thinking-r32-final/home-en.html
+          cp _site/ru/index.html owner-preview/selected-thinking-r32-final/home-ru.html
+          cp _site/ru/insights/index.html owner-preview/selected-thinking-r32-final/hub-ru.html
+          cp _site/ru/insights/chto-proiskhodit-posle-zayavki/index.html owner-preview/selected-thinking-r32-final/article-v2-ru.html
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > _headers
+          python - <<'PY'
+          from pathlib import Path
+          for p in Path('owner-preview/selected-thinking-r32-final').glob('*.html'):
+              html=p.read_text()
+              assert '{%' not in html and '{{' not in html
+              assert 'data-home-footer-golden-r3' in html
+          PY
+      - name: Publish Jekyll-rendered Cloudflare preview
+        shell: bash
+        run: |
+          git config user.name "proai-qa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B preview/selected-thinking-r32-rendered-fallback-r1
+          git add _headers owner-preview/selected-thinking-r32-final/
+          git commit -m "QA only: R3.2 four fully rendered Jekyll Owner preview routes and noindex"
+          git push origin HEAD:refs/heads/preview/selected-thinking-r32-rendered-fallback-r1

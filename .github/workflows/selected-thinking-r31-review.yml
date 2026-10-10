@@ -1,0 +1,180 @@
+name: Selected Thinking R3.1 — isolated visual and owner preview
+on:
+  push:
+    branches: [qa/home-selected-thinking-r31-review]
+    paths-ignore: ['owner-preview/selected-thinking-r31/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 29
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Install Jekyll and browsers
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python -m pip install --quiet playwright
+          python -m playwright install --with-deps chromium webkit
+      - name: Jekyll generated SEO and Site Shell
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          rm -rf owner-preview/selected-thinking-r31
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          for route,lang,dest,cta in [('index.html','en','/insights/','Explore All Insights'),('ru/index.html','ru','/ru/insights/','Смотреть все инсайты')]:
+              s=(Path('_site')/route).read_text(encoding='utf-8')
+              assert '{%' not in s and '{{' not in s
+              assert len(re.findall(r'id="selected-thinking-r2"',s))==1
+              assert s.count('class="st-r2__folio"')==1
+              assert s.count('class="st-r2__support-record"')==2
+              assert 'class="st-r2__trace"' not in s
+              assert 'data-st-r31' in s
+              assert 'home-selected-thinking-r2.js?v=signature-editorial-r31' in s
+              assert 'home-selected-thinking-r2.css?v=signature-editorial-r31' in s
+              assert cta in s and f'href="{dest}"' in s
+              assert '12 Insights' not in s and 'Все 12 материалов' not in s
+              assert s.count('home-footer-golden-r3__main')>=1
+              assert '<html lang="'+lang+'">' in s
+              for t in ('rel="canonical"','hreflang="en"','hreflang="ru"','hreflang="x-default"'):
+                  assert t in s,(route,t)
+          print('GENERATED SEO / SECTION / CTA / NO-LIQUID: PASS')
+          PY
+      - name: Prepare exact R3 comparison
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          git worktree add --detach /tmp/selected-thinking-r3-before 38da0838b98711153e20c81a49151cbff47bfa18
+          python scripts/apply-social-preview-defaults.py --mode source --root /tmp/selected-thinking-r3-before
+          jekyll build --source /tmp/selected-thinking-r3-before --destination /tmp/selected-thinking-r3-before/_site
+          python -m http.server 4183 --directory /tmp/selected-thinking-r3-before/_site >/tmp/st-r3-before.log 2>&1 &
+          python -m http.server 4184 --directory _site >/tmp/st-r31-after.log 2>&1 &
+          sleep 3
+      - name: Chromium and WebKit QA + genuine screenshots
+        run: |
+          mkdir -p qa-artifacts
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          from pathlib import Path
+          import json
+          viewports=[
+           ('desktop-1280',1280,850,False),('desktop-1366',1366,850,False),
+           ('desktop-1440',1440,900,False),('desktop-1600',1600,980,False),
+           ('desktop-1920',1920,1080,False),('portrait-320',320,690,True),
+           ('portrait-360',360,780,True),('portrait-375',375,812,True),
+           ('portrait-390',390,844,True),('portrait-430',430,932,True),
+           ('landscape-844',844,390,True),('landscape-932',932,430,True)
+          ]
+          captures={('ru','desktop-1440'),('en','desktop-1440'),('ru','desktop-1600'),
+                    ('ru','portrait-390'),('en','portrait-390'),('ru','landscape-844')}
+          report=[];errors=[];out=Path('qa-artifacts')
+          with sync_playwright() as pw:
+           for engine,api in [('chromium',pw.chromium),('webkit',pw.webkit)]:
+            browser=api.launch()
+            for tag,w,h,touch in viewports:
+             for lang,route in [('ru','/ru/'),('en','/')]:
+              ctx=browser.new_context(viewport={'width':w,'height':h},is_mobile=touch,has_touch=touch,reduced_motion='reduce')
+              page=ctx.new_page()
+              measures={}
+              for state,port in [('r3',4183),('r31',4184)]:
+               page.goto(f'http://127.0.0.1:{port}{route}',wait_until='domcontentloaded',timeout=45000)
+               page.evaluate("async () => { await document.fonts.ready; return true; }")
+               page.locator('#selected-thinking-r2').scroll_into_view_if_needed(timeout=15000)
+               page.evaluate("document.querySelector('#selected-thinking-r2').scrollIntoView({block:'start',behavior:'instant'})")
+               page.wait_for_timeout(120)
+               data=page.evaluate("""() => {
+                 const e=document.querySelector('#selected-thinking-r2');
+                 const r=e.getBoundingClientRect();
+                 const n=e.querySelector('.st-r2__folio');
+                 const b=n?.getBoundingClientRect();
+                 return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,
+                   sectionHeight:Math.round(r.height),numberWidth:b&&Math.round(b.width),
+                   count:e.querySelectorAll('.st-r2__support-record').length,
+                   headings:e.querySelectorAll('h3').length,
+                   link:e.querySelector('.st-r2__close a')?.getAttribute('href'),
+                   css:getComputedStyle(e.querySelector('.st-r2__lead-title')).fontSize}
+               }""")
+               measures[state]=data
+               if state=='r31':
+                if data['scrollWidth']>data['viewport']+1:errors.append(f'OVERFLOW {engine} {lang} {tag} {data}')
+                if data['count']!=2 or data['headings']!=3:errors.append(f'CONTENT {engine} {lang} {tag}')
+                if data['numberWidth'] is None:errors.append(f'FOLIO {engine} {lang} {tag}')
+               if engine=='chromium' and (lang,tag) in captures:
+                page.screenshot(path=str(out/f'{lang}-{tag}-{state}-rest.png'),animations='disabled')
+              report.append({'engine':engine,'language':lang,'viewport':tag,**measures})
+              ctx.close()
+            browser.close()
+           # Motion + reduced-motion + no-JS: one authentic EN and RU viewport each.
+           browser=pw.chromium.launch()
+           for lang,route,w,h,touch in [('ru','/ru/',390,844,True),('en','/',1440,900,False)]:
+            context=browser.new_context(viewport={'width':w,'height':h},is_mobile=touch,has_touch=touch,reduced_motion='no-preference')
+            pg=context.new_page()
+            pg.goto('http://127.0.0.1:4184'+route,wait_until='domcontentloaded')
+            pg.evaluate("async()=>{await document.fonts.ready}")
+            pg.locator('#selected-thinking-r2').scroll_into_view_if_needed()
+            pg.evaluate("document.getElementById('selected-thinking-r2').scrollIntoView({block:'start',behavior:'instant'})")
+            pg.wait_for_timeout(170)
+            pg.screenshot(path=str(out/f'{lang}-motion-early.png'))
+            pg.wait_for_timeout(450)
+            pg.screenshot(path=str(out/f'{lang}-motion-middle.png'))
+            pg.wait_for_timeout(1130)
+            pg.screenshot(path=str(out/f'{lang}-motion-rest.png'))
+            state=pg.locator('#selected-thinking-r2').get_attribute('data-st-r31-state')
+            if state!='rest':errors.append(f'MOTION NOT CALM {lang}:{state}')
+            context.close()
+            for enabled,reduce in [(False,'no-preference'),(True,'reduce')]:
+             context=browser.new_context(viewport={'width':w,'height':h},is_mobile=touch,has_touch=touch,java_script_enabled=enabled,reduced_motion=reduce)
+             pg=context.new_page()
+             pg.goto('http://127.0.0.1:4184'+route,wait_until='domcontentloaded')
+             pg.locator('#selected-thinking-r2').scroll_into_view_if_needed()
+             visible=pg.locator('.st-r2__lead-title').is_visible()
+             if not visible:errors.append(f'INVISIBLE WITHOUT MOTION {lang}:{enabled}/{reduce}')
+             if enabled and pg.locator('#selected-thinking-r2').get_attribute('data-st-r31-state')!='rest':
+              errors.append(f'REDUCED MOTION NOT REST {lang}')
+             context.close()
+           browser.close()
+          (out/'results.json').write_text(json.dumps({'comparisons':report,'failures':errors},ensure_ascii=False,indent=2))
+          print('ST R3.1 QA',len(report),'A/B comparisons',len(errors),'errors',errors)
+          if errors:raise SystemExit(1)
+          PY
+      - name: Publish exact generated Owner preview
+        run: |
+          mkdir -p owner-preview/selected-thinking-r31
+          cp _site/index.html owner-preview/selected-thinking-r31/index.html
+          cp _site/ru/index.html owner-preview/selected-thinking-r31/ru.html
+          python - <<'PY'
+          from pathlib import Path
+          for p in Path('owner-preview/selected-thinking-r31').glob('*.html'):
+              s=p.read_text()
+              assert '{%' not in s and '{{' not in s
+              assert 'class="st-r2__folio"' in s
+              assert 'home-selected-thinking-r2.js?v=signature-editorial-r31' in s
+              assert 'home-footer-golden-r3__main' in s
+          print('BROWSER-READY PREVIEW: PASS')
+          PY
+          git add owner-preview/selected-thinking-r31/index.html owner-preview/selected-thinking-r31/ru.html
+          if ! git diff --cached --quiet; then
+            git config user.name "proai-visual-preview[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Export Selected Thinking R3.1 exact Jekyll owner previews"
+            git push origin HEAD:qa/home-selected-thinking-r31-review
+          fi
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-selected-thinking-r31-qa
+          path: qa-artifacts/
+          if-no-files-found: warn

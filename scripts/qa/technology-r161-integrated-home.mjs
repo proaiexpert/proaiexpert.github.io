@@ -34,7 +34,7 @@ try{
   });
   guard(meta.counts===1&&meta.newCSS===1&&meta.newJS===1&&meta.oldReferences.length===0,'source-integration',{lang,label,meta});
   guard(meta.hasPrevious&&meta.hasNext&&meta.ordered,'section-seams',{lang,label,meta});
-  for(const [stage,p] of [['handoff',.055],['understand',.25],['orchestrate',.41],['communicate',.61],['deliver',.78],['resolved',.97]]){
+  for(const [stage,p] of [['handoff',.055],['understand',.27],['orchestrate',.47],['communicate',.65],['deliver',.825],['resolved',.97]]){
    await move(page,p);const s=await state(page);guard(s.stage===stage,'phase',{lang,label,stage,p,s});
    guard(s.material,'material-missing',{lang,label,stage});
    if(stage!=='handoff'&&stage!=='resolved')guard(s.outcome==='established'&&s.visibleResult>.8,'not-readable-after-settle',{lang,label,stage,s});

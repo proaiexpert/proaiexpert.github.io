@@ -8,11 +8,23 @@ const views=[['portrait390',390,844],['laptop1440',1440,900]];
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
 const cases=[],issues=[];
 function flag(ok,type,obj){if(!ok)issues.push({type,...obj})}
+async function capture(page,file){
+ const cdp=await page.context().newCDPSession(page);
+ try {
+  const shot=await cdp.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false,fromSurface:true});
+  fs.writeFileSync(file,Buffer.from(shot.data,'base64'));
+ }finally{await cdp.detach()}
+}
+
 async function go(page,p){await page.evaluate(p=>{document.documentElement.style.scrollBehavior='auto';document.body.style.scrollBehavior='auto';const root=document.querySelector('.home-tech-r161'),el=root?.querySelector('[data-ff-story]');if(!el)return;const a=el.getBoundingClientRect(),h=root.querySelector('.home-tech-ff__sticky').getBoundingClientRect().height;scrollTo({top:scrollY+a.top+(a.height-h)*p,behavior:'instant'});},p);await page.waitForTimeout(320)}
 async function inspect(page){return page.evaluate(()=>{
  const s=document.querySelector('.home-tech-r161'),panel=s?.querySelector('.home-tech-ff__stage[aria-hidden="false"]'),outcome=panel?.querySelector('.home-tech-r161__outcome');
  const imgs=[...s.querySelectorAll('.home-tech-ff__vendor img')];
- return {stage:s?.dataset.ffStage,phase:s?.dataset.ffPhase,outcome:s?.dataset.ffOutcome,progress:parseFloat(s?.style.getPropertyValue('--ff-progress')),techCount:document.querySelectorAll('[data-home-tech-fold-flow]').length,oldHooks:[...document.querySelectorAll('link[href],script[src]')].filter(n=>/home-technology-fold-flow-r1-5-1/.test(n.outerHTML)).length,brands:imgs.length,brokenImages:imgs.filter(n=>n.complete&&!n.naturalWidth).map(n=>n.src),vendorVisible:panel?getComputedStyle(panel).opacity:null,outcomeOpacity:outcome?+getComputedStyle(outcome).opacity:null,hasBefore:!!document.querySelector('[data-tw-r5]'),hasAfter:!!document.querySelector('[data-fs-showcase-r11]'),documentWidth:document.documentElement.scrollWidth,viewport:innerWidth,finalTitle:!!s.querySelector('.home-tech-ff__resolution h3'),results:document.querySelectorAll('.home-tech-r161__outcome').length};
+ const nav=document.querySelector('[data-site-header]'),heading=s.querySelector('.home-tech-ff__heading h2');
+ const navr=nav?.getBoundingClientRect(),headr=heading?.getBoundingClientRect();
+ const headerOverlap=!!(navr&&headr&&navr.bottom>headr.top&&navr.top<headr.bottom&&navr.width>0&&navr.height>0);
+
+ return {headerOverlap,headerClass:nav?.className,headerTop:navr?.top,headingTop:headr?.top,stage:s?.dataset.ffStage,phase:s?.dataset.ffPhase,outcome:s?.dataset.ffOutcome,progress:parseFloat(s?.style.getPropertyValue('--ff-progress')),techCount:document.querySelectorAll('[data-home-tech-fold-flow]').length,oldHooks:[...document.querySelectorAll('link[href],script[src]')].filter(n=>/home-technology-fold-flow-r1-5-1/.test(n.outerHTML)).length,brands:imgs.length,brokenImages:imgs.filter(n=>n.complete&&!n.naturalWidth).map(n=>n.src),vendorVisible:panel?getComputedStyle(panel).opacity:null,outcomeOpacity:outcome?+getComputedStyle(outcome).opacity:null,hasBefore:!!document.querySelector('[data-tw-r5]'),hasAfter:!!document.querySelector('[data-fs-showcase-r11]'),documentWidth:document.documentElement.scrollWidth,viewport:innerWidth,finalTitle:!!s.querySelector('.home-tech-ff__resolution h3'),results:document.querySelectorAll('.home-tech-r161__outcome').length};
 });}
 try{
  for(const [lang,url] of urls)for(const [name,width,height] of views){
@@ -28,10 +40,10 @@ try{
   flag(read.hasBefore&&read.hasAfter,'neighbor-seam',{lang,name,read});
   flag(read.brokenImages.length===0,'broken-technology-assets',{lang,name,read});
   flag(read.documentWidth<=width+3,'global-horizontal-overflow',{lang,name,read});
-  await page.screenshot({path:path.join(OUT,lang+'-'+name+'-understand.png'),timeout:15000});
+  await capture(page,path.join(OUT,lang+'-'+name+'-understand.png'));
   await go(page,.972);const final=await inspect(page);
   flag(final.stage==='resolved'&&final.finalTitle,'missing-final',{lang,name,final});
-  await page.screenshot({path:path.join(OUT,lang+'-'+name+'-final.png'),timeout:15000});
+  await capture(page,path.join(OUT,lang+'-'+name+'-final.png'));
   flag(!errors.length,'javascript-exception',{lang,name,errors});
   cases.push({lang,name,width,height,read,final,errors});
   console.log('LIVE_VIEWPORT '+JSON.stringify({lang,name,understand:read.stage,result:read.outcome,final:final.stage,brands:read.brands,overflow:read.documentWidth-width,errors:errors.length}));

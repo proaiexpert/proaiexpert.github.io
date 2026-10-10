@@ -1,0 +1,37 @@
+name: Technology R1.6.1 Compiled Homepage Gate
+on:
+  push:
+    branches:
+      - agent/technology-r161-approved-production-integration
+  pull_request:
+    paths:
+      - "index.html"
+      - "ru/index.html"
+      - "_includes/home-technology-fold-flow-r1-6-1.html"
+      - "assets/css/home-technology-fold-flow-r1-6-1.css"
+      - "assets/js/home-technology-fold-flow-r1-6-1.js"
+      - "scripts/qa/technology-r161-integrated-home.mjs"
+      - ".github/workflows/technology-r161-home-integration-qa.yml"
+permissions:
+  contents: read
+jobs:
+  compiled-homepage-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build actual EN/RU pages with Jekyll
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python3 scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+      - run: node scripts/qa/technology-r161-integrated-home.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-r161-full-homepage-qa
+          path: r161-production-integration-evidence/
+          if-no-files-found: warn

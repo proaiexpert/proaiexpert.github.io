@@ -97,7 +97,7 @@ function fail(where,e){report.errors.push(where+': '+String(e?.message||e));repo
 document.getElementById('copy-diagnostics').addEventListener('click',()=>navigator.clipboard.writeText(JSON.stringify(report,null,2)).catch(()=>console.log(report)));
 const graphite=[[.063,.078,.106,1],[.19,.23,.28,1],[.35,.40,.46,1],[.83,.87,.92,1]];
 const silver='#D5DDE6',phong={r:.78,g:.82,b:.87};
-const rgbCopy=c=>c&&typeof c==='object'?structuredClone(c):c;
+const rgbCopy=c=>Array.isArray(c)?Array.from(c,x=>rgbCopy(x)):(c&&typeof c==='object'?Object.fromEntries(Object.keys(c).map(k=>[k,rgbCopy(c[k])])):c);
 const cloneName=(obj,byUuid)=>{
  let curr=obj,cn=null,inClones=false;
  for(let i=0;i<8&&curr;i++){

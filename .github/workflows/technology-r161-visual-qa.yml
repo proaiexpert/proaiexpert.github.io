@@ -9,7 +9,7 @@ permissions:
 jobs:
   chromium:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -19,9 +19,12 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: python3 -m http.server 8787 --bind 127.0.0.1 > /tmp/r161-server.log 2>&1 &
       - run: node scripts/qa/technology-r161-browser.mjs
+      - run: node scripts/qa/technology-r161-material-safe-qa.mjs
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: technology-r161-causal-and-responsive-evidence
-          path: r161-qa-artifacts/
+          path: |
+            r161-qa-artifacts/
+            r161-p0-visual-artifacts/
           if-no-files-found: warn

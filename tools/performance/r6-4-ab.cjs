@@ -41,7 +41,7 @@ async function one(browser,target,profile,variant,round){
  context.setDefaultTimeout(20000);
  const blocked={logo:0,chatbase:0};
  const disableLogo=variant.includes('no-logo');
- const disableChat=variant.includes('no-chatbase');
+ const disableChat=variant==='C-no-chatbase'||variant==='D-no-logo-chatbase';
  await context.route('**/*',async route=>{
   const raw=route.request().url();
   let u;try{u=new URL(raw);}catch{await route.continue();return;}
@@ -86,9 +86,11 @@ async function one(browser,target,profile,variant,round){
  }catch(e){navError=String(e).slice(0,500);}
  try{
   await page.waitForTimeout(3500);
-  await page.screenshot({path:path.join(outDir,stem+'-3s.png'),animations:'allow',timeout:12000});
+  try{await page.screenshot({path:path.join(outDir,stem+'-3s.png'),animations:'allow',timeout:12000});}
+  catch(e){errs.push('screenshot 3s: '+String(e).slice(0,180));}
   await page.waitForTimeout(7500);
-  await page.screenshot({path:path.join(outDir,stem+'-11s.png'),animations:'allow',timeout:12000});
+  try{await page.screenshot({path:path.join(outDir,stem+'-11s.png'),animations:'allow',timeout:12000});}
+  catch(e){errs.push('screenshot 11s: '+String(e).slice(0,180));}
   metrics=await Promise.race([
    page.evaluate(()=>{
     const s=window.__proaiR64||{lcp:[],longtask:[],shift:[]};

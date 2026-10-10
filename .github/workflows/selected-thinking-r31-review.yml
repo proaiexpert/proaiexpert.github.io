@@ -91,7 +91,7 @@ jobs:
               for state,port in [('r3',4183),('r31',4184)]:
                page.goto(f'http://127.0.0.1:{port}{route}',wait_until='domcontentloaded',timeout=45000)
                page.evaluate("async () => { await document.fonts.ready; return true; }")
-               page.locator('#selected-thinking-r2').scroll_into_view_if_needed(timeout=15000)
+               page.wait_for_selector('#selected-thinking-r2',state='attached',timeout=15000)
                page.evaluate("document.querySelector('#selected-thinking-r2').scrollIntoView({block:'start',behavior:'instant'})")
                page.wait_for_timeout(120)
                data=page.evaluate("""() => {
@@ -123,7 +123,7 @@ jobs:
             pg=context.new_page()
             pg.goto('http://127.0.0.1:4184'+route,wait_until='domcontentloaded')
             pg.evaluate("async()=>{await document.fonts.ready}")
-            pg.locator('#selected-thinking-r2').scroll_into_view_if_needed()
+            pg.wait_for_selector('#selected-thinking-r2',state='attached',timeout=15000)
             pg.evaluate("document.getElementById('selected-thinking-r2').scrollIntoView({block:'start',behavior:'instant'})")
             pg.wait_for_timeout(170)
             pg.screenshot(path=str(out/f'{lang}-motion-early.png'))
@@ -138,7 +138,7 @@ jobs:
              context=browser.new_context(viewport={'width':w,'height':h},is_mobile=touch,has_touch=touch,java_script_enabled=enabled,reduced_motion=reduce)
              pg=context.new_page()
              pg.goto('http://127.0.0.1:4184'+route,wait_until='domcontentloaded')
-             pg.locator('#selected-thinking-r2').scroll_into_view_if_needed()
+             pg.wait_for_selector('#selected-thinking-r2',state='attached',timeout=15000)
              visible=pg.locator('.st-r2__lead-title').is_visible()
              if not visible:errors.append(f'INVISIBLE WITHOUT MOTION {lang}:{enabled}/{reduce}')
              if enabled and pg.locator('#selected-thinking-r2').get_attribute('data-st-r31-state')!='rest':

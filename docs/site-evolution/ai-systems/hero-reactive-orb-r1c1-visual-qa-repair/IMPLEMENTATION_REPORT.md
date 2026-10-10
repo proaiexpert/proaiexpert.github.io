@@ -1,0 +1,52 @@
+# PROAI REACTIVE ORB — R1C.1 targeted visual QA repair
+
+**Status: VISUAL HOLD pending reliable GPU-rendered evidence.** This is a QA repair, not approval of the native material lookdev.
+
+## Scope and exact authority
+
+- Repository `proaiexpert/proaiexpert.github.io`.
+- Source baseline: verified R1C `f98fe67fc1d2e981ad98a82e7d1c20b1a5338b2e`.
+- Fresh main at task start: `bd4b01ed73464615a794038982989b109bfb47db`.
+- Branch: `agent/ai-systems-hero-reactive-orb-r1c1-visual-qa-repair`.
+- Actual Spline donor payload: `https://prod.spline.design/sH5GiugwHqy0gA4X/scene.splinecode`, original `Reactive Orb` by **Vlad Kolokolnikov**, Spline community source (observed CC BY 4.0) — no original scene or remix files changed.
+- Inspected R1C implementation report, preview, QA script and workflow before writing.
+
+## Discovered issues
+
+1. R1C automated QA was incorrectly targeting `owner-preview/ai-systems-reactive-orb-runtime-r1b/index.html` and expecting R1B globals instead of R1C. Corrected by a separately versioned R1C.1 owner QA page and new CI that opens that exact implementation page.
+2. R1C `canvas.toDataURL()` was returning non-informative black frames: `lit=0` for original and all variants, even when GitHub Actions completed success. It is **not accepted** as a render proof.
+3. In first R1C.1 CI, `structuredClone()` on Spline runtime-proxy material arrays threw `DataCloneError`. Replaced with recursively extracted plain arrays and plain objects; original 769 / 250 topology was then validated and real browser screenshots captured.
+4. The next R1C.1 CI captured composited real pixels with CDP, but `app.stop()` made the entire material A/B sequence show an identical last frame. Setter-readback PASS did not equal pixel change. A new running-scene, interleaved Original → Modified → Original approach avoids that false comparison and measures motion-induced drift.
+5. Mobile owner screenshots of old R1C preview show little credible neutral-material recolor, blackened spheres and bright/teal remnants. Source Spline donor already includes oversized typography and 3D placement beyond narrow phone viewport. Cropping is a comparison/viewport issue, not grounds for changing original geometry within QA scope.
+
+## Implemented files
+
+- `owner-preview/ai-systems-reactive-orb-r1c1-visual-qa/index.html` — real official Spline Runtime loading the original scene; 769-object / 250 distinct named Clone topology guard. An in-place five-state switcher **Original / Fresnel / Depth / Lighting / ProAI combined** applies native original material layer changes to the same loaded scene and restores original source RGBA colors between variants; the owner can observe running GPU output without page reload and animation-phase desynchronization.
+- `scripts/qa-reactive-orb-r1c1-visual.mjs` — target corrected to R1C.1 path, CDP `Page.captureScreenshot({fromSurface:true})` as primary plus Playwright screenshot fallback. Decodes composited PNG pixels, excludes the left-side teal typography from color statistics and performs interleaved original/modified/original checks while the runtime continues playing. Reports motion drift, valid original pixels, teal share and object topology. **Never** promotes an all-black or stopped frozen frame to PASS.
+- `.github/workflows/reactive-orb-r1c1-visual.yml` — branch-specific, read-only repository CI, screenshot + JSON artifact collection on PASS or HOLD, fails closed on unresolved visual comparison.
+- This report.
+
+## Concrete evidence and limitations
+
+- Prior R1C CI `https://github.com/proaiexpert/proaiexpert.github.io/actions/runs/38005493691` ended SUCCESS but pixel result was **lit=0** in every variant — invalid render proof.
+- R1C.1 `https://github.com/proaiexpert/proaiexpert.github.io/actions/runs/38021297008` captured **real composited original frames** via CDP: original had `lit=54,253`, `teal=30,987`, but after `app.stop()`, all variants repeated a static frame (teal=0). These are valid evidence that composited capture works, but **not valid evidence for material differentiation**.
+- The next continuous-running-scene A-B-A test uses Orb ROI only. The result must be interpreted against original-to-original drift and can legitimately stay HOLD.
+- Even a statistically reduced teal share cannot alone certify premium aesthetics, depth, gesture reaction or return/reformation. Native pointer and return parity require separately observable motion proof or owner review.
+- Setter and object-count evidence establishes API access, **not** shader refresh. No repeated unbounded setter-only tests planned.
+- No geometry, instance count, camera, event bindings or Spline donor source files are intentionally changed.
+
+## Owner visual QA instructions
+
+Open the latest separate R1C.1 preview, preferably in desktop Chrome with hardware acceleration. On iPhone use landscape orientation. Select **Adapted** (not the old R1C preview), wait for runtime status showing `769 objects / 250 clones`, and tap the same-canvas material toggles **Original → Fresnel → Depth → Lighting → ProAI combined → Original**. Do not reload between toggles. Check whether the green/teal native clone spheres visibly change to graphite/metal/silver while maintaining shape and motion; check pointer/touch response and whether original shape reforms when the pointer leaves. Original iframe and Compare views are references but not frame-synchronized; use in-canvas Original vs Combined toggles for the defensible comparison.
+
+If no visible repaint occurs, report `MATERIAL_GPU_UPDATE_UNVERIFIED` (or `NO_VISIBLE_UPDATE` when independently demonstrated with valid controls) and determine whether Spline editor material changes in a **copy** are required. Do not alter original donor, replace geometry, or make production integration.
+
+## Isolation
+
+Main modified: **NO**.
+Existing ProAI production modified: **NO**.
+Existing Cube / AI Systems page modified: **NO**.
+Original Spline donor modified: **NO**.
+Merge performed: **NO**.
+Codex used: **NO**.
+No new Vercel project: **YES**; reuse existing isolated project `prj_MAFhuABtiQ7sYAesNzmsKjXTT8py`. Latest static owner preview uploaded under a separate immutable deployment (Vercel READY; independent browser access not yet confirmed).

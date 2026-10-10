@@ -31,6 +31,7 @@ jobs:
       - run: python3 -m http.server 8787 --bind 127.0.0.1 > /tmp/r161-server.log 2>&1 &
       - run: node scripts/qa/technology-r161-material-safe-qa.mjs
       - run: node scripts/qa/technology-r161-browser.mjs
+      - run: node scripts/qa/technology-r161-temporal-qa.mjs
       - if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -38,4 +39,5 @@ jobs:
           path: |
             r161-qa-artifacts/
             r161-p0-visual-artifacts/
+            r161-temporal-evidence/
           if-no-files-found: warn

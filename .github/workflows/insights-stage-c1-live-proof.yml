@@ -1,0 +1,66 @@
+name: Stage C.1 Cloudflare rendered Owner Preview HTTP proof
+on:
+  push:
+    branches: [qa/insights-stage-c1-live-proof-r1]
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Verify exact Cloudflare deployment HTML, noindex, cube logo, screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO='proaiexpert/proaiexpert.github.io'
+          BRANCH='preview/insights-stage-c1-jekyll-rendered-r1'
+          URL='https://api.github.com/repos/'"$REPO"'/git/ref/heads/'"$BRANCH"
+          HOST=''
+          for i in $(seq 1 90); do
+            SHA=$(curl -fsSL --max-time 12 "$URL" 2>/dev/null | jq -r '.object.sha // empty' || true)
+            if [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              CHECKS=$(curl -fsSL --max-time 12 "https://api.github.com/repos/$REPO/commits/$SHA/check-runs" || true)
+              HOST=$(printf '%s' "$CHECKS" | jq -r '.check_runs[]? | select(.name=="Cloudflare Pages" and .conclusion=="success") | .output.summary' | grep -Eo 'https://[0-9a-f]{8}\.proaiexpert-github-io\.pages\.dev' | head -1 || true)
+              if [ -n "$HOST" ]; then break; fi
+            fi
+            sleep 10
+          done
+          [ -n "$HOST" ] || { echo 'Cloudflare immutable deployment not confirmed';exit 1; }
+          echo "IMMUTABLE_DEPLOYMENT=$HOST"
+          PREFIX="$HOST/owner-preview/stage-c1-ai-ready-04"
+          for LANG in ru en; do
+            PAGE="$PREFIX/$LANG.html"
+            curl -fLsS --max-time 25 "$PAGE" -o "/tmp/stage-c1-$LANG.html"
+            curl -fsSI --max-time 15 "$PAGE" > "/tmp/stage-c1-$LANG.headers"
+            grep -Fq 'data-author-type="organization"' "/tmp/stage-c1-$LANG.html"
+            grep -Fq 'proai-header-r111-static-cube-320.png' "/tmp/stage-c1-$LANG.html"
+            for MARK in readiness-stack maturity-model readiness-boundary;do grep -Fq "data-stage-c=\"$MARK\"" "/tmp/stage-c1-$LANG.html";done
+            grep -Fq 'class="insight-v2-table-hint"' "/tmp/stage-c1-$LANG.html"
+            grep -Fq 'data-related-decisions' "/tmp/stage-c1-$LANG.html"
+            grep -Fq 'data-site-footer-canonical="golden-r1"' "/tmp/stage-c1-$LANG.html"
+            grep -Fq '"@type":"Organization","name":"ProAI Expert"' "/tmp/stage-c1-$LANG.html"
+            grep -Eiq '^x-robots-tag: *noindex' "/tmp/stage-c1-$LANG.headers"
+            ! grep -Fq '{%' "/tmp/stage-c1-$LANG.html"
+            ! grep -Fq '{{' "/tmp/stage-c1-$LANG.html"
+            if [ "$LANG" = ru ]; then
+              grep -Fq 'Шесть уровней готовности сайта' "/tmp/stage-c1-$LANG.html"
+              grep -Fq 'Модель зрелости AI-ready сайта' "/tmp/stage-c1-$LANG.html"
+              grep -Fq 'Границы готовности: сайт, SEO, AI-поиск и автоматизация' "/tmp/stage-c1-$LANG.html"
+            fi
+            echo "LIVE_HTML_PASS $PAGE"
+          done
+          curl -fLsS --max-time 25 "$HOST/assets/css/insights-editorial-v2.css" -o /tmp/stage-c1.css
+          grep -Fq 'insight-v2-author__logo' /tmp/stage-c1.css
+          grep -Fq '.insight-v2-table-hint' /tmp/stage-c1.css
+          echo LIVE_CSS_PASS
+          curl -fLsS --max-time 25 "$HOST/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png" -o /tmp/stage-c1-cube.png
+          file /tmp/stage-c1-cube.png | grep -Fq 'PNG image data'
+          echo LIVE_LOGO_PASS
+          for SHOT in ru-author-desktop-1440.png ru-author-portrait-390.png ru-author-landscape-844.png ru-portrait-390.png en-desktop-1440.png; do
+            IMG="$PREFIX/screenshots/$SHOT"
+            curl -fLsS --max-time 30 "$IMG" -o "/tmp/$SHOT"
+            file "/tmp/$SHOT" | grep -Fq 'PNG image data'
+            echo "LIVE_SCREENSHOT_PASS $IMG"
+          done
+          echo 'STAGE C1 LIVE CLOUDFLARE OWNER PREVIEW PASS'

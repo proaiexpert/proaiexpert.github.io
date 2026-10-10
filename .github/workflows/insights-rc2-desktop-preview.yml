@@ -53,8 +53,18 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           files=['index.html','ru/index.html','insights/index.html','ru/insights/index.html']
-          files += [str(p.relative_to('_site')) for p in Path('_site/insights').glob('*/index.html')]
-          files += [str(p.relative_to('_site')) for p in Path('_site/ru/insights').glob('*/index.html')]
+          files += [
+            'insights/what-happens-after-a-lead-arrives/index.html',
+            'ru/insights/chto-proiskhodit-posle-zayavki/index.html',
+            'insights/does-your-service-business-need-a-multilingual-website/index.html',
+            'ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html',
+            'insights/how-to-evaluate-a-website-proposal/index.html',
+            'ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/index.html',
+            'insights/ai-ready-website-for-business/index.html',
+            'ru/insights/ai-ready-sayt-dlya-biznesa/index.html',
+            'insights/ai-search-optimization-for-service-businesses/index.html',
+            'ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html',
+          ]
           for p in files:
             h=Path(p).read_text(encoding='utf-8')
             assert '<html' in h and '{%' not in h and '{{' not in h,p

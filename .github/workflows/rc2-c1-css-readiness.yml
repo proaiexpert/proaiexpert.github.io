@@ -84,10 +84,15 @@ jobs:
                       el=page.locator('.insight-v2-table-wrap--maturity')
                       el.evaluate('(x)=>x.scrollLeft=0')
                       el.focus()
-                      page.keyboard.press('ArrowRight')
-                      page.wait_for_timeout(150)
+                      if touch:
+                        # On emulated iOS WebKit, synthetic hardware ArrowRight is not
+                        # equivalent to a mobile swipe; verify reachable scroll extent.
+                        el.evaluate('(x)=>x.scrollLeft=120')
+                      else:
+                        page.keyboard.press('ArrowRight')
+                        page.wait_for_timeout(150)
                       if el.evaluate('(x)=>x.scrollLeft')<=0:
-                        errors.append(f'{engine}:{name}:{lang}:keyboard-scroll')
+                        errors.append(f'{engine}:{name}:{lang}:horizontal-scroll')
                   except Exception as e:
                     errors.append(f'{engine}:{name}:{lang}:{type(e).__name__}:{str(e)[:130]}')
                   finally:

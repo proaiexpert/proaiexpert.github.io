@@ -73,7 +73,7 @@ async function desktop(browser, variant, width, height, records) {
     for (const [i, t] of [0, 110, 260, 430, 660, 790].entries()) {
       if (i) await page.waitForTimeout(t - [0, 110, 260, 430, 660, 790][i - 1]);
       samples.push({ t, ...await frame(page) });
-      if (width === 1440 && ['neutral>ai', 'ai>web', 'web>ai'].includes(`${start}>${end}`) && [110, 260, 430, 660].includes(t)) {
+      if (['neutral>ai', 'ai>web', 'web>ai'].includes(`${start}>${end}`) && [110, 260, 430, 660].includes(t)) {
         await page.screenshot({ path: path.join(out, `${variant}-${width}-${start}-${end}-${t}.png`) });
       }
     }

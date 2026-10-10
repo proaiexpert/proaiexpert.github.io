@@ -69,11 +69,15 @@ try{
  await reducedCtx.close();
  const ctx=await browser.newContext({viewport:{width:390,height:844}});
  const pg=await ctx.newPage();await pg.goto(host+'/owner-preview/technology-fold-flow-r1-6/ru.html',{waitUntil:'domcontentloaded'});
- await pg.evaluate(()=>{const story=document.querySelector('[data-ff-story]');scrollTo({top:scrollY+story.getBoundingClientRect().top+(story.offsetHeight-innerHeight)*.55,behavior:'instant'})});
- await pg.setViewportSize({width:844,height:390});await pg.waitForTimeout(350);
- await pg.setViewportSize({width:390,height:844});await pg.waitForTimeout(350);
+ await pg.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';const story=document.querySelector('[data-ff-story]');scrollTo({top:scrollY+story.getBoundingClientRect().top+(story.offsetHeight-innerHeight)*.55,behavior:'instant'})});
+ await pg.waitForTimeout(350);
+ const rotationBefore=await pg.locator('[data-home-tech-fold-flow]').getAttribute('data-ff-stage');
+ await pg.setViewportSize({width:844,height:390});await pg.waitForTimeout(500);
+ const rotationMid=await pg.locator('[data-home-tech-fold-flow]').getAttribute('data-ff-stage');
+ await pg.setViewportSize({width:390,height:844});await pg.waitForTimeout(500);
  const rotate=await pg.locator('[data-home-tech-fold-flow]').getAttribute('data-ff-stage');
- results.push({test:'chromium-viewport-rotation',stage:rotate});
+ results.push({test:'chromium-viewport-rotation',before:rotationBefore,landscape:rotationMid,portrait:rotate});
+ if(rotationBefore!=='communicate'||rotationMid!=='communicate'||rotate!=='communicate')errors.push({type:'orientation-progress-preservation',before:rotationBefore,landscape:rotationMid,portrait:rotate});
  await ctx.close();
 }finally{await browser.close()}
 fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({errors,results},null,2));

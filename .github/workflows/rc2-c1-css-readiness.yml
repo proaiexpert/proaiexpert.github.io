@@ -1,0 +1,106 @@
+name: RC2 Stage C1 WebKit CSS-readiness regression
+
+on:
+  push:
+    branches:
+      - qa/insights-rc2-c1-style-readiness
+permissions:
+  contents: read
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build Jekyll and validate Site Shell + Article V2
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+      - name: Install browsers
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium webkit
+      - name: Test settled style and narrow viewport logo/table
+        shell: bash
+        run: |
+          mkdir -p qa-rc2-c1
+          python -m http.server 4179 --directory _site >/tmp/rc2c1.log 2>&1 &
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          from pathlib import Path
+          import json,time,urllib.request
+          base='http://127.0.0.1:4179'
+          for _ in range(35):
+              try:urllib.request.urlopen(base,timeout=1);break
+              except Exception:time.sleep(.2)
+          sizes=[('portrait-320',320,700,True),('portrait-360',360,780,True),('portrait-375',375,812,True),('portrait-390',390,844,True),('portrait-430',430,932,True),('landscape-844',844,390,True),('desktop-1440',1440,900,False)]
+          paths={
+            'en':'/insights/ai-ready-website-for-business/',
+            'ru':'/ru/insights/ai-ready-sayt-dlya-biznesa/'
+          }
+          errors=[];rows=[]
+          with sync_playwright() as p:
+            for engine,bt in [('chromium',p.chromium),('webkit',p.webkit)]:
+              browser=bt.launch()
+              for name,w,h,touch in sizes:
+                for lang,path in paths.items():
+                  ctx=browser.new_context(viewport={'width':w,'height':h},is_mobile=touch,has_touch=touch,reduced_motion='reduce')
+                  page=ctx.new_page()
+                  try:
+                    page.goto(base+path,wait_until='load',timeout=35000)
+                    page.wait_for_function("document.querySelector('.insight-v2-author__logo') && getComputedStyle(document.querySelector('.insight-v2-author__logo')).objectFit === 'contain'",timeout=20000)
+                    page.evaluate("document.fonts.ready")
+                    d=page.evaluate("""()=>{
+                      const img=document.querySelector('.insight-v2-author__logo');
+                      const table=document.querySelector('.insight-v2-table-wrap--maturity');
+                      const rect=img.getBoundingClientRect();
+                      return {
+                        overflow:document.documentElement.scrollWidth-innerWidth,
+                        fit:getComputedStyle(img).objectFit,
+                        imgLoaded:img.complete&&img.naturalWidth>0,
+                        square:Math.abs(rect.width-rect.height)<=1,
+                        tableWidth:table.scrollWidth,
+                        visibleWidth:table.clientWidth,
+                        tabindex:table.getAttribute('tabindex'),
+                        hint:getComputedStyle(table.querySelector('.insight-v2-table-hint')).display,
+                        cssStyleSheets:document.styleSheets.length
+                      };
+                    }""")
+                    rows.append({'engine':engine,'size':name,'lang':lang,**d})
+                    if d['overflow']>1 or d['fit']!='contain' or not d['imgLoaded'] or not d['square']:
+                      errors.append(f'{engine}:{name}:{lang}:style/overflow:{d}')
+                    if w<=1100:
+                      if not d['tableWidth']>d['visibleWidth']+5 or d['hint']=='none' or d['tabindex']!='0':
+                        errors.append(f'{engine}:{name}:{lang}:table/hint')
+                      el=page.locator('.insight-v2-table-wrap--maturity')
+                      el.evaluate('(x)=>x.scrollLeft=0')
+                      el.focus()
+                      page.keyboard.press('ArrowRight')
+                      page.wait_for_timeout(150)
+                      if el.evaluate('(x)=>x.scrollLeft')<=0:
+                        errors.append(f'{engine}:{name}:{lang}:keyboard-scroll')
+                  except Exception as e:
+                    errors.append(f'{engine}:{name}:{lang}:{type(e).__name__}:{str(e)[:130]}')
+                  finally:
+                    ctx.close()
+              browser.close()
+          Path('qa-rc2-c1/results.json').write_text(json.dumps({'errors':errors,'states':len(rows),'rows':rows},indent=2))
+          print('RC2 C1 SETTLED STYLE:',json.dumps({'states':len(rows),'errors':errors},ensure_ascii=False))
+          if errors:raise SystemExit(1)
+          PY
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rc2-c1-style-ready-matrix
+          path: qa-rc2-c1/
+          retention-days: 14

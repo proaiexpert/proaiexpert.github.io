@@ -27,16 +27,16 @@ try{
    page.on('pageerror',e=>issues.push(e.message));
    page.on('response',r=>{if(r.status()>=400&&r.url().startsWith(host))issues.push('HTTP '+r.status()+' '+r.url())});
    await page.goto(host+'/owner-preview/technology-fold-flow-r1-6/'+(locale==='en'?'index':'ru')+'.html',{waitUntil:'domcontentloaded'});
-   const section=page.locator('[data-home-tech-fold-flow]');await section.waitFor({state:'attached'});
+   const section=page.locator('[data-home-tech-fold-flow]');await section.waitFor({state:'attached'});await page.evaluate(()=>{document.documentElement.style.scrollBehavior='auto';document.body.style.scrollBehavior='auto'});
    const broken=await page.locator('[data-ff-panel] img,.home-tech-ff__maker img').evaluateAll(imgs=>imgs.filter(i=>!i.complete||!i.naturalWidth).map(i=>i.getAttribute('src')));
    if(broken.length)errors.push({locale,label,type:'broken-marks',broken});
    for(const [stage,p] of points){
-    await page.evaluate(p=>{const story=document.querySelector('[data-ff-story]');const start=scrollY+story.getBoundingClientRect().top;scrollTo(0,start+(story.getBoundingClientRect().height-innerHeight)*p)},p);
+    await page.evaluate(p=>{const story=document.querySelector('[data-ff-story]');const start=scrollY+story.getBoundingClientRect().top;scrollTo({top:start+(story.getBoundingClientRect().height-innerHeight)*p,behavior:'instant'})},p);
     await page.waitForTimeout(150);
     const actual=await section.getAttribute('data-ff-stage');
     if(actual!==stage)errors.push({locale,label,type:'wrong-stage',stage,actual});
    }
-   await page.evaluate(p=>{const story=document.querySelector('[data-ff-story]');const start=scrollY+story.getBoundingClientRect().top;scrollTo(0,start+(story.getBoundingClientRect().height-innerHeight)*p)},.13);
+   await page.evaluate(p=>{const story=document.querySelector('[data-ff-story]');const start=scrollY+story.getBoundingClientRect().top;scrollTo({top:start+(story.getBoundingClientRect().height-innerHeight)*p,behavior:'instant'})},.13);
    await page.waitForTimeout(150);
    if(await section.getAttribute('data-ff-stage')!=='understand')errors.push({locale,label,type:'reverse-scroll'});
    const check=await page.evaluate(()=>({documentWidth:document.documentElement.scrollWidth,viewportWidth:innerWidth,stage:document.querySelector('[data-home-tech-fold-flow]').dataset.ffStage}));
@@ -69,7 +69,7 @@ try{
  await reducedCtx.close();
  const ctx=await browser.newContext({viewport:{width:390,height:844}});
  const pg=await ctx.newPage();await pg.goto(host+'/owner-preview/technology-fold-flow-r1-6/ru.html',{waitUntil:'domcontentloaded'});
- await pg.evaluate(()=>{const story=document.querySelector('[data-ff-story]');scrollTo(0,scrollY+story.getBoundingClientRect().top+(story.offsetHeight-innerHeight)*.55)});
+ await pg.evaluate(()=>{const story=document.querySelector('[data-ff-story]');scrollTo({top:scrollY+story.getBoundingClientRect().top+(story.offsetHeight-innerHeight)*.55,behavior:'instant'})});
  await pg.setViewportSize({width:844,height:390});await pg.waitForTimeout(350);
  await pg.setViewportSize({width:390,height:844});await pg.waitForTimeout(350);
  const rotate=await pg.locator('[data-home-tech-fold-flow]').getAttribute('data-ff-stage');

@@ -53,6 +53,22 @@ try{
      if(name==='result'){
       const rr=await visibleRects(page);
       const clips=rr.filter(x=>x.left<-2||x.right>width+2||x.top<-2||x.bottom>height+2);
+
+      const collisions=await page.evaluate(()=>{
+       const active=document.querySelector('.home-tech-r161 .home-tech-ff__stage[aria-hidden="false"]');
+       if(!active)return [];
+       const content=[...active.querySelectorAll('h3,.home-tech-ff__support,.home-tech-r161__outcome')];
+       const brands=[...active.querySelectorAll('.home-tech-ff__vendor img,.home-tech-ff__vendor b')];
+       const rect=e=>e.getBoundingClientRect();
+       const result=[];
+       for(const a of content)for(const b of brands){
+        const A=rect(a),B=rect(b),x=Math.min(A.right,B.right)-Math.max(A.left,B.left),y=Math.min(A.bottom,B.bottom)-Math.max(A.top,B.top);
+        if(x>5&&y>5)result.push({text:a.textContent.trim().slice(0,32),brand:b.textContent.trim()||b.getAttribute('src'),overlapX:Math.round(x),overlapY:Math.round(y)});
+       }
+       return result;
+      });
+      if(collisions.length)warnings.push({lang,size,type:'brand-text-collision',operation:stages[i],collisions});
+
       if(clips.length)warnings.push({lang,size,type:'element-viewport-intersection',operation:stages[i],rects:clips});
      }
      if(['laptop1440','portrait390','landscape844'].includes(size)&&(['understand','communicate'].includes(stages[i])||size==='laptop1440')){

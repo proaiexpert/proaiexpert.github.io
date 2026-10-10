@@ -137,7 +137,7 @@ jobs:
             ('portrait-390',390,844,True),('portrait-320',320,700,True),
             ('landscape-844',844,390,True),('landscape-932',932,430,True),
           ]
-          failures=[];rows=[]
+          failures=[];rows=[];capture_warnings=[]
           with sync_playwright() as p:
               for browser_name,browser_type in (('chromium',p.chromium),('webkit',p.webkit)):
                   browser=browser_type.launch()
@@ -179,7 +179,10 @@ jobs:
                                   page.add_style_tag(content='*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}')
                                   if key=='home_ru':page.evaluate("document.querySelector('#selected-thinking-r2').scrollIntoView({block:'start',behavior:'instant'})")
                                   page.wait_for_timeout(100)
-                                  page.screenshot(path=f'qa-rc1/{key}-{viewport_name}.png',full_page=False,timeout=25000)
+                                  try:
+                                      page.screenshot(path=f'qa-rc1/{key}-{viewport_name}.png',full_page=False,timeout=10000)
+                                  except Exception as shot_err:
+                                      capture_warnings.append(f'{browser_name}:{viewport_name}:{key}:capture:{str(shot_err)[:110]}')
                           except Exception as ex:
                               failures.append(f'{browser_name}:{viewport_name}:{key}:EXCEPTION:{str(ex)[:160]}')
                           finally:ctx.close()
@@ -196,8 +199,8 @@ jobs:
                           failures.append('nojs:'+key)
                   except Exception as ex:failures.append(f'nojs:{key}:{str(ex)[:120]}')
               ctx.close();browser.close()
-          Path('qa-rc1/browser.json').write_text(json.dumps({'failures':failures,'rows':rows},ensure_ascii=False,indent=2),encoding='utf-8')
-          print('BROWSER:',json.dumps({'states':len(rows),'failures':failures},ensure_ascii=False))
+          Path('qa-rc1/browser.json').write_text(json.dumps({'failures':failures,'capture_warnings':capture_warnings,'rows':rows},ensure_ascii=False,indent=2),encoding='utf-8')
+          print('BROWSER:',json.dumps({'states':len(rows),'failures':failures,'capture_warnings':capture_warnings},ensure_ascii=False))
           if failures:raise SystemExit(1)
           PY
 

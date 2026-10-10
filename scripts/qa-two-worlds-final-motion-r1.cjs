@@ -238,6 +238,14 @@ async function perf(browser, variant, width, height) {
     await browser.close();
     return;
   }
+  if (process.argv.includes('--desktop-only')) {
+    const results = [];
+    for (const variant of ['d0', 'd1']) for (const [width, height] of [[1280, 800], [1440, 900], [1920, 1080]]) await desktop(browser, variant, width, height, results);
+    fs.writeFileSync(path.join(out, 'desktop-final-records.json'), JSON.stringify(results, null, 2));
+    console.log(JSON.stringify(results.filter(r => r.kind === 'desktop-errors').map(r => ({ variant: r.variant, width: r.width, errors: r.errors }))));
+    await browser.close();
+    return;
+  }
   const records = [];
   for (const variant of ['d0', 'd1']) {
     for (const [width, height] of [[1280, 800], [1440, 900], [1920, 1080]]) await desktop(browser, variant, width, height, records);

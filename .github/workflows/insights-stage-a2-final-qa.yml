@@ -99,6 +99,8 @@ jobs:
                           page=ctx.new_page()
                           for label,port in [('before',4181),('after',4182)]:
                               page.goto(f'http://127.0.0.1:{port}{route}',wait_until='domcontentloaded',timeout=30000)
+                              page.wait_for_function("() => document.querySelector('.insights-v2__masthead h1') && getComputedStyle(document.querySelector('.insights-v2__masthead h1')).fontSize !== '16px'",timeout=15000)
+                              page.evaluate("async () => { await document.fonts.ready; return true; }")
                               page.wait_for_timeout(80)
                               dims=page.evaluate("""() => {
                                 const box=s=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return {top:Math.round(r.top+scrollY),width:Math.round(r.width),height:Math.round(r.height),font:parseFloat(getComputedStyle(e).fontSize)}};

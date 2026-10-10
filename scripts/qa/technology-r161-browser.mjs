@@ -120,5 +120,5 @@ try{
  await context.close();
 }finally{await browser.close()}
 fs.writeFileSync(path.join(output,'results.json'),JSON.stringify({errors,warnings,records},null,2));
-console.log('R161_QA_RESULT '+JSON.stringify({pass:errors.length===0,errors:errors.length,warnings:warnings.length,viewports:records.filter(x=>x.size&&!x.scenario).length,detail:errors.slice(0,35)}));
-if(errors.length)process.exitCode=1;
+console.log('R161_QA_RESULT '+JSON.stringify({pass:errors.length===0&&warnings.length===0,errors:errors.length,warnings:warnings.length,viewports:records.filter(x=>x.size&&!x.scenario).length,detail:errors.slice(0,35)}));
+if(errors.length||warnings.length)process.exitCode=1;

@@ -5,7 +5,7 @@ import fs from 'node:fs';import path from 'node:path';
 const BASE='http://127.0.0.1:8787/owner-preview/technology-fold-flow-r1-6-1/';
 const OUT='r161-p0-visual-artifacts';fs.mkdirSync(OUT,{recursive:true});
 const sizes=[['desktop1920',1920,1080],['laptop1440',1440,900],['laptop1366',1366,768],['laptop1280',1280,720],['portrait430',430,932],['portrait390',390,844],['portrait375',375,812],['landscape844',844,390],['landscape896',896,414],['landscape932',932,430]];
-const names=['understand','orchestrate','communicate','deliver'],starts=[.04,.27,.46,.65],ends=[.27,.46,.65,.83];
+const names=['understand','orchestrate','communicate','deliver'],starts=[.105,.32,.515,.70],ends=[.32,.515,.70,.865];
 const errors=[],results=[];
 async function setScroll(page,p){await page.evaluate(p=>{document.documentElement.style.scrollBehavior='auto';document.body.style.scrollBehavior='auto';const s=document.querySelector('[data-ff-story]');const r=s.getBoundingClientRect();scrollTo({top:scrollY+r.top+Math.max(1,r.height-document.querySelector('.home-tech-ff__sticky').getBoundingClientRect().height)*p,behavior:'instant'});},p);await page.waitForTimeout(340)}
 async function inspect(page){

@@ -5,7 +5,7 @@ import {chromium} from 'playwright';
 const host='http://127.0.0.1:8787';
 const root=process.cwd(),output=path.join(root,'r161-qa-artifacts');fs.mkdirSync(output,{recursive:true});
 const viewports=[['desktop1920',1920,1080],['laptop1440',1440,900],['laptop1366',1366,768],['laptop1280',1280,720],['portrait430',430,932],['portrait390',390,844],['portrait375',375,812],['landscape844',844,390],['landscape896',896,414],['landscape932',932,430]];
-const stages=['understand','orchestrate','communicate','deliver'],starts=[.04,.27,.46,.65],ends=[.27,.46,.65,.83];
+const stages=['understand','orchestrate','communicate','deliver'],starts=[.105,.32,.515,.70],ends=[.32,.515,.70,.865];
 const errors=[],warnings=[],records=[];
 const snap=(label,lang,size,state)=>path.join(output,label+'-'+lang+'-'+size+'-'+state+'.png');
 function url(locale,old=false){return host+'/owner-preview/technology-fold-flow-r1-6'+(old?'':'-1')+'/'+(locale==='en'?'index':'ru')+'.html'}
@@ -45,7 +45,7 @@ try{
    if(broken.length)errors.push({lang,size,type:'broken-assets',broken});
    for(let i=0;i<4;i++){
     const begin=starts[i],span=ends[i]-begin;
-    for(const [name,relative,expected] of [['entry',.08,'pending'],['active',.51,'pending'],['result',.87,'established']]){
+    for(const [name,relative,expected] of [['entry',.08,'pending'],['active',.32,'pending'],['result',.87,'established']]){
      await progress(page,begin+span*relative);
      const s=await state(page);
      if(s.stage!==stages[i]||s.outcome!==expected)errors.push({lang,size,type:'causal-phase',operation:stages[i],name,expected,actual:s});
@@ -94,7 +94,7 @@ try{
     const old=await context.newPage();
     await old.goto(url(lang,true),{waitUntil:'domcontentloaded'});
     const oldSection=old.locator('[data-home-tech-fold-flow]');
-    for(const [stage,p] of [['understand',.23],['communicate',.61],['resolved',.96]]){
+    for(const [stage,p] of [['understand',.25],['communicate',.63],['resolved',.96]]){
      await old.evaluate(p=>{const story=document.querySelector('[data-ff-story]');document.documentElement.style.scrollBehavior='auto';const top=scrollY+story.getBoundingClientRect().top;scrollTo({top:top+(story.getBoundingClientRect().height-innerHeight)*p,behavior:'instant'});},p);
      await old.waitForTimeout(410);
      await old.screenshot({path:snap('r16',lang,size,stage)});

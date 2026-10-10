@@ -2,8 +2,9 @@
 'use strict';
 var SELECTOR='[data-home-tech-fold-flow]';
 var names=['handoff','understand','orchestrate','communicate','deliver','resolved'];
-var forward=[.04,.27,.46,.65,.83];
-var backward=[.025,.245,.435,.625,.80];
+/* Fractions allocated by reading territory, not arbitrary wall-clock delays. */
+var forward=[.105,.32,.515,.70,.865];
+var backward=[.097,.312,.507,.692,.857];
 var reduce=matchMedia('(prefers-reduced-motion: reduce)');
 var headerGuardMedia=matchMedia('(max-width:1080px) and (orientation:landscape) and (max-height:540px)');
 var states=new WeakMap();
@@ -41,15 +42,17 @@ function ease(t){t=clamp(t,0,1);return t*t*(3-2*t)}
 /* A single scroll sample drives impulse arrival, surface response and conceptual result.
    No timers, no fake live telemetry. Backscroll reverses this exact phase. */
 function heldTravel(section,p,index){
- var points=[0,.04,.27,.46,.65,.83,1],travel=[0,.12,.37,.57,.77,.93,1];
+ var points=[0,.105,.32,.515,.70,.865,1],travel=[0,.12,.37,.57,.77,.93,1];
  var k=clamp(index,0,5),a=points[k],b=points[k+1],t=clamp((p-a)/Math.max(.001,b-a),0,1);
- var move=ease(clamp((t-.28)/.42,0,1));
+ var move=ease(clamp((t-.12)/.32,0,1));
  var val=travel[k]+(travel[k+1]-travel[k])*move;
- var phase=t<.28?'entry':t<.70?'active':t<.76?'settling':'complete';
- var done=k>=1&&k<=4&&t>=.76;
- section.setAttribute('data-ff-motion',t<.28?'hold':t<.70?'transition':k===5?'release':'hold');
+ var phase=t<.12?'entry':t<.44?'active':t<.55?'settling':'complete';
+ var done=k>=1&&k<=4&&t>=.55;
+ section.setAttribute('data-ff-motion',t<.12?'hold':t<.44?'transition':k===5?'release':'hold');
  section.setAttribute('data-ff-phase',phase);
  section.setAttribute('data-ff-outcome',done?'established':'pending');
+ section.setAttribute('data-ff-handoff-phase',k===0?(t<.16?'arrive':t<.80?'read':'transfer'):'complete');
+ section.setAttribute('data-ff-final-phase',k===5?(t<.21?'history':t<.44?'system':t<.70?'signature':'next'):'pending');
  section.style.setProperty('--r161-illumination',(phase==='active'?Math.sin(Math.PI*move):0).toFixed(3));
  return {travel:clamp(val,0,1),phase,done,t};
 }
@@ -128,7 +131,7 @@ function init(section){
   if(window.visualViewport)visualViewport.addEventListener('resize',function(){preserveOnResize(section)},{passive:true});
   if(section.hasAttribute('data-r161')&&section.closest('[data-r161-preview]')){
     var forced=new URLSearchParams(location.search).get('state');var index=names.indexOf(forced);
-    if(index>=0){updateVisual(section,[0,.245,.425,.614,.794,.94][index]);section.dataset.r161PreviewFreeze='true';
+    if(index>=0){updateVisual(section,[0,.24,.43,.62,.79,.955][index]);section.dataset.r161PreviewFreeze='true';
       addEventListener('wheel',function(){section.dataset.r161PreviewFreeze='false'},{once:true,passive:true});
       addEventListener('touchstart',function(){section.dataset.r161PreviewFreeze='false'},{once:true,passive:true});
     }

@@ -1,0 +1,37 @@
+name: Selected Thinking R3.2 rendered preview direct HTTP proof
+on:
+  push:
+    branches: [qa/selected-thinking-r32-fallback-http-proof-r1]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Confirm served EN/RU Jekyll, CSS, canonical, noindex and folio material
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST='https://9ff2fd9d.proaiexpert-github-io.pages.dev'
+          BASE="$HOST/owner-preview/selected-thinking-r32-final"
+          for NAME in home-ru home-en hub-ru article-v2-ru; do
+            URL="$BASE/$NAME.html"
+            curl -fLsS --connect-timeout 8 --max-time 25 "$URL" -o "/tmp/$NAME.html"
+            curl -fsSI --max-time 15 "$URL" > "/tmp/$NAME.headers"
+            test "$(grep -Fo '<link rel="canonical"' "/tmp/$NAME.html" | wc -l)" -eq 1
+            grep -Fq 'data-home-footer-golden-r3' "/tmp/$NAME.html"
+            grep -Eiq '^x-robots-tag: *noindex' "/tmp/$NAME.headers"
+            ! grep -Fq '{%' "/tmp/$NAME.html"
+            ! grep -Fq '{{' "/tmp/$NAME.html"
+            if [[ "$NAME" == home* ]];then
+              grep -Fq 'id="selected-thinking-r2"' "/tmp/$NAME.html"
+              grep -Fq 'home-selected-thinking-r2.css?v=editorial-density-r32' "/tmp/$NAME.html"
+            fi
+            echo "R32_LIVE_HTML_PASS $URL"
+          done
+          curl -fLsS --max-time 22 "$HOST/assets/css/home-selected-thinking-r2.css" -o /tmp/r32-home.css
+          curl -fLsS --max-time 22 "$HOST/assets/css/insights-editorial-v2.css" -o /tmp/r32-editorial.css
+          grep -Fq -- '--st3-folio-line' /tmp/r32-home.css
+          grep -Fq -- 'color:transparent;-webkit-text-stroke:.85px' /tmp/r32-editorial.css
+          echo 'R32_LIVE_CSS_PASS'

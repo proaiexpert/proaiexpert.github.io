@@ -24,10 +24,10 @@ jobs:
           MAIN=$(get "$API/git/ref/heads/main" | jq -r '.object.sha')
           get "$API/compare/71146647bc68c045e8d789f475d2f16f6324f20d...$PRODUCT" > /tmp/r32-product-diff.json
           jq -e '.files | length==6' /tmp/r32-product-diff.json >/dev/null
-          jq -e '[.files[].filename]|sort==[
+          jq -e '([.files[].filename]|sort)==([
            "_layouts/insight-v2.html","_layouts/insights-hub-v2.html",
            "assets/css/home-selected-thinking-r2.css","assets/css/insights-editorial-v2.css",
-           "index.html","ru/index.html"]|sort' /tmp/r32-product-diff.json >/dev/null
+           "index.html","ru/index.html"]|sort)' /tmp/r32-product-diff.json >/dev/null
           echo "PRODUCT SCOPE PASS: 6 files / main=$MAIN / product=$PRODUCT"
           get "$API/actions/runs/38096169770/jobs" >/tmp/r32-fulljobs.json
           jq -e '[.jobs[0].steps[] | select(.name=="Build both Jekyll versions and validate canonical site shell")][0].conclusion=="success"' /tmp/r32-fulljobs.json >/dev/null

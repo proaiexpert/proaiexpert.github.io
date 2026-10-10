@@ -14,7 +14,7 @@ jobs:
         run: |
           set -euo pipefail
           REPO="proaiexpert/proaiexpert.github.io"
-          REF="preview/selected-thinking-r32-jekyll-rendered-r3"
+          REF="preview/selected-thinking-r32-jekyll-rendered-fast1"
           HOST=""
           for i in $(seq 1 85); do
             SHA=$(curl -fsSL --connect-timeout 6 --max-time 14 "https://api.github.com/repos/$REPO/git/ref/heads/$REF" 2>/dev/null | jq -r '.object.sha // empty' || true)
@@ -49,7 +49,7 @@ jobs:
           grep -Fq 'color:transparent;-webkit-text-stroke:.85px' /tmp/r32-insights.css
           curl -fLsS --max-time 22 "$BASE/benchmark.json" -o /tmp/r32-benchmark.json
           jq -e '.comparisons | length >= 8' /tmp/r32-benchmark.json >/dev/null
-          for SHOT in r31-home_ru-desktop-1440.png r32-home_ru-desktop-1440.png r31-home_en-desktop-1440.png r32-home_en-desktop-1440.png r31-home_ru-desktop-1600.png r32-home_ru-desktop-1600.png r32-home_ru-portrait-390.png r32-home_ru-landscape-844.png r32-hub_folio-1440.png r32-article_folio-1440.png; do
+          for SHOT in r31-home_ru-desktop-1440.png r32-home_ru-desktop-1440.png r31-home_en-desktop-1440.png r32-home_en-desktop-1440.png r31-home_ru-desktop-1600.png r32-home_ru-desktop-1600.png r32-home_ru-portrait-390.png r32-home_ru-landscape-844.png r32-hub_ru-desktop-1440.png r32-article_ru-desktop-1440.png; do
             curl -fLsS --max-time 30 "$BASE/screenshots/$SHOT" -o "/tmp/$SHOT"
             file "/tmp/$SHOT" | grep -Fq 'PNG image data'
             echo "LIVE_SCREENSHOT_PASS $SHOT"

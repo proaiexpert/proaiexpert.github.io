@@ -40,7 +40,7 @@
       logo.dataset.logoState = 'fallback';
     };
     frame.addEventListener('error', fail, { once: true });
-    frame.src = frame.dataset.logoLiveSrc;
+    frame.src = `${frame.dataset.logoLiveSrc}&quality=2`;
     setTimeout(fail, 45000);
   }
 })();

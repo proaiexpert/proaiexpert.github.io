@@ -1,0 +1,61 @@
+name: Selected Thinking R3 — Jekyll-rendered owner preview
+
+on:
+  push:
+    branches:
+      - qa/home-selected-thinking-r3-owner-preview
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - name: Build exact Jekyll HTML
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+
+      - name: Export exact owner preview
+        shell: bash
+        run: |
+          mkdir -p owner-preview/selected-thinking-r3
+          cp _site/index.html owner-preview/selected-thinking-r3/index.html
+          cp _site/ru/index.html owner-preview/selected-thinking-r3/ru.html
+          python - <<'PY'
+          from pathlib import Path
+          for name in ('index.html','ru.html'):
+              p=Path('owner-preview/selected-thinking-r3')/name
+              s=p.read_text(encoding='utf-8')
+              assert '{%' not in s and '{{' not in s,(name,'unrendered Liquid')
+              assert s.count('id="selected-thinking-r2"')==1,(name,'section missing')
+              assert s.count('class="st-r2__support-record"')==2,(name,'supports missing')
+              assert 'st-r2__trace' not in s,(name,'old decision trace')
+              assert 'home-selected-thinking-r2.js' not in s,(name,'old animation')
+              assert 'home-selected-thinking-r2.css?v=quiet-editorial-r3' in s,(name,'wrong stylesheet')
+              assert 'home-footer-golden-r3__main' in s,(name,'footer missing')
+              assert 'homepage-connected-system' not in s or '{%' not in s,(name,'broken includes')
+              print(name,'STATIC JEKYLL PREVIEW PASS',len(s))
+          PY
+      - name: Publish owner preview only in isolated QA branch
+        shell: bash
+        run: |
+          git add owner-preview/selected-thinking-r3/index.html owner-preview/selected-thinking-r3/ru.html
+          if ! git diff --cached --quiet; then
+            git config user.name "proai-preview[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Export exact Jekyll-rendered Selected Thinking R3 owner previews"
+            git push origin HEAD:qa/home-selected-thinking-r3-owner-preview
+          fi

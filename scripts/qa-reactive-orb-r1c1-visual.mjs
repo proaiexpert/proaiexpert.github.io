@@ -23,6 +23,9 @@ async function metrics(page,bytes){
     const data=ctx.getImageData(0,0,c.width,c.height).data;
     let lit=0,teal=0,neutral=0,red=0,luma=0,nonTransparent=0;
     for(let i=0;i<data.length;i+=4){
+      const idx=i/4,x=idx%c.width,y=Math.floor(idx/c.width);
+      // Donor scene includes large teal typography at left. Measure material color only in the Orb ROI.
+      if(x<c.width*0.52||x>c.width*0.98||y<c.height*0.08||y>c.height*0.90)continue;
       const r=data[i],g=data[i+1],b=data[i+2],a=data[i+3];
       if(a<80)continue;
       nonTransparent++;
@@ -87,44 +90,39 @@ try{
   }
   const ctl=async method=>page.evaluate(m=>window.__orbR1C1Controls[m](),method);
   const apply=async variant=>page.evaluate(v=>window.__orbR1C1Controls.apply(v),variant);
-  // Explicit playback to produce a complete GPU frame, followed by stop() to bound animation phase.
-  await ctl('play');await pause(900);await ctl('freeze');await pause(180);
-  const original=await capture('original-frozen');
+  // Spline stop() froze the LAST COMPOSITED FRAME in prior CI; setter updates then could not be visualized.
+  // Keep the real source animation running. A-B-A in-place material toggling measures drift independently.
+  await ctl('play');await pause(1100);
+  const original=await capture('original-running');
   report.baseline=original;
+  report.captureMode='RUNNING_INTERLEAVED_ABA';
   if(original.pixel.lit<300){
-    // Bounded second attempt with scene running (headless WebGPU may discard paused framebuffer).
-    await ctl('play');await pause(1100);
-    const second=await capture('original-running-retry');
-    report.originalRetry=second;
-    if(second.pixel.lit<300)throw Error('BLACK_FRAME: CDP/Playwright screenshot captures no original Spline pixels; visual evidence unavailable');
-    report.captureMode='RUNNING_WITH_INTERLEAVED_BASELINE';
-  }else{
-    report.captureMode='STOPPED_SCENE_SAME_INSTANCE';
+    await pause(1000);
+    const retry=await capture('original-running-second-attempt');
+    report.originalRetry=retry;
+    if(retry.pixel.lit<300)throw Error('BLACK_FRAME: composited original donor scene is not exposed to browser screenshots');
   }
   report.validOriginalPixels=true;
-  const variants=['fresnel','depth','lighting','combined'];
-  const counts={};
+  const variants=['fresnel','depth','lighting','combined'],counts={};
   for(const variant of variants){
-    // A-B-A control: capture baseline before, variant, baseline after with no scene reload.
-    const baseBefore=await apply('original');
-    if(report.captureMode==='STOPPED_SCENE_SAME_INSTANCE')await ctl('requestRender');
-    await pause(140);
-    const a=await capture(variant+'-control-before');
-    const edit=await apply(variant);
-    if(report.captureMode==='STOPPED_SCENE_SAME_INSTANCE')await ctl('requestRender');
-    await pause(200);
-    const b=await capture(variant+'-changed');
-    await apply('original');await pause(140);
+    // Scene, camera and geometrical objects remain unchanged; only material props toggle.
+    // Each before/after control brackets the modified variant to reveal motion-induced color drift.
+    const beforeOp=await apply('original');await pause(260);
+    const before=await capture(variant+'-control-before');
+    const edit=await apply(variant);await pause(260);
+    const changed=await capture(variant+'-modified');
+    await apply('original');await pause(260);
     const after=await capture(variant+'-control-after');
-    const vals=[a.pixel.tealFraction,b.pixel.tealFraction,after.pixel.tealFraction];
-    const controlJitter=Math.abs((vals[0]??0)-(vals[2]??0));
-    const effect=(vals[0]??0)-(vals[1]??0);
-    const valid=[a.pixel.lit,b.pixel.lit,after.pixel.lit].every(v=>v>=300);
-    // Require measured impact beyond A/A scene animation drift + tolerance.
-    const tealPass=valid&&controlJitter<0.03&&effect>Math.max(0.08,controlJitter*3);
-    report.variants.push({name:variant,baseBefore,edit,controls:[a,after],changed:b,
-      controlJitter,effect,validPixels:valid,tealPass,
-      judgment:!valid?'BLACK_FRAME':tealPass?'VISIBLE_TEAL_REDUCTION_PASS':'NOT_PROVEN'});
+    const A=before.pixel.tealFraction,B=changed.pixel.tealFraction,C=after.pixel.tealFraction;
+    const valid=[before,changed,after].every(v=>v.pixel.lit>=300&&v.pixel.tealFraction!==null);
+    const controlJitter=valid?Math.abs(A-C):null;
+    const targetExpected=valid?(A+C)/2:null;
+    const tealReduction=valid?targetExpected-B:null;
+    // A motion-induced change can be misleading; only stable controls + large monotonic reduction qualify.
+    const tealPass=valid&&controlJitter<0.025&&tealReduction>Math.max(0.08,controlJitter*4)&&B<A&&B<C;
+    const decision=!valid?'INVALID_FRAME':tealPass?'VISIBLE_TEAL_REDUCTION_PASS':'NOT_PROVEN';
+    report.variants.push({name:variant,controlBefore:before,modified:changed,controlAfter:after,
+      readback:edit.counts,controlJitter,tealReduction,validPixels:valid,tealPass,judgment:decision});
     counts[variant]=edit.counts;
   }
   report.materialAPICounts=counts;
@@ -160,9 +158,9 @@ finally{
   console.log('R1C1_EVIDENCE_START\n'+JSON.stringify({
     status:report.status,target:report.target,capture:report.capture,topology:report.topology,
     initialization:report.initialization,baseline:report.baseline?.pixel,originalRetry:report.originalRetry?.pixel,
-    variants:report.variants.map(v=>({name:v.name,edit:v.edit,basePixels:v.controls[0].pixel,
-      changedPixels:v.changed.pixel,afterPixels:v.controls[1].pixel,
-      jitter:v.controlJitter,effect:v.effect,judgment:v.judgment})),
+    variants:report.variants.map(v=>({name:v.name,readback:v.readback,
+      controlBefore:v.controlBefore.pixel,modified:v.modified.pixel,controlAfter:v.controlAfter.pixel,
+      controlJitter:v.controlJitter,tealReduction:v.tealReduction,judgment:v.judgment})),
     motion:report.motion,errors:report.errors},null,2)+'\nR1C1_EVIDENCE_END');
   await browser?.close().catch(()=>{});
   server.kill('SIGTERM');

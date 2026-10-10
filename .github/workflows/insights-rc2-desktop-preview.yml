@@ -1,0 +1,71 @@
+name: Insights RC2 — Desktop Jekyll review preview
+
+on:
+  push:
+    branches:
+      - qa/insights-rc2-desktop-preview-build
+
+permissions:
+  contents: write
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Build verified full HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+
+      - name: Export navigable RC2 EN/RU homepage and Insights
+        shell: bash
+        run: |
+          set -euo pipefail
+          for ROUTE in \
+            index.html ru/index.html \
+            insights/index.html ru/insights/index.html \
+            insights/what-happens-after-a-lead-arrives/index.html \
+            ru/insights/chto-proiskhodit-posle-zayavki/index.html \
+            insights/does-your-service-business-need-a-multilingual-website/index.html \
+            ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/index.html \
+            insights/how-to-evaluate-a-website-proposal/index.html \
+            ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/index.html \
+            insights/ai-ready-website-for-business/index.html \
+            ru/insights/ai-ready-sayt-dlya-biznesa/index.html \
+            insights/ai-search-optimization-for-service-businesses/index.html \
+            ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html; do
+            cp "_site/$ROUTE" "$ROUTE"
+          done
+          python - <<'PY'
+          from pathlib import Path
+          files=['index.html','ru/index.html','insights/index.html','ru/insights/index.html']
+          files += [str(p.relative_to('_site')) for p in Path('_site/insights').glob('*/index.html')]
+          files += [str(p.relative_to('_site')) for p in Path('_site/ru/insights').glob('*/index.html')]
+          for p in files:
+            h=Path(p).read_text(encoding='utf-8')
+            assert '<html' in h and '{%' not in h and '{{' not in h,p
+          assert 'st-r2__folio' in Path('ru/index.html').read_text()
+          assert 'data-stage-c="maturity-model"' in Path('ru/insights/ai-ready-sayt-dlya-biznesa/index.html').read_text()
+          print('RENDERED RC2 REVIEW ROUTES PASS')
+          PY
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > _headers
+          git config user.name "proai-qa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B preview/insights-rc2-desktop-review
+          git add _headers index.html ru/index.html insights/ ru/insights/
+          git commit -m "QA only: navigable Jekyll-rendered RC2 desktop and mobile previews"
+          git push origin HEAD:refs/heads/preview/insights-rc2-desktop-review

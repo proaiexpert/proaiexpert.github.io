@@ -15,8 +15,9 @@ async function move(page,p,ms=230){
 async function sample(page){return page.evaluate(()=>{
  const root=document.querySelector('.home-tech-r161'),active=root.querySelector('.home-tech-ff__stage[aria-hidden="false"]');
  const get=e=>{if(!e)return null;const c=getComputedStyle(e);return {opacity:Number(c.opacity),font:parseFloat(c.fontSize),visibility:c.visibility,text:e.textContent?.trim().slice(0,70)}};
+ const ghosts=[...root.querySelectorAll('.home-tech-ff__stage')].filter(el=>el.dataset.ffPanel!==root.dataset.ffStage&&getComputedStyle(el).visibility==='visible'&&Number(getComputedStyle(el).opacity)>.08).map(el=>el.dataset.ffPanel);
  const story=root.querySelector('[data-ff-story]').getBoundingClientRect(),sticky=root.querySelector('.home-tech-ff__sticky').getBoundingClientRect();
- return {stage:root.dataset.ffStage,phase:root.dataset.ffPhase,outcome:root.dataset.ffOutcome,intro:root.dataset.ffHandoffPhase,final:root.dataset.ffFinalPhase,progress:Number(root.style.getPropertyValue('--ff-progress')),travel:Math.max(1,story.height-sticky.height),scrollY,heading:get(active?.querySelector('h3')),family:get(active?.querySelector('.home-tech-ff__family')),result:get(active?.querySelector('.home-tech-r161__outcome')),payload:get(root.querySelector('.home-tech-ff__payload')),history:get(root.querySelector('.home-tech-ff__history')),finalTitle:get(root.querySelector('.home-tech-ff__resolution h3')),maker:get(root.querySelector('.home-tech-ff__maker')),implementation:get(root.querySelector('.home-tech-ff__implementation'))};
+ return {ghosts,stage:root.dataset.ffStage,phase:root.dataset.ffPhase,outcome:root.dataset.ffOutcome,intro:root.dataset.ffHandoffPhase,final:root.dataset.ffFinalPhase,progress:Number(root.style.getPropertyValue('--ff-progress')),travel:Math.max(1,story.height-sticky.height),scrollY,heading:get(active?.querySelector('h3')),family:get(active?.querySelector('.home-tech-ff__family')),result:get(active?.querySelector('.home-tech-r161__outcome')),payload:get(root.querySelector('.home-tech-ff__payload')),history:get(root.querySelector('.home-tech-ff__history')),finalTitle:get(root.querySelector('.home-tech-ff__resolution h3')),maker:get(root.querySelector('.home-tech-ff__maker')),implementation:get(root.querySelector('.home-tech-ff__implementation'))};
  });}
 function check(v,type,where){if(!v)problems.push({type,...where})}
 async function frame(page,lang,size,label,p,ms,save){await move(page,p,ms);const x=await sample(page);frames.push({lang,size,label,p,...x});if(save)await page.screenshot({path:path.join(OUT,lang+'-'+size+'-'+label+'.png')});return x}
@@ -40,6 +41,7 @@ try{
    const result=await frame(page,lang,size,stage+'-read',p(.68),360,film);
    const held=await frame(page,lang,size,stage+'-held',p(.92),270,film);
    check([enter,moving,settling,result,held].every(x=>x.stage===stage),'stage-changed-within-segment',info);
+   check([enter,moving,settling,result,held].every(x=>x.ghosts?.length===0),'overlapping-stage-headings',{...info,ghosts:[enter,moving,settling,result,held].map(x=>x.ghosts)});
    check(moving.outcome==='pending'&&settling.outcome==='pending','premature-result',info);
    check(result.outcome==='established'&&held.outcome==='established','result-unstable',info);
    check(result.result?.opacity>.82&&held.result?.opacity>.82,'result-not-readable',{...info,opacity:[result.result?.opacity,held.result?.opacity]});
@@ -55,6 +57,7 @@ try{
   const signature=await frame(page,lang,size,'final-signature',.865+.135*.58,300,film);
   const next=await frame(page,lang,size,'final-next',.865+.135*.84,300,film);
   check(history.stage==='resolved'&&history.final==='history'&&history.finalTitle?.opacity<.2,'final-history-flash',{lang,size,history});
+  check(history.ghosts?.length===0,'final-retains-outgoing-word',{lang,size,ghosts:history.ghosts});
   check(title.final==='system'&&title.finalTitle?.opacity>.8,'final-title-missing',{lang,size,title});
   check(signature.final==='signature'&&signature.maker?.opacity>.8,'final-signature-missing',{lang,size,signature});
   check(next.final==='next'&&next.implementation?.opacity>.8,'next-chapter-label-missing',{lang,size,next});

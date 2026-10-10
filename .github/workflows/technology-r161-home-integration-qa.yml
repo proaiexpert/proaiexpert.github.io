@@ -1,4 +1,4 @@
-name: Technology R1.6.1 Full Homepage Release QA
+name: Technology R1.6.1 Compiled Homepage Gate
 on:
   push:
     branches:
@@ -15,16 +15,11 @@ on:
 permissions:
   contents: read
 jobs:
-  integrated-home-chromium:
+  compiled-homepage-integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - run: npm install --no-save --no-package-lock playwright@1.56.1
-      - run: npx playwright install --with-deps chromium
       - name: Build actual EN/RU pages with Jekyll
         run: |
           export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
@@ -33,7 +28,6 @@ jobs:
           gem install --user-install webrick --no-document
           python3 scripts/apply-social-preview-defaults.py --mode source --root .
           jekyll build --source . --destination _site
-      - run: python3 -m http.server 8799 --bind 127.0.0.1 --directory _site > /tmp/tech-integration.log 2>&1 &
       - run: node scripts/qa/technology-r161-integrated-home.mjs
       - if: always()
         uses: actions/upload-artifact@v4

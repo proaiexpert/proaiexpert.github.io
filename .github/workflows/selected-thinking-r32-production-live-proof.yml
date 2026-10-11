@@ -1,0 +1,60 @@
+name: Selected Thinking R3.2 production live HTTP verification
+on:
+  push:
+    branches:
+      - qa/selected-thinking-r32-production-live-proof-20261011
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify official EN RU pages, updated assets, Hub and Article V2
+        shell: bash
+        run: |
+          set -euo pipefail
+          HOST="https://proai-expert.com"
+          declare -A PATHS=(
+            [home_en]="/"
+            [home_ru]="/ru/"
+            [hub_en]="/insights/"
+            [hub_ru]="/ru/insights/"
+            [article_ru]="/ru/insights/ai-ready-sayt-dlya-biznesa/"
+            [article_en]="/insights/ai-ready-website-for-business/"
+          )
+          mkdir -p /tmp/r32
+          for attempt in $(seq 1 10); do
+            OK=1
+            for key in home_en home_ru hub_en hub_ru article_en article_ru; do
+              curl -fLsS --connect-timeout 10 --max-time 30 "$HOST${PATHS[$key]}" -o "/tmp/r32/$key.html" || { OK=0; continue; }
+              grep -Fq '<html' "/tmp/r32/$key.html" || OK=0
+              if grep -Fq '{%' "/tmp/r32/$key.html" || grep -Fq '{{' "/tmp/r32/$key.html"; then OK=0; fi
+              if [[ "$key" == home_* ]]; then
+                grep -Fq 'id="selected-thinking-r2"' "/tmp/r32/$key.html" || OK=0
+                grep -Fq 'home-selected-thinking-r2.css?v=editorial-density-r32' "/tmp/r32/$key.html" || OK=0
+              elif [[ "$key" == hub_* ]]; then
+                grep -Fq 'insights-editorial-v2.css?v=folio-standard-r1' "/tmp/r32/$key.html" || OK=0
+                grep -Fq 'insights-v2__record-index' "/tmp/r32/$key.html" || OK=0
+              else
+                grep -Fq 'insights-editorial-v2.css?v=folio-standard-r1' "/tmp/r32/$key.html" || OK=0
+                grep -Fq 'insight-v2-article__index' "/tmp/r32/$key.html" || OK=0
+              fi
+            done
+            if [[ $OK -eq 1 ]]; then
+              echo "R32_LIVE_ROUTES_PASS attempt=$attempt"
+              break
+            fi
+            if [[ $attempt -eq 10 ]];then echo "R32_LIVE_ROUTES_FAILED";exit 1;fi
+            sleep 8
+          done
+          curl -fLsS --max-time 30 "$HOST/assets/css/home-selected-thinking-r2.css?v=editorial-density-r32" -o /tmp/r32/home.css
+          grep -Fq -- '--st3-folio-line' /tmp/r32/home.css
+          grep -Fq -- '.st-r2__folio' /tmp/r32/home.css
+          curl -fLsS --max-time 30 "$HOST/assets/css/insights-editorial-v2.css?v=folio-standard-r1" -o /tmp/r32/insights.css
+          grep -Fq -- '-webkit-text-stroke:.85px' /tmp/r32/insights.css
+          echo 'R32_LIVE_ASSETS_PASS'
+          for key in home_en home_ru hub_en hub_ru article_en article_ru; do
+            echo "OFFICIAL_PAGE_PASS $key $HOST${PATHS[$key]}"
+          done
+          echo 'R32_PRODUCTION_RELEASE_FULL_PASS'

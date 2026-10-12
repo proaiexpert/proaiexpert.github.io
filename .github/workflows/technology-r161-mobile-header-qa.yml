@@ -1,0 +1,38 @@
+name: R1.6.1 Mobile Header and Viewport QA
+on:
+  push:
+    branches:
+      - agent/technology-r161-mobile-header-viewport-repair
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-homepage-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Build full EN/RU Jekyll homepage including site header and adjacent sections
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python3 scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+      - run: cd _site && python3 -m http.server 8787 --bind 127.0.0.1 > /tmp/r161-live-server.log 2>&1 &
+      - name: Browser geometry, header, portrait, landscape, orientation and accessibility
+        run: node scripts/qa/technology-r161-mobile-header-integration.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-r161-mobile-viewport-real-homepage-qa
+          path: r161-mobile-repair-evidence/
+          if-no-files-found: warn

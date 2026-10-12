@@ -42,7 +42,8 @@ jobs:
             assert 'data-home-footer-golden-r3' in s
             assert '"datePublished":"2026-04-20"' in s
             assert '"dateModified":"2026-10-11"' in s
-            assert s.count('<h2 id=')==10
+            print('STAGED_SEO_INSPECT', lang, {'h2':s.count('<h2 id='),'table':s.count('class="insight-v2-decision-table"'),'related':('data-related-decisions' in s),'schema':('"dateModified":"2026-10-11"' in s)},flush=True)
+            assert s.count('<h2 id=')==10, (lang,'h2',s.count('<h2 id='))
             assert s.count('<link rel="canonical"')==1
             assert 'hreflang="ru"' in s and 'hreflang="en"' in s
             for href in ("https://developers.google.com/search/docs/fundamentals/ai-optimization-guide","https://developers.openai.com/api/docs/bots","https://support.google.com/business/answer/7091"):

@@ -42,7 +42,7 @@ R2 не повторял ранее безуспешные скачивания.
 
 **SECRET AUDIT PASS — repository payload scope:** ни runtime/export package, ни cookies, токены, auth headers или browser profile в ветку не добавлялись. Editable donor/working-copy не коммитились. Внутреннее содержимое отсутствующего runtime package не заявляется как проверенное.
 
-Ветка содержит только отчёт, source inventory и manifest. Main, production и исходный Owner Remix не менялись. Merge не выполнялся и не разрешён.
+Ветка содержит отчёт, source inventory, manifest и SHA256SUMS.txt с локальными контрольными суммами; сами файлы .spline не коммитились. Main, production и исходный Owner Remix не менялись. Merge не выполнялся и не разрешён.
 
 ## Следующий шаг
 

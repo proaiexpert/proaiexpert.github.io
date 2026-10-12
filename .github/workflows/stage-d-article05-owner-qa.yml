@@ -1,0 +1,103 @@
+name: Stage D — AI Search Article 05 EN/RU Owner QA and Preview
+on:
+  push:
+    branches: [qa/insights-stage-d-article05-owner-r1]
+permissions:
+  contents: write
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 33
+    steps:
+      - uses: actions/checkout@v6
+      - name: Jekyll build, Site Shell, Insights and Article 05 source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')";export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          import json,re
+          paths=[
+          "_site/insights/ai-search-optimization-for-service-businesses/index.html",
+          "_site/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html"]
+          for lang,path in zip(("en","ru"),paths):
+            s=Path(path).read_text()
+            assert '{%' not in s and '{{' not in s
+            assert 'data-author-type="organization"' in s
+            assert 'proai-header-r111-static-cube-320.png' in s
+            assert '"@type":"Organization","name":"ProAI Expert"' in s
+            assert s.count('class="insight-v2-table-wrap"')==3
+            assert s.count('class="insight-v2-decision-table"')==3
+            assert 'data-related-decisions' in s
+            assert 'data-home-footer-golden-r3' in s
+            assert '"datePublished":"2026-04-20"' in s
+            assert '"dateModified":"2026-10-11"' in s
+            assert s.count('<h2 id=')==10
+            assert s.count('<link rel="canonical"')==1
+            assert 'hreflang="ru"' in s and 'hreflang="en"' in s
+            for href in ("https://developers.google.com/search/docs/fundamentals/ai-optimization-guide","https://developers.openai.com/api/docs/bots","https://support.google.com/business/answer/7091"):
+              assert href in s,href
+            for href in ("#channel-boundaries","#evidence-matrix","#action-plan","#worked-example"):
+              assert f'href="{href}"' in s
+            for local in ("/websites-branding/" if lang=="en" else "/ru/websites-branding/",
+                          "/case-studies/local-repair-pro/" if lang=="en" else "/ru/case-studies/local-repair-pro/"):
+              assert f'href="{local}"' in s
+            print('ARTICLE_05_'+lang.upper()+'_SEO_CANONICAL_SCHEMA_SOURCE_INTERNAL_LINKS: PASS')
+          a=Path('_site/insights/what-happens-after-a-lead-arrives/index.html').read_text()
+          assert 'data-author-type="person"' in a and '"@type":"Person","name":"Ihor Horb"' in a
+          print('ARTICLE_01_PERSON_REGRESSION: PASS')
+          PY
+      - name: Chromium/WebKit browser dependencies
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium webkit
+      - name: Responsive 44-state QA, no JS, keyboard and compositor screenshots
+        shell: bash
+        run: |
+          python -m http.server 4178 --directory _site >/tmp/stage-d-site.log 2>&1 &
+          python scripts/qa/stage-d-article05-browser.py
+      - name: Create isolated Jekyll rendered Cloudflare preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE=owner-preview/stage-d-article05
+          mkdir -p "$BASE/screenshots"
+          cp _site/insights/ai-search-optimization-for-service-businesses/index.html "$BASE/en.html"
+          cp _site/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html "$BASE/ru.html"
+          cp qa-stage-d/screenshots/*.png "$BASE/screenshots/"
+          cp qa-stage-d/report.json "$BASE/qa-report.json"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > _headers
+          python - <<'PY'
+          from pathlib import Path
+          b=Path('owner-preview/stage-d-article05')
+          for n in ('en.html','ru.html'):
+           s=(b/n).read_text()
+           assert '{%' not in s and '{{' not in s
+           assert 'data-home-footer-golden-r3' in s
+          assert len(list((b/'screenshots').glob("*.png")))==12
+          print("STAGE D OWNER PREVIEW + 12 REAL VIEWPORT PNG: PASS")
+          PY
+          git config user.name "proai-qa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B preview/insights-stage-d-article05-rendered-r1
+          git add _headers "$BASE"
+          git commit -m "QA only: Jekyll-rendered Stage D Article05 EN/RU owner preview and responsive screenshots"
+          git push origin HEAD:refs/heads/preview/insights-stage-d-article05-rendered-r1
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-d-article05-browser-qa
+          path: qa-stage-d/
+          retention-days: 21
+          if-no-files-found: warn

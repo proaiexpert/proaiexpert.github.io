@@ -132,7 +132,7 @@ with sync_playwright() as p:
   page=c.new_page()
   try:
    load(page,HOST+route)
-   if page.locator(".insight-v2__prose h2").count()!=10 or page.locator("table").count()!=3 or not page.locator(".insight-v2-article-cta a[href*='project-intake']").count():
+   if page.locator(".insight-v2__prose h2[id]:not(#related-decisions-heading)").count()!=10 or page.locator("table").count()!=3 or not page.locator(".insight-v2-article-cta a[href*='project-intake']").count():
     failures.append(f"nojs:{lang}:missing semantic content")
   except Exception as e:failures.append(f"nojs:{lang}:{str(e)[:160]}")
   finally:c.close()

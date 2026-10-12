@@ -8,6 +8,9 @@ const OUT='r161-mobile-repair-evidence';fs.mkdirSync(OUT,{recursive:true});
 const sizes=[['desktop1920',1920,1080],['laptop1440',1440,900],['laptop1366',1366,768],['laptop1280',1280,720],['portrait430',430,932],['portrait390',390,844],['portrait375',375,812],['landscape844',844,390],['landscape896',896,414],['landscape932',932,430]];
 const starts=[.105,.32,.515,.70],ends=[.32,.515,.70,.865],names=['understand','orchestrate','communicate','deliver'];
 const errors=[],report=[];
+const GROUP=process.env.R161_QA_GROUP||'all';
+const sizeGroup=n=>n.startsWith('portrait')?'portrait':n.startsWith('landscape')?'landscape':'desktop';
+const includedSizes=sizes.filter(x=>GROUP==='all'||sizeGroup(x[0])===GROUP);
 async function setScroll(page,p){await page.evaluate(p=>{document.documentElement.style.scrollBehavior='auto';document.body.style.scrollBehavior='auto';const s=document.querySelector('[data-ff-story]'),r=s.getBoundingClientRect(),h=s.querySelector('.home-tech-ff__sticky').getBoundingClientRect().height;scrollTo({top:scrollY+r.top+Math.max(1,r.height-h)*p,behavior:'instant'});},p);await page.waitForTimeout(310)}
 async function directCapture(page,name){const c=await page.context().newCDPSession(page);try{let r=await c.send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false,fromSurface:true});fs.writeFileSync(path.join(OUT,name+'.png'),Buffer.from(r.data,'base64'));}finally{await c.detach()}}
 async function headerInfo(page){return page.evaluate(()=>{
@@ -89,7 +92,7 @@ return page.evaluate(()=>{
 const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
 try{
  for(const [lang,url] of [['en','/'],['ru','/ru/']]){
-  for(const [size,w,h] of sizes){
+  for(const [size,w,h] of includedSizes){
    const ctx=await browser.newContext({viewport:{width:w,height:h},deviceScaleFactor:1});
    const page=await ctx.newPage(),runtime=[];
    page.on('pageerror',e=>runtime.push(e.message));
@@ -146,5 +149,5 @@ try{
  }
 }finally{await browser.close()}
 fs.writeFileSync(path.join(OUT,'metrics.json'),JSON.stringify({errors,report},null,2));
-console.log('R161_MOBILE_INTEGRATION_RESULT '+JSON.stringify({pass:errors.length===0,viewports:20,geometryFrames:260,errors:errors.slice(0,18)}));
+console.log('R161_MOBILE_INTEGRATION_RESULT '+JSON.stringify({pass:errors.length===0,viewports:includedSizes.length*2,geometryFrames:includedSizes.length*26,group:GROUP,errors:errors.slice(0,18)}));
 if(errors.length)process.exitCode=1;

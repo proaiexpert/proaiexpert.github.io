@@ -1,0 +1,110 @@
+name: Insights Stage D.1 Article 05 — Jekyll Editorial Browser QA and Owner Preview
+on:
+  push:
+    branches: [qa/insights-article05-stage-d1-owner-r1]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Jekyll build and source/SEO validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')";export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          import re,json
+          from pathlib import Path
+          routes=["insights/ai-search-optimization-for-service-businesses/index.html","ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html"]
+          for filename in routes:
+            html=(Path("_site")/filename).read_text()
+            assert "{%" not in html and "{{" not in html,filename
+            assert html.count('rel="canonical"')==1,filename
+            assert 'hreflang="en"' in html and 'hreflang="ru"' in html,filename
+            assert 'data-home-footer-golden-r3' in html,filename
+            assert html.count('class="insight-v2-decision-table"')==3,filename
+            chapter_ids=['channel-boundaries','crawl-and-eligibility','evidence-matrix','service-architecture','local-visibility','measurement','action-plan','worked-example','sources','decision']
+            all_heading_ids=re.findall(r'<h2[^>]*id="([^"]+)"',html)
+            print('ARTICLE05 HEADINGS',filename,all_heading_ids)
+            assert all(all_heading_ids.count(n)==1 for n in chapter_ids),filename
+            assert html.count('role="region" tabindex="0"')>=3,filename
+            assert '2026-10-11' in html and '2026-04-20' in html,filename
+            assert 'insights/related-decisions' not in html,filename
+            assert 'https://developers.openai.com/api/docs/bots' in html,filename
+            assert 'https://developers.google.com/search/docs/appearance/ai-features' in html,filename
+            assert 'https://support.google.com/webmasters/answer/16908024' in html,filename
+            assert 'https://support.google.com/webmasters/answer/16984139' in html,filename
+            assert 'Generative AI performance report (Search)' in html,filename
+            assert 'August 31, 2026' in html or '31 августа 2026 года' in html,filename
+            assert 'Settings → Search generative AI' in html,filename
+            assert html.count('class="insight-v2-decision-table"')==3,filename
+            assert '/websites-branding/' in html and 'case-studies/local-repair-pro/' in html,filename
+            print('ARTICLE05 STATIC',filename,'PASS',len(html),'chars')
+          src=Path("_data/insights.yml").read_text()
+          block=re.search(r'- id: ai-search\n([\s\S]*?)(?=\n- id: builder-vs-custom)',src).group(1)
+          assert block.count('date_published: "2026-04-20"')==2
+          assert block.count('date_modified: "2026-10-11"')==2
+          assert "author_ref: proai" in block
+          print('ARTICLE05 BILINGUAL JEKYLL SEO SCHEMA METADATA: PASS')
+          PY
+      - name: Install Playwright Chromium and WebKit
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium webkit
+      - name: 28-state responsive, accessibility, SEO and no-JS browser QA
+        shell: bash
+        run: |
+          python -m http.server 4185 --directory _site >/tmp/article05-http.log 2>&1 &
+          python scripts/qa/insights-article05-stage-d1-browser.py
+      - name: Publish four evidence routes and immutable Jekyll Owner Preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          DST=owner-preview/insights-article05-stage-d1
+          mkdir -p "$DST/screenshots"
+          cp _site/insights/ai-search-optimization-for-service-businesses/index.html "$DST/en.html"
+          cp _site/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/index.html "$DST/ru.html"
+          cp _site/insights/ai-ready-website-for-business/index.html "$DST/article04-en.html"
+          cp _site/ru/insights/ai-ready-sayt-dlya-biznesa/index.html "$DST/article04-ru.html"
+          cp qa-stage-d1/screenshots/*.png "$DST/screenshots/"
+          cp qa-stage-d1/results.json "$DST/qa-results.json"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > _headers
+          python - <<'PY'
+          from pathlib import Path
+          d=Path("owner-preview/insights-article05-stage-d1")
+          for n in ("en.html","ru.html","article04-en.html","article04-ru.html"):
+            s=(d/n).read_text()
+            assert '{%' not in s and '{{' not in s,n
+            assert 'data-home-footer-golden-r3' in s,n
+          assert len(list((d/"screenshots").glob("*.png")))>=7
+          print('STAGE D JEKYLL OWNER PREVIEW PACKAGE PASS')
+          PY
+          git config user.name "proai-qa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B preview/insights-article05-stage-d1-jekyll-r1
+          git add _headers "$DST"
+          git commit -m "QA only: rendered Stage D.1 Article 05 bilingual Owner Preview and browser evidence"
+          git push origin HEAD:refs/heads/preview/insights-article05-stage-d1-jekyll-r1
+      - name: Store QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-article05-stage-d1-qa
+          path: qa-stage-d1/
+          retention-days: 21
+          if-no-files-found: warn

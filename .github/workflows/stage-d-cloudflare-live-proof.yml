@@ -1,0 +1,65 @@
+name: Stage D — Independent Cloudflare Live HTTP Proof
+on:
+  push:
+    branches: [qa/insights-stage-d-cloudflare-proof-r1]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Verify immutable Cloudflare Jekyll HTML, source references, schema, screenshots and noindex
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO="proaiexpert/proaiexpert.github.io"
+          REF="preview/insights-stage-d-article05-rendered-r1"
+          HOST=""
+          for i in $(seq 1 90); do
+            SHA=$(curl -fsSL --connect-timeout 7 --max-time 14 "https://api.github.com/repos/$REPO/git/ref/heads/$REF" 2>/dev/null | jq -r '.object.sha // empty' || true)
+            if [[ "$SHA" =~ ^[0-9a-f]{40}$ ]];then
+              CHECKS=$(curl -fsSL --connect-timeout 7 --max-time 15 "https://api.github.com/repos/$REPO/commits/$SHA/check-runs" || true)
+              HOST=$(printf '%s' "$CHECKS" | jq -r '.check_runs[]? | select(.name=="Cloudflare Pages" and .conclusion=="success") | .output.summary' | grep -Eo 'https://[0-9a-f]{8}\.proaiexpert-github-io\.pages\.dev' | head -1 || true)
+              if [ -n "$HOST" ];then break;fi
+            fi
+            sleep 10
+          done
+          [ -n "$HOST" ] || { echo "Immutable Cloudflare preview not confirmed";exit 1; }
+          echo "IMMUTABLE_DEPLOYMENT=$HOST"
+          PREFIX="$HOST/owner-preview/stage-d-article05"
+          for LANG in en ru; do
+            PAGE="$PREFIX/$LANG.html"
+            curl -fLsS --max-time 25 "$PAGE" -o "/tmp/stage-d-$LANG.html"
+            curl -fsSI --max-time 18 "$PAGE" -o "/tmp/stage-d-$LANG.headers"
+            grep -Eiq '^x-robots-tag: *noindex' "/tmp/stage-d-$LANG.headers"
+            ! grep -Fq '{%' "/tmp/stage-d-$LANG.html"
+            ! grep -Fq '{{' "/tmp/stage-d-$LANG.html"
+            grep -Fq 'data-author-type="organization"' "/tmp/stage-d-$LANG.html"
+            grep -Fq '"@type":"Organization","name":"ProAI Expert"' "/tmp/stage-d-$LANG.html"
+            grep -Fq '"datePublished":"2026-04-20"' "/tmp/stage-d-$LANG.html"
+            grep -Fq '"dateModified":"2026-10-11"' "/tmp/stage-d-$LANG.html"
+            grep -Fq 'data-related-decisions' "/tmp/stage-d-$LANG.html"
+            grep -Fq 'data-home-footer-golden-r3' "/tmp/stage-d-$LANG.html"
+            grep -Fq 'insights-editorial-v2.css?v=folio-standard-r1' "/tmp/stage-d-$LANG.html"
+            for SRC in developers.google.com/search/docs/fundamentals/ai-optimization-guide developers.openai.com/api/docs/bots support.google.com/business/answer/7091;do
+              grep -Fq "$SRC" "/tmp/stage-d-$LANG.html"
+            done
+            echo "LIVE_ARTICLE_$LANG=$PAGE"
+          done
+          curl -fLsS --max-time 25 "$HOST/assets/css/insights-editorial-v2.css" -o /tmp/stage-d-css
+          grep -Fq '.insight-v2-decision-table' /tmp/stage-d-css
+          echo "LIVE_CSS_PASS"
+          curl -fLsS --max-time 25 "$PREFIX/qa-report.json" -o /tmp/stage-d-report.json
+          jq -e '.states==44 and (.errors|length)==0 and (.screenshots|length)==12' /tmp/stage-d-report.json >/dev/null
+          for LANG in en ru;do
+            for SIZE in desktop-1440 portrait-390 landscape-844;do
+              for PART in cover channel-matrix;do
+                PNG="$LANG-$SIZE-$PART.png"
+                curl -fLsS --max-time 30 "$PREFIX/screenshots/$PNG" -o "/tmp/$PNG"
+                file "/tmp/$PNG" | grep -Fq 'PNG image data'
+                echo "LIVE_PNG_PASS=$PNG"
+              done
+            done
+          done
+          echo "STAGE_D_CLOUDFLARE_HTTP_PROOF_PASS"

@@ -23,6 +23,18 @@
   }
   var article=document.querySelector('[data-insight-v2-article]');
   if(!article)return;
+  // Progressive keyboard support for Article 05 scrollable decision tables.
+  // Without JavaScript the tables retain native touch scroll and full text.
+  document.querySelectorAll('[data-ai-search-table][role="region"][tabindex="0"]').forEach(function(el){
+    el.addEventListener('keydown',function(event){
+      if(event.target!==el||(event.key!=='ArrowRight'&&event.key!=='ArrowLeft'))return;
+      var max=el.scrollWidth-el.clientWidth;
+      if(max<=1)return;
+      var before=el.scrollLeft;
+      el.scrollLeft=Math.max(0,Math.min(max,before+(event.key==='ArrowRight'?96:-96)));
+      if(el.scrollLeft!==before)event.preventDefault();
+    });
+  });
   var railLinks=[].slice.call(document.querySelectorAll('.insight-v2-rail a[href^="#"]'));
   var sections=railLinks.map(function(a){return document.querySelector(a.getAttribute('href'));}).filter(Boolean);
   if(!sections.length)return;

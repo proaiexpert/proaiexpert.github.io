@@ -1,0 +1,61 @@
+name: Insights Stage D Article 05 — independent Cloudflare live HTTP proof
+on:
+  push:
+    branches: [qa/insights-article05-stage-d-live-proof-r1]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Verify immutable Cloudflare owner-review URL, HTML, CSS, JS, PNGs and noindex
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO="proaiexpert/proaiexpert.github.io"
+          BRANCH="preview/insights-article05-stage-d-jekyll-r1"
+          HOST=""
+          for try in $(seq 1 65); do
+            SHA=$(curl -fLsS --connect-timeout 7 --max-time 14 "https://api.github.com/repos/$REPO/git/ref/heads/$BRANCH" | jq -r '.object.sha // empty' || true)
+            if [[ "$SHA" =~ ^[0-9a-f]{40}$ ]];then
+              CHECKS=$(curl -fLsS --connect-timeout 7 --max-time 14 "https://api.github.com/repos/$REPO/commits/$SHA/check-runs" || true)
+              HOST=$(printf '%s' "$CHECKS" | jq -r '.check_runs[]? | select(.name=="Cloudflare Pages" and .conclusion=="success") | .output.summary' | grep -Eo 'https://[0-9a-f]{8}\.proaiexpert-github-io\.pages\.dev' | head -1 || true)
+              if [ -n "$HOST" ];then break;fi
+            fi
+            sleep 8
+          done
+          [ -n "$HOST" ] || { echo "No proven immutable Cloudflare deploy";exit 1; }
+          echo "IMMUTABLE_DEPLOYMENT=$HOST"
+          BASE="$HOST/owner-preview/insights-article05-stage-d"
+          for PAGE_NAME in en.html ru.html article04-en.html article04-ru.html; do
+            URL="$BASE/$PAGE_NAME"
+            curl -fLsS --connect-timeout 8 --max-time 24 "$URL" -o "/tmp/$PAGE_NAME"
+            curl -fsSI --max-time 17 "$URL" -o "/tmp/$PAGE_NAME.headers"
+            grep -Eiq '^x-robots-tag: *noindex' "/tmp/$PAGE_NAME.headers"
+            grep -Fq 'data-home-footer-golden-r3' "/tmp/$PAGE_NAME"
+            ! grep -Fq '{%' "/tmp/$PAGE_NAME"
+            ! grep -Fq '{{' "/tmp/$PAGE_NAME"
+            grep -Fq 'rel="canonical"' "/tmp/$PAGE_NAME"
+            grep -Fq 'hreflang="ru"' "/tmp/$PAGE_NAME"
+            if [[ "$PAGE_NAME" == en.html || "$PAGE_NAME" == ru.html ]];then
+              [ "$(grep -o 'class="insight-v2-decision-table"' "/tmp/$PAGE_NAME" | wc -l)" -eq 3 ]
+              grep -Fq 'OAI-SearchBot' "/tmp/$PAGE_NAME"
+              grep -Fq 'datePublished' "/tmp/$PAGE_NAME"
+              grep -Fq 'data-ai-search-table' "/tmp/$PAGE_NAME"
+              grep -Fq '2026-10-11' "/tmp/$PAGE_NAME"
+            fi
+            echo "LIVE_ARTICLE_PASS=$URL"
+          done
+          curl -fLsS --max-time 24 "$HOST/assets/js/insights-editorial-v2.js" -o /tmp/stage-d-v2.js
+          grep -Fq 'data-ai-search-table' /tmp/stage-d-v2.js
+          curl -fLsS --max-time 24 "$HOST/assets/css/insights-editorial-v2.css" -o /tmp/stage-d-v2.css
+          grep -Fq 'insight-v2-decision-table' /tmp/stage-d-v2.css
+          curl -fLsS --max-time 20 "$BASE/qa-results.json" -o /tmp/stage-d-qa.json
+          jq -e '.states==28 and (.errors|length)==0 and (.screenshots|length)>=7' /tmp/stage-d-qa.json >/dev/null
+          for SHOT in article05-en-desktop-1440.png article05-ru-desktop-1440.png article05-ru-portrait-320.png article05-en-portrait-390.png article05-ru-portrait-390.png article05-en-landscape-844.png article05-ru-landscape-844.png;do
+            curl -fLsS --max-time 30 "$BASE/screenshots/$SHOT" -o "/tmp/$SHOT"
+            file "/tmp/$SHOT" | grep -Fq 'PNG image data'
+            echo "LIVE_SCREENSHOT_PASS=$SHOT"
+          done
+          echo "STAGE D ARTICLE 05 LIVE CLOUDFLARE PROOF: PASS"

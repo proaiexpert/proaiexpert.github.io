@@ -43,7 +43,9 @@ jobs:
             assert '"datePublished":"2026-04-20"' in s
             assert '"dateModified":"2026-10-11"' in s
             print('STAGED_SEO_INSPECT', lang, {'h2':s.count('<h2 id='),'table':s.count('class="insight-v2-decision-table"'),'related':('data-related-decisions' in s),'schema':('"dateModified":"2026-10-11"' in s)},flush=True)
-            assert s.count('<h2 id=')==10, (lang,'h2',s.count('<h2 id='))
+            chapter_ids = ["channel-boundaries","crawl-and-eligibility","evidence-matrix","service-architecture","local-visibility","measurement","action-plan","worked-example","sources","decision"]
+            assert all(s.count('<h2 id="'+anchor+'"') == 1 for anchor in chapter_ids), (lang, 'chapter ID integrity')
+            assert all(s.count('href="#'+anchor+'"') >= 2 for anchor in chapter_ids), (lang, 'toc/rail links')
             assert s.count('<link rel="canonical"')==1
             assert 'hreflang="ru"' in s and 'hreflang="en"' in s
             for href in ("https://developers.google.com/search/docs/fundamentals/ai-optimization-guide","https://developers.openai.com/api/docs/bots","https://support.google.com/business/answer/7091"):

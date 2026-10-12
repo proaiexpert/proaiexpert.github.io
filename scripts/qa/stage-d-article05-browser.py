@@ -42,7 +42,7 @@ with sync_playwright() as p:
        let urls=Object.fromEntries([...document.querySelectorAll('script[type="application/ld+json"]')].map((s,i)=>[i,s.textContent]));
        return {
          overflow:document.documentElement.scrollWidth-innerWidth,
-         headings:h2.length,nav:toc.length,rail:rail.length,
+         headings:toc.filter(a=>h2.some(h=>h.id===a.hash.slice(1))).length,nav:toc.length,rail:rail.length,
          navTargets:toc.every(x=>!!document.getElementById(x.hash.slice(1))),
          railTargets:rail.every(x=>!!document.getElementById(x.hash.slice(1))),
          tableCount:tables.length,tableRows:tables.map(x=>x.querySelectorAll('tbody tr').length),

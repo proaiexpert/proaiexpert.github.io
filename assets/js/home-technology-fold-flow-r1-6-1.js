@@ -6,7 +6,7 @@ var names=['handoff','understand','orchestrate','communicate','deliver','resolve
 var forward=[.105,.32,.515,.70,.865];
 var backward=[.097,.312,.507,.692,.857];
 var reduce=matchMedia('(prefers-reduced-motion: reduce)');
-var headerGuardMedia=matchMedia('(max-width:1080px) and (orientation:landscape) and (max-height:540px)');
+var headerGuardMedia=matchMedia('(max-width:1080px)');
 var states=new WeakMap();
 var mobileCarrierMedia=matchMedia('(max-width:700px) and (orientation:portrait)');
 var laptopCarrierMedia=matchMedia('(min-width:961px) and (max-width:1600px) and (min-height:541px)');
@@ -34,8 +34,14 @@ function stageFor(section,p){
 }
 function getStickyHeight(section){var sticky=section.querySelector('.home-tech-ff__sticky');var h=sticky?sticky.getBoundingClientRect().height:0;return Math.max(1,h||innerHeight)}
 function syncHeaderGuard(section){
-  if(headerGuardMedia.matches)section.setAttribute('data-header-autohide-guard','technology-landscape');
-  else section.removeAttribute('data-header-autohide-guard');
+  /* The STORY is the guard, not the whole Technology section: immersive
+     ownership ends as soon as its actual scroll chapter leaves the viewport.
+     Shared Header System still reveals navigation for explicit menu/focus. */
+  var story=section.querySelector('[data-ff-story]');
+  section.removeAttribute('data-header-autohide-guard');
+  if(!story)return;
+  if(headerGuardMedia.matches&&!reduce.matches)story.setAttribute('data-header-autohide-guard','technology-r161');
+  else story.removeAttribute('data-header-autohide-guard');
 }
 function getFoldEntry(section){var raw=parseFloat(getComputedStyle(section).getPropertyValue('--ff-fold-entry'));return isFinite(raw)&&raw>14?raw:88}
 function ease(t){t=clamp(t,0,1);return t*t*(3-2*t)}

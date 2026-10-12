@@ -42,6 +42,20 @@ jobs:
           python3 -m http.server 8787 --bind 127.0.0.1 --directory _site > /tmp/connected-r2-http.log 2>&1 &
           sleep 3
           node scripts/qa/connected-system-r2-qa.mjs
+      - name: Public Cloudflare EN/RU branch preview smoke
+        if: always()
+        shell: bash
+        run: |
+          base='https://agent-proai-connected-system.proaiexpert-github-io.pages.dev'
+          for route in '/owner-preview/connected-system-r2/' '/owner-preview/connected-system-r2/ru/'; do
+            file="$(mktemp)"
+            curl --fail --location --silent --show-error --retry 8 --retry-delay 3 --retry-all-errors "${base}${route}" -o "$file"
+            grep -Fq 'data-connected-next' "$file"
+            grep -Fq 'homepage-connected-system-r142.js?v=connected-r2-review-20261011' "$file"
+            grep -Fq 'noindex, nofollow' "$file"
+            echo "Hosted owner route verified: ${base}${route}"
+            rm "$file"
+          done
       - name: Preserve browser evidence
         if: always()
         uses: actions/upload-artifact@v4

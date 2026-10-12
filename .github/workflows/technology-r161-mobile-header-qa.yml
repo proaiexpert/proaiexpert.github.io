@@ -9,7 +9,13 @@ permissions:
 jobs:
   real-homepage-browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 24
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [portrait, landscape, desktop]
+    env:
+      R161_QA_GROUP: ${{ matrix.group }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -33,6 +39,6 @@ jobs:
       - if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: technology-r161-mobile-viewport-real-homepage-qa
+          name: technology-r161-mobile-viewport-${{ matrix.group }}-qa
           path: r161-mobile-repair-evidence/
           if-no-files-found: warn

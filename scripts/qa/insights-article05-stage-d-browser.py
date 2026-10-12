@@ -45,7 +45,7 @@ def audit(page,engine,lang,size):
  const tables=a('.insight-v2-decision-table');
  const wrappers=a('.insight-v2-table-wrap');
  const links=a('.insight-v2__prose a[href]');
- const titleIds=a('.insight-v2__prose h2[id]').map(n=>n.id);
+ const titleIds=a('.insight-v2__prose h2[id]:not(#related-decisions-heading)').map(n=>n.id);
  const tocIds=a('.insight-v2-contents a[href^="#"]').map(n=>n.getAttribute('href').slice(1));
  const railIds=a('.insight-v2-rail a[href^="#"]').map(n=>n.getAttribute('href').slice(1));
  const meta=q('meta[name="description"]')?.content||'';

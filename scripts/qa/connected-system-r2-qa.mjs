@@ -52,7 +52,7 @@ async function testBrowser(engine,engineName){
         assert.equal(res?.status(),200,url);
         const root=page.locator('[data-connected-next]');
         assert.equal(await root.count(),1,'one Connected System');
-        const next=page.locator('[data-tw-r2]');
+        const next=page.locator('[data-tw-r5]');
         assert.equal(await next.count(),1,'one Two Worlds section');
         const got=[];
         for(let i=0;i<progress.length;i++){

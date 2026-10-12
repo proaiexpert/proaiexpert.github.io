@@ -35,13 +35,14 @@ with sync_playwright() as p:
      d=page.evaluate("""()=>{
        let main=document.querySelector('.insight-v2-article'),tables=[...document.querySelectorAll('.insight-v2-table-wrap')];
        let by=document.querySelector('.insight-v2-author');
-       let l=main.querySelector('.insights-v2__prose');
+       let l=document.querySelector('[data-insight-v2-prose]');
        let h2=[...l.querySelectorAll('h2[id]')];
        let toc=[...document.querySelectorAll('.insight-v2-contents a[href^="#"]')];
        let rail=[...document.querySelectorAll('.insight-v2-rail a[href^="#"]')];
        let urls=Object.fromEntries([...document.querySelectorAll('script[type="application/ld+json"]')].map((s,i)=>[i,s.textContent]));
        return {
          overflow:document.documentElement.scrollWidth-innerWidth,
+         proseWithinArticle:main.contains(l),
          headings:toc.filter(a=>h2.some(h=>h.id===a.hash.slice(1))).length,nav:toc.length,rail:rail.length,
          navTargets:toc.every(x=>!!document.getElementById(x.hash.slice(1))),
          railTargets:rail.every(x=>!!document.getElementById(x.hash.slice(1))),
@@ -61,6 +62,7 @@ with sync_playwright() as p:
      }""")
      rows.append({"engine":engine,"size":name,"lang":lang,**d})
      if d["overflow"]>1:fail.append(f"{engine}:{name}:{lang}:document-overflow={d['overflow']}")
+     if not d['proseWithinArticle']:fail.append(f"{engine}:{name}:{lang}:prose-not-inside-article")
      if d["headings"]!=10 or d["nav"]!=10 or d["rail"]!=10 or not d["navTargets"] or not d["railTargets"]:fail.append(f"{engine}:{name}:{lang}:TOC/rail")
      if d["tableCount"]!=3 or d["tableRows"]!=[4,5,3] or not d["tableHeaders"] or not d["focusable"]:fail.append(f"{engine}:{name}:{lang}:accessible-tables")
      if w<900 and not all(d["scrollable"]):fail.append(f"{engine}:{name}:{lang}:tables-must-scroll")

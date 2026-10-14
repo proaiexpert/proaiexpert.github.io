@@ -23,13 +23,14 @@ async function auditOne(locale,view) {
   const label=locale+'-'+view.key;
   const context=await browser.newContext({viewport:{width:view.width,height:view.height},reducedMotion:'no-preference',javaScriptEnabled:true});
   const page=await context.newPage();
+  page.setDefaultTimeout(12000);
   const errors=[];
   page.on('pageerror',e=>errors.push(String(e.message)));
   try {
     const url=base+(locale==='ru'?'/ru/ai-systems/':'/ai-systems/');
     const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000});
     assert.equal(response.status(),200,'HTTP');
-    await page.waitForFunction(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid!=='pending',{timeout:15000});
+    await page.waitForFunction(()=>{const el=document.querySelector('[data-r4-runtime]');return !!el && el.dataset.runtimeValid!=='pending';},null,{timeout:10000});
     const valid=await page.locator('[data-r4-runtime]').getAttribute('data-runtime-valid');
     assert.equal(valid,'true','reference runtime source binding');
     assert.equal(await page.locator('h1').count(),1,'H1');
@@ -51,7 +52,7 @@ async function auditOne(locale,view) {
     assert.equal(topInfo.schema.length,1,'one JSON-LD graph');
     assert.deepEqual(topInfo.schema[0],['WebPage','Service'],'main graph maintained');
     if(view.width>=1280||view.width===390||view.width===844) {
-      await page.screenshot({path:path.join(dir,label+'-hero.png'),animations:'disabled'});
+      await page.screenshot({path:path.join(dir,label+'-hero.png'),animations:'disabled',timeout:7000});
     }
     // The fixture executes inside the Chromium document; Node is not the document.
     const trace=await page.evaluate(async()=>{
@@ -91,11 +92,11 @@ async function auditOne(locale,view) {
     assert.equal(await page.locator('[data-r4-runtime]').getAttribute('data-runtime-state'),'action','fast scroll final state');
     assert.equal(errors.length,0,'JS errors: '+errors.join(' | '));
     if(view.width===390) {
-       await page.locator('[data-r4-runtime]').screenshot({path:path.join(dir,label+'-runtime.png'),animations:'disabled',timeout:20000});
+       await page.locator('[data-r4-runtime]').screenshot({path:path.join(dir,label+'-runtime.png'),animations:'disabled',timeout:7000,timeout:20000});
     }
     report.cases.push({label,status:'PASS',width:view.width,height:view.height,traceEvents:trace.length,checkedEvents:eventNames,topInfo});
     console.log('PASS',label);
-  }catch(e){fail(label,e);report.cases.push({label,status:'FAIL',error:String(e.message||e)});try{await page.screenshot({path:path.join(dir,label+'-failure.png'),animations:'disabled'})}catch{}}
+  }catch(e){fail(label,e);report.cases.push({label,status:'FAIL',error:String(e.message||e)});try{await page.screenshot({path:path.join(dir,label+'-failure.png'),animations:'disabled',timeout:7000})}catch{}}
   finally{await context.close();}
 }
 for(const locale of ['en','ru']) for(const view of cases) await auditOne(locale,view);
@@ -105,7 +106,7 @@ for(const locale of ['en','ru']) {
   const p=await ctx.newPage();
   try{
     await p.goto(base+(locale==='ru'?'/ru/ai-systems/':'/ai-systems/'),{waitUntil:'domcontentloaded'});
-    await p.waitForFunction(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid==='true');
+    await p.waitForFunction(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeValid==='true',null,{timeout:10000});
     assert.equal(await p.locator('[data-ai-r4-page]').getAttribute('data-motion'),'reduced');
     assert.equal(await p.locator('[data-r4-runtime]').getAttribute('data-runtime-state'),'action');
     report.cases.push({label,status:'PASS'});

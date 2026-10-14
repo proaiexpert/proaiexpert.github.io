@@ -18,7 +18,7 @@ for path in paths:
     assert "TEMPORARY VISUAL AUTHORITY" not in doc, (path, "temporary label")
     assert "data-temporary-visual-authority" not in doc, (path, "temporary attribute")
     assert "\\n<link" not in doc, (path, "literal backslash n")
-    assert len(re.findall(r"<h1\\b", doc)) == 1, (path, "H1")
+    assert len(re.findall(r"<h1\b", doc)) == 1, (path, "H1")
     for token in ("operational-register", "reference-implementation", "ai-r4-evidence-section",
                   "ai-r4-spine-section", "ai-r4-endpoint", "ai-r5-proof-links",
                   "ai-r5-use-case", "ai-r5-insights"):
@@ -28,7 +28,7 @@ for path in paths:
     assert re.search(r'<link rel="canonical" href="https://proai-expert.com/(?:ru/)?ai-systems/"', doc), (path, "canonical")
     for language in ("en","ru","x-default"):
         assert re.search(r'<link rel="alternate" hreflang="'+language+'"',doc), (path, language)
-    scripts = re.findall(r'<script type="application/ld\\+json">([\\s\\S]*?)</script>', doc)
+    scripts = re.findall(r'<script type="application/ld\+json">([\s\S]*?)</script>', doc)
     assert len(scripts) == 1, (path, "single JSONLD")
     graph = json.loads(scripts[0])
     nodes = graph["@graph"]

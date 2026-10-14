@@ -314,6 +314,9 @@ def main() -> int:
     rendered_inner = 0
     if site_root.is_dir():
         for path in site_root.rglob("*.html"):
+            # Owner previews are independent noindex artifacts, not commercial route inventory.
+            if "owner-preview" in path.relative_to(site_root).parts:
+                continue
             try:
                 if "proai-inner-golden-r1" in path.read_text(encoding="utf-8", errors="replace"):
                     rendered_inner += 1

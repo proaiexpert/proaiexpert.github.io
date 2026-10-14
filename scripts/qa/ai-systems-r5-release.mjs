@@ -76,18 +76,21 @@ async function auditOne(locale,view) {
         const travel=Math.max(1,el.getBoundingClientRect().height-(window.visualViewport?.height||window.innerHeight));
         window.scrollTo({top:top+travel*p,behavior:'instant'});
       },center);
-      await page.waitForTimeout(85);
+      const expectedState=name.toLowerCase().replaceAll('_','-');
+      await page.waitForFunction(expected => document.querySelector('[data-r4-runtime]')?.dataset.runtimeState===expected, expectedState, {timeout:2500});
       const state=await page.locator('[data-r4-runtime]').getAttribute('data-runtime-state');
       const active=await page.locator('[data-runtime-ledger] [aria-current="step"]').count();
       assert.equal(state,name.toLowerCase().replaceAll('_','-'),label+' visual runtime event '+name+' observed '+state);
       assert.equal(active,1,name+' ledger active state');
+      assert.ok(await page.locator('[data-runtime-active-title]').isVisible(),name+' active visual title visible');
+      assert.ok(await page.locator('[data-runtime-ledger] [aria-current="step"]').isVisible(),name+' active ledger row visible');
     }
     // Reverse after ACTION, then fast scroll back to the end: no invalid or stuck state.
     await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
-    await page.waitForTimeout(100);
+    await page.waitForFunction(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeState==='incoming-request',null,{timeout:2500});
     assert.equal(await page.locator('[data-r4-runtime]').getAttribute('data-runtime-state'),'incoming-request','reverse scroll state');
     await page.evaluate(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'instant'}));
-    await page.waitForTimeout(140);
+    await page.waitForFunction(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeState==='action',null,{timeout:2500});
     assert.equal(await page.locator('[data-r4-runtime]').getAttribute('data-runtime-valid'),'true','fast scroll still valid');
     assert.equal(await page.locator('[data-r4-runtime]').getAttribute('data-runtime-state'),'action','fast scroll final state');
     assert.equal(errors.length,0,'JS errors: '+errors.join(' | '));

@@ -1,0 +1,47 @@
+name: AI Systems R5 Isolated Release QA
+on:
+  push:
+    branches:
+      - agent/ai-systems-r5-release-candidate-r1
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  r5-release-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout isolated release candidate
+        uses: actions/checkout@v4
+      - name: Verify unchanged Cube and reference tests
+        run: |
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          node --test tests/controlled-agent-reference.test.mjs
+      - name: Production-equivalent Jekyll build
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python3 scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python3 scripts/apply-social-preview-defaults.py --mode site --root _site
+          python3 scripts/apply-social-preview-defaults.py --mode check --root _site
+          python3 scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python3 scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python3 scripts/qa/ai-systems-r5-static.py
+      - name: Install Chromium for actual browser QA
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run EN/RU viewport and scroll Runtime browser matrix
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory _site > /tmp/ai-r5-server.log 2>&1 &
+          node scripts/qa/ai-systems-r5-release.mjs
+      - if: always()
+        name: Upload R5 independent QA evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-systems-r5-release-candidate-r1-qa
+          path: ai-systems-r5-qa/
+          if-no-files-found: warn

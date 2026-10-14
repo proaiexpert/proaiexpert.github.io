@@ -13,7 +13,7 @@ for path in paths:
     is_ru = "/ru/" in ("/" + path) or path.startswith("ru/")
     is_preview = path.startswith("owner-preview/")
     expected = "AI-системы и автоматизация бизнеса | ProAI Expert" if is_ru else "AI Systems & Business Automation | ProAI Expert"
-    assert "<title>" + expected + "</title>" in doc, (path, "title")
+    assert "<title>" + expected.replace("&", "&amp;") + "</title>" in doc, (path, "title")
     assert ('name="robots" content="noindex,nofollow"' in doc) == is_preview, (path, "robots")
     assert "TEMPORARY VISUAL AUTHORITY" not in doc, (path, "temporary label")
     assert "data-temporary-visual-authority" not in doc, (path, "temporary attribute")

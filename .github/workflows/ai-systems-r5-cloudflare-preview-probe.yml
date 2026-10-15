@@ -52,3 +52,16 @@ jobs:
           echo "PREVIEW_ROBOTS=noindex,nofollow"
           echo "PREVIEW_CSS_JS_BYTES_MATCH_GITHUB=true"
           sha256sum /tmp/ai-r5-preview-probe/r5.css /tmp/ai-r5-preview-probe/runtime.js
+      - name: Install Chromium for published Cloudflare browser QA
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Run published EN RU Cloudflare browser QA
+        run: node scripts/qa/ai-systems-r5-cloudflare.mjs
+      - if: always()
+        name: Upload Cloudflare rendered screenshots and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-systems-r5-cloudflare-rendered-evidence
+          path: ai-systems-r5-cloudflare-evidence/
+          if-no-files-found: warn

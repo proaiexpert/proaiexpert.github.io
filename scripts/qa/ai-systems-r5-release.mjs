@@ -67,6 +67,20 @@ async function auditOne(locale,view) {
     assert.ok(trace.indexOf('AUTHORITY_APPROVED')<trace.indexOf('ACTION'),'action ordering');
     const weights=trace.map(name=>name==='MACHINE_STOPPED'?4.6:name==='HUMAN_AUTHORITY_REQUIRED'?1.45:name==='AUTHORITY_APPROVED'?1.35:1);
     const total=weights.reduce((a,b)=>a+b,0);
+    // Read the browser's DOM state directly before arming Playwright polling.
+    // Geometry evidence showed that waitForFunction can time out on an ALREADY
+    // correct state under browser load; that is a harness false-negative.
+    // A mismatching state is still required to transition or fail explicitly.
+    const readRuntimeState=()=>page.evaluate(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeState);
+    const requireRuntimeState=async(expected)=>{
+      const immediate=await readRuntimeState();
+      if(immediate!==expected){
+        await page.waitForFunction(state=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeState===state,expected,{timeout:2500});
+      }
+      const actual=await readRuntimeState();
+      assert.equal(actual,expected,label+' stable browser runtime state');
+      return actual;
+    };
     // Stabilize web fonts before mapping narrow (often 40px) scroll-state intervals.
     // Browser QA explicitly positions the viewport; it does not emulate finger momentum.
     await page.evaluate(async()=>{await document.fonts.ready;});
@@ -96,7 +110,7 @@ async function auditOne(locale,view) {
       try {
         assert.ok(Math.abs(geometry.after.progress-center)<=progressTolerance,
           label+' scroll geometry '+name+': '+JSON.stringify({expected:center,tolerance:progressTolerance,geometry}));
-        await page.waitForFunction(expected => document.querySelector('[data-r4-runtime]')?.dataset.runtimeState===expected, expectedState, {timeout:2500});
+        await requireRuntimeState(expectedState);
       } catch(error) {
         const runtimeDetails=await page.evaluate(()=>{
           const runtime=document.querySelector('[data-r4-runtime]');
@@ -121,10 +135,10 @@ async function auditOne(locale,view) {
     }
     // Reverse after ACTION, then fast scroll back to the end: no invalid or stuck state.
     await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
-    await page.waitForFunction(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeState==='incoming-request',null,{timeout:2500});
+    await requireRuntimeState('incoming-request');
     assert.equal(await page.locator('[data-r4-runtime]').getAttribute('data-runtime-state'),'incoming-request','reverse scroll state');
     await page.evaluate(()=>window.scrollTo({top:document.body.scrollHeight,behavior:'instant'}));
-    await page.waitForFunction(()=>document.querySelector('[data-r4-runtime]')?.dataset.runtimeState==='action',null,{timeout:2500});
+    await requireRuntimeState('action');
     assert.equal(await page.locator('[data-r4-runtime]').getAttribute('data-runtime-valid'),'true','fast scroll still valid');
     assert.equal(await page.locator('[data-r4-runtime]').getAttribute('data-runtime-state'),'action','fast scroll final state');
     assert.equal(errors.length,0,'JS errors: '+errors.join(' | '));

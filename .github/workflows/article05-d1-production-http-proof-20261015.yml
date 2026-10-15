@@ -1,0 +1,66 @@
+name: Article 05 Stage D.1 — official production HTTP proof
+
+on:
+  push:
+    branches:
+      - qa/insights-article05-d1-production-http-20261015
+
+permissions:
+  contents: read
+
+jobs:
+  live-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Verify official EN RU Article 05, metadata and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="https://proai-expert.com"
+          EN="/insights/ai-search-optimization-for-service-businesses/"
+          RU="/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/"
+          mkdir -p /tmp/article05
+          success=0
+          for attempt in $(seq 1 12); do
+            echo "PRODUCTION_POLL attempt=$attempt"
+            curl -fLsS --connect-timeout 12 --max-time 30 -H 'Cache-Control: no-cache' "$ROOT$EN" -o /tmp/article05/en.html || true
+            curl -fLsS --connect-timeout 12 --max-time 30 -H 'Cache-Control: no-cache' "$ROOT$RU" -o /tmp/article05/ru.html || true
+            if [ -f /tmp/article05/en.html ] && [ -f /tmp/article05/ru.html ] && \
+              grep -Fq 'AI Overviews and AI Mode are not identical interfaces' /tmp/article05/en.html && \
+              grep -Fq 'AI Overviews и AI Mode — не одно и то же' /tmp/article05/ru.html && \
+              grep -Fq 'Generative AI performance report (Search)' /tmp/article05/en.html && \
+              grep -Fq 'Generative AI performance report (Search)' /tmp/article05/ru.html && \
+              grep -Fq 'Settings → Search generative AI' /tmp/article05/en.html && \
+              grep -Fq 'Settings → Search generative AI' /tmp/article05/ru.html; then
+              success=1;break
+            fi
+            sleep 10
+          done
+          if [[ $success -ne 1 ]];then echo 'LIVE_ARTICLE_05_D1_NOT_READY';exit 1;fi
+          python - <<'PY'
+          from pathlib import Path
+          en=Path('/tmp/article05/en.html').read_text()
+          ru=Path('/tmp/article05/ru.html').read_text()
+          for lang,html,expected_url,other_url in [
+            ('en',en,'https://proai-expert.com/insights/ai-search-optimization-for-service-businesses/','/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/'),
+            ('ru',ru,'https://proai-expert.com/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/','/insights/ai-search-optimization-for-service-businesses/')
+          ]:
+            assert '<html' in html,lang
+            assert '{%' not in html and '{{' not in html,(lang,'unrendered Liquid')
+            assert '<link rel="canonical" href="'+expected_url+'"' in html,(lang,'canonical')
+            assert other_url in html,(lang,'counterpart')
+            assert '"@type":"Article"' in html,(lang,'article structured data')
+            assert '"@type":"BreadcrumbList"' in html,(lang,'breadcrumb')
+            assert '2026-10-11' in html,(lang,'modified date')
+            assert 'OAI-SearchBot' in html,(lang,'bot')
+            assert 'data-ai-search-table' in html,(lang,'tables')
+            assert 'insights-editorial-v2.js?v=20261011-article05-table-keys-r1' in html,(lang,'js')
+            assert 'rel="author"' in html,(lang,'author')
+            print('OFFICIAL_ARTICLE_05_'+lang.upper()+'_PASS',expected_url,len(html))
+          PY
+          curl -fLsS --max-time 30 "$ROOT/assets/js/insights-editorial-v2.js?v=20261011-article05-table-keys-r1" -o /tmp/article05/site-js.txt
+          grep -Fq 'data-ai-search-table' /tmp/article05/site-js.txt
+          curl -fLsS --max-time 30 "$ROOT/assets/css/insights-editorial-v2.css?v=folio-standard-r1" -o /tmp/article05/site-css.txt
+          grep -Fq 'insight-v2' /tmp/article05/site-css.txt
+          echo 'ARTICLE05_STAGE_D1_PRODUCTION_HTTP_PASS'

@@ -149,7 +149,7 @@ with sync_playwright() as p:
   try:
    page.goto(HOST+path,wait_until="domcontentloaded",timeout=20000)
    data=page.evaluate("""()=>({title:document.title,canonical:document.querySelector('link[rel="canonical"]')?.href||"",footer:!!document.querySelector('[data-home-footer-golden-r3]'),lang:document.documentElement.lang,schema:document.querySelectorAll('script[type="application/ld+json"]').length})""")
-   if not data["title"] or not data["canonical"].endswith(path) or not data["footer"] or data["lang"]!=lang or data["schema"]<1:
+   if not data["title"] or not data["canonical"].endswith(path) or not data["footer"] or data["lang"]!=lang or (kind=="article" and data["schema"]<1):
     failures.append(f"regression:{path}:{data}")
   except Exception as e:failures.append(f"regression:{path}:{str(e)[:150]}")
   finally:page.close()

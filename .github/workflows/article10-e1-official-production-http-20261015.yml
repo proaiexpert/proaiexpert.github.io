@@ -1,0 +1,68 @@
+name: Insights Article 10 Stage E.1 — Official Production HTTP Proof
+
+on:
+  push:
+    branches:
+      - qa/article10-e1-production-http-20261015
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check live Article 10 EN RU, schema, related and CSS
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="https://proai-expert.com"
+          EN="/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/"
+          RU="/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/"
+          mkdir -p /tmp/proof
+          ready=0
+          for attempt in $(seq 1 12); do
+            echo "RELEASE_POLL attempt=$attempt"
+            curl -fLsS --connect-timeout 12 --max-time 30 -H 'Cache-Control: no-cache' "$ROOT$EN" -o /tmp/proof/en.html || true
+            curl -fLsS --connect-timeout 12 --max-time 30 -H 'Cache-Control: no-cache' "$ROOT$RU" -o /tmp/proof/ru.html || true
+            if [[ -f /tmp/proof/en.html && -f /tmp/proof/ru.html ]] && \
+                grep -Fq 'Conversion Evidence Chain' /tmp/proof/en.html && \
+                grep -Fq 'Цепочка доказательств конверсии' /tmp/proof/ru.html && \
+                grep -Fq 'article-v2-intermediate-signal-r1' /tmp/proof/en.html && \
+                grep -Fq 'article-v2-intermediate-signal-r1' /tmp/proof/ru.html;then
+              ready=1;break
+            fi
+            sleep 10
+          done
+          if [[ "$ready" != "1" ]];then echo 'ARTICLE10_OFFICIAL_RELEASE_NOT_READY';exit 1;fi
+          python - <<'PY'
+          from pathlib import Path
+          data=[
+          ("EN",Path("/tmp/proof/en.html").read_text(),"https://proai-expert.com/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/","/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/"),
+          ("RU",Path("/tmp/proof/ru.html").read_text(),"https://proai-expert.com/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/","/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/")]
+          for lang,html,url,counterpart in data:
+            assert "<html" in html and "{%" not in html and "{{" not in html,(lang,"jekyll")
+            assert '<link rel="canonical" href="'+url+'"' in html,(lang,"canonical")
+            assert counterpart in html,(lang,"hreflang")
+            assert '"@type":"Article"' in html and '"@type":"BreadcrumbList"' in html,(lang,"schema")
+            assert "2026-04-05" in html and "2026-10-15" in html,(lang,"dates")
+            assert "data-insight-v2-article" in html,(lang,"article-layout")
+            assert "insight-v2-rail" in html,(lang,"toc")
+            assert "<table" in html,(lang,"tables")
+            assert "rel=\"author\"" in html,(lang,"author")
+            assert "20261011-article05-table-keys-r1" in html,(lang,"shared-js")
+            assert "websites-branding/" in html,(lang,"service-path")
+            assert "project-intake" in html,(lang,"intake")
+            assert "insights/related-decisions" not in html,(lang,"no liquid leftovers")
+            print("ARTICLE10_LIVE_"+lang+"_PASS",url,len(html))
+          PY
+          curl -fLsS --max-time 30 "$ROOT/assets/css/insights-editorial-v2.css?v=article-v2-intermediate-signal-r1" -o /tmp/proof/css
+          grep -Fq 'min-width:981px' /tmp/proof/css
+          grep -Fq 'max-width:1180px' /tmp/proof/css
+          grep -Fq 'calc(100% - 102px)' /tmp/proof/css
+          echo "ARTICLE10_LIVE_CSS_PASS"
+          curl -fLsS --max-time 30 "$ROOT/insights/ai-search-optimization-for-service-businesses/" -o /tmp/proof/article05.html
+          grep -Fq 'Generative AI performance report (Search)' /tmp/proof/article05.html
+          echo "ARTICLE05_REGRESSION_SMOKE_PASS"
+          echo "ARTICLE10_STAGE_E1_OFFICIAL_PRODUCTION_FULL_PASS"

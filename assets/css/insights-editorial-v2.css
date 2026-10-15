@@ -836,3 +836,14 @@ body.insights-v2--hub::after{display:none}
   }
   .insight-v2-readiness-boundary .insight-v2-boundary:first-child{border-top:0}
 }
+
+/* Article V2 intermediate-viewport integrity:
+   The editorial signal field has a left offset (102px) below 1180px.
+   At 981–1180px, its unadjusted 100% width overflows the viewport when zoomed.
+   Preserve the three-column signal composition, but subtract its existing offset.
+   This corrects the shared Article V2 system without clipping meaningful content. */
+@media (min-width:981px) and (max-width:1180px){
+  .insights-v2--article .insight-v2-signal{
+    width:min(100%,calc(100% - 102px));
+  }
+}

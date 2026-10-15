@@ -1,7 +1,7 @@
 name: Insights Stage E.1 Article 10 — Jekyll Editorial Browser QA and Owner Preview
 on:
   push:
-    branches: [qa/insights-article10-stage-d-owner-r1]
+    branches: [qa/insights-article10-stage-e1-owner-r1]
   workflow_dispatch:
 permissions:
   contents: write
@@ -65,12 +65,12 @@ jobs:
         shell: bash
         run: |
           python -m http.server 4185 --directory _site >/tmp/article10-http.log 2>&1 &
-          python scripts/qa/insights-article10-stage-d-browser.py
+          python scripts/qa/insights-article10-stage-e1-browser.py
       - name: Publish four evidence routes and immutable Jekyll Owner Preview
         shell: bash
         run: |
           set -euo pipefail
-          DST=owner-preview/insights-article10-stage-d
+          DST=owner-preview/insights-article10-stage-e1
           mkdir -p "$DST/screenshots"
           cp _site/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/index.html "$DST/en.html"
           cp _site/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/index.html "$DST/ru.html"
@@ -81,25 +81,25 @@ jobs:
           printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > _headers
           python - <<'PY'
           from pathlib import Path
-          d=Path("owner-preview/insights-article10-stage-d")
+          d=Path("owner-preview/insights-article10-stage-e1")
           for n in ("en.html","ru.html","article04-en.html","article04-ru.html"):
             s=(d/n).read_text()
             assert '{%' not in s and '{{' not in s,n
             assert 'data-home-footer-golden-r3' in s,n
           assert len(list((d/"screenshots").glob("*.png")))>=22
-          print('STAGE D JEKYLL OWNER PREVIEW PACKAGE PASS')
+          print('STAGE E.1 JEKYLL OWNER PREVIEW PACKAGE PASS')
           PY
           git config user.name "proai-qa-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -B preview/insights-article10-stage-d-jekyll-r1
+          git checkout -B preview/insights-article10-stage-e1-jekyll-r1
           git add _headers "$DST"
           git commit -m "QA only: rendered Stage E.1 Article 10 bilingual Owner Preview and browser evidence"
-          git push origin HEAD:refs/heads/preview/insights-article10-stage-d-jekyll-r1
+          git push origin HEAD:refs/heads/preview/insights-article10-stage-e1-jekyll-r1
       - name: Store QA evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: insights-article10-stage-d-qa
+          name: insights-article10-stage-e1-qa
           path: qa-stage-e1/
           retention-days: 21
           if-no-files-found: warn

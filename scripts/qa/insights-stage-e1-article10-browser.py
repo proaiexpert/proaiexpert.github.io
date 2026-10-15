@@ -157,6 +157,41 @@ with sync_playwright() as p:
      failures.append(f"{engine}:{lang}:{size}:{type(e).__name__}: {str(e)[:240]}")
     finally:page.close()
    context.close()
+  # Shared CSS changed: regression-check every earlier Article V2 page (01–05) in both languages,
+  # on both engines, at the 1024px and 1100px boundary widths.
+  regress=[
+    "/insights/what-happens-after-a-lead-arrives/",
+    "/insights/does-your-service-business-need-a-multilingual-website/",
+    "/insights/how-to-evaluate-a-website-proposal/",
+    "/insights/ai-ready-website-for-business/",
+    "/insights/ai-search-optimization-for-service-businesses/",
+    "/ru/insights/chto-proiskhodit-posle-zayavki/",
+    "/ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/",
+    "/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/",
+    "/ru/insights/ai-ready-sayt-dlya-biznesa/",
+    "/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/"
+  ]
+  for regression_width in (1024,1100):
+   cx=browser.new_context(viewport={"width":regression_width,"height":800},reduced_motion="reduce")
+   for route in regress:
+    pg=cx.new_page()
+    try:
+     pg.goto(HOST+route,wait_until="domcontentloaded",timeout=25000)
+     pg.wait_for_function("() => !!document.querySelector('.insight-v2-signal') && !!document.querySelector('.insight-v2-article__heading h1')",timeout=12000)
+     pg.wait_for_timeout(80)
+     r=pg.evaluate("""() => ({
+       overflow: Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth,
+       signalRight:Math.round(document.querySelector('.insight-v2-signal').getBoundingClientRect().right),
+       signalWidth:Math.round(document.querySelector('.insight-v2-signal').getBoundingClientRect().width),
+       h1:document.querySelector('h1')?.textContent.trim().slice(0,60),
+       cssLoaded:getComputedStyle(document.querySelector('.insight-v2-signal')).display==='grid'
+     })""")
+     if r["overflow"]>1 or r["signalRight"]>regression_width+1 or not r["cssLoaded"]:
+      failures.append(f"{engine}:Article01-05 regression:{route}:{regression_width}:{r}")
+    except Exception as exc:
+     failures.append(f"{engine}:Article01-05 regression:{route}:{regression_width}:{str(exc)[:180]}")
+    finally:pg.close()
+   cx.close()
   browser.close()
  # no-JS: article source text, contents, links, and tables must remain available
  browser=p.chromium.launch()

@@ -1,0 +1,134 @@
+name: Insights Stage E.1 Article 10 — Article V2 browser QA and owner preview
+on:
+  push:
+    branches: [qa/insights-stage-e1-article10-browser-r1]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  qualification:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Full Jekyll, shell, SEO and Insights V2 validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')";export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          import re,json
+          pages = {
+            "en": "insights/why-service-business-websites-fail-to-convert-high-intent-visitors/index.html",
+            "ru": "ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/index.html"
+          }
+          chapter_ids=["diagnosis","decision-path","diagnostic-ledger","ten-minute-triage","offer-and-fit","sequence-and-proof","contact-and-handoff","measurement","worked-example","decide-next","sources"]
+          for lang,path in pages.items():
+            html=(Path("_site")/path).read_text(encoding="utf-8")
+            src=Path(path).read_text(encoding="utf-8")
+            assert src.startswith("---\nlayout: insight-v2\n"),path
+            assert "layout: null" not in src and "<!DOCTYPE html>" not in src,path
+            assert "{%" not in html and "{{" not in html,path
+            assert html.count('rel="canonical"')==1,path
+            for locale in ("en","ru","x-default"): assert 'hreflang="'+locale+'"' in html,path
+            for marker in ("2026-04-05","2026-10-15","datePublished","dateModified","BreadcrumbList","Organization","article:published_time"):
+              assert marker in html,(path,marker)
+            assert 'data-home-footer-golden-r3' in html,path
+            assert html.count('class="insight-v2-decision-table"')==2,path
+            assert html.count('data-ai-search-table')==2,path
+            assert html.count('role="region" tabindex="0"')>=2,path
+            heads=re.findall(r'<h2[^>]*id="([^"]+)"',html)
+            assert all(heads.count(i)==1 for i in chapter_ids),path
+            for label in ("Conversion Evidence Chain","Search Console","generate_lead","https://web.dev/articles/optimize-inp"):
+              assert label in html or lang=="ru" and label=="Conversion Evidence Chain",(path,label)
+            assert 'related-decisions-heading' in html,path
+            for pathPart in ("websites-branding/","case-studies/local-repair-pro/","project-intake",
+               "what-happens-after-a-lead-arrives" if lang=="en" else "chto-proiskhodit-posle-zayavki",
+               "how-to-evaluate-a-website-proposal" if lang=="en" else "kak-proverit-predlozhenie"):
+              assert pathPart in html,(path,pathPart)
+            assert 'https://support.google.com/analytics/answer/9267735' in html,path
+            assert 'https://developers.google.com/search/docs/monitor-debug/search-console-start' in html,path
+            print("ARTICLE10 JEKYLL SEO AND INTERNAL LINKS PASS",lang,len(html))
+          data=Path("_data/insights.yml").read_text()
+          article=re.search(r'- id: conversion-architecture\n([\s\S]*?)(?=\n- id: website-cost)',data).group(1)
+          assert article.count('date_published: "2026-04-05"')==2
+          assert article.count('date_modified: "2026-10-15"')==2
+          assert "author_ref: proai" in article
+          # Broader Article V2 regression: five existing bilingual pages and Hub retain shells, canonicals and author JSON-LD
+          regression=[
+            "insights/what-happens-after-a-lead-arrives/",
+            "insights/does-your-service-business-need-a-multilingual-website/",
+            "insights/how-to-evaluate-a-website-proposal/",
+            "insights/ai-ready-website-for-business/",
+            "insights/ai-search-optimization-for-service-businesses/",
+            "ru/insights/chto-proiskhodit-posle-zayavki/",
+            "ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/",
+            "ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/",
+            "ru/insights/ai-ready-sayt-dlya-biznesa/",
+            "ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/",
+            "insights/","ru/insights/"
+          ]
+          for path in regression:
+            html=(Path("_site")/path/"index.html").read_text()
+            assert 'rel="canonical"' in html and 'hreflang="en"' in html and 'hreflang="ru"' in html,path
+            assert 'data-home-footer-golden-r3' in html,path
+            assert "{%" not in html and "{{" not in html,path
+          print("ARTICLE10 REGRESSION ARTICLE01–05 EN/RU AND HUB EN/RU PASS",len(regression))
+          PY
+      - name: Install Chromium and WebKit
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium webkit
+      - name: 44 responsive states plus no-JS and keyboard checks
+        shell: bash
+        run: |
+          python -m http.server 4185 --directory _site >/tmp/article10-http.log 2>&1 &
+          python scripts/qa/insights-stage-e1-article10-browser.py
+      - name: Publish isolated rendered Cloudflare Owner Preview and real screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          DST=owner-preview/insights-stage-e1-article10
+          mkdir -p "$DST/screenshots"
+          cp _site/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/index.html "$DST/article10-en.html"
+          cp _site/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/index.html "$DST/article10-ru.html"
+          cp qa-stage-e1/screenshots/*.png "$DST/screenshots/"
+          cp qa-stage-e1/results.json "$DST/qa-results.json"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > _headers
+          python - <<'PY'
+          from pathlib import Path
+          d=Path("owner-preview/insights-stage-e1-article10")
+          for name in ("article10-en.html","article10-ru.html"):
+            html=(d/name).read_text()
+            assert "{%" not in html and "{{" not in html
+            assert 'data-home-footer-golden-r3' in html
+            assert html.count('class="insight-v2-decision-table"')==2
+          assert len(list((d/"screenshots").glob("*.png")))>=12
+          print("STAGE E.1 JEKYLL OWNER PREVIEW PACKAGE PASS")
+          PY
+          git config user.name "proai-qa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B preview/insights-stage-e1-article10-jekyll-r1
+          git add _headers "$DST"
+          git commit -m "QA only: actual Stage E.1 Article 10 EN/RU Jekyll Owner Preview with browser evidence"
+          git push origin HEAD:refs/heads/preview/insights-stage-e1-article10-jekyll-r1
+      - name: Retain browser QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-stage-e1-article10-browser-qa
+          path: qa-stage-e1/
+          retention-days: 21
+          if-no-files-found: warn

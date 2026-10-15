@@ -1,0 +1,73 @@
+name: Insights Article 10 Stage E.1 — independent Cloudflare live HTTP proof
+on:
+  push:
+    branches: [qa/insights-article10-stage-e1-live-proof-r1]
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - name: Prove Cloudflare immutable Jekyll owner preview, HTML, CSS, JS, 25 PNGs and noindex
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO="proaiexpert/proaiexpert.github.io"
+          BRANCH="preview/insights-article10-stage-e1-jekyll-r1"
+          HOST=""
+          for attempt in $(seq 1 80); do
+            SHA=$(curl -fLsS --connect-timeout 8 --max-time 16 "https://api.github.com/repos/$REPO/git/ref/heads/$BRANCH" | jq -r '.object.sha // empty' || true)
+            if [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]; then
+              CHECKS=$(curl -fLsS --connect-timeout 8 --max-time 16 "https://api.github.com/repos/$REPO/commits/$SHA/check-runs" || true)
+              HOST=$(printf '%s' "$CHECKS" | jq -r '.check_runs[]? | select(.name=="Cloudflare Pages" and .conclusion=="success") | .output.summary' | grep -Eo 'https://[0-9a-f]{8}\.proaiexpert-github-io\.pages\.dev' | head -1 || true)
+              [ -z "$HOST" ] || break
+            fi
+            sleep 7
+          done
+          [ -n "$HOST" ] || { echo "Immutable Cloudflare deploy not confirmed"; exit 1; }
+          echo "IMMUTABLE_DEPLOYMENT=$HOST"
+          BASE="$HOST/owner-preview/insights-article10-stage-e1"
+          for NAME in en.html ru.html article04-en.html article04-ru.html;do
+            URL="$BASE/$NAME"
+            curl -fLsS --connect-timeout 8 --max-time 25 "$URL" -o "/tmp/$NAME"
+            curl -fsSI --max-time 20 "$URL" -o "/tmp/$NAME.headers"
+            grep -Eiq '^x-robots-tag: *noindex' "/tmp/$NAME.headers"
+            ! grep -Fq '{%' "/tmp/$NAME"
+            ! grep -Fq '{{' "/tmp/$NAME"
+            grep -Fq 'rel="canonical"' "/tmp/$NAME"
+            grep -Fq 'hreflang="ru"' "/tmp/$NAME"
+            grep -Fq 'data-home-footer-golden-r3' "/tmp/$NAME"
+            if [[ "$NAME" == en.html || "$NAME" == ru.html ]];then
+              [ "$(grep -o 'class="insight-v2-decision-table"' "/tmp/$NAME" | wc -l)" -eq 2 ]
+              grep -Fq 'data-ai-search-table' "/tmp/$NAME"
+              grep -Fq 'https://support.google.com/analytics/answer/9267735' "/tmp/$NAME"
+              grep -Fq 'https://developers.google.com/search/docs/monitor-debug/search-console-start' "/tmp/$NAME"
+              grep -Fq '2026-04-05' "/tmp/$NAME"
+              grep -Fq '2026-10-15' "/tmp/$NAME"
+              grep -Fq 'datePublished' "/tmp/$NAME"
+              grep -Fq 'project-intake' "/tmp/$NAME"
+              grep -Fq '/websites-branding/' "/tmp/$NAME"
+            fi
+            echo "LIVE_PAGE_PASS=$URL"
+          done
+          curl -fLsS --max-time 25 "$HOST/assets/js/insights-editorial-v2.js" -o /tmp/article10.js
+          grep -Fq 'data-ai-search-table' /tmp/article10.js
+          curl -fLsS --max-time 25 "$HOST/assets/css/insights-editorial-v2.css" -o /tmp/article10.css
+          grep -Fq 'insight-v2-decision-table' /tmp/article10.css
+          curl -fLsS --max-time 25 "$BASE/qa-results.json" -o /tmp/article10-results.json
+          jq -e '.states==40 and (.errors|length)==0 and (.screenshots|length)>=25' /tmp/article10-results.json >/dev/null
+          for LANG in en ru;do
+            for SIZE in desktop-1440 portrait-390 landscape-844;do
+              for PART in '' -diagnostic-ledger -ten-minute-triage -measurement;do
+                IMG="article10-$LANG-$SIZE$PART.png"
+                curl -fLsS --max-time 30 "$BASE/screenshots/$IMG" -o "/tmp/$IMG"
+                file "/tmp/$IMG" | grep -Fq 'PNG image data'
+                echo "LIVE_PNG_PASS=$IMG"
+              done
+            done
+          done
+          IMG="article10-ru-portrait-320.png"
+          curl -fLsS --max-time 30 "$BASE/screenshots/$IMG" -o "/tmp/$IMG"
+          file "/tmp/$IMG" | grep -Fq 'PNG image data'
+          echo "STAGE E.1 LIVE OWNER PREVIEW PASS"

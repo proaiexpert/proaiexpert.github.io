@@ -1,0 +1,68 @@
+name: Insights Stage E.1 Article 10 — independent immutable Cloudflare HTTP audit
+on:
+  push:
+    branches: [qa/insights-stage-e1-article10-live-proof-r1]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Validate served Jekyll Article 10 EN RU, links, noindex, CSS JS and all screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO="proaiexpert/proaiexpert.github.io"
+          PREVIEW="preview/insights-stage-e1-article10-jekyll-r1"
+          HOST=""
+          for try in $(seq 1 70); do
+            SHA=$(curl -fLsS --connect-timeout 8 --max-time 16 "https://api.github.com/repos/$REPO/git/ref/heads/$PREVIEW" | jq -r '.object.sha // empty' || true)
+            if [[ "$SHA" =~ ^[0-9a-f]{40}$ ]];then
+              J=$(curl -fLsS --connect-timeout 8 --max-time 16 "https://api.github.com/repos/$REPO/commits/$SHA/check-runs" || true)
+              HOST=$(printf '%s' "$J" | jq -r '.check_runs[]? | select(.name=="Cloudflare Pages" and .conclusion=="success") | .output.summary' | grep -Eo 'https://[0-9a-f]{8}\.proaiexpert-github-io\.pages\.dev' | head -1 || true)
+              [ -z "$HOST" ] || break
+            fi
+            sleep 8
+          done
+          [ -n "$HOST" ] || { echo "No verified Cloudflare deployment";exit 1; }
+          echo "STAGE_E1_OWNER_PREVIEW_BASE=$HOST"
+          BASE="$HOST/owner-preview/insights-stage-e1-article10"
+          for PAIR in "en article10-en.html" "ru article10-ru.html";do
+            set -- $PAIR; LANG="$1";PAGE="$2"
+            curl -fLsS --max-time 30 "$BASE/$PAGE" -o "/tmp/$PAGE"
+            curl -fsSI --max-time 20 "$BASE/$PAGE" -o "/tmp/$PAGE.headers"
+            grep -Eiq '^x-robots-tag: *noindex' "/tmp/$PAGE.headers"
+            grep -Fq 'data-home-footer-golden-r3' "/tmp/$PAGE"
+            ! grep -Fq '{%' "/tmp/$PAGE";! grep -Fq '{{' "/tmp/$PAGE"
+            grep -Fq 'rel="canonical"' "/tmp/$PAGE"
+            grep -Fq 'hreflang="ru"' "/tmp/$PAGE"
+            grep -Fq 'hreflang="en"' "/tmp/$PAGE"
+            grep -Fq '"@type":"Article"' "/tmp/$PAGE"
+            grep -Fq 'BreadcrumbList' "/tmp/$PAGE"
+            grep -Fq '"@type":"Organization"' "/tmp/$PAGE"
+            grep -Fq '2026-04-05' "/tmp/$PAGE"
+            grep -Fq '2026-10-15' "/tmp/$PAGE"
+            [ "$(grep -o 'class="insight-v2-decision-table"' "/tmp/$PAGE" | wc -l)" -eq 2 ]
+            grep -Fq 'data-ai-search-table' "/tmp/$PAGE"
+            grep -Fq 'generate_lead' "/tmp/$PAGE"
+            grep -Fq 'https://developers.google.com/search/docs/monitor-debug/search-console-start' "/tmp/$PAGE"
+            grep -Fq 'https://support.google.com/analytics/answer/9267735' "/tmp/$PAGE"
+            grep -Fq 'https://web.dev/articles/optimize-inp' "/tmp/$PAGE"
+            grep -Fq '/case-studies/local-repair-pro/' "/tmp/$PAGE"
+            grep -Fq '/websites-branding/' "/tmp/$PAGE"
+            grep -Fq '/contact/#project-intake' "/tmp/$PAGE"
+            echo "LIVE_ARTICLE_PASS=$BASE/$PAGE"
+          done
+          curl -fLsS --max-time 25 "$HOST/assets/js/insights-editorial-v2.js" -o /tmp/insights-e1-v2.js
+          grep -Fq 'data-ai-search-table' /tmp/insights-e1-v2.js
+          curl -fLsS --max-time 25 "$HOST/assets/css/insights-editorial-v2.css" -o /tmp/insights-e1-v2.css
+          grep -Fq 'insight-v2-decision-table' /tmp/insights-e1-v2.css
+          curl -fLsS --max-time 25 "$BASE/qa-results.json" -o /tmp/insights-e1-results.json
+          jq -e '.states==44 and (.errors|length)==0 and (.screenshots|length)>=12' /tmp/insights-e1-results.json >/dev/null
+          jq -r '.screenshots[]' /tmp/insights-e1-results.json | while IFS= read -r IMAGE;do
+            curl -fLsS --max-time 30 "$BASE/screenshots/$IMAGE" -o "/tmp/$IMAGE"
+            file "/tmp/$IMAGE" | grep -Fq 'PNG image data'
+            echo "LIVE_SCREENSHOT_PASS=$IMAGE"
+          done
+          echo "STAGE E.1 ARTICLE 10 LIVE JEKYLL CLOUDFLARE HTTP AUDIT: PASS"

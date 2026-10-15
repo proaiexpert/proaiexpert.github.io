@@ -56,7 +56,17 @@ def audit(page,engine,lang,size):
  const img=q('.insight-v2-author__logo');
  const maxW=Math.max(document.documentElement.scrollWidth,document.body.scrollWidth);
  return {
-  route:location.pathname,overflow:maxW-innerWidth, h1:h1?.textContent.trim(),font:parseFloat(css(h1)?.fontSize),
+  route:location.pathname,overflow:maxW-innerWidth, 
+  outerOverflowElements:a('body *').filter(el=>{
+    let r=el.getBoundingClientRect(),c=getComputedStyle(el);
+    return c.display!=='none'&&c.visibility!=='hidden'&&r.width>0&&r.right>innerWidth+1&&r.left<innerWidth;
+  }).slice(0,18).map(el=>({
+    tag:el.tagName, cls:String(el.className).slice(0,90),
+    right:Math.round(el.getBoundingClientRect().right),
+    left:Math.round(el.getBoundingClientRect().left),
+    sw:el.scrollWidth,cw:el.clientWidth
+  })),
+  h1:h1?.textContent.trim(),font:parseFloat(css(h1)?.fontSize),
   titleIds,tocIds,railIds, tables:tables.length, captions:tables.map(t=>t.querySelector('caption')?.textContent.trim()||""),
   tableA11y:wrappers.map(w=>({tab:w.getAttribute('tabindex'),role:w.getAttribute('role'),
       label:w.getAttribute('aria-label'),scrollWidth:w.scrollWidth,clientWidth:w.clientWidth})),
@@ -92,7 +102,7 @@ def audit(page,engine,lang,size):
  }""")
  rows.append({"engine":engine,"lang":lang,"viewport":size,**d})
  tag=f"{engine}:{lang}:{size}"
- if d["overflow"]>1:failures.append(f"{tag}:document overflow {d['overflow']}")
+ if d["overflow"]>1:failures.append(f"{tag}:document overflow {d['overflow']} sources: {d['outerOverflowElements'][:6]}")
  if not d["h1"] or d["font"]<26 or d["titleIds"]!=expected or d["tocIds"]!=expected or d["railIds"]!=expected:
   failures.append(f"{tag}:title/TOC/rail invalid")
  if d["tables"]!=2 or d["missingHeaders"] or any(not c for c in d["captions"]):
@@ -123,7 +133,7 @@ with sync_playwright() as p:
     try:
      load(page,HOST+route)
      audit(page,engine,lang,size)
-     if engine=="chromium" and ((size in ("desktop-1440","portrait-390","landscape-844") and lang in ("en","ru")) or (size=="portrait-320" and lang=="ru")):
+     if engine=="chromium" and ((size in ("desktop-1440","zoom-125-equivalent","portrait-390","landscape-844") and lang in ("en","ru")) or (size=="portrait-320" and lang=="ru")):
       page.evaluate("()=>window.scrollTo(0,0)")
       path=OUT/"screenshots"/f"article10-{lang}-{size}.png"
       capture(page,path);shots.append(path.name)

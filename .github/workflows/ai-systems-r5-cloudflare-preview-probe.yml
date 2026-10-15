@@ -1,0 +1,54 @@
+name: AI Systems R5 Cloudflare Owner Preview Verification
+on:
+  push:
+    branches:
+      - ai-systems-r5-preview
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  preview-probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact preview SHA
+        uses: actions/checkout@v4
+      - name: Verify Cloudflare EN RU HTML CSS JS and noindex
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://ai-systems-r5-preview.proaiexpert-github-io.pages.dev"
+          EN="$BASE/owner-preview/ai-systems-r5-release-candidate-r1/"
+          RU="$BASE/owner-preview/ai-systems-r5-release-candidate-r1/ru/"
+          mkdir -p /tmp/ai-r5-preview-probe
+          ok=0
+          for attempt in $(seq 1 18); do
+            ec=$(curl -L -sS --max-time 15 -o /tmp/ai-r5-preview-probe/en.html -w "%{http_code}" "$EN" || true)
+            rc=$(curl -L -sS --max-time 15 -o /tmp/ai-r5-preview-probe/ru.html -w "%{http_code}" "$RU" || true)
+            cc=$(curl -L -sS --max-time 15 -o /tmp/ai-r5-preview-probe/r5.css -w "%{http_code}" "$BASE/assets/css/ai-systems-r5-release.css" || true)
+            jc=$(curl -L -sS --max-time 15 -o /tmp/ai-r5-preview-probe/runtime.js -w "%{http_code}" "$BASE/assets/js/ai-systems-golden-r4.js" || true)
+            if [[ "$ec" == 200 && "$rc" == 200 && "$cc" == 200 && "$jc" == 200 ]] \
+              && grep -Fq "See how it works" /tmp/ai-r5-preview-probe/en.html \
+              && grep -Fq "Как это работает" /tmp/ai-r5-preview-probe/ru.html \
+              && grep -Fq 'content="noindex,nofollow"' /tmp/ai-r5-preview-probe/en.html \
+              && grep -Fq 'content="noindex,nofollow"' /tmp/ai-r5-preview-probe/ru.html \
+              && grep -Fq 'ai-systems-r5-release.css' /tmp/ai-r5-preview-probe/en.html \
+              && grep -Fq 'ai-systems-r5-release.css' /tmp/ai-r5-preview-probe/ru.html \
+              && cmp -s assets/css/ai-systems-r5-release.css /tmp/ai-r5-preview-probe/r5.css \
+              && cmp -s assets/js/ai-systems-golden-r4.js /tmp/ai-r5-preview-probe/runtime.js; then
+              ok=1
+              break
+            fi
+            echo "PREVIEW_PROBE_RETRY attempt=$attempt en=$ec ru=$rc css=$cc js=$jc"
+            sleep 10
+          done
+          if [[ "$ok" != 1 ]]; then
+            echo "::error::Cloudflare preview not verified: check Pages Git branch deployment policy, build settings and branch alias"
+            exit 1
+          fi
+          echo "PREVIEW_VERIFIED_SHA=$GITHUB_SHA"
+          echo "PREVIEW_VERIFIED_EN=$EN"
+          echo "PREVIEW_VERIFIED_RU=$RU"
+          echo "PREVIEW_ROBOTS=noindex,nofollow"
+          echo "PREVIEW_CSS_JS_BYTES_MATCH_GITHUB=true"
+          sha256sum /tmp/ai-r5-preview-probe/r5.css /tmp/ai-r5-preview-probe/runtime.js

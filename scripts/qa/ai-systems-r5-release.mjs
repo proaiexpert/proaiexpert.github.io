@@ -67,17 +67,51 @@ async function auditOne(locale,view) {
     assert.ok(trace.indexOf('AUTHORITY_APPROVED')<trace.indexOf('ACTION'),'action ordering');
     const weights=trace.map(name=>name==='MACHINE_STOPPED'?4.6:name==='HUMAN_AUTHORITY_REQUIRED'?1.45:name==='AUTHORITY_APPROVED'?1.35:1);
     const total=weights.reduce((a,b)=>a+b,0);
+    // Stabilize web fonts before mapping narrow (often 40px) scroll-state intervals.
+    // Browser QA explicitly positions the viewport; it does not emulate finger momentum.
+    await page.evaluate(async()=>{await document.fonts.ready;});
     for(const name of eventNames) {
       const idx=trace.indexOf(name);
       const center=(weights.slice(0,idx).reduce((a,b)=>a+b,0)+weights[idx]*0.54)/total;
-      await page.evaluate((p)=>{
-        const el=document.querySelector('[data-r4-runtime-story]');
-        const top=el.getBoundingClientRect().top+window.scrollY;
-        const travel=Math.max(1,el.getBoundingClientRect().height-(window.visualViewport?.height||window.innerHeight));
-        window.scrollTo({top:top+travel*p,behavior:'instant'});
-      },center);
       const expectedState=name.toLowerCase().replaceAll('_','-');
-      await page.waitForFunction(expected => document.querySelector('[data-r4-runtime]')?.dataset.runtimeState===expected, expectedState, {timeout:2500});
+      const geometry=await page.evaluate(async(p)=>{
+        const read=()=>{
+          const el=document.querySelector('[data-r4-runtime-story]');
+          const rect=el.getBoundingClientRect();
+          const vh=window.visualViewport?.height||window.innerHeight;
+          const travel=Math.max(1,rect.height-vh);
+          const top=rect.top+window.scrollY;
+          return {top,travel,y:window.scrollY,progress:Math.max(0,Math.min(1,-rect.top/travel)),
+            viewport:vh,rectTop:rect.top,rectHeight:rect.height,scrollBehavior:getComputedStyle(document.documentElement).scrollBehavior};
+        };
+        const before=read();
+        const target=before.top+before.travel*p;
+        window.scrollTo({top:target,behavior:'instant'});
+        // A scroll event is sampled in requestAnimationFrame; wait for TWO browser frames
+        // instead of assuming that returning from scrollTo means rendering has updated.
+        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+        return {target,before,after:read()};
+      },center);
+      const progressTolerance=Math.max(0.005,weights[idx]/total*0.22);
+      try {
+        assert.ok(Math.abs(geometry.after.progress-center)<=progressTolerance,
+          label+' scroll geometry '+name+': '+JSON.stringify({expected:center,tolerance:progressTolerance,geometry}));
+        await page.waitForFunction(expected => document.querySelector('[data-r4-runtime]')?.dataset.runtimeState===expected, expectedState, {timeout:2500});
+      } catch(error) {
+        const runtimeDetails=await page.evaluate(()=>{
+          const runtime=document.querySelector('[data-r4-runtime]');
+          const el=document.querySelector('[data-r4-runtime-story]');
+          const rect=el.getBoundingClientRect();
+          const vh=window.visualViewport?.height||window.innerHeight;
+          return {y:scrollY,innerHeight,visualViewport:vh,docHeight:document.documentElement.scrollHeight,
+            storyTop:rect.top,storyHeight:rect.height,progress:Math.max(0,Math.min(1,-rect.top/Math.max(1,rect.height-vh))),
+            state:runtime?.dataset.runtimeState,valid:runtime?.dataset.runtimeValid,
+            activeText:document.querySelector('[data-runtime-active-title]')?.textContent,
+            ledgerActive:document.querySelectorAll('[data-runtime-ledger] [aria-current="step"]').length};
+        });
+        console.error('R5_SCROLL_DIAGNOSTIC',label,name,JSON.stringify({expected:center,geometry,runtimeDetails,error:String(error)}));
+        throw error;
+      }
       const state=await page.locator('[data-r4-runtime]').getAttribute('data-runtime-state');
       const active=await page.locator('[data-runtime-ledger] [aria-current="step"]').count();
       assert.equal(state,name.toLowerCase().replaceAll('_','-'),label+' visual runtime event '+name+' observed '+state);

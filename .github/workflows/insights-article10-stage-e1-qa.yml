@@ -1,0 +1,105 @@
+name: Insights Stage E.1 Article 10 — Jekyll Editorial Browser QA and Owner Preview
+on:
+  push:
+    branches: [qa/insights-article10-stage-d-owner-r1]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  qualify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Jekyll build and source/SEO validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')";export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          import re,json
+          from pathlib import Path
+          routes=["insights/why-service-business-websites-fail-to-convert-high-intent-visitors/index.html","ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/index.html"]
+          for filename in routes:
+            html=(Path("_site")/filename).read_text()
+            assert "{%" not in html and "{{" not in html,filename
+            assert html.count('rel="canonical"')==1,filename
+            assert 'hreflang="en"' in html and 'hreflang="ru"' in html,filename
+            assert 'data-home-footer-golden-r3' in html,filename
+            assert html.count('class="insight-v2-decision-table"')==2,filename
+            chapter_ids=['diagnosis','decision-path','diagnostic-ledger','ten-minute-triage','offer-and-fit','sequence-and-proof','contact-and-handoff','measurement','worked-example','decide-next','sources']
+            all_heading_ids=re.findall(r'<h2[^>]*id="([^"]+)"',html)
+            print('ARTICLE10 HEADINGS',filename,all_heading_ids)
+            assert all(all_heading_ids.count(n)==1 for n in chapter_ids),filename
+            assert html.count('role="region" tabindex="0"')>=2,filename
+            assert '2026-10-15' in html and '2026-04-05' in html,filename
+            assert 'insights/related-decisions' not in html,filename
+            assert 'https://support.google.com/analytics/answer/9267735' in html,filename
+            assert 'https://developers.google.com/search/docs/monitor-debug/search-console-start' in html,filename
+            assert 'Conversion Evidence Chain' in html or 'Цепочка доказательств конверсии' in html,filename
+            assert '/websites-branding/' in html and 'case-studies/local-repair-pro/' in html,filename
+            print('ARTICLE10 STATIC',filename,'PASS',len(html),'chars')
+          src=Path("_data/insights.yml").read_text()
+          block=re.search(r'- id: conversion-architecture\n([\s\S]*?)(?=\n- id: website-cost)',src).group(1)
+          assert block.count('date_published: "2026-04-05"')==2
+          assert block.count('date_modified: "2026-10-15"')==2
+          assert "author_ref: proai" in block
+          print('ARTICLE10 BILINGUAL JEKYLL SEO SCHEMA METADATA: PASS')
+          PY
+      - name: Install Playwright Chromium and WebKit
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium webkit
+      - name: 40-state responsive incl zoom equivalents, accessibility, SEO and no-JS browser QA
+        shell: bash
+        run: |
+          python -m http.server 4185 --directory _site >/tmp/article10-http.log 2>&1 &
+          python scripts/qa/insights-article10-stage-d-browser.py
+      - name: Publish four evidence routes and immutable Jekyll Owner Preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          DST=owner-preview/insights-article10-stage-d
+          mkdir -p "$DST/screenshots"
+          cp _site/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/index.html "$DST/en.html"
+          cp _site/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/index.html "$DST/ru.html"
+          cp _site/insights/ai-ready-website-for-business/index.html "$DST/article04-en.html"
+          cp _site/ru/insights/ai-ready-sayt-dlya-biznesa/index.html "$DST/article04-ru.html"
+          cp qa-stage-e1/screenshots/*.png "$DST/screenshots/"
+          cp qa-stage-e1/results.json "$DST/qa-results.json"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > _headers
+          python - <<'PY'
+          from pathlib import Path
+          d=Path("owner-preview/insights-article10-stage-d")
+          for n in ("en.html","ru.html","article04-en.html","article04-ru.html"):
+            s=(d/n).read_text()
+            assert '{%' not in s and '{{' not in s,n
+            assert 'data-home-footer-golden-r3' in s,n
+          assert len(list((d/"screenshots").glob("*.png")))>=22
+          print('STAGE D JEKYLL OWNER PREVIEW PACKAGE PASS')
+          PY
+          git config user.name "proai-qa-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B preview/insights-article10-stage-d-jekyll-r1
+          git add _headers "$DST"
+          git commit -m "QA only: rendered Stage E.1 Article 10 bilingual Owner Preview and browser evidence"
+          git push origin HEAD:refs/heads/preview/insights-article10-stage-d-jekyll-r1
+      - name: Store QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-article10-stage-d-qa
+          path: qa-stage-e1/
+          retention-days: 21
+          if-no-files-found: warn

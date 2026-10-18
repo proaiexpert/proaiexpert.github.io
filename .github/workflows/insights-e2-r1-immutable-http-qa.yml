@@ -1,0 +1,87 @@
+name: Insights E2-R1 immutable Cloudflare HTTP acceptance
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e2-r1-immutable-http-qa.yml
+permissions:
+  contents: read
+jobs:
+  live-compiled-html:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Verify live immutable EN RU HTML CSS JS noindex sitemap and links
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import urllib.request, html.parser, xml.etree.ElementTree as ET, json, re
+          BASE='https://6eb97b13.proaiexpert-github-io.pages.dev'
+          ROUTES={'en':'/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/','ru':'/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/'}
+          def get(path):
+              req=urllib.request.Request(BASE+path,headers={'User-Agent':'ProAI-E2R1-Compiled-Live-Acceptance/1.0'})
+              with urllib.request.urlopen(req,timeout=35) as resp:
+                  return resp.status,resp.headers,resp.read()
+          class Scan(html.parser.HTMLParser):
+              def __init__(self):
+                  super().__init__();self.h1=0;self.links=[];self.scripts=[];self.og=[];self.literals=[]
+              def handle_starttag(self,tag,attrs):
+                  x=dict(attrs)
+                  if tag=='h1':self.h1+=1
+                  if tag=='link':self.links.append(x)
+                  if tag=='script':self.scripts.append(x)
+                  if tag=='meta' and x.get('property')=='og:image':self.og.append(x)
+          checked=set()
+          for lang,route in ROUTES.items():
+              status,headers,buf=get(route);html=buf.decode('utf-8')
+              assert status==200,(route,status)
+              assert 'text/html' in headers.get('Content-Type',''),(lang,'content-type')
+              assert 'noindex' in headers.get('X-Robots-Tag','').lower(),(lang,'HTTP noindex')
+              assert html.lstrip().lower().startswith('<!doctype html>'),(lang,'raw Jekyll/no doctype')
+              assert '<html lang="'+lang+'"' in html,(lang,'lang')
+              assert 'layout: insight-v2' not in html and '{% include' not in html,(lang,'uncompiled liquid')
+              assert 'insight-v2-article' in html and 'data-footer-family="editorial"' in html,(lang,'shell')
+              assert html.count('class="insight-v2-decision-table"')==2,(lang,'tables')
+              assert html.count('<textarea id="tco-')==2,(lang,'tco worksheet')
+              assert 'dateModified":"2026-10-17"' in html,(lang,'dateModified')
+              assert 'rel="canonical"' in html and 'hreflang="en"' in html and 'hreflang="ru"' in html and 'hreflang="x-default"' in html,(lang,'metadata')
+              assert 'application/ld+json' in html and '"BreadcrumbList"' in html and '"Article"' in html,(lang,'JSON-LD')
+              scan=Scan();scan.feed(html)
+              assert scan.h1==1,(lang,'H1',scan.h1)
+              css=[x['href'] for x in scan.links if 'stylesheet' in x.get('rel','') and x.get('href','').startswith('/')]
+              assert len(css)>=7 and any('insights-editorial-v2.css' in path for path in css),(lang,'CSS count',css)
+              js=[x['src'] for x in scan.scripts if x.get('src','').startswith('/')]
+              for path in css+js:
+                  if path in checked:continue
+                  st,h,b=get(path)
+                  assert st==200 and len(b)>80 and not b.lstrip().lower().startswith(b'<!doctype html>'),('ASSET BAD',path,st,len(b))
+                  if path in css: assert 'css' in h.get('Content-Type','').lower(),('CSS MIME',path,h.get('Content-Type'))
+                  checked.add(path)
+              print('LIVE IMMUTABLE HTML/CSS/JS PASS',lang,len(buf),'bytes','css',len(css),'local js',len(js),'noindex',headers.get('X-Robots-Tag'))
+          for route in ['/insights/','/ru/insights/','/contact/','/ru/contact/','/websites-branding/','/ru/websites-branding/',
+          '/insights/how-to-evaluate-a-website-proposal/','/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/',
+          '/insights/website-builder-or-custom-website-what-a-service-business-should-choose/','/ru/insights/konstruktor-sayta-ili-sayt-na-zakaz-chto-vybrat-servisnomu-biznesu/',
+          '/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/','/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/',
+          '/case-studies/local-repair-pro/','/ru/case-studies/local-repair-pro/']:
+              status,h,body=get(route)
+              assert status==200 and body.lstrip().lower().startswith(b'<!doctype html>'),('ROUTE INVALID',route)
+              print('LIVE INTERNAL ROUTE PASS',route)
+          status,header,sitemap=get('/sitemap.xml')
+          assert status==200
+          x=ET.fromstring(sitemap)
+          records={}
+          for child in x:
+              loc=child.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+              lastmod=child.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+              if loc is not None and lastmod is not None:records[loc.text]=lastmod.text
+          wanted={
+          '/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/':'2026-10-17',
+          '/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/':'2026-10-17',
+          '/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/':'2026-10-15',
+          '/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/':'2026-10-15'
+          }
+          for route,date in wanted.items():assert records.get('https://proai-expert.com'+route)==date,(route,records.get('https://proai-expert.com'+route))
+          print('LIVE XML SITEMAP 4/4 PASS; LOCAL ASSETS',len(checked))
+          PY

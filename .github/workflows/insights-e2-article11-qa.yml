@@ -98,7 +98,8 @@ jobs:
                   await check(page,id,lang);
                   if([390,844,1440].includes(w)){
                     await page.screenshot({path:'evidence/insights-e2/'+id+'.png',fullPage:false});
-                    await page.locator('.insight-v2-table-wrap').first().screenshot({path:'evidence/insights-e2/'+id+'-table.png',animations:'disabled',timeout:10000});
+                    await page.evaluate(()=>document.querySelector('.insight-v2-table-wrap').scrollIntoView({block:'center',behavior:'instant'}));
+                    await page.screenshot({path:'evidence/insights-e2/'+id+'-table.png',animations:'disabled',timeout:10000});
                   }
                   if(w===390){
                     const table=page.locator('.insight-v2-table-wrap').first();

@@ -49,6 +49,22 @@ jobs:
               assert any(any(t.get('@type') == 'Article' for t in g.get('@graph', [])) for g in graphs if isinstance(g,dict)), (lang, 'Article schema')
               print('RENDERED ARTICLE 11', lang, 'PASS:', len(html), 'bytes')
           PY
+      - name: Verify immutable Cloudflare preview HTTP and noindex
+        run: |
+          set -euo pipefail
+          base='https://b8d25bc5.proaiexpert-github-io.pages.dev'
+          for route in '/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/' '/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/'; do
+            testname=$(echo "$route" | sed 's#/#-#g')
+            code=$(curl --retry 2 --retry-delay 2 --max-time 35 --location --silent --show-error --dump-header "/tmp/insights-${testname}.headers" --output "/tmp/insights-${testname}.html" --write-out '%{http_code}' "$base$route")
+            echo "PREVIEW ROUTE=$route HTTP=$code"
+            test "$code" = 200
+            grep -q 'Website Investment Scope Model\|Модель объёма инвестиций' "/tmp/insights-${testname}.html"
+            if ! grep -qiE '^x-robots-tag:.*noindex' "/tmp/insights-${testname}.headers"; then
+              echo "Missing noindex HTTP header" >&2
+              exit 1
+            fi
+            echo "Preview HTTPS and X-Robots-Tag PASS: $route"
+          done
       - name: Install Playwright browsers
         run: |
           npm install --prefix /tmp/insights-e2 --no-save --no-audit --no-fund playwright@1.56.1

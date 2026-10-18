@@ -1,0 +1,64 @@
+name: Insights E2 compiled preview HTTP acceptance
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e2-compiled-preview-http-qa.yml
+permissions:
+  contents: read
+jobs:
+  live-compiled-pages-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify delivered EN/RU are compiled pages, not Jekyll source
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://b964a1d1.proaiexpert-github-io.pages.dev"
+          python - <<'PY'
+          import html.parser, urllib.request, urllib.error, re
+          base='https://b964a1d1.proaiexpert-github-io.pages.dev'
+          routes={
+            'en':'/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/',
+            'ru':'/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/'
+          }
+          class Headings(html.parser.HTMLParser):
+            def __init__(self): super().__init__();self.h1=0;self.links=[]
+            def handle_starttag(self,tag,attrs):
+              attrs=dict(attrs)
+              if tag=='h1':self.h1+=1
+              if tag=='link':self.links.append(attrs)
+          def get(path):
+            req=urllib.request.Request(base+path,headers={'User-Agent':'ProAI-Insights-Owner-Preview-QA/1.0'})
+            with urllib.request.urlopen(req,timeout=35) as r:
+              body=r.read().decode('utf-8',errors='replace')
+              return r.status, r.headers,body
+          for lang,route in routes.items():
+            status,headers,page=get(route)
+            assert status==200,(lang,status)
+            assert 'text/html' in headers.get('Content-Type',''),(lang,'not HTML')
+            assert 'noindex' in headers.get('X-Robots-Tag','').lower(),(lang,'no HTTP noindex')
+            assert page.lstrip().lower().startswith('<!doctype html>'),(lang,'raw or missing doctype',page[:160])
+            assert f'<html lang="{lang}"' in page,(lang,'compiled document lang')
+            for must in ['data-insight-v2-article','data-footer-family="editorial"','insight-v2-article__masthead','insight-v2-decision-table']:
+              assert must in page,(lang,'missing component',must)
+            for bad in ['layout: insight-v2','{% include','{{ local.', '---\nlayout:']:
+              assert bad not in page,(lang,'RAW TEMPLATE LEAK',bad)
+            heads=Headings();heads.feed(page)
+            assert heads.h1==1,(lang,'H1 count',heads.h1)
+            css=[l['href'] for l in heads.links if 'stylesheet' in l.get('rel','') and l.get('href','').startswith('/')]
+            assert any('insights-editorial-v2.css' in p for p in css),(lang,'article CSS missing')
+            for dest in css:
+              st,h,b=get(dest.split('?')[0])
+              assert st==200,(lang,'CSS HTTP error',dest)
+              assert len(b)>100,(lang,'CSS empty',dest)
+              assert not b.lstrip().lower().startswith('<!doctype html>'),(lang,'CSS is HTML fallback',dest)
+            print('COMPILED PREVIEW HTTP PASS',lang,'bytes',len(page),'stylesheets',len(css),'noindex',headers.get('X-Robots-Tag'))
+          for route in ['/insights/','/ru/insights/','/contact/','/ru/contact/']:
+            st,h,b=get(route)
+            assert st==200 and b.lstrip().lower().startswith('<!doctype html>'),('linked route invalid',route,st,b[:120])
+            assert '{% include' not in b and 'layout: insight-v2' not in b,('raw template in linked route',route)
+            print('COMPILED NAV ROUTE PASS',route)
+          PY

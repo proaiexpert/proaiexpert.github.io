@@ -122,7 +122,7 @@ jobs:
                 const noJS=await browser.newContext({viewport:{width:390,height:844},javaScriptEnabled:false,hasTouch:true});
                 await noJS.route('**/*', route => {const url=route.request().url(); if(url.startsWith('http://127.0.0.1:8765/'))route.continue(); else route.abort();});
                 const noPage=await noJS.newPage();
-                await noPage.goto('http://127.0.0.1:8765'+route,{waitUntil:'domcontentloaded'});
+                await noPage.goto('http://127.0.0.1:8765'+route,{waitUntil:'load'});
                 await check(noPage,name+'-'+lang+'-nojs',lang);
                 const diag=await noPage.evaluate(()=>[...document.querySelectorAll('body *')].map(el=>{
                   const r=el.getBoundingClientRect(),st=getComputedStyle(el);

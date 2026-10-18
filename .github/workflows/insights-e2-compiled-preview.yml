@@ -1,0 +1,75 @@
+name: Insights E2 compiled Cloudflare owner preview
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e2-compiled-preview.yml
+permissions:
+  contents: write
+jobs:
+  compile-and-publish-branch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Compile Jekyll and validate actual generated site
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          routes = {
+              'en': 'insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/',
+              'ru': 'ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/'
+          }
+          for lang, route in routes.items():
+              page = (Path('_site')/route/'index.html').read_text(encoding='utf-8')
+              assert page.lstrip().lower().startswith('<!doctype html>'), (lang, 'missing doctype')
+              assert '<html lang="'+lang+'"' in page, (lang, 'missing site shell')
+              assert '<title>' in page and 'data-footer-family="editorial"' in page, (lang, 'shell incomplete')
+              assert 'class="insight-v2-article"' in page, (lang, 'missing Article V2')
+              assert 'data-insight-v2-article' in page, (lang, 'missing article marker')
+              assert page.count('class="insight-v2-decision-table"') == 2, (lang, 'missing tables')
+              assert '{% include' not in page and 'layout: insight-v2' not in page, (lang, 'raw Jekyll leaked')
+              assert (Path('_site')/'assets/css/insights-editorial-v2.css').is_file(), (lang, 'missing CSS')
+              print('COMPILED OWNER PREVIEW VALIDATED', lang, len(page))
+          PY
+          echo "Compiled site footprint:"
+          du -sh _site
+      - name: Publish only generated HTML and assets to isolated preview branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='agent/insights-e2-compiled-preview-r1'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then
+            echo "Refusing to overwrite pre-existing destination branch: $dest" >&2
+            exit 1
+          fi
+          tempdir="$(mktemp -d)"
+          cp -a _site/. "$tempdir/"
+          rm -f "$tempdir/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tempdir/_headers"
+          touch "$tempdir/.nojekyll"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tempdir"/. .
+          git add -A
+          git commit -m "preview(insights): serve compiled Jekyll Article 11 EN/RU (noindex)"
+          git push origin "HEAD:refs/heads/$dest"
+          echo "PUBLISHED_RENDERED_PREVIEW_BRANCH=$dest"
+          echo "RENDERED_PREVIEW_SHA=$(git rev-parse HEAD)"

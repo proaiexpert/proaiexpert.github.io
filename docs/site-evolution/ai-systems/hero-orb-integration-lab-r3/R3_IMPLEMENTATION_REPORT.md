@@ -33,7 +33,7 @@ Hero grid имеет равные desktop колонки; на tablet/mobile о�
 
 ## Interaction / scroll
 
-REST → PRESS → DRAG → RELEASE → RETURN выполнены через Chrome input, desktop и touch. На local mobile drag получено выраженное пространственное раскрытие; кадр `mobile-390-touch-drag.png`. После отпускания сфера снова связная; опубликованные return кадры также сохранены. Оригинальная амплитуда/тайминги не изменялись, количественная motion-parity с отдельным Viewer не заявляется.
+REST → PRESS → DRAG → RELEASE → RETURN выполнены через Chrome input, desktop и touch. На local mobile drag получено выраженное пространственное раскрытие; кадр `mobile-390-touch-drag.jpg`. После отпускания сфера снова связная; опубликованные return кадры также сохранены. Оригинальная амплитуда/тайминги не изменялись, количественная motion-parity с отдельным Viewer не заявляется.
 
 Первая проверка вертикального touch выявила отсутствие прокрутки. Добавлен пассивный capture handler: вертикальное движение >8px и >1.2× горизонтального не передаётся обработчикам сцены. `preventDefault` не используется. Canvas touch-action: pan-y pinch-zoom. Горизонтальный drag остаётся у сцены. После исправления local scrollY 812.50 → 943.75; на публичном Preview 649.67 → 774.67. Никакой глобальный reset или новые события Spline не добавлены.
 
@@ -79,7 +79,7 @@ Orb создаёт значительно более выраженный сам
 
 ## Evidence / exact files
 
-Все изменённые source файлы и evidence перечислены в FILES_CHANGED.txt. SHA-256 каждого снимка и poster — SHA256SUMS.txt. Главные кадры: public-en-desktop-1440-rest.png, public-en-mobile-390-rest.png, mobile-390-touch-drag.png, public-en-mobile-390-return.png, public-ru-mobile-375-orb.png, public-r5-baseline-desktop-1440.png.
+Все изменённые source файлы и evidence перечислены в FILES_CHANGED.txt. SHA-256 каждого снимка и poster — SHA256SUMS.txt. Главные кадры: public-en-desktop-1440-rest.jpg, public-en-mobile-390-rest.jpg, mobile-390-touch-drag.jpg, public-en-mobile-390-return.jpg, public-ru-mobile-375-orb.jpg, public-r5-baseline-desktop-1440.jpg.
 
 Attribution: Reactive Orb — Vlad Kolokolnikov. Original Community license observed CC BY 4.0. R3 — интеграция существующей Owner Studio Titanium адаптации. Editable .spline, auth/session data и vendor bundle в source commit не включены.
 

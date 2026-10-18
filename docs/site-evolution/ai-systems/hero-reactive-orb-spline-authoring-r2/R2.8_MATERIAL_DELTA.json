@@ -1,6 +1,6 @@
 {
   "stage": "R2.8",
-  "status": "CHECKPOINT BEFORE EDITS",
+  "status": "PARTIAL — bounded tests rejected; restored R2.7; no visual release",
   "base_head": "0281463931b09be8a466b7ce543f86ca6fffa5ff",
   "fresh_main": "0e2a484fef96d88735c5b34216af0f69b8fc0c81",
   "baseline": {
@@ -273,7 +273,39 @@
     "videos": "actual R2.7 WebM decoded and inspected before edits",
     "lights": "R2.7 manifest; live lights pending readback"
   },
-  "tests": [],
+  "tests": [
+    {
+      "id": 1,
+      "property": "Matcap enabled",
+      "before": true,
+      "test": false,
+      "restored": true,
+      "opacity": 45,
+      "blend": "Screen",
+      "result": "REST much darker, small RESPONSE visibility worse; rejected",
+      "video": "orb-r28-test1-matcap-off-motion.webm"
+    },
+    {
+      "id": 2,
+      "property": "Physical metalness",
+      "before": 0.86,
+      "test": 0.55,
+      "restored": 0.86,
+      "other_values": "baseline",
+      "result": "entire REST brightens / loses dark metallic weight, minimum particles not independently rescued; rejected",
+      "video": "orb-r28-test2-metal055-motion.webm"
+    },
+    {
+      "id": 3,
+      "property": "Physical roughness",
+      "before": 0.48,
+      "test": 0.28,
+      "restored": 0.48,
+      "other_values": "baseline",
+      "result": "repetitive near-white sharp glints; no acceptable active-legibility improvement; rejected",
+      "video": "orb-r28-test3-rough028-motion.webm"
+    }
+  ],
   "safety": {
     "protected_r23_modified": false,
     "donor_modified": false,
@@ -282,6 +314,548 @@
     "main_modified": false,
     "production_modified": false,
     "merge": false,
-    "paid_upgrade": false
-  }
+    "paid_upgrade": false,
+    "events_modified": false,
+    "states_modified": false,
+    "assembly_r5_modified": false,
+    "runtime_setters_used": false,
+    "secret_audit": "PASS — curated scene screenshots/videos/parameters, no account/session dumps or tokens"
+  },
+  "checkpoint_commit": "17fc67f9e6c66c1d36da22d1b07ad6529ce774c1",
+  "date_utc": "2026-10-18",
+  "final_material": {
+    "asset_name": "PROAI R2.7 — STUDIO TITANIUM",
+    "alphaOverride": 100,
+    "assignment": "Clones + source Instance; Group Base / Sphere State displayed same asset. Original A/B retained.",
+    "layers_top_to_bottom": [
+      {
+        "type": "Matcap",
+        "id": "052a1f3b-3f21-43b6-bde5-937dcb048266",
+        "enabled": true,
+        "opacity": 45,
+        "blend": "Screen",
+        "texture": "https://app.spline.design/_assets/_textures/matcap_reflection_3.png",
+        "mode": "Color",
+        "rotation": 0,
+        "limitation": "Camera-normal Matcap; не физическая world-space PMREM environment"
+      },
+      {
+        "type": "Lighting",
+        "id": "layer1",
+        "enabled": true,
+        "opacity": 100,
+        "blend": "Normal",
+        "model": "Physical",
+        "roughness": 0.48,
+        "metalness": 0.86,
+        "reflectivity": 0.35,
+        "clearcoat": 0.1,
+        "coat_roughness": 0.1,
+        "emissive": "#000000",
+        "emissive_power": 1,
+        "sheen": 0,
+        "iridescence": 0,
+        "IOR": 1.5,
+        "occlusion": true,
+        "maps": "None"
+      },
+      {
+        "type": "Depth",
+        "enabled": false,
+        "opacity": 100,
+        "blend": "Normal",
+        "mode": "Color",
+        "origin_mode": "Vector",
+        "blending": "Linear",
+        "type_mode": "Radial",
+        "position_mode": "Local",
+        "origin": [
+          -12,
+          20,
+          25
+        ],
+        "near": 25,
+        "far": 50,
+        "stops": [
+          {
+            "position_percent": 0,
+            "color": "#98A7B6"
+          },
+          {
+            "position_percent": 100,
+            "color": "#10141B"
+          }
+        ],
+        "id": "92a4bfd9-3fd8-421b-8022-3bf7059a9cbb"
+      },
+      {
+        "type": "Color",
+        "id": "layer2",
+        "enabled": true,
+        "opacity": 100,
+        "blend": "Normal",
+        "color": "#242A31"
+      }
+    ],
+    "Fresnel": "absent"
+  },
+  "final_lights": {
+    "ambient": {
+      "enabled": true,
+      "color": "#D3D3D3",
+      "intensity": 0.75,
+      "changed": false
+    },
+    "added": [
+      {
+        "name": "Directional Light",
+        "role": "key",
+        "position": [
+          0,
+          0,
+          500
+        ],
+        "rotation": [
+          -35,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ],
+        "color": "#D5DDE6",
+        "intensity": 1.2,
+        "shadows": false
+      },
+      {
+        "name": "Directional Light 2",
+        "role": "fill",
+        "position": [
+          -400,
+          180,
+          400
+        ],
+        "rotation": [
+          20,
+          -40,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ],
+        "color": "#98A7B6",
+        "intensity": 0.55,
+        "shadows": false
+      }
+    ],
+    "area_light": "not present in native Create New Object menu",
+    "rim": "No separate rim light; Matcap supplies reflection pattern"
+  },
+  "net_material_delta": {},
+  "net_light_delta": {},
+  "published_updated": false,
+  "lighting_test": {
+    "property": "Directional Light rotation X",
+    "before": -35,
+    "test": -55,
+    "restored": -35,
+    "intensity": 1.2,
+    "color": "#D5DDE6",
+    "result": "no compelling improvement of repetitive highlights or small beads; rejected",
+    "video": "orb-r28-light-key-minus55-motion.webm"
+  },
+  "root_cause": {
+    "observed": {
+      "source": "Instance / Group / Sphere",
+      "base_scale": [
+        1.39,
+        1.39,
+        1.39
+      ],
+      "state_scale": [
+        0.1,
+        0.1,
+        0.1
+      ],
+      "state_position": [
+        40,
+        -40,
+        0
+      ],
+      "shape_size": [
+        22.69,
+        22.69,
+        22.69
+      ],
+      "material_base": "PROAI R2.7 — STUDIO TITANIUM",
+      "material_state": "PROAI R2.7 — STUDIO TITANIUM",
+      "distance": 200,
+      "transition": "Current→State / 0.50s / Ease In Out",
+      "state_selection_returned_to_base": true
+    },
+    "derived": {
+      "diameter_ratio": 13.9,
+      "projected_area_ratio": 193.21,
+      "reason": "uniform scale ratio, same view; not a measured pixel ratio"
+    },
+    "conclusion": "Small native scale + dark shared shading / reduced pixel coverage are demonstrated contributors. Matcap helps dark physical shader; global brightness/metalness/roughness changes do not selectively solve minimum-scale elements.",
+    "unresolved": "Same Material Asset UI does not prove engine interpolation equality for all clones. Known lerpMaterial error persists in native preview. No distinct black State material reference observed; interpolation contribution not fully isolated. No claim of universal Spline rendering impossibility."
+  },
+  "restore": {
+    "material_readback_after_reload": "Matcap45 Screen enabled, Depth disabled, Color242A31, roughness.48 metalness.86 reflectivity.35 clearcoat.10",
+    "key_readback_after_reload": "rotation−35/0/0, intensity1.20, D5DDE6, position0/0/500",
+    "fill_readback": "rotation20/−40/0, intensity.55,98A7B6,position−400/180/400",
+    "server_save_verified": true,
+    "backup_file_exported": false
+  },
+  "qa": {
+    "native_matched": {
+      "viewport": [
+        1600,
+        731
+      ],
+      "video_max_size": [
+        1280,
+        731
+      ],
+      "gesture_start": [
+        845,
+        385
+      ],
+      "gesture_delta": [
+        90,
+        -54
+      ],
+      "control_steps": 18,
+      "rotation": "not synchronized or frozen",
+      "result": "same coordinates and input sequence; actual capture timing varies, qualitative comparison only"
+    },
+    "public": [
+      {
+        "viewport": [
+          1440,
+          900
+        ],
+        "label": "orb-r28-public-desktop",
+        "frames": 166,
+        "duration_s": 9.346553,
+        "rest_bbox": [
+          368,
+          99,
+          1067,
+          794
+        ],
+        "width_px": 699,
+        "gestures": [
+          [
+            120,
+            -80
+          ]
+        ],
+        "settling": "main sphere reformed at sampled +2.006s; +0.976s still incomplete; coherent +4.007/+5.992s",
+        "motion": "expressive original disturbance retained, minimum-scale particles dark"
+      },
+      {
+        "viewport": [
+          390,
+          844
+        ],
+        "label": "orb-r28-public-mobile390",
+        "frames": 407,
+        "duration_s": 15.226819,
+        "rest_bbox": [
+          50,
+          277,
+          337,
+          562
+        ],
+        "width_px": 287,
+        "width_percent": 73.59,
+        "gestures": [
+          [
+            60,
+            -40
+          ],
+          [
+            -60,
+            40
+          ]
+        ],
+        "settling": [
+          {
+            "gesture": 1,
+            "coherent_at_s": 1.984,
+            "residual_observed_s": 1.012
+          },
+          {
+            "gesture": 2,
+            "coherent_at_s": 1.015,
+            "residual_observed_s": 0.512
+          }
+        ],
+        "late_samples": "coherent main sphere at ~4 and~5s in both; no persistent breakup demonstrated"
+      },
+      {
+        "viewport": [
+          375,
+          812
+        ],
+        "label": "orb-r28-public-mobile375",
+        "frames": 408,
+        "duration_s": 15.304178,
+        "rest_bbox": [
+          41,
+          259,
+          332,
+          548
+        ],
+        "width_px": 291,
+        "width_percent": 77.6,
+        "gestures": [
+          [
+            60,
+            0
+          ],
+          [
+            0,
+            -60
+          ]
+        ],
+        "settling": [
+          {
+            "gesture": 1,
+            "coherent_at_s": 1.994,
+            "residual_observed_s": 0.987
+          },
+          {
+            "gesture": 2,
+            "coherent_at_s": 0.994,
+            "residual_observed_s": 0.493
+          }
+        ],
+        "late_samples": "coherent main sphere at ~4 and~5s in both; no persistent breakup demonstrated"
+      }
+    ],
+    "settling_method": "visual inspection of real frames nearest release +0/.5/1/2/4/6s. Mobile recordings provide ~5s after release; requested6s sample clamped to last frame and labelled actual elapsed. Approximate wall-clock command vs CDP frame timestamps; not exact solver timing.",
+    "physical_iphone": false,
+    "parent_hero_scroll": "UNVERIFIED",
+    "emulation_reset": true,
+    "warnings": [
+      "Public WebGL PBR maps warning persists"
+    ],
+    "public_errors_observed": [],
+    "native_error": "lerpMaterial: unexpected material layer for colors persists; known in protected R2.3, not fixed",
+    "webgpu_compatibility": "UNVERIFIED"
+  },
+  "publication": {
+    "performed": false,
+    "reason": "No demonstrable improvement; preserved R2.7 public and runtime",
+    "editor": "https://app.spline.design/file/47f81af9-4bd9-4227-8fd5-afd1af679079",
+    "viewer": "https://my.spline.design/proaireactiveorbheroobjectr24-hPfMQaglznu21oZxfspyjYb7/",
+    "runtime": "https://prod.spline.design/2Yj34zCLbNfdn5zM/scene.splinecode",
+    "new_owner_preview": false
+  },
+  "attribution": {
+    "donor": "Reactive Orb",
+    "creator": "Vlad Kolokolnikov",
+    "license_observed": "CC BY 4.0",
+    "community": "https://app.spline.design/community/file/306ca2a5-d1ab-46ac-a27c-198575c82db0"
+  },
+  "evidence": [
+    {
+      "name": "orb-r28-baseline-material.jpg",
+      "bytes": 82597,
+      "sha256": "BCE9717E436E40897EEBCEC813F43DD65E70CD81F5397A5215A4C2BC0AF9A065"
+    },
+    {
+      "name": "orb-r28-restored-material.jpg",
+      "bytes": 82618,
+      "sha256": "925A68335B27AC02126CD5DBB5709DA0EB0A3B49AE321654415003E890121937"
+    },
+    {
+      "name": "orb-r28-source-sphere-state.jpg",
+      "bytes": 77167,
+      "sha256": "FE38311F589CAA3EC6F3E15C69D937DBEDEE7ED5D161EA67151C2E3AAF606518"
+    },
+    {
+      "name": "orb-r28-source-distance.jpg",
+      "bytes": 88022,
+      "sha256": "39BB83D7BFC6D9BD4BC2445A2D58690B36262844C4E57ECFCC8F678CC5650BC9"
+    },
+    {
+      "name": "orb-r28-material-tests-comparison.jpg",
+      "bytes": 88397,
+      "sha256": "B0D313C3A267DE680B4BECB2501ED1267A51822F3526C95D298B6847E1039101"
+    },
+    {
+      "name": "orb-r28-qa-sampling.json",
+      "bytes": 3662,
+      "sha256": "AB629124162D7B2D3615EE25F054C7160FF05CACE6A5A392867CA43D53600487"
+    },
+    {
+      "name": "orb-r28-native-baseline-rest.jpg",
+      "bytes": 69685,
+      "sha256": "3A6132BF0FD0E79383065470475D20F58FAB94E2A3D701834CCC7DE080A4F09B"
+    },
+    {
+      "name": "orb-r28-native-baseline-motion.json",
+      "bytes": 20781,
+      "sha256": "F30DA48C86C57649766A0C89640A4B7941D2CD56EA316FA656D5D0F7ED866ACB"
+    },
+    {
+      "name": "orb-r28-native-baseline-motion.webm",
+      "bytes": 319228,
+      "sha256": "40AF982EF7C724189D03C28D3232AEE12990D9105DC36BDAE20ACAD2D6410ED5"
+    },
+    {
+      "name": "orb-r28-test1-matcap-off-rest.jpg",
+      "bytes": 59658,
+      "sha256": "CE9D39D607FA3D8103739264A0DB17E20F369CAD61A5A3D4F86D5FC63E03D8C7"
+    },
+    {
+      "name": "orb-r28-test1-matcap-off-motion.json",
+      "bytes": 20853,
+      "sha256": "3A0C09FDCAEAC45D90BC2547A027CF69E54EF2505E6B117B3DC3CF4E2D72620D"
+    },
+    {
+      "name": "orb-r28-test1-matcap-off-motion.webm",
+      "bytes": 171496,
+      "sha256": "37388E5EFDADE6ED3E8CE46F566AD8CDDDB9DBB1F15332A1256DCA98DB9FF99E"
+    },
+    {
+      "name": "orb-r28-test2-metal055-rest.jpg",
+      "bytes": 67981,
+      "sha256": "5A4776A0D2A86CA89170DB559E5E0334BF073CE080A29F3EF34C15D12D4F0123"
+    },
+    {
+      "name": "orb-r28-test2-metal055-motion.json",
+      "bytes": 20718,
+      "sha256": "E3872C1D858A27AFDFC02B7ACF0738C68E89A586168C522D87409BD38D06B986"
+    },
+    {
+      "name": "orb-r28-test2-metal055-motion.webm",
+      "bytes": 318529,
+      "sha256": "1EDEE6D1238675B34263916339F16A3306B7FE28DAFF6A76C66B7FAD6DFD284C"
+    },
+    {
+      "name": "orb-r28-test3-rough028-rest.jpg",
+      "bytes": 71678,
+      "sha256": "3C2325A789FC03FB009D7550BB1FC3F49FC6A022764BA5CACE7BB6D08B13D8EB"
+    },
+    {
+      "name": "orb-r28-test3-rough028-motion.json",
+      "bytes": 20716,
+      "sha256": "AF3BF4F2E96E98EE945F626DA07F7D83E6689341A618360C99942E5C45AEE3A8"
+    },
+    {
+      "name": "orb-r28-test3-rough028-motion.webm",
+      "bytes": 359599,
+      "sha256": "AE8F8FCB22F4E09ECAF711DDFE65A06DD74B56E22EC52D63974C05C3EC1F0A29"
+    },
+    {
+      "name": "orb-r28-light-key-minus55-rest.jpg",
+      "bytes": 70390,
+      "sha256": "352F085DA2E54DC3753ACA78BB0054CBCD1CFE0355A5DF7D6BADB828C7CC3487"
+    },
+    {
+      "name": "orb-r28-light-key-minus55-motion.json",
+      "bytes": 20928,
+      "sha256": "31BCE483CDEEECE267EDE1816AE80B389B230EBD1EB0EA25BC24E2D436021A13"
+    },
+    {
+      "name": "orb-r28-light-key-minus55-motion.webm",
+      "bytes": 343690,
+      "sha256": "43BAA64D5D05F0016607569D62DD26F30810F5BC2A4248E06F185EFD3B1B8FD5"
+    },
+    {
+      "name": "orb-r28-public-desktop-rest.jpg",
+      "bytes": 55873,
+      "sha256": "84091BA7002BA82D09E5743CB09A4C07E2B51DF5E4ABBF40752BABD65C9B5E0F"
+    },
+    {
+      "name": "orb-r28-public-desktop-return.jpg",
+      "bytes": 53707,
+      "sha256": "1D3C8E3AD56C88844F3625A48133749DC76299A353B9F134A3718E54AF2225FB"
+    },
+    {
+      "name": "orb-r28-public-desktop-motion.json",
+      "bytes": 62306,
+      "sha256": "682DA652067BE670D7DF4B3C1EC53422BAEBE9EB9AFCFA65BCAD8EC93BD635AD"
+    },
+    {
+      "name": "orb-r28-public-desktop-motion.webm",
+      "bytes": 882834,
+      "sha256": "139D11B33DBE74E683213565B8D7BF64E18AAEABFD15FCE658BB20321BEF44CC"
+    },
+    {
+      "name": "orb-r28-public-desktop-settling.jpg",
+      "bytes": 37083,
+      "sha256": "A7029458B868CFE5C634E8747010F5DC0B2FBACEECABA17CC23AF93B9513CB44"
+    },
+    {
+      "name": "orb-r28-public-mobile390-rest.jpg",
+      "bytes": 15654,
+      "sha256": "84983336DB8C942D3AE458D3FAC2CB1F0DB17DE7F2A2B03261629758C4A0793D"
+    },
+    {
+      "name": "orb-r28-public-mobile390-return.jpg",
+      "bytes": 16077,
+      "sha256": "7ECAE1C597603F1F7EE8F0813C1954989CF398EF8A8863F9FDCA8B9968578543"
+    },
+    {
+      "name": "orb-r28-public-mobile390-motion.json",
+      "bytes": 155094,
+      "sha256": "FF648E5FB2C8E12AC4DF593AAA7D0B77225DE500C9B7CC8D862DC6BEE872A02D"
+    },
+    {
+      "name": "orb-r28-public-mobile390-motion.webm",
+      "bytes": 596235,
+      "sha256": "9FEDBC30258C64DB319F4C01134E94E20F2CFD7E04DF8FD39C5540017C4F2BAA"
+    },
+    {
+      "name": "orb-r28-public-mobile390-settling.jpg",
+      "bytes": 157842,
+      "sha256": "F8B2813F673830E304A52C9A250C00382C44E6F4256FAF6B9D5D8021D9D50FB2"
+    },
+    {
+      "name": "orb-r28-public-mobile375-rest.jpg",
+      "bytes": 15867,
+      "sha256": "CB4B971457969B14D1F12BB8270BCBEC940D5574C6ED576B7808442C7208F4D6"
+    },
+    {
+      "name": "orb-r28-public-mobile375-return.jpg",
+      "bytes": 16481,
+      "sha256": "A92934A9003131F21B7E538FAC2C6E8D6B41787B8C5B17E906E89A2B507FED42"
+    },
+    {
+      "name": "orb-r28-public-mobile375-motion.json",
+      "bytes": 155500,
+      "sha256": "E6FE5FA16FE0DE2C6D4AC2FF9DC78AA2DB960C66BB457634F2710B4B2F2371BB"
+    },
+    {
+      "name": "orb-r28-public-mobile375-motion.webm",
+      "bytes": 559995,
+      "sha256": "1ECE3C42527D7D81E743EC4C7798D75F0A9A42D6DF2C77B07CAC39B2EC632F0B"
+    },
+    {
+      "name": "orb-r28-public-mobile375-settling.jpg",
+      "bytes": 156297,
+      "sha256": "D792E0B3A26726CC7D5F87AE8A3F4416D91008C1D1D62744CD4FD08976C73282"
+    },
+    {
+      "name": "orb-r28-server-restored-material.jpg",
+      "bytes": 82552,
+      "sha256": "35011EA3887CB5DCBA10C9E492C5BA3D5748E87CFED4558E93905DA6C49C0CDD"
+    }
+  ],
+  "binary_git_blob_audit": {
+    "result": "PASS",
+    "files": 37,
+    "method": "local Git blob SHA1 equals created remote blob SHA; evidence SHA256 also recorded"
+  },
+  "main_at_completion": "0e2a484fef96d88735c5b34216af0f69b8fc0c81"
 }

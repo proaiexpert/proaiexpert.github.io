@@ -71,7 +71,7 @@ jobs:
           async function check(page,label,lang) {
             const result=await page.evaluate(()=>{
               const table=[...document.querySelectorAll('.insight-v2-table-wrap')];
-              const ids=[...document.querySelectorAll('.insight-v2__prose h2[id]')].map(x=>x.id);
+              const ids=[...document.querySelectorAll('.insight-v2__prose > h2[id]')].map(x=>x.id);
               const toc=[...document.querySelectorAll('.insight-v2-contents a[href^="#"]')].map(x=>x.getAttribute('href').slice(1));
               return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,h1:document.querySelectorAll('h1').length,table:table.length,
                 chapters:ids.length,toc:toc.length,tocMatch:toc.join('|')===ids.join('|'),htmlLang:document.documentElement.lang,
@@ -124,6 +124,11 @@ jobs:
                 const noPage=await noJS.newPage();
                 await noPage.goto('http://127.0.0.1:8765'+route,{waitUntil:'domcontentloaded'});
                 await check(noPage,name+'-'+lang+'-nojs',lang);
+                const diag=await noPage.evaluate(()=>[...document.querySelectorAll('body *')].map(el=>{
+                  const r=el.getBoundingClientRect(),st=getComputedStyle(el);
+                  return {tag:el.tagName,cls:(typeof el.className==='string'?el.className:'').slice(0,85),scrollWidth:el.scrollWidth,clientWidth:el.clientWidth,right:Math.round(r.right),left:Math.round(r.left),position:st.position,overflowX:st.overflowX};
+                }).filter(el=>el.right>innerWidth+6 && el.left<innerWidth).sort((a,b)=>b.right-a.right).slice(0,14));
+                console.log('NOJS DIAG '+name+'-'+lang,JSON.stringify({overflow:await noPage.evaluate(()=>document.documentElement.scrollWidth),diag}));
                 await noJS.close();
               }
               await browser.close();

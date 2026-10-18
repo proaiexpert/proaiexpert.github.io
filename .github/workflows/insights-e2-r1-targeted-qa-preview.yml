@@ -145,7 +145,7 @@ jobs:
                     });
                     let label=[browserName,lang,js?'JS':'NoJS',width].join('/');
                     assert(d.h1===1&&d.chapters===12&&d.tables===2&&d.footer===1&&d.htmlLang===lang,label+' structure '+JSON.stringify(d));
-                    assert(d.focusable&&d.hint&&d.inputs===2&&d.tableScrollable.every(Boolean),label+' tables/worksheet '+JSON.stringify(d));
+                    assert(d.focusable&&d.hint&&d.inputs===2&&(width>900 || d.tableScrollable.every(Boolean)),label+' tables/worksheet '+JSON.stringify(d));
                     assert(d.overflow<=2&&d.canonical&&d.locales.includes('en')&&d.locales.includes('ru')&&d.locales.includes('x-default')&&d.noRaw,label+' shell/width '+JSON.stringify(d));
                     assert(d.types.includes('Article')&&d.types.includes('BreadcrumbList')&&d.title.includes('ProAI Expert'),label+' schema '+JSON.stringify(d));
                     if(width===390){

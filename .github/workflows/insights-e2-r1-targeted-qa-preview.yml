@@ -113,8 +113,9 @@ jobs:
                   const page=await context.newPage();
                   for(const width of [320,390,844,1440]){
                     await page.setViewportSize({width,height:width===844?430:width<=390?844:900});
-                    const response=await page.goto('http://127.0.0.1:8765'+route,{waitUntil:'domcontentloaded',timeout:25000});
+                    const response=await page.goto('http://127.0.0.1:8765'+route,{waitUntil:'load',timeout:25000});
                     assert(response?.status()===200,browserName+' '+lang+' '+width+' GET');
+          await page.waitForFunction(()=>{const x=document.querySelector('.insight-v2-table-wrap');return x&&getComputedStyle(x).overflowX==='auto'},{timeout:12000});
                     const d=await page.evaluate(()=>{
                       const all=[...document.querySelectorAll('.insight-v2-table-wrap')];
                       const ld=[...document.querySelectorAll('script[type="application/ld+json"]')];
@@ -174,7 +175,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          dest='agent/insights-e2-r1-compiled-preview-20261018'
+          dest='agent/insights-e2-r1-compiled-preview-20261018b'
           if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then
             echo "Destination branch exists, refusing to overwrite: $dest" >&2
             exit 1

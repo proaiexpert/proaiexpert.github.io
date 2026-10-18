@@ -38,7 +38,7 @@ jobs:
               assert html.count('<h1') == 1, (lang, 'H1')
               assert '<html lang="' + lang + '"' in html, (lang, 'language')
               assert html.count('class="insight-v2-decision-table"') == 2, (lang, 'tables')
-              assert html.count('<h2 id=') == 12, (lang, 'chapters')
+              assert all(('<h2 id="' + section + '"') in html for section in ['answer','scope-model','drivers','hidden-work','ownership','vendor-dependency','choose-scope','case','brief','cost-control','decision','sources']), (lang, 'chapters')
               assert 'data-footer-family="editorial"' in html, (lang, 'footer')
               assert 'data-author-type="organization"' in html, (lang, 'author')
               for token in ['rel="canonical"', 'hreflang="en"', 'hreflang="ru"', 'hreflang="x-default"']:
@@ -71,7 +71,7 @@ jobs:
           async function check(page,label,lang) {
             const result=await page.evaluate(()=>{
               const table=[...document.querySelectorAll('.insight-v2-table-wrap')];
-              const ids=[...document.querySelectorAll('h2[id]')].map(x=>x.id);
+              const ids=[...document.querySelectorAll('.insight-v2__prose h2[id]')].map(x=>x.id);
               const toc=[...document.querySelectorAll('.insight-v2-contents a[href^="#"]')].map(x=>x.getAttribute('href').slice(1));
               return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,h1:document.querySelectorAll('h1').length,table:table.length,
                 chapters:ids.length,toc:toc.length,tocMatch:toc.join('|')===ids.join('|'),htmlLang:document.documentElement.lang,

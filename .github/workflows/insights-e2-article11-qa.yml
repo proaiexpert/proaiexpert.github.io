@@ -1,0 +1,142 @@
+name: Insights E2 Article 11 isolated QA
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  jekyll-browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build canonical Jekyll output
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+      - name: Canonical validators and generated HTML
+        run: |
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+          routes = [
+              ('en', 'insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/'),
+              ('ru', 'ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/')
+          ]
+          for lang, route in routes:
+              html = (Path('_site') / route / 'index.html').read_text(encoding='utf8')
+              assert html.count('<h1') == 1, (lang, 'H1')
+              assert '<html lang="' + lang + '"' in html, (lang, 'language')
+              assert html.count('class="insight-v2-decision-table"') == 2, (lang, 'tables')
+              assert html.count('<h2 id=') == 12, (lang, 'chapters')
+              assert 'data-footer-family="editorial"' in html, (lang, 'footer')
+              assert 'data-author-type="organization"' in html, (lang, 'author')
+              for token in ['rel="canonical"', 'hreflang="en"', 'hreflang="ru"', 'hreflang="x-default"']:
+                  assert token in html, (lang, token)
+              assert '{{' not in html and '{%' not in html, (lang, 'unresolved liquid')
+              metas = re.findall(r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>([\s\S]*?)</script>', html)
+              graphs = [json.loads(x) for x in metas]
+              assert any(any(t.get('@type') == 'Article' for t in g.get('@graph', [])) for g in graphs if isinstance(g,dict)), (lang, 'Article schema')
+              print('RENDERED ARTICLE 11', lang, 'PASS:', len(html), 'bytes')
+          PY
+      - name: Install Playwright browsers
+        run: |
+          npm install --prefix /tmp/insights-e2 --no-save --no-audit --no-fund playwright@1.56.1
+          /tmp/insights-e2/node_modules/.bin/playwright install --with-deps chromium webkit
+      - name: Chromium and WebKit viewport and accessibility smoke
+        env:
+          NODE_PATH: /tmp/insights-e2/node_modules
+        run: |
+          mkdir -p evidence/insights-e2
+          cat > /tmp/insights-e2/browser-qa.cjs <<'JS'
+          const {chromium, webkit} = require('playwright');
+          const fs=require('fs'), path=require('path');
+          const routes={
+            en:'/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/',
+            ru:'/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/'
+          };
+          const widths=[320,375,390,430,844,932,1280,1440,1600];
+          const errors=[]; let passes=0;
+          const report=(ok,label,details='')=>{if(!ok)errors.push(label+' '+details);else passes++;};
+          async function check(page,label,lang) {
+            const result=await page.evaluate(()=>{
+              const table=[...document.querySelectorAll('.insight-v2-table-wrap')];
+              const ids=[...document.querySelectorAll('h2[id]')].map(x=>x.id);
+              const toc=[...document.querySelectorAll('.insight-v2-contents a[href^="#"]')].map(x=>x.getAttribute('href').slice(1));
+              return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,h1:document.querySelectorAll('h1').length,table:table.length,
+                chapters:ids.length,toc:toc.length,tocMatch:toc.join('|')===ids.join('|'),htmlLang:document.documentElement.lang,
+                related:document.querySelectorAll('.insight-v2-related-decisions').length,footer:document.querySelectorAll('[data-footer-family="editorial"]').length,
+                tableFocusable:table.every(x=>x.getAttribute('tabindex')==='0'),
+                tableOverflow:table.map(x=>x.scrollWidth>x.clientWidth+1)};
+            });
+            report(result.scrollWidth<=result.width+2,label+' no page-level overflow',JSON.stringify(result));
+            report(result.h1===1&&result.chapters===12&&result.toc===12&&result.tocMatch,label+' structure',JSON.stringify(result));
+            report(result.table===2&&result.tableFocusable&&result.footer===1&&result.htmlLang===lang,label+' tables/footer/lang',JSON.stringify(result));
+            return result;
+          }
+          (async()=>{
+            for(const [name,type] of [['chromium',chromium],['webkit',webkit]]){
+              const browser=await type.launch({headless:true});
+              for(const [lang,route] of Object.entries(routes)){
+                const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true});
+                const page=await context.newPage();
+                for(const w of widths){
+                  await page.setViewportSize({width:w,height:w===844||w===932?430:w<=430?844:900});
+                  await page.goto('http://127.0.0.1:8765'+route,{waitUntil:'domcontentloaded'});
+                  const id=name+'-'+lang+'-'+w;
+                  await check(page,id,lang);
+                  if([390,844,1440].includes(w)){
+                    await page.screenshot({path:'evidence/insights-e2/'+id+'.png',fullPage:false});
+                    await page.locator('.insight-v2-table-wrap').first().screenshot({path:'evidence/insights-e2/'+id+'-table.png'});
+                  }
+                  if(w===390){
+                    const table=page.locator('.insight-v2-table-wrap').first();
+                    await table.focus();
+                    await page.keyboard.press('ArrowRight');
+                    const focus=await page.evaluate(()=>document.activeElement?.classList.contains('insight-v2-table-wrap'));
+                    report(focus,id+' keyboard table focus');
+                  }
+                }
+                for(const scale of [1.25,1.5]){
+                  await page.setViewportSize({width:390,height:844});
+                  await page.goto('http://127.0.0.1:8765'+route,{waitUntil:'domcontentloaded'});
+                  await page.evaluate(scale=>document.body.style.zoom=String(scale),scale);
+                  await check(page,name+'-'+lang+'-css-zoom-'+scale,lang);
+                }
+                await page.emulateMedia({reducedMotion:'reduce'});
+                await page.goto('http://127.0.0.1:8765'+route,{waitUntil:'domcontentloaded'});
+                await check(page,name+'-'+lang+'-reduced-motion',lang);
+                await context.close();
+                const noJS=await browser.newContext({viewport:{width:390,height:844},javaScriptEnabled:false,hasTouch:true});
+                const noPage=await noJS.newPage();
+                await noPage.goto('http://127.0.0.1:8765'+route,{waitUntil:'domcontentloaded'});
+                await check(noPage,name+'-'+lang+'-nojs',lang);
+                await noJS.close();
+              }
+              await browser.close();
+            }
+            fs.writeFileSync('evidence/insights-e2/report.json',JSON.stringify({passes,failures:errors.length,errors},null,2));
+            console.log('Article 11 browser QA',passes,'checks passed,',errors.length,'failed');
+            if(errors.length)throw Error(errors.join('\n'));
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site > /tmp/insights-e2-http.log 2>&1 &
+          sleep 2
+          node /tmp/insights-e2/browser-qa.cjs
+      - name: Upload evidence even if tests fail
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: insights-e2-article11-browser-evidence
+          path: evidence/insights-e2/
+          if-no-files-found: warn

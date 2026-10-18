@@ -147,6 +147,31 @@ jobs:
                 console.log('NOJS DIAG '+name+'-'+lang,JSON.stringify({overflow:await noPage.evaluate(()=>document.documentElement.scrollWidth),diag}));
                 await noJS.close();
               }
+              const regressionRoutes=[
+                '/insights/','/ru/insights/',
+                '/insights/what-happens-after-a-lead-arrives/','/ru/insights/chto-proiskhodit-posle-zayavki/',
+                '/insights/does-your-service-business-need-a-multilingual-website/','/ru/insights/sayt-dlya-russkoyazychnogo-biznesa-v-ssha/',
+                '/insights/how-to-evaluate-a-website-proposal/','/ru/insights/kak-proverit-predlozhenie-na-sayt-v-ssha/',
+                '/insights/ai-ready-website-for-business/','/ru/insights/ai-ready-sayt-dlya-biznesa/',
+                '/insights/ai-search-optimization-for-service-businesses/','/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/',
+                '/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/','/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/'
+              ];
+              for(const route of regressionRoutes){
+                const ctx=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,javaScriptEnabled:false});
+                await ctx.route('**/*', route => {const url=route.request().url();if(url.startsWith('http://127.0.0.1:8765/'))route.continue();else route.abort();});
+                const pg=await ctx.newPage();const response=await pg.goto('http://127.0.0.1:8765'+route,{waitUntil:'load'});
+                const x=await pg.evaluate(()=>({
+                  h1:document.querySelectorAll('h1').length,
+                  canonical:!!document.querySelector('link[rel="canonical"]'),
+                  footer:document.querySelectorAll('[data-footer-family="editorial"]').length,
+                  overflow:document.documentElement.scrollWidth-innerWidth,
+                  liquid:document.documentElement.outerHTML.includes('{% include ')
+                }));
+                report(response&&response.status()===200,name+' regression 200 '+route);
+                report(x.h1===1&&x.canonical&&x.footer===1&&!x.liquid,name+' regression shell '+route,JSON.stringify(x));
+                report(x.overflow<=2,name+' regression mobile width '+route,JSON.stringify(x));
+                await ctx.close();
+              }
               await browser.close();
             }
             fs.writeFileSync('evidence/insights-e2/report.json',JSON.stringify({passes,failures:errors.length,errors},null,2));

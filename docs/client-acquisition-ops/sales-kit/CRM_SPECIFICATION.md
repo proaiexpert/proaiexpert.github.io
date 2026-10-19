@@ -200,4 +200,4 @@ Use Google Sheets for the first 30 days with:
 - protected headers and formula columns;
 - filters by priority, stage, source, and next-action date.
 
-Do not build automation until the manual workflow has been used consistently for at least one full week and field definitions are stable.
+Do not build new CRM/pipeline automation until the manual CRM workflow has been used consistently for at least one full week and field definitions are stable. This rule concerns CRM implementation and does not revoke the separately Owner-approved bounded LinkedIn Likes/Comments/Connect scheduled engagement workflow. No new outbound sales-message automation is approved here.

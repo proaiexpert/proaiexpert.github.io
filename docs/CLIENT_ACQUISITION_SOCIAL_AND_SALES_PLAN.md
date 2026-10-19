@@ -11,6 +11,8 @@
 
 ## 1. Authority and source-of-truth rule
 
+**LinkedIn operational clarification — 2026-10-18 (R4.53 staging):** This repository document remains the approved *broad client-acquisition strategy*. The existing `linkedin` scheduled automation is a separately Owner-approved, narrow engagement implementation; its active execution procedure and actual journal are on Windows in the existing RUNBOOK/prompt/state helper, not in this website repository. For that one automation, each genuine scheduled morning/evening session has independent ceilings of **5 Likes, 5 substantive Comments and 4 qualified Connect invitations**, subject to actual tool approvals, account-security controls, qualification, duplicate checks and journal integrity. These are ceilings, not activity quotas. Commercial DMs/InMail, new publishing, profile editing and accepting/declining incoming invitations are **not** authorized by this standing 5/5/4 scope. The 2026-10-18 reconciled LinkedIn Authority Master and Client Acquisition Master in Google Drive record the business-level Owner decision. Do not interpret this August plan's historical targets or prohibitions as commands that automatically override the explicitly authorized present-day scheduled run; do not use this clarification to create additional automations.
+
 This file is the single source of truth for ProAI Expert client acquisition across two connected systems:
 
 1. **Part I — Social Media and Personal Brand:** creates relevant attention, trust, and conversations.
@@ -133,14 +135,14 @@ Required profile assets:
 - personal Service Page where available;
 - truthful recommendations from actual clients and collaborators.
 
-Daily activity in Acquisition Mode:
+Daily activity in Acquisition Mode — **original August 2026 planning targets, not authorizations or configuration for the existing scheduler**:
 
-- up to 10 targeted connection requests;
-- up to 5 personalized messages or follow-ups;
+- up to 10 targeted connection requests in a separately approved manual sales-outreach plan;
+- up to 5 personalized messages or follow-ups, each requiring its applicable separate authorization;
 - substantive comments on relevant local and professional posts;
 - 1–2 warm-introduction requests where a genuine mutual connection exists.
 
-Do not automate LinkedIn outreach or use high-volume invitation behavior.
+Do not automate commercial DM/sales-message sequences or engage in bulk/high-volume invitations. The existing narrowly bounded Owner-approved `linkedin` scheduled Likes/Comments/Connect workflow is governed by the operational clarification in Section 1, not these August planning targets.
 
 ### 5.3 Telegram — trust and retention layer
 
@@ -221,7 +223,7 @@ A follower, friend, like, or comment is not pipeline unless the CRM records:
 
 ## 8. Social activity targets
 
-Targets depend on the capacity mode defined in Section 22.
+Targets depend on the capacity mode defined in Section 22. These are strategy KPIs, not instructions to automatically create actions, sessions, messages or connection requests beyond a separately authorized execution scope.
 
 ### Acquisition Mode
 
@@ -263,7 +265,7 @@ Balanced Mode and Capacity-Protection Mode automatically reduce connection, outr
 - no proposal without qualification;
 - no work before agreement and cleared deposit;
 - no unsupported performance guarantees;
-- manual outbound must work before automation is considered;
+- validate human-led personalized commercial outbound before proposing automated sales-message sequences; this does not supersede the separately approved bounded LinkedIn engagement workflow;
 - acquisition volume must follow delivery capacity.
 
 ## 10. ICP and vertical priority

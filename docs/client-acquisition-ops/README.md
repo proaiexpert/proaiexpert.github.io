@@ -13,11 +13,11 @@ The canonical strategy remains:
 
 - `docs/CLIENT_ACQUISITION_SOCIAL_AND_SALES_PLAN.md`
 
-Nothing in this folder may override that plan silently. If evidence requires a strategy change, update the canonical plan through a dedicated documentation PR and record the decision here.
+Nothing in this folder may override that plan silently. If evidence requires a strategy change, update the canonical plan through a dedicated documentation PR and record the decision here. The Owner-approved LinkedIn 5/5/4 engagement scope is documented as a bounded operational clarification in the canonical plan; execution details and journal remain in the existing Windows automation. Google Drive's LinkedIn Authority/Acquisition Masters contain the matching current business-scope decision; they are not alternative website-repository master plans.
 
 ## Folder structure
 
-- `CURRENT_STATUS.md` — current execution state and next priorities.
+- `CURRENT_STATUS.md` — August 2026 historical execution snapshot, with October 2026 reconciliation note. Do not treat the old 'immediate priority' as live instructions without checking current CRM and dated decisions.
 - `logs/YYYY-MM-DD.md` — dated decisions, actions, results, and unresolved questions.
 - `sales-kit/` — approved reusable sales materials.
 - `campaigns/` — time-bounded outreach and social-selling campaigns.

@@ -136,7 +136,7 @@ jobs:
               assert(d.lang===task.lang&&d.h1===1&&d.header>=1&&d.footer===1&&d.globalOverflow<=2,key+' shell/overflow '+JSON.stringify(d));
               assert(d.canonical?.startsWith('https://proai-expert.com/')&&d.hreflang.includes('en')&&d.hreflang.includes('ru')&&d.hreflang.includes('x-default')&&d.title&&d.description,key+' canonical/hreflang/head');
               if(task.label!=='hub-regression'){
-                assert(d.headCSS.length>=3&&d.bodyCSS.length===0&&d.headOG===1&&d.bodyOG===0&&d.headLD===1&&d.bodyLD===0,key+' HEAD misplaced '+JSON.stringify(d));
+                assert(d.headCSS.length===3&&d.headCSS.every(x=>/header-system-v1|header-footer-logo-r1|insights-editorial-v2/.test(x))&&d.bodyCSS.length===5&&d.bodyCSS.every(x=>/home-footer-/.test(x))&&!d.headCSS.some(x=>d.bodyCSS.includes(x))&&d.headOG===1&&d.bodyOG===0&&d.headLD===1&&d.bodyLD===0,key+' HEAD misplaced '+JSON.stringify(d));
                 assert(d.types.includes('Article')&&d.types.includes('BreadcrumbList')&&d.meta.published&&d.meta.modified&&d.meta.author,key+' structured data '+JSON.stringify(d));
               }else{assert(d.headOG===1&&d.bodyOG===0,key+' Hub OG metadata');}
               if(routes11.some(x=>x.route===task.route)){

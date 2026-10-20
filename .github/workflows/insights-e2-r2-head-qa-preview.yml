@@ -1,0 +1,196 @@
+name: Insights E2-R2 Article V2 head and immutable compiled preview
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e2-r2-head-qa-preview.yml
+permissions:
+  contents: write
+jobs:
+  build-browser-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: c893a767ffdd18a00d2d0a293242d45650de4287
+          persist-credentials: true
+      - name: Clean Jekyll build and all canonical validators
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          mkdir -p evidence/e2-r2
+          python - <<'PY'
+          from pathlib import Path
+          import re, json, xml.etree.ElementTree as ET, urllib.parse
+          source=Path('.'); site=Path('_site')
+          layout=(source/'_layouts/insight-v2.html').read_text()
+          assert 'rel="stylesheet">\\n<link rel="stylesheet" href="/assets/css/header-system-v1.css' not in layout,'literal slash-n regression'
+          assert 'rel="stylesheet">\n<link rel="stylesheet" href="/assets/css/header-system-v1.css' in layout,'real newline absent'
+          items=[]
+          for parent in [source/'insights',source/'ru/insights']:
+            for f in parent.rglob('index.html'):
+              txt=f.read_text()
+              fm=re.match(r'^---\n(.*?)\n---',txt,re.S)
+              if not fm or not re.search(r'^layout: insight-v2$',fm.group(1),re.M):continue
+              route=re.search(r'^permalink:\s*(\S+)',fm.group(1),re.M)
+              language=re.search(r'^lang:\s*(\S+)',fm.group(1),re.M)
+              assert route and language,(str(f),'invalid front matter')
+              page=site/route.group(1).strip('/')/'index.html'
+              assert page.is_file(),('compiled page missing',route.group(1))
+              html=page.read_text()
+              assert html.lstrip().lower().startswith('<!doctype html>'),('uncompiled',str(page))
+              assert html.count('class="insight-v2-decision-table"')==(2 if ('how-much' in route.group(1) or 'ekonomika-proekta' in route.group(1)) else html.count('class="insight-v2-decision-table"'))
+              assert '{% include' not in html and 'layout: insight-v2' not in html
+              assert html.count('<h1')==1
+              items.append({'route':route.group(1),'lang':language.group(1)})
+          assert len(items)==14,('expected canonical Article V2 sources',len(items),items)
+          Path('evidence/e2-r2').mkdir(parents=True,exist_ok=True)
+          Path('evidence/e2-r2/article-routes.json').write_text(json.dumps(items,indent=2))
+          root=ET.parse('_site/sitemap.xml').getroot()
+          records={}
+          for element in root:
+            loc=element.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+            mod=element.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+            if loc is not None and mod is not None:
+              assert loc.text not in records
+              records[loc.text]=mod.text
+          four={
+          '/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/':'2026-10-17',
+          '/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/':'2026-10-17',
+          '/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/':'2026-10-15',
+          '/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/':'2026-10-15',
+          }
+          for route,date in four.items():assert records.get('https://proai-expert.com'+route)==date,(route,date,records.get('https://proai-expert.com'+route))
+          for item in items:
+            page=site/item['route'].strip('/')/'index.html'; html=page.read_text()
+            assert 'data-footer-family="editorial"' in html,('Golden Footer',item)
+            if item['route'] in four and 'cost-' in item['route'] or 'ekonomika-proekta' in item['route']:
+              assert html.count('<textarea id="tco-')==2 and html.count('class="insight-v2-decision-table"')==2,('TCO',item)
+          print('CANONICAL ARTICLE V2 SOURCES',len(items),'SITEMAP REGISTRY DATES 4/4 PASS','DOCTYPES/FOOTERS PASS')
+          PY
+      - name: Chromium WebKit JS and no-JS before-after head and all V2 regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/insights-e2r2 --no-save --no-audit --no-fund playwright@1.56.1
+          /tmp/insights-e2r2/node_modules/.bin/playwright install --with-deps chromium webkit
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site >/tmp/e2r2-http.log 2>&1 &
+          sleep 2
+          NODE_PATH=/tmp/insights-e2r2/node_modules node <<'JS'
+          const {chromium,webkit}=require('playwright');
+          const fs=require('fs');
+          const articles=JSON.parse(fs.readFileSync('evidence/e2-r2/article-routes.json'));
+          const beforeBase='https://6eb97b13.proaiexpert-github-io.pages.dev';
+          const afterBase='http://127.0.0.1:8765';
+          const caseRoutes=articles.filter(x=>/ai-search-optimization|why-service-business-websites-fail|arkhitektura-konversii|how-much-does-a-business-website-cost|ekonomika-proekta/.test(x.route));
+          const routes11=articles.filter(x=>/how-much-does-a-business-website-cost|ekonomika-proekta/.test(x.route));
+          const hubRoutes=['/insights/','/ru/insights/'];
+          let checks=0; const errors=[], observations=[];
+          function assert(c,message){checks++;if(!c)errors.push(message)}
+          function inspect(){return (()=> {
+            const head=document.head,body=document.body;
+            const css=[...head.querySelectorAll('link[rel="stylesheet"]')].filter(x=>x.getAttribute('href')?.startsWith('/')).map(x=>x.getAttribute('href'));
+            const bodyCSS=[...body.querySelectorAll('link[rel="stylesheet"]')].filter(x=>x.getAttribute('href')?.startsWith('/')).map(x=>x.getAttribute('href'));
+            const ld=[...head.querySelectorAll('script[type="application/ld+json"]')];
+            let types=[],meta={};
+            for(const s of ld){try{const data=JSON.parse(s.textContent);types.push(...(data['@graph']||[]).map(x=>x['@type']));if(data['@graph']){const article=data['@graph'].find(x=>x['@type']==='Article'); if(article)meta={published:article.datePublished,modified:article.dateModified,author:article.author?.['@type']}}}catch(e){types.push('JSON_PARSE_ERROR')}}
+            const tables=[...document.querySelectorAll('.insight-v2-table-wrap')];
+            return {lang:document.documentElement.lang,headCSS:css,bodyCSS,headOG:head.querySelectorAll('meta[property="og:image"]').length,bodyOG:body.querySelectorAll('meta[property="og:image"]').length,headLD:ld.length,bodyLD:body.querySelectorAll('script[type="application/ld+json"]').length,types,meta,canonical:head.querySelector('link[rel="canonical"]')?.getAttribute('href'),hreflang:[...head.querySelectorAll('link[hreflang]')].map(x=>x.getAttribute('hreflang')),title:head.querySelector('title')?.textContent,description:head.querySelector('meta[name="description"]')?.content,h1:document.querySelectorAll('h1').length,footer:document.querySelectorAll('[data-footer-family="editorial"]').length,header:document.querySelectorAll('header').length,cta:document.querySelectorAll('a[href*="contact"]').length,tableCount:tables.length,tableOverflow:tables.map(x=>x.scrollWidth>x.clientWidth+1),focusable:tables.every(x=>x.tabIndex===0),textareas:document.querySelectorAll('textarea[id^="tco-"]').length,globalOverflow:document.documentElement.scrollWidth-innerWidth,raw:document.documentElement.outerHTML.includes('{% include')}}
+          )()}
+          (async()=>{
+          for(const [engineName,engine] of [['Chromium',chromium],['WebKit',webkit]]){
+           const browser=await engine.launch({headless:true});
+           for(const js of [true,false]){
+            const context=await browser.newContext({viewport:{width:390,height:844},javaScriptEnabled:js,hasTouch:true,reducedMotion:'reduce'});
+            await context.route('**/*',r=>{const url=r.request().url();if(url.startsWith(afterBase)||url.startsWith(beforeBase))r.continue();else r.abort()});
+            const page=await context.newPage();page.setDefaultTimeout(12000);
+            // Real before evidence from the previous immutable compiled E2-R1 preview
+            for(const a of routes11){
+              const res=await page.goto(beforeBase+a.route,{waitUntil:'load',timeout:35000});
+              assert(res?.status()===200,engineName+' '+js+' old preview availability '+a.route);
+              const d=await page.evaluate(inspect);
+              observations.push({phase:'before E2-R1 immutable',engine:engineName,JS:js,route:a.route,headCSS:d.headCSS.length,bodyCSS:d.bodyCSS.length,headOG:d.headOG,bodyOG:d.bodyOG,headLD:d.headLD,bodyLD:d.bodyLD});
+            }
+            const scenarios=[];
+            for(const a of articles)scenarios.push({route:a.route,lang:a.lang,width:390,label:'full-canonical'});
+            for(const a of caseRoutes){for(const width of [320,844,1440])scenarios.push({route:a.route,lang:a.lang,width,label:'article-05-10-11-regression'});}
+            for(const route of hubRoutes){for(const width of [320,390,844,1440])scenarios.push({route,lang:route.startsWith('/ru')?'ru':'en',width,label:'hub-regression'});}
+            for(const task of scenarios){
+              await page.setViewportSize({width:task.width,height:task.width===844?430:task.width<=390?844:900});
+              const response=await page.goto(afterBase+task.route,{waitUntil:'load',timeout:30000});
+              assert(response?.status()===200,engineName+' '+js+' '+task.route+' HTTP');
+              if(task.label!=='hub-regression')await page.waitForFunction(()=>{const s=document.querySelector('.insight-v2__prose');return !!s&&getComputedStyle(s).maxWidth!==''},{timeout:12000});
+              const d=await page.evaluate(inspect),key=[engineName,js?'JS':'noJS',task.width,task.route].join(' ');
+              assert(d.lang===task.lang&&d.h1===1&&d.header>=1&&d.footer===1&&d.globalOverflow<=2,key+' shell/overflow '+JSON.stringify(d));
+              assert(d.canonical?.startsWith('https://proai-expert.com/')&&d.hreflang.includes('en')&&d.hreflang.includes('ru')&&d.hreflang.includes('x-default')&&d.title&&d.description,key+' canonical/hreflang/head');
+              if(task.label!=='hub-regression'){
+                assert(d.headCSS.length>=3&&d.bodyCSS.length===0&&d.headOG===1&&d.bodyOG===0&&d.headLD===1&&d.bodyLD===0,key+' HEAD misplaced '+JSON.stringify(d));
+                assert(d.types.includes('Article')&&d.types.includes('BreadcrumbList')&&d.meta.published&&d.meta.modified&&d.meta.author,key+' structured data '+JSON.stringify(d));
+              }else{assert(d.headOG===1&&d.bodyOG===0,key+' Hub OG metadata');}
+              if(routes11.some(x=>x.route===task.route)){
+                assert(d.tableCount===2&&d.textareas===2&&d.cta>=1&&d.focusable,key+' Article11 worksheet/CTA/table');
+                if(task.width<=390){
+                  assert(d.tableOverflow.every(Boolean),key+' Article11 horizontal scroll ability '+JSON.stringify(d));
+                  const table=page.locator('.insight-v2-table-wrap').first();
+                  await table.focus();
+                  assert(await table.evaluate(e=>document.activeElement===e),key+' keyboard table focus');
+                  await page.keyboard.press('ArrowRight');
+                  await page.waitForTimeout(130);
+                  assert((await table.evaluate(e=>e.scrollLeft))>0,key+' keyboard horizontal navigation');
+                }
+              }
+              if(task.width===390&&task.label==='full-canonical')observations.push({phase:'after E2-R2 build',engine:engineName,JS:js,route:task.route,headCSS:d.headCSS.length,bodyCSS:d.bodyCSS.length,headOG:d.headOG,bodyOG:d.bodyOG,headLD:d.headLD,bodyLD:d.bodyLD});
+            }
+            await context.close();
+           }
+           await browser.close();
+          }
+          fs.writeFileSync('evidence/e2-r2/head-comparison.json',JSON.stringify({checks,failures:errors,observations},null,2));
+          console.log('BROWSER_CROSS_ENGINE',checks,'checks',errors.length,'failures','BEFORE_AFTER_OBSERVATIONS',observations.length);
+          console.log('HEAD_BEFORE_AFTER_ARTICLE11',JSON.stringify(observations.filter(x=>routes11.some(a=>a.route===x.route)),null,2));
+          if(errors.length)throw Error(errors.slice(0,30).join('\n'));
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Upload JSON evidence without screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: insights-e2-r2-head-dom-comparison
+          path: evidence/e2-r2/
+          if-no-files-found: warn
+      - name: Publish only compiled generated _site to isolated immutable preview branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='agent/insights-e2-r2-compiled-preview-20261020'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then
+            echo "Refusing to replace already existing compiled-preview branch: $dest" >&2
+            exit 1
+          fi
+          tempdir="$(mktemp -d)"
+          cp -a _site/. "$tempdir/"
+          rm -f "$tempdir/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tempdir/_headers"
+          touch "$tempdir/.nojekyll"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tempdir"/. .
+          git add -A
+          git commit -m "preview(insights): E2-R2 compiled Article V2 head repair noindex"
+          git push origin "HEAD:refs/heads/$dest"
+          echo "PUBLISHED_COMPILED_PREVIEW_BRANCH=$dest"
+          echo "PUBLISHED_COMPILED_PREVIEW_SHA=$(git rev-parse HEAD)"

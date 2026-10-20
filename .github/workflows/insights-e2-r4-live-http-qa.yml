@@ -1,0 +1,123 @@
+name: Insights E2-R4 immutable compiled HTTPS and TCO acceptance
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e2-r4-live-http-qa.yml
+permissions:
+  contents: read
+jobs:
+  remote-compiled-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Inspect new immutable Cloudflare EN and RU actual HTML head CSS JS links noindex sitemap
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import urllib.request, html.parser, json, xml.etree.ElementTree as ET, re, urllib.parse
+          BASE='https://2d10a51a.proaiexpert-github-io.pages.dev'
+          ROUTES={'en':'/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/','ru':'/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/'}
+          def get(path):
+              req=urllib.request.Request(BASE+path,headers={'User-Agent':'ProAI-E2R4-Immutable-Live-QA/1.0'})
+              with urllib.request.urlopen(req,timeout=35) as resp:return resp.status,resp.headers,resp.read()
+          class HTMLAudit(html.parser.HTMLParser):
+            def __init__(self):
+              super().__init__();self.insideHead=False;self.insideScript=False;self.headCSS=[];self.bodyCSS=[];self.headOG=0;self.bodyOG=0;self.headLD=[];self.bodyLD=[];self.scriptText='';self.js=[];self.h1=0;self.canon=[];self.langLinks=[];self.anchors=[]
+            def handle_starttag(self,tag,attrs):
+              a=dict(attrs)
+              if tag=='head':self.insideHead=True
+              if tag=='h1':self.h1+=1
+              if tag=='link':
+                if a.get('rel')=='stylesheet' and a.get('href','').startswith('/'): (self.headCSS if self.insideHead else self.bodyCSS).append(a['href'])
+                if a.get('rel')=='canonical':self.canon.append(a.get('href'))
+                if a.get('hreflang'):self.langLinks.append(a['hreflang'])
+              if tag=='meta' and a.get('property')=='og:image':
+                if self.insideHead:self.headOG+=1
+                else:self.bodyOG+=1
+              if tag=='script':
+                if a.get('src','').startswith('/'):self.js.append(a['src'])
+                if a.get('type')=='application/ld+json':self.insideScript=True;self.scriptText='';self.scriptInHead=self.insideHead
+              if tag=='a' and a.get('href'):self.anchors.append(a['href'])
+            def handle_data(self,data):
+              if self.insideScript:self.scriptText+=data
+            def handle_endtag(self,tag):
+              if tag=='head':self.insideHead=False
+              if tag=='script' and self.insideScript:
+                (self.headLD if self.scriptInHead else self.bodyLD).append(self.scriptText)
+                self.insideScript=False
+          assets=set();internal=set();records=[]
+          for lang,route in ROUTES.items():
+            status,headers,b=get(route);page=b.decode('utf-8')
+            assert status==200 and 'text/html' in headers.get('Content-Type','').lower(),(lang,'HTTP or MIME')
+            assert 'noindex' in headers.get('X-Robots-Tag','').lower(),(lang,'no HTTP noindex')
+            assert page.lstrip().lower().startswith('<!doctype html>'),(lang,'missing doctype')
+            assert '<html lang="'+lang+'"' in page,(lang,'html language')
+            assert 'layout: insight-v2' not in page and '{% include' not in page and '{{' not in page,(lang,'raw Jekyll')
+            assert page.count('class="insight-v2-decision-table"')==2 and page.count('<textarea id="tco-')==2,(lang,'TCO/tables')
+            assert 'property="article:modified_time" content="2026-10-18"' in page,(lang,'article modified meta')
+            worksheets=re.findall(r'<textarea id="tco-[^"]+"[^>]*>(.*?)</textarea>',page,re.S)
+            assert len(worksheets)==2 and worksheets[0]==worksheets[1],(lang,'two identical A/B field schemas')
+            required=('BASE IMPLEMENTATION PACKAGE' if lang=='en' else 'ОСНОВНОЙ ПАКЕТ РАЗРАБОТКИ')
+            summary=('COMMITTED TCO = base package +' if lang=='en' else 'ПОДТВЕРЖДЁННЫЙ TCO = основной пакет +')
+            for body in worksheets:
+              assert body.count(required)==1 and summary in body and '0 / N/A' in body,(lang,'base package or itemized path')
+            assert ('base implementation package + separately charged one-time extras' if lang=='en' else 'основной пакет разработки + отдельно оплачиваемые разовые дополнения') in page,(lang,'full top-level TCO formula')
+            print('LIVE_TCO_EN_RU_BASE_PACKAGE_A_B_PASS',lang,2)
+            assert 'data-footer-family="editorial"' in page and 'data-insight-v2-article' in page,(lang,'Article V2/footer')
+            a=HTMLAudit();a.feed(page)
+            assert a.h1==1,(lang,'H1')
+            assert len(a.headCSS)==3 and all(('header-system-v1' in p or 'header-footer-logo-r1' in p or 'insights-editorial-v2' in p) for p in a.headCSS),(lang,'head Article CSS',a.headCSS)
+            assert len(a.bodyCSS)==5 and all('home-footer-' in p for p in a.bodyCSS),(lang,'intended footer CSS',a.bodyCSS)
+            assert len(set(a.headCSS+a.bodyCSS))==8,(lang,'duplicate CSS')
+            assert a.headOG==1 and a.bodyOG==0 and len(a.headLD)==1 and not a.bodyLD,(lang,'misplaced OG or JSONLD',a.headOG,a.bodyOG,len(a.headLD),len(a.bodyLD))
+            assert len(a.canon)==1 and a.canon[0]=='https://proai-expert.com'+route,(lang,'canonical')
+            assert {'en','ru','x-default'}<=set(a.langLinks),(lang,'hreflang',a.langLinks)
+            graph=json.loads(a.headLD[0]).get('@graph')
+            article=next(x for x in graph if x.get('@type')=='Article')
+            breadcrumb=next(x for x in graph if x.get('@type')=='BreadcrumbList')
+            assert article['datePublished']=='2026-04-05' and article['dateModified']=='2026-10-18',(lang,'dates')
+            assert article['author']['@type']=='Organization' and breadcrumb['itemListElement'],(lang,'author/breadcrumb')
+            for url in a.headCSS+a.bodyCSS+a.js:assets.add(url.split('?')[0])
+            for href in a.anchors:
+              if href.startswith('/') and not href.startswith('//'):internal.add(href.split('#')[0].split('?')[0])
+            print('LIVE ARTICLE',lang,'PASS HTTP',status,'bytes',len(b),'headCSS',len(a.headCSS),'intentionalFooterCSS',len(a.bodyCSS),'localJS',len(a.js),'OG/headLD',a.headOG,len(a.headLD),'noindex',headers.get('X-Robots-Tag'))
+            records.append({'lang':lang,'route':route,'bytes':len(b),'styles':a.headCSS+a.bodyCSS,'js':a.js})
+          for asset in sorted(assets):
+            status,h,b=get(asset)
+            assert status==200 and len(b)>80 and not b.lstrip().lower().startswith(b'<!doctype html>'),('ASSET invalid',asset,status,len(b))
+            if asset.endswith('.css'):assert 'css' in h.get('Content-Type','').lower(),('CSS MIME',asset,h.get('Content-Type'))
+            if asset.endswith('.js'):assert 'javascript' in h.get('Content-Type','').lower(),('JS MIME',asset,h.get('Content-Type'))
+          print('REAL REMOTE CSS/JS',len(assets),'PASS')
+          # Every local linked path is an actual compiled route, including service/Case/Related Decisions paths.
+          for route in sorted(internal):
+            if route in {'','/'}:continue
+            try:status,h,b=get(route)
+            except Exception as e:raise AssertionError(('broken local link',route,str(e)))
+            assert status==200 and (b.lstrip().lower().startswith(b'<!doctype html>') or 'image/' in h.get('Content-Type','')),(route,'linked route')
+          print('LIVE INTERNAL LINKS',len(internal),'PASS')
+          for route in ['/insights/','/ru/insights/','/insights/ai-search-optimization-for-service-businesses/','/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/',
+          '/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/','/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/']:
+            status,h,b=get(route);assert status==200 and b.lstrip().lower().startswith(b'<!doctype html>'),('Regression 05/10/hub route',route,status)
+          print('LIVE ARTICLE05/10/HUB LINKS 6/6 PASS')
+          st,head,b=get('/sitemap.xml')
+          assert st==200
+          root=ET.fromstring(b)
+          records={}
+          for x in root:
+            loc=x.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+            mod=x.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+            if loc is not None and mod is not None:
+              assert loc.text not in records,('duplicate sitemap',loc.text)
+              records[loc.text]=mod.text
+          dates={
+          '/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/':'2026-10-18',
+          '/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/':'2026-10-18',
+          '/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/':'2026-10-15',
+          '/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/':'2026-10-15'
+          }
+          for route,date in dates.items():assert records.get('https://proai-expert.com'+route)==date,('SITEMAP',route)
+          print('LIVE SITEMAP 4/4 PASS')
+          PY

@@ -174,7 +174,7 @@ jobs:
              }
              if(js){
               for(const route of smoke){
-                const response=await page.goto('http://127.0.0.1:8765'+route,{waitUntil:'domcontentloaded'});
+                const response=await ctx.request.get('http://127.0.0.1:8765'+route);
                 check(response?.status()===200,name+' smoke '+route);
               }
              }

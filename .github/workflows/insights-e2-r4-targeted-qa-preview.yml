@@ -1,0 +1,212 @@
+name: Insights E2-R4 scoped P1 QA and immutable compiled preview
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e2-r4-targeted-qa-preview.yml
+permissions:
+  contents: write
+jobs:
+  targeted-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 41fac2d3cb3c803a1435eac5b6bcae6138818900
+          persist-credentials: true
+      - name: Build Jekyll and run existing validators
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          import re,html,xml.etree.ElementTree as ET
+          from pathlib import Path
+          root=Path('.');site=Path('_site')
+          routes={
+          'en':'/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/',
+          'ru':'/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/'
+          }
+          reg=(root/'_data/insights.yml').read_text()
+          entry=reg.split('- id: website-cost',1)[1].split('\n- id:',1)[0]
+          assert entry.count('date_published: "2026-04-05"')==2
+          assert entry.count('date_modified: "2026-10-18"')==2
+          assert '2026-10-17' not in entry
+          tree=ET.parse('_site/sitemap.xml').getroot()
+          records={}
+          for e in tree:
+            p=e.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+            d=e.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+            if p is not None and d is not None:
+              assert p.text not in records,('duplicate sitemap',p.text)
+              records[p.text]=d.text
+          expected={
+          routes['en']:'2026-10-18',routes['ru']:'2026-10-18',
+          '/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/':'2026-10-15',
+          '/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/':'2026-10-15'
+          }
+          for path,date in expected.items():
+            assert records.get('https://proai-expert.com'+path)==date,('sitemap date',path)
+          layouts=(root/'_layouts/insight-v2.html').read_text()
+          assert 'rel="stylesheet">\\n<link rel="stylesheet" href="/assets/css/header-system-v1.css' not in layouts
+          assert 'rel="stylesheet">\n<link rel="stylesheet" href="/assets/css/header-system-v1.css' in layouts
+          for lang,route in routes.items():
+            src=(root/route.strip('/')/'index.html').read_text()
+            compiled=(site/route.strip('/')/'index.html').read_text()
+            assert compiled.lstrip().lower().startswith('<!doctype html>'),lang
+            assert '{% include' not in compiled and 'layout: insight-v2' not in compiled
+            assert compiled.count('class="insight-v2-decision-table"')==2,lang
+            assert src.count('<h2 id=')==12,lang
+            inputs=re.findall(r'<textarea id="(tco-[^"]+)"[^>]*>(.*?)</textarea>',compiled,re.S)
+            assert len(inputs)==2,(lang,'textarea count')
+            template_a=html.unescape(inputs[0][1])
+            template_b=html.unescape(inputs[1][1])
+            assert template_a==template_b,(lang,'A/B parity of fields')
+            for ident,body in inputs:
+              t=html.unescape(body)
+              label=('BASE IMPLEMENTATION PACKAGE' if lang=='en' else 'ОСНОВНОЙ ПАКЕТ РАЗРАБОТКИ')
+              extras=('ONE-TIME NOT BUNDLED' if lang=='en' else 'РАЗОВЫЕ, НЕ ВХОДЯЩИЕ В ПАКЕТ')
+              summary=('COMMITTED TCO = base package +' if lang=='en' else 'ПОДТВЕРЖДЁННЫЙ TCO = основной пакет +')
+              assert t.count(label)==1 and t.index(label)<t.index(extras),(lang,ident,'base package placement')
+              assert summary in t and '0 / N/A' in t,(lang,ident,'summary or no-package path')
+              for line in [('x H','SCENARIO TCO') if lang=='en' else ('x H','СЦЕНАРНЫЙ TCO')]:
+                assert all(x in t for x in line),(lang,ident,'missing recurring/scenario')
+            assert 'property="article:modified_time" content="2026-10-18"' in compiled,(lang,'OpenGraph modified')
+            assert '"dateModified":"2026-10-18"' in compiled,(lang,'JSON-LD modified')
+            assert '"datePublished":"2026-04-05"' in compiled,(lang,'published date')
+            assert 'data-footer-family="editorial"' in compiled,(lang,'footer')
+            print('GENERATED_JEKYLL_TCO_SCHEMA_DATE PASS',lang,'inputs',len(inputs),'tables',2)
+          # Synthetic fixture only: not included in public article, no market-price claims
+          def committed(base,extras,h,monthly,annual,internal_hours,loaded_rate,changes,exit_cost,taxes):
+            return base+extras+h*monthly+annual+internal_hours*loaded_rate+changes+exit_cost+taxes
+          for h,annual,want in [(24,480,18100),(36,720,19480)]:
+            bundle=committed(12000,1800,h,95,annual,10,75,350,200,240)
+            lineitem=committed(0,13800,h,95,annual,10,75,350,200,240)
+            assert sum([8000,2500,1500])==12000
+            assert 3000+9000==12000 # deposit and progress are components of contract price, never additions
+            assert bundle==lineitem==want,(h,bundle,lineitem,want)
+            assert bundle+600+175==want+775 # scenario allowances are separate from committed
+            print('SYNTHETIC_TCO_FIXTURE PASS','H',h,'bundled',bundle,'itemized',lineitem,'scenario',bundle+775,'duplicate_included',0)
+          print('REGISTRY_SITEMAP_4_OF_4 PASS')
+          PY
+      - name: Focused EN RU Article 11 browser and Articles 05 10 Hub smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/insights-e2r4 --no-save --no-audit --no-fund playwright@1.56.1
+          /tmp/insights-e2r4/node_modules/.bin/playwright install --with-deps chromium webkit
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site >/tmp/e2r4-http.log 2>&1 &
+          sleep 2
+          NODE_PATH=/tmp/insights-e2r4/node_modules node <<'JS'
+          const {chromium,webkit}=require('playwright');
+          const cases=[
+           {lang:'en',route:'/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/'},
+           {lang:'ru',route:'/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/'}
+          ];
+          const smoke=[
+          '/insights/','/ru/insights/',
+          '/insights/ai-search-optimization-for-service-businesses/',
+          '/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/',
+          '/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/',
+          '/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/'
+          ];
+          let assertions=0;const failures=[];
+          function check(ok,message){assertions++;if(!ok)failures.push(message)}
+          (async()=>{
+           for(const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]){
+            const browser=await engine.launch({headless:true});
+            for(const js of [true,false]){
+             const ctx=await browser.newContext({viewport:{width:390,height:844},javaScriptEnabled:js,hasTouch:true,reducedMotion:'reduce'});
+             await ctx.route('**/*',r=>r.request().url().startsWith('http://127.0.0.1:8765/')?r.continue():r.abort());
+             const page=await ctx.newPage();
+             for(const c of cases){
+              for(const width of [390,1440]){
+               await page.setViewportSize({width,height:width===390?844:900});
+               const response=await page.goto('http://127.0.0.1:8765'+c.route,{waitUntil:'load',timeout:30000});
+               const key=name+' '+(js?'JS':'NoJS')+' '+c.lang+' '+width;
+               check(response?.status()===200,key+' HTTP');
+               const d=await page.evaluate(()=>{
+                let ld=[...document.head.querySelectorAll('script[type="application/ld+json"]')];
+                let graph=ld.flatMap(x=>{try{return JSON.parse(x.textContent)['@graph']||[]}catch{return []}});
+                const article=graph.find(x=>x['@type']==='Article');
+                const localHead=[...document.head.querySelectorAll('link[rel="stylesheet"]')].filter(x=>x.getAttribute('href')?.startsWith('/')).map(x=>x.getAttribute('href'));
+                const footerBody=[...document.body.querySelectorAll('link[rel="stylesheet"]')].filter(x=>x.getAttribute('href')?.startsWith('/'));
+                const tables=[...document.querySelectorAll('.insight-v2-table-wrap')];
+                const inputs=[...document.querySelectorAll('textarea[id^="tco-"]')];
+                return {
+                  lang:document.documentElement.lang,
+                  headCSS:localHead.length,footerCSS:footerBody.length,headOG:document.head.querySelectorAll('meta[property="og:image"]').length,bodyOG:document.body.querySelectorAll('meta[property="og:image"]').length,
+                  headLD:ld.length,bodyLD:document.body.querySelectorAll('script[type="application/ld+json"]').length,
+                  modified:document.head.querySelector('meta[property="article:modified_time"]')?.content,
+                  published:article?.datePublished,schemaModified:article?.dateModified,breadcrumb:graph.some(x=>x['@type']==='BreadcrumbList'),
+                  h1:document.querySelectorAll('h1').length,footer:document.querySelectorAll('[data-footer-family="editorial"]').length,
+                  canonical:document.head.querySelector('link[rel="canonical"]')?.href,
+                  hreflang:[...document.head.querySelectorAll('link[hreflang]')].map(x=>x.hreflang),
+                  tables:tables.length,tableScroll:tables.map(x=>x.scrollWidth>x.clientWidth+1),
+                  focus:tables.every(x=>x.tabIndex===0),inputs:inputs.length,
+                  tcoBodies:inputs.map(x=>x.value),cta:[...document.querySelectorAll('a[href*="contact"]')].length,
+                  overflow:document.documentElement.scrollWidth-innerWidth
+                };
+               });
+               check(d.h1===1&&d.lang===c.lang&&d.footer===1&&d.cta>=1&&d.overflow<=2,key+' shell '+JSON.stringify(d));
+               check(d.headCSS===3&&d.footerCSS===5&&d.headOG===1&&d.bodyOG===0&&d.headLD===1&&d.bodyLD===0,key+' HEAD '+JSON.stringify(d));
+               check(d.published==='2026-04-05'&&d.modified==='2026-10-18'&&d.schemaModified==='2026-10-18'&&d.breadcrumb,key+' dates/schema '+JSON.stringify(d));
+               check(d.canonical?.endsWith(c.route)&&['en','ru','x-default'].every(x=>d.hreflang.includes(x)),key+' canonical/hreflang');
+               check(d.tables===2&&d.inputs===2&&d.focus&&d.tcoBodies.every(x=>x.includes(c.lang==='en'?'BASE IMPLEMENTATION PACKAGE':'ОСНОВНОЙ ПАКЕТ РАЗРАБОТКИ')),key+' live TCO '+JSON.stringify(d));
+               if(width===390){
+                 check(d.tableScroll.every(Boolean),key+' independent table scroll');
+                 const table=page.locator('.insight-v2-table-wrap').first();
+                 await table.focus();await page.keyboard.press('ArrowRight');await page.waitForTimeout(170);
+                 check(await table.evaluate(x=>x.scrollLeft)>0,key+' keyboard ArrowRight');
+               }
+              }
+             }
+             if(js){
+              for(const route of smoke){
+                const response=await page.goto('http://127.0.0.1:8765'+route,{waitUntil:'domcontentloaded'});
+                check(response?.status()===200,name+' smoke '+route);
+              }
+             }
+             await ctx.close();
+            }
+            await browser.close();
+           }
+           console.log('E2_R4_TARGETED_BROWSER_QA',assertions,'PASS_CANDIDATES',failures.length,'FAILURES','Chromium_WebKit_JS_NoJS_EN_RU');
+           if(failures.length){console.error(failures.join('\n'));process.exit(1)}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Publish isolated immutable compiled _site only
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='agent/insights-e2-r4-compiled-preview-20261020'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then
+            echo "Refuse overwrite of immutable preview branch: $dest" >&2
+            exit 1
+          fi
+          tempdir="$(mktemp -d)"
+          cp -a _site/. "$tempdir/"
+          rm -f "$tempdir/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tempdir/_headers"
+          touch "$tempdir/.nojekyll"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tempdir"/. .
+          git add -A
+          git commit -m "preview(insights): E2-R4 corrected TCO and date compiled EN/RU noindex"
+          git push origin "HEAD:refs/heads/$dest"
+          echo "E2R4_COMPILED_BRANCH=$dest"
+          echo "E2R4_COMPILED_SHA=$(git rev-parse HEAD)"

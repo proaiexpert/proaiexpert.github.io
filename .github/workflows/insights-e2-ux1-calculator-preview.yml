@@ -1,0 +1,169 @@
+name: Insights E2-UX1 scoped calculator QA and immutable compiled preview
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e2-ux1-calculator-preview.yml
+permissions:
+  contents: write
+jobs:
+  target:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 0786a4c3c5774fa739a3cdfe30cf041f5fe56efc
+          persist-credentials: true
+      - name: Jekyll compile, existing validators, article structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          import re,xml.etree.ElementTree as ET
+          src=Path('.');root=Path('_site')
+          paths=['/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/','/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/']
+          for lang,route in zip(['en','ru'],paths):
+              origin=(src/route.strip('/')/'index.html').read_text()
+              html=(root/route.strip('/')/'index.html').read_text()
+              assert html.lstrip().lower().startswith('<!doctype html>') and '{% include' not in html
+              assert origin.count('<h2 id=')==12 and html.count('class="insight-v2-decision-table"')==2
+              assert html.count('class="tco__card"')==2 and html.count('data-proposal=')==2 and 'rows="15"' not in html
+              assert html.count('<table class="tco__table"')==8 and html.count('data-cost="base"')==2
+              assert '/assets/css/insight-tco-calc-r1.css' in html and '/assets/js/insight-tco-calc-r1.js' in html
+              assert 'property="article:modified_time" content="2026-10-18"' in html
+              assert '"dateModified":"2026-10-18"' in html and '"datePublished":"2026-04-05"' in html
+              assert 'data-footer-family="editorial"' in html
+              print('E2_UX1_GENERATED_STRUCTURAL_PASS',lang)
+          reg=(src/'_data/insights.yml').read_text().split('- id: website-cost',1)[1].split('\n- id:',1)[0]
+          assert reg.count('date_modified: "2026-10-18"')==2
+          rootxml=ET.parse('_site/sitemap.xml').getroot();dates={}
+          for e in rootxml:
+              a=e.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+              b=e.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+              if a is not None and b is not None:dates[a.text]=b.text
+          for route in paths:assert dates['https://proai-expert.com'+route]=='2026-10-18'
+          for route in ['/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/','/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/']:
+              assert dates['https://proai-expert.com'+route]=='2026-10-15'
+          print('E2_UX1_4_SITEMAP_DATES PASS')
+          PY
+      - name: Targeted Chromium WebKit calculator and regression QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/insights-ux1 --no-save --no-audit --no-fund playwright@1.56.1
+          /tmp/insights-ux1/node_modules/.bin/playwright install --with-deps chromium webkit
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site >/tmp/e2ux1-http.log 2>&1 &
+          sleep 2
+          NODE_PATH=/tmp/insights-ux1/node_modules node <<'JS'
+          const {chromium,webkit}=require('playwright');
+          const routes=[['en','/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/'],['ru','/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/']];
+          const smoke=['/insights/','/ru/insights/','/insights/ai-search-optimization-for-service-businesses/','/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/','/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/','/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/'];
+          let count=0,errors=[];
+          function ok(test,msg){count++;if(!test)errors.push(msg);}
+          const base='http://127.0.0.1:8765';
+          async function fillFixture(page,letter,months,renew,packageBase,extra){
+          await page.evaluate(({letter,months,renew,packageBase,extra})=>{
+          const card=document.querySelector('[data-proposal="'+letter+'"]');
+          const values={base:packageBase,extra,setup:0,host:50,support:30,monthly:15,renew,hours:10,change:350,exit:200,tax:240,future:600,usage:175,migration:0};
+          for(const [key,val] of Object.entries(values)){const input=card.querySelector('[data-cost="'+key+'"]');input.value=String(val);input.dispatchEvent(new Event('input',{bubbles:true}));}
+          card.querySelector('[data-rate="hours"]').value='75';card.querySelector('[data-rate="hours"]').dispatchEvent(new Event('input',{bubbles:true}));
+          for(const key of ['host','support','monthly']){const input=card.querySelector('[data-months="'+key+'"]');input.value=String(months);input.dispatchEvent(new Event('input',{bubbles:true}));}
+          },{letter,months,renew,packageBase,extra});
+          }
+          async function raw(page,letter){return page.locator('[data-proposal="'+letter+'"] [data-result]').evaluateAll(xs=>xs.map(x=>x.getAttribute('data-raw')));}
+          (async()=>{
+          for(const [browserName,engine] of [['Chromium',chromium],['WebKit',webkit]]){
+          const browser=await engine.launch({headless:true});
+          for(const [lang,route] of routes){
+          for(const enabled of [true,false]){
+          const context=await browser.newContext({viewport:{width:390,height:844},javaScriptEnabled:enabled,hasTouch:true,reducedMotion:'reduce'});
+          await context.route('**/*',r=>r.request().url().startsWith(base+'/')?r.continue():r.abort());
+          const page=await context.newPage();
+          for(const width of [320,390,844,1440]){
+          await page.setViewportSize({width,height:width===844?430:850});
+          const res=await page.goto(base+route,{waitUntil:'load',timeout:30000});
+          const root=page.locator('[data-tco]'),key=[browserName,lang,enabled?'JS':'noJS',width].join(' ');
+          ok(res?.status()===200,key+' HTTP');
+          const d=await page.evaluate(()=>{
+          const root=document.querySelector('[data-tco]'),head=document.head;
+          return {ready:root.classList.contains('is-ready'),cards:root.querySelectorAll('[data-proposal]').length,tables:root.querySelectorAll('.tco__table').length,inputs:root.querySelectorAll('[data-cost]').length,base:root.querySelectorAll('[data-cost="base"]').length,monthly:root.querySelectorAll('[data-months]').length,h1:document.querySelectorAll('h1').length,mainTables:document.querySelectorAll('.insight-v2-decision-table').length,overflow:document.documentElement.scrollWidth-innerWidth,css:!![...document.styleSheets].find(x=>x.href?.includes('insight-tco-calc-r1.css')),headerOG:head.querySelectorAll('meta[property="og:image"]').length,ld:head.querySelectorAll('script[type="application/ld+json"]').length,modified:head.querySelector('meta[property="article:modified_time"]')?.content,canon:head.querySelector('link[rel="canonical"]')?.href,notes:root.querySelectorAll('textarea').length,tabVisible:getComputedStyle(root.querySelector('.tco__tabs')).display!== 'none'};
+          });
+          ok(d.h1===1&&d.mainTables===2&&d.cards===2&&d.tables===8&&d.base===2&&d.monthly===6&&d.notes===2,key+' semantic structure '+JSON.stringify(d));
+          ok(d.overflow<=2&&d.css&&d.headerOG===1&&d.ld===1&&d.modified==='2026-10-18'&&d.canon?.endsWith(route),key+' responsive SEO '+JSON.stringify(d));
+          ok(d.ready===enabled&&d.tabVisible===(enabled&&width<=1130),key+' JS tabs / noJS fallback');
+          if(!enabled){
+          const nojs=await page.locator('noscript').count();
+          ok(nojs===1&&await page.locator('[data-proposal="b"]').count()===1,key+' noJS manual worksheet');
+          }else{
+          ok(await root.locator('[data-result="committed"]').first().textContent()==='—',key+' unknown not zero');
+          if(width===390){
+          const choose=root.locator('[data-view="b"]');
+          await choose.click();
+          ok(await choose.getAttribute('aria-pressed')==='true',key+' mobile B selection');
+          const input=page.locator('[data-proposal="b"] [data-cost="base"]');
+          await input.focus();ok(await input.evaluate(e=>e===document.activeElement),key+' focusable editable labeled fields');
+          await choose.locator('xpath=..').locator('[data-view="a"]').click();
+          await fillFixture(page,'a',24,480,12000,1800);await fillFixture(page,'b',24,480,0,13800);
+          ok(JSON.stringify(await raw(page,'a'))===JSON.stringify(['18100.00','775.00','18875.00']),key+' bundle 24 arithmetic');
+          ok(JSON.stringify(await raw(page,'b'))===JSON.stringify(['18100.00','775.00','18875.00']),key+' itemized 24 parity');
+          await page.locator('[data-horizon][value="36"]').check();
+          await fillFixture(page,'a',36,720,12000,1800);await fillFixture(page,'b',36,720,0,13800);
+          ok(JSON.stringify(await raw(page,'a'))===JSON.stringify(['19480.00','775.00','20255.00']),key+' bundle 36 arithmetic');
+          ok(JSON.stringify(await raw(page,'b'))===JSON.stringify(['19480.00','775.00','20255.00']),key+' itemized 36 parity');
+          await page.locator('[data-horizon][value="24"]').check();
+          ok((await raw(page,'a'))[0]==='',key+' 36 paid months invalid at H24');
+          await page.locator('[data-horizon][value="36"]').check();
+          await page.locator('[data-proposal="a"] [data-cost="tax"]').evaluate(el=>{el.value='';el.dispatchEvent(new Event('input',{bubbles:true}));});
+          ok((await raw(page,'a'))[0]==='' && (await raw(page,'a'))[1]==='775.00',key+' committed unknown but separate reserves known');
+          await page.locator('[data-view="b"]').click();
+          await page.locator('[data-reset="b"]').click();
+          ok((await raw(page,'b'))[0]==='',key+' reset without storage');
+          }
+          }
+          }
+          await context.close();
+          }
+          }
+          await browser.close();
+          }
+          for(const route of smoke){const r=await fetch(base+route);ok(r.status===200,'Published article/hub smoke '+route);}
+          console.log('E2_UX1_BROWSER_RESULTS',count,'checks',errors.length,'failures');
+          if(errors.length){console.error(errors.slice(0,40).join('\n'));process.exit(1);}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Publish brand-new isolated immutable compiled preview only
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='agent/insights-e2-ux1-compiled-preview-20261020'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then
+            echo "Refusing overwrite of immutable preview branch" >&2
+            exit 1
+          fi
+          tempdir="$(mktemp -d)"
+          cp -a _site/. "$tempdir/"
+          rm -f "$tempdir/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tempdir/_headers"
+          touch "$tempdir/.nojekyll"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tempdir"/. .
+          git add -A
+          git commit -m "preview(insights): Article 11 EN RU premium TCO calculator compiled noindex"
+          git push origin "HEAD:refs/heads/$dest"
+          echo "COMPILED_PREVIEW_SHA=$(git rev-parse HEAD)"

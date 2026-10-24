@@ -1,0 +1,181 @@
+name: Insights Article 11 Pricing Flagship QA and immutable preview
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e2-pricing-flagship.yml
+permissions:
+  contents: write
+jobs:
+  pricing:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: cb2120512dac060ca9232f13801e453fb02f022b
+          persist-credentials: true
+      - name: Clean Jekyll build and retained validators
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import re,xml.etree.ElementTree as ET
+          root=Path('_site')
+          pairs=[
+           ('en','/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/'),
+           ('ru','/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/')
+          ]
+          registry=Path('_data/insights.yml').read_text()
+          block=registry.split('- id: website-cost',1)[1].split('\n- id:',1)[0]
+          assert block.count('date_modified: "2026-10-24"')==2
+          assert block.count('date_published: "2026-04-05"')==2
+          assert 'TCO Worksheet' not in block and '24/36' not in block
+          for lang,path in pairs:
+            src=Path('.'+path+'index.html').read_text()
+            page=(root/path.strip('/')/'index.html').read_text()
+            assert page.lstrip().lower().startswith('<!doctype html>')
+            assert 'layout: insight-v2' not in page and '{% include' not in page
+            assert src.count('<h2 id=')==12 and page.count('class="insight-v2-decision-table"')==2,(lang,'original tables')
+            assert src.count('class="pr11__card')>=3 and page.count('class="pr11__cards"')==1
+            assert all(p in page for p in ['$700–$2,000','$2,000–$5,000','$10,000–$20,000+'])
+            assert 'article:modified_time" content="2026-10-24"' in page
+            assert '"dateModified":"2026-10-24"' in page and '"datePublished":"2026-04-05"' in page
+            assert page.count('class="pr11__work"')==1 and page.count('class="pr11__sequence"')==1
+            assert 'insight-tco-calc-r1' not in page and 'data-tco' not in page and 'rows="15"' not in page and '<textarea' not in page
+            assert 'undefined' not in page
+            assert 'id="pricing-tiers"' in page
+            assert 'class="insight-v2-article-cta"' in page and 'data-footer-family="editorial"' in page
+            assert page.count('<style>')>=1
+            assert len(re.findall(r'<h2 id="([^"]+)"',src))==12
+            assert page.count('href="/contact/#project-intake"')>=1 if lang=='en' else page.count('href="/ru/contact/#project-intake"')>=1
+            print('PRICING_RENDERED_EN_RU_CONTENT_SEO PASS',lang,'bytes',len(page))
+          for path in ['/contact/','/ru/contact/']:
+            assert 'id="project-intake"' in (root/path.strip('/')/'index.html').read_text(),('CTA hash',path)
+          for path in ['/websites-branding/','/ru/websites-branding/','/case-studies/financial-stream/','/ru/case-studies/financial-stream/','/case-studies/alina-horb/','/ru/case-studies/alina-horb/','/case-studies/local-repair-pro/','/ru/case-studies/local-repair-pro/']:
+            assert (root/path.strip('/')/'index.html').is_file(),('missing linked route',path)
+          for p in ['assets/css/insight-tco-calc-r1.css','assets/js/insight-tco-calc-r1.js']:
+            assert not (root/p).exists(),('rejected calculator still emitted',p)
+            assert not (Path(p)).exists(),('rejected calculator still in PR',p)
+          sitemap=ET.parse(root/'sitemap.xml').getroot();dates={}
+          for row in sitemap:
+            loc=row.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+            lm=row.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+            if loc is not None and lm is not None:
+              assert loc.text not in dates
+              dates[loc.text]=lm.text
+          for lang,path in pairs:assert dates['https://proai-expert.com'+path]=='2026-10-24'
+          for path in ['/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/','/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/']:
+            assert dates['https://proai-expert.com'+path]=='2026-10-15'
+          print('PRICING_SOURCE_REGISTRY_SITEMAP_4_4 PASS')
+          PY
+      - name: Cross browser flagship price mobile desktop accessibility smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/insights-pricing --no-save --no-audit --no-fund playwright@1.56.1
+          /tmp/insights-pricing/node_modules/.bin/playwright install --with-deps chromium webkit
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site >/tmp/insights-pricing-http.log 2>&1 &
+          sleep 2
+          NODE_PATH=/tmp/insights-pricing/node_modules node <<'JS'
+          const {chromium,webkit}=require('playwright');
+          const base='http://127.0.0.1:8765';
+          const routes=[
+           ['en','/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/'],
+           ['ru','/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/']
+          ],smoke=['/insights/','/ru/insights/','/insights/ai-search-optimization-for-service-businesses/','/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/','/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/','/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/'];
+          let checks=0,errors=[];const chk=(yes,m)=>{checks++;if(!yes)errors.push(m);};
+          (async()=>{
+          for(const [engineName,engine] of [['Chromium',chromium],['WebKit',webkit]]){
+           const browser=await engine.launch({headless:true});
+           for(const [lang,path] of routes){
+            for(const enabled of [false,true]){
+             const ctx=await browser.newContext({viewport:{width:390,height:844},javaScriptEnabled:enabled,hasTouch:true,reducedMotion:'reduce'});
+             await ctx.route('**/*',r=>r.request().url().startsWith(base+'/')?r.continue():r.abort());
+             const page=await ctx.newPage();
+             for(const width of [320,390,844,1440]){
+              await page.setViewportSize({width,height:width===844?430:850});
+              const r=await page.goto(base+path,{waitUntil:'load',timeout:30000});
+              const id=[engineName,lang,enabled?'JS':'NOJS',width].join(' ');
+              chk(r?.status()===200,id+' HTTP');
+              const d=await page.evaluate(()=>{
+                const cards=[...document.querySelectorAll('.pr11__card')],styles=getComputedStyle(document.querySelector('.pr11__cards'));
+                const values=cards.map(x=>({name:x.querySelector('h3')?.textContent,price:x.querySelector('.pr11__price')?.textContent,rect:x.getBoundingClientRect(),bg:getComputedStyle(x).backgroundImage}));
+                const head=document.head;
+                const schema=[...head.querySelectorAll('script[type="application/ld+json"]')].flatMap(e=>{try{return JSON.parse(e.textContent)['@graph']||[]}catch{return []}});
+                const article=schema.find(x=>x['@type']==='Article');
+                const links=[...head.querySelectorAll('link[hreflang]')].map(e=>e.hreflang);
+                return {cards:values.map(x=>({name:x.name,price:x.price,width:x.rect.width,left:x.rect.left,right:x.rect.right})),
+                  grid:styles.gridTemplateColumns,docOverflow:document.documentElement.scrollWidth-innerWidth,
+                  htmlLang:document.documentElement.lang,headCSS:head.querySelectorAll('link[rel="stylesheet"][href^="/"]').length,og:head.querySelectorAll('meta[property="og:image"]').length,
+                  ld:head.querySelectorAll('script[type="application/ld+json"]').length,bodyLD:document.body.querySelectorAll('script[type="application/ld+json"]').length,
+                  modified:head.querySelector('meta[property="article:modified_time"]')?.content,schemaDate:article?.dateModified,published:article?.datePublished,
+                  canonical:head.querySelector('link[rel="canonical"]')?.href,alt:links,h1:document.querySelectorAll('h1').length,
+                  matrix:document.querySelectorAll('.insight-v2-decision-table').length,chapters:document.querySelectorAll('.insight-v2__prose>h2').length,
+                  pricingAnchors:document.querySelectorAll('#pricing-tiers').length,calculator:document.querySelectorAll('[data-tco],.tco').length,textarea:document.querySelectorAll('.insight-v2__prose textarea').length,
+                  anchors:[...document.querySelectorAll('.pr11__jump a[href^="#"]')].every(a=>!!document.querySelector(a.getAttribute('href'))),
+                  ctas:[...document.querySelectorAll('a[href*="contact/#project-intake"]')].length,footer:document.querySelectorAll('[data-footer-family="editorial"]').length};
+              });
+              chk(d.cards.length===3&&d.cards[0].name==='Essential'&&d.cards[1].name==='Business'&&d.cards[2].name.includes('Custom'),id+' tier names '+JSON.stringify(d));
+              chk(d.cards[0].price.includes('$700')&&d.cards[1].price.includes('$2,000')&&d.cards[2].price.includes('$5,000'),id+' tier prices');
+              chk(d.cards.every(x=>x.width>0&&x.width<=width),id+' card legibility');
+              chk(d.docOverflow<=2,id+' no page overflow '+d.docOverflow);
+              chk(d.htmlLang===lang&&d.h1===1&&d.matrix===2&&d.chapters===12&&d.footer===1,id+' site shell');
+              chk(d.headCSS===3&&d.og===1&&d.ld===1&&d.bodyLD===0,id+' head metadata');
+              chk(d.modified==='2026-10-24'&&d.schemaDate==='2026-10-24'&&d.published==='2026-04-05',id+' dates');
+              chk(d.canonical?.endsWith(path)&&['en','ru','x-default'].every(x=>d.alt.includes(x)),id+' canonical/hreflang');
+              chk(d.pricingAnchors===1&&d.calculator===0&&d.textarea===0&&d.anchors&&d.ctas>=1,id+' no calculator/jump CTA');
+              if(width<=390){
+                chk(d.cards[0].left>=0&&d.cards[2].right<=width+1,id+' phone card bounds');
+                const toc=page.locator('.insight-v2-contents summary').first();
+                if(await toc.count()){await toc.click();chk(await page.locator('.insight-v2-contents details').first().evaluate(el=>el.open),id+' toc accessible');}
+              }
+             }
+             await ctx.close();
+            }
+           }
+           await browser.close();
+          }
+          for(const route of smoke){
+           const r=await fetch(base+route);chk(r.status===200,'smoke '+route);
+          }
+          console.log('E2_PRICING_BROWSER_QA',checks,'PASS_CANDIDATES',errors.length,'FAILURES');
+          if(errors.length){console.error(errors.slice(0,40).join('\n'));process.exit(1);}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Publish compiled-only immutable noindex Owner Preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='agent/insights-e2-pricing-compiled-preview-20261024'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then
+            echo "Refusing to rewrite existing immutable preview branch" >&2
+            exit 1
+          fi
+          tempdir="$(mktemp -d)"
+          cp -a _site/. "$tempdir/"
+          rm -f "$tempdir/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tempdir/_headers"
+          touch "$tempdir/.nojekyll"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tempdir"/. .
+          git add -A
+          git commit -m "preview(insights): Article11 approved pricing EN/RU compiled-only noindex"
+          git push origin "HEAD:refs/heads/$dest"
+          echo "COMPILED_SHA=$(git rev-parse HEAD)"

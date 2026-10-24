@@ -1,0 +1,105 @@
+name: Article 11 Pricing Flagship immutable Cloudflare LIVE acceptance
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e2-pricing-live-http.yml
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Validate actual immutable HTML CSS JS pricing SEO noindex and all internal routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import urllib.request,html.parser,re,json,xml.etree.ElementTree as ET
+          BASE='https://fa9b807a.proaiexpert-github-io.pages.dev'
+          routes={'en':'/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/','ru':'/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/'}
+          def get(path):
+            req=urllib.request.Request(BASE+path,headers={'User-Agent':'ProAI-Pricing-Flagship-Live-QA/1.0'})
+            with urllib.request.urlopen(req,timeout=40) as resp:return resp.status,resp.headers,resp.read()
+          class Audit(html.parser.HTMLParser):
+            def __init__(self):
+              super().__init__();self.head=False;self.script=False;self.inside_head_ld=False;self.ld='';self.head_ld=[];self.body_ld=[];self.head_css=[];self.body_css=[];self.js=[];self.og_head=0;self.og_body=0;self.canonical=[];self.lang=[];self.internal=set();self.h1=0
+            def handle_starttag(self,t,attrs):
+              a=dict(attrs)
+              if t=='head':self.head=True
+              if t=='h1':self.h1+=1
+              if t=='script':
+                if a.get('src','').startswith('/'):self.js.append(a['src'])
+                if a.get('type')=='application/ld+json':self.script=True;self.inside_head_ld=self.head;self.ld=''
+              if t=='link':
+                if a.get('rel')=='stylesheet' and a.get('href','').startswith('/'):
+                  (self.head_css if self.head else self.body_css).append(a['href'])
+                if a.get('rel')=='canonical':self.canonical.append(a.get('href'))
+                if a.get('hreflang'):self.lang.append(a.get('hreflang'))
+              if t=='meta' and a.get('property')=='og:image':
+                if self.head:self.og_head+=1
+                else:self.og_body+=1
+              if t=='a' and a.get('href','').startswith('/') and not a.get('href','').startswith('//'):
+                self.internal.add(a['href'].split('#')[0].split('?')[0])
+            def handle_data(self,d):
+              if self.script:self.ld+=d
+            def handle_endtag(self,t):
+              if t=='head':self.head=False
+              if t=='script' and self.script:
+                (self.head_ld if self.inside_head_ld else self.body_ld).append(self.ld)
+                self.script=False
+          asset_paths=set();internal=set()
+          for lang,path in routes.items():
+            status,headers,b=get(path);s=b.decode('utf8')
+            assert status==200 and 'text/html' in headers.get('Content-Type','').lower() and s.lstrip().lower().startswith('<!doctype html>'),(lang,'real html')
+            assert 'noindex' in headers.get('X-Robots-Tag',''),(lang,'preview noindex')
+            assert '<html lang="'+lang+'"' in s and '{% include' not in s and 'layout: insight-v2' not in s,(lang,'compiled template')
+            assert s.count('class="pr11__cards"')==1 and s.count('class="insight-v2-decision-table"')==2
+            assert s.count('class="pr11__card')>=3 and 'pr11__card--business' in s
+            assert all(x in s for x in ['$700–$2,000','$2,000–$5,000','$10,000–$20,000+'])
+            assert s.count('class="pr11 pr11__work"')==1
+            assert 'insight-tco-calc' not in s and 'data-tco' not in s and '<textarea' not in s and 'undefined' not in s
+            assert 'article:modified_time" content="2026-10-24"' in s and 'data-footer-family="editorial"' in s
+            assert ('href="/ru/contact/#project-intake"' if lang=='ru' else 'href="/contact/#project-intake"') in s
+            a=Audit();a.feed(s)
+            assert a.h1==1 and len(a.head_css)==3 and len(a.body_css)==5 and len(a.js)==5,(lang,'asset counts',a.head_css,a.body_css,a.js)
+            assert a.og_head==1 and a.og_body==0 and len(a.head_ld)==1 and not a.body_ld,(lang,'proper head',a.og_head,a.body_ld)
+            assert a.canonical==['https://proai-expert.com'+path] and {'en','ru','x-default'}<=set(a.lang)
+            graph=json.loads(a.head_ld[0])['@graph'];article=next(i for i in graph if i['@type']=='Article')
+            assert article['dateModified']=='2026-10-24' and article['datePublished']=='2026-04-05'
+            assert any(i['@type']=='BreadcrumbList' for i in graph)
+            asset_paths.update(p.split('?')[0] for p in a.head_css+a.body_css+a.js)
+            internal.update(a.internal)
+            print('REAL_PRICING_ARTICLE',lang,'200_HTML_NO_INDEX_THREE_TIERS_HEAD_JSONLD_PASS',len(b),'bytes')
+          for p in sorted(asset_paths):
+            status,headers,b=get(p)
+            assert status==200 and len(b)>100 and not b.lstrip().lower().startswith(b'<!doctype html>'),('bad asset',p)
+            content_type=headers.get('Content-Type','').lower()
+            assert ('text/css' in content_type if p.endswith('.css') else 'javascript' in content_type),('bad MIME',p,content_type)
+          print('REAL_CSS_JS',len(asset_paths),'PASS')
+          for p in sorted(internal):
+            if not p:continue
+            status,_,_=get(p)
+            assert status==200,('internal',p)
+          print('REAL_INTERNAL_LINKS',len(internal),'PASS')
+          for p in ['/insights/','/ru/insights/','/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/','/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/','/insights/ai-search-optimization-for-service-businesses/','/ru/insights/ai-search-optimization-dlya-servisnogo-biznesa/']:
+            status,_,b=get(p);assert status==200 and b.lstrip().lower().startswith(b'<!doctype html>'),('smoke',p)
+          print('RELATED_HUB_05_10_6_6_PASS')
+          for p in ['/contact/','/ru/contact/']:
+            status,_,b=get(p);assert status==200 and 'id="project-intake"' in b.decode('utf8')
+          print('CONTACT_HASH_2_2_PASS')
+          status,_,b=get('/sitemap.xml');assert status==200
+          dates={}
+          for node in ET.fromstring(b):
+            loc=node.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+            mod=node.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+            if loc is not None and mod is not None:
+              assert loc.text not in dates
+              dates[loc.text]=mod.text
+          for p in routes.values():assert dates['https://proai-expert.com'+p]=='2026-10-24'
+          for p in ['/insights/why-service-business-websites-fail-to-convert-high-intent-visitors/','/ru/insights/arkhitektura-konversii-gde-sayt-teryaet-klienta-eshche-do-pervogo-kontakta/']:
+            assert dates['https://proai-expert.com'+p]=='2026-10-15'
+          print('LIVE_SITEMAP_4_OF_4_PASS')
+          PY

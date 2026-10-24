@@ -31,7 +31,7 @@ Key current facts:
 - Connected System: approved R13.
 - Two Worlds: approved Golden R1 + landscape correction.
 - Technology: approved Transition R2 chain.
-- Financial Stream: approved R1.4 presentation with `EN + RU`, `8.36K` search impressions and `52` indexed pages; mobile geometry frozen by Owner on 2026-08-29.
+- Financial Stream: approved R1.4 presentation with `EN + RU`, `12K+` Google Search impressions (`12,019` exact) and `79` Google Search clicks for available data Feb 21–Oct 22, 2026; mobile geometry frozen by Owner on 2026-08-29.
 - Selected Thinking: approved Decision Aperture / Trace R2.4. Desktop/portrait preserve the accepted R2.2/R2.1 system; touch-device landscape uses a full-width Lead 01 followed by 02/03 as a 50/50 supporting row.
 - Selected Work: current R1 + owner title correction authority.
 - Footer: current Golden R3 structure with Signature R4 material authority.
@@ -257,10 +257,10 @@ Public repository README/profile text must not present superseded proof metrics 
 Current Financial Stream public proof framing:
 
 - bilingual delivery: `EN + RU`;
-- `8.36K` search impressions;
-- `52` indexed pages;
-- Google Search Console, six-month window, August 2026;
-- indexing updated August 16, 2026.
+- `12K+` Google Search impressions (`12,019` exact);
+- `79` Google Search clicks;
+- Google Search Console, Web Search, available data Feb 21–Oct 22, 2026 within the last-12-months filter; exported October 24, 2026.
+- Indexed-page counts are separate dated historical snapshots, not a current performance metric.
 
 Do not reintroduce old `57 clicks / 7.24K / 50 pages` or superseded `63 clicks` homepage proof as current evidence.
 

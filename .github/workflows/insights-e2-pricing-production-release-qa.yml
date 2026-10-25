@@ -1,0 +1,111 @@
+name: INSIGHTS Article 11 production owner release verification
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e2-pricing-production-release-qa.yml
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Verify actual production EN RU SEO indexing author prices and live internal links
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import urllib.request, urllib.error, re, json, html.parser, time, xml.etree.ElementTree as ET
+          BASE='https://proai-expert.com'
+          routes={
+          'en':'/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/',
+          'ru':'/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/'
+          }
+          def fetch(path,attempts=2):
+           last=None
+           for n in range(attempts):
+            try:
+             req=urllib.request.Request(BASE+path,headers={'User-Agent':'ProAI-Owner-Release-Verification/20261025','Cache-Control':'no-cache','Pragma':'no-cache'})
+             with urllib.request.urlopen(req,timeout=25) as res:
+              return res.status,res.headers,res.read()
+            except Exception as e:
+             last=e
+             if n<attempts-1:time.sleep(4)
+           raise last
+          def ready():
+           for lang,path in routes.items():
+            status,h,body=fetch(path,1);s=body.decode('utf8')
+            if status!=200 or not all(x in s for x in ['$700–$2,000','$2,000–$5,000','$10,000–$20,000+','data-author-type="person"','pr11__cards']):return False
+           return True
+          for attempt in range(10):
+           try:
+            if ready():break
+           except Exception as e:print('RELEASE_PROPAGATION_RETRY',attempt+1,type(e).__name__,str(e)[:140])
+           if attempt==9:raise RuntimeError('Live production did not serve new EN/RU article within bounded verification window')
+           time.sleep(12)
+          print('OWNER_RELEASE_PROPAGATED_EN_RU_PASS')
+          class E(html.parser.HTMLParser):
+           def __init__(self):
+            super().__init__();self.head=False;self.ld=False;self.code='';self.ld_codes=[];self.canonical=[];self.lang=[];self.css=[];self.js=[];self.internal=set()
+           def handle_starttag(self,t,attrs):
+            a=dict(attrs)
+            if t=='head':self.head=True
+            if t=='link':
+             if a.get('rel')=='canonical':self.canonical.append(a.get('href'))
+             if a.get('hreflang'):self.lang.append(a.get('hreflang'))
+             if a.get('rel')=='stylesheet' and a.get('href','').startswith('/'):self.css.append(a['href'].split('?')[0])
+            if t=='script':
+             if a.get('src','').startswith('/'):self.js.append(a['src'].split('?')[0])
+             if a.get('type')=='application/ld+json':self.ld=True;self.code=''
+            if t=='a' and a.get('href','').startswith('/') and not a['href'].startswith('//'):self.internal.add(a['href'].split('#')[0].split('?')[0])
+           def handle_data(self,d):
+            if self.ld:self.code+=d
+           def handle_endtag(self,t):
+            if t=='head':self.head=False
+            if t=='script' and self.ld:self.ld_codes.append(self.code);self.ld=False
+          assets=set();internal=set()
+          for lang,path in routes.items():
+           status,h,b=fetch(path);s=b.decode('utf8')
+           assert status==200 and 'text/html' in h.get('Content-Type','').lower() and s.lstrip().lower().startswith('<!doctype html>'),(lang,'nonHTML')
+           assert 'noindex' not in h.get('X-Robots-Tag','').lower(),(lang,'noindex wrongly on production')
+           assert '<html lang="'+lang+'"' in s
+           assert 'dateModified":"2026-10-25"' in s and 'datePublished":"2026-04-05"' in s
+           assert s.count('class="insight-v2-decision-table"')==2 and s.count('class="pr11__cards"')==1
+           assert s.count('<dt>')==5 and 'class="pr11__compare"' in s and 'pr11__principle' in s
+           assert 'data-author-type="person"' in s and '/ru/about/ProAI_Founder_Portrait_2x3.webp' in s
+           assert all(p in s for p in ['$700–$2,000','$2,000–$5,000','$10,000–$20,000+'])
+           assert not any(x in s for x in ['https://clutch.co/','https://www.webfx.com/','https://huemor.rocks/','https://webflow.com/','https://www.squarespace.com/','insight-tco-calc-r1','data-tco','undefined'])
+           assert ('Игорь Горб' if lang=='ru' else 'Ihor Horb') in s
+           p=E();p.feed(s);assert p.canonical==[BASE+path] and {'en','ru','x-default'}<=set(p.lang)
+           graph=json.loads(p.ld_codes[0])['@graph']
+           art=next(x for x in graph if x['@type']=='Article')
+           assert art['author']['@type']=='Person' and art['author']['name']==('Игорь Горб' if lang=='ru' else 'Ihor Horb')
+           assert art['dateModified']=='2026-10-25' and art['datePublished']=='2026-04-05'
+           assert any(x['@type']=='BreadcrumbList' for x in graph)
+           assert len(p.css)>=6 and len(p.js)>=5,(lang,len(p.css),len(p.js))
+           assert '/contact/#project-intake' in s if lang=='en' else '/ru/contact/#project-intake' in s
+           assets.update(p.css+p.js);internal.update(p.internal)
+           print('PRODUCTION_ARTICLE',lang,'HTTP200 SEO PERSON PRICES OUTBOUND_PASS',len(b),'bytes')
+          for p in sorted(assets):
+           status,h,b=fetch(p)
+           assert status==200 and len(b)>50 and not b.lstrip().lower().startswith(b'<!doctype'),('asset',p)
+          print('PRODUCTION_CSS_JS_ASSETS',len(assets),'PASS')
+          for p in sorted(internal):
+           if not p:continue
+           status,h,b=fetch(p)
+           assert status==200,('internal link',p,status)
+          print('PRODUCTION_INTERNAL_LINKS',len(internal),'PASS')
+          for p in ['/contact/','/ru/contact/']:
+           status,h,b=fetch(p);assert status==200 and 'id="project-intake"' in b.decode('utf8')
+          print('PRODUCTION_CONTACT_2_2_PASS')
+          status,h,b=fetch('/sitemap.xml');assert status==200
+          dates={}
+          for row in ET.fromstring(b):
+           loc=row.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+           mod=row.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+           if loc is not None and mod is not None:dates[loc.text]=mod.text
+          for route in routes.values():assert dates[BASE+route]=='2026-10-25',(route,dates.get(BASE+route))
+          print('PRODUCTION_SITEMAP_ARTICLE_11_EN_RU_PASS')
+          PY

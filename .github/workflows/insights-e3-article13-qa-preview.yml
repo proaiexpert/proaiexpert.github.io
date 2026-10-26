@@ -92,7 +92,7 @@ jobs:
            for(const [lang,path] of Object.entries(routes)){
             for(const enabled of [true,false]){
              const ctx=await browser.newContext({viewport:{width:390,height:844},javaScriptEnabled:enabled,reducedMotion:'reduce'});
-             await ctx.route('**/*',r=>r.request().url.startsWith(base+'/')?r.continue():r.abort());
+             await ctx.route('**/*',r=>r.request().url().startsWith(base+'/')?r.continue():r.abort());
              const page=await ctx.newPage();
              for(const width of widths){
               await page.setViewportSize({width,height:width===844||width===932?430:860});

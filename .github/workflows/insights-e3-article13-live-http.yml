@@ -1,0 +1,99 @@
+name: E3 Article13 immutable Cloudflare Preview LIVE HTTPS QA
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e3-article13-live-http.yml
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Verify HTTPS noindex schema assets links and Article13 Hub
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import urllib.request,urllib.error,html.parser,json,re,xml.etree.ElementTree as ET
+          BASE='https://80f05a44.proaiexpert-github-io.pages.dev'
+          routes={'en':'/insights/repair-redesign-or-rebuild-your-business-website/','ru':'/ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/'}
+          def get(path):
+           req=urllib.request.Request(BASE+path,headers={'User-Agent':'ProAI-Article13-Compiled-LiveQA/1'})
+           with urllib.request.urlopen(req,timeout=40) as res:return res.status,res.headers,res.read()
+          class Reader(html.parser.HTMLParser):
+           def __init__(self):
+            super().__init__();self.head=False;self.ld=False;self.ldtext='';self.headld=[];self.bodyld=[];self.images=[];self.css=[];self.js=[];self.internal=set();self.canonical=[];self.locale=[];self.oghead=0;self.ogbody=0
+           def handle_starttag(self,t,attrs):
+            a=dict(attrs)
+            if t=='head':self.head=True
+            if t=='script':
+             if a.get('src','').startswith('/'):self.js.append(a['src'].split('?')[0])
+             if a.get('type')=='application/ld+json':self.ld=True;self.ldtext='';self.ldinhead=self.head
+            if t=='link':
+             if a.get('rel')=='stylesheet' and a.get('href','').startswith('/'):self.css.append(a['href'].split('?')[0])
+             if a.get('rel')=='canonical':self.canonical.append(a.get('href'))
+             if a.get('hreflang'):self.locale.append(a['hreflang'])
+            if t=='meta' and a.get('property')=='og:image':
+             if self.head:self.oghead+=1
+             else:self.ogbody+=1
+            if t=='a' and a.get('href','').startswith('/') and not a['href'].startswith('//'):self.internal.add(a['href'].split('#')[0].split('?')[0])
+            if t=='img' and a.get('src','').startswith('/'):self.images.append(a['src'].split('?')[0])
+           def handle_data(self,d):
+            if self.ld:self.ldtext+=d
+           def handle_endtag(self,t):
+            if t=='head':self.head=False
+            if t=='script' and self.ld:
+             (self.headld if self.ldinhead else self.bodyld).append(self.ldtext);self.ld=False
+          assets=set();internal=set()
+          for lang,route in routes.items():
+           status,h,b=get(route);s=b.decode('utf8')
+           assert status==200 and 'text/html' in h.get('Content-Type','').lower() and s.lower().lstrip().startswith('<!doctype html>'),(lang,'actual compiled HTML')
+           assert 'noindex' in h.get('X-Robots-Tag','').lower(),(lang,'preview must noindex')
+           assert '{% include' not in s and 'layout: insight-v2' not in s
+           assert 'data-insight-v2-prose' in s and 'data-intervention-map' in s and 'data-owner-brief' in s
+           assert all(('data-outcome="'+d+'"') in s for d in ['keep','fix','redesign','rebuild'])
+           assert s.count('class="e13__case"')==3
+           assert 'data-author-type="person"' in s and 'ProAI_Founder_Portrait_2x3.webp' in s
+           assert '2026-10-26' in s and 'id="sources"' in s
+           assert not any(x in s for x in ['https://clutch.co/','https://www.webfx.com/','https://huemor.rocks/'])
+           p=Reader();p.feed(s)
+           assert p.oghead==1 and p.ogbody==0 and len(p.headld)==1 and not p.bodyld,(lang,'Head structured metadata')
+           assert p.canonical==['https://proai-expert.com'+route],(lang,p.canonical)
+           assert {'en','ru','x-default'}<=set(p.locale)
+           graph=json.loads(p.headld[0])['@graph'];article=next(x for x in graph if x['@type']=='Article')
+           assert article['author']['@type']=='Person' and article['author']['name']==('Ihor Horb' if lang=='en' else 'Игорь Горб')
+           assert article['datePublished']=='2026-10-26' and article['dateModified']=='2026-10-26'
+           assert any(x['@type']=='BreadcrumbList' for x in graph)
+           assert len(p.css)>=6 and len(p.js)>=5
+           assert ('href="/contact/#project-intake"' if lang=='en' else 'href="/ru/contact/#project-intake"') in s
+           print('E3_LIVE_PREVIEW',lang,'200_HTML_NOINDEX_PERSON_MAP_SCHEMA_PASS',len(b))
+           assets.update(p.css+p.js+p.images);internal.update(p.internal)
+          for path in sorted(assets):
+           if not path:continue
+           status,h,b=get(path)
+           assert status==200 and len(b)>20 and not b.lower().lstrip().startswith(b'<!doctype'),('asset',path)
+          print('E3_LIVE_ASSETS',len(assets),'PASS')
+          for path in sorted(internal):
+           if not path:continue
+           status,h,b=get(path);assert status==200,('link',path,status)
+          print('E3_LIVE_INTERNAL_LINKS',len(internal),'PASS')
+          for lang,path in [('en','/insights/'),('ru','/ru/insights/')]:
+           status,h,b=get(path);s=b.decode('utf8')
+           assert status==200 and ('13 active articles' if lang=='en' else 'Материалов в библиотеке: 13') in s
+           assert routes[lang] in s
+           print('E3_LIVE_HUB',lang,'COUNT_AND_CARD_PASS')
+          for path in ['/contact/','/ru/contact/']:
+           status,h,b=get(path);assert status==200 and 'id="project-intake"' in b.decode('utf8')
+          print('E3_LIVE_CONTACT_2_2_PASS')
+          status,h,b=get('/sitemap.xml')
+          assert status==200
+          dates={}
+          for item in ET.fromstring(b):
+           a=item.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc');c=item.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+           if a is not None and c is not None:dates[a.text]=c.text
+          for path in routes.values():assert dates['https://proai-expert.com'+path]=='2026-10-26'
+          print('E3_LIVE_SITEMAP_BOTH_PASS')
+          PY

@@ -1,0 +1,153 @@
+name: E3 Article13 Jekyll Browser QA and immutable Cloudflare Preview
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e3-article13-qa-preview.yml
+permissions:
+  contents: write
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7dfd9ee52ace9b236b782e53593bc8e6f48a016d
+          persist-credentials: true
+      - name: Clean Jekyll and ArticleV2
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          import re,json,xml.etree.ElementTree as ET
+          root=Path('_site')
+          en='/insights/repair-redesign-or-rebuild-your-business-website/'
+          ru='/ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/'
+          reg=Path('_data/insights.yml').read_text()
+          assert reg.count('publication_index:')==13
+          block=reg.split('- id: intervention-map',1)[1]
+          assert 'author_ref: ihor' in block
+          for lang,route in [('en',en),('ru',ru)]:
+           s=Path('.'+route+'index.html').read_text()
+           p=(root/route.strip('/')/'index.html').read_text()
+           assert s.count('<h2 id=')==9
+           assert p.lstrip().lower().startswith('<!doctype html>') and '{% include' not in p
+           assert all(x in p for x in ['data-insight-v2-prose','data-author-type="person"','ProAI_Founder_Portrait_2x3.webp','data-intervention-map','data-owner-brief'])
+           assert all('data-outcome="'+x+'"' in p for x in ['keep','fix','redesign','rebuild'])
+           assert p.count('class="e13__case"')==3 and p.count('class="e13__evidence"')==1
+           assert ('href="/contact/#project-intake"' if lang=='en' else 'href="/ru/contact/#project-intake"') in p
+           assert '"datePublished":"2026-10-26"' in p and '"dateModified":"2026-10-26"' in p
+           assert p.count('<meta property="og:image"')==1
+           assert all(u not in p for u in ['https://clutch.co/','https://www.webfx.com/','https://huemor.rocks/'])
+           ld=re.findall(r'<script type="application/ld\+json">\s*(\{.*?\})\s*</script>',p,re.S)
+           graph=json.loads(ld[0])['@graph'];art=next(x for x in graph if x['@type']=='Article')
+           assert art['author']['@type']=='Person' and art['author']['name']==('Ihor Horb' if lang=='en' else 'Игорь Горб')
+           assert any(x['@type']=='BreadcrumbList' for x in graph)
+           assert 'href="https://proai-expert.com'+route+'"' in p and p.count('data-related-id=')==3
+           print('E3_RENDER',lang,'PASS',len(p),'bytes')
+          for lang,route in [('en','/contact/'),('ru','/ru/contact/')]:
+           assert 'id="project-intake"' in (root/route.strip('/')/'index.html').read_text()
+          for lang,route in [('en','/insights/'),('ru','/ru/insights/')]:
+           p=(root/route.strip('/')/'index.html').read_text()
+           assert ('13 active articles' if lang=='en' else 'Материалов в библиотеке: 13') in p
+           assert (en if lang=='en' else ru) in p
+           print('E3_HUB',lang,'PASS')
+          data={}
+          for node in ET.parse(root/'sitemap.xml').getroot():
+           a=node.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc');b=node.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+           if a is not None and b is not None:data[a.text]=b.text
+          for r in [en,ru]:assert data['https://proai-expert.com'+r]=='2026-10-26'
+          print('E3_JEKYLL_STATIC_PASS')
+          PY
+      - name: Cross browser 9 widths noJS reduced motion map
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/e3playwright --no-save --no-audit --no-fund playwright@1.56.1
+          /tmp/e3playwright/node_modules/.bin/playwright install --with-deps chromium webkit
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site >/tmp/e3-web.log 2>&1 &
+          sleep 2
+          NODE_PATH=/tmp/e3playwright/node_modules node <<'JS'
+          const {chromium,webkit}=require('playwright');
+          const base='http://127.0.0.1:8765';
+          const routes={en:'/insights/repair-redesign-or-rebuild-your-business-website/',ru:'/ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/'};
+          const widths=[320,375,390,430,844,932,1280,1440,1600];
+          let checks=0,errors=[];const chk=(yes,msg)=>{checks++;if(!yes)errors.push(msg)};
+          (async()=>{
+          for(const [name,engine] of [['Chromium',chromium],['WebKit',webkit]]){
+           const browser=await engine.launch({headless:true});
+           for(const [lang,path] of Object.entries(routes)){
+            for(const enabled of [true,false]){
+             const ctx=await browser.newContext({viewport:{width:390,height:844},javaScriptEnabled:enabled,reducedMotion:'reduce'});
+             await ctx.route('**/*',r=>r.request().url.startsWith(base+'/')?r.continue():r.abort());
+             const page=await ctx.newPage();
+             for(const width of widths){
+              await page.setViewportSize({width,height:width===844||width===932?430:860});
+              const response=await page.goto(base+path,{waitUntil:'load',timeout:30000});
+              const id=name+' '+lang+' '+enabled+' '+width;
+              chk(response?.status()===200,id+' HTTP');
+              const x=await page.evaluate(()=>{
+                const nodes=[...document.querySelectorAll('.e13__path')],map=document.querySelector('[data-intervention-map]'),r=map.getBoundingClientRect();
+                const graphs=[...document.querySelectorAll('head script[type="application/ld+json"]')].flatMap(x=>{try{return JSON.parse(x.textContent)['@graph']||[]}catch{return []}});
+                const article=graphs.find(x=>x['@type']==='Article');
+                return {overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,mapRight:r.right,mapWidth:r.width,paths:nodes.length,visible:nodes.every(n=>n.getBoundingClientRect().width>=140),body:!!document.querySelector('[data-owner-brief] pre'),tab:document.querySelector('.e13__table-wrap')?.tabIndex===0,rows:document.querySelector('.e13__table')?.rows.length,author:article?.author?.['@type'],h1:document.querySelectorAll('h1').length,locale:document.documentElement.lang,sections:document.querySelectorAll('.insight-v2__prose h2[id]').length,cta:!!document.querySelector('a[href$="#project-intake"]')};
+              });
+              chk(x.overflow<=2,id+' overflow '+x.overflow);
+              chk(x.mapRight<=width+2&&x.mapWidth>0,id+' map bounds '+x.mapRight);
+              chk(x.paths===4&&x.visible,id+' four choices visible');
+              chk(x.body&&x.tab&&x.rows===6,id+' brief and table');
+              chk(x.author==='Person'&&x.locale===lang&&x.h1===1&&x.sections===10&&x.cta,id+' schema/nav');
+              if(name==='Chromium'&&enabled&&(width===390||width===1440))await page.locator('[data-intervention-map]').screenshot({path:'/tmp/E3-'+lang+'-'+width+'-map.png'});
+             }
+             await page.keyboard.press('Tab');chk((await page.evaluate(()=>document.activeElement?.tagName))!==undefined,name+lang+' keyboard');
+             await ctx.close();
+            }
+           }
+           await browser.close();
+          }
+          for(const route of ['/insights/','/ru/insights/','/contact/','/ru/contact/','/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/','/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/']){
+           let r=await fetch(base+route);chk(r.status===200,'smoke '+route);
+          }
+          console.log('E3_BROWSER_QA',checks,'CHECKS',errors.length,'FAILURES');
+          if(errors.length){console.error(errors.slice(0,45).join('\n'));process.exit(1)}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Upload owner visual map proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: e3-owner-map-evidence
+          path: /tmp/E3-*-map.png
+          if-no-files-found: error
+      - name: Deploy compiled noindex immutable preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='agent/insights-e3-compiled-preview-20261026'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then echo 'Preview collision' >&2; exit 1; fi
+          tmp="$(mktemp -d)"
+          cp -a _site/. "$tmp/"
+          rm -f "$tmp/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tmp/_headers"
+          touch "$tmp/.nojekyll"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tmp"/. .
+          git add -A
+          git commit -m "preview(insights): Article13 compiled EN/RU immutable noindex"
+          git push origin "HEAD:refs/heads/$dest"
+          echo "E3_COMPILED_SHA=$(git rev-parse HEAD)"

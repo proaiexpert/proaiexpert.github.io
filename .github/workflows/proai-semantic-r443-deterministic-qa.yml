@@ -1,0 +1,29 @@
+name: ProAI Cube R4.4.3 Natural Choreography Owner Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: proai-r443-natural-owner-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  live-owner-review:
+    if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r4'
+    runs-on: ubuntu-latest
+    timeout-minutes: 190
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Publish exact choreography product
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: timeout 11340s bash .github/review/proai-cube-r443-live-owner-publish.sh

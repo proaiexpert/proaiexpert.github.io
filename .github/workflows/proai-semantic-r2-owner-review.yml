@@ -1,0 +1,125 @@
+name: ProAI Semantic Face R3 Live Review
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proai-semantic-face-r3-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-face-r3'
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    defaults:
+      run:
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-face-r3
+
+    steps:
+      - name: Checkout R3 review head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Verify frozen Cube base
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          test -z "$(git diff --name-only 295a67a27df127c95d799c93ea39448afd714793...HEAD -- docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2)"
+          test -z "$(git diff --name-only 295a67a27df127c95d799c93ea39448afd714793...HEAD -- index.html ru/index.html)"
+
+      - name: Install and build R3
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npm run build
+          node --check main.generated.js
+          test "$(sha256sum rubik_39_s_cube_animation.glb | awk '{print $1}')" = "dbb7fc4156f8c9ed2481dd76443dffb9a45ecb5493463f99bffb34dd3b59c79b"
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+
+      - name: Start local R3 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/proai-r3-server.log 2>&1 &
+          echo $! >/tmp/proai-r3-server.pid
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              echo LOCAL_R3_HTTP_PASS
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/proai-r3-server.log
+          exit 1
+
+      - name: Publish temporary owner review
+        id: tunnel
+        shell: bash
+        run: |
+          set -euo pipefail
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared-r3.log 2>&1 &
+          echo $! >/tmp/cloudflared-r3.pid
+          URL=''
+          for i in $(seq 1 90); do
+            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared-r3.log | tail -1 || true)
+            [ -n "$URL" ] && break
+            sleep 1
+          done
+          [ -n "$URL" ]
+          PUBLIC_OK=0
+          for i in $(seq 1 60); do
+            if curl -fsSL --max-time 15 "$URL/" >/dev/null; then
+              PUBLIC_OK=1
+              break
+            fi
+            sleep 1
+          done
+          test "$PUBLIC_OK" -eq 1
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$URL" >/tmp/r3-live-url.txt
+          {
+            echo '## SEMANTIC BRAND FACE R3 — LIVE OWNER REVIEW'
+            echo
+            echo "Base: \`295a67a27df127c95d799c93ea39448afd714793\`"
+            echo
+            echo "- A — Smoked Veil: $URL/?concept=A"
+            echo "- B — Segmented Inlay: $URL/?concept=B"
+            echo "- C — Internal Reveal: $URL/?concept=C"
+            echo
+            echo "Static near-front: $URL/?capture&view=front&concept=A · $URL/?capture&view=front&concept=B · $URL/?capture&view=front&concept=C"
+            echo
+            echo "Static 3/4: $URL/?capture&view=three-quarter&concept=A · $URL/?capture&view=three-quarter&concept=B · $URL/?capture&view=three-quarter&concept=C"
+            echo
+            echo "Motion studies: $URL/?capture&demo=1&concept=A · $URL/?capture&demo=1&concept=B · $URL/?capture&demo=1&concept=C"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "R3_LIVE_READY=$URL"
+
+      - name: Upload live URL handoff
+        uses: actions/upload-artifact@v4
+        with:
+          name: proai-semantic-r3-live-url
+          path: /tmp/r3-live-url.txt
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Hold owner preview for 60 minutes
+        shell: bash
+        env:
+          REVIEW_URL: ${{ steps.tunnel.outputs.url }}
+        run: |
+          set -euo pipefail
+          kill -0 "$(cat /tmp/cloudflared-r3.pid)"
+          curl -fsSL --max-time 15 "$REVIEW_URL/" >/dev/null
+          echo "R3_PREVIEW_HOLDING=$REVIEW_URL"
+          sleep 3600

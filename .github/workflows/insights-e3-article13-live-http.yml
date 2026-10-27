@@ -1,4 +1,4 @@
-name: E3 Article13 immutable Cloudflare Preview LIVE HTTPS QA
+name: E3 Article13 R2 final immutable HTTPS SEO and asset QA
 on:
   push:
     branches:
@@ -18,7 +18,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import urllib.request,urllib.error,html.parser,json,re,xml.etree.ElementTree as ET
-          BASE='https://80f05a44.proaiexpert-github-io.pages.dev'
+          BASE='https://3f2f9ba8.proaiexpert-github-io.pages.dev'
           routes={'en':'/insights/repair-redesign-or-rebuild-your-business-website/','ru':'/ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/'}
           def get(path):
            req=urllib.request.Request(BASE+path,headers={'User-Agent':'ProAI-Article13-Compiled-LiveQA/1'})
@@ -54,6 +54,11 @@ jobs:
            assert 'noindex' in h.get('X-Robots-Tag','').lower(),(lang,'preview must noindex')
            assert '{% include' not in s and 'layout: insight-v2' not in s
            assert 'data-insight-v2-prose' in s and 'data-intervention-map' in s and 'data-owner-brief' in s
+           assert 'article13-four-futures-one-foundation.svg' in s and 'article13-four-futures-one-foundation-og.png' in s
+           assert s.count('class="e13__brief-item"')==3 and 'class="e13__brief-cta"' in s and '<pre>' not in s
+           assert 'Editorial draft prepared' not in s and 'Черновик подготовлен' not in s and 'SELECT · COPY · SEND' not in s
+           assert ('Discuss My Website' if lang=='en' else 'Обсудить мой сайт') in s
+           assert 'демонстрационный проект сайта' in s if lang=='ru' else 'demonstration website concept' in s
            assert all(('data-outcome="'+d+'"') in s for d in ['keep','fix','redesign','rebuild'])
            assert s.count('class="e13__case"')==3
            assert 'data-author-type="person"' in s and 'ProAI_Founder_Portrait_2x3.webp' in s
@@ -69,25 +74,31 @@ jobs:
            assert any(x['@type']=='BreadcrumbList' for x in graph)
            assert len(p.css)>=6 and len(p.js)>=5
            assert ('href="/contact/#project-intake"' if lang=='en' else 'href="/ru/contact/#project-intake"') in s
-           print('E3_LIVE_PREVIEW',lang,'200_HTML_NOINDEX_PERSON_MAP_SCHEMA_PASS',len(b))
+           print('E3_R2_LIVE_PREVIEW',lang,'200_HTML_NOINDEX_PERSON_MAP_SCHEMA_PASS',len(b))
            assets.update(p.css+p.js+p.images);internal.update(p.internal)
           for path in sorted(assets):
            if not path:continue
            status,h,b=get(path)
            assert status==200 and len(b)>20 and not b.lower().lstrip().startswith(b'<!doctype'),('asset',path)
-          print('E3_LIVE_ASSETS',len(assets),'PASS')
+          print('E3_R2_LIVE_ASSETS',len(assets),'PASS')
+          status,h,graphic=get('/assets/img/insights/article13-four-futures-one-foundation-og.png')
+          assert status==200 and 'image/png' in h.get('Content-Type','').lower() and graphic.startswith(b'\x89PNG\r\n\x1a\n') and len(graphic)>20000
+          assert int.from_bytes(graphic[16:20],'big')==1200 and int.from_bytes(graphic[20:24],'big')==630
+          status,h,vector=get('/assets/img/insights/article13-four-futures-one-foundation.svg')
+          assert status==200 and '<svg ' in vector.decode('utf8')
+          print('E3_R2_ORIGINAL_HERO_SVG_AND_OG_PNG_1200_630_PASS')
           for path in sorted(internal):
            if not path:continue
            status,h,b=get(path);assert status==200,('link',path,status)
-          print('E3_LIVE_INTERNAL_LINKS',len(internal),'PASS')
+          print('E3_R2_LIVE_INTERNAL_LINKS',len(internal),'PASS')
           for lang,path in [('en','/insights/'),('ru','/ru/insights/')]:
            status,h,b=get(path);s=b.decode('utf8')
            assert status==200 and ('13 active articles' if lang=='en' else 'Материалов в библиотеке: 13') in s
            assert routes[lang] in s
-           print('E3_LIVE_HUB',lang,'COUNT_AND_CARD_PASS')
+           print('E3_R2_LIVE_HUB',lang,'COUNT_AND_CARD_PASS')
           for path in ['/contact/','/ru/contact/']:
            status,h,b=get(path);assert status==200 and 'id="project-intake"' in b.decode('utf8')
-          print('E3_LIVE_CONTACT_2_2_PASS')
+          print('E3_R2_LIVE_CONTACT_2_2_PASS')
           status,h,b=get('/sitemap.xml')
           assert status==200
           dates={}
@@ -95,5 +106,5 @@ jobs:
            a=item.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc');c=item.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
            if a is not None and c is not None:dates[a.text]=c.text
           for path in routes.values():assert dates['https://proai-expert.com'+path]=='2026-10-26'
-          print('E3_LIVE_SITEMAP_BOTH_PASS')
+          print('E3_R2_LIVE_SITEMAP_BOTH_PASS')
           PY

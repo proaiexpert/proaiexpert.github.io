@@ -1,0 +1,41 @@
+name: E3 Article13 R2 original vector to social OG PNG
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e3-r2-original-og-render.yml
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/insights-e3-article13-intervention-map-r1
+          persist-credentials: true
+      - name: Render original approved SVG as actual 1200x630 PNG and commit to existing PR source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 'eb62aa78616e798d6799db1e259eff32e7f671a0' || { echo 'Source changed; cancel PNG generation'; exit 1; }
+          python -m pip install --user --quiet cairosvg pillow
+          python - <<'PY'
+          from pathlib import Path
+          import cairosvg
+          from PIL import Image
+          svg='assets/img/insights/article13-four-futures-one-foundation.svg'
+          png='assets/img/insights/article13-four-futures-one-foundation-og.png'
+          cairosvg.svg2png(url=svg,write_to=png,output_width=1200,output_height=630)
+          im=Image.open(png)
+          assert im.size==(1200,630) and im.format=='PNG' and Path(png).stat().st_size>20000
+          print('E3_R2_OG_PNG',im.size,Path(png).stat().st_size,'PASS')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/img/insights/article13-four-futures-one-foundation-og.png
+          git commit -m 'assets(insights): original Article13 Four Futures OG 1200x630'
+          git push origin 'HEAD:refs/heads/agent/insights-e3-article13-intervention-map-r1'
+          echo "E3_R2_SOURCE_WITH_OG=$(git rev-parse HEAD)"

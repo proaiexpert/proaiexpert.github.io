@@ -1,0 +1,91 @@
+name: E3 Article13 B3 live immutable OG and unaffected routes QA
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e3-b3-live-og-verification.yml
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Real HTTP live immutable EN RU social and 6 generic controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import urllib.request,re,json,html.parser
+          BASE='https://0f267355.proaiexpert-github-io.pages.dev'
+          ORIGIN='https://proai-expert.com'
+          IMG=ORIGIN+'/assets/img/insights/article13-four-futures-one-foundation-og.png'
+          EN='Four Futures / One Foundation — four responsible website decisions: keep, fix, redesign or rebuild.'
+          RU='Four Futures / One Foundation — четыре пути для сайта: сохранить, исправить, редизайн или полная переработка.'
+          def fetch(path):
+           req=urllib.request.Request(BASE+path,headers={'User-Agent':'ProAI-E3B3-OG-LiveQA/1','Cache-Control':'no-cache'})
+           with urllib.request.urlopen(req,timeout=35) as r:return r.status,r.headers,r.read()
+          class Head(html.parser.HTMLParser):
+           def __init__(self):
+            super().__init__();self.inhead=False;self.social={};self.outside=[];self.ld=False;self.j='';self.jsons=[]
+           def handle_starttag(self,tag,attrs):
+            a=dict(attrs)
+            if tag=='head':self.inhead=True
+            if tag=='meta':
+             label=a.get('property') or a.get('name')
+             if label in ('og:image','og:image:alt','og:image:width','og:image:height','twitter:image','twitter:image:alt','twitter:card'):
+              (self.social if self.inhead else self.outside).setdefault(label,[]).append(a.get('content'))
+            if tag=='script' and self.inhead and a.get('type')=='application/ld+json':self.ld=True;self.j=''
+           def handle_data(self,txt):
+            if self.ld:self.j+=txt
+           def handle_endtag(self,tag):
+            if tag=='script' and self.ld:
+             self.jsons.append(json.loads(self.j));self.ld=False
+            if tag=='head':self.inhead=False
+          def validate_head(s):
+           p=Head();p.feed(s)
+           assert p.outside==[],('misplaced social tags',p.outside)
+           for tag in ['og:image','og:image:alt','og:image:width','og:image:height','twitter:image','twitter:image:alt','twitter:card']:
+            assert len(p.social.get(tag,[]))==1,('duplicate/missing',tag,p.social.get(tag))
+           return p
+          routes=[
+          ('en','/insights/repair-redesign-or-rebuild-your-business-website/',EN),
+          ('ru','/ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/',RU)]
+          for lang,route,alt in routes:
+           status,headers,blob=fetch(route);s=blob.decode('utf8')
+           assert status==200 and 'text/html' in headers.get('content-type','').lower() and s.lower().lstrip().startswith('<!doctype html>')
+           assert 'noindex' in headers.get('x-robots-tag','').lower()
+           assert '{% include' not in s and 'layout: insight-v2' not in s
+           p=validate_head(s);values={k:v[0] for k,v in p.social.items()}
+           assert values['og:image']==values['twitter:image']==IMG
+           assert values['og:image:alt']==values['twitter:image:alt']==alt
+           assert values['og:image:width']=='1200' and values['og:image:height']=='630'
+           assert values['twitter:card']=='summary_large_image'
+           assert 'rel="canonical"' in s and ORIGIN+route in s
+           assert len(p.jsons)==1
+           graph=p.jsons[0]['@graph'];article=next(x for x in graph if x.get('@type')=='Article')
+           assert article['image']['url']==IMG and article['image']['width']==1200 and article['image']['height']==630
+           assert article['author']['@type']=='Person'
+           assert article['inLanguage']==('en-US' if lang=='en' else 'ru-RU')
+           print('E3_B3_LIVE_ARTICLE',lang,'HTTP200_NOINDEX_OG_TWITTER_SCHEMA_ALTS_PASS')
+          # Actual preview-hosted asset; the canonical production URL is not yet published.
+          status,headers,png=fetch('/assets/img/insights/article13-four-futures-one-foundation-og.png')
+          assert status==200 and headers.get('content-type','').lower().startswith('image/png')
+          assert png[:8]==b'\x89PNG\r\n\x1a\n' and len(png)>20000
+          assert (int.from_bytes(png[16:20],'big'),int.from_bytes(png[20:24],'big'))==(1200,630)
+          print('E3_B3_LIVE_PNG_1200_630_PASS',len(png))
+          others=[
+          ('/','https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png','ProAI Expert — From first impression to result — one system.'),
+          ('/ru/','https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png','ProAI Expert — От первого впечатления до результата — одна система.'),
+          ('/insights/','https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png','ProAI Expert — From first impression to result — one system.'),
+          ('/ru/insights/','https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png','ProAI Expert — От первого впечатления до результата — одна система.'),
+          ('/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/','https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png','ProAI Expert — From first impression to result — one system.'),
+          ('/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/','https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png','ProAI Expert — От первого впечатления до результата — одна система.')]
+          for route,img,alt in others:
+           status,headers,blob=fetch(route);assert status==200
+           p=validate_head(blob.decode('utf8'));v={k:x[0] for k,x in p.social.items()}
+           assert v['og:image']==v['twitter:image']==img
+           assert v['og:image:alt']==v['twitter:image:alt']==alt
+          print('E3_B3_LIVE_NONARTICLE13_GENERIC_SAMPLE',len(others),'PASS')
+          PY

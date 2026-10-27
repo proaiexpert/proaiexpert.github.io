@@ -1,4 +1,4 @@
-name: E3 Article13 Jekyll Browser QA and immutable Cloudflare Preview
+name: E3 Article13 R2 final premium Jekyll and Browser QA
 on:
   push:
     branches:
@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: a8bfd8931375c98f6920cbb1d1700d9fc73981c9
+          ref: 9e38741691d9c3311ef325d9af3eeef71f8b542d
           persist-credentials: true
       - name: Clean Jekyll and ArticleV2
         shell: bash
@@ -51,6 +51,10 @@ jobs:
            assert ('href="/contact/#project-intake"' if lang=='en' else 'href="/ru/contact/#project-intake"') in p
            assert '"datePublished":"2026-10-26"' in p and '"dateModified":"2026-10-26"' in p
            assert p.count('<meta property="og:image"')==1
+           assert 'article13-four-futures-one-foundation-og.png' in p
+           assert 'article13-four-futures-one-foundation.svg' in p
+           assert '<pre>' not in p and 'SELECT · COPY · SEND' not in p and 'Editorial draft prepared' not in p and 'Черновик подготовлен' not in p
+           assert p.count('class="e13__brief-item"')==3 and 'class="e13__brief-cta"' in p
            assert all(u not in p for u in ['https://clutch.co/','https://www.webfx.com/','https://huemor.rocks/'])
            ld=re.findall(r'<script type="application/ld\+json">\s*(\{.*?\})\s*</script>',p,re.S)
            graph=json.loads(ld[0])['@graph'];art=next(x for x in graph if x['@type']=='Article')
@@ -70,7 +74,9 @@ jobs:
            a=node.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc');b=node.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
            if a is not None and b is not None:data[a.text]=b.text
           for r in [en,ru]:assert data['https://proai-expert.com'+r]=='2026-10-26'
-          print('E3_JEKYLL_STATIC_PASS')
+          assert (root/'assets/img/insights/article13-four-futures-one-foundation-og.png').is_file()
+          assert (root/'assets/img/insights/article13-four-futures-one-foundation.svg').is_file()
+          print('E3_R2_JEKYLL_STATIC_PASS')
           PY
       - name: Cross browser 9 widths noJS reduced motion map
         shell: bash
@@ -103,14 +109,14 @@ jobs:
                 const nodes=[...document.querySelectorAll('.e13__path')],map=document.querySelector('[data-intervention-map]'),r=map.getBoundingClientRect();
                 const graphs=[...document.querySelectorAll('head script[type="application/ld+json"]')].flatMap(x=>{try{return JSON.parse(x.textContent)['@graph']||[]}catch{return []}});
                 const article=graphs.find(x=>x['@type']==='Article');
-                return {overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,mapRight:r.right,mapWidth:r.width,paths:nodes.length,visible:nodes.every(n=>n.getBoundingClientRect().width>=140),body:!!document.querySelector('[data-owner-brief] pre'),tab:document.querySelector('.e13__table-wrap')?.tabIndex===0,rows:document.querySelector('.e13__table')?.rows.length,author:article?.author?.['@type'],h1:document.querySelectorAll('h1').length,locale:document.documentElement.lang,sections:document.querySelectorAll('.insight-v2__prose h2[id]').length,cta:!!document.querySelector('a[href$="#project-intake"]')};
+                return {overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,mapRight:r.right,mapWidth:r.width,paths:nodes.length,visible:nodes.every(n=>n.getBoundingClientRect().width>=140),body:!!document.querySelector('.e13__brief-cta[href$="#project-intake"]')&&document.querySelectorAll('.e13__brief-item').length===3&&document.querySelectorAll('.e13__brief-sample').length===3&&!document.querySelector('[data-owner-brief] pre'),tab:document.querySelector('.e13__table-wrap')?.tabIndex===0,rows:document.querySelector('.e13__table')?.rows.length,author:article?.author?.['@type'],h1:document.querySelectorAll('h1').length,locale:document.documentElement.lang,sections:document.querySelectorAll('.insight-v2__prose h2[id]').length,cta:!!document.querySelector('a[href$="#project-intake"]'),hero:(()=>{let i=document.querySelector('.e13__hero-visual img');return !!i&&i.complete&&i.naturalWidth>=1000})()};
               });
               chk(x.overflow<=2,id+' overflow '+x.overflow);
               chk(x.mapRight<=width+2&&x.mapWidth>0,id+' map bounds '+x.mapRight);
               chk(x.paths===4&&x.visible,id+' four choices visible');
-              chk(x.body&&x.tab&&x.rows===6,id+' brief and table');
+              chk(x.body&&x.tab&&x.rows===6&&x.hero,id+' real CTA, example brief, table and original Hero');
               chk(x.author==='Person'&&x.locale===lang&&x.h1===1&&x.sections===10&&x.cta,id+' schema/nav');
-              if(name==='Chromium'&&enabled&&(width===390||width===1440))await page.locator('[data-intervention-map]').screenshot({path:'/tmp/E3-'+lang+'-'+width+'-map.png'});
+              if(name==='Chromium'&&enabled&&(width===390||width===1440)){await page.locator('.e13__hero-visual').screenshot({path:'/tmp/E3-R2-'+lang+'-'+width+'-hero.png'});await page.locator('.e13__brief').screenshot({path:'/tmp/E3-R2-'+lang+'-'+width+'-brief.png'});}
              }
              await page.keyboard.press('Tab');chk((await page.evaluate(()=>document.activeElement?.tagName))!==undefined,name+lang+' keyboard');
              await ctx.close();
@@ -121,21 +127,21 @@ jobs:
           for(const route of ['/insights/','/ru/insights/','/contact/','/ru/contact/','/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/','/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/']){
            let r=await fetch(base+route);chk(r.status===200,'smoke '+route);
           }
-          console.log('E3_BROWSER_QA',checks,'CHECKS',errors.length,'FAILURES');
+          console.log('E3_R2_BROWSER_QA',checks,'CHECKS',errors.length,'FAILURES');
           if(errors.length){console.error(errors.slice(0,45).join('\n'));process.exit(1)}
           })().catch(e=>{console.error(e);process.exit(1)});
           JS
       - name: Upload owner visual map proof
         uses: actions/upload-artifact@v4
         with:
-          name: e3-owner-map-evidence
-          path: /tmp/E3-*-map.png
+          name: e3-r2-owner-hero-and-brief-evidence
+          path: /tmp/E3-R2-*.png
           if-no-files-found: error
       - name: Deploy compiled noindex immutable preview
         shell: bash
         run: |
           set -euo pipefail
-          dest='agent/insights-e3-compiled-preview-20261026'
+          dest='agent/insights-e3-r2-compiled-preview-20261027'
           if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then echo 'Preview collision' >&2; exit 1; fi
           tmp="$(mktemp -d)"
           cp -a _site/. "$tmp/"
@@ -148,6 +154,6 @@ jobs:
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
           cp -a "$tmp"/. .
           git add -A
-          git commit -m "preview(insights): Article13 compiled EN/RU immutable noindex"
+          git commit -m "preview(insights): Article13 R2 final polished EN/RU immutable noindex"
           git push origin "HEAD:refs/heads/$dest"
           echo "E3_COMPILED_SHA=$(git rev-parse HEAD)"

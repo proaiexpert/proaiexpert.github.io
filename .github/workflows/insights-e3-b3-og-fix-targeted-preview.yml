@@ -1,0 +1,133 @@
+name: E3 Article13 B3 exact-path OG regression immutable compiled QA
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e3-b3-og-fix-targeted-preview.yml
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 23
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 14fc3f64eff62aba2229ff0d2ef54f257afe2d33
+          persist-credentials: true
+      - name: Production-equivalent Jekyll social normalize and comprehensive route regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          git fetch --no-tags --depth=1 origin 'refs/heads/agent/insights-e3-r2-compiled-preview-20261027:refs/remotes/origin/e3b3-oldcompiled'
+          git worktree add --detach /tmp/e3b3_pre_fix_compiled refs/remotes/origin/e3b3-oldcompiled
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          import importlib.util,re,json
+          from html import unescape
+          from hashlib import sha256
+          spec=importlib.util.spec_from_file_location('social', 'scripts/apply-social-preview-defaults.py')
+          m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
+          site=Path('_site')
+          old=Path('/tmp/e3b3_pre_fix_compiled')
+          en=Path('insights/repair-redesign-or-rebuild-your-business-website/index.html')
+          ru=Path('ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/index.html')
+          targets={en,ru}
+          expected='https://proai-expert.com/assets/img/insights/article13-four-futures-one-foundation-og.png'
+          assert set(m.ARTICLE13_SOCIAL)==targets,'exact allowlist diverged'
+          assert all(m.social_values(p, False)[0]!=expected for p in [Path('index.html'),Path('insights/index.html'),Path('ru/insights/index.html'),Path('insights/x/repair-redesign-or-rebuild-your-business-website/index.html')])
+          assert m.social_values(en,True)[0]==expected and m.social_values(ru,False)[0]==expected
+          assert m.social_values(Path('ru/index.html'),True)==(m.RU_IMAGE,m.RU_ALT)
+          for root in [Path('.'),site]:
+           m.validate_assets(root)
+           image=(root/m.ARTICLE13_PNG).read_bytes()
+           assert image[:8]==b'\x89PNG\r\n\x1a\n' and len(image)>20000
+           assert (int.from_bytes(image[16:20],'big'),int.from_bytes(image[20:24],'big'))==(1200,630)
+          print('E3_B3_PNG_SOURCE_AND_COMPILED_1200_630_PASS')
+          names=('og_image','og_alt','og_width','og_height','twitter_card','twitter_image','twitter_alt')
+          def values(text):
+           head=text.split('</head>',1)[0]
+           out={}
+           for name in names:
+            hits=m.META_PATTERNS[name].findall(head)
+            assert len(hits)==1,(name,len(hits))
+            tag=hits[0]
+            v=re.search(r'\bcontent="([^"]*)"',tag,re.I)
+            assert v,(name,tag)
+            out[name]=unescape(v.group(1))
+           return out
+          def strip_social(s):
+           for name in names:s=m.META_PATTERNS[name].sub('',s)
+           return s
+          regression=0
+          page_count=0
+          for p in sorted(site.rglob('*.html')):
+           if not m.generated_candidate(site,p):continue
+           rel=p.relative_to(site)
+           new=p.read_text(encoding='utf-8-sig')
+           if '</head>' not in new.lower():continue
+           prior=old/rel
+           assert prior.is_file(),('baseline missing HTML route',str(rel))
+           older=prior.read_text(encoding='utf-8-sig')
+           page_count+=1
+           assert not m.metadata_errors(rel,new),(str(rel),m.metadata_errors(rel,new))
+           v=values(new);baseline=values(older)
+           if rel not in targets:
+            assert v==baseline,('OG/Twitter regression',str(rel),v,baseline)
+            assert v['og_image'] in (m.EN_IMAGE,m.RU_IMAGE)
+            regression+=1
+           else:
+            assert v['og_image']==v['twitter_image']==expected,(str(rel),v)
+            assert v['og_alt']==v['twitter_alt']==m.ARTICLE13_SOCIAL[rel][1]
+            assert v['og_width']=='1200' and v['og_height']=='630' and v['twitter_card']=='summary_large_image'
+            assert baseline['og_image']!=expected and baseline['twitter_image']!=expected
+            assert m.EN_IMAGE not in v.values() and m.RU_IMAGE not in v.values()
+            assert all(not s for s in m.metadata_errors(rel,new))
+            scripts=re.findall(r'<script type="application/ld\+json">\s*(\{.*?\})\s*</script>',new,re.S)
+            assert len(scripts)==1
+            graph=json.loads(scripts[0])['@graph'];article=next(x for x in graph if x.get('@type')=='Article')
+            assert article['image']['url']==expected and article['image']['width']==1200 and article['image']['height']==630
+            assert article['author']['@type']=='Person'
+            assert '<link rel="canonical"' in new or 'rel="canonical"' in new
+            print('E3_B3_ARTICLE_META',rel,'OG_TWITTER_JSONLD_SAME_NEW_PNG_PASS')
+           assert strip_social(older)==strip_social(new),('Unexpected non-social HTML change',str(rel))
+          print('E3_B3_UNCHANGED_PAGES_OG_TWITTER_EXACT_MATCH',regression,'PASS')
+          print('E3_B3_FULL_COMPILED_HTML_NO_OTHER_CHANGES',page_count,'PASS')
+          # Test normalized bytes unchanged on second normalization (without touching source).
+          before={str(p.relative_to(site)):sha256(p.read_bytes()).hexdigest() for p in site.rglob('*.html') if m.generated_candidate(site,p)}
+          m.normalize_generated(site)
+          after={str(p.relative_to(site)):sha256(p.read_bytes()).hexdigest() for p in site.rglob('*.html') if m.generated_candidate(site,p)}
+          assert before==after,('non-idempotent normalizer',[(k,a,after.get(k)) for k,a in before.items() if after.get(k)!=a][:10])
+          print('E3_B3_NORMALIZATION_IDEMPOTENCE_PASS')
+          PY
+      - name: Publish immutable compiled-only Cloudflare Preview after PASS
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='agent/insights-e3-b3-compiled-preview-20261027'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then echo 'Immutable branch collision' >&2; exit 1; fi
+          tmp="$(mktemp -d)"
+          cp -a _site/. "$tmp/"
+          rm -f "$tmp/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tmp/_headers"
+          touch "$tmp/.nojekyll"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tmp"/. .
+          git add -A
+          git commit -m 'preview(insights): E3-B3 Article13 exact OG head fix compiled noindex'
+          git push origin "HEAD:refs/heads/$dest"
+          echo "E3_B3_COMPILED_SHA=$(git rev-parse HEAD)"

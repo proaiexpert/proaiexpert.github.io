@@ -4,19 +4,13 @@
 - Work only in Russian for planning, reports, and owner communication.
 - Preserve the natural language of user-facing EN/RU content.
 
-## Required Read Order
-1. `AI_START_HERE.md`
-2. `AI_CURRENT_HANDOFF.md`
-3. `README.md`
-4. task-specific canonical documents named in the handoff or owner instruction
-5. current branch/PR metadata when active work is referenced
-
-Do not begin broad exploration before completing this read order.
+## Context Loading
+Read this file, any applicable nested AGENTS.md, and the exact files needed for the task. Read AI_START_HERE.md for a fresh session and AI_CURRENT_HANDOFF.md when resuming earlier work; read README.md and other canonical documents when scope, risk or an unresolved conflict requires them. Do not impose a full onboarding chain on a clear, scoped task.
 
 ## Execution Routing
 - ChatGPT direct GitHub work is the default execution path.
-- Tier 1: one ChatGPT chat for small, scoped, reversible work, normally 1–3 files.
-- Tier 2: separate ChatGPT Builder and Reviewer chats for production-facing, shared CSS/JS, EN/RU parity, homepage, portfolio, SEO, or medium-risk work.
+- Tier 1: one ChatGPT chat for small, scoped, reversible work with clear acceptance criteria.
+- Tier 2: assess impact, reversibility, validation complexity and regression risk. Production-facing work, shared CSS/JS, EN/RU parity, homepage, portfolio, SEO and file count are risk signals; add independent review when warranted or required by owner/release controls.
 - Tier 3: use Codex only when a local dev server, Playwright/browser automation, screenshots, complex build/test pipelines, broad debugging, large refactoring, or prolonged terminal work is materially required.
 - Gemini and other third-party or weak substitute models are not default workflow tools.
 - The owner-level canonical policy is `proaiexpert/ai-os/00_Operating_System/CHATGPT_FIRST_OPERATING_MODEL.md`; these local rules remain standalone when that private repository is unavailable.
@@ -35,11 +29,11 @@ Do not begin broad exploration before completing this read order.
 - ChatGPT Sites is optional; do not spend Codex/Work capacity merely to obtain a hosted preview URL when Cloudflare Pages can provide it.
 
 ## Chat Lifecycle
-- One Builder chat normally owns one task and one implementation branch.
-- One Reviewer chat normally owns one independent review pass.
-- Start a new chat for a new major phase, repository, architecture, or independent review.
-- Use the same Builder chat only for a narrow correction to the same branch and acceptance criteria.
-- Preserve continuity through `AI_CURRENT_HANDOFF.md`, canonical docs, branch, base SHA, and head SHA rather than one endless chat.
+Use a new chat when stale context materially affects correctness, a different repository or architecture needs separate working context, or independent review requires separation. Do not require a new chat solely because a task enters another phase.
+
+Keep related work in the current chat while its goal, scope and context remain usable. Do not automatically retire a Builder chat merely because a branch was pushed or a phase ended. When independent review is warranted, use a separate context so the reviewer can inspect the actual result without inheriting implementation assumptions. Preserve any review required by the owner or applicable release controls.
+
+Preserve continuity through current handoffs, exact branches/SHAs and task-relevant canonical documents; record a next action only when one is actually needed.
 
 ## Project Working Style
 - Prefer minimal safe patches.
@@ -47,9 +41,7 @@ Do not begin broad exploration before completing this read order.
 - Do not touch unrelated files.
 - Do not change copy, structure, layout, or styling unless explicitly requested.
 - Do not start editing until exact target files are known.
-- Default edit scope is 1–2 files.
-- Maximum normal Tier 1 edit scope is 3 files.
-- If more than 3 files are necessary, classify as Tier 2 instead of silently widening scope.
+- Keep the file scope minimal and explicit. File count is a signal to reassess scope and risk, not an automatic reason to add chats or executors. Do not silently widen the authorized scope.
 
 ## Website Rules
 - Do not run broad site audits by default.
@@ -59,7 +51,7 @@ Do not begin broad exploration before completing this read order.
 - Preserve canonical, hreflang, x-default, internal links, mobile behavior, and existing case-specific art direction unless explicitly changing them.
 
 ## Builder / Reviewer Rule
-For Tier 2 and Tier 3 work:
+When independent review is justified by risk, impact, reversibility or validation complexity, or required by the owner or applicable release controls:
 
 - Builder works in a dedicated branch and reports base SHA, head SHA, exact files, checks, unverified items, and risks.
 - Reviewer starts in a fresh ChatGPT chat and initially works read-only.
@@ -93,15 +85,5 @@ For Tier 2 and Tier 3 work:
 After meaningful merged work, update `AI_CURRENT_HANDOFF.md` with the new stable state, current priority, unresolved risks, canonical documents, and next approved action.
 
 ## Output Format
-After changes, report:
-
-1. Route used: ChatGPT Direct / Builder + Reviewer / Codex escalation.
-2. Base SHA and head SHA.
-3. What changed.
-4. Exact files changed.
-5. Checks run.
-6. What was verified.
-7. What remains unverified.
-8. Risks and intentionally untouched areas.
-9. Commit title and next action.
-10. For meaningful visual website work: direct phone-accessible Cloudflare Pages preview URL and what the Owner should inspect there.
+After changes, report concisely in Russian: what changed, exact files, checks actually run, and material risks or unverified behavior. Include base/head SHA for GitHub changes and the route when relevant; add a commit title only if a commit exists or it was requested. Provide expanded handoff/evidence when the task or risk requires it. Add a next action only when one is actually needed.
+For meaningful visual website work, provide the direct phone-accessible Cloudflare Pages preview URL and explain what the Owner should inspect before requesting visual approval.

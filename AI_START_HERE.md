@@ -3,16 +3,9 @@
 ## Purpose
 This is the deterministic entrypoint for a fresh ChatGPT or Codex session working on `proaiexpert/proaiexpert.github.io`.
 
-## Required First Actions
-1. Fetch current `main` and record its SHA.
-2. Read root `AGENTS.md`.
-3. Read root `AI_CURRENT_HANDOFF.md`.
-4. Read root `README.md`.
-5. For meaningful visual website work, read `docs/operations/CLOUDFLARE_REMOTE_VISUAL_REVIEW.md` before planning the Owner review path.
-6. Read only the canonical task-specific documents named in the handoff or user instruction.
-7. Inspect relevant branch/PR metadata when the task references active work.
-
-Do not begin broad repository exploration and do not treat old drafts, closed issues, screenshots, or chat exports as current truth unless the handoff explicitly points to them.
+## Task-Scoped First Actions
+Read root AGENTS.md, any applicable nested AGENTS.md, and the exact task-relevant files. Consult AI_CURRENT_HANDOFF.md when resuming work and README.md or other canonical documents when scope, risk or an unresolved conflict requires them. Verify the current repository ref/SHA and relevant branch/PR before modifying GitHub.
+For meaningful visual website work, read docs/operations/CLOUDFLARE_REMOTE_VISUAL_REVIEW.md before choosing the Owner review path. Do not impose a full onboarding chain on a small, clearly scoped task. Do not treat old drafts, closed issues, screenshots or chat exports as current truth when current source documents exist.
 
 ## Role Selection
 - Strategy, architecture, prioritization, article or page planning → `Control`.
@@ -22,8 +15,8 @@ Do not begin broad repository exploration and do not treat old drafts, closed is
 - Ambiguous task → `Control`, read-only.
 
 ## Risk Routing
-- Tier 1: one ChatGPT chat for small scoped work, normally 1–3 files.
-- Tier 2: separate ChatGPT Builder and Reviewer chats for production-facing, shared CSS/JS, EN/RU parity, homepage, portfolio, SEO architecture, or medium-risk work.
+- Tier 1: one ChatGPT chat for small, scoped, reversible work with clear acceptance criteria.
+- Tier 2: assess impact, reversibility, validation complexity and regression risk. Production-facing work, shared CSS/JS, EN/RU parity, homepage, portfolio, SEO and file count are risk signals, not automatic two-chat triggers. Add independent review when warranted or required by owner/release controls.
 - Tier 3: Codex only when a local dev server, Playwright/browser automation, screenshots, complex build/test pipelines, broad debugging, large refactor, or prolonged terminal execution is materially required.
 - Do not use Codex merely to obtain a hosted preview. Cloudflare Pages is the default remote visual-review layer.
 
@@ -45,24 +38,8 @@ For meaningful visual website work:
 - Do not modify `main`, merge, publish, roll back, force-push, delete, or perform destructive operations without explicit owner authorization.
 
 ## First Response Contract
-Before editing, report:
-
-- repository;
-- role;
-- risk tier;
-- current main SHA;
-- canonical files read;
-- current project state;
-- task interpretation;
-- expected branch;
-- allowed files and forbidden areas;
-- write/commit/push/merge permissions;
-- blockers or unverified dependencies;
-- next action.
-
-For a clear Builder instruction that already authorizes branch, commit, and push, proceed after this brief preamble without asking for redundant confirmation.
-
-For meaningful visual work, the plan must also state how the Owner will receive a phone-accessible Cloudflare preview URL before visual approval is requested.
+For a clear, small task, respond concisely and execute authorized work. Before editing GitHub, verify the repository, exact file scope, current ref/SHA, and applicable permissions. For high-risk changes or explicit handoffs, include the role, relevant context read, risks and checks. Include a next action only when one is actually needed. Do not impose a long preflight report for every task.
+For meaningful visual work, explain how the Owner will receive a phone-accessible Cloudflare preview URL before requesting visual approval.
 
 ## Handoff Rule
 After meaningful merged work, update `AI_CURRENT_HANDOFF.md` so the next fresh chat can recover the current state without reading prior chats.

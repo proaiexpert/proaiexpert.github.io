@@ -1,0 +1,159 @@
+name: E3 B4 owner building hero targeted EN RU responsive QA and immutable preview
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e3-b4-building-hero-preview.yml
+permissions:
+  contents: write
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 6117639a9b3cf8a417d038b51603ee88cfa7d07f
+          persist-credentials: true
+      - name: Build and exact E3 B4 source plus compiled SEO OG regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '6117639a9b3cf8a417d038b51603ee88cfa7d07f'
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python -m pip install --user --quiet Pillow
+          git fetch --no-tags --depth=1 origin 'refs/heads/agent/insights-e3-b3-compiled-preview-20261027:refs/remotes/origin/e3b4-oldcompiled'
+          git worktree add --detach /tmp/e3b4_old_compiled refs/remotes/origin/e3b4-oldcompiled
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          import hashlib,json,re
+          site=Path('_site')
+          old=Path('/tmp/e3b4_old_compiled')
+          asset=Path('assets/img/insights/article13-new-hero-building.webp')
+          expected_routes=[
+           Path('insights/repair-redesign-or-rebuild-your-business-website/index.html'),
+           Path('ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/index.html')
+          ]
+          assert asset.is_file() and asset.stat().st_size==160788,('owner asset missing or unexpected bytes',asset.stat().st_size if asset.exists() else None)
+          assert (site/asset).is_file() and hashlib.sha256(asset.read_bytes()).digest()==hashlib.sha256((site/asset).read_bytes()).digest(),'compiled image differs'
+          with Image.open(asset) as im:
+           assert im.format=='WEBP' and im.size==(1672,941),(im.format,im.size)
+          print('E3_B4_OWNER_WEBP_SOURCE_1672x941_160788_BYTES_PASS')
+          html_changed=[]
+          for p in sorted(site.rglob('*.html')):
+           rel=p.relative_to(site)
+           old_path=old/rel
+           if not old_path.is_file():continue
+           before=old_path.read_bytes();after=p.read_bytes()
+           if before!=after:html_changed.append(rel)
+          assert set(html_changed)==set(expected_routes),('unexpected HTML differences',list(map(str,html_changed)))
+          print('E3_B4_COMPILED_HTML_CHANGESET_EXACTLY_TWO_ARTICLES_PASS')
+          for rel in expected_routes:
+           new=(site/rel).read_text(encoding='utf8')
+           prior=(old/rel).read_text(encoding='utf8')
+           assert new.split('</head>',1)[0]==prior.split('</head>',1)[0],('HEAD metadata changed',rel)
+           assert 'data-intervention-map' in new and 'data-owner-brief' in new
+           assert new.count('src="/assets/img/insights/article13-new-hero-building.webp"')==1
+           assert 'src="/assets/img/insights/article13-four-futures-one-foundation.svg"' not in new
+           assert 'width="1672" height="941"' in new
+           assert '.e13__hero-visual img{display:block;width:100%;height:auto;aspect-ratio:auto;object-fit:contain;object-position:center}' in new
+           assert '.e13__hero-visual img{aspect-ratio:5/4' not in new
+           assert '.e13__hero-visual img{aspect-ratio:4/5' not in new
+           assert 'article13-four-futures-one-foundation-og.png' in new
+           assert 'twitter:image' in new and 'og:image' in new
+           assert '{% include' not in new and new.lower().lstrip().startswith('<!doctype html>')
+           print('E3_B4_HERO_EN_RU_META_AND_NO_CROP_PASS',rel)
+          for file in ('assets/img/insights/article13-four-futures-one-foundation-og.png','assets/img/insights/article13-four-futures-one-foundation.svg'):
+           assert hashlib.sha256((site/file).read_bytes()).digest()==hashlib.sha256((old/file).read_bytes()).digest(),('OG or old art modified',file)
+          print('E3_B4_OG_AND_OLD_ART_ASSET_UNCHANGED_PASS')
+          PY
+      - name: Chromium WebKit exact photo iPhone desktop full-image geometry screenshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/e3b4playwright --no-save --no-audit --no-fund playwright@1.56.1
+          /tmp/e3b4playwright/node_modules/.bin/playwright install --with-deps chromium webkit
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site >/tmp/e3b4-web.log 2>&1 &
+          sleep 2
+          NODE_PATH=/tmp/e3b4playwright/node_modules node <<'JS'
+          const {chromium,webkit}=require('playwright');
+          const base='http://127.0.0.1:8765';
+          const routes={en:'/insights/repair-redesign-or-rebuild-your-business-website/',ru:'/ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/'};
+          const widths=[320,390,1440];
+          let checks=0,errors=[];
+          const chk=(ok,info)=>{checks++;if(!ok)errors.push(info)};
+          (async()=>{
+          for(const [browserName,engine] of [['Chromium',chromium],['WebKit',webkit]]){
+           const browser=await engine.launch({headless:true});
+           for(const [lang,route] of Object.entries(routes)){
+            for(const width of widths){
+             for(const js of [true,false]){
+              const ctx=await browser.newContext({viewport:{width,height:width===1440?900:812},javaScriptEnabled:js,reducedMotion:'reduce'});
+              await ctx.route('**/*',r=>r.request().url().startsWith(base+'/')?r.continue():r.abort());
+              const page=await ctx.newPage();const response=await page.goto(base+route,{waitUntil:'load',timeout:30000});
+              const label=[browserName,lang,width,js?'JS':'NOJS'].join(' ');
+              chk(response?.status()===200,label+' ARTICLE HTTP200');
+              const x=await page.evaluate(()=>{
+               const img=document.querySelector('.e13__hero-visual img');
+               const figure=document.querySelector('.e13__hero-visual');
+               const s=getComputedStyle(img),rect=img.getBoundingClientRect(),figRect=figure.getBoundingClientRect();
+               return {src:new URL(img.src).pathname,width:img.naturalWidth,height:img.naturalHeight,loaded:img.complete,displayW:rect.width,displayH:rect.height,figureRight:figRect.right,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,fit:s.objectFit,ratio:s.aspectRatio,cssHeight:s.height,cssWidth:s.width,lang:document.documentElement.lang,links:document.querySelectorAll('a[href$="#project-intake"]').length,og:document.querySelector('head meta[property="og:image"]')?.content,tw:document.querySelector('head meta[name="twitter:image"]')?.content};
+              });
+              chk(x.src==='/assets/img/insights/article13-new-hero-building.webp'&&x.loaded&&x.width===1672&&x.height===941,label+' OWNER WEBP ACTUALLY LOADED');
+              const ratio=x.displayW/x.displayH,ref=1672/941;
+              chk(x.displayW>150&&x.displayH>80&&Math.abs(ratio-ref)<.017,label+' FULL IMAGE NATURAL ASPECT '+ratio);
+              chk(x.fit==='contain'&&x.ratio==='auto',label+' NO FORCED CROP CSS');
+              chk(x.overflow<=2&&x.figureRight<=width+2,label+' NO HORIZONTAL OVERFLOW '+x.overflow);
+              chk(x.lang===lang&&x.links>=1,label+' LOCALIZED CTA');
+              chk(x.og?.endsWith('/article13-four-futures-one-foundation-og.png')&&x.tw===x.og,label+' OG UNCHANGED');
+              if(js && browserName==='WebKit'){
+                await page.locator('.e13__hero-visual').screenshot({path:'/tmp/E3-B4-'+lang+'-'+width+'-iphone-desktop-hero.png'});
+                if(width===390){await page.screenshot({path:'/tmp/E3-B4-'+lang+'-'+width+'-page-top.png',fullPage:false})}
+              }
+              await ctx.close();
+             }
+            }
+           }
+           await browser.close();
+          }
+          console.log('E3_B4_BROWSER',checks,'ASSERTIONS',errors.length,'FAILURES');
+          if(errors.length){console.error(errors.slice(0,40).join('\n'));process.exit(1)}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+      - name: Upload EN RU 320 390 1440 WebKit Hero screenshot evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: e3-b4-owner-hero-iphone-desktop
+          path: /tmp/E3-B4-*.png
+          if-no-files-found: error
+      - name: Deploy fresh immutable compiled noindex preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='agent/insights-e3-b4-compiled-preview-20261102'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then echo 'Immutable preview branch name already exists' >&2; exit 1; fi
+          tmp="$(mktemp -d)"
+          cp -a _site/. "$tmp/"
+          rm -f "$tmp/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tmp/_headers"
+          touch "$tmp/.nojekyll"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tmp"/. .
+          git add -A
+          git commit -m 'preview(insights): E3 B4 original owner building hero compiled noindex EN RU'
+          git push origin "HEAD:refs/heads/$dest"
+          echo "E3_B4_COMPILED_SHA=$(git rev-parse HEAD)"

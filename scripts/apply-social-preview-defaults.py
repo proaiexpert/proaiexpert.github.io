@@ -13,6 +13,24 @@ RU_IMAGE = "https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png"
 EN_ALT = "ProAI Expert — From first impression to result — one system."
 RU_ALT = "ProAI Expert — От первого впечатления до результата — одна система."
 
+# Only two exact generated-site paths may use the approved Article 13 image.
+ARTICLE13_IMAGE = (
+    "https://proai-expert.com/assets/img/insights/"
+    "article13-four-futures-one-foundation-og.png"
+)
+ARTICLE13_PNG = Path("assets/img/insights/article13-four-futures-one-foundation-og.png")
+ARTICLE13_SOCIAL = {
+    Path("insights/repair-redesign-or-rebuild-your-business-website/index.html"): (
+        ARTICLE13_IMAGE,
+        "Four Futures / One Foundation — four responsible website decisions: keep, fix, redesign or rebuild.",
+    ),
+    Path("ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/index.html"): (
+        ARTICLE13_IMAGE,
+        "Four Futures / One Foundation — четыре пути для сайта: сохранить, исправить, редизайн или полная переработка.",
+    ),
+}
+
+
 ASSETS = {
     "en": {
         "filename": "proai-home-og-en-r1-1.png",
@@ -81,6 +99,17 @@ def sha256_bytes(data: bytes) -> str:
 def validate_assets(root: Path) -> None:
     for spec in ASSETS.values():
         check_png(root / "assets" / "social" / spec["filename"], spec["sha256"])
+    # Article 13 is an approved, repository-owned image. Retain strict SHA
+    # guards on the independent global OG assets above.
+    path = root / ARTICLE13_PNG
+    if not path.is_file():
+        raise AssertionError(f"Missing Article 13 OG image: {path}")
+    data = path.read_bytes()
+    if len(data) <= 20000 or data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise AssertionError(f"Article 13 OG has invalid PNG content: {path}")
+    width, height = int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
+    if (width, height) != (1200, 630):
+        raise AssertionError(f"Wrong Article 13 OG dimensions: {path}: {width}x{height}")
 
 
 def is_ru_page(rel: Path, text: str) -> bool:
@@ -101,9 +130,15 @@ def is_ru_page(rel: Path, text: str) -> bool:
     return False
 
 
-def social_block(is_ru: bool) -> str:
-    image = RU_IMAGE if is_ru else EN_IMAGE
-    alt = RU_ALT if is_ru else EN_ALT
+def social_values(rel: Path, is_ru: bool) -> tuple[str, str]:
+    # Do not match by language, substring or generic Article layout.
+    return ARTICLE13_SOCIAL.get(
+        rel, (RU_IMAGE, RU_ALT) if is_ru else (EN_IMAGE, EN_ALT)
+    )
+
+
+def social_block(rel: Path, is_ru: bool) -> str:
+    image, alt = social_values(rel, is_ru)
     return (
         f'<meta property="og:image" content="{image}">\n'
         f'<meta property="og:image:alt" content="{alt}">\n'
@@ -115,13 +150,13 @@ def social_block(is_ru: bool) -> str:
     )
 
 
-def normalize_head(text: str, is_ru: bool) -> tuple[str, bool]:
+def normalize_head(text: str, rel: Path, is_ru: bool) -> tuple[str, bool]:
     if not re.search(r'</head\s*>', text, re.I):
         return text, False
     original = text
     for pattern in META_PATTERNS.values():
         text = pattern.sub("", text)
-    text = re.sub(r'</head\s*>', social_block(is_ru) + "</head>", text, count=1, flags=re.I)
+    text = re.sub(r'</head\s*>', social_block(rel, is_ru) + "</head>", text, count=1, flags=re.I)
     return text, text != original
 
 
@@ -147,7 +182,7 @@ def normalize_generated(root: Path) -> int:
         if not re.search(r'</head\s*>', text, re.I):
             continue
         rel = path.relative_to(root)
-        new_text, changed = normalize_head(text, is_ru_page(rel, text))
+        new_text, changed = normalize_head(text, rel, is_ru_page(rel, text))
         if changed:
             path.write_text(new_text, encoding="utf-8", newline="\n")
             changed_count += 1
@@ -174,8 +209,7 @@ def check_png(path: Path, expected_sha: str) -> None:
 def metadata_errors(rel: Path, text: str) -> list[str]:
     errors: list[str] = []
     ru = is_ru_page(rel, text)
-    image = RU_IMAGE if ru else EN_IMAGE
-    alt = RU_ALT if ru else EN_ALT
+    image, alt = social_values(rel, ru)
     expectations = [
         (META_PATTERNS["og_image"], image, "og:image"),
         (META_PATTERNS["og_alt"], alt, "og:image:alt"),

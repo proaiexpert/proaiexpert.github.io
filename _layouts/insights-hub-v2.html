@@ -110,7 +110,7 @@
       <div class="insights-v2__section-head insights-v2__section-head--ledger">
         <p class="insights-v2__eyebrow">{% if page.lang == 'ru' %}ПОЛНАЯ БИБЛИОТЕКА{% else %}COMPLETE LIBRARY{% endif %}</p>
         <h2 id="complete-library">{% if page.lang == 'ru' %}Все опубликованные материалы{% else %}All published thinking{% endif %}</h2>
-        <p>{% if page.lang == 'ru' %}В библиотеке — 12 материалов по трём направлениям.{% else %}12 active articles. Legacy redirect routes are preserved, but not presented as separate publications.{% endif %}</p>
+        <p>{% assign active_article_count = site.data.insights | size %}{% if page.lang == 'ru' %}Материалов в библиотеке: {{ active_article_count }}. Три направления практических решений.{% else %}{{ active_article_count }} active articles across three decision areas. Legacy redirects are not counted as separate publications.{% endif %}</p>
       </div>
       {% assign domain_keys = "ai-operations,website-strategy,market-reach" | split: "," %}
       {% assign running_index = 0 %}
@@ -119,7 +119,7 @@
       <section class="insights-v2__library-group" id="library-{{ domain_key }}" aria-labelledby="library-heading-{{ domain_key }}">
         <div class="insights-v2__library-group-heading">
           <h3 id="library-heading-{{ domain_key }}">{% case domain_key %}{% when "ai-operations" %}{% if page.lang == 'ru' %}AI-системы и операции{% else %}AI Systems &amp; Operations{% endif %}{% when "website-strategy" %}{% if page.lang == 'ru' %}Стратегия сайта и конверсия{% else %}Website Strategy &amp; Conversion{% endif %}{% when "market-reach" %}{% if page.lang == 'ru' %}Поиск и охват рынка{% else %}Search &amp; Market Reach{% endif %}{% endcase %}</h3>
-          <span>{{ grouped_insights.size }} {% if page.lang == 'ru' %}материала{% else %}articles{% endif %}</span>
+          <span>{% if page.lang == 'ru' %}Материалов: {{ grouped_insights.size }}{% else %}{{ grouped_insights.size }} articles{% endif %}</span>
         </div>
         <ol class="insights-v2__ledger-list">
         {% for item in grouped_insights %}

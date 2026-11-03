@@ -1,0 +1,71 @@
+name: E3 B4 LIVE Cloudflare true owner building Hero immutable HTTPS acceptance
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e3-b4-live-http.yml
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Verify real immutable Cloudflare EN RU photo and unchanged OG
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import urllib.request,re,html.parser
+          BASE='https://bf82098f.proaiexpert-github-io.pages.dev'
+          OWNER='https://proai-expert.com'
+          ASSET='/assets/img/insights/article13-new-hero-building.webp'
+          OG=OWNER+'/assets/img/insights/article13-four-futures-one-foundation-og.png'
+          PAGES={
+           'en':'/insights/repair-redesign-or-rebuild-your-business-website/',
+           'ru':'/ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/',
+          }
+          def get(path):
+           req=urllib.request.Request(BASE+path,headers={'User-Agent':'ProAI-Article13-Owner-BuildingHero-LiveQA/1','Cache-Control':'no-cache'})
+           with urllib.request.urlopen(req,timeout=40) as res:return res.status,res.headers,res.read()
+          class Head(html.parser.HTMLParser):
+           def __init__(self):super().__init__();self.inside=False;self.social={};self.canon=[];self.hreflang=[]
+           def handle_starttag(self,tag,attrs):
+            a=dict(attrs)
+            if tag=='head':self.inside=True
+            if not self.inside:return
+            if tag=='meta':
+             name=a.get('property') or a.get('name')
+             if name in ('og:image','twitter:image'):self.social.setdefault(name,[]).append(a.get('content'))
+            if tag=='link':
+             if a.get('rel')=='canonical':self.canon.append(a.get('href'))
+             if a.get('hreflang'):self.hreflang.append(a.get('hreflang'))
+           def handle_endtag(self,tag):
+            if tag=='head':self.inside=False
+          for lang,route in PAGES.items():
+           status,headers,b=get(route);s=b.decode('utf8')
+           assert status==200 and 'text/html' in headers.get('Content-Type','').lower() and s.lower().lstrip().startswith('<!doctype html>')
+           assert 'noindex' in headers.get('X-Robots-Tag','').lower() and 'nofollow' in headers.get('X-Robots-Tag','').lower()
+           assert s.count('src="'+ASSET+'"')==1 and 'src="/assets/img/insights/article13-four-futures-one-foundation.svg"' not in s
+           assert 'width="1672" height="941"' in s and 'object-fit:contain' in s and 'aspect-ratio:auto' in s
+           assert ('Архитектурная концепция:' if lang=='ru' else 'Architectural concept:') in s
+           assert 'data-intervention-map' in s and 'data-owner-brief' in s
+           assert ('href="/contact/#project-intake"' if lang=='en' else 'href="/ru/contact/#project-intake"') in s
+           p=Head();p.feed(s)
+           assert p.social.get('og:image')==[OG] and p.social.get('twitter:image')==[OG],p.social
+           assert p.canon==[OWNER+route] and {'en','ru','x-default'}<=set(p.hreflang)
+           assert 'datePublished' in s and 'Article' in s
+           print('E3_B4_LIVE_ARTICLE',lang,'HTTP200_NOINDEX_OWNER_BUILDING_WEBP_OG_PRESERVED_PASS',len(b))
+          status,h,blob=get(ASSET)
+          assert status==200 and h.get('Content-Type','').lower().startswith('image/webp'),(status,h.get('Content-Type'))
+          assert len(blob)==160788 and blob[:4]==b'RIFF' and blob[8:12]==b'WEBP'
+          print('E3_B4_LIVE_OWNER_WEBP_HTTP200_IMAGE_WEBP_160788_BYTES_PASS')
+          status,h,og=get('/assets/img/insights/article13-four-futures-one-foundation-og.png')
+          assert status==200 and h.get('Content-Type','').lower().startswith('image/png')
+          assert og[:8]==b'\x89PNG\r\n\x1a\n' and int.from_bytes(og[16:20],'big')==1200 and int.from_bytes(og[20:24],'big')==630
+          print('E3_B4_LIVE_ORIGINAL_OG_UNCHANGED_AVAILABLE_PASS')
+          for lang,path in [('en','/contact/'),('ru','/ru/contact/')]:
+           status,h,b=get(path);assert status==200 and 'id="project-intake"' in b.decode('utf8')
+          print('E3_B4_LIVE_CONTACT_EN_RU_PASS')
+          PY

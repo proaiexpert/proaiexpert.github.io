@@ -14,7 +14,7 @@ const bundleRel='/assets/css/homepage-connected-system-r142-bundled-preview.css'
 const bundleFile=path.join(root,bundleRel);
 const bundle=fs.readFileSync(bundleFile,'utf8');
 const assert=(condition,message)=>{if(!condition)failures.push(message);};
-assert(!/@import\\s+url\\s*\\(/.test(bundle),'Bundled CSS contains a nested @import');
+assert(!/@import\s+url\s*\(/.test(bundle),'Bundled CSS contains a nested @import');
 for(const layer of ['cs142-base','cs142-r13','cs142-r132','cs142-r141'])assert(bundle.includes('@layer '+layer+' {'),'Missing cascade layer '+layer);
 for(const lang of ['en','ru']){
  const doc=fs.readFileSync(path.join(root,lang==='ru'?'ru/index.html':'index.html'),'utf8');

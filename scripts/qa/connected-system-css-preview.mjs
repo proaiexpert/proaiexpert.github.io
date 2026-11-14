@@ -63,11 +63,13 @@ try{
        [metrics.ledgerLeft>=-2&&metrics.ledgerRight<=vp.width+2,'Ledger crosses viewport horizontally']
       ])if(!ok)row.failures.push(msg);
       if(vp.width===390){
+       // Force deterministic jumps; the production homepage uses smooth CSS scrolling.
+       await page.evaluate(()=>document.documentElement.style.setProperty('scroll-behavior','auto','important'));
        for(const [target,expected] of [[.10,1],[.35,2],[.60,3],[.89,4],[.60,3],[.35,2],[.10,1]]){
         await page.evaluate(p=>{
          const e=document.querySelector('[data-experience]'),absoluteTop=scrollY+e.getBoundingClientRect().top;
          const travel=Math.max(1,e.offsetHeight-(visualViewport?.height||innerHeight));
-         window.scrollTo(0,absoluteTop+p*travel);
+         window.scrollTo({top:absoluteTop+p*travel,behavior:'auto'});
         },target);
         await page.waitForTimeout(180);
         const state=await page.locator('[data-connected-next]').getAttribute('data-active-stage');

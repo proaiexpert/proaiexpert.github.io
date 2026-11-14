@@ -643,3 +643,28 @@
     padding-top:12px!important;
   }
 }
+
+
+/* R1.4.8 — desktop sticky viewport composition (Connected System only).
+   Desktop header is fixed at 85px. The historical top:14px hid the
+   sticky scene behind it, leaving apparent dead space below the scene.
+   Center the stage within the visible area under the header; reserve
+   sufficient runway to display stage 04 before the stage unpins.
+   Exclude portrait, tablet, phone landscape, and short-height layouts. */
+@media (min-width:901px) and (min-height:600px) {
+  .connected-next.connected-next--production {
+    --cs-desktop-header-h:85px;
+    --cs-desktop-stage-h:max(480px,min(73svh,650px));
+  }
+
+  .connected-next.connected-next--production .connected-next__experience {
+    min-height:clamp(860px,128svh,1280px);
+  }
+
+  .connected-next.connected-next--production .connected-next__sticky-stage {
+    top:max(
+      calc(var(--cs-desktop-header-h) + 12px),
+      calc((100svh + var(--cs-desktop-header-h) - var(--cs-desktop-stage-h)) / 2)
+    );
+  }
+}

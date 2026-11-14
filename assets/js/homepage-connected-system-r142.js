@@ -170,6 +170,26 @@
   const stateFromProgress = p => p < .23 ? 1 : p < .48 ? 2 : p < .73 ? 3 : 4;
   const desktopProgress = () => {
     const rect = experience.getBoundingClientRect();
+
+    // Desktop R1.4.8: one complete cycle of stages belongs to the actual
+    // pinned runway, not to the surrounding whitespace. This keeps stages
+    // 01 and 04 readable while the artwork is optically centered below
+    // the fixed header (including reverse scrolling and viewport changes).
+    if (desktopViewport.matches && innerHeight >= 600 && stickyStage) {
+      const stickyStyle = getComputedStyle(stickyStage);
+      if (stickyStyle.position === 'sticky') {
+        const stickyTop = parseFloat(stickyStyle.top);
+        const stageHeight = stickyStage.getBoundingClientRect().height;
+        const paddingTop = parseFloat(getComputedStyle(experience).paddingTop) || 0;
+        const entryTop = stickyTop - paddingTop;
+        const exitTop = stickyTop + stageHeight - rect.height;
+        const runway = entryTop - exitTop;
+        if (Number.isFinite(stickyTop) && runway > 180) {
+          return clamp((entryTop - rect.top) / runway,0,1);
+        }
+      }
+    }
+
     const viewport = innerHeight;
     const startLine = viewport*.30;
     const travel = Math.max(360,rect.height-viewport*.42);
@@ -244,7 +264,7 @@
       return;
     }
 
-    if (desktopAutoplayEligible() && ['armed','running','complete','cancelled'].includes(autoplayState)) return;
+    if (desktopAutoplayEligible() && (autoplayState === 'armed' || autoplayState === 'running')) return;
     if (performance.now() < manualUntil) return;
     setState(stateFromProgress(desktopProgress()));
   };
@@ -257,11 +277,11 @@
       return;
     }
     if (desktopAutoplayEligible()) {
-      if (autoplayState === 'running' && Math.abs(scrollY-autoplayStartScrollY)>4 && performance.now()-autoplayStartedAt>120) cancelAutoplay('manual',true);
-      else if (autoplayState === 'armed') {
-        if (Math.abs(scrollY-autoplayArmScrollY)>innerHeight*.48) cancelAutoplay('abandoned',false);
-        else { lastUserScrollAt = performance.now(); scheduleAutoplayStart(); }
-      } else if (autoplayState === 'idle') lastUserScrollAt = performance.now();
+      // A real user scroll takes authority away from desktop autoplay immediately.
+      // A cancelled autoplay must never freeze the scroll-driven stage progression.
+      if (autoplayState === 'running' && Math.abs(scrollY-autoplayStartScrollY)>4) cancelAutoplay('manual',false);
+      else if (autoplayState === 'armed' && Math.abs(scrollY-autoplayArmScrollY)>4) cancelAutoplay('manual',false);
+      else if (autoplayState === 'idle') lastUserScrollAt = performance.now();
     }
     if (frameRequested) return;
     frameRequested = true;
@@ -327,11 +347,11 @@
   };
 
   window.addEventListener('wheel',()=>{
-    if(autoplayState==='running')cancelAutoplay('manual',true);
-    else if(autoplayState==='armed'){lastUserScrollAt=performance.now();scheduleAutoplayStart();}
+    // Wheel/trackpad movement has priority over an armed or running presentation.
+    if(autoplayState==='running'||autoplayState==='armed')cancelAutoplay('manual',false);
   },{passive:true});
   window.addEventListener('keydown',e=>{
-    if(autoplayState==='running'&&['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(e.key))cancelAutoplay('manual',true);
+    if((autoplayState==='running'||autoplayState==='armed')&&['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(e.key))cancelAutoplay('manual',false);
   });
   document.addEventListener('selectionchange',()=>{
     if(autoplayState!=='running')return;

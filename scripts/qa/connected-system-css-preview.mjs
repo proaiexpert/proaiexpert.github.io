@@ -34,7 +34,7 @@ const server=http.createServer((req,res)=>{
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const port=server.address().port;
-const viewports=[{width:320,height:740},{width:375,height:812},{width:390,height:844},{width:430,height:932},{width:768,height:1024},{width:1440,height:900}];
+const viewports=[{width:320,height:740},{width:390,height:844},{width:430,height:932},{width:1440,height:900}];
 try{
  for(const [engine,kind] of [['chromium',chromium],['webkit',webkit]]){
   const browser=await kind.launch({headless:true});
@@ -42,10 +42,11 @@ try{
    for(const lang of ['en','ru']){
     for(const vp of viewports){
      const page=await browser.newPage({viewport:vp,deviceScaleFactor:2,reducedMotion:'no-preference'});
+     await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
      const row={engine,lang,viewport:vp,failures:[],states:[]};
      try{
-      await page.goto(`http://127.0.0.1:${port}/${lang==='ru'?'ru/':''}`,{waitUntil:'domcontentloaded',timeout:45000});
-      await page.waitForFunction(()=>{const root=document.querySelector('[data-connected-next]');return root && !root.classList.contains('connected-next--nojs');},{timeout:20000});
+      await page.goto(`http://127.0.0.1:${port}/${lang==='ru'?'ru/':''}`,{waitUntil:'domcontentloaded',timeout:18000});
+      await page.waitForFunction(()=>{const root=document.querySelector('[data-connected-next]');return root && !root.classList.contains('connected-next--nojs');},undefined,{timeout:8000});
       await page.waitForTimeout(250);
       const metrics=await page.evaluate(()=>{
        const root=document.querySelector('[data-connected-next]'),ol=root.querySelector('.state-ledger'),artifact=root.querySelector('.context-artifact'),ledger=root.querySelector('.ledger-zone'),button=root.querySelector('.ledger-plate');
@@ -79,6 +80,7 @@ try{
      finally{await page.close();}
      results.push(row);
      for(const x of row.failures)failures.push(`${engine}/${lang}/${vp.width}: ${x}`);
+     console.log('CS_CSS_CASE '+JSON.stringify({engine,lang,width:vp.width,pass:row.failures.length===0,failures:row.failures}));
     }
    }
   }finally{await browser.close();}

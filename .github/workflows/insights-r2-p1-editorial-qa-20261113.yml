@@ -1,0 +1,136 @@
+name: Insights R2 Nov13 editorial link P1 isolated QA
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-r2-p1-editorial-qa-20261113.yml
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 26
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 7997b3444db718f2fcf74ad5f66df3b377fa0d8f
+          fetch-depth: 0
+      - name: Exact P1 diff, source links and unchanged metadata authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess,re,xml.etree.ElementTree as ET,html
+          base='ed52c3c565c485d161a0010f2eb484c7a7e35072'
+          assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()=='7997b3444db718f2fcf74ad5f66df3b377fa0d8f'
+          paths={
+          'insights/where-automation-delivers-its-first-real-roi/index.html':3,
+          'ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/index.html':3,
+          'insights/process-clarity-comes-before-scalable-automation/index.html':4,
+          'ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/index.html':4,
+          'insights/website-builder-or-custom-website-what-a-service-business-should-choose/index.html':1,
+          'ru/insights/konstruktor-sayta-ili-sait-na-zakaz-chto-vybrat-servisnomu-biznesu/index.html':1,
+          'insights/what-a-premium-website-really-means-for-a-service-business/index.html':1,
+          'ru/insights/chto-znachit-premialnyy-sayt-dlya-servisnogo-biznesa/index.html':1,
+          }
+          # Fix long RU route from actual deployed source (not invention).
+          paths['ru/insights/konstruktor-sayta-ili-sayt-na-zakaz-chto-vybrat-servisnomu-biznesu/index.html']=paths.pop('ru/insights/konstruktor-sayta-ili-sait-na-zakaz-chto-vybrat-servisnomu-biznesu/index.html')
+          changed=set(subprocess.check_output(['git','diff','--name-only',base,'HEAD'],text=True).splitlines())
+          assert changed==set(paths)|{'sitemap.xml'},('Unexpected changed paths',sorted(changed))
+          assert subprocess.run(['git','diff','--check',base,'HEAD']).returncode==0
+          old_sitemap=subprocess.check_output(['git','show',base+':sitemap.xml'],text=True)
+          new_sitemap=Path('sitemap.xml').read_text()
+          expected=old_sitemap
+          for route in ['/insights/','/ru/insights/']:
+           old='<loc>https://proai-expert.com'+route+'</loc><lastmod>2026-08-02</lastmod>'
+           assert expected.count(old)==1
+           expected=expected.replace(old,old.replace('2026-08-02','2026-11-13'))
+          assert new_sitemap==expected,'Other sitemap data modified'
+          assert len(ET.fromstring(new_sitemap))==len(ET.fromstring(old_sitemap))==46
+          print('E3_EDITORIAL_SITEMAP_ONLY_TWO_HUB_LASTMOD_CHANGED_PASS')
+          for p,expected_links in paths.items():
+           old=subprocess.check_output(['git','show',base+':'+p],text=True)
+           new=Path(p).read_text()
+           first=0
+           while first<min(len(old),len(new)) and old[first]==new[first]:first+=1
+           last=0
+           while last<min(len(old)-first,len(new)-first) and old[-last-1]==new[-last-1]:last+=1
+           insert=new[first:len(new)-last]
+           assert old==new[:first]+new[len(new)-last:],('Unexpected noninsert change',p)
+           assert insert.startswith('<p>') and insert.endswith('</p>\n'),('Bad inserted paragraph',p,repr(insert[:110]))
+           newlinks=re.findall(r'href="([^"]+)"',insert)
+           assert len(newlinks)==expected_links,(p,expected_links,newlinks)
+           assert all(a.startswith('/') and not a.startswith('//') and '?' not in a and '#' not in a for a in newlinks)
+           assert all(Path(a.lstrip('/')+'/index.html').is_file() for a in newlinks),(p,newlinks,'missing source route')
+           assert all(a.startswith('/ru/')==p.startswith('ru/') for a in newlinks),(p,'wrong language',newlinks)
+           assert all('href="'+a+'"' not in old for a in newlinks),(p,'duplicate link')
+           assert '<div class="article-cta">' in new
+           assert 'href="/contact/#project-intake"' in new if not p.startswith('ru/') else 'href="/ru/contact/#project-intake"' in new
+           print('E3_EDITORIAL_SOURCE_EXACT_SINGLE_PARAGRAPH',p,expected_links,'LINKS_PASS')
+          print('E3_EDITORIAL_SOURCE_TOTAL_18_NEW_LINKS_8_ARTICLES_PASS')
+          PY
+      - name: Clean Jekyll and existing production validators
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          import re,xml.etree.ElementTree as ET
+          site=Path('_site')
+          pages={
+          'insights/where-automation-delivers-its-first-real-roi/index.html':3,
+          'ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/index.html':3,
+          'insights/process-clarity-comes-before-scalable-automation/index.html':4,
+          'ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/index.html':4,
+          'insights/website-builder-or-custom-website-what-a-service-business-should-choose/index.html':1,
+          'ru/insights/konstruktor-sayta-ili-sayt-na-zakaz-chto-vybrat-servisnomu-biznesu/index.html':1,
+          'insights/what-a-premium-website-really-means-for-a-service-business/index.html':1,
+          'ru/insights/chto-znachit-premialnyy-sayt-dlya-servisnogo-biznesa/index.html':1,
+          }
+          for p,n in pages.items():
+           s=(site/p).read_text(encoding='utf8')
+           assert '<!DOCTYPE html>' in s or '<!doctype html>' in s.lower(),p
+           assert '<meta property="og:image"' in s and '<meta name="twitter:image"' in s
+           assert '<link rel="canonical"' in s
+           assert 'rel="alternate" hreflang="ru"' in s or 'hreflang="ru"' in s
+           assert 'rel="alternate" hreflang="en"' in s or 'hreflang="en"' in s
+           assert 'href="/contact/#project-intake"' in s if not p.startswith('ru/') else 'href="/ru/contact/#project-intake"' in s
+           assert s.count('<h1')==1,(p,'H1')
+           assert 'data-home-footer-golden-r3' in s,(p,'Golden Footer')
+           assert '{% include' not in s,(p,'raw liquid')
+           # Verify all new paths, including relative and localized, have actual Jekyll outputs.
+           src=Path(p).read_text()
+           pp=src.split('<div class="article-cta">',1)[0]
+           last_para=pp.rsplit('<p>',1)[-1].split('</p>',1)[0]
+           links=re.findall(r'href="([^"]+)"',last_para)
+           # For Article12/06/07/09 insertion occurs immediately before CTA.
+           assert len(links)==n,(p,n,links)
+           for a in links:assert (site/a.strip('/')/'index.html').exists(),(p,a,'target absent from build')
+           print('E3_EDITORIAL_COMPILED_PAGE_LINKS_META_FOOTER_PASS',p)
+          hubs=['insights/index.html','ru/insights/index.html']
+          for p in hubs:
+           s=(site/p).read_text()
+           assert '13 active articles' in s if not p.startswith('ru/') else 'Материалов в библиотеке: 13' in s
+          for p in ['contact/index.html','ru/contact/index.html']:
+           assert 'id="project-intake"' in (site/p).read_text()
+          tree=ET.parse(site/'sitemap.xml').getroot()
+          ns='{http://www.sitemaps.org/schemas/sitemap/0.9}'
+          lastmods={u.find(ns+'loc').text:u.find(ns+'lastmod').text for u in tree if u.find(ns+'loc') is not None}
+          for route in ['/insights/','/ru/insights/']:assert lastmods['https://proai-expert.com'+route]=='2026-11-13'
+          assert (site/'insights/repair-redesign-or-rebuild-your-business-website/index.html').exists()
+          assert (site/'ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/index.html').exists()
+          print('E3_EDITORIAL_COMPILED_HUB_SITEMAP_CONTACT_ALL_PASS')
+          PY

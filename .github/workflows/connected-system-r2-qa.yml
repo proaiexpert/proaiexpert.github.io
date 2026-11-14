@@ -1,0 +1,65 @@
+name: Connected System R2 EN-RU Owner Preview QA
+on:
+  pull_request:
+    paths:
+      - 'assets/css/homepage-connected-system-r142.css'
+      - 'assets/js/homepage-connected-system-r142.js'
+      - 'index.html'
+      - 'ru/index.html'
+      - 'owner-preview/connected-system-r2/**'
+      - 'scripts/qa/connected-system-r2-qa.mjs'
+      - '.github/workflows/connected-system-r2-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  connected-system-r2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build full Jekyll EN/RU homepage + review routes
+        shell: bash
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python3 scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          test -s _site/owner-preview/connected-system-r2/index.html
+          test -s _site/owner-preview/connected-system-r2/ru/index.html
+      - name: Syntax and Chromium/WebKit browsers
+        shell: bash
+        run: |
+          node --check assets/js/homepage-connected-system-r142.js
+          node --check scripts/qa/connected-system-r2-qa.mjs
+          npm install --no-save --no-package-lock playwright@1.56.1
+          npx playwright install --with-deps chromium webkit
+      - name: Real-browser EN/RU responsive regression QA
+        shell: bash
+        run: |
+          python3 -m http.server 8787 --bind 127.0.0.1 --directory _site > /tmp/connected-r2-http.log 2>&1 &
+          sleep 3
+          node scripts/qa/connected-system-r2-qa.mjs
+      - name: Public Cloudflare EN/RU branch preview smoke
+        if: always()
+        shell: bash
+        run: |
+          base='https://agent-proai-connected-system.proaiexpert-github-io.pages.dev'
+          for route in '/owner-preview/connected-system-r2/' '/owner-preview/connected-system-r2/ru/'; do
+            file="$(mktemp)"
+            curl --fail --location --silent --show-error --retry 8 --retry-delay 3 --retry-all-errors "${base}${route}" -o "$file"
+            grep -Fq 'data-connected-next' "$file"
+            grep -Fq 'homepage-connected-system-r142.js?v=connected-r2-review-20261011' "$file"
+            grep -Fq 'noindex, nofollow' "$file"
+            echo "Hosted owner route verified: ${base}${route}"
+            rm "$file"
+          done
+      - name: Preserve browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: connected-system-r2-browser-evidence
+          path: connected-system-r2-evidence/
+          if-no-files-found: warn

@@ -643,3 +643,55 @@
     padding-top:12px!important;
   }
 }
+
+
+/* R1.4.8 — desktop sticky viewport composition (Connected System only).
+   Desktop header is fixed at 85px. The historical top:14px hid the
+   sticky scene behind it, leaving apparent dead space below the scene.
+   Center the stage within the visible area under the header; reserve
+   sufficient runway to display stage 04 before the stage unpins.
+   Exclude portrait, tablet, phone landscape, and short-height layouts. */
+@media (min-width:901px) and (min-height:600px) {
+  .connected-next.connected-next--production {
+    --cs-desktop-header-h:85px;
+    --cs-desktop-stage-h:max(480px,min(73svh,650px));
+  }
+
+  .connected-next.connected-next--production .connected-next__experience {
+    min-height:clamp(860px,128svh,1280px);
+  }
+
+  .connected-next.connected-next--production .connected-next__sticky-stage {
+    top:max(
+      calc(var(--cs-desktop-header-h) + 12px),
+      calc((100svh + var(--cs-desktop-header-h) - var(--cs-desktop-stage-h)) / 2)
+    );
+  }
+}
+
+
+/* Connected System R2 — restrained editorial legibility and interaction finish.
+   Scoped to this section; existing causality architecture remains unchanged. */
+.connected-next.connected-next--production .ledger-detail b,
+.connected-next.connected-next--production .ledger-detail small {
+  text-wrap: pretty;
+}
+.connected-next.connected-next--production .ledger-plate:focus-visible {
+  outline: 2px solid rgba(223,193,145,.85);
+  outline-offset: 3px;
+}
+@media (min-width:901px) and (min-height:600px) and (hover:hover) and (pointer:fine) {
+  .connected-next.connected-next--production .ledger-plate:not(.is-active):hover {
+    background-color: rgba(234,227,215,.038);
+    box-shadow: inset 0 1px 0 rgba(238,235,226,.085);
+  }
+  .connected-next.connected-next--production .ledger-plate.is-active .ledger-plate__edge {
+    filter: drop-shadow(0 0 13px rgba(214,188,151,.12));
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  .connected-next.connected-next--production .ledger-plate,
+  .connected-next.connected-next--production .ledger-plate__edge {
+    transition: none !important;
+  }
+}

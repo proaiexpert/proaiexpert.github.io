@@ -1,0 +1,117 @@
+name: INSIGHTS E3 Article13 EN RU production live postmerge indexability
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e3-article13-production-postrelease-20261113.yml
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - name: Verify real live production HTTP EN RU Hero OG canonical author and indexability
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import urllib.request, urllib.error, html.parser, re, json, xml.etree.ElementTree as ET, time
+          base="https://proai-expert.com"
+          routes={
+           "en":"/insights/repair-redesign-or-rebuild-your-business-website/",
+           "ru":"/ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/"
+          }
+          expected_date="2026-11-13"
+          og=base+"/assets/img/insights/article13-four-futures-one-foundation-og.png"
+          photo="/assets/img/insights/article13-new-hero-building.webp"
+          def fetch(path):
+           url=base+path
+           req=urllib.request.Request(url,headers={"User-Agent":"Mozilla/5.0 (compatible; ProAI-Article13-PostRelease-QA/1)","Cache-Control":"no-cache"})
+           with urllib.request.urlopen(req,timeout=35) as response:
+            return response.status,response.headers,response.read()
+          class Head(html.parser.HTMLParser):
+           def __init__(self):
+            super().__init__();self.head=False;self.meta={};self.links=[];self.lang=None;self.ld=[];self.in_script=False;self.script=""
+           def handle_starttag(self,t,attrs):
+            a=dict(attrs)
+            if t=="html":self.lang=a.get("lang")
+            if t=="head":self.head=True
+            if not self.head:return
+            if t=="meta":
+             name=a.get("property") or a.get("name")
+             if name:self.meta.setdefault(name,[]).append(a.get("content",""))
+            if t=="link":self.links.append(a)
+            if t=="script" and a.get("type")=="application/ld+json":self.in_script=True;self.script=""
+           def handle_data(self,d):
+            if self.in_script:self.script+=d
+           def handle_endtag(self,t):
+            if t=="script" and self.in_script:
+             self.ld.append(json.loads(self.script));self.in_script=False
+            if t=="head":self.head=False
+          assets=set()
+          for lang,route in routes.items():
+           status,headers,blob=fetch(route)
+           text=blob.decode("utf-8")
+           assert status==200 and "text/html" in headers.get("Content-Type","").lower(),(route,"HTTP")
+           assert text.lower().lstrip().startswith("<!doctype html>"),(route,"compilation")
+           assert "noindex" not in headers.get("X-Robots-Tag","").lower(),(route,"unexpected noindex header")
+           assert "{% include" not in text and "layout: insight-v2" not in text
+           assert text.count('src="'+photo+'"')==1 and 'src="/assets/img/insights/article13-four-futures-one-foundation.svg"' not in text
+           assert 'object-fit:contain' in text and 'aspect-ratio:auto' in text
+           assert 'data-intervention-map' in text and 'data-owner-brief' in text
+           assert 'data-home-footer-golden-r3' in text
+           assert ('href="/contact/#project-intake"' if lang=="en" else 'href="/ru/contact/#project-intake"') in text
+           doc=Head();doc.feed(text)
+           assert doc.lang==lang,(lang,"HTML lang",doc.lang)
+           assert all(len(doc.meta.get(x,[]))==1 for x in ["og:image","twitter:image","og:image:alt","twitter:image:alt"])
+           assert doc.meta["og:image"]==[og] and doc.meta["twitter:image"]==[og]
+           assert "noindex" not in " ".join(doc.meta.get("robots",[])+doc.meta.get("googlebot",[])).lower()
+           assert "published" not in doc.meta.get("robots",[]), "unexpected"
+           canon=[l.get("href") for l in doc.links if l.get("rel")=="canonical"]
+           assert canon==[base+route],(lang,"canonical",canon)
+           hreflangs={l.get("hreflang") for l in doc.links if l.get("hreflang")}
+           assert {"en","ru","x-default"} <= hreflangs,(lang,"hreflang",hreflangs)
+           assert len(doc.ld)==1,(lang,"JSONLD",len(doc.ld))
+           graph=doc.ld[0]["@graph"]
+           article=next(x for x in graph if x.get("@type")=="Article")
+           assert article["datePublished"]==article["dateModified"]==expected_date,(lang,"dates",article.get("datePublished"))
+           assert article["image"]["url"]==og and article["image"]["width"]==1200 and article["image"]["height"]==630
+           assert article["author"]["@type"]=="Person" and article["author"]["name"]==("Ihor Horb" if lang=="en" else "Игорь Горб")
+           assert any(x.get("@type")=="BreadcrumbList" for x in graph)
+           assert text.count('class="e13__brief-item"')==3 and 'id="map"' in text
+           assert "Черновик подготовлен" not in text and "Editorial draft prepared" not in text
+           print("E3_ARTICLE13_PRODUCTION",lang,"HTTP200_INDEXABLE_CANONICAL_HREFLANG_JSONLD_DATES_HERO_OG_CTA_PASS",len(blob))
+          for path,mime in [(photo,"image/webp"),("/assets/img/insights/article13-four-futures-one-foundation-og.png","image/png")]:
+           status,headers,b=fetch(path)
+           assert status==200 and headers.get("Content-Type","").lower().startswith(mime),(path,"mime")
+           assert (b[:4]==b"RIFF" and b[8:12]==b"WEBP") if mime=="image/webp" else (b[:8]==b"\x89PNG\r\n\x1a\n")
+           assert (len(b)==160788) if mime=="image/webp" else (int.from_bytes(b[16:20],"big")==1200 and int.from_bytes(b[20:24],"big")==630)
+           print("E3_ARTICLE13_PRODUCTION_ASSET",path,"200",len(b),"PASS")
+          for lang,path in [("en","/insights/"),("ru","/ru/insights/")]:
+           status,headers,blob=fetch(path)
+           s=blob.decode("utf-8")
+           assert status==200 and (routes[lang] in s)
+           assert ("13 active articles" in s if lang=="en" else "Материалов в библиотеке: 13" in s)
+           print("E3_ARTICLE13_PRODUCTION_HUB",lang,"13_PASS")
+          for lang,path in [("en","/contact/"),("ru","/ru/contact/")]:
+           status,headers,blob=fetch(path)
+           assert status==200 and 'id="project-intake"' in blob.decode("utf-8")
+           print("E3_ARTICLE13_PRODUCTION_CONTACT",lang,"PASS")
+          status,headers,body=fetch("/sitemap.xml")
+          root=ET.fromstring(body)
+          found={}
+          for e in root:
+           loc=e.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+           dt=e.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+           if loc is not None and dt is not None:found[loc.text]=dt.text
+          for route in routes.values():assert found[base+route]==expected_date
+          print("E3_ARTICLE13_PRODUCTION_SITEMAP_DATE_2_2_PASS")
+          status,headers,body=fetch("/robots.txt")
+          text=body.decode("utf-8","replace")
+          assert status==200
+          assert "Disallow: /" not in text.replace("Disallow: /assets/",""),"Potential full-site block"
+          print("E3_ARTICLE13_PRODUCTION_ROBOTS_PASS")
+          print("E3_ARTICLE13_PRODUCTION_FINAL_PASS")
+          PY

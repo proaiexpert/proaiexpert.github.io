@@ -71,12 +71,18 @@ try{
          const travel=Math.max(1,e.offsetHeight-(visualViewport?.height||innerHeight));
          window.scrollTo({top:absoluteTop+p*travel,behavior:'auto'});
         },target);
-        await page.waitForTimeout(180);
-        const state=await page.locator('[data-connected-next]').getAttribute('data-active-stage');
-        row.states.push({target,expected,actual:Number(state)});
-        if(Number(state)!==expected)row.failures.push(`Stage scroll ${target}: expected ${expected}, got ${state}`);
+        // Headless WebKit can defer synthetic scroll events after an instant jump.
+        // Dispatch the same scroll event used by the normal listener, then inspect physical progress.
+        await page.evaluate(()=>window.dispatchEvent(new Event('scroll')));
+        await page.waitForTimeout(120);
+        const observed=await page.evaluate(()=>{
+         const e=document.querySelector('[data-experience]'),absoluteTop=scrollY+e.getBoundingClientRect().top;
+         const travel=Math.max(1,e.offsetHeight-(visualViewport?.height||innerHeight));
+         return {actual:Number(document.querySelector('[data-connected-next]').dataset.activeStage),progress:(scrollY-absoluteTop)/travel,scrollY,hidden:document.hidden};
+        });
+        row.states.push({target,expected,...observed});
+        if(observed.actual!==expected)row.failures.push(`Stage scroll ${target}: expected ${expected}, got ${observed.actual}, physical progress=${observed.progress.toFixed(3)}, hidden=${observed.hidden}`);
        }
-       await page.screenshot({path:`${evidenceDir}/${engine}-${lang}-390.png`,fullPage:false});
       }
      }catch(err){row.failures.push(String(err?.message||err).slice(0,400));}
      finally{await page.close();}

@@ -1,0 +1,100 @@
+name: INSIGHTS E3 Article13 final Nov13 release date and production build QA
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-e3-article13-final-release-qa-20261113.yml
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 41989971b28d8dc90943b3f222c87915610f365d
+      - name: Scope guard and production integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '41989971b28d8dc90943b3f222c87915610f365d'
+          git diff --name-only '6117639a9b3cf8a417d038b51603ee88cfa7d07f' HEAD | sort > /tmp/e3-actual.txt
+          printf '_data/insights.yml\nsitemap.xml\n' | sort > /tmp/e3-expected.txt
+          diff -u /tmp/e3-expected.txt /tmp/e3-actual.txt
+          node scripts/verify-proai-cube-integrity-r2.mjs
+      - name: Exact production-equivalent Jekyll, social meta, Site Shell, Article V2
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python -m pip install --user --quiet Pillow
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          import re, json, xml.etree.ElementTree as ET
+          from html.parser import HTMLParser
+          root=Path('_site')
+          en='insights/repair-redesign-or-rebuild-your-business-website/index.html'
+          ru='ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/index.html'
+          newday='2026-11-13'
+          old='2026-10-26'
+          registry=Path('_data/insights.yml').read_text()
+          p=registry.split('- id: intervention-map',1)
+          assert len(p)==2
+          assert p[1].count('date_published: "'+newday+'"')==2 and p[1].count('date_modified: "'+newday+'"')==2
+          assert 'date_published: "'+old+'"' not in p[1] and 'date_modified: "'+old+'"' not in p[1]
+          assert registry.count('publication_index:')==13
+          site=ET.parse(root/'sitemap.xml').getroot()
+          entries={}
+          for el in site:
+           loc=el.find('{http://www.sitemaps.org/schemas/sitemap/0.9}loc')
+           date=el.find('{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod')
+           if loc is not None and date is not None: entries[loc.text]=date.text
+          og='https://proai-expert.com/assets/img/insights/article13-four-futures-one-foundation-og.png'
+          for locale,file,route in [('en',en,'/insights/repair-redesign-or-rebuild-your-business-website/'),('ru',ru,'/ru/insights/peredelat-sayt-ili-sozdat-novyy-kak-vybrat/')]:
+           page=(root/file).read_text()
+           assert page.lower().lstrip().startswith('<!doctype html>'),(locale,'not compiled')
+           assert entries['https://proai-expert.com'+route]==newday
+           assert '"datePublished":"'+newday+'"' in page and '"dateModified":"'+newday+'"' in page,(locale,'date JSONLD')
+           assert 'article13-new-hero-building.webp' in page and page.count('src="/assets/img/insights/article13-new-hero-building.webp"')==1
+           assert '<meta property="og:image" content="'+og+'"' in page,(locale,'OG image')
+           assert '<meta name="twitter:image" content="'+og+'"' in page,(locale,'Twitter image')
+           assert page.count('class="e13__brief-item"')==3
+           assert 'data-intervention-map' in page and 'e13__path' in page
+           assert ('href="/contact/#project-intake"' if locale=='en' else 'href="/ru/contact/#project-intake"') in page
+           assert 'rel="canonical"' in page and 'hreflang="en"' in page and 'hreflang="ru"' in page
+           assert 'data-home-footer-golden-r3' in page and 'data-site-footer-canonical="golden-r1"' in page,(locale,'footer')
+           assert page.count('data-home-footer-golden-r3')>=1
+           scripts=re.findall(r'<script type="application/ld\+json">\s*(\{.*?\})\s*</script>',page,re.S)
+           assert len(scripts)==1,(locale,'JSONLD uniqueness')
+           graph=json.loads(scripts[0])['@graph']
+           a=next(x for x in graph if x.get('@type')=='Article')
+           assert a['author']['@type']=='Person'
+           assert a['image']['url']==og and a['image']['width']==1200 and a['image']['height']==630
+           assert a['datePublished']==a['dateModified']==newday
+           assert any(x.get('@type')=='BreadcrumbList' for x in graph)
+           print('ARTICLE13_RELEASE_DATE_AND_SEO',locale,'PASS')
+          for loc in ['insights/index.html','ru/insights/index.html']:
+           contents=(root/loc).read_text()
+           assert '13 active articles' in contents if loc.startswith('insights/') else 'Материалов в библиотеке: 13' in contents
+          print('ARTICLE13_HUB_COUNTS_PASS')
+          for path in ['contact/index.html','ru/contact/index.html']:
+           assert 'id="project-intake"' in (root/path).read_text()
+          print('ARTICLE13_CONTACT_ANCHORS_PASS')
+          from PIL import Image
+          with Image.open('assets/img/insights/article13-new-hero-building.webp') as im:
+           assert im.size==(1672,941) and im.format=='WEBP'
+          with Image.open('assets/img/insights/article13-four-futures-one-foundation-og.png') as im:
+           assert im.size==(1200,630) and im.format=='PNG'
+          print('ARTICLE13_OWNER_WEBP_AND_ORIGINAL_OG_PASS')
+          PY

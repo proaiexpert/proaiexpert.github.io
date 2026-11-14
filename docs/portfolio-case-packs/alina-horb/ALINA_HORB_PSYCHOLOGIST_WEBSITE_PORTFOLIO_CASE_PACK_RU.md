@@ -376,10 +376,10 @@
 - semantic headings;
 - production indexing rules.
 
-## Индексационная модель
+## Индексационная модель (исторический аудит июля 2026)
 
-- 16 содержательных маршрутов индексируются;
-- 2 privacy routes используют `noindex, follow`;
+- 16 содержательных маршрутов были предназначены для индексации в июльской версии (это не число URL в индексе Google);
+- 2 privacy routes использовали `noindex, follow` на момент июльского аудита;
 - Search Console Domain Property подтверждён;
 - sitemap отправлен;
 - как минимум одна production-страница уже подтверждена в Google index;
@@ -466,7 +466,7 @@
 
 # 14. QA и проверка качества
 
-## Подтверждённые масштабы
+## Подтверждённые масштабы июльского релиза (исторический baseline)
 
 - 18 production routes;
 - 4 control viewports;
@@ -510,7 +510,7 @@
 
 **The final audited build completed the defined route, responsive, SEO, form and asset checks without recorded critical findings.**
 
-Не превращать количество внутренних GitHub workflow runs в бессмысленный рекламный счётчик. В кейсе достаточно показать строгую QA-модель и 72 browser checks.
+Не превращать количество внутренних GitHub workflow runs в бессмысленный рекламный счётчик. В кейсе достаточно показать строгую QA-модель и честно обозначить, что 72 browser checks относятся к июльской версии.
 
 ---
 
@@ -578,7 +578,7 @@ WebFX указывает общий профессиональный диапа�
 - custom responsive development;
 - UA/RU route architecture (current technical count unverified);
 - content structuring;
-- four bilingual articles;
+- six expert topics per language (12 localized article pages);
 - form integration;
 - anti-spam;
 - technical SEO;
@@ -613,7 +613,7 @@ WebFX указывает общий профессиональный диапа�
 
 | Типичный template-сайт | Alina Horb case |
 |---|---|
-| Одна главная и несколько стандартных страниц | 18 связанных UA/RU-маршрутов |
+| Одна главная и несколько стандартных страниц | Связанные UA/RU-страницы и 12 локализованных статей |
 | Стандартный hero | Авторская editorial-композиция |
 | Общие stock photos | Индивидуальная portrait-led система |
 | Один язык | Полноценная двуязычность |
@@ -719,7 +719,7 @@ Subtitle:
 
 ## Блок 7. Content system
 
-Показать Notes hub и четыре статьи.
+Показать Notes hub и все шесть тем на каждом языке.
 
 ## Блок 8. Bilingual UX
 
@@ -996,7 +996,7 @@ ProAI Expert portfolio.
 
 ## Best portfolio angle
 
-Не «мы сделали 18 HTML-страниц», а:
+Не сводить работу к подсчёту HTML-страниц, а показать результат:
 
 > **We transformed a personal psychology practice into a complete bilingual digital experience — from brand and editorial content to consultation intake, SEO and production QA.**
 
@@ -1010,11 +1010,11 @@ ProAI Expert portfolio.
 - [ ] Collect only final screenshots.
 - [ ] Build hero with one decisive visual.
 - [ ] Show UA/RU pairing.
-- [ ] Show architecture: 9 page types × 2 languages.
+- [ ] Show architecture: 11 published page types × 2 languages; verify route and indexability totals separately.
 - [ ] Show Notes hub and articles.
 - [ ] Show consultation journey.
 - [ ] Show compact form and success state.
-- [ ] Include the 72-check QA proof.
+- [ ] If citing 72 browser checks, label these as the July 2026 baseline, not QA of newly added pages.
 - [ ] Include technical SEO without overwhelming the presentation.
 - [ ] Use only confirmed claims.
 - [ ] Mark U.S. price as estimated replacement value.

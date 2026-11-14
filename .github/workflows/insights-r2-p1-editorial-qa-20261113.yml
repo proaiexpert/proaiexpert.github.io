@@ -54,12 +54,13 @@ jobs:
           for p,expected_links in paths.items():
            old=subprocess.check_output(['git','show',base+':'+p],text=True)
            new=Path(p).read_text()
-           first=0
-           while first<min(len(old),len(new)) and old[first]==new[first]:first+=1
-           last=0
-           while last<min(len(old)-first,len(new)-first) and old[-last-1]==new[-last-1]:last+=1
-           insert=new[first:len(new)-last]
-           assert old==new[:first]+new[len(new)-last:],('Unexpected noninsert change',p)
+           marker='<div class="article-cta">'
+           assert old.count(marker)==new.count(marker)==1,('CTA anchor not unique',p)
+           first=old.index(marker)
+           end=new.index(marker)
+           assert first<end,('No inserted paragraph',p)
+           insert=new[first:end]
+           assert old[:first]==new[:first] and old[first:]==new[end:],('Unexpected noninsert change',p)
            assert insert.startswith('<p>') and insert.endswith('</p>\n'),('Bad inserted paragraph',p,repr(insert[:110]))
            newlinks=re.findall(r'href="([^"]+)"',insert)
            assert len(newlinks)==expected_links,(p,expected_links,newlinks)

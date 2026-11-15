@@ -6,6 +6,7 @@ on:
       - "index.html"
       - "ru/index.html"
       - "scripts/qa/build-connected-system-owner-preview.py"
+      - "scripts/qa/check-live-connected-system-owner-preview.py"
       - ".github/workflows/connected-system-owner-preview-publish.yml"
 permissions:
   contents: read
@@ -63,3 +64,17 @@ jobs:
           fi
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "build(preview): publish compiled EN/RU Connected System owner review pages"
           git push origin "HEAD:refs/heads/$BRANCH"
+
+  live-cloudflare-smoke:
+    needs: compiled-preview-only
+    if: github.head_ref == 'fix/connected-system-css-bundle-preview-20261114' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Confirm actual Cloudflare responses match compiled EN/RU preview files
+        run: python3 scripts/qa/check-live-connected-system-owner-preview.py

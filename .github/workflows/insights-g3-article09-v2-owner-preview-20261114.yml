@@ -1,0 +1,227 @@
+name: G3 Article09 premium V2 EN RU source-pinned Chromium WebKit immutable preview
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-g3-article09-v2-owner-preview-20261114.yml
+permissions:
+  contents: write
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 42
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 31f5b006e44a7f7db9b0852b51dabfc820b5c01b
+          fetch-depth: 0
+      - name: Exact source diff and clean production-equivalent Jekyll
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import subprocess, re, json, hashlib, xml.etree.ElementTree as ET
+          ROOT=Path('.')
+          SITE=Path('_site')
+          OLD='1e2c78628dd053e6d85cbd046f552861e731136f'
+          NEW='31f5b006e44a7f7db9b0852b51dabfc820b5c01b'
+          assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==NEW
+          delta=set(subprocess.check_output(['git','diff','--name-only',OLD,'HEAD'],text=True).splitlines())
+          R={
+          'en':('insights/process-clarity-comes-before-scalable-automation/index.html','/insights/process-clarity-comes-before-scalable-automation/','https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png',[
+          '/insights/what-happens-after-a-lead-arrives/','/insights/where-automation-delivers-its-first-real-roi/','/insights/ai-agent-or-automation-what-your-business-actually-needs/','/ai-systems/']),
+          'ru':('ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/index.html','/ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/','https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png',[
+          '/ru/insights/chto-proiskhodit-posle-zayavki/','/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/','/ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/','/ru/ai-systems/'])
+          }
+          assert delta=={*([v[0] for v in R.values()]),'_data/insights.yml'},('unscoped diff',delta)
+          assert subprocess.run(['git','diff','--check',OLD,'HEAD']).returncode==0
+          print('G3_SCOPE_3_FILES_NO_SHARED_LAYOUT_OG_SITEMAP_PASS')
+          reg=Path('_data/insights.yml').read_text()
+          oldreg=subprocess.check_output(['git','show',OLD+':_data/insights.yml'],text=True)
+          start=reg.index('- id: process-clarity');end=reg.index('- id: conversion-architecture')
+          original=oldreg[oldreg.index('- id: process-clarity'):oldreg.index('- id: conversion-architecture')]
+          current=reg[start:end]
+          assert reg==oldreg.replace(original,current), 'registry outside Article09 changed'
+          assert current.count('date_published: "2026-04-05"')==2 and current.count('date_modified: "2026-11-14"')==2
+          assert 'author_ref: proai' in current and current.count('read_time: "12')==2
+          print('G3_REGISTRY_ORIGINAL_DATE_AUTHOR_META_SCOPE_PASS')
+          class Meta(HTMLParser):
+           def __init__(self):super().__init__();self.head=True;self.meta={};self.links=[]
+           def handle_starttag(self,t,attrs):
+            a=dict(attrs)
+            if t=='meta':
+             key=a.get('property',a.get('name'))
+             if key:self.meta.setdefault(key,[]).append(a.get('content'))
+            if t=='link':self.links.append(a)
+          for lang,(file,route,og,links) in R.items():
+           src=Path(file).read_text()
+           assert src.startswith('---\nlayout: insight-v2\n') and ('lang: '+lang+'\n') in src
+           assert 'insight_id: process-clarity' in src and 'permalink: '+route in src
+           assert src.count('<table')==1 and src.count('<tr><th scope="row">')==6
+           assert src.count('<h2 id=')==10 and src.count('  - label:')==3
+           assert 'tabindex="0"' in src and 'role="region"' in src and '<caption>' in src
+           assert 'GO' in src and 'NO-GO' in src and 'Harborline HVAC' in src and ('fictional' if lang=='en' else 'гипотетическая') in src.lower()
+           for link in links:
+            assert 'href="'+link+'"' in src,(lang,'lost P1 link',link)
+            assert (SITE/link.strip('/')/'index.html').is_file(),('missing built destination',link)
+           assert all((SITE/l.strip('/')/'index.html').is_file() for l in [('/contact/#project-intake' if lang=='en' else '/ru/contact/#project-intake').split('#')[0]])
+           assert 'https://www.ftc.gov/business-guidance/resources/protecting-personal-information-guide-business' in src
+           assert 'https://airc.nist.gov/airmf-resources/airmf/5-sec-core/' in src
+           html=(SITE/file).read_text()
+           assert html.lower().lstrip().startswith('<!doctype html>') and '{% include' not in html
+           assert 'data-author-type="organization"' in html and 'data-signal-count="3"' in html
+           assert 'data-related-count="2"' in html and 'data-related-id="lead-response"' in html
+           assert 'data-related-id="first-automation-roi"' in html
+           assert 'data-footer-family="editorial"' in html and 'data-home-footer-golden-r3' in html
+           assert html.count('class="insight-v2-decision-table"')==1
+           assert 'id="project-intake"' in (SITE/('contact/index.html' if lang=='en' else 'ru/contact/index.html')).read_text()
+           m=Meta();m.feed(html.split('</head>',1)[0])
+           assert m.meta['og:image']==[og] and m.meta['twitter:image']==[og]
+           canon=[a.get('href') for a in m.links if a.get('rel')=='canonical']
+           assert canon==['https://proai-expert.com'+route]
+           alternate={a.get('hreflang'):a.get('href') for a in m.links if a.get('hreflang')}
+           assert alternate['en']=='https://proai-expert.com/insights/process-clarity-comes-before-scalable-automation/'
+           assert alternate['ru']=='https://proai-expert.com/ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/'
+           scripts=re.findall(r'<script type="application/ld\+json">([\s\S]*?)</script>',html)
+           assert len(scripts)==1,(lang,'expected single Article schema')
+           graph=json.loads(scripts[0])['@graph']
+           article=next(x for x in graph if x.get('@type')=='Article')
+           assert article['author']=={'@type':'Organization','name':'ProAI Expert','url':'https://proai-expert.com'+('/about/' if lang=='en' else '/ru/about/')}
+           assert article['datePublished']=='2026-04-05' and article['dateModified']=='2026-11-14'
+           assert article['image']['url']==og
+           assert any(x.get('@type')=='BreadcrumbList' for x in graph)
+           assert html.count('id="g3-go"')==1 and html.count('id="g3-nogo"')==1
+           print('G3_V2_COMPILED',lang,'P1_LINKS_OG_CANONICAL_HREFLANG_ORG_SCHEMA_TABLE_CTA_FOOTER_PASS')
+          for p in ['insights/index.html','ru/insights/index.html',
+          'insights/ai-search-optimization-for-service-businesses/index.html',
+          'insights/why-service-business-websites-fail-to-convert-high-intent-visitors/index.html',
+          'insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/index.html',
+          'insights/repair-redesign-or-rebuild-your-business-website/index.html']:
+           assert (SITE/p).is_file() and 'data-home-footer-golden-r3' in (SITE/p).read_text()
+          print('G3_OTHER_INSIGHTS_HUB_AND_ARTICLES_REGRESSION_STATIC_PASS')
+          PY
+      - name: Chromium WebKit mobile desktop zoom no-JS reduced-motion matrix QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/g3playwright --no-save --no-audit --no-fund playwright@1.56.1
+          /tmp/g3playwright/node_modules/.bin/playwright install --with-deps chromium webkit
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site > /tmp/g3-http.log 2>&1 &
+          sleep 2
+          NODE_PATH=/tmp/g3playwright/node_modules node <<'JS'
+          const {chromium,webkit}=require('playwright');
+          const base='http://127.0.0.1:8765';
+          const routes={en:'/insights/process-clarity-comes-before-scalable-automation/',ru:'/ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/'};
+          const urls={
+           en:['/insights/what-happens-after-a-lead-arrives/','/insights/where-automation-delivers-its-first-real-roi/','/insights/ai-agent-or-automation-what-your-business-actually-needs/','/ai-systems/','/contact/#project-intake'],
+           ru:['/ru/insights/chto-proiskhodit-posle-zayavki/','/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/','/ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/','/ru/ai-systems/','/ru/contact/#project-intake']
+          };
+          let n=0,fail=[];
+          function check(ok,info){n++;if(!ok)fail.push(info)}
+          (async()=>{
+           for(const [browserName,engine] of [['Chromium',chromium],['WebKit',webkit]]){
+           const browser=await engine.launch({headless:true});
+           for(const [lang,route] of Object.entries(routes)){
+            for(const width of [320,390,430,844,1440]){
+             const h=width===844?390:(width===1440?900:844);
+             const ctx=await browser.newContext({viewport:{width,height:h},reducedMotion:'reduce'});
+             await ctx.route('**/*',r=>r.request().url().startsWith(base+'/')?r.continue():r.abort());
+             const page=await ctx.newPage(),err=[];page.on('pageerror',e=>err.push(String(e)));
+             const res=await page.goto(base+route,{waitUntil:'load',timeout:35000});
+             const label=browserName+'/'+lang+'/'+width;
+             check(res?.status()===200,label+' HTTP200');
+             const info=await page.evaluate(()=>{
+              const el=document.querySelector('.g3__matrix-scroll');
+              const table=el.querySelector('table'),ctx=el.getBoundingClientRect();
+              const lead=document.querySelector('.insight-v2-lead');
+              const p=lead?getComputedStyle(lead):null;
+              const meta=[...document.querySelectorAll('head meta[property="og:image"]')].map(x=>x.content);
+              return {lang:document.documentElement.lang,scrollDelta:document.documentElement.scrollWidth-document.documentElement.clientWidth,
+                tableView:el.clientWidth,tableWidth:el.scrollWidth,tableColumns:table.querySelectorAll('thead th').length,tableRows:table.querySelectorAll('tbody tr').length,
+                focusable:el.tabIndex,tableRight:ctx.right,leadFont:p?.fontSize,headings:document.querySelectorAll('.insight-v2-rail a').length,author:document.querySelector('.insight-v2-author')?.getAttribute('data-author-type'),
+                signal:document.querySelector('[data-insight-v2-signal]')?.getAttribute('data-signal-count'),footer:!!document.querySelector('[data-footer-family="editorial"]'),
+                links:[...document.querySelectorAll('.g3 a[href],.insight-v2-article-cta a[href]')].map(a=>a.getAttribute('href')),og:meta
+              };
+             });
+             check(info.lang===lang&&info.author==='organization'&&info.signal==='3'&&info.footer,label+' V2 shell/author');
+             check(info.scrollDelta<=2,label+' no horizontal document overflow '+JSON.stringify(info));
+             check(info.tableColumns===4&&info.tableRows===6&&info.focusable===0&&info.tableRight<=width+2,label+' accessible matrix geometry');
+             check(info.headings===10&&parseFloat(info.leadFont)>=16,label+' chapter rail and legible lead');
+             check(urls[lang].every(u=>info.links.includes(u)),label+' P1 + CTA links');
+             check(info.og.length===1&&info.og[0].endsWith('proai-home-og-'+lang+'-r1-1.png'),label+' OG unchanged');
+             check(err.length===0,label+' JS errors '+err.join('|'));
+             if(width<=430)check(info.tableWidth>info.tableView+100,label+' table horizontally scrollable');
+             if(width===390){
+               const table=page.locator('.g3__matrix-scroll');await table.focus();
+               check(await table.evaluate(el=>document.activeElement===el),label+' keyboard focus');
+               await page.keyboard.press('ArrowRight');
+               await page.waitForTimeout(110);
+               check(await table.evaluate(el=>el.scrollLeft>0),label+' native keyboard horizontal scroll');
+               if(browserName==='WebKit'){
+                 await page.screenshot({path:'/tmp/g3-'+lang+'-mobile-390-top.png'});
+                 await table.screenshot({path:'/tmp/g3-'+lang+'-mobile-390-matrix.png'});
+               }
+               await page.evaluate(()=>{document.documentElement.style.fontSize='150%';});
+               await page.waitForTimeout(120);
+               check(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth<=2),label+' text zoom 150% no page overflow');
+             }
+             if(browserName==='WebKit'&&(width===1440||width===844)){
+               await page.screenshot({path:'/tmp/g3-'+lang+'-'+width+'-viewport.png'});
+             }
+             await ctx.close();
+            }
+            for(const width of [320,390]){
+             const ctx=await browser.newContext({viewport:{width,height:844},javaScriptEnabled:false,reducedMotion:'reduce'});
+             await ctx.route('**/*',r=>r.request().url().startsWith(base+'/')?r.continue():r.abort());
+             const page=await ctx.newPage();const res=await page.goto(base+route,{waitUntil:'load'});
+             const content=await page.evaluate(()=>({text:document.querySelector('.g3__gate')?.innerText||'',table:document.querySelectorAll('.g3__matrix-scroll tbody tr').length,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,css:getComputedStyle(document.querySelector('.g3__matrix-scroll')).overflowX}));
+             check(res?.status()===200&&content.table===6&&content.text.includes('GO')&&content.text.includes('NO-GO')&&content.overflow<=2&&content.css==='auto',browserName+'/'+lang+'/'+width+' NOJS retained tool and readability');
+             await ctx.close();
+            }
+           }
+           await browser.close();
+           }
+           console.log('G3_BROWSER_QA',n,'ASSERTIONS',fail.length,'FAILURES');
+           if(fail.length){console.error(fail.slice(0,80).join('\n'));process.exitCode=1;}
+          })().catch(e=>{console.error(e);process.exitCode=1;});
+          JS
+      - name: Upload WebKit iPhone and desktop screenshot evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: g3-article09-premium-v2-owner-evidence
+          path: /tmp/g3-*.png
+          if-no-files-found: error
+      - name: Publish new compiled-only immutable Cloudflare branch noindex
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='agent/insights-g3-article09-v2-compiled-20261114'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then echo 'Immutable branch already exists' >&2; exit 1; fi
+          tmp="$(mktemp -d)"
+          cp -a _site/. "$tmp/"
+          rm -f "$tmp/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tmp/_headers"
+          touch "$tmp/.nojekyll"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tmp"/. .
+          git add -A
+          git commit -m 'preview(insights): G3 Article09 owner V2 EN RU compiled noindex'
+          git push origin "HEAD:refs/heads/$dest"
+          echo "G3_COMPILED_SHA=$(git rev-parse HEAD)"

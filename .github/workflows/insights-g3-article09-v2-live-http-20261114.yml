@@ -1,0 +1,89 @@
+name: G3 Article09 real immutable Cloudflare EN RU noindex HTTP acceptance
+on:
+  push:
+    branches:
+      - qa/insights-stage-e2-article11-verification-r1
+    paths:
+      - .github/workflows/insights-g3-article09-v2-live-http-20261114.yml
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - name: Verify real immutable compiled EN RU HTTP and SEO contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import urllib.request,urllib.error,re,json,html.parser
+          BASE='https://14d0ba1f.proaiexpert-github-io.pages.dev'
+          DOMAIN='https://proai-expert.com'
+          TARGETS={
+          'en':('/insights/process-clarity-comes-before-scalable-automation/','https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png',[
+          '/insights/what-happens-after-a-lead-arrives/','/insights/where-automation-delivers-its-first-real-roi/','/insights/ai-agent-or-automation-what-your-business-actually-needs/','/ai-systems/','/contact/#project-intake']),
+          'ru':('/ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/','https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png',[
+          '/ru/insights/chto-proiskhodit-posle-zayavki/','/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/','/ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/','/ru/ai-systems/','/ru/contact/#project-intake'])
+          }
+          def get(p):
+           req=urllib.request.Request(BASE+p,headers={'User-Agent':'Mozilla/5.0 ProAI G3 Article09 Owner Live Preview QA','Cache-Control':'no-cache'})
+           with urllib.request.urlopen(req,timeout=40) as res:return res.status,res.headers,res.read()
+          class Meta(html.parser.HTMLParser):
+           def __init__(self):super().__init__();self.lang='';self.head=False;self.meta={};self.links=[]
+           def handle_starttag(self,t,attrs):
+            a=dict(attrs)
+            if t=='html':self.lang=a.get('lang')
+            if t=='head':self.head=True
+            if not self.head:return
+            if t=='meta':
+             k=a.get('property') or a.get('name')
+             if k:self.meta.setdefault(k,[]).append(a.get('content'))
+            if t=='link':self.links.append(a)
+           def handle_endtag(self,t):
+            if t=='head':self.head=False
+          for lang,(route,og,links) in TARGETS.items():
+           status,headers,b=get(route)
+           txt=b.decode('utf-8')
+           assert status==200 and 'text/html' in headers.get('Content-Type','').lower()
+           assert 'noindex' in headers.get('X-Robots-Tag','').lower(),(lang,'NOINDEX HTTP header missing',dict(headers))
+           assert txt.lower().lstrip().startswith('<!doctype html>') and '{% include' not in txt
+           assert txt.count('class="insight-v2-decision-table"')==1 and txt.count('<tr><th scope="row">')==6
+           assert 'data-author-type="organization"' in txt and 'data-signal-count="3"' in txt
+           assert 'data-related-count="2"' in txt and 'data-footer-family="editorial"' in txt
+           assert 'data-home-footer-golden-r3' in txt and 'g3__matrix-scroll' in txt and 'id="g3-go"' in txt
+           assert all('href="'+x+'"' in txt for x in links),(lang,'missing PR225 link/CTA')
+           assert 'aria-label=' in txt and 'tabindex="0"' in txt
+           head=Meta();head.feed(txt)
+           assert head.lang==lang
+           assert head.meta.get('og:image')==[og] and head.meta.get('twitter:image')==[og]
+           assert [x.get('href') for x in head.links if x.get('rel')=='canonical']==[DOMAIN+route]
+           alts={x.get('hreflang'):x.get('href') for x in head.links if x.get('hreflang')}
+           assert alts.get('en')==DOMAIN+TARGETS['en'][0] and alts.get('ru')==DOMAIN+TARGETS['ru'][0]
+           script=re.findall(r'<script type="application/ld\+json">([\s\S]*?)</script>',txt)
+           assert len(script)==1
+           graph=json.loads(script[0])['@graph']
+           article=next(x for x in graph if x.get('@type')=='Article')
+           assert article['author']['@type']=='Organization' and article['author']['name']=='ProAI Expert'
+           assert article['datePublished']=='2026-04-05' and article['dateModified']=='2026-11-14'
+           assert article['image']['url']==og and any(x.get('@type')=='BreadcrumbList' for x in graph)
+           print('G3_LIVE_CLOUDFLARE',lang,'HTTP200_NOINDEX_OWNER_V2_MATRIX_BILINGUAL_LINKS_ORG_SCHEMA_OG_CANONICAL_PASS',len(b))
+          for p,mime in [
+          ('/assets/css/insights-editorial-v2.css','text/css'),
+          ('/assets/js/insights-editorial-v2.js','javascript'),
+          ('/assets/brand/proai-logo-r341/proai-header-r111-static-cube-320.png','image/png'),
+          ('/assets/social/proai-home-og-en-r1-1.png','image/png'),
+          ('/assets/social/proai-home-og-ru-r1-1.png','image/png')]:
+           status,h,b=get(p)
+           assert status==200 and mime in h.get('Content-Type','').lower() and len(b)>100,(p,status,h.get('Content-Type'),len(b))
+           print('G3_LIVE_ASSET',p,'HTTP200_MIME_PASS')
+          for p in ['/insights/','/ru/insights/','/ai-systems/','/ru/ai-systems/']:
+           status,h,b=get(p)
+           assert status==200 and b.lower().find(b'<!doctype html>')>=0,(p,status)
+          print('G3_LIVE_HUB_AND_AI_SERVICE_EN_RU_PASS')
+          for p in ['/contact/','/ru/contact/']:
+           status,h,b=get(p)
+           assert status==200 and b'id="project-intake"' in b
+          print('G3_LIVE_PROJECT_INTAKE_EN_RU_PASS')
+          print('G3_LIVE_PREVIEW_FINAL_PASS')
+          PY

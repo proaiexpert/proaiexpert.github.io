@@ -1,0 +1,65 @@
+name: Publish compiled Connected System Owner Preview EN/RU
+on:
+  pull_request:
+    paths:
+      - "assets/css/homepage-connected-system-r142-bundled-preview.css"
+      - "index.html"
+      - "ru/index.html"
+      - "scripts/qa/build-connected-system-owner-preview.py"
+      - ".github/workflows/connected-system-owner-preview-publish.yml"
+permissions:
+  contents: read
+jobs:
+  compiled-preview-only:
+    # This review-only workflow may write to exactly one named same-repo branch.
+    if: github.head_ref == 'fix/connected-system-css-bundle-preview-20261114' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout preview source branch (never main)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          persist-credentials: true
+          fetch-depth: 0
+      - name: Build EN/RU Jekyll source as GitHub Pages would
+        run: |
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          python3 scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+      - name: Generate static EN/RU owner-preview entrypoints
+        run: python3 scripts/qa/build-connected-system-owner-preview.py
+      - name: Verify two compiled pages have no unresolved Liquid
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          files=[
+            Path("owner-preview/connected-system-css-bundle/index.html"),
+            Path("owner-preview/connected-system-css-bundle/ru/index.html"),
+          ]
+          for file in files:
+            content=file.read_text(encoding="utf-8")
+            assert "{%" not in content and "{{" not in content, f"unrendered template: {file}"
+            assert 'data-connected-next' in content
+            assert '<meta name="robots" content="noindex, nofollow, noarchive">' in content
+            assert "homepage-connected-system-r142-bundled-preview.css" in content
+            print(f"COMPILED_ENTRYPOINT_OK {file} {len(content)}")
+          PY
+      - name: Publish compiled preview HTML only to preview branch
+        env:
+          BRANCH: fix/connected-system-css-bundle-preview-20261114
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = "$BRANCH"
+          git add -- owner-preview/connected-system-css-bundle/index.html owner-preview/connected-system-css-bundle/ru/index.html
+          if git diff --cached --quiet; then
+            echo "Compiled Owner Preview already matches branch; no commit required."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "build(preview): publish compiled EN/RU Connected System owner review pages"
+          git push origin "HEAD:refs/heads/$BRANCH"

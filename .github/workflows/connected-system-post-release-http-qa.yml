@@ -1,0 +1,67 @@
+name: Post-release HTTP verification — Connected System EN/RU
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/connected-system-post-release-http-qa.yml"
+permissions:
+  contents: read
+jobs:
+  verify-live-production:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm production HTML and CSS integrity over HTTPS
+        run: |
+          python3 - <<'PY'
+          import hashlib, urllib.request, time
+          from pathlib import Path
+          base = 'https://proai-expert.com'
+          csspath = '/assets/css/homepage-connected-system-r142-bundled-r1.css'
+          expected_css = Path('assets/css/homepage-connected-system-r142-bundled-preview.css').read_bytes()
+          def fetch(path):
+              req=urllib.request.Request(base+path,headers={'Accept-Encoding':'identity','User-Agent':'ProAI-Expert-Post-Release-QA/1.0'})
+              with urllib.request.urlopen(req,timeout=25) as res:
+                  assert res.status==200, (path,res.status)
+                  return res.read()
+          def verify_home(path,lang):
+              html=fetch(path).decode('utf-8')
+              required=['data-connected-next','data-stage-button="1"','data-stage-button="2"','data-stage-button="3"','data-stage-button="4"','data-tw-r5','data-home-tech-fold-flow','data-home-footer-golden-r3','site-header__nav',csspath]
+              missing=[x for x in required if x not in html]
+              assert not missing, (path,'MISSING',missing)
+              assert '{%' not in html and '{{' not in html, (path,'UNRENDERED_LIQUID')
+              assert f'lang="{lang}"' in html, (path,'LANG')
+              assert html.count(csspath)==1, (path,'CSS_LINK_COUNT',html.count(csspath))
+              assert 'homepage-connected-system-r142.css?v=ce1afdd-integration' not in html,(path,'LEGACY_CSS_LINK')
+              print(f'LIVE_HOME_PASS {lang.upper()} {path} {len(html)} chars',flush=True)
+          verify_home('/','en')
+          verify_home('/ru/','ru')
+          css=fetch(csspath)
+          sha=hashlib.sha256(css).hexdigest()
+          expected_sha=hashlib.sha256(expected_css).hexdigest()
+          assert css==expected_css, ('LIVE_CSS_MISMATCH',sha,expected_sha)
+          assert b'@import url(' not in css, 'NESTED_IMPORT'
+          assert b'.state-ledger' in css and b'.connected-next__sticky-stage' in css, 'MISSING_BASE_RULES'
+          print(f'LIVE_CSS_PASS bytes={len(css)} sha256={sha}',flush=True)
+          PY
+      - name: Read-only adjacent page smoke — EN/RU
+        run: |
+          python3 - <<'PY'
+          import urllib.request
+          base='https://proai-expert.com'
+          routes=['/case-studies/','/ru/case-studies/','/case-studies/financial-stream/','/ru/case-studies/financial-stream/','/case-studies/alina-horb/','/ru/case-studies/alina-horb/','/insights/','/ru/insights/','/contact/','/ru/contact/']
+          failures=[]
+          for path in routes:
+              try:
+                  req=urllib.request.Request(base+path,headers={'User-Agent':'ProAI-Expert-ReadOnly-QA/1.0','Accept-Encoding':'identity'})
+                  with urllib.request.urlopen(req,timeout=20) as resp:
+                      body=resp.read().decode('utf-8',errors='replace')
+                      ok=resp.status==200 and '<html' in body.lower() and '{% include' not in body
+                      print(f'PAGE_SMOKE {"PASS" if ok else "FAIL"} {resp.status} {path} bytes={len(body)}',flush=True)
+                      if not ok: failures.append(path)
+              except Exception as e:
+                  print(f'PAGE_SMOKE ERROR {path}: {str(e)[:250]}',flush=True)
+                  failures.append(path)
+          if failures: raise RuntimeError(f'Adjacent page smoke failed: {failures}')
+          print(f'ADJACENT_PAGES_HTTP_PASS {len(routes)}',flush=True)
+          PY

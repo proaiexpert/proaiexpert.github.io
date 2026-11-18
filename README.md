@@ -62,9 +62,12 @@ The current focus is on service businesses where trust, clear communication, and
 Financial Stream currently presents dated Google Search Console evidence together with verified delivery facts:
 
 - **EN + RU** bilingual delivery;
-- **12,019 Google Search impressions** (displayed as 12K+), in available daily data from February 21 through October 22, 2026;
-- **79 Google Search clicks** in the same available daily period (last-12-months filter, exported October 24, 2026);
-- no claim that these signals alone prove lead growth, conversion improvement, revenue, SEO ROI, guaranteed rankings, or future performance. The selected 12-month filter has data beginning February 21, so these are not 12 full months of observations.
+- **approximately 12.8K Google Search impressions** (Google Search Console rounded display; not an exact count of 12,800);
+- **84 Google Search clicks** (search-result visits, not leads or customers);
+- **GSC snapshot: November 13, 2026** · Web search · "Last 12 months" selected; exact available-data dates for this snapshot were not supplied;
+- these observations do not establish lead growth, conversion improvement, revenue, SEO ROI, guaranteed rankings, or future performance.
+
+Historical evidence only: the October 24, 2026 export had 12,019 impressions and 79 clicks for available daily data February 21–October 22, 2026. Do not present that older export as the current snapshot.
 
 The current evidence framing and limitations are documented in the [Financial Stream case study](https://proai-expert.com/case-studies/financial-stream/).
 

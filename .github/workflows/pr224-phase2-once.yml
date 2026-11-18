@@ -1,0 +1,182 @@
+name: PR224 Phase2 authentic WebP and no-production QA
+on:
+  push:
+    branches:
+      - audit/data-freshness-20261113
+    paths:
+      - .github/workflows/pr224-phase2-once.yml
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/data-freshness-20261113
+          fetch-depth: 0
+      - name: Convert verified authentic UA RU screenshots to optimized WebP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --break-system-packages Pillow
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          root=Path('assets/img/cases/alina-horb')
+          for lang in ('ua','ru'):
+              src=root/f'notes-overview-{lang}-2026-11-source.png'
+              dst=root/f'notes-overview-{lang}-2026-11.webp'
+              with Image.open(src) as im:
+                  assert im.format=='PNG' and im.size==(1410,990), (src,im.format,im.size)
+                  im.convert('RGB').save(dst,'WEBP',quality=78,method=6)
+              with Image.open(dst) as verify:
+                  assert verify.format=='WEBP' and verify.size==(1410,990)
+              assert dst.stat().st_size<120000
+              print('WEBP_PASS',dst,dst.stat().st_size,'bytes')
+          PY
+      - name: Preserve 46 URLs and all source claims before finalizing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          root=ET.parse('sitemap.xml').getroot()
+          ns={'s':'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          urls=[x.text for x in root.findall('s:url/s:loc',ns)]
+          assert len(urls)==46 and len(set(urls))==46
+          for path,asset,lang in [
+            ('case-studies/alina-horb/index.html','notes-overview-ua-2026-11.webp','en'),
+            ('ru/case-studies/alina-horb/index.html','notes-overview-ru-2026-11.webp','ru')]:
+              txt=Path(path).read_text()
+              assert asset in txt and 'width="1410" height="990"' in txt
+              assert '12 localized articles' in txt or '12 локализованных статей' in txt
+              assert '6 expert topics' in txt or '6 экспертных тем' in txt
+              assert '18 routes' not in txt and '18 маршрутов' not in txt
+              assert 'Historical Ukrainian Notes overview' not in txt
+              assert 'Архивный украинский обзор Notes' not in txt
+          for path in ('case-studies/financial-stream/index.html','ru/case-studies/financial-stream/index.html'):
+              txt=Path(path).read_text()
+              assert '12.8K' in txt and ('84 search clicks' in txt or '84 клика' in txt)
+              assert 'October 2026' not in txt and 'октябрь 2026' not in txt
+          for path in ('_includes/home-work-proof-financial-stream-r1-4-en.html','_includes/home-work-proof-financial-stream-r1-4-ru.html'):
+              txt=Path(path).read_text()
+              assert '12.8K' in txt and '84' in txt
+          print('PR224_EN_RU_46_CANONICAL_SOURCE_PASS')
+          PY
+      - name: Finalize only authenticated screenshots in existing PR224
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin audit/data-freshness-20261113
+          test "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)"
+          git add assets/img/cases/alina-horb/notes-overview-ua-2026-11.webp assets/img/cases/alina-horb/notes-overview-ru-2026-11.webp
+          git rm assets/img/cases/alina-horb/notes-overview-ua-2026-11-source.png assets/img/cases/alina-horb/notes-overview-ru-2026-11-source.png .github/workflows/pr224-phase2-once.yml
+          git diff --cached --check
+          git commit -m 'assets(alina): finish six-topic genuine UA RU WebP proof images'
+          git push origin HEAD:refs/heads/audit/data-freshness-20261113
+          echo "PR224_FINAL_HEAD=$(git rev-parse HEAD)"
+      - name: Build and verify actual Jekyll pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          ns={'s':'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          urls=[x.text for x in ET.parse('_site/sitemap.xml').getroot().findall('s:url/s:loc',ns)]
+          assert len(urls)==46 and len(set(urls))==46
+          for u in urls:
+              path=u.replace('https://proai-expert.com/','')
+              target=Path('_site')/path/'index.html' if path and not path.endswith('.html') else Path('_site')/(path or 'index.html')
+              assert target.is_file(),(u,target)
+          for path in ('case-studies/alina-horb/index.html','ru/case-studies/alina-horb/index.html','case-studies/financial-stream/index.html','ru/case-studies/financial-stream/index.html'):
+              txt=(Path('_site')/path).read_text()
+              assert 'hreflang="en"' in txt and 'hreflang="ru"' in txt and 'rel="canonical"' in txt
+          print('PR224_COMPILED_JEKYLL_ALL_46_URLS_EN_RU_META_PASS')
+          PY
+      - name: Chromium and WebKit real desktop and mobile QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/pr224play --no-audit --no-fund --no-save playwright@1.56.1
+          npx --prefix /tmp/pr224play playwright install --with-deps chromium webkit
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site >/tmp/pr224-server.log 2>&1 &
+          node - <<'JS'
+          const {chromium,webkit}=require('/tmp/pr224play/node_modules/playwright');
+          const fs=require('fs');fs.mkdirSync('/tmp/pr224-evidence',{recursive:true});
+          const host='http://127.0.0.1:8765';
+          const paths=['/','/ru/','/case-studies/financial-stream/','/ru/case-studies/financial-stream/','/case-studies/alina-horb/','/ru/case-studies/alina-horb/'];
+          (async()=>{
+            let count=0;
+            for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
+              const browser=await engine.launch({headless:true});
+              for(const path of paths){
+                for(const width of [390,1440]){
+                  const ctx=await browser.newContext({viewport:{width,height:width===390?844:900},reducedMotion:'reduce'});
+                  await ctx.route('**/*',r=>r.request().url().startsWith(host+'/')?r.continue():r.abort());
+                  const page=await ctx.newPage(),errors=[];
+                  page.on('pageerror',e=>errors.push(String(e)));
+                  const response=await page.goto(host+path,{waitUntil:'load',timeout:60000});
+                  if(response?.status()!==200)throw Error(name+' '+path+' HTTP '+response?.status());
+                  const stats=await page.evaluate(()=>({overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,body:document.body.innerText}));
+                  if(stats.overflow>3)throw Error(name+' '+path+' '+width+' overflow='+stats.overflow);
+                  if(path.includes('alina-horb')){
+                    const img=page.locator('img[src*="notes-overview-2026-11"]').first();
+                    await img.scrollIntoViewIfNeeded();await img.evaluate(e=>e.decode());
+                    const prop=await img.evaluate(e=>({natural:e.naturalWidth,alt:e.alt,complete:e.complete}));
+                    if(prop.natural!==1410||!prop.complete||!prop.alt)throw Error('image '+path+JSON.stringify(prop));
+                    if(!(stats.body.includes('12 localized articles')||stats.body.includes('12 локализованных статей')))throw Error('articles '+path);
+                  }
+                  if(errors.length)throw Error(name+' '+path+' JS '+errors.join(';'));
+                  if(name==='chromium' && (path.includes('alina-horb')||path.includes('financial-stream'))){
+                    await page.screenshot({path:'/tmp/pr224-evidence/'+width+'-'+path.replaceAll('/','_')+'.png'});
+                  }
+                  await ctx.close();count++;
+                }
+              }
+              await browser.close();
+            }
+            console.log('PR224_CHROMIUM_WEBKIT_REAL_VISUAL_QA_PASS',count);
+          })().catch(e=>{console.error(e);process.exitCode=1;});
+          JS
+      - name: Upload actual browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr224-authentic-notes-desktop-mobile-evidence
+          path: /tmp/pr224-evidence/
+          if-no-files-found: warn
+      - name: Push isolated immutable noindex compiled Preview (not production)
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest=preview/pr224-data-accuracy-20261117-compiled
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then echo 'preview exists; refusing overwrite'; exit 1; fi
+          tmp="$(mktemp -d)"
+          cp -a _site/. "$tmp/"
+          rm -f "$tmp/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tmp/_headers"
+          touch "$tmp/.nojekyll"
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tmp"/. .
+          git add -A
+          git commit -m 'preview(pr224): source-verified compiled EN RU 46 URL noindex owner review'
+          git push origin "HEAD:refs/heads/$dest"
+          echo "PR224_COMPILED_SHA=$(git rev-parse HEAD)"

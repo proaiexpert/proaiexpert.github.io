@@ -215,6 +215,20 @@ toc:
     var warning=form.querySelector('[data-g1-warning]');
     warning.textContent=after>baseline?'Automated handling exceeds baseline time; savings are set to zero.':(recovered<0?'Rework exceeds gross time saved; recovered capacity is zero.':'');
   }
+  // Keyboard support for the horizontally scrollable evidence table in WebKit.
+  var region=document.querySelector('.g1__scroll');
+  if(region){
+    region.addEventListener('keydown',function(event){
+      if(event.target!==region)return;
+      if(event.key==='ArrowRight'||event.key==='ArrowLeft'){
+        event.preventDefault();
+        region.scrollLeft+=event.key==='ArrowRight'?160:-160;
+      }else if(event.key==='Home'||event.key==='End'){
+        event.preventDefault();
+        region.scrollLeft=event.key==='End'?region.scrollWidth:0;
+      }
+    });
+  }
   form.addEventListener('input',render);
   render();
 })();

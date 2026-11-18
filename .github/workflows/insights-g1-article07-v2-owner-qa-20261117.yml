@@ -1,0 +1,272 @@
+name: G1 Article07 Premium V2 EN RU compiled source QA and immutable Owner Preview
+on:
+  push:
+    branches:
+      - qa/insights-g1-article07-verification-r1-20261117
+    paths:
+      - .github/workflows/insights-g1-article07-v2-owner-qa-20261117.yml
+permissions:
+  contents: write
+  checks: read
+jobs:
+  build-browser-deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: df5f729905a8897c8540abdf128ca4388c133090
+          fetch-depth: 0
+      - name: Pinned clean Jekyll and source and compiled validators
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          import re, json, subprocess
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          OLD='96f69d66c1968e15a7334e75ce73b9a5eecea816'
+          HEAD='df5f729905a8897c8540abdf128ca4388c133090'
+          assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==HEAD
+          expected={'_data/insights.yml','sitemap.xml','insights/where-automation-delivers-its-first-real-roi/index.html','ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/index.html'}
+          delta=set(subprocess.check_output(['git','diff','--name-only',OLD,'HEAD'],text=True).splitlines())
+          assert delta==expected, ('scope', delta)
+          subprocess.run(['git','diff','--check',OLD,'HEAD'],check=True)
+          reg=Path('_data/insights.yml').read_text()
+          oldreg=subprocess.check_output(['git','show',OLD+':_data/insights.yml'],text=True)
+          a=reg.index('- id: first-automation-roi');z=reg.index('- id: ai-agent-vs-automation')
+          b=oldreg.index('- id: first-automation-roi');y=oldreg.index('- id: ai-agent-vs-automation')
+          assert reg==oldreg[:b]+reg[a:z]+oldreg[y:], 'Unrelated registry mutation'
+          block=reg[a:z]
+          assert block.count('date_modified: "2026-11-17"')==2
+          assert 'date_published: "2026-04-12"' in block and 'date_published: "2026-04-05"' in block
+          assert 'author_ref: proai' in block and block.count('schema_image:')==2
+          m1=ET.fromstring(Path('sitemap.xml').read_text())
+          m0=ET.fromstring(subprocess.check_output(['git','show',OLD+':sitemap.xml'],text=True))
+          ns={'sm':'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          pairs=lambda root:[(el.findtext('sm:loc',namespaces=ns),el.findtext('sm:lastmod',namespaces=ns)) for el in root.findall('sm:url',ns)]
+          p1,p0=pairs(m1),pairs(m0)
+          assert len(p1)==len(p0)==46
+          d=[(x,y) for x,y in zip(p0,p1) if x!=y]
+          assert len(d)==2
+          for before,after in d:
+           assert before[0]==after[0] and after[1]=='2026-11-17' and ('where-automation-delivers-its-first-real-roi' in after[0] or 'gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu' in after[0])
+          assert all(('2026-11-14'==mod) for url,mod in p1 if 'process-clarity-comes-before' in url or 'arkhitektura-vkhodyashchego' in url)
+          assert all(('2026-11-13'==mod) for url,mod in p1 if url.endswith('/insights/'))
+          R={'en':('insights/where-automation-delivers-its-first-real-roi/index.html','2026-04-12',['/insights/process-clarity-comes-before-scalable-automation/','/insights/ai-agent-or-automation-what-your-business-actually-needs/','/insights/what-happens-after-a-lead-arrives/','/ai-systems/','/contact/#project-intake']),
+          'ru':('ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/index.html','2026-04-05',['/ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/','/ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/','/ru/insights/chto-proiskhodit-posle-zayavki/','/ru/ai-systems/','/ru/contact/#project-intake'])}
+          for lang,(path,published,links) in R.items():
+           src=Path(path).read_text();html=Path('_site',path).read_text()
+           assert src.startswith('---\nlayout: insight-v2\n') and 'lang: '+lang+'\n' in src
+           assert 'insight_id: first-automation-roi' in src
+           assert src.count('<h2 id=')==9 and src.count('  - label:')==3
+           assert src.count('<table')==1 and src.count('<tbody>')==1
+           assert src.count('<tr><th scope="row">')==3 and '<caption>' in src and 'tabindex="0"' in src
+           assert src.count('name="')>=10 and 'data-g1-calculator' in src and 'data-g1-payback' in src
+           assert all('href="'+link+'"' in src for link in links),('links',lang)
+           assert all((Path('_site')/link.split('#')[0].strip('/')/'index.html').exists() for link in links)
+           assert 'https://www.ftc.gov/business-guidance/resources/protecting-personal-information-guide-business' in src
+           assert 'https://airc.nist.gov/airmf-resources/playbook/measure/' in src
+           assert 'https://www.sba.gov/counseling/plan-your-business/' in src
+           assert '<!DOCTYPE html>' in html[:80] and '{% include' not in html
+           assert 'data-author-type="organization"' in html and 'data-related-count="2"' in html
+           assert 'data-footer-family="editorial"' in html and 'data-home-footer-golden-r3' in html
+           assert 'data-signal-count="3"' in html and 'data-insight-v2-prose' in html
+           assert 'id="project-intake"' in Path('_site','contact/index.html' if lang=='en' else 'ru/contact/index.html').read_text()
+           assert html.count('class="insight-v2-decision-table"')==1
+           assert 'https://proai-expert.com'+('/insights/where-automation-delivers-its-first-real-roi/' if lang=='en' else '/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/') in html
+           assert 'hreflang="en"' in html and 'hreflang="ru"' in html and 'hreflang="x-default"' in html
+           assert ('proai-home-og-'+lang+'-r1-1.png') in html
+           schema=re.search(r'<script type="application/ld\+json">([\s\S]*?)</script>',html)
+           assert schema
+           graph=json.loads(schema.group(1))['@graph']
+           article=next(x for x in graph if x.get('@type')=='Article')
+           assert article['author']['@type']=='Organization' and article['author']['name']=='ProAI Expert'
+           assert article['datePublished']==published and article['dateModified']=='2026-11-17'
+           assert any(x.get('@type')=='BreadcrumbList' for x in graph)
+           assert 'NOT ESTABLISHED' in src if lang=='en' else 'НЕ УСТАНОВЛЕНА' in src
+           print('G1_ARTICLE07_'+lang.upper()+'_V2_SOURCE_COMPILED_META_CTA_FOOTER_PASS')
+          for p in ['insights/index.html','ru/insights/index.html','insights/process-clarity-comes-before-scalable-automation/index.html','ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/index.html','insights/repair-redesign-or-rebuild-your-business-website/index.html','insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/index.html']:
+           assert (Path('_site')/p).is_file() and 'data-home-footer-golden-r3' in (Path('_site')/p).read_text()
+          for name,n,b,a,rate,exc,cash in [('conservative',120,12,6,.5,2,0),('base',240,12,4,.7,3,450),('optimistic',320,12,3,.85,4,800)]:
+           hours=n*(b-a)*rate/60-exc
+           cap=hours*38;net=cash-90-100
+           expect={'conservative':(4.,152.,-190.,None),'base':(19.4,737.2,260.,12.),'optimistic':(36.8,1398.4,610.,3120/610)}[name]
+           assert abs(hours-expect[0])<1e-6 and abs(cap-expect[1])<1e-6 and net==expect[2]
+           assert (3120/net if net>0 else None)==expect[3]
+          print('G1_DIFF_FOUR_FILES_46_URLS_HISTORICAL_DATES_ECONOMICS_GOLDEN_FOOTER_PASS')
+          PY
+      - name: Chromium WebKit actual mobile initial viewport and desktop evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/g1playwright --no-audit --no-fund --no-save playwright@1.56.1
+          npx --prefix /tmp/g1playwright playwright install --with-deps chromium webkit
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site > /tmp/g1-server.log 2>&1 &
+          echo $! >/tmp/g1-server.pid
+          cat > /tmp/g1-qa.cjs <<'JS'
+          const {chromium,webkit}=require('/tmp/g1playwright/node_modules/playwright');
+          const root='http://127.0.0.1:8765';
+          const routes={
+           en:'/insights/where-automation-delivers-its-first-real-roi/',
+           ru:'/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/'
+          };
+          const needed={
+           en:['/insights/process-clarity-comes-before-scalable-automation/','/insights/ai-agent-or-automation-what-your-business-actually-needs/','/insights/what-happens-after-a-lead-arrives/','/ai-systems/','/contact/#project-intake'],
+           ru:['/ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/','/ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/','/ru/insights/chto-proiskhodit-posle-zayavki/','/ru/ai-systems/','/ru/contact/#project-intake']
+          };
+          let count=0,fail=[];
+          function check(cond,label){count++;if(!cond)fail.push(label);}
+          (async()=>{
+           for(const [browserName,engine] of [['chromium',chromium],['webkit',webkit]]){
+            const browser=await engine.launch({headless:true});
+            for(const [lang,route] of Object.entries(routes)){
+             for(const width of [320,390,430,844,1440]){
+              const context=await browser.newContext({viewport:{width,height:width===844?390:width===1440?900:844},reducedMotion:'reduce'});
+              await context.route('**/*',r=>r.request().url().startsWith(root+'/')?r.continue():r.abort());
+              const page=await context.newPage(),errs=[];page.on('pageerror',e=>errs.push(String(e)));
+              const response=await page.goto(root+route,{waitUntil:'load',timeout:45000});
+              const label=browserName+'/'+lang+'/'+width;
+              check(response?.status()===200,label+' HTTP 200');
+              // Captures MUST precede focus, clicking, scrolling or table interaction.
+              if(width===390){
+                const scrollY=await page.evaluate(()=>window.scrollY);
+                check(scrollY===0,label+' initial scrollY=0');
+                await page.screenshot({path:'/tmp/g1-'+lang+'-'+browserName+'-mobile-390-INITIAL.png'});
+              }
+              if(width===1440 && browserName==='webkit'){
+                await page.screenshot({path:'/tmp/g1-'+lang+'-webkit-desktop-1440-INITIAL.png'});
+              }
+              const info=await page.evaluate(()=>{
+                const r=document.querySelector('.g1__scroll'),f=document.querySelector('[data-g1-calculator]');
+                return {lang:document.documentElement.lang,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
+                rows:r?.querySelectorAll('tbody tr').length,cols:r?.querySelectorAll('thead th').length,
+                tableWidth:r?.scrollWidth,tableVisible:r?.clientWidth,focusable:r?.tabIndex,regionRole:r?.getAttribute('role'),
+                formCount:f?.querySelectorAll('input[type="number"]').length,hasFooter:!!document.querySelector('[data-footer-family="editorial"]'),
+                author:document.querySelector('[data-author-type]')?.getAttribute('data-author-type'),signals:document.querySelector('[data-insight-v2-signal]')?.getAttribute('data-signal-count'),
+                chapterCount:document.querySelectorAll('.insight-v2-rail a').length,
+                links:Array.from(document.querySelectorAll('.g1 a[href],.insight-v2-article-cta a[href]')).map(a=>a.getAttribute('href')),
+                hours:document.querySelector('[data-g1-hours]')?.textContent,
+                cash:document.querySelector('[data-g1-net]')?.textContent,
+                hasSchema:!!document.querySelector('script[type="application/ld+json"]'),
+                css:getComputedStyle(r).overflowX,
+                htmlBefore:document.body.innerText.includes('First ROI')||document.body.innerText.includes('окупаемости')};
+              });
+              check(info.lang===lang&&info.hasFooter&&info.author==='organization'&&info.signals==='3'&&info.chapterCount===9,label+' V2 structural');
+              check(info.overflow<=2,label+' no document horizontal overflow '+info.overflow);
+              check(info.rows===3&&info.cols===7&&info.focusable===0&&info.regionRole==='region'&&info.formCount===10,label+' worksheet/table semantic');
+              check(needed[lang].every(x=>info.links.includes(x)),label+' preserved links + CTA');
+              check(info.hasSchema&&info.css==='auto'&&info.htmlBefore,label+' schema and readable content');
+              check(info.hours.includes('19.4')||info.hours.includes('19,4'),label+' interactive hours default');
+              check(info.cash.includes('ESTABLISHED')||info.cash.includes('УСТАНОВЛЕНА'),label+' cash not presumed');
+              check(errs.length===0,label+' pageerrors '+errs.join('|'));
+              if(width<=430)check(info.tableWidth>info.tableVisible+100,label+' independently scrollable table');
+              if(width===390){
+                const region=page.locator('.g1__scroll');
+                await region.focus();
+                check(await region.evaluate(e=>document.activeElement===e),label+' table keyboard focus');
+                await page.keyboard.press('ArrowRight'); await page.waitForTimeout(140);
+                check(await region.evaluate(e=>e.scrollLeft>0),label+' keyboard horizontal scroll');
+                if(browserName==='webkit'){
+                 await region.screenshot({path:'/tmp/g1-'+lang+'-webkit-mobile-390-WORKSHEET-TABLE.png'});
+                 await page.locator('[data-g1-calculator]').screenshot({path:'/tmp/g1-'+lang+'-webkit-mobile-390-CALCULATOR.png'});
+                }
+                await page.locator('[name="cash"]').fill('450');
+                check((await page.locator('[data-g1-net]').innerText()).includes('260'),label+' cash net verified input');
+                check((await page.locator('[data-g1-payback]').innerText()).includes('12.0'),label+' conditional payback');
+                await page.evaluate(()=>{document.documentElement.style.fontSize='150%';});
+                await page.waitForTimeout(110);
+                check(await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth<=2),label+' 150pct text no overflow');
+              }
+              await context.close();
+             }
+             for(const width of [320,390]){
+              const context=await browser.newContext({viewport:{width,height:844},javaScriptEnabled:false,reducedMotion:'reduce'});
+              await context.route('**/*',r=>r.request().url().startsWith(root+'/')?r.continue():r.abort());
+              const page=await context.newPage();
+              const response=await page.goto(root+route,{waitUntil:'load'});
+              const content=await page.evaluate(()=>({rows:document.querySelectorAll('.g1__scroll tbody tr').length,calc:!!document.querySelector('[data-g1-calculator]'),output:document.querySelector('[data-g1-hours]')?.textContent,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth}));
+              check(response?.status()===200&&content.rows===3&&content.calc&&content.output&&content.overflow<=2,browserName+'/'+lang+'/'+width+' noJS readable worksheet');
+              await context.close();
+             }
+            }
+            await browser.close();
+           }
+           console.log('G1_CHROMIUM_WEBKIT',count,'ASSERTIONS',fail.length,'FAILURES');
+           if(fail.length){console.error(fail.slice(0,90).join('\n'));process.exitCode=1;}
+          })().catch(e=>{console.error(e);process.exitCode=1;});
+          JS
+          node /tmp/g1-qa.cjs
+      - name: Upload genuine screenshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g1-article07-premium-v2-browser-evidence
+          path: /tmp/g1-*.png
+          if-no-files-found: warn
+      - name: Publish one immutable compiled-only Cloudflare branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='agent/insights-g1-article07-v2-compiled-20261117'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then echo 'Compiled branch exists: refusing overwrite'; exit 1; fi
+          tmp="$(mktemp -d)"
+          cp -a _site/. "$tmp/"
+          rm -f "$tmp/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tmp/_headers"
+          touch "$tmp/.nojekyll"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tmp"/. .
+          git add -A
+          git commit -m 'preview(insights): G1 Article07 EN RU compiled Jekyll noindex source df5f729905a8897c8540abdf128ca4388c133090'
+          git push origin "HEAD:refs/heads/$dest"
+          echo "G1_SOURCE_HEAD=df5f729905a8897c8540abdf128ca4388c133090"
+          echo "G1_COMPILED_SHA=$(git rev-parse HEAD)"
+      - name: Real HTTPS EN RU noindex and assets acceptance
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          compiled="$(git rev-parse HEAD)"
+          preview=''
+          for i in $(seq 1 24); do
+            body="$(gh api "repos/$GITHUB_REPOSITORY/commits/$compiled/check-runs" -H 'Accept: application/vnd.github+json')" || true
+            preview="$(printf '%s' "$body" | python -c "import json,re,sys; d=json.load(sys.stdin); print(next((re.search(r'https://[a-f0-9]{8}\.proaiexpert-github-io\.pages\.dev',z.get('output',{}).get('summary','')).group(0) for z in d.get('check_runs',[]) if z.get('name')=='Cloudflare Pages' and z.get('conclusion')=='success' and re.search(r'https://[a-f0-9]{8}\.proaiexpert-github-io\.pages\.dev',z.get('output',{}).get('summary',''))),''))" || true
+            if [ -n "$preview" ];then break;fi
+            sleep 10
+          done
+          if [ -z "$preview" ];then echo 'G1_LIVE_PREVIEW_NOT_CONFIRMED';exit 1;fi
+          echo "G1_IMMUTABLE_PREVIEW_BASE=$preview"
+          for path in '/insights/where-automation-delivers-its-first-real-roi/' '/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/'; do
+            headers="$(mktemp)"
+            page="$(mktemp)"
+            status="$(curl --location --silent --show-error --max-time 30 --dump-header "$headers" --output "$page" --write-out '%{http_code}' "$preview$path")"
+            echo "G1_HTTPS $path HTTP=$status"
+            test "$status" = '200'
+            grep -iq '^x-robots-tag: *noindex' "$headers"
+            grep -q 'data-g1-calculator' "$page"
+            grep -q 'data-footer-family="editorial"' "$page"
+            grep -q 'hreflang="en"' "$page"
+            grep -q 'hreflang="ru"' "$page"
+            grep -q 'application/ld+json' "$page"
+            for asset in '/assets/css/insights-editorial-v2.css' '/assets/js/insights-editorial-v2.js' '/assets/social/proai-home-og-en-r1-1.png' '/assets/social/proai-home-og-ru-r1-1.png';do
+              code="$(curl --location --silent --output /dev/null --max-time 25 --write-out '%{http_code}' "$preview$asset")"
+              test "$code" = '200' || { echo "ASSET_FAIL $asset $code";exit 1; }
+            done
+          done
+          echo 'G1_LIVE_HTTPS_EN_RU_200_NOINDEX_CSS_JS_OG_SCHEMA_CTA_PASS'

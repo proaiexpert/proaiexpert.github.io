@@ -5,6 +5,8 @@
 **Публичный статус проекта:** Live project — ongoing refinement  
 **Production URL:** https://alinahorb.com/
 
+> **Freshness note — November 13, 2026:** This document records the July 2026 baseline. Current live Notes have six topics in UA and six in RU, including partner-conflict and panic-recurrence articles. Mentions of articles still in progress refer to the earlier stage. Current technical route and canonical indexability totals remain unverified.
+>
 > Internal source-of-truth document. This is not final public portfolio copy. Preserve the verification, privacy, safety, and claims constraints below when creating public materials.
 
 ---

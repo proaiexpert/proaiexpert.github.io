@@ -5,7 +5,11 @@
 **Production:** `https://alinahorb.com/`  
 **Языки:** украинский — основной; русский — полноценная локализация  
 **Статус:** production-ready, опубликован, форма проверена, технический и SEO-аудит завершён  
-**Дата фиксации:** июль 2026  
+**Дата первоначальной фиксации:** июль 2026  
+**Актуализация редакционного инвентаря:** 13 ноября 2026  
+
+> **Важное дополнение (2026-11-13).** Опубликовано шесть экспертных тем в UA и шесть в RU: 12 локализованных страниц статей. Добавлены темы конфликтов с партнёром и страха повторной панической атаки. Июльские 18 маршрутов, 16 индексируемых URL и скриншот Notes с четырьмя темами — исторический срез. Предварительные 22 маршрута / 20 индексируемых страниц НЕ подтверждены проверкой текущих sitemap, canonical и noindex. 72 браузерные проверки относились к июльскому выпуску, а не новым маршрутам.
+
 **Владелец разработки и дальнейших технических изменений:** ProAI Expert / Ihor Horb
 
 ---
@@ -31,11 +35,11 @@
 
 Для психолога Алины Горб был разработан персональный двуязычный сайт в направлении **Premium Editorial Sanctuary** — спокойный, содержательный и визуально индивидуальный цифровой продукт, который помогает потенциальному клиенту познакомиться со специалистом, понять формат работы, прочитать экспертные материалы и безопасно отправить первое обращение.
 
-Сайт построен не как стандартный шаблон психолога с фотографией, общими фразами и одной формой. Он представляет собой цельную систему из **18 маршрутов**, объединяющую персональный бренд, подробную страницу консультаций, двуязычный журнал из четырёх экспертных материалов, структурированную форму первичного контакта, этические предупреждения, privacy-disclosure, техническое SEO и адаптивную навигацию.
+Сайт построен не как стандартный шаблон психолога с фотографией, общими фразами и одной формой. Он представляет собой двуязычную систему, объединяющую персональный бренд, подробную страницу консультаций, редакционный журнал из шести экспертных тем на каждом языке, структурированную форму первичного контакта, этические предупреждения, privacy-disclosure, техническое SEO и адаптивную навигацию.
 
-Каждый из девяти типов страниц имеет украинскую и русскую версию. Языковой переключатель ведёт не на главную, а на точный эквивалент текущей страницы. Все материалы связаны внутренними переходами, CTA и логикой дальнейшего действия.
+Каждый опубликованный тип страницы имеет украинскую и русскую версию. Языковой переключатель ведёт не на главную, а на точный эквивалент текущей страницы. Все материалы связаны внутренними переходами, CTA и логикой дальнейшего действия.
 
-Проект прошёл отдельные проверки навигации, адаптивности, формы, локализации, SEO, структурированных данных, production-ресурсов и поведения интерфейса. Финальный browser regression охватил **18 маршрутов × 4 контрольных viewport = 72 проверки**. Отдельный аудит проверял опубликованные ресурсы, маршруты, изображения, стили, JavaScript, форму и остаточные технические файлы.
+Проект прошёл отдельные проверки навигации, адаптивности, формы, локализации, SEO, структурированных данных, production-ресурсов и поведения интерфейса. Июльский browser regression охватил **18 маршрутов × 4 контрольных viewport = 72 проверки** (исторический результат, не подтверждающий новую версию). Отдельный аудит проверял опубликованные ресурсы, маршруты, изображения, стили, JavaScript, форму и остаточные технические файлы.
 
 ---
 
@@ -76,7 +80,7 @@
 
 # 4. Архитектура сайта
 
-## 4.1. Девять типов страниц
+## 4.1. Одиннадцать типов опубликованных страниц
 
 1. Главная
 2. Об Алине
@@ -87,15 +91,17 @@
 7. Статья о сложном разговоре
 8. Статья о ситуации, когда привычные способы справляться перестают помогать
 9. Статья о стрессе, переезде и потере привычной опоры
+10. Статья о повторяющихся конфликтах с партнёром
+11. Статья о страхе повторения панической атаки
 
 Каждый тип страницы существует на украинском и русском языках.
 
-**Итого: 9 типов × 2 языка = 18 production-маршрутов.**
+**По контентному инвентарю: 11 типов × 2 языка; точные технические итоги маршрутов и индексируемых canonical URL требуют проверки действующего sitemap/meta сайта клиента.**
 
 ## 4.2. Поисковая архитектура
 
-- 16 содержательных страниц предназначены для индексации.
-- 2 privacy-страницы являются служебными и используют `noindex, follow`.
+- В июльской версии для индексации предназначались 16 содержательных страниц. Текущее число требует сверки canonical/noindex/sitemap.
+- В июльском аудите две privacy-страницы имели `noindex, follow`; актуальные метатеги требуют повторной проверки.
 - Sitemap содержит индексируемые canonical URL.
 - UA/RU-версии связаны взаимными `hreflang`.
 - Основной `x-default` ведёт на украинскую версию.
@@ -123,7 +129,7 @@
 ## Двуязычность и контент
 
 11. **Полноценная UA/RU-архитектура.** Это не автоматический перевод одного экрана, а две связанные версии всего сайта.
-12. **18 отдельных маршрутов.** Каждая основная страница имеет собственный адрес и языковой эквивалент.
+12. **Отдельные UA/RU-маршруты.** Каждая основная страница имеет собственный адрес и языковой эквивалент.
 13. **Контекстный языковой переключатель.** UA/RU переводит пользователя на ту же страницу и тот же материал, а не сбрасывает на главную.
 14. **Локализованные интерфейсные состояния.** Меню, форма, ошибки и сообщение об успешной отправке отображаются на языке текущей страницы.
 15. **Редакционно выверенные тексты.** Формулировки избегают клише, излишней патетики, самодиагностики и давления на пользователя.
@@ -131,8 +137,8 @@
 ## Экспертный контент
 
 16. **Отдельный раздел публикаций.** «Нотатки / Заметки» работает как содержательный журнал, а не как случайный блог.
-17. **Четыре глубоких материала.** Темы охватывают первую консультацию, сложный разговор, потерю привычных способов справляться и стресс после перемен.
-18. **Восемь article routes.** Четыре материала опубликованы отдельно на двух языках.
+17. **Шесть глубоких материалов.** Четыре первоначальные темы дополнены материалами о повторяющихся конфликтах с партнёром и страхе повторения панической атаки.
+18. **Двенадцать article routes.** Шесть материалов опубликованы отдельно на двух языках.
 19. **Система внутренней перелинковки.** Статьи связаны с разделом, другими материалами и страницей консультаций.
 20. **Контент формирует доверие до обращения.** Потенциальный клиент может увидеть стиль мышления и профессиональную интонацию психолога.
 
@@ -162,7 +168,7 @@
 36. **Техническое SEO на уровне всей системы.** Canonical, hreflang, title, description, Open Graph, Twitter cards, sitemap и robots.
 37. **Структурированные данные.** Использованы WebSite, Person, Service, FAQPage, BreadcrumbList, CollectionPage и ItemList там, где это уместно.
 38. **Адаптивная навигация.** Отдельная desktop editorial rail и полноценный mobile/tablet drawer с управлением фокусом и прокруткой.
-39. **Строгий responsive QA.** 18 маршрутов проверены на четырёх viewport; отдельные проверки контролировали overflow, browser errors и стабильность интерфейса.
+39. **Исторический responsive QA (июль 2026).** 18 маршрутов первоначальной версии проверены на четырёх viewport; отдельные проверки контролировали overflow, browser errors и стабильность интерфейса.
 40. **Поддерживаемая production-система.** GitHub Pages, HTTPS, домен, автоматические QA-workflows, валидаторы и защита от повторного появления устаревших файлов.
 
 ---
@@ -370,10 +376,10 @@
 - semantic headings;
 - production indexing rules.
 
-## Индексационная модель
+## Индексационная модель (исторический аудит июля 2026)
 
-- 16 содержательных маршрутов индексируются;
-- 2 privacy routes используют `noindex, follow`;
+- 16 содержательных маршрутов были предназначены для индексации в июльской версии (это не число URL в индексе Google);
+- 2 privacy routes использовали `noindex, follow` на момент июльского аудита;
 - Search Console Domain Property подтверждён;
 - sitemap отправлен;
 - как минимум одна production-страница уже подтверждена в Google index;
@@ -460,7 +466,7 @@
 
 # 14. QA и проверка качества
 
-## Подтверждённые масштабы
+## Подтверждённые масштабы июльского релиза (исторический baseline)
 
 - 18 production routes;
 - 4 control viewports;
@@ -504,7 +510,7 @@
 
 **The final audited build completed the defined route, responsive, SEO, form and asset checks without recorded critical findings.**
 
-Не превращать количество внутренних GitHub workflow runs в бессмысленный рекламный счётчик. В кейсе достаточно показать строгую QA-модель и 72 browser checks.
+Не превращать количество внутренних GitHub workflow runs в бессмысленный рекламный счётчик. В кейсе достаточно показать строгую QA-модель и честно обозначить, что 72 browser checks относятся к июльской версии.
 
 ---
 
@@ -545,7 +551,7 @@
 
 Этот сайт относится не к базовому template-tier, который обычно продаётся терапевтам по подписке, а к **boutique custom / upper professional tier**.
 
-Типовые специализированные платформы для терапевтов предлагают шаблонный сайт, hosting и базовые функции примерно от **$69–$336 в месяц** у TherapySites и от **$99–$299 в месяц** у Brighter Vision. Это полезные сервисные пакеты, но они не являются прямым эквивалентом индивидуального двуязычного проекта с собственной арт-дирекцией, 18 маршрутами, авторской контентной системой, custom front-end и отдельным QA.
+Типовые специализированные платформы для терапевтов предлагают шаблонный сайт, hosting и базовые функции примерно от **$69–$336 в месяц** у TherapySites и от **$99–$299 в месяц** у Brighter Vision. Это полезные сервисные пакеты, но они не являются прямым эквивалентом индивидуального двуязычного проекта с собственной арт-дирекцией, двуязычной архитектурой, авторской контентной системой, custom front-end и отдельным QA.
 
 По данным Clutch за июль 2026:
 
@@ -570,9 +576,9 @@ WebFX указывает общий профессиональный диапа�
 - bespoke design direction;
 - bilingual architecture;
 - custom responsive development;
-- 18 routes;
+- UA/RU route architecture (current technical count unverified);
 - content structuring;
-- four bilingual articles;
+- six expert topics per language (12 localized article pages);
 - form integration;
 - anti-spam;
 - technical SEO;
@@ -607,7 +613,7 @@ WebFX указывает общий профессиональный диапа�
 
 | Типичный template-сайт | Alina Horb case |
 |---|---|
-| Одна главная и несколько стандартных страниц | 18 связанных UA/RU-маршрутов |
+| Одна главная и несколько стандартных страниц | Связанные UA/RU-страницы и 12 локализованных статей |
 | Стандартный hero | Авторская editorial-композиция |
 | Общие stock photos | Индивидуальная portrait-led система |
 | Один язык | Полноценная двуязычность |
@@ -662,12 +668,12 @@ Subtitle:
 
 Факты рядом:
 
-- 18 routes
+- UA/RU published page architecture
 - Ukrainian + Russian
-- 4 expert articles
+- 6 expert topics per language
 - Custom intake flow
 - Technical SEO
-- 72 responsive browser checks
+- 72 checks on July 2026 baseline (historical)
 
 ## Блок 2. Challenge
 
@@ -713,7 +719,7 @@ Subtitle:
 
 ## Блок 7. Content system
 
-Показать Notes hub и четыре статьи.
+Показать Notes hub и все шесть тем на каждом языке.
 
 ## Блок 8. Bilingual UX
 
@@ -787,23 +793,23 @@ Subtitle:
 
 ## 21.3. Short paragraph — EN
 
-**We designed and launched a custom bilingual website for psychologist Alina Horb. The project combines a calm editorial identity, 18 Ukrainian and Russian routes, a detailed consultation journey, four expert articles, a localized intake form, multi-layer spam protection and technical SEO. The result is a distinctive, production-ready personal brand website built to establish trust before the first conversation.**
+**We designed and launched a custom bilingual website for psychologist Alina Horb. The project combines a calm editorial identity, Ukrainian and Russian page architecture, a detailed consultation journey, six expert topics per language, a localized intake form, multi-layer spam protection and technical SEO. The result is a distinctive, production-ready personal brand website built to establish trust before the first conversation.**
 
 ## 21.4. Short paragraph — RU
 
-**Для психолога Алины Горб был разработан и запущен индивидуальный двуязычный сайт. Проект объединяет спокойную editorial-идентичность, 18 украинских и русских маршрутов, подробный путь к консультации, четыре экспертные статьи, локализованную форму обращения, многоуровневую антиспам-защиту и техническое SEO. Результат — узнаваемый production-сайт персонального бренда, который формирует доверие ещё до первого разговора.**
+**Для психолога Алины Горб был разработан и запущен индивидуальный двуязычный сайт. Проект объединяет спокойную editorial-идентичность, двуязычную архитектуру страниц, подробный путь к консультации, шесть экспертных тем на каждом языке, локализованную форму обращения, многоуровневую антиспам-защиту и техническое SEO. Результат — узнаваемый production-сайт персонального бренда, который формирует доверие ещё до первого разговора.**
 
 ## 21.5. Medium case intro — EN
 
 **Most therapist websites rely on familiar templates, generic imagery and broad promises. For Alina Horb, the goal was different: create a digital environment that felt calm, credible and personal while giving visitors enough practical information to take the first step with confidence.**
 
-**The final system includes nine page types in Ukrainian and Russian, four editorial articles, transparent consultation terms, context-aware language switching, a simplified first-contact form and a complete technical SEO layer. A custom responsive interface, structured data, Cloudflare Turnstile integration and automated QA turned the visual concept into a stable production product.**
+**The final system includes eleven page types in Ukrainian and Russian, six editorial topics per language, transparent consultation terms, context-aware language switching, a simplified first-contact form and a complete technical SEO layer. A custom responsive interface, structured data, Cloudflare Turnstile integration and automated QA turned the visual concept into a stable production product.**
 
 ## 21.6. Medium case intro — RU
 
 **Большинство сайтов психологов строятся на знакомых шаблонах, общих изображениях и размытых обещаниях. Для Алины Горб задача была другой: создать спокойную, профессиональную и персональную цифровую среду, которая даёт человеку достаточно информации, чтобы уверенно сделать первый шаг.**
 
-**Финальная система включает девять типов страниц на украинском и русском языках, четыре редакционные статьи, прозрачные условия консультаций, контекстный языковой переключатель, упрощённую форму первого контакта и полный слой технического SEO. Индивидуальный responsive-интерфейс, structured data, интеграция Cloudflare Turnstile и автоматизированный QA превратили визуальную концепцию в стабильный production-продукт.**
+**Финальная система включает одиннадцать типов страниц на украинском и русском языках, шесть редакционных тем на каждом языке, прозрачные условия консультаций, контекстный языковой переключатель, упрощённую форму первого контакта и полный слой технического SEO. Индивидуальный responsive-интерфейс, structured data, интеграция Cloudflare Turnstile и автоматизированный QA превратили визуальную концепцию в стабильный production-продукт.**
 
 ---
 
@@ -811,13 +817,13 @@ Subtitle:
 
 Использовать только подтверждённые показатели:
 
-- **18** production routes
+- **Technical production route total:** pending current sitemap/meta validation
 - **2** full languages
-- **9** page types
-- **4** expert topics
-- **8** localized article pages
-- **16** indexable content routes
-- **72** route/viewport browser checks
+- **11** published page types per language
+- **6** expert topics per language
+- **12** localized article pages
+- **Indexable canonical URL total:** pending current sitemap/noindex validation
+- **72** route/viewport browser checks for the July 2026 original release (historical)
 - **0** recorded critical findings in final defined audit
 - **1** custom first-contact system
 - **1** production domain with HTTPS
@@ -830,8 +836,8 @@ Subtitle:
 
 - custom / bespoke;
 - bilingual;
-- 18 routes;
-- four expert articles in two languages;
+- UA/RU route architecture (current technical count unverified);
+- six expert topics in two languages (12 localized article pages);
 - responsive;
 - production-ready;
 - technical SEO;
@@ -909,7 +915,7 @@ ProAI Expert portfolio.
 
 ## EN description
 
-**A bespoke Ukrainian and Russian psychologist website with editorial design, 18 routes, expert content, custom consultation flow, technical SEO and responsive QA.**
+**A bespoke Ukrainian and Russian psychologist website with editorial design, six topics in each language, expert content, custom consultation flow, technical SEO and responsive QA.**
 
 ## RU title
 
@@ -917,7 +923,7 @@ ProAI Expert portfolio.
 
 ## RU description
 
-**Индивидуальный сайт психолога на украинском и русском языках: 18 маршрутов, editorial-дизайн, экспертные статьи, форма консультации, техническое SEO и responsive QA.**
+**Индивидуальный сайт психолога на украинском и русском языках: шесть тем на каждом языке, editorial-дизайн, экспертные статьи, форма консультации, техническое SEO и responsive QA.**
 
 ---
 
@@ -990,7 +996,7 @@ ProAI Expert portfolio.
 
 ## Best portfolio angle
 
-Не «мы сделали 18 HTML-страниц», а:
+Не сводить работу к подсчёту HTML-страниц, а показать результат:
 
 > **We transformed a personal psychology practice into a complete bilingual digital experience — from brand and editorial content to consultation intake, SEO and production QA.**
 
@@ -1004,11 +1010,11 @@ ProAI Expert portfolio.
 - [ ] Collect only final screenshots.
 - [ ] Build hero with one decisive visual.
 - [ ] Show UA/RU pairing.
-- [ ] Show architecture: 9 page types × 2 languages.
+- [ ] Show architecture: 11 published page types × 2 languages; verify route and indexability totals separately.
 - [ ] Show Notes hub and articles.
 - [ ] Show consultation journey.
 - [ ] Show compact form and success state.
-- [ ] Include the 72-check QA proof.
+- [ ] If citing 72 browser checks, label these as the July 2026 baseline, not QA of newly added pages.
 - [ ] Include technical SEO without overwhelming the presentation.
 - [ ] Use only confirmed claims.
 - [ ] Mark U.S. price as estimated replacement value.

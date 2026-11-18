@@ -31,7 +31,7 @@ Key current facts:
 - Connected System: approved R13.
 - Two Worlds: approved Golden R1 + landscape correction.
 - Technology: approved Transition R2 chain.
-- Financial Stream: approved R1.4 presentation with `EN + RU`, `12K+` Google Search impressions (`12,019` exact) and `79` Google Search clicks for available data Feb 21–Oct 22, 2026; mobile geometry frozen by Owner on 2026-08-29.
+- Financial Stream: approved R1.4 presentation with `EN + RU`; current approved GSC snapshot (November 13, 2026, Web search, Last 12 months selected) displays approximately `12.8K` rounded impressions and `84` search clicks, not leads or clients; exact available-data dates not supplied. Historical October 2026 figures: 12,019 impressions / 79 clicks. Mobile geometry frozen by Owner on 2026-08-29.
 - Selected Thinking: approved Decision Aperture / Trace R2.4. Desktop/portrait preserve the accepted R2.2/R2.1 system; touch-device landscape uses a full-width Lead 01 followed by 02/03 as a 50/50 supporting row.
 - Selected Work: current R1 + owner title correction authority.
 - Footer: current Golden R3 structure with Signature R4 material authority.
@@ -257,9 +257,10 @@ Public repository README/profile text must not present superseded proof metrics 
 Current Financial Stream public proof framing:
 
 - bilingual delivery: `EN + RU`;
-- `12K+` Google Search impressions (`12,019` exact);
-- `79` Google Search clicks;
-- Google Search Console, Web Search, available data Feb 21–Oct 22, 2026 within the last-12-months filter; exported October 24, 2026.
+- approximately `12.8K` Google Search impressions (GSC rounded display, not exact 12,800);
+- `84` Google Search clicks (not leads, customers, or bookings);
+- Google Search Console, Web search, Last 12 months selected; snapshot November 13, 2026; exact daily-data boundaries not supplied.
+- Historical October 24, 2026 export: 12,019 impressions / 79 clicks for available data February 21–October 22, 2026; do not present as current.
 - Indexed-page counts are separate dated historical snapshots, not a current performance metric.
 
 Do not reintroduce old `57 clicks / 7.24K / 50 pages` or superseded `63 clicks` homepage proof as current evidence.

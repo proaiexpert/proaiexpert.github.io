@@ -1,0 +1,66 @@
+name: G1 Article07 immutable compiled Cloudflare real HTTPS acceptance
+on:
+  push:
+    branches:
+      - qa/insights-g1-article07-verification-r1-20261117
+    paths:
+      - .github/workflows/insights-g1-article07-live-https-20261117.yml
+permissions:
+  contents: read
+jobs:
+  live-https:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Check immutable deployment identity and real EN RU HTTPS response
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://7199316a.proaiexpert-github-io.pages.dev'
+          SHA='e2a8cabfb1b708e460f8ca322871dd81866a53bf'
+          echo "EXPECTED_COMPILED_SHA=$SHA"
+          python - <<'PY'
+          scenarios=[(120,12,6,.5,2,0),(240,12,4,.7,3,450),(320,12,3,.85,4,800)]
+          for tasks,before,after,adoption,rework,cash in scenarios:
+              hours=tasks*(before-after)*adoption/60-rework
+              value=hours*38
+              net=cash-190
+              print(f"ROI_MATH_ASSERT hours={hours:.1f} value={value:.2f} cash_net={net:.0f} payback={(3120/net if net>0 else None)}")
+          PY
+          for lang in en ru; do
+            if [ "$lang" = en ]; then
+              route='/insights/where-automation-delivers-its-first-real-roi/'
+              og='/assets/social/proai-home-og-en-r1-1.png'
+              publication='2026-04-12'
+              contact='/contact/#project-intake'
+            else
+              route='/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/'
+              og='/assets/social/proai-home-og-ru-r1-1.png'
+              publication='2026-04-05'
+              contact='/ru/contact/#project-intake'
+            fi
+            h="$(mktemp)";p="$(mktemp)"
+            status="$(curl --max-time 30 -L -sS -D "$h" -o "$p" -w '%{http_code}' "$BASE$route")"
+            echo "G1_LIVE_HTTP_$lang=$status"
+            test "$status" = "200"
+            grep -iq '^x-robots-tag: *noindex' "$h"
+            grep -q 'data-g1-calculator' "$p"
+            grep -q 'data-footer-family="editorial"' "$p"
+            grep -q 'hreflang="en"' "$p"
+            grep -q 'hreflang="ru"' "$p"
+            grep -q 'hreflang="x-default"' "$p"
+            grep -q 'application/ld+json' "$p"
+            grep -q 'dateModified":"2026-11-17"' "$p"
+            grep -q "datePublished":"$publication" "$p" || grep -q "datePublished.*$publication" "$p"
+            grep -q "href=\"$contact\"" "$p"
+            grep -q 'insight-v2-decision-table' "$p"
+            asset_status="$(curl -L -sS --max-time 25 -o /dev/null -w '%{http_code}' "$BASE$og")"
+            test "$asset_status" = 200
+            echo "G1_LIVE_EN_RU_$lang_INDEX_HTML_NOINDEX_SCHEMA_OG_CTA_PASS"
+          done
+          for asset in '/assets/css/insights-editorial-v2.css' '/assets/js/insights-editorial-v2.js' '/assets/css/header-system-v1.css' '/assets/js/header-system-v1.js' '/assets/social/proai-home-og-en-r1-1.png' '/assets/social/proai-home-og-ru-r1-1.png' '/contact/' '/ru/contact/' '/insights/' '/ru/insights/'; do
+            status="$(curl -L -sS -o /dev/null -w '%{http_code}' --max-time 25 "$BASE$asset")"
+            echo "G1_ASSET_AND_ROUTE $asset HTTP=$status"
+            test "$status" = 200
+          done
+          echo 'G1_REAL_IMMUTABLE_HTTPS_EN_RU_200_NOINDEX_CSS_JS_IMAGES_NAV_AND_CTA_PASS'

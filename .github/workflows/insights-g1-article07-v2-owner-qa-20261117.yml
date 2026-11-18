@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: df5f729905a8897c8540abdf128ca4388c133090
+          ref: f0a81a7372116bcde5a9084a8c253f1dc71d9615
           fetch-depth: 0
       - name: Pinned clean Jekyll and source and compiled validators
         shell: bash
@@ -37,7 +37,7 @@ jobs:
           from pathlib import Path
           import xml.etree.ElementTree as ET
           OLD='96f69d66c1968e15a7334e75ce73b9a5eecea816'
-          HEAD='df5f729905a8897c8540abdf128ca4388c133090'
+          HEAD='f0a81a7372116bcde5a9084a8c253f1dc71d9615'
           assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==HEAD
           expected={'_data/insights.yml','sitemap.xml','insights/where-automation-delivers-its-first-real-roi/index.html','ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/index.html'}
           delta=set(subprocess.check_output(['git','diff','--name-only',OLD,'HEAD'],text=True).splitlines())
@@ -232,9 +232,9 @@ jobs:
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
           cp -a "$tmp"/. .
           git add -A
-          git commit -m 'preview(insights): G1 Article07 EN RU compiled Jekyll noindex source df5f729905a8897c8540abdf128ca4388c133090'
+          git commit -m 'preview(insights): G1 Article07 EN RU compiled Jekyll noindex source f0a81a7372116bcde5a9084a8c253f1dc71d9615'
           git push origin "HEAD:refs/heads/$dest"
-          echo "G1_SOURCE_HEAD=df5f729905a8897c8540abdf128ca4388c133090"
+          echo "G1_SOURCE_HEAD=f0a81a7372116bcde5a9084a8c253f1dc71d9615"
           echo "G1_COMPILED_SHA=$(git rev-parse HEAD)"
       - name: Real HTTPS EN RU noindex and assets acceptance
         shell: bash

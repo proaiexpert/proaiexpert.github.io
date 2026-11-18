@@ -1,0 +1,144 @@
+name: PR224 phase2 Chrome existing-runner independent QA and preview
+on:
+  push:
+    branches: [audit/data-freshness-20261113]
+    paths: [.github/workflows/pr224-phase2-chrome-once.yml]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit/data-freshness-20261113
+          fetch-depth: 0
+      - name: Jekyll compile, existing validators and 46 canonical assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --break-system-packages Pillow
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          ns={'s':'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          urls=[x.text for x in ET.parse('_site/sitemap.xml').getroot().findall('s:url/s:loc',ns)]
+          assert len(urls)==len(set(urls))==46
+          for u in urls:
+            slug=u.replace('https://proai-expert.com/','')
+            fn=Path('_site')/slug/'index.html' if slug and not slug.endswith('.html') else Path('_site')/(slug or 'index.html')
+            assert fn.is_file(),(u,str(fn))
+          for lang in ['ua','ru']:
+            from PIL import Image
+            asset=Path('assets/img/cases/alina-horb')/f'notes-overview-{lang}-2026-11.webp'
+            with Image.open(asset) as im:
+              assert im.format=='WEBP' and im.size==(1410,990)
+            assert asset.stat().st_size<120000
+          for p in ['case-studies/alina-horb/index.html','ru/case-studies/alina-horb/index.html','case-studies/financial-stream/index.html','ru/case-studies/financial-stream/index.html']:
+            s=Path('_site',p).read_text()
+            assert '<link rel="canonical"' in s and 'hreflang="en"' in s and 'hreflang="ru"' in s
+            if 'alina-horb' in p: assert 'application/ld+json' in s
+          print('PR224_COMPILED_46_CANONICAL_FOUR_CASES_METADATA_AND_WEBP_PASS')
+          PY
+      - name: Chromium and WebKit desktop mobile accessibility and screenshot regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/pr224pw --no-audit --no-fund --no-save playwright-core@1.56.1
+          google-chrome --version
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site >/tmp/pr224-qa-server.log 2>&1 &
+          node - <<'JS'
+          const {chromium}=require('/tmp/pr224pw/node_modules/playwright-core');
+          const fs=require('fs');fs.mkdirSync('/tmp/pr224-evidence',{recursive:true});
+          const BASE='http://127.0.0.1:8765';
+          const routes=['/','/ru/','/case-studies/financial-stream/','/ru/case-studies/financial-stream/','/case-studies/alina-horb/','/ru/case-studies/alina-horb/'];
+          (async()=>{
+            let cases=0;
+            for(const [engineName,engine] of [['chrome',chromium]]){
+              const browser=await engine.launch({channel:'chrome',headless:true});
+              for(const route of routes){
+                for(const width of [390,1440]){
+                  const ctx=await browser.newContext({viewport:{width,height:width===390?844:900},reducedMotion:'reduce'});
+                  await ctx.route('**/*',r=>r.request().url().startsWith(BASE+'/')?r.continue():r.abort());
+                  const page=await ctx.newPage(),errors=[];
+                  page.on('pageerror',e=>errors.push(String(e)));
+                  const response=await page.goto(BASE+route,{waitUntil:'load',timeout:60000});
+                  if(response?.status()!==200)throw Error(route+' HTTP '+response?.status());
+                  const lang=route.startsWith('/ru/')?'ru':'en';
+                  const stats=await page.evaluate(()=>({lang:document.documentElement.lang,width:document.documentElement.scrollWidth-document.documentElement.clientWidth,text:document.body.innerText,hasCanonical:!!document.querySelector('link[rel="canonical"]'),hasHreflang:document.querySelectorAll('link[hreflang]').length>=2}));
+                  if(stats.lang!==lang||!stats.hasCanonical||!stats.hasHreflang)throw Error(route+' lang/canonical');
+                  if(stats.width>3)throw Error(route+' overflow '+stats.width+' viewport='+width);
+                  if(route.includes('alina-horb')){
+                    const img=page.locator('img[src*="notes-overview-"][src$=".webp"]').first();
+                    if(await img.count()!==1)throw Error(route+' notes screenshot selector');
+                    await img.scrollIntoViewIfNeeded();await img.evaluate(el=>el.decode());
+                    const v=await img.evaluate(el=>({n:el.naturalWidth,alt:el.alt,src:el.getAttribute('src')}));
+                    if(v.n!==1410||!v.alt||!v.src.includes(lang==='ru'?'notes-overview-ru-2026-11.webp':'notes-overview-ua-2026-11.webp'))throw Error(route+' image '+JSON.stringify(v));
+                    if(!(stats.text.includes('12 localized articles')||stats.text.includes('12 локализованных статей')))throw Error(route+' article count');
+                  }
+                  if(route.includes('financial-stream')){
+                    if(!stats.text.includes('12.8K')||!stats.text.includes('84'))throw Error(route+' GSC values');
+                    await page.locator('#proof-strip').scrollIntoViewIfNeeded();
+                  }
+                  if(errors.length)throw Error(route+' JavaScript '+errors.slice(0,3).join('|'));
+                  if(engineName==='chrome' && (route.includes('alina-horb')||route.includes('financial-stream'))){
+                    await page.screenshot({path:'/tmp/pr224-evidence/'+width+'-'+route.replaceAll('/','_')+'.png',fullPage:false});
+                  }
+                  cases++;await ctx.close();
+                }
+              }
+              await browser.close();
+            }
+            console.log('PR224_CHROME_12_6_ROUTES_TWO_WIDTHS_A11Y_IMAGES_PASS='+cases);
+          })().catch(e=>{console.error(e);process.exitCode=1;});
+          JS
+      - name: Upload genuine browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr224-phase2-chromium-desktop-mobile-visual
+          path: /tmp/pr224-evidence/
+          if-no-files-found: warn
+      - name: Remove temporary QA workflow from existing PR
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin audit/data-freshness-20261113
+          test "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)"
+          git rm --ignore-unmatch .github/workflows/pr224-phase2-chrome-once.yml .github/workflows/pr224-phase2-finalqa-once.yml
+          git commit -m 'chore(pr224): remove temporary browser QA workflow after run'
+          git push origin HEAD:refs/heads/audit/data-freshness-20261113
+          echo "PR224_QA_FINAL_HEAD=$(git rev-parse HEAD)"
+      - name: Publish isolated noindex immutable Cloudflare Preview branch only
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='preview/pr224-data-accuracy-20261117-compiled'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then echo "preview exists: refusing overwrite"; exit 1; fi
+          tmp="$(mktemp -d)"
+          cp -a _site/. "$tmp/"
+          rm -f "$tmp/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tmp/_headers"
+          touch "$tmp/.nojekyll"
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tmp"/. .
+          git add -A
+          git commit -m 'preview(pr224): immutable compiled noindex 46-canonical EN RU owner review'
+          git push origin "HEAD:refs/heads/$dest"
+          echo "PR224_COMPILED_SHA=$(git rev-parse HEAD)"

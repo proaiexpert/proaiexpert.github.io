@@ -195,7 +195,19 @@ toc:
   function render(){
     var value=function(name){return Number(form.elements.namedItem(name).value)};
     var fields=['tasks','baseline','after','adoption','exceptions','rate','setup','software','oversight'];
-    if(fields.some(function(n){return !Number.isFinite(value(n))||value(n)<0;})){return;}
+    var invalid=fields.some(function(n){
+      var raw=form.elements.namedItem(n).value.trim(),v=Number(raw);
+      return raw===''||!Number.isFinite(v)||v<0||(n==='adoption'&&v>100)||(n==='tasks'&&!Number.isInteger(v));
+    });
+    var cashRaw=form.elements.namedItem('cash').value.trim();
+    if(cashRaw!==''&&(!Number.isFinite(Number(cashRaw))||Number(cashRaw)<0))invalid=true;
+    if(invalid){
+      ['hours','capacity','cost','net','payback'].forEach(function(n){
+        form.querySelector('[data-g1-'+n+']').textContent='CHECK INPUTS';
+      });
+      form.querySelector('[data-g1-warning]').textContent='Enter nonnegative numbers in all fields (adoption 0–100%; tasks must be whole numbers). Monetary benefit may be left blank.';
+      return;
+    }
     var tasks=value('tasks'),baseline=value('baseline'),after=value('after'),rate=value('rate');
     var adopt=Math.max(0,Math.min(100,value('adoption')))/100;
     var minutes=Math.max(0,baseline-after);

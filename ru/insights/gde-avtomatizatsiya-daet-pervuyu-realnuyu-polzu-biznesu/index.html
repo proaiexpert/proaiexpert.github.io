@@ -142,7 +142,7 @@ toc:
 <p class="g1__mini">СЦЕНАРИИ / Прокрутите таблицу в сторону на узком экране</p>
 <div class="insight-v2-table-wrap g1__scroll" role="region" tabindex="0" aria-label="Таблица трёх условных сценариев расчёта первой окупаемости">
 <table class="insight-v2-decision-table">
-<caption>First ROI Decision Worksheet — сравнение трёх условных месячных сценариев</caption>
+<caption>Таблица первой окупаемости — сравнение трёх условных месячных сценариев</caption>
 <thead><tr><th scope="col">Вариант</th><th scope="col">Задачи; до → после; успешно</th><th scope="col">Доп. переделки</th><th scope="col">Освобождённые часы</th><th scope="col">Условная стоимость времени</th><th scope="col">Допущенная денежная экономия</th><th scope="col">Чистая выгода; окупаемость</th></tr></thead>
 <tbody>
 <tr><th scope="row">Осторожный</th><td>120; 12 → 6 мин; 50%</td><td>2 ч/мес</td><td>4,0 ч/мес</td><td>$152,00/мес</td><td>$0/мес</td><td>−$190/мес; НЕ УСТАНОВЛЕНА</td></tr>
@@ -194,7 +194,19 @@ toc:
   function render(){
     var value=function(name){return Number(form.elements.namedItem(name).value)};
     var fields=['tasks','baseline','after','adoption','exceptions','rate','setup','software','oversight'];
-    if(fields.some(function(n){return !Number.isFinite(value(n))||value(n)<0;})){return;}
+    var invalid=fields.some(function(n){
+      var raw=form.elements.namedItem(n).value.trim(),v=Number(raw);
+      return raw===''||!Number.isFinite(v)||v<0||(n==='adoption'&&v>100)||(n==='tasks'&&!Number.isInteger(v));
+    });
+    var cashRaw=form.elements.namedItem('cash').value.trim();
+    if(cashRaw!==''&&(!Number.isFinite(Number(cashRaw))||Number(cashRaw)<0))invalid=true;
+    if(invalid){
+      ['hours','capacity','cost','net','payback'].forEach(function(n){
+        form.querySelector('[data-g1-'+n+']').textContent='ПРОВЕРЬТЕ ДАННЫЕ';
+      });
+      form.querySelector('[data-g1-warning]').textContent='Проверьте числа: значения не могут быть отрицательными, доля — от 0 до 100%, число задач — целое. Денежный эффект можно оставить пустым.';
+      return;
+    }
     var tasks=value('tasks'),baseline=value('baseline'),after=value('after'),rate=value('rate');
     var adopt=Math.max(0,Math.min(100,value('adoption')))/100;
     var minutes=Math.max(0,baseline-after);
@@ -208,8 +220,8 @@ toc:
     var payback=cashEstablished&&cashNet>0?value('setup')/cashNet:null;
     form.querySelector('[data-g1-hours]').textContent=hours.toFixed(1)+' ч/мес';
     form.querySelector('[data-g1-capacity]').textContent=formatMoney.format(capacity)+' / мес';
-    form.querySelector('[data-g1-cost]').textContent=formatMoney.format(recurring)+' / mo';
-    form.querySelector('[data-g1-net]').textContent=cashEstablished?formatMoney.format(cashNet)+' / mo':'НЕ УСТАНОВЛЕНА';
+    form.querySelector('[data-g1-cost]').textContent=formatMoney.format(recurring)+' / мес';
+    form.querySelector('[data-g1-net]').textContent=cashEstablished?formatMoney.format(cashNet)+' / мес':'НЕ УСТАНОВЛЕНА';
     form.querySelector('[data-g1-payback]').textContent=payback===null?'НЕ УСТАНОВЛЕНА':payback.toFixed(1)+' мес.';
     var warning=form.querySelector('[data-g1-warning]');
     warning.textContent=after>baseline?'Время после автоматизации больше исходного: экономия времени принята равной нулю.':(recovered<0?'Дополнительные переделки превышают исходную экономию: возвращённая ёмкость равна нулю.':'');

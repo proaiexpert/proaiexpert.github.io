@@ -1,4 +1,4 @@
-name: G1 Article07 Premium V2 EN RU compiled source QA and immutable Owner Preview
+name: G1 Article07 R2 Hero OG EN RU compiled final QA immutable Owner Preview
 on:
   push:
     branches:
@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: f0a81a7372116bcde5a9084a8c253f1dc71d9615
+          ref: 2f30bb995f9a781d0293a4cc945133f5ab73eeb1
           fetch-depth: 0
       - name: Pinned clean Jekyll and source and compiled validators
         shell: bash
@@ -37,9 +37,10 @@ jobs:
           from pathlib import Path
           import xml.etree.ElementTree as ET
           OLD='96f69d66c1968e15a7334e75ce73b9a5eecea816'
-          HEAD='f0a81a7372116bcde5a9084a8c253f1dc71d9615'
+          SITEMAP_MAIN='d4ebf5969732091d47882d133aa15a247719bd35'
+          HEAD='2f30bb995f9a781d0293a4cc945133f5ab73eeb1'
           assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==HEAD
-          expected={'_data/insights.yml','sitemap.xml','insights/where-automation-delivers-its-first-real-roi/index.html','ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/index.html'}
+          expected={'_data/insights.yml','sitemap.xml','insights/where-automation-delivers-its-first-real-roi/index.html','ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/index.html','assets/img/insights/article07-first-automation-roi-hero.webp','assets/img/insights/article07-first-automation-roi-og.png','scripts/apply-social-preview-defaults.py'}
           delta=set(subprocess.check_output(['git','diff','--name-only',OLD,'HEAD'],text=True).splitlines())
           assert delta==expected, ('scope', delta)
           subprocess.run(['git','diff','--check',OLD,'HEAD'],check=True)
@@ -53,7 +54,7 @@ jobs:
           assert 'date_published: "2026-04-12"' in block and 'date_published: "2026-04-05"' in block
           assert 'author_ref: proai' in block and block.count('schema_image:')==2
           m1=ET.fromstring(Path('sitemap.xml').read_text())
-          m0=ET.fromstring(subprocess.check_output(['git','show',OLD+':sitemap.xml'],text=True))
+          m0=ET.fromstring(subprocess.check_output(['git','show',SITEMAP_MAIN+':sitemap.xml'],text=True))
           ns={'sm':'http://www.sitemaps.org/schemas/sitemap/0.9'}
           pairs=lambda root:[(el.findtext('sm:loc',namespaces=ns),el.findtext('sm:lastmod',namespaces=ns)) for el in root.findall('sm:url',ns)]
           p1,p0=pairs(m1),pairs(m0)
@@ -87,13 +88,20 @@ jobs:
            assert html.count('class="insight-v2-decision-table"')==1
            assert 'https://proai-expert.com'+('/insights/where-automation-delivers-its-first-real-roi/' if lang=='en' else '/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/') in html
            assert 'hreflang="en"' in html and 'hreflang="ru"' in html and 'hreflang="x-default"' in html
-           assert ('proai-home-og-'+lang+'-r1-1.png') in html
+           expected_og='https://proai-expert.com/assets/img/insights/article07-first-automation-roi-og.png'
+           assert '<figure class="g1__hero-visual">' in html
+           assert '<img src="/assets/img/insights/article07-first-automation-roi-hero.webp" width="1672" height="941"' in html
+           assert '<meta property="og:image" content="'+expected_og+'">' in html
+           assert '<meta name="twitter:image" content="'+expected_og+'">' in html
+           assert html.count('<meta property="og:image"')==1
+           assert html.count('<meta name="twitter:image"')==1
            schema=re.search(r'<script type="application/ld\+json">([\s\S]*?)</script>',html)
            assert schema
            graph=json.loads(schema.group(1))['@graph']
            article=next(x for x in graph if x.get('@type')=='Article')
            assert article['author']['@type']=='Organization' and article['author']['name']=='ProAI Expert'
            assert article['datePublished']==published and article['dateModified']=='2026-11-17'
+           assert article['image']['url']==expected_og
            assert any(x.get('@type')=='BreadcrumbList' for x in graph)
            assert 'NOT ESTABLISHED' in src if lang=='en' else 'НЕ УСТАНОВЛЕНА' in src
            print('G1_ARTICLE07_'+lang.upper()+'_V2_SOURCE_COMPILED_META_CTA_FOOTER_PASS')
@@ -105,7 +113,17 @@ jobs:
            expect={'conservative':(4.,152.,-190.,None),'base':(19.4,737.2,260.,12.),'optimistic':(36.8,1398.4,610.,3120/610)}[name]
            assert abs(hours-expect[0])<1e-6 and abs(cap-expect[1])<1e-6 and net==expect[2]
            assert (3120/net if net>0 else None)==expect[3]
-          print('G1_DIFF_FOUR_FILES_46_URLS_HISTORICAL_DATES_ECONOMICS_GOLDEN_FOOTER_PASS')
+          from hashlib import sha256
+          assets={
+           'assets/img/insights/article07-first-automation-roi-hero.webp':('5c27a34ce1a2670d9b14b549d92007a1cf76629a9cb04fd3049a4ca75c782695',200388),
+           'assets/img/insights/article07-first-automation-roi-og.png':('f339224fea6e207dbf241314b90c3b27f0f3ab5e30d8cc55c4c174a59940e043',1150468)
+          }
+          for path,(sha,n) in assets.items():
+           data=Path(path).read_bytes()
+           assert len(data)==n and sha256(data).hexdigest()==sha
+           assert Path('_site',path).read_bytes()==data
+          assert Path('scripts/apply-social-preview-defaults.py').read_text().count('ARTICLE07_SOCIAL')>=2
+          print('G1_R2_SEVEN_SOURCE_FILES_ARTICLE07_HERO_OG_46_SITEMAP_CONTENT_SEO_ECONOMICS_PASS')
           PY
       - name: Chromium WebKit actual mobile initial viewport and desktop evidence
         shell: bash
@@ -148,6 +166,14 @@ jobs:
               if(width===1440 && browserName==='webkit'){
                 await page.screenshot({path:'/tmp/g1-'+lang+'-webkit-desktop-1440-INITIAL.png'});
               }
+              const hero=page.locator('.g1__hero-visual img');
+              await hero.waitFor();
+              const heroLoaded=await hero.evaluate(img=>({ok:img.complete&&img.naturalWidth===1672&&img.naturalHeight===941,alt:img.alt}));
+              check(heroLoaded.ok&&heroLoaded.alt.length>35,label+' approved hero loaded 1672x941 and localized alt');
+              if(width===390 && browserName==='webkit')await hero.screenshot({path:'/tmp/g1-'+lang+'-webkit-mobile-390-APPROVED-HERO.png'});
+              if(width===1440 && browserName==='webkit')await hero.screenshot({path:'/tmp/g1-'+lang+'-webkit-desktop-1440-APPROVED-HERO.png'});
+              const og=await page.locator('meta[property="og:image"]').getAttribute('content');
+              check(og==='https://proai-expert.com/assets/img/insights/article07-first-automation-roi-og.png',label+' exact OG metadata');
               const info=await page.evaluate(()=>{
                 const r=document.querySelector('.g1__scroll'),f=document.querySelector('[data-g1-calculator]');
                 return {lang:document.documentElement.lang,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,
@@ -212,14 +238,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: g1-article07-premium-v2-browser-evidence
+          name: g1-article07-r2-approved-hero-og-browser-evidence
           path: /tmp/g1-*.png
           if-no-files-found: warn
       - name: Publish one immutable compiled-only Cloudflare branch
         shell: bash
         run: |
           set -euo pipefail
-          dest='agent/insights-g1-article07-v2-compiled-20261117'
+          dest='agent/insights-g1-article07-r2-compiled-20261121'
           if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then echo 'Compiled branch exists: refusing overwrite'; exit 1; fi
           tmp="$(mktemp -d)"
           cp -a _site/. "$tmp/"
@@ -232,11 +258,11 @@ jobs:
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
           cp -a "$tmp"/. .
           git add -A
-          git commit -m 'preview(insights): G1 Article07 EN RU compiled Jekyll noindex source f0a81a7372116bcde5a9084a8c253f1dc71d9615'
+          git commit -m 'preview(insights): G1 Article07 EN RU compiled Jekyll noindex source 2f30bb995f9a781d0293a4cc945133f5ab73eeb1'
           git push origin "HEAD:refs/heads/$dest"
-          echo "G1_SOURCE_HEAD=f0a81a7372116bcde5a9084a8c253f1dc71d9615"
+          echo "G1_SOURCE_HEAD=2f30bb995f9a781d0293a4cc945133f5ab73eeb1"
           echo "G1_COMPILED_SHA=$(git rev-parse HEAD)"
-      - name: Real HTTPS EN RU noindex and assets acceptance
+      - name: Real HTTPS approved Hero OG EN RU acceptance
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -244,29 +270,43 @@ jobs:
           set -euo pipefail
           compiled="$(git rev-parse HEAD)"
           preview=''
-          for i in $(seq 1 24); do
-            body="$(gh api "repos/$GITHUB_REPOSITORY/commits/$compiled/check-runs" -H 'Accept: application/vnd.github+json')" || true
-            preview="$(printf '%s' "$body" | python -c "import json,re,sys; d=json.load(sys.stdin); print(next((re.search(r'https://[a-f0-9]{8}\.proaiexpert-github-io\.pages\.dev',z.get('output',{}).get('summary','')).group(0) for z in d.get('check_runs',[]) if z.get('name')=='Cloudflare Pages' and z.get('conclusion')=='success' and re.search(r'https://[a-f0-9]{8}\.proaiexpert-github-io\.pages\.dev',z.get('output',{}).get('summary',''))),''))" || true
-            if [ -n "$preview" ];then break;fi
+          for i in $(seq 1 30); do
+            preview="$(gh api "repos/$GITHUB_REPOSITORY/commits/$compiled/check-runs" --jq '.check_runs[] | select(.name=="Cloudflare Pages" and .conclusion=="success") | .output.summary' 2>/dev/null | grep -oE 'https://[a-f0-9]{8}\.proaiexpert-github-io\.pages\.dev' | head -n 1 || true)"
+            if [ -n "$preview" ]; then break; fi
             sleep 10
           done
-          if [ -z "$preview" ];then echo 'G1_LIVE_PREVIEW_NOT_CONFIRMED';exit 1;fi
-          echo "G1_IMMUTABLE_PREVIEW_BASE=$preview"
+          if [ -z "$preview" ]; then echo 'G1_R2_COMPILED_PREVIEW_NOT_CONFIRMED'; exit 1; fi
+          echo "G1_R2_IMMUTABLE_COMPILED_SHA=$compiled"
+          echo "G1_R2_IMMUTABLE_PREVIEW_BASE=$preview"
           for path in '/insights/where-automation-delivers-its-first-real-roi/' '/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/'; do
             headers="$(mktemp)"
-            page="$(mktemp)"
-            status="$(curl --location --silent --show-error --max-time 30 --dump-header "$headers" --output "$page" --write-out '%{http_code}' "$preview$path")"
-            echo "G1_HTTPS $path HTTP=$status"
-            test "$status" = '200'
+            body="$(mktemp)"
+            code="$(curl -sSL --max-time 35 -D "$headers" -o "$body" -w '%{http_code}' "$preview$path")"
+            test "$code" = 200
             grep -iq '^x-robots-tag: *noindex' "$headers"
-            grep -q 'data-g1-calculator' "$page"
-            grep -q 'data-footer-family="editorial"' "$page"
-            grep -q 'hreflang="en"' "$page"
-            grep -q 'hreflang="ru"' "$page"
-            grep -q 'application/ld+json' "$page"
-            for asset in '/assets/css/insights-editorial-v2.css' '/assets/js/insights-editorial-v2.js' '/assets/social/proai-home-og-en-r1-1.png' '/assets/social/proai-home-og-ru-r1-1.png';do
-              code="$(curl --location --silent --output /dev/null --max-time 25 --write-out '%{http_code}' "$preview$asset")"
-              test "$code" = '200' || { echo "ASSET_FAIL $asset $code";exit 1; }
-            done
+            grep -q 'class="g1__hero-visual"' "$body"
+            grep -q 'data-g1-calculator' "$body"
+            grep -q 'data-footer-family="editorial"' "$body"
+            grep -q 'og:image.*article07-first-automation-roi-og.png' "$body"
+            grep -q 'twitter:image.*article07-first-automation-roi-og.png' "$body"
+            grep -q 'application/ld+json' "$body"
+            echo "G1_R2_LIVE_ARTICLE_OK $path $code"
           done
-          echo 'G1_LIVE_HTTPS_EN_RU_200_NOINDEX_CSS_JS_OG_SCHEMA_CTA_PASS'
+          for asset in 'assets/img/insights/article07-first-automation-roi-hero.webp' 'assets/img/insights/article07-first-automation-roi-og.png'; do
+            out="$(mktemp)"
+            code="$(curl -sSL --max-time 35 -o "$out" -w '%{http_code}' "$preview/$asset")"
+            test "$code" = 200
+            if [[ "$asset" == *.webp ]]; then
+              expected='5c27a34ce1a2670d9b14b549d92007a1cf76629a9cb04fd3049a4ca75c782695'
+            else
+              expected='f339224fea6e207dbf241314b90c3b27f0f3ab5e30d8cc55c4c174a59940e043'
+            fi
+            actual="$(sha256sum "$out" | awk '{print $1}')"
+            test "$actual" = "$expected"
+            echo "G1_R2_LIVE_BINARY_ASSET_SHA256_PASS $asset"
+          done
+          for path in '/contact/' '/ru/contact/' '/insights/' '/ru/insights/'; do
+            code="$(curl -sSL --max-time 25 -o /dev/null -w '%{http_code}' "$preview$path")"
+            test "$code" = 200
+          done
+          echo 'G1_R2_COMPILED_REAL_HTTPS_EN_RU_HERO_OG_SHA256_NOINDEX_PASS'

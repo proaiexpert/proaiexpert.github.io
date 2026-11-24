@@ -1,0 +1,193 @@
+name: ProAI Semantic R2 Live Owner Preview
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: proai-semantic-r2-live-preview
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: >-
+      github.event.pull_request.number == 118 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'agent/proai-cube-semantic-brand-moment-r2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    defaults:
+      run:
+        working-directory: docs/site-evolution/spline/proai-cube-semantic-brand-moment-r2
+
+    steps:
+      - name: Checkout frozen Semantic R2 product SHA
+        uses: actions/checkout@v4
+        with:
+          ref: 295a67a27df127c95d799c93ea39448afd714793
+          fetch-depth: 1
+
+      - name: Install runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --package-lock=false
+          npx playwright install --with-deps chromium
+          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /tmp/cloudflared
+          chmod +x /tmp/cloudflared
+          /tmp/cloudflared --version
+
+      - name: Build and start exact Semantic R2 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          nohup python3 -m http.server 4173 --bind 127.0.0.1 --directory dist >/tmp/proai-r2-server.log 2>&1 &
+          echo $! >/tmp/proai-r2-server.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:4173/ -o /tmp/local.html; then
+              grep -qi '<html' /tmp/local.html
+              echo 'LOCAL_RUNTIME_HTTP_PASS'
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/proai-r2-server.log
+          exit 1
+
+      - name: Publish temporary Safari preview and hold 60 minutes
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          /tmp/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:4173 >/tmp/cloudflared.log 2>&1 &
+          TUNNEL_PID=$!
+          trap 'rm -f .public-smoke.mjs; kill "$TUNNEL_PID" 2>/dev/null || true; kill "$(cat /tmp/proai-r2-server.pid 2>/dev/null)" 2>/dev/null || true' EXIT
+
+          URL=''
+          for i in $(seq 1 90); do
+            URL=$(grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | tail -1 || true)
+            if [ -n "$URL" ]; then break; fi
+            if ! kill -0 "$TUNNEL_PID" 2>/dev/null; then
+              cat /tmp/cloudflared.log
+              exit 1
+            fi
+            sleep 1
+          done
+          if [ -z "$URL" ]; then
+            cat /tmp/cloudflared.log
+            exit 1
+          fi
+          echo "PUBLIC_URL=$URL"
+
+          PUBLIC_OK=0
+          for i in $(seq 1 60); do
+            if curl -fsSL --max-time 15 "$URL/" -o /tmp/public.html && grep -qi '<html' /tmp/public.html; then
+              PUBLIC_OK=1
+              break
+            fi
+            sleep 1
+          done
+          test "$PUBLIC_OK" -eq 1
+          echo 'PUBLIC_HTTP_HTML_PASS'
+
+          cat > .public-smoke.mjs <<'NODE'
+          import { chromium } from 'playwright';
+
+          const url = process.env.PUBLIC_URL;
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({
+            viewport: { width: 390, height: 844 },
+            deviceScaleFactor: 1,
+            reducedMotion: 'no-preference',
+          });
+          const page = await context.newPage();
+          const pageErrors = [];
+          const badResponses = [];
+          const seen = { html: false, js: false, css: false, glb: false };
+
+          page.on('pageerror', (error) => pageErrors.push(String(error)));
+          page.on('response', (response) => {
+            const u = response.url();
+            const status = response.status();
+            if (u === url || u === `${url}/`) seen.html = status >= 200 && status < 400;
+            if (/\.js(?:\?|$)/i.test(u)) seen.js ||= status >= 200 && status < 400;
+            if (/\.css(?:\?|$)/i.test(u)) seen.css ||= status >= 200 && status < 400;
+            if (/\.glb(?:\?|$)/i.test(u)) seen.glb ||= status >= 200 && status < 400;
+            if (status >= 400) badResponses.push({ url: u, status });
+          });
+
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 120000 });
+          await page.waitForFunction(() => window.__PROAI_CUBE_R1_2?.ready === true, null, { timeout: 120000 });
+
+          const first = await page.evaluate(() => {
+            const api = window.__PROAI_CUBE_R1_2;
+            const canvas = document.getElementById('cube-canvas');
+            const d = api.getDiagnostics();
+            return {
+              search: location.search,
+              ready: api.ready === true,
+              webgl: Boolean(canvas?.getContext('webgl2') || canvas?.getContext('webgl')),
+              simTimeMs: Number(d.presentation?.simTimeMs ?? 0),
+              schedulerRunning: d.scheduler?.running === true,
+              semanticReady: d.semanticR2?.ready === true,
+            };
+          });
+
+          await page.waitForTimeout(2500);
+
+          const second = await page.evaluate(() => {
+            const d = window.__PROAI_CUBE_R1_2.getDiagnostics();
+            return { simTimeMs: Number(d.presentation?.simTimeMs ?? 0) };
+          });
+
+          if (pageErrors.length) throw new Error(`Fatal page errors: ${JSON.stringify(pageErrors)}`);
+          if (badResponses.length) throw new Error(`HTTP asset failures: ${JSON.stringify(badResponses)}`);
+          if (!seen.html || !seen.js || !seen.glb) throw new Error(`Required public assets missing: ${JSON.stringify(seen)}`);
+          if (!first.ready || !first.webgl || !first.semanticReady || !first.schedulerRunning) throw new Error(`Runtime not ready: ${JSON.stringify(first)}`);
+          if (first.search !== '') throw new Error(`Capture/review query active: ${first.search}`);
+          if (!(second.simTimeMs > first.simTimeMs)) throw new Error(`Autonomous presentation did not advance: ${JSON.stringify({ first, second })}`);
+
+          console.log('PUBLIC_SMOKE_PASS', JSON.stringify({ seen, first, second, pageErrors: pageErrors.length }));
+          await browser.close();
+          NODE
+
+          PUBLIC_URL="$URL" node .public-smoke.mjs
+          rm -f .public-smoke.mjs
+
+          CURRENT_BODY=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.body // ""')
+          CLEAN_BODY=$(printf '%s\n' "$CURRENT_BODY" | sed '/<!-- LIVE_PREVIEW_START -->/,/<!-- LIVE_PREVIEW_END -->/d')
+          cat >/tmp/pr-body.md <<EOF
+          $CLEAN_BODY
+
+          <!-- LIVE_PREVIEW_START -->
+          ## SEMANTIC R2 LIVE REVIEW — READY
+
+          **Product SHA:** \`295a67a27df127c95d799c93ea39448afd714793\`
+
+          **Live preview:** $URL
+
+          Local runtime: PASS  
+          Public HTTP: PASS  
+          GLB: PASS  
+          WebGL: PASS  
+          Semantic runtime ready: PASS  
+          Normal autonomous presentation: PASS  
+          Capture/review mode: OFF  
+
+          Temporary preview window: approximately 60 minutes from workflow publication.
+          <!-- LIVE_PREVIEW_END -->
+          EOF
+          gh api --method PATCH "repos/$REPO/pulls/$PR_NUMBER" -F body=@/tmp/pr-body.md >/dev/null
+
+          echo "LIVE_PREVIEW_READY $URL"
+          sleep 3600

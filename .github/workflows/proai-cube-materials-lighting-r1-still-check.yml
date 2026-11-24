@@ -1,0 +1,55 @@
+name: ProAI Cube Materials Lighting R1 Still Check
+
+on:
+  push:
+    branches:
+      - agent/proai-cube-materials-lighting-r1
+    paths:
+      - '.github/workflows/proai-cube-materials-lighting-r1-still-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  still-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Generate refined look-dev
+        run: |
+          python docs/site-evolution/spline/build-proai-cube-materials-lighting-r1.py
+          python docs/site-evolution/spline/proai-cube-materials-lighting-r1-refine-r2.py
+      - name: Install browser runtime
+        working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
+        run: |
+          npm install --package-lock=false
+          npx playwright install chromium
+          nohup npx vite --host 127.0.0.1 --port 4173 >/tmp/proai-still-vite.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:4173/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/proai-still-vite.log; exit 1
+      - name: Capture critical stills
+        working-directory: docs/site-evolution/spline/proai-cube-materials-lighting-r1
+        run: |
+          mkdir -p quick-review
+          node --input-type=module <<'JS'
+          import { chromium } from 'playwright';
+          const browser = await chromium.launch({headless:true,args:['--enable-webgl','--ignore-gpu-blocklist','--use-angle=swiftshader']});
+          const page = await browser.newPage({ viewport: { width: 1200, height: 1200 } });
+          await page.goto('http://127.0.0.1:4173/?capture=1',{waitUntil:'networkidle',timeout:120000});
+          await page.waitForFunction(()=>window.__PROAI_CUBE_R1_2?.ready===true,null,{timeout:90000});
+          await page.evaluate(()=>window.__PROAI_CUBE_R1_2.setReviewPresentation(2.8));
+          await page.screenshot({path:'quick-review/natural-r2.png'});
+          await page.evaluate(()=>window.__PROAI_CUBE_R1_2.setReviewPresentation(14.9));
+          await page.screenshot({path:'quick-review/dark-side-r2.png'});
+          await page.evaluate(()=>window.__PROAI_CUBE_R1_2.setReviewPresentation(18.25));
+          await page.screenshot({path:'quick-review/large-angle-r2.png'});
+          await browser.close();
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: proai-cube-materials-lighting-r1-still-check
+          path: docs/site-evolution/spline/proai-cube-materials-lighting-r1/quick-review/*.png
+          retention-days: 2

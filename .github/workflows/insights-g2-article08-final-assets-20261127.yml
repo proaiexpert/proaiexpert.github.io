@@ -1,0 +1,340 @@
+name: G2-FINAL Article08 approved artwork source-pinned build and live QA
+on:
+  push:
+    branches:
+      - qa/insights-g2-article08-20261127
+    paths:
+      - .github/workflows/insights-g2-article08-final-assets-20261127.yml
+permissions:
+  contents: write
+  checks: read
+jobs:
+  qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 1327a88ed1198247389452e84cb1cd78af147fb5
+          fetch-depth: 0
+      - name: Jekyll and scope validators
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GEM_HOME="$(ruby -e 'puts Gem.user_dir')"
+          export PATH="$GEM_HOME/bin:$PATH"
+          gem install --user-install jekyll -v 4.3.4 --no-document
+          gem install --user-install webrick --no-document
+          node scripts/verify-proai-cube-integrity-r2.mjs
+          python scripts/apply-social-preview-defaults.py --mode source --root .
+          jekyll build --source . --destination _site
+          python scripts/apply-social-preview-defaults.py --mode site --root _site
+          python scripts/apply-social-preview-defaults.py --mode check --root _site
+          python scripts/validate-site-shell-r1.py --source-root . --site-root _site
+          python scripts/validate-insights-v2-r1.py --source-root . --site-root _site
+          python - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import re,json,subprocess,hashlib,xml.etree.ElementTree as ET
+          base='af507c748647b0851ff8c4d4fbf0e8cb90070a90'
+          head='1327a88ed1198247389452e84cb1cd78af147fb5'
+          R={'en':'/insights/ai-agent-or-automation-what-your-business-actually-needs/','ru':'/ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/'}
+          links={'en':['/insights/process-clarity-comes-before-scalable-automation/','/insights/where-automation-delivers-its-first-real-roi/','/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/','/ai-systems/','/contact/#project-intake'],'ru':['/ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/','/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/','/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/','/ru/ai-systems/','/ru/contact/#project-intake']}
+          hero='assets/img/insights/article08-ai-agent-vs-automation-hero.webp'; og_path='assets/img/insights/article08-ai-agent-vs-automation-og.png'; og_url='https://proai-expert.com/'+og_path
+          hashes={hero:'e773a634efdc1bfe2be8dad8e23cde986f35cf776122d9408b3ea1ff1fbd38e8',og_path:'d75f33798ba485a50d855b1a2cd10f5cb37e3e19b84921d5b99bbff3b112d9f7'}
+          expected={x.strip('/')+'/index.html' for x in R.values()}|{'_data/insights.yml','sitemap.xml','scripts/apply-social-preview-defaults.py',hero,og_path}
+          git=lambda *a:subprocess.check_output(['git',*a],text=True)
+          assert git('rev-parse','HEAD').strip()==head
+          assert set(git('diff','--name-only',base,head).splitlines())==expected
+          subprocess.run(['git','diff','--check',base,head],check=True)
+          reviewed='7ace021c846d6c94733716638d57c583f3d652d9'
+          assert set(git('diff','--name-only',reviewed,head).splitlines())==expected-{'sitemap.xml'}
+          assert git('show',reviewed+':sitemap.xml')==Path('sitemap.xml').read_text()
+          reg=git('show',reviewed+':_data/insights.yml')
+          pattern=r'(?ms)^- id: ai-agent-vs-automation\n.*?(?=^- id: |\Z)'
+          block=re.search(pattern,reg).group()
+          newblock=block.replace('https://proai-expert.com/assets/social/proai-home-og-en-r1-1.png',og_url).replace('https://proai-expert.com/assets/social/proai-home-og-ru-r1-1.png',og_url)
+          assert reg.replace(block,newblock)==Path('_data/insights.yml').read_text()
+          for asset,digest in hashes.items():
+           assert hashlib.sha256(Path(asset).read_bytes()).hexdigest()==digest
+           assert hashlib.sha256(Path('_site',asset).read_bytes()).hexdigest()==digest
+          print('G2_FINAL_SOURCE_AND_COMPILED_ASSETS_SHA256_PASS')
+          for lang,route in R.items():
+           src=Path(route.strip('/')+'/index.html').read_text();oldsrc=git('show',reviewed+':'+route.strip('/')+'/index.html')
+           assert re.findall(r'href="([^"]+)"',src)==re.findall(r'href="([^"]+)"',oldsrc)
+           assert re.findall(r'<tr><th scope="row">.*?</tr>',src)==re.findall(r'<tr><th scope="row">.*?</tr>',oldsrc)
+           assert src.count('id="comparison-framework"')==1 and src.count('<svg viewBox=')==3
+           assert src.count('<figure class="g2__hero-visual">')==1
+           assert ('src="/'+hero+'" width="1672" height="941"') in src
+           stripped=re.sub(r'<figure class="g2__hero-visual">.*?</figure>\n','',src,count=1)
+           stripped=re.sub(r'(?m)^\.g2__hero-visual[^\n]*\n','',stripped)
+           stripped=re.sub(r'(?m)^@media\(max-width:700px\)\{\.g2__hero-visual[^\n]*\n','',stripped)
+           assert stripped==oldsrc, 'Unexpected change outside hero CSS and figure'
+           assert all(src.split('</style>',1)[1].count('data-path="'+x+'"')==3 for x in 'abc')
+           assert all(x in src for x in ['#65D9EE','#B7A0F1','#E4BF80','g2__approval-note','insight-v2-article-cta'])
+          print('G2_FINAL_DELTA_SIX_FILES_CONTENT_PRESERVED')
+          for fragment in ['#comparison-framework','#faq']:
+           x=subprocess.run(['git','grep','-n','-F',fragment,reviewed,'--','*.html','*.md','*.yml'],capture_output=True,text=True)
+           print('G2B2_INCOMING_FRAGMENT',fragment,x.stdout[:6000] or 'NO_MATCH')
+          old=git('show',base+':_data/insights.yml');new=Path('_data/insights.yml').read_text()
+          strip=lambda s:re.sub(r'(?ms)^- id: ai-agent-vs-automation\n.*?(?=^- id: |\Z)','',s)
+          assert strip(old)==strip(new)
+          block=re.search(r'(?ms)^- id: ai-agent-vs-automation\n.*?(?=^- id: |\Z)',new).group()
+          assert block.count('date_published: "2026-04-05"')==2 and block.count('date_modified: "2026-11-27"')==2
+          assert 'author_ref: proai' in block and 'related_ids: [process-clarity, first-automation-roi]' in block
+          old=git('show',base+':sitemap.xml');new=Path('sitemap.xml').read_text()
+          ns={'s':'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          def inv(s):return [(el.findtext('s:loc',namespaces=ns),el.findtext('s:lastmod',namespaces=ns)) for el in ET.fromstring(s).findall('s:url',ns)]
+          a,b=inv(old),inv(new);assert len(a)==len(b)==46
+          assert [u for u,d in a]==[u for u,d in b]
+          assert [(u,d) for (u,d),(v,e) in zip(b,a) if d!=e]==[(u,'2026-11-27') for u,d in b if u in ['https://proai-expert.com'+r for r in R.values()]]
+          class Meta(HTMLParser):
+           def __init__(self):super().__init__();self.m={};self.l=[]
+           def handle_starttag(self,t,attrs):
+            a=dict(attrs)
+            if t=='meta' and (a.get('property') or a.get('name')):self.m.setdefault(a.get('property') or a.get('name'),[]).append(a.get('content'))
+            if t=='link':self.l.append(a)
+          for lang,route in R.items():
+           p=route.strip('/')+'/index.html'
+           s=Path(p).read_text();html=Path('_site',p).read_text()
+           assert s.startswith('---\nlayout: insight-v2\n') and s.count('<h2 id=')==10 and s.count('  - label:')==3
+           assert s.count('<tr><th scope="row">')==16 and s.count('<table')==2
+           assert s.count('tabindex="0"')==2 and s.count('<caption>')==2
+           assert 'Alderline Appliance Service' in s and ('Fictional example' if lang=='en' else 'вымышленная') in s
+           assert 'data-author-type="organization"' in html and 'data-signal-count="3"' in html and 'data-related-count="2"' in html
+           assert 'data-related-id="process-clarity"' in html and 'data-related-id="first-automation-roi"' in html
+           assert 'data-footer-family="editorial"' in html and 'data-home-footer-golden-r3' in html
+           assert '{% include' not in html and 'data-insight-v2-article' in html
+           for link in links[lang]:
+            assert 'href="'+link+'"' in s, (lang,link)
+            assert Path('_site',link.split('#')[0].strip('/'),'index.html').is_file(), ('missing link',link)
+           assert 'id="project-intake"' in Path('_site','contact/index.html' if lang=='en' else 'ru/contact/index.html').read_text()
+           for url in ['https://www.anthropic.com/research/building-effective-agents','https://www.nist.gov/itl/ai-risk-management-framework/nist-ai-rmf-playbook','https://genai.owasp.org/llm2026/llm032026-excessive-agency/','https://www.ftc.gov/business-guidance/resources/protecting-personal-information-guide-business']:assert url in s
+           m=Meta();m.feed(html.split('</head>',1)[0]); og=og_url
+           assert m.m['og:image']==[og] and m.m['twitter:image']==[og]
+           assert [x.get('href') for x in m.l if x.get('rel')=='canonical']==['https://proai-expert.com'+route]
+           assert {x.get('hreflang'):x.get('href') for x in m.l if x.get('hreflang')}=={'en':'https://proai-expert.com'+R['en'],'ru':'https://proai-expert.com'+R['ru'],'x-default':'https://proai-expert.com'+R['en']}
+           graph=json.loads(re.search(r'<script type="application/ld\+json">([\s\S]*?)</script>',html).group(1))['@graph']
+           article=next(x for x in graph if x['@type']=='Article')
+           assert article['author']['@type']=='Organization' and article['author']['name']=='ProAI Expert'
+           assert article['datePublished']=='2026-04-05' and article['dateModified']=='2026-11-27' and article['image']['url']==og
+           assert any(x['@type']=='BreadcrumbList' for x in graph)
+           print('G2_COMPILED_'+lang+'_PASS')
+          for p in ['insights/where-automation-delivers-its-first-real-roi/index.html','ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/index.html']:
+           assert Path(p).read_text()==git('show',base+':'+p)
+           html=Path('_site',p).read_text();assert 'data-g1-calculator' in html and 'data-home-footer-golden-r3' in html and 'article07-first-automation-roi-hero.webp' in html
+          for p in ['insights/index.html','ru/insights/index.html','insights/process-clarity-comes-before-scalable-automation/index.html','insights/ai-search-optimization-for-service-businesses/index.html','insights/why-service-business-websites-fail-to-convert-high-intent-visitors/index.html','insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/index.html','insights/repair-redesign-or-rebuild-your-business-website/index.html']:
+           assert 'data-home-footer-golden-r3' in Path('_site',p).read_text()
+          print('G2_FINAL_SCOPE_7_FILES_SITEMAP_46_PARITY_SCHEMA_LINKS_ARTICLE07_REGRESSION_PASS')
+          PY
+      - name: Chromium WebKit responsive and accessibility
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/g2pw --no-audit --no-fund --no-save playwright@1.56.1
+          npx --prefix /tmp/g2pw playwright install --with-deps chromium webkit
+          python -m http.server 8765 --bind 127.0.0.1 --directory _site >/tmp/g2-server.log 2>&1 &
+          mkdir -p /tmp/g2-evidence
+          cat >/tmp/g2-browser.cjs <<'JS'
+          const {chromium,webkit}=require('/tmp/g2pw/node_modules/playwright');
+          const root=process.env.PREVIEW_BASE||'http://127.0.0.1:8765';
+          const routes={en:'/insights/ai-agent-or-automation-what-your-business-actually-needs/',ru:'/ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/'};
+          const widths=[320,390,430,844,1440];
+          const output='/tmp/g2-evidence';
+          let fail=[],checks=0;
+          const check=(ok,label,detail='')=>{checks++;if(!ok)fail.push(label+' '+detail);};
+          async function load(browser,lang,width,opts={}){
+           const height=width<500?844:width<1000?430:900;
+           const ctx=await browser.newContext({viewport:{width,height},hasTouch:width<1000,reducedMotion:'reduce',...opts});
+           if(!process.env.PREVIEW_BASE)await ctx.route('**/*',r=>r.request().url().startsWith(root+'/')?r.continue():r.abort());
+           const p=await ctx.newPage();const errors=[];p.on('pageerror',e=>errors.push(String(e)));
+           const res=await p.goto(root+routes[lang],{waitUntil:'load',timeout:45000});
+           return {ctx,p,errors,res};
+          }
+          async function shape(p){return p.evaluate(()=>{
+           const tables=[...document.querySelectorAll('.g2__scroll')].map(e=>({cols:e.querySelectorAll('thead th').length,rows:e.querySelectorAll('tbody tr').length,scroll:e.scrollWidth-e.clientWidth,focus:e.tabIndex,right:e.getBoundingClientRect().right,css:getComputedStyle(e).overflowX}));
+           return {lang:document.documentElement.lang,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,tables,author:document.querySelector('[data-author-type]')?.dataset.authorType,footer:!!document.querySelector('[data-home-footer-golden-r3]'),chapters:document.querySelectorAll('.insight-v2-rail a').length,signals:document.querySelector('[data-insight-v2-signal]')?.dataset.signalCount,links:[...document.querySelectorAll('.g2 a,.insight-v2-article-cta a')].map(e=>e.getAttribute('href')),lead:document.querySelector('.insight-v2-lead')?.innerText,scrollY:window.scrollY};
+           });}
+          (async()=>{
+           for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
+           const browser=await engine.launch({headless:true});
+           for(const lang of ['en','ru']){
+           for(const width of (process.env.PREVIEW_BASE?[390,1440]:widths)){
+           const {ctx,p,errors,res}=await load(browser,lang,width);const label=name+'/'+lang+'/'+width;const s=await shape(p);
+           check(res?.status()===200,label+' HTTP');
+           const image=await p.evaluate(async()=>{
+            const img=document.querySelector('.g2__hero-visual img');if(!img)return null;
+            await img.decode();const b=img.getBoundingClientRect(),f=img.closest('figure').getBoundingClientRect();
+            return {naturalWidth:img.naturalWidth,naturalHeight:img.naturalHeight,width:b.width,height:b.height,left:b.left,right:b.right,figure:f.width,fit:getComputedStyle(img).objectFit,alt:img.alt,src:img.getAttribute('src')};
+           });
+           check(!!image&&image.naturalWidth===1672&&image.naturalHeight===941&&image.width>0&&Math.abs(image.width/image.height-1672/941)<.01&&image.left>=-1&&image.right<=width+1&&image.fit==='contain'&&!!image.alt&&image.src==='/assets/img/insights/article08-ai-agent-vs-automation-hero.webp',label+' complete responsive Hero',JSON.stringify(image));
+           if(width===390||width===1440){check(s.scrollY===0,label+' initial scroll');await p.screenshot({path:output+'/'+name+'-'+lang+'-'+width+'-initial.png'});}
+           check(s.lang===lang&&s.author==='organization'&&s.footer&&s.chapters===10&&s.signals==='3',label+' shell');
+           check(s.overflow<=2,label+' document overflow',JSON.stringify(s));
+           check(s.tables.length===2&&s.tables[0].rows===11&&s.tables[0].cols===4&&s.tables[1].rows===5&&s.tables[1].cols===3&&s.tables.every(t=>t.focus===0&&t.css==='auto'&&t.right<=width+2),label+' matrix geometry');
+          const visual=await p.evaluate(()=>{
+                const arch=document.querySelector('.g2__architecture'),table=document.querySelector('.g2__scroll--main'),r=table.querySelector('th[scope="row"]'),cards=[...arch.querySelectorAll('.g2__level')];
+                return {svg:[...arch.querySelectorAll('svg')].map(e=>({w:e.getBoundingClientRect().width,label:e.getAttribute('aria-label'),text:e.querySelectorAll('text').length})),colors:cards.map(e=>getComputedStyle(e).borderTopColor),criterion:getComputedStyle(r).position,header:getComputedStyle(r).backgroundColor,alias:document.querySelectorAll('#comparison-framework').length,approval:!!document.querySelector('.g2__approval-note'),cta:!!document.querySelector('.insight-v2-article-cta'),geometry:{w:table.clientWidth,h:table.getBoundingClientRect().height,scroll:table.scrollWidth,table:table.querySelector('table').getBoundingClientRect().height}};
+              });
+              check(visual.svg.length===3&&visual.svg.every(x=>x.w>120&&x.label&&x.text>=4)&&new Set(visual.colors).size===3,label+' diagram and semantic palette',JSON.stringify(visual));
+              check(visual.criterion==='sticky'&&visual.alias===1&&visual.approval&&visual.cta,label+' local UX and historical alias');
+           const contrast=await p.evaluate(()=>{
+             const rgb=s=>s.match(/[\d.]+/g).slice(0,3).map(Number);
+             const lum=v=>v.map(x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4}).reduce((n,x,i)=>n+x*[.2126,.7152,.0722][i],0);
+             const ratio=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05);
+             const h=[...document.querySelectorAll('.g2__scroll--main thead th')].slice(1).map(e=>ratio(rgb(getComputedStyle(e).color),rgb(getComputedStyle(e).backgroundColor)));
+             const cell=[...document.querySelectorAll('.g2__scroll--main tbody tr:first-child td')].map(e=>ratio(rgb(getComputedStyle(e).color),rgb(getComputedStyle(e).backgroundColor)));
+             return {header:h,cell};
+           });
+           check([...contrast.header,...contrast.cell].every(x=>x>=4.5),label+' matrix text contrast >=4.5',JSON.stringify(contrast));
+           if(width===1440){
+             const card=p.locator('.g2__level').first();
+             await card.hover();
+             check(await card.evaluate(e=>getComputedStyle(e).borderLeftColor===getComputedStyle(e).borderTopColor),label+' hover border');
+             const cta=p.locator('.insight-v2-article-cta__action').first();
+             await cta.focus();
+             check(await cta.evaluate(e=>getComputedStyle(e).outlineStyle!=='none'),label+' CTA keyboard focus');
+             check(await card.evaluate(e=>getComputedStyle(e).transitionDuration==='0s'),label+' reduced motion transition');
+           }
+              if(width===390||width===1440){
+               console.log('G2B2_AFTER_GEOMETRY',process.env.PREVIEW_BASE?'live':'local',name,lang,width,JSON.stringify(visual.geometry));
+               for(const [key,sel] of [['hero','.g2__hero-visual'],['models-diagram','.g2__architecture'],['matrix-0','.g2__scroll--main'],['matrix-1','.g2__scroll--approval'],['approval','.g2__approval-note'],['cta','.insight-v2-article-cta']]){
+                await p.locator(sel).first().screenshot({path:output+'/'+name+'-'+lang+'-'+width+'-'+key+'.png',timeout:30000});
+               }
+               const table=p.locator('.g2__scroll--main'),row=table.locator('th[scope="row"]').first();
+               await table.evaluate(e=>e.scrollLeft=0);const left=(await row.boundingBox()).x;await table.evaluate(e=>e.scrollLeft=180);
+               check(Math.abs((await row.boundingBox()).x-left)<3,label+' sticky criterion fixed during scroll');
+               await table.evaluate(e=>e.scrollLeft=0);
+               await p.goto(root+routes[lang]+'#comparison-framework',{waitUntil:'load'});
+               const pos=await p.locator('#comparison-framework').evaluate(e=>({y:e.getBoundingClientRect().top,scroll:scrollY}));
+               check(pos.scroll>0&&pos.y>=0&&pos.y<250,label+' alias real navigation',JSON.stringify(pos));
+              }
+           check(errors.length===0,label+' runtime',errors.join('|'));
+           if(width<500)check(s.tables.every(t=>t.scroll>100),label+' table scroll area');
+           if(width===390){
+            for(let i=0;i<2;i++){
+             const t=p.locator('.g2__scroll').nth(i);
+             await t.focus();check(await t.evaluate(e=>e===document.activeElement),label+' focus '+i);
+             await p.keyboard.press('ArrowRight');check(await t.evaluate(e=>e.scrollLeft>0),label+' keyboard '+i);
+             await p.keyboard.press('Home');check(await t.evaluate(e=>e.scrollLeft===0),label+' Home '+i);
+             await t.screenshot({path:output+'/'+name+'-'+lang+'-390-matrix-'+i+'.png'});
+            }
+            const t=p.locator('.g2__scroll').first();await t.scrollIntoViewIfNeeded();await t.evaluate(e=>e.scrollLeft=0);
+            const box=await t.boundingBox(),x=box.x+box.width*.8,y=Math.max(100,Math.min(700,box.y+40));
+            if(name==='chromium'){
+              const cd=await ctx.newCDPSession(p);await cd.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+              for(let i=1;i<=8;i++){await cd.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-i*18,y}]});await p.waitForTimeout(20);}
+              await cd.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await p.waitForTimeout(250);
+              check(await t.evaluate(e=>e.scrollLeft>0),label+' native touch gesture');
+            }else{
+              await p.mouse.move(x,y);await p.mouse.wheel(180,0);await p.waitForTimeout(300);
+              check(await t.evaluate(e=>e.scrollLeft>0),label+' WebKit native wheel horizontal scroll');
+            }
+           }
+           await ctx.close();
+           }
+           if(!process.env.PREVIEW_BASE){
+           for(const scale of [1.25,1.5]){
+           const {ctx,p}=await load(browser,lang,390);
+           await p.evaluate(scale=>{const els=[...document.querySelectorAll('.insight-v2-article h1,.insight-v2-article h2,.insight-v2-article h3,.insight-v2-article p,.insight-v2-article li,.insight-v2-article th,.insight-v2-article td,.insight-v2-article summary')];const sizes=els.map(e=>parseFloat(getComputedStyle(e).fontSize));els.forEach((e,i)=>e.style.setProperty('font-size',sizes[i]*scale+'px','important'));},scale);
+           const s=await shape(p);check(s.overflow<=2,name+'/'+lang+' text '+scale,JSON.stringify(s));await ctx.close();
+           }
+           const {ctx,p,res}=await load(browser,lang,320,{javaScriptEnabled:false});
+           const s=await shape(p);check(res?.status()===200&&s.lead&&s.tables.length===2&&s.tables.every(t=>t.scroll>100)&&s.overflow<=2&&(await p.locator('.g2__architecture svg').count())===3&&(await p.locator('.g2__hero-visual img').evaluate(e=>e.complete&&e.naturalWidth===1672)),name+'/'+lang+' no-JS');await ctx.close();
+           }
+           const ctx=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+           if(!process.env.PREVIEW_BASE)await ctx.route('**/*',r=>r.request().url().startsWith(root+'/')?r.continue():r.abort());
+           const p=await ctx.newPage();
+           const old=lang==='en'?'/insights/where-automation-delivers-its-first-real-roi/':'/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/';
+           await p.goto(root+old,{waitUntil:'load'});check(await p.locator('[data-g1-calculator]').count()===1,name+'/'+lang+' Article07 calculator');
+           await p.locator('[name="cash"]').fill('450');check((await p.locator('[data-g1-payback]').innerText()).match(/12[.,]0/),name+'/'+lang+' Article07 payback');check(await p.locator('img[src*="article07-first-automation-roi-hero.webp"]').count()===1,name+'/'+lang+' Article07 Hero');await ctx.close();
+           }
+           await browser.close();
+           }
+           console.log('G2_BROWSER_QA',checks,'checks',fail.length,'failures');
+           if(fail.length){console.error(fail.join('\n'));process.exitCode=1;}
+          })().catch(e=>{console.error(e);process.exitCode=1;});
+          JS
+          node /tmp/g2-browser.cjs
+      - name: Screenshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: g2-final-article08-local-evidence
+          path: /tmp/g2-evidence/*.png
+          if-no-files-found: error
+      - name: Publish immutable compiled only
+        shell: bash
+        run: |
+          set -euo pipefail
+          dest='agent/insights-g2-article08-final-compiled-20261127'
+          if git ls-remote --heads origin "refs/heads/$dest" | grep -q .; then echo 'Immutable branch exists; refusing overwrite'; exit 1; fi
+          tmp="$(mktemp -d)"
+          cp -a _site/. "$tmp/"
+          rm -f "$tmp/CNAME"
+          printf '/*\n  X-Robots-Tag: noindex, nofollow\n' > "$tmp/_headers"
+          touch "$tmp/.nojekyll"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan "$dest"
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
+          cp -a "$tmp"/. .
+          git add -A
+          git commit -m 'preview: Article08 compiled Jekyll from 1327a88ed1198247389452e84cb1cd78af147fb5'
+          git push origin "HEAD:refs/heads/$dest"
+          echo "G2_COMPILED_SHA=$(git rev-parse HEAD)"
+      - name: Confirm live HTTP and resources
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, subprocess, re, json, time, urllib.request
+          sha=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          repo=os.environ['GITHUB_REPOSITORY']
+          base=None
+          for i in range(40):
+           p=subprocess.run(['gh','api',f'repos/{repo}/commits/{sha}/check-runs'],capture_output=True,text=True)
+           if p.returncode==0:
+            for c in json.loads(p.stdout).get('check_runs',[]):
+             if c['name']=='Cloudflare Pages' and c['conclusion']=='success':
+              m=re.search(r'https://[a-f0-9]{8}\.proaiexpert-github-io\.pages\.dev',c.get('output',{}).get('summary',''))
+              if m:base=m.group()
+           if base:break
+           time.sleep(10)
+          assert base,'Cloudflare immutable deployment not confirmed'
+          print('G2_IMMUTABLE_BASE='+base,flush=True)
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('PREVIEW_BASE='+base+'\n')
+          PY
+          BASE="$(grep '^PREVIEW_BASE=' "$GITHUB_ENV" | tail -1 | cut -d= -f2-)"
+          for route in /insights/ai-agent-or-automation-what-your-business-actually-needs/ /ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/; do
+            h="$(mktemp)"; p="$(mktemp)"
+            code="$(curl -L -sS --max-time 30 -D "$h" -o "$p" -w '%{http_code}' "$BASE$route")"
+            echo "G2B2_LIVE $route HTTP=$code"; test "$code" = 200
+            grep -i '^x-robots-tag:' "$h"; grep -iq '^x-robots-tag:.*noindex' "$h"
+            grep -q 'g2__architecture' "$p"; grep -q 'id="comparison-framework"' "$p"; grep -q 'data-home-footer-golden-r3' "$p"
+            grep -q 'src="/assets/img/insights/article08-ai-agent-vs-automation-hero.webp"' "$p"
+            grep -q 'property="og:image" content="https://proai-expert.com/assets/img/insights/article08-ai-agent-vs-automation-og.png"' "$p"
+            grep -q 'name="twitter:image" content="https://proai-expert.com/assets/img/insights/article08-ai-agent-vs-automation-og.png"' "$p"
+          done
+          for spec in 'e773a634efdc1bfe2be8dad8e23cde986f35cf776122d9408b3ea1ff1fbd38e8  assets/img/insights/article08-ai-agent-vs-automation-hero.webp' 'd75f33798ba485a50d855b1a2cd10f5cb37e3e19b84921d5b99bbff3b112d9f7  assets/img/insights/article08-ai-agent-vs-automation-og.png'; do
+            digest="${spec%%  *}"; asset="${spec#*  }"; p="$(mktemp)"
+            curl -fLsS --max-time 45 "$BASE/$asset" -o "$p"
+            printf '%s  %s\n' "$digest" "$p" | sha256sum -c -
+            echo "G2_FINAL_LIVE_ASSET_SHA256_PASS $asset $digest"
+          done
+          for route in /assets/css/insights-editorial-v2.css /assets/js/insights-editorial-v2.js /assets/css/header-system-v1.css /assets/js/header-system-v1.js /assets/social/proai-home-og-en-r1-1.png /assets/social/proai-home-og-ru-r1-1.png /contact/ /ru/contact/ /ai-systems/ /ru/ai-systems/ /insights/ /ru/insights/; do
+            code="$(curl -L -sS --max-time 30 -o /dev/null -w '%{http_code}' "$BASE$route")"; echo "G2B2_RESOURCE $route $code"; test "$code" = 200
+          done
+      - name: Actual deployed Chromium WebKit visual and interactive QA
+        shell: bash
+        run: |
+          rm -f /tmp/g2-evidence/*.png
+          node /tmp/g2-browser.cjs
+      - name: Upload live screenshot evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: g2-final-article08-confirmed-live-evidence
+          path: /tmp/g2-evidence/*.png
+          if-no-files-found: warn

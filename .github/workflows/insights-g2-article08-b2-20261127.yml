@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: a3269e8fa43a41bb5a1721ea1efcd2153ca6ebad
+          ref: 7ace021c846d6c94733716638d57c583f3d652d9
           fetch-depth: 0
       - name: Jekyll and scope validators
         shell: bash
@@ -37,7 +37,7 @@ jobs:
           from html.parser import HTMLParser
           import re,json,subprocess,xml.etree.ElementTree as ET
           base='af507c748647b0851ff8c4d4fbf0e8cb90070a90'
-          head='a3269e8fa43a41bb5a1721ea1efcd2153ca6ebad'
+          head='7ace021c846d6c94733716638d57c583f3d652d9'
           R={'en':'/insights/ai-agent-or-automation-what-your-business-actually-needs/','ru':'/ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/'}
           links={'en':['/insights/process-clarity-comes-before-scalable-automation/','/insights/where-automation-delivers-its-first-real-roi/','/insights/how-much-does-a-business-website-cost-in-2026-a-strategic-budget-view/','/ai-systems/','/contact/#project-intake'],'ru':['/ru/insights/arkhitektura-vkhodyashchego-potoka-poryadok-v-zayavkakh/','/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/','/ru/insights/ekonomika-proekta-pochemu-otsenka-po-stranitsam-oshibochna/','/ru/ai-systems/','/ru/contact/#project-intake']}
           expected={x.strip('/')+'/index.html' for x in R.values()}|{'_data/insights.yml','sitemap.xml'}
@@ -53,8 +53,8 @@ jobs:
            assert re.findall(r'href="([^"]+)"',src)==re.findall(r'href="([^"]+)"',oldsrc)
            assert re.findall(r'<tr><th scope="row">.*?</tr>',src)==re.findall(r'<tr><th scope="row">.*?</tr>',oldsrc)
            assert src.count('id="comparison-framework"')==1 and src.count('<svg viewBox=')==3
-           assert src.count('data-path="a"')==3 and src.count('data-path="b"')==3 and src.count('data-path="c"')==3
-           assert all(x in src for x in ['#65D9EE','#B7A0F1','#E4BF80','g2__approval-note','g2__closing'])
+           assert all(src.split('</style>',1)[1].count('data-path="'+x+'"')==3 for x in 'abc')
+           assert all(x in src for x in ['#65D9EE','#B7A0F1','#E4BF80','g2__approval-note','insight-v2-article-cta'])
           print('G2B2_DELTA_TWO_FILES_TABLE_ROWS_LINKS_IDENTICAL')
           for fragment in ['#comparison-framework','#faq']:
            x=subprocess.run(['git','grep','-n','-F',fragment,reviewed,'--','*.html','*.md','*.yml'],capture_output=True,text=True)
@@ -185,13 +185,31 @@ jobs:
            check(s.tables.length===2&&s.tables[0].rows===11&&s.tables[0].cols===4&&s.tables[1].rows===5&&s.tables[1].cols===3&&s.tables.every(t=>t.focus===0&&t.css==='auto'&&t.right<=width+2),label+' matrix geometry');
           const visual=await p.evaluate(()=>{
                 const arch=document.querySelector('.g2__architecture'),table=document.querySelector('.g2__scroll--main'),r=table.querySelector('th[scope="row"]'),cards=[...arch.querySelectorAll('.g2__level')];
-                return {svg:[...arch.querySelectorAll('svg')].map(e=>({w:e.getBoundingClientRect().width,label:e.getAttribute('aria-label'),text:e.querySelectorAll('text').length})),colors:cards.map(e=>getComputedStyle(e).borderTopColor),criterion:getComputedStyle(r).position,header:getComputedStyle(r).backgroundColor,alias:document.querySelectorAll('#comparison-framework').length,approval:!!document.querySelector('.g2__approval-note'),cta:!!document.querySelector('.g2__closing'),geometry:{w:table.clientWidth,h:table.getBoundingClientRect().height,scroll:table.scrollWidth,table:table.querySelector('table').getBoundingClientRect().height}};
+                return {svg:[...arch.querySelectorAll('svg')].map(e=>({w:e.getBoundingClientRect().width,label:e.getAttribute('aria-label'),text:e.querySelectorAll('text').length})),colors:cards.map(e=>getComputedStyle(e).borderTopColor),criterion:getComputedStyle(r).position,header:getComputedStyle(r).backgroundColor,alias:document.querySelectorAll('#comparison-framework').length,approval:!!document.querySelector('.g2__approval-note'),cta:!!document.querySelector('.insight-v2-article-cta'),geometry:{w:table.clientWidth,h:table.getBoundingClientRect().height,scroll:table.scrollWidth,table:table.querySelector('table').getBoundingClientRect().height}};
               });
               check(visual.svg.length===3&&visual.svg.every(x=>x.w>120&&x.label&&x.text>=4)&&new Set(visual.colors).size===3,label+' diagram and semantic palette',JSON.stringify(visual));
               check(visual.criterion==='sticky'&&visual.alias===1&&visual.approval&&visual.cta,label+' local UX and historical alias');
+           const contrast=await p.evaluate(()=>{
+             const rgb=s=>s.match(/[\d.]+/g).slice(0,3).map(Number);
+             const lum=v=>v.map(x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4}).reduce((n,x,i)=>n+x*[.2126,.7152,.0722][i],0);
+             const ratio=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05);
+             const h=[...document.querySelectorAll('.g2__scroll--main thead th')].slice(1).map(e=>ratio(rgb(getComputedStyle(e).color),rgb(getComputedStyle(e).backgroundColor)));
+             const cell=[...document.querySelectorAll('.g2__scroll--main tbody tr:first-child td')].map(e=>ratio(rgb(getComputedStyle(e).color),rgb(getComputedStyle(e).backgroundColor)));
+             return {header:h,cell};
+           });
+           check([...contrast.header,...contrast.cell].every(x=>x>=4.5),label+' matrix text contrast >=4.5',JSON.stringify(contrast));
+           if(width===1440){
+             const card=p.locator('.g2__level').first();
+             await card.hover();
+             check(await card.evaluate(e=>getComputedStyle(e).borderLeftColor===getComputedStyle(e).borderTopColor),label+' hover border');
+             const cta=p.locator('.insight-v2-article-cta__action').first();
+             await cta.focus();
+             check(await cta.evaluate(e=>getComputedStyle(e).outlineStyle!=='none'),label+' CTA keyboard focus');
+             check(await card.evaluate(e=>getComputedStyle(e).transitionDuration==='0s'),label+' reduced motion transition');
+           }
               if(width===390||width===1440){
                console.log('G2B2_AFTER_GEOMETRY',process.env.PREVIEW_BASE?'live':'local',name,lang,width,JSON.stringify(visual.geometry));
-               for(const [key,sel] of [['models-diagram','.g2__architecture'],['matrix-0','.g2__scroll--main'],['matrix-1','.g2__scroll--approval'],['approval','.g2__approval-note'],['cta','.g2__closing']]){
+               for(const [key,sel] of [['models-diagram','.g2__architecture'],['matrix-0','.g2__scroll--main'],['matrix-1','.g2__scroll--approval'],['approval','.g2__approval-note'],['cta','.insight-v2-article-cta']]){
                 await p.locator(sel).first().screenshot({path:output+'/'+name+'-'+lang+'-'+width+'-'+key+'.png',timeout:30000});
                }
                const table=p.locator('.g2__scroll--main'),row=table.locator('th[scope="row"]').first();
@@ -233,7 +251,7 @@ jobs:
            const s=await shape(p);check(s.overflow<=2,name+'/'+lang+' text '+scale,JSON.stringify(s));await ctx.close();
            }
            const {ctx,p,res}=await load(browser,lang,320,{javaScriptEnabled:false});
-           const s=await shape(p);check(res?.status()===200&&s.lead&&s.tables.length===2&&s.tables.every(t=>t.scroll>100)&&s.overflow<=2,name+'/'+lang+' no-JS');await ctx.close();
+           const s=await shape(p);check(res?.status()===200&&s.lead&&s.tables.length===2&&s.tables.every(t=>t.scroll>100)&&s.overflow<=2&&(await p.locator('.g2__architecture svg').count())===3,name+'/'+lang+' no-JS');await ctx.close();
            }
            const ctx=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
            if(!process.env.PREVIEW_BASE)await ctx.route('**/*',r=>r.request().url().startsWith(root+'/')?r.continue():r.abort());
@@ -275,7 +293,7 @@ jobs:
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf -- {} +
           cp -a "$tmp"/. .
           git add -A
-          git commit -m 'preview: Article08 compiled Jekyll from a3269e8fa43a41bb5a1721ea1efcd2153ca6ebad'
+          git commit -m 'preview: Article08 compiled Jekyll from 7ace021c846d6c94733716638d57c583f3d652d9'
           git push origin "HEAD:refs/heads/$dest"
           echo "G2_COMPILED_SHA=$(git rev-parse HEAD)"
       - name: Confirm live HTTP and resources

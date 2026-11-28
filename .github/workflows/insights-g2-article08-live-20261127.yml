@@ -1,0 +1,129 @@
+name: G2 Article08 live immutable HTTPS and browser verification
+on:
+  push:
+    branches:
+      - qa/insights-g2-article08-20261127
+    paths:
+      - .github/workflows/insights-g2-article08-live-20261127.yml
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PREVIEW_BASE: https://fe1b1249.proaiexpert-github-io.pages.dev
+    steps:
+      - name: Real HTTPS via curl
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "G2_COMPILED_SHA=233ab152beb1bab91f37c37997ab95bb74287640"
+          for route in /insights/ai-agent-or-automation-what-your-business-actually-needs/ /ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/; do
+            h="$(mktemp)";p="$(mktemp)"
+            status="$(curl -L -sS --max-time 30 -D "$h" -o "$p" -w '%{http_code}' "$PREVIEW_BASE$route")"
+            echo "G2_LIVE $route HTTP=$status"
+            test "$status" = 200
+            grep -i '^x-robots-tag:' "$h"
+            grep -iq '^x-robots-tag:.*noindex' "$h"
+            grep -q 'data-insight-v2-article' "$p"
+            grep -q 'g2__scroll' "$p"
+            grep -q 'data-home-footer-golden-r3' "$p"
+            grep -q 'dateModified":"2026-11-27' "$p"
+          done
+          for route in /assets/css/insights-editorial-v2.css /assets/js/insights-editorial-v2.js /assets/css/header-system-v1.css /assets/js/header-system-v1.js /assets/social/proai-home-og-en-r1-1.png /assets/social/proai-home-og-ru-r1-1.png /contact/ /ru/contact/ /ai-systems/ /ru/ai-systems/ /insights/ /ru/insights/; do
+            status="$(curl -L -sS --max-time 30 -o /dev/null -w '%{http_code}' "$PREVIEW_BASE$route")"
+            echo "G2_LIVE_RESOURCE $route HTTP=$status"
+            test "$status" = 200
+          done
+      - name: Actual deployed browser QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/g2pw --no-audit --no-fund --no-save playwright@1.56.1
+          npx --prefix /tmp/g2pw playwright install --with-deps chromium webkit
+          mkdir -p /tmp/g2-evidence
+          cat >/tmp/g2-browser.cjs <<'JS'
+          const {chromium,webkit}=require('/tmp/g2pw/node_modules/playwright');
+          const root=process.env.PREVIEW_BASE||'http://127.0.0.1:8765';
+          const routes={en:'/insights/ai-agent-or-automation-what-your-business-actually-needs/',ru:'/ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/'};
+          const widths=[320,375,390,430,844,932,1280,1440,1600];
+          const output='/tmp/g2-evidence';
+          let fail=[],checks=0;
+          const check=(ok,label,detail='')=>{checks++;if(!ok)fail.push(label+' '+detail);};
+          async function load(browser,lang,width,opts={}){
+           const height=width<500?844:width<1000?430:900;
+           const ctx=await browser.newContext({viewport:{width,height},hasTouch:width<1000,reducedMotion:'reduce',...opts});
+           if(!process.env.PREVIEW_BASE)await ctx.route('**/*',r=>r.request().url().startsWith(root+'/')?r.continue():r.abort());
+           const p=await ctx.newPage();const errors=[];p.on('pageerror',e=>errors.push(String(e)));
+           const res=await p.goto(root+routes[lang],{waitUntil:'load',timeout:45000});
+           return {ctx,p,errors,res};
+          }
+          async function shape(p){return p.evaluate(()=>{
+           const tables=[...document.querySelectorAll('.g2__scroll')].map(e=>({cols:e.querySelectorAll('thead th').length,rows:e.querySelectorAll('tbody tr').length,scroll:e.scrollWidth-e.clientWidth,focus:e.tabIndex,right:e.getBoundingClientRect().right,css:getComputedStyle(e).overflowX}));
+           return {lang:document.documentElement.lang,overflow:document.documentElement.scrollWidth-document.documentElement.clientWidth,tables,author:document.querySelector('[data-author-type]')?.dataset.authorType,footer:!!document.querySelector('[data-home-footer-golden-r3]'),chapters:document.querySelectorAll('.insight-v2-rail a').length,signals:document.querySelector('[data-insight-v2-signal]')?.dataset.signalCount,links:[...document.querySelectorAll('.g2 a,.insight-v2-article-cta a')].map(e=>e.getAttribute('href')),lead:document.querySelector('.insight-v2-lead')?.innerText,scrollY:window.scrollY};
+           });}
+          (async()=>{
+           for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
+           const browser=await engine.launch({headless:true});
+           for(const lang of ['en','ru']){
+           for(const width of (process.env.PREVIEW_BASE?[390,1440]:widths)){
+           const {ctx,p,errors,res}=await load(browser,lang,width);const label=name+'/'+lang+'/'+width;const s=await shape(p);
+           check(res?.status()===200,label+' HTTP');
+           if(width===390||width===1440){check(s.scrollY===0,label+' initial scroll');await p.screenshot({path:output+'/'+name+'-'+lang+'-'+width+'-initial.png'});}
+           check(s.lang===lang&&s.author==='organization'&&s.footer&&s.chapters===10&&s.signals==='3',label+' shell');
+           check(s.overflow<=2,label+' document overflow',JSON.stringify(s));
+           check(s.tables.length===2&&s.tables[0].rows===11&&s.tables[0].cols===4&&s.tables[1].rows===5&&s.tables[1].cols===3&&s.tables.every(t=>t.focus===0&&t.css==='auto'&&t.right<=width+2),label+' matrix geometry');
+           check(errors.length===0,label+' runtime',errors.join('|'));
+           if(width<500)check(s.tables.every(t=>t.scroll>100),label+' table scroll area');
+           if(width===390){
+            for(let i=0;i<2;i++){
+             const t=p.locator('.g2__scroll').nth(i);
+             await t.focus();check(await t.evaluate(e=>e===document.activeElement),label+' focus '+i);
+             await p.keyboard.press('ArrowRight');check(await t.evaluate(e=>e.scrollLeft>0),label+' keyboard '+i);
+             await p.keyboard.press('Home');check(await t.evaluate(e=>e.scrollLeft===0),label+' Home '+i);
+             await t.screenshot({path:output+'/'+name+'-'+lang+'-390-matrix-'+i+'.png'});
+            }
+            const t=p.locator('.g2__scroll').first();await t.scrollIntoViewIfNeeded();await t.evaluate(e=>e.scrollLeft=0);
+            const box=await t.boundingBox(),x=box.x+box.width*.8,y=Math.max(100,Math.min(700,box.y+40));
+            if(name==='chromium'){
+              const cd=await ctx.newCDPSession(p);await cd.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+              for(let i=1;i<=8;i++){await cd.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x-i*18,y}]});await p.waitForTimeout(20);}
+              await cd.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await p.waitForTimeout(250);
+              check(await t.evaluate(e=>e.scrollLeft>0),label+' native touch gesture');
+            }else{
+              await p.mouse.move(x,y);await p.mouse.wheel(180,0);await p.waitForTimeout(300);
+              check(await t.evaluate(e=>e.scrollLeft>0),label+' WebKit native wheel horizontal scroll');
+            }
+           }
+           await ctx.close();
+           }
+           if(!process.env.PREVIEW_BASE){
+           for(const scale of [1.25,1.5]){
+           const {ctx,p}=await load(browser,lang,390);
+           await p.evaluate(scale=>{const els=[...document.querySelectorAll('.insight-v2-article h1,.insight-v2-article h2,.insight-v2-article h3,.insight-v2-article p,.insight-v2-article li,.insight-v2-article th,.insight-v2-article td,.insight-v2-article summary')];const sizes=els.map(e=>parseFloat(getComputedStyle(e).fontSize));els.forEach((e,i)=>e.style.setProperty('font-size',sizes[i]*scale+'px','important'));},scale);
+           const s=await shape(p);check(s.overflow<=2,name+'/'+lang+' text '+scale,JSON.stringify(s));await ctx.close();
+           }
+           const {ctx,p,res}=await load(browser,lang,320,{javaScriptEnabled:false});
+           const s=await shape(p);check(res?.status()===200&&s.lead&&s.tables.length===2&&s.tables.every(t=>t.scroll>100)&&s.overflow<=2,name+'/'+lang+' no-JS');await ctx.close();
+           }
+           const ctx=await browser.newContext({viewport:{width:390,height:844},reducedMotion:'reduce'});
+           if(!process.env.PREVIEW_BASE)await ctx.route('**/*',r=>r.request().url().startsWith(root+'/')?r.continue():r.abort());
+           const p=await ctx.newPage();
+           const old=lang==='en'?'/insights/where-automation-delivers-its-first-real-roi/':'/ru/insights/gde-avtomatizatsiya-daet-pervuyu-realnuyu-polzu-biznesu/';
+           await p.goto(root+old,{waitUntil:'load'});check(await p.locator('[data-g1-calculator]').count()===1,name+'/'+lang+' Article07 calculator');
+           await p.locator('[name="cash"]').fill('450');check((await p.locator('[data-g1-payback]').innerText()).match(/12[.,]0/),name+'/'+lang+' Article07 payback');check(await p.locator('img[src*="article07-first-automation-roi-hero.webp"]').count()===1,name+'/'+lang+' Article07 Hero');await ctx.close();
+           }
+           await browser.close();
+           }
+           console.log('G2_BROWSER_QA',checks,'checks',fail.length,'failures');
+           if(fail.length){console.error(fail.join('\n'));process.exitCode=1;}
+          })().catch(e=>{console.error(e);process.exitCode=1;});
+          JS
+          node /tmp/g2-browser.cjs
+      - name: Actual live screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: g2-article08-confirmed-live-evidence
+          path: /tmp/g2-evidence/*.png
+          if-no-files-found: error

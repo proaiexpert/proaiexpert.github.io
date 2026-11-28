@@ -50,6 +50,22 @@ ARTICLE07_SOCIAL = {
 }
 
 
+# Article 08 uses one approved language-neutral OG asset in both locales.
+ARTICLE08_IMAGE = "https://proai-expert.com/assets/img/insights/article08-ai-agent-vs-automation-og.png"
+ARTICLE08_PNG = Path("assets/img/insights/article08-ai-agent-vs-automation-og.png")
+ARTICLE08_PNG_SHA256 = "d75f33798ba485a50d855b1a2cd10f5cb37e3e19b84921d5b99bbff3b112d9f7"
+ARTICLE08_SOCIAL = {
+    Path("insights/ai-agent-or-automation-what-your-business-actually-needs/index.html"): (
+        ARTICLE08_IMAGE,
+        "The Permission Instrument — three distinct operating models inside one permission boundary.",
+    ),
+    Path("ru/insights/ai-agent-ili-avtomatizatsiya-chto-nuzhno-biznesu/index.html"): (
+        ARTICLE08_IMAGE,
+        "Инструмент полномочий — три модели работы внутри единой границы разрешений.",
+    ),
+}
+
+
 ASSETS = {
     "en": {
         "filename": "proai-home-og-en-r1-1.png",
@@ -131,6 +147,7 @@ def validate_assets(root: Path) -> None:
         raise AssertionError(f"Wrong Article 13 OG dimensions: {path}: {width}x{height}")
     # Keep the Article 07 approved asset intact, including dimensions and byte-level SHA.
     check_png(root / ARTICLE07_PNG, ARTICLE07_PNG_SHA256)
+    check_png(root / ARTICLE08_PNG, ARTICLE08_PNG_SHA256)
 
 
 def is_ru_page(rel: Path, text: str) -> bool:
@@ -153,6 +170,8 @@ def is_ru_page(rel: Path, text: str) -> bool:
 
 def social_values(rel: Path, is_ru: bool) -> tuple[str, str]:
     # Use exact approved per-article routes; all other pages retain global defaults.
+    if rel in ARTICLE08_SOCIAL:
+        return ARTICLE08_SOCIAL[rel]
     if rel in ARTICLE07_SOCIAL:
         return ARTICLE07_SOCIAL[rel]
     return ARTICLE13_SOCIAL.get(
